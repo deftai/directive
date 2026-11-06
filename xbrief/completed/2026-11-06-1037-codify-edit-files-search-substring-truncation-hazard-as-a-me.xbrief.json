@@ -374,14 +374,18 @@
         "parallel_safe": true
       },
       "productPullRequest": 6104,
-      "lifecycleWrite": true,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-06T19:49:59Z"
+      },
       "completionProvenance": {
         "schema": "deft.scope.completion-provenance.v1",
         "productPullRequest": 6104,
         "mergeCommit": "0b7d272ee4055d494d8910c00e4ec6a235018749",
         "deliveryBranch": "master",
-        "completedAt": "2026-11-06T19:40:51Z"
-      }
+        "completedAt": "2026-11-06T19:49:59Z"
+      },
+      "completedAt": "2026-11-06T19:49:59Z"
     },
     "id": "github.issue.4418069608",
     "updated": "2026-11-06T19:40:51Z"
