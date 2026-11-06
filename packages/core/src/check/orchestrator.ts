@@ -135,7 +135,7 @@ export function dispatchTaskCheck(
     // Framework tip must always run (Bound P4 refuse-missing). Non-framework
     // trees without the committed file are test/consumer fixtures.
     if (
-      target === "check:framework-source" ||
+      (target === "check:framework-source" && isFrameworkRepoRoot(resolvedFramework)) ||
       existsSync(baselinePath) ||
       seams.sanctionedSkipInventoryRows !== undefined ||
       seams.sanctionedSkipTargetBaselineCount !== undefined

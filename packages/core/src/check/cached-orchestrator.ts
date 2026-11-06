@@ -49,6 +49,7 @@ import {
 } from "./consumer-header-placeholder.js";
 import {
   type CheckOrchestratorSeams,
+  isFrameworkRepoRoot,
   resolveCheckTarget,
   runSanctionedSkipCountBaselineGate,
   SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID,
@@ -338,7 +339,7 @@ export function dispatchCachedTaskCheck(
     const baselineRoot = target === "check:framework-source" ? resolvedFramework : resolvedProject;
     const baselinePath = join(baselineRoot, ...SANCTIONED_SKIP_COUNT_BASELINE_REL.split("/"));
     if (
-      target === "check:framework-source" ||
+      (target === "check:framework-source" && isFrameworkRepoRoot(resolvedFramework)) ||
       existsSync(baselinePath) ||
       options.sanctionedSkipInventoryRows !== undefined ||
       options.sanctionedSkipTargetBaselineCount !== undefined
