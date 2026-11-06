@@ -1,6 +1,7 @@
 import { resolveGh } from "../release/gh.js";
 import { spawnText } from "../release/spawn.js";
 import type { SpawnResult } from "../release/types.js";
+import { plainGhEnv } from "../subprocess/plain-gh-env.js";
 import { RELEASES_LIST_ENDPOINT_TEMPLATE } from "./constants.js";
 import type { NormalisedRelease, ReleasePublishSeams, ViewReleaseState } from "./types.js";
 
@@ -26,7 +27,7 @@ export function ghApiFindReleaseByTag(
   try {
     result = spawn(ghPath, ["api", "--paginate", endpoint], {
       timeoutMs: 120_000,
-      env: { ...process.env },
+      env: plainGhEnv(),
     });
   } catch {
     return ["gh-error", null, "gh CLI not found on PATH"];

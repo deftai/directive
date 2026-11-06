@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { spawnText } from "../release/spawn.js";
 import {
   editReleasePublish,
   ghApiFindReleaseByTag,
@@ -6,6 +9,14 @@ import {
   viewRelease,
 } from "./gh-api.js";
 import type { ReleasePublishSeams } from "./types.js";
+
+const COLOR_GH_STUB = resolve(
+  import.meta.dirname,
+  "..",
+  "pr-protected-issues",
+  "fixtures",
+  "color-gh-stub.mjs",
+);
 
 const REST_DRAFT = {
   id: 1234567,
@@ -279,5 +290,45 @@ describe("editReleasePublish", () => {
     });
     expect(ok).toBe(false);
     expect(reason).toContain("gh CLI not found");
+  });
+});
+
+describe("ghApiFindReleaseByTag plain gh env (#6032)", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("stub colors releases-list JSON when CLICOLOR_FORCE reaches it (pre-fix base)", () => {
+    const raw = execFileSync(
+      process.execPath,
+      [COLOR_GH_STUB, "api", "--paginate", "repos/deftai/directive/releases?per_page=100"],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        env: { ...process.env, CLICOLOR_FORCE: "1" },
+      },
+    );
+    expect(raw).toContain("\u001b[");
+    expect(() => JSON.parse(raw)).toThrow();
+  });
+
+  it("returns parseable draft under parent CLICOLOR_FORCE=1", () => {
+    vi.stubEnv("CLICOLOR_FORCE", "1");
+    vi.stubEnv("NO_COLOR", "");
+    const seams: ReleasePublishSeams = {
+      whichGh: () => "/usr/bin/gh",
+      spawnText: (_cmd, args, options) =>
+        spawnText(process.execPath, [COLOR_GH_STUB, ...args], options),
+    };
+    const [state, body] = ghApiFindReleaseByTag(
+      "/usr/bin/gh",
+      "deftai/directive",
+      "v0.21.0",
+      seams,
+    );
+    expect(state).toBe("draft");
+    expect(body?.isDraft).toBe(true);
+    expect(body?.id).toBe(6032);
+    expect(process.env.CLICOLOR_FORCE).toBe("1");
   });
 });

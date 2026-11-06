@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.5.
 
 ### Fixed
+- fix(gh): release `ghReleaseViewIsDraft`, release-publish `ghApiFindReleaseByTag`, and release-rollback `ghReleaseViewJson` now pass `plainGhEnv()`, so parent `CLICOLOR_FORCE=1` no longer breaks those JSON reads (follow-up of the 0.129.3 shared-runner claim). Refs #6032.
 
 ### Removed
 - **Stale gitcrawl fallback maintainer doc (#1092).** Deleted `docs/gitcrawl-fallback.md` after the v0.26 cache rebind made its gh-only install/recovery path misleading. UPGRADING From v0.25.x → v0.26.0 now points operators at `cache:*` instead; matching content-contract pins in `standards.test.ts` dropped.

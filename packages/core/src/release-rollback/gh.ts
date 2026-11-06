@@ -1,4 +1,5 @@
 import { resolveGh, spawnText } from "../release/index.js";
+import { plainGhEnv } from "../subprocess/plain-gh-env.js";
 import type { GhReleasePayload, RollbackSeams } from "./types.js";
 
 export function ghReleaseViewJson(
@@ -31,7 +32,7 @@ export function ghReleaseViewJson(
       ],
       {
         timeoutMs: 60_000,
-        env: { ...process.env },
+        env: plainGhEnv(),
       },
     );
     if (result.status !== 0) {

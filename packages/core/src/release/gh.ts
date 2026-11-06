@@ -1,6 +1,7 @@
 import { existsSync, mkdtempSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { plainGhEnv } from "../subprocess/plain-gh-env.js";
 import { runGit } from "./git.js";
 import { defaultWhich, spawnText } from "./spawn.js";
 import type { ReleaseSeams } from "./types.js";
@@ -131,7 +132,7 @@ function ghReleaseViewIsDraft(
   const result = spawn(ghPath, ["release", "view", tag, "--repo", repo, "--json", "isDraft"], {
     cwd: projectRoot,
     timeoutMs: 30_000,
-    env: { ...process.env },
+    env: plainGhEnv(),
   });
   if (result.status !== 0) {
     const stderr = result.stderr.trim();
