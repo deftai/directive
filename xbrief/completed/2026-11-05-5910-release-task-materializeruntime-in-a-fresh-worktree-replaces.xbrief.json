@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5910",
-    "updated": "2026-11-05T18:15:30.986Z"
+    "updated": "2026-11-06T03:27:13.428Z"
   },
   "plan": {
     "title": "release: `task materialize:runtime` in a fresh worktree replaces the pinned runtime with master's 0.0.0 and the pin hook blocks the release",
@@ -636,7 +636,26 @@
         ],
         "parallel_safe": true
       },
-      "productPullRequest": 6064
+      "productPullRequest": 6064,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-06T03:27:13.428Z"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ed896992118e137c85cec10556fcb240637995af",
+        "prNumber": 6064,
+        "prBase": "master",
+        "mergeCommit": "0d978ab3f49de299fdaf7a6f31c84717364db177",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0d978ab3f49de299fdaf7a6f31c84717364db177",
+        "verifiedAt": "2026-11-06T03:27:13.428Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      }
     },
     "id": "github.issue.6025964365",
     "updated": "2026-11-05T17:59:25Z"
