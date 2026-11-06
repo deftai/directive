@@ -839,6 +839,43 @@ describe("always-on named Merge gate (#6071)", () => {
     expect(status.disposition).toBe("missing");
   });
 
+  it("admits consumer repos when Merge gate (task check) is absent (consumer contract)", () => {
+    const result = evaluateAlwaysOnNamedMergeGate(PR, "acme/app", {
+      tipSha: CURRENT_HEAD,
+      checkRuns: [{ name: "CI", status: "completed", conclusion: "success" }],
+    });
+    expect(result.ok).toBe(true);
+    expect(result.status.disposition).toBe("missing");
+    expect(result.error).toBeNull();
+  });
+
+  it("still refuses deftai/directive when Merge gate (task check) is absent", () => {
+    const result = evaluateAlwaysOnNamedMergeGate(PR, REPO, {
+      tipSha: CURRENT_HEAD,
+      checkRuns: [{ name: "CI", status: "completed", conclusion: "success" }],
+    });
+    expect(result.ok).toBe(false);
+    expect(result.outcome).toBe(OUTCOME_MASTER_MERGE_GATE_RED);
+    expect(result.status.disposition).toBe("missing");
+  });
+
+  it("still refuses consumer repos when Merge gate (task check) is red", () => {
+    const result = evaluateAlwaysOnNamedMergeGate(PR, "acme/app", {
+      tipSha: CURRENT_HEAD,
+      checkRuns: [redNamed],
+      hotfixAdmission: {
+        admitted: false,
+        shape: null,
+        skipIssue: null,
+        actorLogin: null,
+        reason: null,
+        outcome: null,
+      },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.outcome).toBe(OUTCOME_MASTER_MERGE_GATE_RED);
+  });
+
   it("does not invoke task check or check:merge for the red-master gate", () => {
     const cmds: string[] = [];
     evaluateAlwaysOnNamedMergeGate(PR, REPO, {

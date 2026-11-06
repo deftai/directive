@@ -851,6 +851,8 @@ function applyNamedMergeGate(
       },
     };
   }
+  // evaluateAlwaysOnNamedMergeGate admits consumers when the exact check name is
+  // absent; deftai/directive stays always-on fail-closed (#6071 / Greptile P1).
   const namedFn = options.namedMergeGateFn ?? evaluateAlwaysOnNamedMergeGate;
   const named = namedFn(result.prNumber, repo, {
     runGh,

@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { evaluateAlwaysOnNamedMergeGate } from "../pr-wait-mergeable/semantic-green.js";
 import { type ComputeGateOptions, computeGateResult } from "./compute.js";
 import { isMergeReady } from "./evaluate.js";
 import { exitCodeFor, printHuman } from "./output.js";
@@ -650,5 +651,38 @@ describe("pr:merge-ready closeout invoker (#3875)", () => {
       if (prev === undefined) delete process.env.VITEST;
       else process.env.VITEST = prev;
     }
+  });
+
+  it("admits consumer merge-ready when Merge gate (task check) is absent (#6071)", () => {
+    const result = computeGateResult(
+      3875,
+      "acme/app",
+      fakeRunGh({
+        commentBody: cleanGreptileBody(HEAD),
+        mergeableState: "clean",
+        mergeable: true,
+        checks: GREEN_CHECKS,
+      }),
+      {
+        skipCi: true,
+        skipSlizard: true,
+        skipCloseoutAttestable: false,
+        closeoutAttestableFn: () => ({ code: 0, message: "ok" }),
+        namedMergeGateFn: (prNumber, repo, opts) =>
+          evaluateAlwaysOnNamedMergeGate(prNumber, repo, {
+            ...opts,
+            tipSha: HEAD,
+            // No Merge gate (task check) — consumer contract skip.
+            checkRuns: [
+              {
+                name: "TypeScript (build + lint + test)",
+                status: "completed",
+                conclusion: "success",
+              },
+            ],
+          }),
+      },
+    );
+    expect(isMergeReady(result.failures)).toBe(true);
   });
 });

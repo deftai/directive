@@ -1486,6 +1486,22 @@ export function evaluateAlwaysOnNamedMergeGate(
       hotfix: null,
     };
   }
+  // Consumer contract: Directive does not assume consumer CI workflows exist.
+  // Always-on named gate stays fail-closed on deftai/directive; other repos skip
+  // only when the exact check name is absent (red/pending/skipped still refuse).
+  if (status.disposition === "missing" && repo !== "deftai/directive") {
+    return {
+      ok: true,
+      outcome: null,
+      exitCode: null,
+      error: null,
+      status: {
+        ...status,
+        error: null,
+      },
+      hotfix: null,
+    };
+  }
 
   if (prNumber === null) {
     if (options.firstHotfixBootstrap === true) {
