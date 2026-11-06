@@ -379,7 +379,23 @@ export function runPrFinishLoop(options: PrFinishLoopOptions): PrFinishLoopResul
     }
     const pinnedHead = liveHead;
     // #6071: same named-check refuse set before mergeFn (finish-loop reachability).
-    if (options.skipNamedMergeGate !== true && repo !== null && repo.length > 0) {
+    if (options.skipNamedMergeGate !== true) {
+      if (repo === null || repo.length === 0) {
+        const message =
+          `pr:finish-loop ACTION_REQUIRED on PR #${prNumber}: named Merge gate requires a ` +
+          `resolved repository before merge (#6071); refuse rather than skip.`;
+        log("merge", "error", message);
+        return {
+          exitCode: EXIT_ACTION_REQUIRED,
+          haltReason: "error",
+          message,
+          prNumber,
+          watchVerdict: VERDICT_CLEAN,
+          mergeAttempted: false,
+          mergeSkippedReason: "master-merge-gate-repo-missing",
+          grantId: null,
+        };
+      }
       const namedFn = options.namedMergeGateFn ?? evaluateAlwaysOnNamedMergeGate;
       const named = namedFn(prNumber, repo, {
         runGh: options.runGh,

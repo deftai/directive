@@ -405,6 +405,30 @@ export function waitMergeableAndMerge(
     }
   }
 
+  // #6071: re-read named Merge gate after the wait, immediately before mergeFn,
+  // so master tip churn during monitorFn cannot land an ordinary PR on a red tip.
+  if (!skipNamedMergeGate) {
+    const recheckGreen = semanticGreenFn(prNumber, repo, {
+      cascadeMode: options.cascadeMode,
+      requireMasterCiGreen: options.requireMasterCiGreen,
+      baseBranch: options.baseBranch,
+      skipNamedMergeGate: false,
+      projectRoot,
+    });
+    if (!recheckGreen.ok) {
+      return makeResult({
+        prNumber,
+        repo,
+        outcome: recheckGreen.outcome ?? "semantic-green-blocked",
+        exitCode: recheckGreen.exitCode ?? EXIT_TIMEOUT_OR_ESCALATION,
+        monitorResult: monitorPayload,
+        protectedCheck: protectedCheckPayload,
+        semanticGreen: { ...recheckGreen.payload } as Record<string, unknown>,
+        error: recheckGreen.error,
+      });
+    }
+  }
+
   const [mergeRc, mergeStdout, mergeStderr] = mergeFn(prNumber, repo, {
     matchHeadCommit,
   });

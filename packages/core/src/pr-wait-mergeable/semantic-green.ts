@@ -1066,6 +1066,27 @@ function isMaintainerClassActor(
   return maintainerLogins.some((m) => m.toLowerCase() === needle);
 }
 
+function fetchCollaboratorAssociation(
+  repo: string,
+  login: string,
+  runGh: RunGhFn,
+): string | null {
+  const rc = runGh(["gh", "api", `repos/${repo}/collaborators/${login}/permission`]);
+  if (rc.returncode !== 0 || !rc.stdout.trim()) return null;
+  try {
+    const payload = JSON.parse(rc.stdout) as unknown;
+    if (payload === null || typeof payload !== "object" || Array.isArray(payload)) return null;
+    const permission = (payload as Record<string, unknown>).permission;
+    if (typeof permission !== "string") return null;
+    const p = permission.toLowerCase();
+    if (p === "admin" || p === "maintain") return "MEMBER";
+    if (p === "write") return "COLLABORATOR";
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function fetchLatestHotfixLabelActor(
   prNumber: number,
   repo: string,
@@ -1074,25 +1095,39 @@ function fetchLatestHotfixLabelActor(
   actor: { login: string; type: string | null; association: string | null } | null;
   error: string | null;
 } {
-  const rc = runGh(["gh", "api", `repos/${repo}/issues/${prNumber}/events?per_page=100`]);
-  if (rc.returncode !== 0) {
-    return { actor: null, error: `could not read labeled-timeline events: ${rc.stderr.trim()}` };
-  }
-  if (!rc.stdout.trim()) {
-    return { actor: null, error: "empty body from issues/<N>/events" };
-  }
-  let payload: unknown;
-  try {
-    payload = JSON.parse(rc.stdout) as unknown;
-  } catch (exc: unknown) {
-    const message = exc instanceof Error ? exc.message : String(exc);
-    return { actor: null, error: `could not parse events JSON: ${message}` };
-  }
-  if (!Array.isArray(payload)) {
-    return { actor: null, error: "unexpected events JSON shape (not a list)" };
+  // Paginate issue events — busy PRs can push the current hotfix label past page 1.
+  const allEvents: unknown[] = [];
+  let page = 1;
+  const maxPages = 20;
+  while (page <= maxPages) {
+    const rc = runGh([
+      "gh",
+      "api",
+      `repos/${repo}/issues/${prNumber}/events?per_page=100&page=${page}`,
+    ]);
+    if (rc.returncode !== 0) {
+      return { actor: null, error: `could not read labeled-timeline events: ${rc.stderr.trim()}` };
+    }
+    if (!rc.stdout.trim()) {
+      if (page === 1) return { actor: null, error: "empty body from issues/<N>/events" };
+      break;
+    }
+    let payload: unknown;
+    try {
+      payload = JSON.parse(rc.stdout) as unknown;
+    } catch (exc: unknown) {
+      const message = exc instanceof Error ? exc.message : String(exc);
+      return { actor: null, error: `could not parse events JSON: ${message}` };
+    }
+    if (!Array.isArray(payload)) {
+      return { actor: null, error: "unexpected events JSON shape (not a list)" };
+    }
+    allEvents.push(...payload);
+    if (payload.length < 100) break;
+    page += 1;
   }
   let latest: { login: string; type: string | null; association: string | null } | null = null;
-  for (const event of payload) {
+  for (const event of allEvents) {
     if (event === null || typeof event !== "object" || Array.isArray(event)) continue;
     const rec = event as Record<string, unknown>;
     if (rec.event !== "labeled") continue;
@@ -1104,10 +1139,15 @@ function fetchLatestHotfixLabelActor(
     const a = actor as Record<string, unknown>;
     const login = typeof a.login === "string" ? a.login : "";
     if (login.length === 0) continue;
+    // issues/<N>/events omits author_association; resolve via collaborators permission.
+    const association =
+      typeof rec.author_association === "string"
+        ? rec.author_association
+        : fetchCollaboratorAssociation(repo, login, runGh);
     latest = {
       login,
       type: typeof a.type === "string" ? a.type : null,
-      association: typeof rec.author_association === "string" ? rec.author_association : null,
+      association,
     };
   }
   return { actor: latest, error: null };

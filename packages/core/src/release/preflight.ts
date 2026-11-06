@@ -323,7 +323,29 @@ export function runReleaseCheck(
         return sha.length > 0 ? sha : null;
       })();
     const namedFn = seams.namedMergeGateFn ?? evaluateAlwaysOnNamedMergeGate;
-    const named = namedFn(null, DEFAULT_REPO, {
+    // Prefer checkout origin over hard-coded DEFAULT_REPO so forks / non-default remotes gate the right tip.
+    const namedRepo = (() => {
+      const fromEnv = (seams.checkSeams?.env?.GH_REPO ?? seams.checkSeams?.env?.GITHUB_REPOSITORY ?? "")
+        .toString()
+        .trim();
+      if (fromEnv.length > 0) return fromEnv;
+      try {
+        const result = spawnSync("git", ["remote", "get-url", "origin"], {
+          cwd: projectRoot,
+          encoding: "utf8",
+          shell: false,
+        });
+        if (result.status === 0) {
+          const url = (result.stdout ?? "").trim();
+          const m = /github\.com[:/]([^/]+\/[^/.]+)/i.exec(url);
+          if (m) return m[1].replace(/\.git$/i, "");
+        }
+      } catch {
+        /* fall through */
+      }
+      return DEFAULT_REPO;
+    })();
+    const named = namedFn(null, namedRepo, {
       runGh: seams.runGh ?? defaultRunGh,
       tipSha,
       projectRoot,

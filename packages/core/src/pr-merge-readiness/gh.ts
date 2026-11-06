@@ -615,16 +615,18 @@ export function fetchCheckRunsRest(
       nextUrl = linkNext;
       continue;
     }
+    // Use raw page entry count (not only successfully parsed runs) so a full
+    // page with some malformed entries still continues pagination (#6071 / SLizard).
     if (
       parsed.totalCount !== null &&
       allRuns.length < parsed.totalCount &&
-      parsed.checkRuns.length >= CHECK_RUNS_PER_PAGE
+      parsed.rawCount >= CHECK_RUNS_PER_PAGE
     ) {
       page += 1;
       nextUrl = `repos/${repo}/commits/${sha}/check-runs?per_page=${CHECK_RUNS_PER_PAGE}&page=${page}`;
       continue;
     }
-    if (parsed.checkRuns.length >= CHECK_RUNS_PER_PAGE && parsed.totalCount === null) {
+    if (parsed.rawCount >= CHECK_RUNS_PER_PAGE && parsed.totalCount === null) {
       page += 1;
       nextUrl = `repos/${repo}/commits/${sha}/check-runs?per_page=${CHECK_RUNS_PER_PAGE}&page=${page}`;
       continue;

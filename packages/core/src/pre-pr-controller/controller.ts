@@ -801,12 +801,9 @@ export function completeRun(
   }
   // #6071: pre-PR refuses ordinary changes while master's named Merge gate is red.
   if (options?.skipNamedMergeGate !== true) {
-    const prNumber = (() => {
-      const node = current.prNodeId?.trim() ?? "";
-      // Prefer numeric PR from node id suffix when present; else null → bootstrap path.
-      const m = /(\d+)$/.exec(node);
-      return m ? Number(m[1]) : null;
-    })();
+    // GitHub node_id is opaque — never parse trailing digits as a PR number.
+    // Without an explicit numeric PR, take the first-hotfix bootstrap path.
+    const prNumber: number | null = null;
     const namedFn = options?.namedMergeGateFn ?? evaluateAlwaysOnNamedMergeGate;
     const named = namedFn(prNumber, current.repo, {
       runGh: options?.runGh,
