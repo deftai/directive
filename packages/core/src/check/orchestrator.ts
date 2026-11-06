@@ -95,6 +95,21 @@ export function dispatchTaskCheck(
           "  cause: unsanctioned or unvalidated test skips (#6071)\n" +
           "  remedy: cite open deftai/directive#N with skipped-tests block under admitted shape B, or remove the skip\n",
       );
+      // Preserve release/check summary callback when failing before the cached runner (#6071).
+      seams.onCheckComplete?.({
+        exitCode: 1,
+        gates: [
+          {
+            id: "cited-skip-scan",
+            status: "failed",
+            exit_code: 1,
+            cause: "unsanctioned or unvalidated test skips (#6071)",
+            remedy:
+              "cite open deftai/directive#N with skipped-tests block under admitted shape B, or remove the skip",
+          },
+        ],
+        suiteTeeText: cited.listing,
+      });
       return 1;
     }
   }
