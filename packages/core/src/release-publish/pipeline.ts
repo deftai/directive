@@ -114,6 +114,26 @@ export function runPromoteLatest(config: PublishConfig, seams: ReleasePublishSea
     `Closed-verb gate release-promote-latest ${tag}`,
     `OK (${gate.code}${gate.humanApprovalRef !== null ? ` grant=${gate.humanApprovalRef}` : ""})`,
   );
+  // Spend single-use grant BEFORE dispatch so two callers cannot both pass and both dispatch (#5852 Greptile P1).
+  if (!dryRun && gate.humanApprovalRef !== null && gate.code === "closed-verb-allow") {
+    const gateSeamsSpend = seams as ReleasePublishSeams & {
+      spendGrant?: typeof markGrantUsed;
+    };
+    const spend = gateSeamsSpend.spendGrant ?? markGrantUsed;
+    const spent = spend(projectRoot, gate.humanApprovalRef);
+    if (spent === null) {
+      const onDisk = loadGrant(projectRoot, gate.humanApprovalRef);
+      if (onDisk?.semantics.singleUse && onDisk.semantics.usedAt === null) {
+        emitPromote(
+          `Spend grant ${gate.humanApprovalRef}`,
+          "FAIL (usedAt write refused; approval remains reusable — not dispatching)",
+        );
+        return EXIT_VIOLATION;
+      }
+    } else {
+      emitPromote(`Spend grant ${gate.humanApprovalRef}`, "OK (single-use spent before dispatch)");
+    }
+  }
   const args = [
     "workflow",
     "run",
@@ -150,26 +170,6 @@ export function runPromoteLatest(config: PublishConfig, seams: ReleasePublishSea
     return EXIT_VIOLATION;
   }
   emitPromote(label, "OK (workflow dispatched)");
-  if (gate.humanApprovalRef !== null && gate.code === "closed-verb-allow") {
-    const gateSeamsSpend = seams as ReleasePublishSeams & {
-      spendGrant?: typeof markGrantUsed;
-    };
-    const spend = gateSeamsSpend.spendGrant ?? markGrantUsed;
-    const spent = spend(projectRoot, gate.humanApprovalRef);
-    if (spent === null) {
-      const onDisk = loadGrant(projectRoot, gate.humanApprovalRef);
-      if (onDisk?.semantics.singleUse && onDisk.semantics.usedAt === null) {
-        emitPromote(
-          `Spend grant ${gate.humanApprovalRef}`,
-          "FAIL (usedAt write refused; workflow dispatched but approval remains reusable)",
-        );
-        process.stderr.write(
-          `Promote ${tag} dispatched on ${repo}, but grant ${gate.humanApprovalRef} was not spent; remint or revoke before reuse.\n`,
-        );
-        return EXIT_VIOLATION;
-      }
-    }
-  }
   return EXIT_OK;
 }
 
