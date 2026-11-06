@@ -7,7 +7,7 @@
  * `session/host-session-owner.ts` because the CLI claim path resolves the same
  * owner from the same host (#3873).
  *
- * Uninspectable lifecycle (#4431):
+ * Uninspectable lifecycle (#4431 / #5925):
  * Assumptions: rewrite injects --session-id only into exactLifecycleInvocation.
  * Pipes, quotes, redirects, and chains are not rewritten.
  * Guarantees: a lifecycle verb in unquoted command text fails closed unless an
@@ -17,6 +17,10 @@
  * fail-open. Newline, single `&`, grouped `(cmd)` / `{ cmd; }`, and `then`/`do`
  * control-structure forms are the same fail-closed hint, not a rewrite.
  * The hint is tokenizer-based (no regex) so compound separators cannot ReDoS.
+ * Prefer-A Bound #5925: deny copy publishes that matching-owner hatch with
+ * launcher-correct `task <verb> -- … --session-id=<owner>` recovery (| tee /
+ * && are illustrations only) so metacharacter recursive-flail has a usable
+ * next step; unresolved `<host-published-id>` is omitted rather than pasted.
  * Non-goals: full shell parse; injecting --session-id into compound commands.
  */
 
@@ -879,7 +883,39 @@ function hintedLifecycleRequiresOwner(payload: unknown): boolean {
   });
 }
 
-/** Hinted deny copy (#4793). Whitespace --read-only session:start omits --session-id. */
+/** Unresolved host-owner placeholder used when identity did not resolve (#5925). */
+export const UNRESOLVED_HOST_OWNER = "<host-published-id>";
+
+/** Prefer task spelling when the denied command did not name a launcher (#5925). */
+export function detectLifecycleLauncher(command: string): "task" | "deft" {
+  const tokens = tokenizeUninspectableShell(command);
+  for (const token of tokens) {
+    const exe = token.toLowerCase();
+    if (exe === "task" || exe === "task.exe") return "task";
+    if (exe === "deft" || exe === "directive" || exe === "deft.exe" || exe === "directive.exe") {
+      return "deft";
+    }
+  }
+  return "task";
+}
+
+/**
+ * Launcher-correct recovery line for uninspectable / mismatch lifecycle denies (#5925).
+ * `task` needs the `--` boundary; `deft` / `directive` take the flag directly.
+ */
+export function formatLauncherCorrectLifecycleRecovery(
+  verb: ExactLifecycleVerb,
+  owner: string,
+  command: string,
+): string {
+  const launcher = detectLifecycleLauncher(command);
+  if (launcher === "task") {
+    return `task ${verb} -- --session-id=${owner}`;
+  }
+  return `deft ${verb} --session-id=${owner}`;
+}
+
+/** Hinted deny copy (#4793 / #5925). Whitespace --read-only session:start omits --session-id. */
 export function uninspectableLifecycleDenyMessage(
   verb: ExactLifecycleVerb,
   namedOwner: string,
@@ -890,9 +926,18 @@ export function uninspectableLifecycleDenyMessage(
   const label = UNINSPECTABLE_MISS_LABELS[miss];
   const horizontal = miss === "whitespace" || miss === "empty-token";
   const demandOwner = !horizontal || hintedLifecycleRequiresOwner(payload);
-  const recovery = demandOwner
-    ? `Re-run as a simple command with --session-id=${namedOwner}.`
-    : "Re-run as a simple command.";
+  let recovery: string;
+  if (!demandOwner) {
+    recovery = "Re-run as a simple command.";
+  } else if (namedOwner === UNRESOLVED_HOST_OWNER) {
+    recovery = "Re-run as a simple command from a session that has a Directive hook registered.";
+  } else {
+    const example = formatLauncherCorrectLifecycleRecovery(verb, namedOwner, command);
+    recovery =
+      `Re-run as a simple command. Matching-owner hatch: compound forms (| tee / &&) ` +
+      `are allowed when every lifecycle window already names the matching owner, ` +
+      `e.g. ${example}.`;
+  }
   return (
     `Directive denied lifecycle command ${verb}: the invocation is not inspectable ` +
     `(${label}). ${recovery}`

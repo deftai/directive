@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  detectLifecycleLauncher,
   exactLifecycleCommandVerb,
+  formatLauncherCorrectLifecycleRecovery,
   hintUninspectableLifecycleCommand,
   hookHostIdentitySource,
   hostIdentityFallsBackToExplicitOwner,
@@ -8,6 +10,8 @@ import {
   MAX_HOOK_HOST_IDENTITY_UTF8_BYTES,
   resolveHookHostIdentity,
   rewriteExactLifecycleCommand,
+  UNRESOLVED_HOST_OWNER,
+  uninspectableLifecycleDenyMessage,
 } from "./host-session-identity.js";
 
 const CODEX_SESSION_ID = "host:codex:v1:c2Vzc2lvbi1B";
@@ -693,5 +697,60 @@ describe("rewriteExactLifecycleCommand (#3611)", () => {
         "owner; echo pwned",
       ),
     ).toBeNull();
+  });
+});
+
+describe("uninspectableLifecycleDenyMessage Prefer-A Bound (#5925)", () => {
+  const OWNER = "host:claude:v1:c2Vzc2lvbi1h";
+
+  it("detects task vs deft launchers and defaults to task", () => {
+    expect(detectLifecycleLauncher("task session:start | tee out")).toBe("task");
+    expect(detectLifecycleLauncher("deft session:start && echo ok")).toBe("deft");
+    expect(detectLifecycleLauncher("directive occupancy:release")).toBe("deft");
+    expect(detectLifecycleLauncher("echo only")).toBe("task");
+  });
+
+  it("formats launcher-correct recovery with task -- boundary", () => {
+    expect(
+      formatLauncherCorrectLifecycleRecovery("session:start", OWNER, "task session:start | tee"),
+    ).toBe(`task session:start -- --session-id=${OWNER}`);
+    expect(
+      formatLauncherCorrectLifecycleRecovery("occupancy:steal", OWNER, "deft occupancy:steal"),
+    ).toBe(`deft occupancy:steal --session-id=${OWNER}`);
+  });
+
+  it("keeps miss label, simple-command instruction, and additive hatch for resolved owner", () => {
+    const message = uninspectableLifecycleDenyMessage("session:start", OWNER, {
+      tool_name: "Bash",
+      tool_input: { command: "task session:start && echo ok" },
+    });
+    expect(message).toContain("(chain)");
+    expect(message).toContain("Re-run as a simple command.");
+    expect(message).toContain("Matching-owner hatch");
+    expect(message).toContain("| tee / &&");
+    expect(message).toContain(`task session:start -- --session-id=${OWNER}`);
+    expect(message).not.toContain(`with --session-id=${OWNER}`);
+  });
+
+  it("omits unresolved placeholder and does not claim a pasteable owner", () => {
+    const message = uninspectableLifecycleDenyMessage("session:start", UNRESOLVED_HOST_OWNER, {
+      tool_name: "Bash",
+      tool_input: { command: "deft session:start | tee out" },
+    });
+    expect(message).toContain("(pipe)");
+    expect(message).toContain("Directive hook registered");
+    expect(message).not.toContain("--session-id=");
+    expect(message).not.toContain(UNRESOLVED_HOST_OWNER);
+  });
+
+  it("keeps owner-free recovery for horizontal whitespace read-only session:start", () => {
+    const message = uninspectableLifecycleDenyMessage("session:start", OWNER, {
+      tool_name: "Bash",
+      tool_input: { command: " deft session:start --read-only" },
+    });
+    expect(message).toMatch(/\(whitespace\)|\(empty token\)/);
+    expect(message).toContain("Re-run as a simple command.");
+    expect(message).not.toContain("--session-id=");
+    expect(message).not.toContain("Matching-owner hatch");
   });
 });

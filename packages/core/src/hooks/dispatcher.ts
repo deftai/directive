@@ -125,7 +125,11 @@ import {
   type RoutingHonorSurface,
   type RoutingSpawnClass,
 } from "../swarm/routing-honor.js";
-import { uninspectableLifecycleDenyMessage } from "./classify/host-session-identity.js";
+import {
+  formatLauncherCorrectLifecycleRecovery,
+  UNRESOLVED_HOST_OWNER,
+  uninspectableLifecycleDenyMessage,
+} from "./classify/host-session-identity.js";
 import {
   applyPatchHarvestedInputUnclassified,
   fieldString,
@@ -3344,7 +3348,7 @@ function attachLifecycleIdentityRewrite(
     const named =
       identity.status === "ok" && identity.sessionId !== null
         ? identity.sessionId
-        : "<host-published-id>";
+        : UNRESOLVED_HOST_OWNER;
     const hintedSession = inspectHintedLifecycleSessionId(input.payload);
     if (
       hintedSession.status === "present" &&
@@ -3384,14 +3388,19 @@ function attachLifecycleIdentityRewrite(
           withHookHostArgv(input.host, admission.message),
         );
       }
+      const mismatchCommand = hookShellCommand(input.payload) ?? "";
+      const mismatchExample = formatLauncherCorrectLifecycleRecovery(
+        hinted,
+        identity.sessionId,
+        mismatchCommand,
+      );
       return deny(
         input,
         "occupancy-identity-conflict",
         toolName,
         `Directive denied ${toolName}: lifecycle command ${hinted} names ` +
           `${hintedSession.sessionId ?? "<missing>"}, but the host owner is ` +
-          `${identity.sessionId}. Re-run as a simple command or pass ` +
-          `--session-id=${identity.sessionId}.`,
+          `${identity.sessionId}. Re-run as a simple command. Example: ${mismatchExample}.`,
       );
     }
     if (hintedSession.status === "invalid") {
