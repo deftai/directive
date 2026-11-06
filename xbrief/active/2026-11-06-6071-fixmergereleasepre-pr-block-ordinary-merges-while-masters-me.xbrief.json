@@ -406,7 +406,8 @@
         ],
         "acceptance_criteria_justification": "Prefer-A Bound ships one acceptance item per locked limb; clause count follows the Bound comment and may exceed five."
       },
-      "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)"
+      "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)",
+      "productPullRequest": 6088
     },
     "id": "github.issue.6231497602",
     "updated": "2026-11-06T04:42:50Z"
