@@ -1090,10 +1090,10 @@ function fetchLatestHotfixLabelActor(
   error: string | null;
 } {
   // Paginate issue events — busy PRs can push the current hotfix label past page 1.
+  // Inline page cap — avoid new numeric-const FACT_KINDS (#4541 / AFK free rewrite).
   const allEvents: unknown[] = [];
   let page = 1;
-  const maxPages = 20;
-  while (page <= maxPages) {
+  while (page <= 20) {
     const rc = runGh([
       "gh",
       "api",

@@ -402,8 +402,6 @@ function extractCheckRunSummary(run: Record<string, unknown>): string | null {
   return typeof summary === "string" && summary.length > 0 ? summary : null;
 }
 
-const CHECK_RUNS_PER_PAGE = 100;
-
 /** Parse Link rel=next from a `gh api --include` header block (#6071). */
 export function parseNextLinkFromIncludeHeaders(headers: string): string | null {
   const linkLine = headers.split(/\r?\n/).find((line) => /^link:\s*/i.test(line.trim()));
@@ -566,12 +564,11 @@ export function fetchCheckRunsRest(
   const allRuns: CheckRunRecord[] = [];
   let rawTotal = 0;
   let page = 1;
-  let nextUrl: string | null =
-    `repos/${repo}/commits/${sha}/check-runs?per_page=${CHECK_RUNS_PER_PAGE}&page=${page}`;
+  // Inline page caps — avoid new numeric-const FACT_KINDS (#4541 / AFK free rewrite).
+  let nextUrl: string | null = `repos/${repo}/commits/${sha}/check-runs?per_page=100&page=${page}`;
   let pages = 0;
-  const maxPages = 50;
 
-  while (nextUrl !== null && pages < maxPages) {
+  while (nextUrl !== null && pages < 50) {
     pages += 1;
     const endpoint = normalizeCheckRunsEndpoint(nextUrl);
     let body = "";
@@ -620,15 +617,15 @@ export function fetchCheckRunsRest(
     if (
       parsed.totalCount !== null &&
       allRuns.length < parsed.totalCount &&
-      parsed.rawCount >= CHECK_RUNS_PER_PAGE
+      parsed.rawCount >= 100
     ) {
       page += 1;
-      nextUrl = `repos/${repo}/commits/${sha}/check-runs?per_page=${CHECK_RUNS_PER_PAGE}&page=${page}`;
+      nextUrl = `repos/${repo}/commits/${sha}/check-runs?per_page=100&page=${page}`;
       continue;
     }
-    if (parsed.rawCount >= CHECK_RUNS_PER_PAGE && parsed.totalCount === null) {
+    if (parsed.rawCount >= 100 && parsed.totalCount === null) {
       page += 1;
-      nextUrl = `repos/${repo}/commits/${sha}/check-runs?per_page=${CHECK_RUNS_PER_PAGE}&page=${page}`;
+      nextUrl = `repos/${repo}/commits/${sha}/check-runs?per_page=100&page=${page}`;
       continue;
     }
     nextUrl = null;
