@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Prepare lifecycle compound-shell hatch and task -- session recovery so agent shells stop failing as not-inspectable (#5925).
+- Block ordinary merges while master Merge gate (task check) is red, with hotfix A/B cited-skip escape (#6071).
+- Add a committed baseline ratchet for sanctioned test-skip count on top of the cited-skip scanner (#6072).
 
 - **Issue #6011 is recorded completed and no longer active.** Typed deliveryBranch write-fence shipped; tracked completion is on the delivery branch.
 - **Issue #5970 is recorded completed and no longer active.** Approach1 existence probes as proven readers shipped; tracked completion is on the delivery branch.

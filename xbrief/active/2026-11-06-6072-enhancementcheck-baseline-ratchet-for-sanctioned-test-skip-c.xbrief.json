@@ -1,0 +1,239 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6072",
+    "updated": "2026-11-06T04:20:39Z"
+  },
+  "plan": {
+    "title": "enhancement(check): baseline ratchet for sanctioned test-skip count",
+    "status": "running",
+    "narratives": {
+      "Description": "Sanctioned skip count has a committed baseline ratchet on top of the #6071 scanner.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6072",
+      "Overview": "Sanctioned skip count has a committed baseline ratchet on top of the #6071 scanner.",
+      "Labels": "enhancement, design-critique:ingest-ready, core-capabilities",
+      "UserStory": "Sanctioned skip count has a committed baseline ratchet on top of the #6071 scanner.",
+      "ImplementationPlan": "Prefer-A Recut-3 6670134573: baseline count file + shared evaluator; depends_on #6071 shape-B touch-set for baseline file."
+    },
+    "items": [
+      {
+        "title": "relieves: P1 — Commit a baseline count file beside the #6071 scanner under packages/core/src/check/ and run one shared evaluator that refuses when the candidate tree-syntax sanctioned-skip count exceeds the target revision baseline unless the shape-(B) authorization and matching same-PR bump from the P2 limb hold, using the merge-base baseline at pre-PR as early feedback and the P3 current-target admission as the binding proof.",
+        "status": "proposed",
+        "id": "clause.1",
+        "artifact_path": "packages/core/src/check/cached-orchestrator.ts"
+      },
+      {
+        "title": "relieves: P2 — Derive the candidate ratchet count as #6071 listed rows at the named revision filtered on citation shape with the issue-state field ignored (so #6071 must expose those rows before live-state filtering), never auto-ratchet upward, and allow candidate baseline above target baseline only for a shape-(B) hotfix under #6071 authorization with a same-PR baseline bump equal to the net new skips #6071 authorizes on this diff (no follow-up raise-admit path).",
+        "status": "proposed",
+        "id": "clause.2",
+        "artifact_path": "packages/core/src/check/cli-native-gates.test.ts"
+      },
+      {
+        "title": "relieves: P3 — Wire that evaluator into the same always-on pre-PR and merge-readiness call sites as the #6071 scanner, reuse #6071 shape-(B) and per-diff skip-identity verdicts for authorization and authorized delta, and at final merge-readiness consume inventory and baseline from the actual candidate against the current target (or require the PR head incorporates that target) with revalidation when either SHA changes using existing freshness or candidate machinery.",
+        "status": "proposed",
+        "id": "clause.3",
+        "artifact_path": "packages/core/src/check/cli-native-gates.ts"
+      },
+      {
+        "title": "relieves: P4 — On every run require the candidate committed baseline to equal the candidate tree-syntax count, refuse any baseline bump whose amount does not equal the #6071-authorized net new skips on this diff, and refuse missing or invalid baseline evidence instead of seeding zero.",
+        "status": "proposed",
+        "id": "clause.4",
+        "artifact_path": "packages/core/src/check/consumer-gate-integrity.test.ts"
+      },
+      {
+        "title": "relieves: P5 — Do not invoke task check or re-run Merge gate (task check) for this ratchet, and never commit or push the baseline file from verification.",
+        "status": "proposed",
+        "id": "clause.5",
+        "artifact_path": "packages/core/src/check/consumer-gate-integrity.ts"
+      },
+      {
+        "title": "relieves: P2 — Require #6071 shape-(B) allowed touch set to admit the packages/core/src/check/ baseline count file in the same hotfix PR that adds cited skips and bumps that baseline, so the AC3 raise path has an admissible input without a follow-up bump or shape-(A) relabel.",
+        "status": "proposed",
+        "id": "clause.6",
+        "artifact_path": "packages/core/src/check/consumer-header-placeholder.test.ts"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design-critique:ingest-ready",
+      "core-capabilities"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6072",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6072: enhancement(check): baseline ratchet for sanctioned test-skip count"
+      }
+    ],
+    "acceptance": {
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Commit a baseline count file beside the #6071 scanner under packages/core/src/check/ and run one shared evaluator that refuses when the candidate tree-syntax sanctioned-skip count exceeds the target revision baseline unless the shape-(B) authorization and matching same-PR bump from the P2 limb hold, using the merge-base baseline at pre-PR as early feedback and the P3 current-target admission as the binding proof.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P2 — Derive the candidate ratchet count as #6071 listed rows at the named revision filtered on citation shape with the issue-state field ignored (so #6071 must expose those rows before live-state filtering), never auto-ratchet upward, and allow candidate baseline above target baseline only for a shape-(B) hotfix under #6071 authorization with a same-PR baseline bump equal to the net new skips #6071 authorizes on this diff (no follow-up raise-admit path).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P3 — Wire that evaluator into the same always-on pre-PR and merge-readiness call sites as the #6071 scanner, reuse #6071 shape-(B) and per-diff skip-identity verdicts for authorization and authorized delta, and at final merge-readiness consume inventory and baseline from the actual candidate against the current target (or require the PR head incorporates that target) with revalidation when either SHA changes using existing freshness or candidate machinery.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "relieves: P4 — On every run require the candidate committed baseline to equal the candidate tree-syntax count, refuse any baseline bump whose amount does not equal the #6071-authorized net new skips on this diff, and refuse missing or invalid baseline evidence instead of seeding zero.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "relieves: P5 — Do not invoke task check or re-run Merge gate (task check) for this ratchet, and never commit or push the baseline file from verification.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "relieves: P2 — Require #6071 shape-(B) allowed touch set to admit the packages/core/src/check/ baseline count file in the same hotfix PR that adds cited skips and bumps that baseline, so the AC3 raise path has an admissible input without a follow-up bump or shape-(A) relabel.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "commands": [],
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/check/cached-orchestrator.ts",
+          "packages/core/src/check/cli-native-gates.test.ts",
+          "packages/core/src/check/cli-native-gates.ts",
+          "packages/core/src/check/consumer-gate-integrity.test.ts",
+          "packages/core/src/check/consumer-gate-integrity.ts",
+          "packages/core/src/check/consumer-header-placeholder.test.ts",
+          "packages/core/src/check/consumer-header-placeholder.ts",
+          "packages/core/src/check/context.ts",
+          "packages/core/src/check/degraded-skip.test.ts",
+          "packages/core/src/check/gate-lists.test.ts",
+          "packages/core/src/check/gate-lists.ts",
+          "packages/core/src/check/index.ts",
+          "packages/core/src/check/named-cause.test.ts",
+          "packages/core/src/check/named-cause.ts",
+          "packages/core/src/check/orchestrator.test.ts",
+          "packages/core/src/check/orchestrator.ts",
+          "packages/core/src/check/persisted-planning-narratives-gate.test.ts",
+          "packages/core/src/check/persisted-planning-narratives-gate.ts",
+          "packages/core/src/check/product-mutation-completion.test.ts",
+          "packages/core/src/check/product-mutation-completion.ts",
+          "packages/core/src/check/rapid-soft-missing-no-brief.test.ts",
+          "packages/core/src/check/rapid-soft-missing-no-brief.ts",
+          "packages/core/src/check/rapid-zero-verified.test.ts",
+          "packages/core/src/check/rapid-zero-verified.ts",
+          "packages/core/src/check/rule-to-verb-parity.test.ts",
+          "packages/core/src/check/rule-to-verb-parity.ts",
+          "packages/core/src/check/runner-detect.test.ts",
+          "packages/core/src/check/runner-detect.ts",
+          "packages/core/src/check/session-completed-ac.test.ts",
+          "packages/core/src/check/session-completed-ac.ts",
+          "packages/core/src/check/suite-gate-supervisor-lib.test.ts",
+          "packages/core/src/check/suite-gate-supervisor-lib.ts",
+          "packages/core/src/check/suite-gate-supervisor-worker.test.ts",
+          "packages/core/src/check/suite-gate-supervisor-worker.ts",
+          "packages/core/src/check/suite-gate-supervisor.test.ts",
+          "packages/core/src/check/suite-gate-supervisor.ts"
+        ],
+        "module_boundary": "packages/core/src/check"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6231502901,
+        "origin": "deftai/directive#6072",
+        "id": "github.issue.6231502901"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "ab6cbe2e1344892b7ef651b97d09e910f0601cd641302f139c1813389e71afbb"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "sanctioned-skip-count-baseline-ratchet",
+        "file_scope": [
+          "packages/core/src/check/cached-orchestrator.ts",
+          "packages/core/src/check/cli-native-gates.test.ts",
+          "packages/core/src/check/cli-native-gates.ts",
+          "packages/core/src/check/consumer-gate-integrity.test.ts",
+          "packages/core/src/check/consumer-gate-integrity.ts",
+          "packages/core/src/check/consumer-header-placeholder.test.ts",
+          "packages/core/src/check/consumer-header-placeholder.ts",
+          "packages/core/src/check/context.ts",
+          "packages/core/src/check/degraded-skip.test.ts",
+          "packages/core/src/check/gate-lists.test.ts",
+          "packages/core/src/check/gate-lists.ts",
+          "packages/core/src/check/index.ts",
+          "packages/core/src/check/named-cause.test.ts",
+          "packages/core/src/check/named-cause.ts",
+          "packages/core/src/check/orchestrator.test.ts",
+          "packages/core/src/check/orchestrator.ts",
+          "packages/core/src/check/persisted-planning-narratives-gate.test.ts",
+          "packages/core/src/check/persisted-planning-narratives-gate.ts",
+          "packages/core/src/check/product-mutation-completion.test.ts",
+          "packages/core/src/check/product-mutation-completion.ts",
+          "packages/core/src/check/rapid-soft-missing-no-brief.test.ts",
+          "packages/core/src/check/rapid-soft-missing-no-brief.ts",
+          "packages/core/src/check/rapid-zero-verified.test.ts",
+          "packages/core/src/check/rapid-zero-verified.ts",
+          "packages/core/src/check/rule-to-verb-parity.test.ts",
+          "packages/core/src/check/rule-to-verb-parity.ts",
+          "packages/core/src/check/runner-detect.test.ts",
+          "packages/core/src/check/runner-detect.ts",
+          "packages/core/src/check/session-completed-ac.test.ts",
+          "packages/core/src/check/session-completed-ac.ts",
+          "packages/core/src/check/suite-gate-supervisor-lib.test.ts",
+          "packages/core/src/check/suite-gate-supervisor-lib.ts",
+          "packages/core/src/check/suite-gate-supervisor-worker.test.ts",
+          "packages/core/src/check/suite-gate-supervisor-worker.ts",
+          "packages/core/src/check/suite-gate-supervisor.test.ts",
+          "packages/core/src/check/suite-gate-supervisor.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/check"
+        ],
+        "expected_outputs": [
+          "Tracking PR"
+        ],
+        "depends_on": [
+          "github.issue.6231497602"
+        ],
+        "model_tier": "standard",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "parallel_safe": false,
+        "Traces": [
+          "Prefer-A Bound 6670134573"
+        ]
+      },
+      "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)"
+    },
+    "id": "github.issue.6231502901",
+    "updated": "2026-11-06T04:20:39Z"
+  }
+}
