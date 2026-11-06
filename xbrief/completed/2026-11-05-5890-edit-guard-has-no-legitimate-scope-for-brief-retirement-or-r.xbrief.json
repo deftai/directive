@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5890",
-    "updated": "2026-11-05T19:03:04.977Z"
+    "updated": "2026-11-06T00:52:53Z"
   },
   "plan": {
     "title": "Edit guard has no legitimate scope for brief-retirement or restamp changes",
@@ -19,42 +19,98 @@
       {
         "title": "relieves: P1 — task scope:complete owns active→completed retirement and already-completed restamp of the brief artifact only.",
         "status": "pending",
-        "id": "clause.1"
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a27d4c8de97bb4b4110b37ab380401634fd957d7",
+          "recorded_at": "2026-11-06T00:51:56Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "relieves: P1 — Prefer-A P1 relief is scope reduction plus fail-closed refusals: no dispatcher admit changes for CHANGELOG; the brief-only residue is already reachable at this pin (completed/ exemption #4422 for restamp; the verb-owned active→completed write is an in-process atomicWriteBrief, not a hook-gated tool call).",
         "status": "pending",
-        "id": "clause.2"
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a27d4c8de97bb4b4110b37ab380401634fd957d7",
+          "recorded_at": "2026-11-06T00:51:56Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "relieves: P1 — scope:complete does not author CHANGELOG.md and does not add a product-gate admit, staged-delta association, ownership tag, or --changelog-note commit path for Fixed bullets.",
         "status": "pending",
-        "id": "clause.3"
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a27d4c8de97bb4b4110b37ab380401634fd957d7",
+          "recorded_at": "2026-11-06T00:51:56Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "relieves: P1 — Combined brief+CHANGELOG close-out and CHANGELOG-only close-out remain named residuals under current product-cover rules (operator-deferred #6061); this Bound does not claim they are a present-tense sanctioned reachable unit.",
         "status": "pending",
-        "id": "clause.4"
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a27d4c8de97bb4b4110b37ab380401634fd957d7",
+          "recorded_at": "2026-11-06T00:51:56Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "relieves: P2 — On retirement-shaped zero-eligible denies composed in packages/core/src/hooks/dispatcher.ts, recovery text and proposedPathHint must not steer borrow-another-brief or DEFT_ACTIVE_SCOPE; P2 regression asserts that property only over that dispatcher-composed zero-eligible text (multiple-eligible scope.message / hooks/scope.ts pin steer stays residual on #6061).",
         "status": "pending",
-        "id": "clause.5"
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a27d4c8de97bb4b4110b37ab380401634fd957d7",
+          "recorded_at": "2026-11-06T00:51:56Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "relieves: P3 — On denyKind zero-eligible with retirement-shaped harvested Write targets (targets drawn from hookMutationTargetPaths / relTarget; all-completed/ payloads are allowed upstream by #4422 before inspectActiveScope and so are out of this branch by construction), replace the dispatcher else recovery lead with copy that names leftover-land / scope:complete for the reachable brief-only completed/ sequence and explicitly states that staging CHANGELOG.md alongside still requires a ready scope and remains a named residual; do not say cancelled in that reachable-sequence lead; do not emit LEFTOVER_LAND_PR_REMEDIATION verbatim as that prospective lead; suppress SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE and invent-scope/proposal tails on the gated arm; ungated zero-eligible keeps today copy byte-for-byte on both exempt and non-exempt else arms.",
         "status": "pending",
-        "id": "clause.6"
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a27d4c8de97bb4b4110b37ab380401634fd957d7",
+          "recorded_at": "2026-11-06T00:51:56Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "relieves: P1 — Do not mint a PreToolUse completed/ Write class for CHANGELOG and do not widen allowExemptLifecycleWrite for CHANGELOG companions or active/ hand edits.",
         "status": "pending",
-        "id": "clause.7"
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a27d4c8de97bb4b4110b37ab380401634fd957d7",
+          "recorded_at": "2026-11-06T00:51:56Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "relieves: P4 — Regressions cover brief-only complete/restamp without CHANGELOG mutation (both complete stamp sites; packages/core/src/scope/transition.test.ts in lean for that row), zero-eligible gated lead containing completed-only reachable wording and the CHANGELOG-residual qualifier and omitting cancelled / verbatim LEFTOVER_LAND_PR_REMEDIATION / invent-scope lead, ungated keep, paired brief+CHANGELOG and CHANGELOG-only commit refusal without unrelated-scope borrowing, refuse inventing product-gate CHANGELOG provenance paths, and unrelated-brief write-fence refuse for nonqualifying hand Writes.",
         "status": "pending",
-        "id": "clause.8"
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a27d4c8de97bb4b4110b37ab380401634fd957d7",
+          "recorded_at": "2026-11-06T00:51:56Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -3094,9 +3150,32 @@
         ],
         "parallel_safe": true
       },
-      "productPullRequest": 6067
+      "productPullRequest": 6067,
+      "capacityBucket": "new-capability",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "de4acba78acc65ce01384b48caf383fcc35b8cf1",
+        "prNumber": 6067,
+        "prBase": "master",
+        "mergeCommit": "a27d4c8de97bb4b4110b37ab380401634fd957d7",
+        "deliveryBranch": "master",
+        "deliveryCommit": "69b626b1c8b4b02eedd3138421e6f22ef832a4d0",
+        "verifiedAt": "2026-11-06T00:52:53Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-06T00:52:53Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-06T00:52:53Z"
+      }
     },
     "id": "github.issue.6020000186",
-    "updated": "2026-11-05T19:02:28Z"
+    "updated": "2026-11-06T00:52:53Z"
   }
 }
