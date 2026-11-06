@@ -1,15 +1,17 @@
 import { EXIT_CONFIG_ERROR } from "../release/constants.js";
 import { resolveProjectRoot, resolveRepo } from "../release/paths.js";
-import { validateVersion } from "../release/version.js";
+import { validateReleaseChannelVersion } from "../release/version.js";
 import { formatMissingVersionError, formatReleasePublishHelp, parsePublishFlags } from "./flags.js";
-import { runPublish } from "./pipeline.js";
+import { runPromoteLatest, runPublish } from "./pipeline.js";
 import type { PublishConfig, ReleasePublishSeams } from "./types.js";
 
 export function cmdReleasePublish(
   args: readonly string[],
   seams: ReleasePublishSeams = {},
 ): number {
-  const flags = parsePublishFlags(args);
+  const promoteLatest = args.includes("--promote-latest");
+  const filtered = args.filter((a) => a !== "--promote-latest");
+  const flags = parsePublishFlags(filtered);
 
   if (flags.help) {
     process.stdout.write(formatReleasePublishHelp());
@@ -29,7 +31,7 @@ export function cmdReleasePublish(
   }
 
   try {
-    validateVersion(flags.version);
+    validateReleaseChannelVersion(flags.version);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     process.stderr.write(`Error: ${msg}\n`);
@@ -46,5 +48,8 @@ export function cmdReleasePublish(
     dryRun: flags.dryRun,
   };
 
+  if (promoteLatest) {
+    return runPromoteLatest(config, seams);
+  }
   return runPublish(config, seams);
 }

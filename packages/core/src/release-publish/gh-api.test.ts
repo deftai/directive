@@ -216,6 +216,7 @@ describe("editReleasePublish", () => {
     expect(patch).toContain("--method");
     expect(patch).toContain("PATCH");
     expect(patch).toContain("draft=false");
+    expect(patch).toContain("make_latest=false");
     expect(patch.some((a) => a === "repos/deftai/directive/releases/1234567")).toBe(true);
   });
 

@@ -23,6 +23,17 @@ on:
         description: "Existing release tag to (re)publish, e.g. v0.55.0"
         required: true
         type: string
+      # Distinct explicit verb (#5852 P2): `promote-latest` moves npm latest for an
+      # already-published stable version. It never selects the publish channel;
+      # the publish dist-tag comes only from the committed Resolve script.
+      action:
+        description: "publish (default) or promote-latest (explicit release-promote-latest verb)"
+        required: false
+        default: publish
+        type: choice
+        options:
+          - publish
+          - promote-latest
 
 # Default-deny: no workflow-level id-token (#5365 limb 4 / Reject E).
 permissions:
@@ -31,6 +42,7 @@ permissions:
 jobs:
   prepare:
     name: Prepare and pack @deftai/directive*
+    if: github.event_name == 'push' || inputs.action != 'promote-latest'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -40,7 +52,17 @@ jobs:
       dist_tag: ${{ steps.identity.outputs.dist_tag }}
       source_sha: ${{ steps.peel.outputs.source_sha }}
     steps:
-      - name: Resolve tag name, SemVer, and dist-tag (#5365)
+      # #5852 P4: the dist-tag rule is read from the workflow ref, never from the
+      # peeled tag tree. Runs before the tag checkout below (which resets the workspace).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: _workflow-ref
+          persist-credentials: false
+          sparse-checkout: |
+            .github/scripts
+
+      - name: Resolve tag name, SemVer, and dist-tag (#5365 / #5852)
         id: identity
         shell: bash
         env:
@@ -77,26 +99,14 @@ jobs:
               ;;
           esac
           VERSION="${TAG#v}"
-          if ! [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([+-][0-9A-Za-z.-]+)*$ ]]; then
+          if ! [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?(\+[0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?$ ]]; then
             echo "::error::VERSION ${VERSION} is not SemVer"
             exit 1
           fi
-          # Stable X.Y.Z publishes to `maintainer`, never `latest` (#5852). The
-          # dist-tag comes from the version alone, for tag push and dispatch alike;
-          # `latest` moves only by an explicit, separate promote step.
-          if [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            DIST_TAG=maintainer
-          elif [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-([0-9A-Za-z]+) ]]; then
-            PRE="${BASH_REMATCH[1]}"
-            # npm rejects dist-tags that are valid version ranges (e.g. "1" from v1.2.3-1).
-            if [[ "${PRE}" =~ ^[0-9]+$ ]]; then
-              DIST_TAG=next
-            else
-              DIST_TAG="${PRE}"
-            fi
-          else
-            DIST_TAG=next
-          fi
+          # Shared non-input rule (#5852 P1/P4): stable -> maintainer, prerelease -> id/next,
+          # never SemVer-implicit latest. No workflow input feeds this. Script lives on the
+          # workflow ref (checked out above at github.workflow_sha).
+          DIST_TAG="$(node _workflow-ref/.github/scripts/resolve-npm-dist-tag.mjs "${VERSION}")"
           if [ "${DIST_TAG}" = "latest" ]; then
             echo "::error::refusing to publish ${TAG} to dist-tag latest; promote latest separately (#5852)"
             exit 1
@@ -355,6 +365,55 @@ jobs:
             npm view "${PKG}@${VERSION}" version >/dev/null
             echo "Already published ${PKG}@${VERSION}, continuing"
           }
+
+  # Explicit-latest act (#5852 P2/P3): a distinct workflow_dispatch verb inside
+  # environment npm. Moves latest for BOTH packages to an already-published stable
+  # version, then marks the GitHub release Latest (make_latest follows this act).
+  # Prerequisite (footnote): the trusted publisher / npm CLI on the runner must
+  # allow OIDC dist-tag changes; otherwise this job fails closed, no fallback token.
+  promote-latest:
+    name: Promote a published stable version to npm latest (#5852)
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'promote-latest'
+    concurrency:
+      group: npm-promote-latest
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      INPUT_TAG: ${{ inputs.tag }}
+      GITHUB_REF: ${{ github.ref }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Promote both packages to latest
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
+            echo "::error::promote-latest must run from refs/heads/master (got ${GITHUB_REF})"
+            exit 1
+          fi
+          VERSION="${INPUT_TAG#v}"
+          if ! [[ "${INPUT_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::only a stable vX.Y.Z may be promoted to latest (got ${INPUT_TAG})"
+            exit 1
+          fi
+          # Preflight both packages before moving either latest tag (#5852 Greptile P1).
+          for PKG in @deftai/directive-runtime @deftai/directive; do
+            npm view "${PKG}@${VERSION}" version >/dev/null
+          done
+          for PKG in @deftai/directive-runtime @deftai/directive; do
+            npm dist-tag add "${PKG}@${VERSION}" latest
+          done
+          gh release edit "${INPUT_TAG}" --latest
 
   post-publish:
     name: Post-publish two-pass fixture
