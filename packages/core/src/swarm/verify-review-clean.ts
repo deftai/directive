@@ -265,6 +265,11 @@ export interface VerifyReviewCleanArgs {
   runGh?: RunGhFn;
   /** Hermetic Greptile suites must opt out of closeout explicitly (#3875). */
   skipCloseoutAttestable?: boolean;
+  /**
+   * Review-cohort gate is not a prescribed merge invoker (#6071).
+   * Defaults to skip; set false to enforce the named Merge tip check.
+   */
+  skipNamedMergeGate?: boolean;
 }
 
 export function verifyReviewClean(args: VerifyReviewCleanArgs): {
@@ -317,6 +322,7 @@ export function verifyReviewClean(args: VerifyReviewCleanArgs): {
       ignoreCheckNames: args.ciIgnoreChecks,
       // Review-cohort gate is not a prescribed merge invoker; default skip.
       skipCloseoutAttestable: args.skipCloseoutAttestable ?? true,
+      skipNamedMergeGate: args.skipNamedMergeGate ?? true,
     });
     if (perPr === null) {
       return { exitCode: EXIT_EXTERNAL_ERROR, stdout: "", stderr: "" };

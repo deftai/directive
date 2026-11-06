@@ -141,6 +141,7 @@ describe("swarm verify-review-clean", () => {
       repo: "bxc-3ci/FreshserviceAI",
       emitJson: true,
       runGh,
+      skipNamedMergeGate: true,
     });
 
     expect(result.exitCode).toBe(0);
@@ -165,6 +166,7 @@ describe("swarm verify-review-clean", () => {
       prNumbers: [24],
       repo: "bxc-3ci/FreshserviceAI",
       runGh,
+      skipNamedMergeGate: true,
     });
     expect(human.stdout).toContain("Gate via:           primary");
     expect(human.stdout).toContain("Verdict override:   verdict-absent");

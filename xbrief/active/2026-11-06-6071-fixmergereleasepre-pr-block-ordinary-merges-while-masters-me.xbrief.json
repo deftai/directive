@@ -229,6 +229,9 @@
           "packages/core/src/release/release-input-pipeline.test.ts",
           "packages/core/src/release/types.ts",
           "packages/core/src/swarm/swarm-branches.test.ts",
+          "packages/core/src/swarm/swarm-deep-coverage.test.ts",
+          "packages/core/src/swarm/verify-review-clean-cli.ts",
+          "packages/core/src/swarm/verify-review-clean.ts",
           "packages/runtime/src/pre-pr-run.test.ts",
           "packages/runtime/src/pre-pr-run.ts"
         ],
@@ -381,6 +384,9 @@
           "packages/core/src/release/release-input-pipeline.test.ts",
           "packages/core/src/release/types.ts",
           "packages/core/src/swarm/swarm-branches.test.ts",
+          "packages/core/src/swarm/swarm-deep-coverage.test.ts",
+          "packages/core/src/swarm/verify-review-clean-cli.ts",
+          "packages/core/src/swarm/verify-review-clean.ts",
           "packages/runtime/src/pre-pr-run.test.ts",
           "packages/runtime/src/pre-pr-run.ts"
         ],
