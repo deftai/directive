@@ -1309,6 +1309,25 @@ describe("runTransition", () => {
     expect(result.message).not.toMatch(/ROADMAP/);
   });
 
+  it("Prefer-A #5890 brief-only complete/restamp does not mutate CHANGELOG.md", () => {
+    root = makeRepo();
+    const sentinel = "sentinel-changelog-must-not-change\n";
+    writeFileSync(join(root, "CHANGELOG.md"), sentinel, "utf8");
+
+    const active = writeVbrief(root, "active", "running");
+    const complete = runTransition("complete", active);
+    expect(complete.ok).toBe(true);
+    expect(readFileSync(join(root, "CHANGELOG.md"), "utf8")).toBe(sentinel);
+    expect(complete.message).not.toMatch(/CHANGELOG/);
+
+    const completedPath = join(root, "xbrief", "completed", "2026-01-01-story.xbrief.json");
+    const restamp = runTransition("complete", completedPath, new Date("2026-08-25T12:00:00.000Z"));
+    expect(restamp.ok).toBe(true);
+    expect(restamp.message).toMatch(/Restamped/);
+    expect(readFileSync(join(root, "CHANGELOG.md"), "utf8")).toBe(sentinel);
+    expect(restamp.message).not.toMatch(/CHANGELOG/);
+  });
+
   it("stale active complete path names completed sibling instead of File not found (#4881)", () => {
     root = makeRepo();
     const name = "2026-10-14-stale-active.xbrief.json";

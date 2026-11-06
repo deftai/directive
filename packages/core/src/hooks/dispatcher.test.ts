@@ -14,6 +14,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { writeKillAttestation } from "../orchestration/subagent-kill-attestation.js";
 import { DEFAULT_RUNTIME_AUTHORITY_POLICY } from "../policy/runtime-authority.js";
 import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
+import { LEFTOVER_LAND_PR_REMEDIATION } from "../scope/lifecycle-write.js";
+import { SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE } from "../scope/transition-hint.js";
 import {
   decisionCarriesSoftAgentsRebind,
   formatOpenClawSoftRebindSkillMarkdown,
@@ -62,6 +64,7 @@ import {
   isHookEvent,
   isHookHost,
   isLexicalOutsideProjectRoot,
+  isLifecycleOrInstallerRelPath,
   isMcpTool,
   isOutsideProjectRootWrite,
   isProposedLifecycleWrite,
@@ -7607,5 +7610,182 @@ describe("stale DEFT_ACTIVE_SCOPE pin-miss Write/Edit recovery (#5386)", () => {
     expect(decision.message).not.toMatch(/auto-promote from proposed/);
     expect(decision.message).toMatch(/Recovery: run `deft scope:unblock -- <blocked-brief>`/);
     expect(decision.message).not.toMatch(/scope:unblock -- «/);
+  });
+});
+
+describe("Prefer-A #5890 retirement-shaped zero-eligible", () => {
+  const zeroEligible = () =>
+    readySeams({
+      inspectScope: () => ({
+        ready: false,
+        path: null,
+        message:
+          "No active xBRIEF artifact was found under xbrief/active/ " +
+          "(or the legacy vbrief/active/ compatibility path).",
+        denyKind: "zero-eligible" as const,
+      }),
+    });
+
+  it("gates CHANGELOG-only Write with completed-only leftover-land lead", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          cwd: "/project",
+          tool_input: { file_path: "/project/CHANGELOG.md" },
+        },
+      },
+      zeroEligible(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toMatch(/leftover-land/);
+    expect(decision.message).toMatch(/scope:complete/);
+    expect(decision.message).toMatch(/completed\//);
+    expect(decision.message).toMatch(/CHANGELOG\.md/);
+    expect(decision.message).toMatch(/named residual/);
+    expect(decision.message).not.toMatch(/cancelled/);
+    expect(decision.message).not.toContain(LEFTOVER_LAND_PR_REMEDIATION);
+    expect(decision.message).not.toContain(SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE);
+    expect(decision.message).not.toMatch(/invent a fake scope|Write a new proposal/i);
+    expect(decision.message).not.toMatch(/DEFT_ACTIVE_SCOPE/);
+    expect(decision.message).toMatch(/unrelated active brief/);
+    expect(decision.message).not.toMatch(
+      /set DEFT_ACTIVE_SCOPE|pin DEFT_ACTIVE_SCOPE|Recovery: set/i,
+    );
+  });
+
+  it("gates completed+CHANGELOG ApplyPatch the same way", () => {
+    const completed = "xbrief/completed/2026-09-13-story.xbrief.json";
+    const body = [
+      "*** Begin Patch",
+      `*** Update File: ${completed}`,
+      "+ok",
+      "*** Update File: CHANGELOG.md",
+      "+- note",
+      "*** End Patch",
+    ].join("\n");
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "ApplyPatch",
+          tool_input: { path: completed, patch: body },
+        },
+      },
+      zeroEligible(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toMatch(/leftover-land/);
+    expect(decision.message).toMatch(/completed\//);
+    expect(decision.message).not.toMatch(/cancelled/);
+    expect(decision.message).not.toContain(LEFTOVER_LAND_PR_REMEDIATION);
+    expect(decision.message).not.toContain(SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE);
+    expect(decision.message).not.toMatch(/DEFT_ACTIVE_SCOPE/);
+  });
+
+  it("keeps ungated product-path zero-eligible copy byte-for-byte", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          cwd: "/project",
+          tool_input: { file_path: "/project/src/index.ts" },
+        },
+      },
+      zeroEligible(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toMatch(/no approved xBRIEF is available/i);
+    expect(decision.message).toContain(SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE);
+    expect(decision.message).toMatch(/Write a new proposal/);
+    expect(decision.message).not.toMatch(/leftover-land \//);
+  });
+
+  it("keeps ungated cancelled/ zero-eligible copy (not retirement-shaped)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          cwd: "/project",
+          tool_input: {
+            file_path: "/project/xbrief/cancelled/2026-09-13-story.xbrief.json",
+          },
+        },
+      },
+      zeroEligible(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toContain(SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE);
+    expect(decision.message).not.toMatch(/leftover-land \//);
+  });
+
+  it("refuses CHANGELOG-only and paired brief+CHANGELOG commit cover without ready scope", () => {
+    const noScope = {
+      ready: false as const,
+      path: null,
+      message: "No active xBRIEF artifact was found under xbrief/active/",
+      denyKind: "zero-eligible" as const,
+    };
+    const changelogOnly = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: ["CHANGELOG.md"],
+      inspectScope: () => noScope,
+      loadStoryWriteFence: () => ({ fileScope: [], denyPaths: [] }),
+      env: {},
+    });
+    expect(changelogOnly.ok).toBe(false);
+    expect(changelogOnly.message).toMatch(/no ready running scope/);
+    expect(changelogOnly.message).not.toMatch(/DEFT_ACTIVE_SCOPE/);
+
+    const paired = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: ["xbrief/completed/2026-09-13-story.xbrief.json", "CHANGELOG.md"],
+      inspectScope: () => noScope,
+      loadStoryWriteFence: () => ({ fileScope: [], denyPaths: [] }),
+      env: {},
+    });
+    expect(paired.ok).toBe(false);
+    expect(paired.message).toMatch(/no ready running scope/);
+    expect(isLifecycleOrInstallerRelPath("CHANGELOG.md")).toBe(false);
+  });
+  it("refuses unrelated-brief write-fence for nonqualifying hand Writes", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          cwd: "/project",
+          tool_input: { file_path: "/project/src/outside-scope.ts" },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      readySeams({
+        inspectScope: () => ({
+          ready: true,
+          path: "/project/xbrief/active/other-story.xbrief.json",
+          message: "bound",
+        }),
+        loadStoryWriteFence: () => ({
+          fileScope: ["packages/other/**"],
+          denyPaths: [],
+        }),
+      }),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).not.toBe("write-ready");
+    expect(decision.message).not.toMatch(/borrow another brief/i);
   });
 });
