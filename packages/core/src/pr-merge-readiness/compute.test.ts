@@ -631,7 +631,9 @@ describe("pr:merge-ready closeout invoker (#3875)", () => {
         {
           skipCi: true,
           skipSlizard: true,
-          skipCloseoutAttestable: true,
+          // Keep closeout on so this is not the Greptile-only conjunct.
+          skipCloseoutAttestable: false,
+          closeoutAttestableFn: () => ({ code: 0, message: "ok" }),
           namedMergeGateFn: () => ({
             ok: false,
             outcome: "master-merge-gate-red",

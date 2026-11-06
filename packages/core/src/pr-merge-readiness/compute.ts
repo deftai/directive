@@ -824,6 +824,15 @@ function applyNamedMergeGate(
   if (options.skipNamedMergeGate === true) {
     return result;
   }
+  // Greptile-only / non-merge-invoker scoring (verify-review-clean) skips closeout and
+  // leaves named tip-check unset — default-skip named gate in that conjunct only (#6071).
+  if (
+    options.skipNamedMergeGate === undefined &&
+    options.skipCloseoutAttestable === true &&
+    options.namedMergeGateFn === undefined
+  ) {
+    return result;
+  }
   if (result.via === VIA_ERROR || result.via === VIA_FALLBACK2) {
     return result;
   }
