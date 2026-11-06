@@ -87,6 +87,11 @@ export interface ReleasePreflightSeams {
   readonly runGh?: RunGhFn;
   readonly tipSha?: string | null;
   readonly skipNamedMergeGate?: boolean;
+  /**
+   * When true, run only the named Merge gate then return (suite-stamp path).
+   * Does not run the full framework-source check dispatcher (#6071 Greptile).
+   */
+  readonly skipCi?: boolean;
   /** Override the check dispatcher (default: dispatchTaskCheck from check/orchestrator). */
   readonly dispatchCheck?: (
     frameworkRoot: string,
@@ -366,6 +371,10 @@ export function runReleaseCheck(
           `release refused (#6071). ${named.error ?? ""}`.trim(),
       ];
     }
+  }
+
+  if (seams.skipCi === true) {
+    return [true, "named Merge gate ok (skipCi suite-stamp path)"];
   }
 
   const dispatch = seams.dispatchCheck ?? dispatchTaskCheck;
