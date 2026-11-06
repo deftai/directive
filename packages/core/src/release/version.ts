@@ -95,8 +95,10 @@ export function validateReleaseChannelVersion(version: string): void {
 
 /**
  * Version-derived npm dist-tag for a channel-validated release version (#5852).
- * Mirrors .github/scripts/resolve-npm-dist-tag.mjs: stable -> maintainer,
- * prerelease -> its id. Never returns "latest".
+ * For versions admitted by {@link validateReleaseChannelVersion}, matches
+ * .github/scripts/resolve-npm-dist-tag.mjs (stable -> maintainer, alpha|beta|rc -> id).
+ * Never returns "latest". Numeric-PRE / +build cases stay on the workflow script
+ * alone — this helper refuses them at the channel gate first.
  */
 export function releaseDistTag(version: string): string {
   validateReleaseChannelVersion(version);

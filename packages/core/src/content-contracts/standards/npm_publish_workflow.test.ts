@@ -37,6 +37,7 @@ const code = stripYamlComments(workflow);
 const prepare = jobBlock(code, "prepare");
 const publish = jobBlock(code, "publish");
 const postPublish = jobBlock(code, "post-publish");
+const promote = jobBlock(code, "promote-latest");
 
 describe("npm_publish_workflow (#5365 Prefer-A Bound)", () => {
   it("pins environment npm on the OIDC publish job", () => {
@@ -94,20 +95,38 @@ describe("npm_publish_workflow (#5365 Prefer-A Bound)", () => {
     expect(prepare).toMatch(/is not on origin\/master ancestry[\s\S]*?exit 1/);
   });
 
-  it("maps numeric prerelease identifiers to dist-tag next", () => {
-    expect(prepare).toContain("DIST_TAG=next");
-    expect(prepare).toMatch(/PRE="\$\{BASH_REMATCH\[1\]\}"/);
-    expect(prepare).toMatch(/\[\[ "\$\{PRE\}" =~ \^\[0-9\]\+\$ \]\]/);
-    expect(prepare).not.toMatch(/DIST_TAG="\$\{BASH_REMATCH\[1\]\}"/);
+  it("resolves dist-tag via the committed script read from the workflow ref (#5852)", () => {
+    expect(prepare).toContain("node _workflow-ref/.github/scripts/resolve-npm-dist-tag.mjs");
+    expect(prepare).toMatch(/ref:\s*\$\{\{\s*github\.workflow_sha\s*\}\}/);
+    expect(prepare.indexOf("github.workflow_sha")).toBeLessThan(prepare.indexOf("id: identity"));
+    expect(prepare).not.toMatch(/DIST_TAG=latest/);
+    expect(code).not.toMatch(/inputs\.dist_tag/);
   });
 
-  it("maps stable X.Y.Z to dist-tag maintainer and never resolves latest (#5852)", () => {
-    expect(prepare).toMatch(
-      /if \[\[ "\$\{VERSION\}" =~ \^\[0-9\]\+\\\.\[0-9\]\+\\\.\[0-9\]\+\$ \]\]; then\s*\n\s*DIST_TAG=maintainer\s*$/m,
-    );
+  it("keeps explicit latest as a separate promote job inside environment npm (#5852)", () => {
+    expect(promote).toMatch(/^\s*environment:\s*npm\s*$/m);
+    expect(promote).toContain("inputs.action == 'promote-latest'");
+    expect(promote).toContain("npm dist-tag add");
+    expect(promote).toContain("gh release edit");
+    expect(promote).toContain("--latest");
+    expect(promote).toMatch(/only a stable vX\.Y\.Z may be promoted to latest/);
+    expect(promote).toContain("@deftai/directive-runtime");
+    expect(promote).toContain("@deftai/directive");
+    expect(prepare).toContain("inputs.action != 'promote-latest'");
+    expect(publish).not.toContain("dist-tag add");
+    expect(prepare).not.toContain("dist-tag add");
+    expect(promote).toContain("group: npm-promote-latest");
+    expect(promote).toContain("cancel-in-progress: false");
+    // Comment prose is stripped; assert exist-check loop then tag-add loop.
+    expect(promote).toMatch(/for PKG[\s\S]*npm view[\s\S]*done\s*for PKG[\s\S]*npm dist-tag add/);
+  });
+
+  it("never resolves publish channel to latest and shares one DIST_TAG (#5852)", () => {
+    expect(prepare).toContain("resolve-npm-dist-tag.mjs");
     expect(prepare).not.toMatch(/DIST_TAG=latest/);
     expect(prepare).toMatch(/if \[ "\$\{DIST_TAG\}" = "latest" \]; then[\s\S]*?exit 1/);
     expect(code).not.toMatch(/dist_tag:\s*\n\s*description:/);
+    expect(code).not.toMatch(/inputs\.dist_tag/);
     for (const cmd of publish.match(/npm publish[^\n]*/g) ?? []) {
       expect(cmd).toContain('--tag "${DIST_TAG}"');
     }
