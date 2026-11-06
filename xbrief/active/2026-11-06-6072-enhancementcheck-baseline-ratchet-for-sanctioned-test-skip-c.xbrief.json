@@ -2,19 +2,20 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6072",
-    "updated": "2026-11-06T04:34:18Z"
+    "updated": "2026-11-06T04:43:34Z"
   },
   "plan": {
     "title": "enhancement(check): baseline ratchet for sanctioned test-skip count",
     "status": "running",
     "narratives": {
-      "Description": "As a maintainer, I want a committed baseline ratchet for sanctioned skip count, so that new cited skips cannot silently grow inventory without an authorized same-PR bump.",
+      "Description": "Sanctioned skip inventory can grow without a committed baseline ratchet on top of the #6071 scanner. This activation records Prefer-A Bound so a later product PR can land packages/core/src/check/sanctioned-skip-baseline.json and a shared evaluator that refuses unauthorized raises.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6072",
-      "Overview": "As a maintainer, I want a committed baseline ratchet for sanctioned skip count, so that new cited skips cannot silently grow inventory without an authorized same-PR bump.",
+      "Overview": "Sanctioned skip inventory can grow without a committed baseline ratchet on top of the #6071 scanner. This activation records Prefer-A Bound so a later product PR can land packages/core/src/check/sanctioned-skip-baseline.json and a shared evaluator that refuses unauthorized raises.",
       "Labels": "enhancement, design-critique:ingest-ready, core-capabilities",
       "UserStory": "As a maintainer, I want a committed baseline ratchet for sanctioned skip count, so that new cited skips cannot silently grow inventory without an authorized same-PR bump.",
-      "ImplementationPlan": "1) Prefer-A Bound limbs already stamped; baseline path packages/core/src/check/sanctioned-skip-baseline.json is in file_scope + intended_placement.\n2) Product PR (not this activation) commits the baseline file + shared evaluator wired to pre-PR/merge-readiness.\n3) CHANGELOG Unreleased activation note only on this PR.",
-      "Acceptance": "Bound remedy limbs are the acceptance set; product PR must satisfy each limb under declared file_scope."
+      "ImplementationPlan": "1. Add packages/core/src/check/sanctioned-skip-baseline.json beside the #6071 scanner and a shared evaluator under packages/core/src/check/.\n2. Wire that evaluator into the same pre-PR and merge-readiness call sites as the scanner in packages/core/src/check/cli-native-gates.ts and related modules.\n3. Cover with packages/core/src/check/*.test.ts fixtures proving refuse-above-baseline and authorized same-PR bump; CHANGELOG.md Unreleased for the product ship.",
+      "Acceptance": "Bound remedy limbs are the acceptance set; product PR must satisfy each limb under declared file_scope.",
+      "AcceptanceJustification": "Prefer-A Bound ships one acceptance item per locked limb; clause count follows the Bound comment and may exceed five."
     },
     "items": [
       {
@@ -32,7 +33,7 @@
         "title": "relieves: P2 — Derive the candidate ratchet count as #6071 listed rows at the named revision filtered on citation shape with the issue-state field ignored (so #6071 must expose those rows before live-state filtering), never auto-ratchet upward, and allow candidate baseline above target baseline only for a shape-(B) hotfix under #6071 authorization with a same-PR baseline bump equal to the net new skips #6071 authorizes on this diff (no follow-up raise-admit path).",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "relieves: P2 — Derive the candidate ratchet count as #6071 listed rows at the named revision filtered on citation shape with the issue-state field ignored (so #6071 must expose those rows before live-state filtering), never auto-ratchet upward, and allow candidate baseline above target baseline only for a shape-(B) hotfix under #6071 authorization with a same-PR baseline bump equal to the net new skips #6071 authorizes on this diff (no follow-up raise-admit path).",
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Derive the candidate ratchet count as #6071 listed rows at the named revision filtered on citation shape with the issue-state field ignored (so #6071 must expose those rows before live-state filtering), never auto-ratchet upward, and allow candidate baseline above target baseline only for a shape-(B) hotfix under #6071 authorization with a same-PR baseline bump equal to the net new skips #6071 authorizes on this diff (no follow-up raise-admit path).",
           "Traces": "#6072",
           "Description": "Primary touch: packages/core/src/check/cli-native-gates.test.ts"
         }
@@ -52,7 +53,7 @@
         "title": "relieves: P4 — On every run require the candidate committed baseline to equal the candidate tree-syntax count, refuse any baseline bump whose amount does not equal the #6071-authorized net new skips on this diff, and refuse missing or invalid baseline evidence instead of seeding zero.",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "relieves: P4 — On every run require the candidate committed baseline to equal the candidate tree-syntax count, refuse any baseline bump whose amount does not equal the #6071-authorized net new skips on this diff, and refuse missing or invalid baseline evidence instead of seeding zero.",
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — On every run require the candidate committed baseline to equal the candidate tree-syntax count, refuse any baseline bump whose amount does not equal the #6071-authorized net new skips on this diff, and refuse missing or invalid baseline evidence instead of seeding zero.",
           "Traces": "#6072",
           "Description": "Primary touch: packages/core/src/check/consumer-gate-integrity.test.ts"
         }
@@ -62,7 +63,7 @@
         "title": "relieves: P5 — Do not invoke task check or re-run Merge gate (task check) for this ratchet, and never commit or push the baseline file from verification.",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "relieves: P5 — Do not invoke task check or re-run Merge gate (task check) for this ratchet, and never commit or push the baseline file from verification.",
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P5 — Do not invoke task check or re-run Merge gate (task check) for this ratchet, and never commit or push the baseline file from verification.",
           "Traces": "#6072",
           "Description": "Primary touch: packages/core/src/check/consumer-gate-integrity.ts"
         }
@@ -72,7 +73,7 @@
         "title": "relieves: P2 — Require #6071 shape-(B) allowed touch set to admit the packages/core/src/check/ baseline count file in the same hotfix PR that adds cited skips and bumps that baseline, so the AC3 raise path has an admissible input without a follow-up bump or shape-(A) relabel.",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "relieves: P2 — Require #6071 shape-(B) allowed touch set to admit the packages/core/src/check/ baseline count file in the same hotfix PR that adds cited skips and bumps that baseline, so the AC3 raise path has an admissible input without a follow-up bump or shape-(A) relabel.",
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Require #6071 shape-(B) allowed touch set to admit the packages/core/src/check/ baseline count file in the same hotfix PR that adds cited skips and bumps that baseline, so the AC3 raise path has an admissible input without a follow-up bump or shape-(A) relabel.",
           "Traces": "#6072",
           "Description": "Primary touch: packages/core/src/check/consumer-header-placeholder.test.ts"
         }
@@ -211,14 +212,15 @@
         "model_tier": "standard",
         "size": "M",
         "file_scope_confidence": "high",
-        "parallel_safe": false,
+        "parallel_safe": true,
         "Traces": [
           "Prefer-A Bound 6670134573"
-        ]
+        ],
+        "acceptance_criteria_justification": "Prefer-A Bound ships one acceptance item per locked limb; clause count follows the Bound comment and may exceed five."
       },
       "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)"
     },
     "id": "github.issue.6231502901",
-    "updated": "2026-11-06T04:34:18Z"
+    "updated": "2026-11-06T04:43:34Z"
   }
 }
