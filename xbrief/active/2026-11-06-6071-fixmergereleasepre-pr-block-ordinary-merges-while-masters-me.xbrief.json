@@ -229,6 +229,9 @@
           "packages/core/src/release/release-input-pipeline.test.ts",
           "packages/core/src/release/types.ts",
           "packages/core/src/swarm/swarm-branches.test.ts",
+          "packages/core/src/swarm/swarm-deep-coverage.test.ts",
+          "packages/core/src/swarm/verify-review-clean-cli.ts",
+          "packages/core/src/swarm/verify-review-clean.ts",
           "packages/runtime/src/pre-pr-run.test.ts",
           "packages/runtime/src/pre-pr-run.ts"
         ],
@@ -381,6 +384,9 @@
           "packages/core/src/release/release-input-pipeline.test.ts",
           "packages/core/src/release/types.ts",
           "packages/core/src/swarm/swarm-branches.test.ts",
+          "packages/core/src/swarm/swarm-deep-coverage.test.ts",
+          "packages/core/src/swarm/verify-review-clean-cli.ts",
+          "packages/core/src/swarm/verify-review-clean.ts",
           "packages/runtime/src/pre-pr-run.test.ts",
           "packages/runtime/src/pre-pr-run.ts"
         ],
@@ -403,6 +409,6 @@
       "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)"
     },
     "id": "github.issue.6231497602",
-    "updated": "2026-11-06T04:42:50Z"
+    "updated": "2026-11-06T10:47:45Z"
   }
 }
