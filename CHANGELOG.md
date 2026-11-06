@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.5.
 
 ### Fixed
+- Promote-latest claims the single-use grant under an exclusive lock before dispatch, restores the protected inline dist-tag Resolve so Class-4 tips do not call a missing workflow-ref script, and documents `--promote-latest` on help (#5852).
 - Record tracked completion for edit_files truncation lessons-pack entry (#1037).
 - Release draft checks and rollback release lookups now read GitHub responses correctly when the parent environment forces terminal colors. This extends the color-output fix released in 0.129.3 to these two release paths. The release-publish lookup is unchanged and will be addressed separately. Refs #6032.
 
