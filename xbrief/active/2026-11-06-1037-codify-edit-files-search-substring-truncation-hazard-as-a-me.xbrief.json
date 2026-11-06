@@ -1,0 +1,378 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #1037",
+    "updated": "2026-11-06T17:52:13Z"
+  },
+  "plan": {
+    "title": "Codify edit_files search-substring truncation hazard as a meta/lessons.md entry (recurrence on PR #1034)",
+    "status": "running",
+    "narratives": {
+      "Description": "Codify edit_files search-substring truncation hazard as a meta/lessons.md entry (recurrence on PR #1034)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1037",
+      "Overview": "Prefer-A Bound 6689115138 for conflict_group lessons-pack-edit-files-search-substring-truncation.",
+      "Labels": "documentation, design-critique:ingest-ready",
+      "UserStory": "As a maintainer, I can find the edit_files short-search truncation hazard as a durable lessons-pack entry projected into meta/lessons.md.",
+      "ImplementationPlan": "Add one lessons-pack-0.1 entry; packs:render meta/lessons.md; cite PR #1034 and #911 cascade; no verify:changelog-bullets in this Bound."
+    },
+    "items": [
+      {
+        "id": "1",
+        "title": "Add one lessons-pack-0.1 entry for the edit_files truncation hazard",
+        "status": "pending"
+      },
+      {
+        "id": "2",
+        "title": "Require full-line/full-entry search anchors and post-edit re-read in the lesson body",
+        "status": "pending"
+      },
+      {
+        "id": "3",
+        "title": "Render meta/lessons.md from the pack SoT",
+        "status": "pending"
+      },
+      {
+        "id": "4",
+        "title": "Cite PR #1034 and the #911 cascade in the lesson body",
+        "status": "pending"
+      }
+    ],
+    "tags": [
+      "documentation",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1037",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #1037: Codify edit_files search-substring truncation hazard as a meta/lessons.md entry (recurrence on PR #1034)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Add one lessons-pack-0.1 entry for the edit_files truncation hazard",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Require full-line/full-entry search anchors and post-edit re-read in the lesson body",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Render meta/lessons.md from the pack SoT",
+          "artifact_path": "meta/lessons.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Cite PR #1034 and the #911 cascade in the lesson body",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/packs/lessons/lessons-pack-0.1.json",
+          "meta/lessons.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "content/packs/lessons/lessons-pack-0.1.json",
+        "cohesion_exemption": "Pack entry plus rendered meta/lessons.md projection and thin CHANGELOG Docs note for the same Bound unit"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft\n\nLean: Prefer-A\nconflict_group: lessons-pack-edit-files-search-substring-truncation\nSpec-path: content/packs/lessons/lessons-pack-0.1.json\nTarget-digest: sha256:a53a1b67e8adf18ad76953386862068ee7c0e7da9dfb211d443d287611fca143\narc-mode: no-ingest\nyolo-standing: on\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\n\n## In plain English\n\nCodify the edit_files short-search truncation hazard as one lessons-pack entry, regenerate the meta/lessons.md projection, and keep the optional changelog-bullet lint out of this Bound.\n\n## Bound remedy\n\n- relieves: P1 — Add one lessons-pack-0.1 entry whose canonical write is content/packs/lessons/lessons-pack-0.1.json (not a hand-edit of generated meta/lessons.md).\n- relieves: P2 — Entry body MUST require full-line/full-entry search anchors for exact-string replace tools and a post-edit re-read of the surrounding region on CHANGELOG/ROADMAP-class narrative files.\n- relieves: P3 — Run packs:render (or equivalent) so meta/lessons.md stays the drift-checked projection of that pack entry.\n- relieves: P4 — Cite PR #1034 and the #911 cascade as recurrence record inside the lesson body.\n\n## Reject\n\n- Hand-editing meta/lessons.md as SoT (stale issue-body path; #1294 / ADR-001 pack is SoT).\n- Shipping verify:changelog-bullets in this Bound (issue marks it optional / non-blocking).\n- New gateable AGENTS.md / always-pin rule for this behavioral lesson.\n\nFiled for @MScottAdams",
+          "id": 6688948488,
+          "html_url": "https://github.com/deftai/directive/issues/1037#issuecomment-6688948488",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-06T15:48:02Z",
+          "updated_at": "2026-11-06T15:48:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because the issue proposes a durable institutional lesson with a concrete write path that has drifted since filing (#1294 pack SoT vs hand-edit meta/lessons.md), so a short Prefer-A Bound must lock the correct mechanism before ingest.\n\nmechanism-shaped: true\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\ncharter: open critique\nTarget-kind: issue\nCeiling-kind: comment-id\ndispatch-sha: 76909c9e4da30614d454b686b5c48cf79898f756\nverification-path: pin-read git show 76909c9e4da30614d454b686b5c48cf79898f756: + dest cwd-without-occupy .deft-scratch/worktrees/arc-1037\nid-ceiling: 6688948488\n\npain: P1, P2, P3, P4\n- P1 Hand-edit of generated meta/lessons.md would fail packs:verify-drift / ADR-001; SoT is content/packs/lessons/lessons-pack-0.1.json.\n- P2 Exact-string replace with a too-short search silently truncates the rest of the targeted CHANGELOG/list entry (PR #1034 recurrence).\n- P3 Projection must be regenerated after the pack entry lands so meta/lessons.md matches the pack.\n- P4 Recurrence record (PR #1034 + #911 cascade) must travel with the lesson body so later agents see the concrete failure class.\n\ndual-stop-reserved: none (N=1; non-vacuous pain recorded; reserved literacy N/A for single-seat)\n\n## Plain-language summary\n\nLock a one-seat open-critique arc that binds the lesson into the lessons pack (not the generated markdown), regenerates the projection, and leaves the optional changelog lint out of scope.\n\nFiled for @MScottAdams",
+          "id": 6688952992,
+          "html_url": "https://github.com/deftai/directive/issues/1037#issuecomment-6688952992",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-06T15:48:13Z",
+          "updated_at": "2026-11-06T15:48:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Panel deposit\n\nconsent: spend N=1 resolved via spend-recommend (bare arc; closed remedy; low blast; Stop 2 panel permission not used)\nseat-families: grok (N=1; Codex shell launch-probe denied — native Grok dest-rooted seat)\ndispatch-sha: 76909c9e4da30614d454b686b5c48cf79898f756\ndest: .deft-scratch/worktrees/arc-1037\npinKind: origin-default\nverification-path: pin-read git show 76909c9e4da30614d454b686b5c48cf79898f756: + dest cwd-without-occupy\nid-ceiling: 6688952992\ninput-ceiling: 6688959647\nPrefer-A draft: 6688948488\nStop 1: 6688952992\ncharter: open critique\narc-mode: no-ingest\nyolo-standing: on\n\n## Seat plan\n\n- Grok Round-1 critic (fresh): open critique of Prefer-A draft against Stop 1 pains P1–P4; propose/confirm Bound limbs; pin-read only at dispatch-sha.\n\nFiled for @MScottAdams",
+          "id": 6688959647,
+          "html_url": "https://github.com/deftai/directive/issues/1037#issuecomment-6688959647",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-06T15:48:29Z",
+          "updated_at": "2026-11-06T15:49:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: critic\n```\n\nclean-result: yes\n\nOpen critique of Prefer-A draft (6688948488) against Stop 1 pains P1–P4 (6688952992). Pin-read at dispatch-sha 76909c9e4da30614d454b686b5c48cf79898f756 confirms content/packs/lessons/lessons-pack-0.1.json is the lessons SoT and meta/lessons.md is AUTO-GENERATED by packs:render (projection). Closed tag vocabulary and optional verify:changelog-bullets stay as Prefer-A already states.\n\n## F1 — Pack SoT write path matches P1\nclass: footnote\nevidence: Prefer-A Bound limb relieves:P1 names canonical write content/packs/lessons/lessons-pack-0.1.json and Reject bans hand-edit of meta/lessons.md; pin-read confirms pack JSON + generated banner on meta/lessons.md.\nfailure mode: none under this Bound — wrong SoT was the filed-body drift Stop 1 already corrected.\ndisposition proposal: accept-into-contract (no remint)\nPrefer-A Bound limbs sufficient: yes\n\n## F2 — Full-entry search + re-read covers P2\nclass: footnote\nevidence: Bound limb relieves:P2 requires full-line/full-entry search anchors for exact-string replace tools and post-edit re-read of surrounding region on CHANGELOG/ROADMAP-class narrative files; Stop 1 P2 cites PR #1034 silent truncation.\nfailure mode: short-search truncation recurs if agents ignore the lesson — the Bound correctly makes that the lesson body obligation, not a new AGENTS always-pin (Reject).\ndisposition proposal: accept-into-contract\nPrefer-A Bound limbs sufficient: yes\n\n## F3 — packs:render projection closes P3\nclass: footnote\nevidence: Bound limb relieves:P3 requires packs:render (or equivalent) so meta/lessons.md stays drift-checked projection; matches Stop 1 P3 and ADR-001/pack verify-drift posture.\nfailure mode: pack entry lands without render → packs:verify-drift red — Bound already names the regenerate step.\ndisposition proposal: accept-into-contract\nPrefer-A Bound limbs sufficient: yes\n\n## F4 — Recurrence cites travel with lesson body (P4)\nclass: footnote\nevidence: Bound limb relieves:P4 requires citing PR #1034 and #911 cascade inside the lesson body; aligns with Stop 1 P4.\nfailure mode: orphan lesson without recurrence record — Bound carries the cites.\ndisposition proposal: accept-into-contract\nPrefer-A Bound limbs sufficient: yes\n\n## F5 — Optional changelog lint stays out of Bound\nclass: footnote\nevidence: Prefer-A Reject keeps verify:changelog-bullets out of this Bound; issue marks it optional/non-blocking; KISS/#5783 keeps Bound short mechanism limbs.\nfailure mode: none for bind — widening Bound for a non-blocking lint would be essay-creep, not fail-closed association change.\ndisposition proposal: accept-into-contract (footnote only)\nPrefer-A Bound limbs sufficient: yes\n\n## Verdict\n\nPrefer-A is accept-worthy as written. Bound limbs are a short Thin Fail-Closed mechanism list covering P1–P4; Reject correctly excludes stale hand-edit SoT, optional changelog lint, and new always-pin. No missing mechanism. Footnote-only census; no blocks-the-design; no sharpens-framing that changes fail-closed association.\n\nFiled for @MScottAdams",
+          "id": 6689110791,
+          "html_url": "https://github.com/deftai/directive/issues/1037#issuecomment-6689110791",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-06T15:54:48Z",
+          "updated_at": "2026-11-06T15:54:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\n\nLean: Prefer-A\nconflict_group: lessons-pack-edit-files-search-substring-truncation\nSpec-path: content/packs/lessons/lessons-pack-0.1.json\nTarget-digest: sha256:1049cac4873d8d92bab9256806943a7ae8ef1baf74431bc1b5647c9dfc5b82b8\narc-mode: no-ingest\nyolo-standing: on\nspend: N=1\nRound-1 critic: 6689110791 (clean-result: yes; footnote-only census F1-F5)\n\n## In plain English\n\nAdd one lessons-pack entry for the edit_files short-search truncation hazard, regenerate meta/lessons.md from that pack, cite PR #1034 and the #911 cascade in the lesson body, and leave the optional changelog lint out of this Bound.\n\n## Bound remedy\n\n- relieves: P1 — Add one lessons-pack-0.1 entry whose canonical write is content/packs/lessons/lessons-pack-0.1.json (not a hand-edit of generated meta/lessons.md).\n- relieves: P2 — Entry body MUST require full-line/full-entry search anchors for exact-string replace tools and a post-edit re-read of the surrounding region on CHANGELOG/ROADMAP-class narrative files.\n- relieves: P3 — Run packs:render (or equivalent) so meta/lessons.md stays the drift-checked projection of that pack entry.\n- relieves: P4 — Cite PR #1034 and the #911 cascade as recurrence record inside the lesson body.\n\n## Reject\n\n- Hand-editing meta/lessons.md as SoT (stale issue-body path; #1294 / ADR-001 pack is SoT).\n- Shipping verify:changelog-bullets in this Bound (issue marks it optional / non-blocking).\n- New gateable AGENTS.md / always-pin rule for this behavioral lesson.\n\n## Pain coverage\n\n- P1 relieves: P1\n- P2 relieves: P2\n- P3 relieves: P3\n- P4 relieves: P4\n\nFiled for @MScottAdams",
+          "id": 6689115138,
+          "html_url": "https://github.com/deftai/directive/issues/1037#issuecomment-6689115138",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-06T15:55:00Z",
+          "updated_at": "2026-11-06T15:58:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nid-ceiling: 6689115138\ndispatch-sha: 76909c9e4da30614d454b686b5c48cf79898f756\nfinding-classes: none\nharvest-changed: false\nclean-result: yes\n\n## Pain-audit Prefer-A Bound 6689115138 (Pass-4)\n\nCeiling: 6689115138 inclusive. Pin-read at 76909c9e4da30614d454b686b5c48cf79898f756. Process-only. KISS #5783. Fresh critic seat. Stop 1: 6688952992. Round-1: 6689110791 (clean-result: yes; footnote-only F1–F5).\n\n## Tip re-verify (envelope pin-read)\n\n- content/packs/lessons/lessons-pack-0.1.json is the lessons SoT (pack JSON with lessons[] entries).\n- meta/lessons.md banner: AUTO-GENERATED by task packs:render — DO NOT EDIT MANUALLY; Source of truth: packs/lessons/lessons-pack-0.1.json.\n- No existing lessons-pack entry for edit_files short-search / full-entry truncation hazard (CRLF edit_files lesson is a different failure class).\n- Prefer-A Bound limbs are short mechanism list; Reject keeps hand-edit SoT, optional verify:changelog-bullets, and new AGENTS always-pin out of Bound.\n\n## Coverage\n\n**pain-P1** — harvest-changed: false. Bound limb relieves: P1 names canonical write content/packs/lessons/lessons-pack-0.1.json and Reject bans hand-edit of generated meta/lessons.md. Stop 1 P1 (hand-edit fails packs:verify-drift / ADR-001) is relieved after Prefer-A ships via pack SoT write. Relief reachable: yes.\n\n**pain-P2** — harvest-changed: false. Bound limb relieves: P2 requires full-line/full-entry search anchors for exact-string replace tools and post-edit re-read on CHANGELOG/ROADMAP-class narrative files. Stop 1 P2 (PR #1034 silent truncation) is the lesson-body obligation. Relief reachable: yes (lesson lands; behavioral recurrence if agents ignore lesson is outside Bound mechanism).\n\n**pain-P3** — harvest-changed: false. Bound limb relieves: P3 requires packs:render (or equivalent) so meta/lessons.md stays drift-checked projection. Matches Stop 1 P3. Relief reachable: yes.\n\n**pain-P4** — harvest-changed: false. Bound limb relieves: P4 requires citing PR #1034 and #911 cascade inside the lesson body. Matches Stop 1 P4. Relief reachable: yes.\n\n## Verdict\n\nPrefer-A Bound 6689115138 covers Stop 1 P1–P4. No blocking or sharpening finding. No Bound-remedy mechanism or fail-closed association change required under KISS/#5783. Round-1 footnote-only census needs no remint.\n\nFiled for @MScottAdams",
+          "id": 6689167411,
+          "html_url": "https://github.com/deftai/directive/issues/1037#issuecomment-6689167411",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-06T15:57:12Z",
+          "updated_at": "2026-11-06T15:57:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n| --- | --- | --- |\n| Prefer-A Bound covers Stop 1 P1-P4 | Bound 6689115138 limbs relieves:P1-P4; PA 6689167411 harvest-changed:false clean-result:yes | verified |\n| Round-1 accept-worthy | Critic 6689110791 clean-result:yes footnote-only F1-F5 | verified |\n| Pack SoT write path | pin-read content/packs/lessons/lessons-pack-0.1.json; meta/lessons.md AUTO-GENERATED | verified |\n| Optional changelog lint keep-out | Prefer-A Reject; issue marks non-blocking | verified |\n| Reduced panel | N=1 single Grok seat (Codex shell probe denied; native Grok) | recorded |\n\nsuccessor lean: 6689115138\nBound-harvest-digest: sha256:uncomputed\nPA: 6689167411\nRound-1: 6689110791\ndispatch-sha: 76909c9e4da30614d454b686b5c48cf79898f756\n\nFiled for @MScottAdams",
+          "id": 6689174181,
+          "html_url": "https://github.com/deftai/directive/issues/1037#issuecomment-6689174181",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-06T15:57:28Z",
+          "updated_at": "2026-11-06T15:57:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Bound 6689115138 covers Stop 1 P1-P4 with Round-1 clean-result:yes (6689110791) and PA clear harvest-changed:false (6689167411); no blocking residuals; KISS/#5783 Bound remains short pack-SoT + render + recurrence cites.\n\nsuccessor lean: 6689115138\nverified-claims table: 6689174181\narc-mode: no-ingest\nyolo-standing: on\nspend: N=1\nconflict_group: lessons-pack-edit-files-search-substring-truncation\ndispatch-sha: 76909c9e4da30614d454b686b5c48cf79898f756\n\n## In plain English\n\nShip one lessons-pack entry for the edit_files short-search truncation hazard, regenerate meta/lessons.md, cite PR #1034 and #911, and leave the optional changelog lint out of scope. Ingest stays a later separate operator verb.\n\nFiled for @MScottAdams",
+          "id": 6689174608,
+          "html_url": "https://github.com/deftai/directive/issues/1037#issuecomment-6689174608",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-06T15:57:30Z",
+          "updated_at": "2026-11-06T15:57:30Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\r\n\r\nAgents using the `edit_files` tool (or any similar exact-string-match replacement tool) can silently truncate adjacent content when the `search` string is a substring of a longer single line. The replacement is performed correctly per the tool's contract -- the issue is on the agent side: the agent picked too short a `search` value, and the line in the file is longer than the search anchor, so the \"rest of the line\" past the search anchor is deleted along with the search content.\r\n\r\nCodify the hazard as a `meta/lessons.md` entry so future agents avoid the same pattern.\r\n\r\n## Concrete recurrence (PR #1034)\r\n\r\nDuring the 2026-05-11 bug-cohort refinement session, an agent ran an `edit_files` call to add a new `### Refinement` bullet at the top of CHANGELOG.md's `[Unreleased]` section. The `search` string captured the existing first bullet body up to one line:\r\n\r\n```\r\n### Refinement\r\n- **chore(vbrief): #441 close-out -- scope vBRIEF moved active/ -> completed/ after PR #441 merged at 57bab6f.**\r\n```\r\n\r\nBut the actual first bullet in the file was longer than that -- it continued past the matched substring with additional prose (the lifecycle bookkeeping context: which skill, which file path, what status flipped, that no code changed). The `replace` block reinserted the matched search content verbatim AND prepended the new bullet -- but the OVERFLOW past the search anchor (the continuation prose on subsequent lines, technically still part of the same logical bullet entry per CHANGELOG.md conventions) was discarded because the `search` regex stopped at the period plus closing `**`.\r\n\r\nGreptile's review on the resulting PR caught the truncation as a P1-class diff finding (\"CHANGELOG.md:26 #441 close-out bullet body had been stripped\"). The agent restored the body verbatim in a follow-up commit.\r\n\r\nThis is the second instance in 30 days where short-search-string replacement silently dropped adjacent content (the first was in the #911 cascade where CHANGELOG conflict resolution dropped branch entries via a `text[head_open:sep+1]` slice -- different mechanism, same outcome class).\r\n\r\n## Recommended rule\r\n\r\nAppend a new section to `meta/lessons.md` (no separate gateable rule -- this is agent behavioural guidance, not a deterministic check):\r\n\r\n```\r\n## edit_files search strings MUST capture full units, not substrings (2026-05)\r\n\r\nWhen using `edit_files` (or any exact-string-match replacement) to modify a single-line or\r\nmulti-line entry (CHANGELOG bullets, list items, section headings), the `search` value MUST\r\nmatch the FULL line / FULL entry being targeted, including any trailing prose / continuation\r\nthat the agent intends to preserve.\r\n\r\nAnti-pattern: pick the first N words of a long bullet as the search anchor; the replacement\r\nsilently truncates the bullet at the end of the matched substring.\r\n\r\nMitigation:\r\n- ! When targeting a markdown bullet, the `search` value MUST extend to the next blank line\r\n  or the next top-level list marker, whichever comes first. Re-read the file and capture\r\n  ALL bytes that belong to the targeted entry.\r\n- ! When adding a new bullet ABOVE an existing one, an even safer pattern is to anchor the\r\n  `search` value on the section heading (e.g. `### Refinement`) and re-emit the heading in\r\n  the `replace` value followed by the new bullet and a placeholder for the existing first\r\n  bullet -- but you MUST still capture every byte of that existing first bullet.\r\n- ! After every `edit_files` call that touches CHANGELOG.md, ROADMAP.md, or any other\r\n  append-only narrative file, re-read the surrounding 20 lines of the edited region and\r\n  verify nothing was truncated. This is part of the standard pre-commit file review.\r\n\r\nRecurrence record:\r\n- PR #1034 (2026-05-11) -- CHANGELOG.md `### Refinement` first bullet truncated when adding\r\n  a new bullet above it; Greptile caught it as a P1 in review-cycle.\r\n- PR #911 cascade (2026-05-04) -- different mechanism (HEAD-only slice resolution), same\r\n  outcome class: CHANGELOG `[Unreleased]` branch entries dropped on conflict resolution.\r\n```\r\n\r\nPer the Rule Authority [AXIOM] (`main.md`), this is a lesson-tier entry -- the rule body\r\nabove is the full content because no stronger encoding exists (there is no deterministic\r\ngate that can prevent an agent from passing too-short a `search` value to `edit_files`).\r\n\r\n## Optional follow-up (DOES NOT block this issue)\r\n\r\nA possible deterministic-tier strengthening: add a `task verify:changelog-bullets` lint that\r\nwalks CHANGELOG.md / ROADMAP.md and asserts every `### <Section>` block contains at least\r\nN bullets and that no bullet body is suspiciously short (e.g. ends with `.**` with no\r\ncontinuation prose for a section that historically averages multi-paragraph bullets). The\r\nheuristic is shape-only -- it cannot catch a \"valid-but-shorter-than-intended\" truncation\r\ndeterministically -- so the prose lesson remains the primary mitigation.\r\n\r\n## Cross-references\r\n\r\n- PR #1034 (the surfacing event; Greptile P1 on the truncated #441 close-out bullet)\r\n- PR #911 (sibling recurrence; different mechanism, same outcome class)\r\n- `skills/deft-directive-build/SKILL.md` and `skills/deft-directive-refinement/SKILL.md`\r\n  pre-commit file review steps (the mandatory re-read that would have caught this; the\r\n  lesson is \"agent skipped that step on a small-looking edit\")\r\n- `meta/lessons.md` (the file that needs the new section)\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 4418069608,
+        "origin": "deftai/directive#1037",
+        "id": "github.issue.4418069608"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "1049cac4873d8d92bab9256806943a7ae8ef1baf74431bc1b5647c9dfc5b82b8"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "lessons-pack-edit-files-search-substring-truncation",
+        "expected_outputs": [
+          "lessons-pack-0.1 entry for edit_files truncation",
+          "meta/lessons.md regenerated",
+          "CHANGELOG Unreleased Docs #1037"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "deft packs:render --check"
+        ],
+        "file_scope": [
+          "content/packs/lessons/lessons-pack-0.1.json",
+          "meta/lessons.md",
+          "CHANGELOG.md"
+        ],
+        "size": "S",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#1037",
+          "Prefer-A Bound 6689115138",
+          "PA 6689167411"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.4418069608",
+    "updated": "2026-11-06T17:52:13Z"
+  }
+}

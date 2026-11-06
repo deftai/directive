@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- Prepare release-path gh JSON reads so CLICOLOR_FORCE in the parent env cannot break draft/tag/rollback lookups (#6032).
+- Capture the edit_files short-search truncation hazard as a lessons-pack entry maintainers can find in meta/lessons.md (#1037).
 - Activate running work brief for gitcrawl-fallback doc delete-and-redirect (#1092).
 - chore(dogfood): pin Directive to 0.129.5.
 
