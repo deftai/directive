@@ -47,12 +47,18 @@ export {
   walkAcceptanceClauses,
 } from "./clauses.js";
 export {
+  collectBriefLandInventoryAsPrDiffPaths,
   type EvaluateProductOracleIntegrityOptions,
   emitVerifyAcAttempts,
+  evaluatePathBActivationAcDisposition,
   evaluateProductOracleIntegrity,
+  isPathBActivationAcDispositionText,
   mergeOracleVerdict,
   methodFingerprintForWalk,
   type OracleIntegrityResultFields,
+  PATH_B_ACTIVATION_AC_DISPOSITION,
+  PATH_B_ACTIVATION_AC_MESSAGE,
+  type PathBActivationAcDisposition,
   type ProductOracleIntegrityVerdict,
   VERIFY_AC_CHECK_ID_PREFIX,
   verifyAcCheckId,

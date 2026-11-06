@@ -1,12 +1,15 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { evaluateVerifyAcFromPlan } from "../product-first-done-gate/evaluate.js";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import {
+  collectBriefLandInventoryAsPrDiffPaths,
   emitVerifyAcAttempts,
+  evaluatePathBActivationAcDisposition,
   evaluateProductOracleIntegrity,
+  isPathBActivationAcDispositionText,
   mergeOracleVerdict,
   methodFingerprintForWalk,
   resetInProcessVerificationBuffer,
@@ -1054,5 +1057,493 @@ describe("safety-refusal is not a product-oracle measurement (#3615)", () => {
     expect(text).toMatch(/\.deft-run-summary\.json/);
     expect(text).toMatch(/independent_rederivation=true/);
     expect(text).toMatch(/refused side never executed/i);
+  });
+});
+
+describe("Path B activation AC disposition (#5792)", () => {
+  it("admits local no-bodyText brief-land via issue-ref identity and defers product AC", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-5792-activation-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story-5792.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "activation",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5792",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const files = [
+      { status: "added", path: "xbrief/active/story-5792.xbrief.json" },
+      { status: "modified", path: "CHANGELOG.md" },
+    ];
+    const disposition = evaluatePathBActivationAcDisposition({
+      projectRoot: root,
+      bodyText: null,
+      repo: "deftai/directive",
+      files,
+    });
+    expect(disposition.apply).toBe(true);
+    if (!disposition.apply) return;
+    expect(disposition.message).toMatch(/path_b_activation_deferred \(#5792\)/);
+    expect(disposition.witnessDetail).toMatch(/local issue-ref identity #5792/);
+    expect(isPathBActivationAcDispositionText(disposition.message)).toBe(true);
+    expect(isPathBActivationAcDispositionText("verify:ac soft_empty (#3334)")).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("restores full verify:ac when inventory includes a product path", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-5792-product-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story-5792.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "mixed",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5792",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const disposition = evaluatePathBActivationAcDisposition({
+      projectRoot: root,
+      bodyText: null,
+      repo: "deftai/directive",
+      files: [
+        { status: "added", path: "xbrief/active/story-5792.xbrief.json" },
+        { status: "added", path: "src/record-reference.js" },
+      ],
+    });
+    expect(disposition.apply).toBe(false);
+    if (disposition.apply) return;
+    expect(disposition.reason).toMatch(/not brief-land shaped|product path/i);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("still requires deft-story marks when PR bodyText is present", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-5792-body-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story-5792.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "activation",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5792",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const missing = evaluatePathBActivationAcDisposition({
+      projectRoot: root,
+      bodyText: "Tracking #5792\n",
+      repo: "deftai/directive",
+      files: [
+        { status: "added", path: "xbrief/active/story-5792.xbrief.json" },
+        { status: "modified", path: "CHANGELOG.md" },
+      ],
+    });
+    expect(missing.apply).toBe(false);
+    const admitted = evaluatePathBActivationAcDisposition({
+      projectRoot: root,
+      bodyText: "Tracking #5792\n\ndeft-story: 5792\n",
+      repo: "deftai/directive",
+      files: [
+        { status: "added", path: "xbrief/active/story-5792.xbrief.json" },
+        { status: "modified", path: "CHANGELOG.md" },
+      ],
+    });
+    expect(admitted.apply).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("refuses disposition when productPullRequest is stamped", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-5792-stamped-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story-5792.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "product",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5792",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+          metadata: { productPullRequest: 9999 },
+        },
+      }),
+      "utf8",
+    );
+    const disposition = evaluatePathBActivationAcDisposition({
+      projectRoot: root,
+      bodyText: null,
+      repo: "deftai/directive",
+      files: [
+        { status: "modified", path: "xbrief/active/story-5792.xbrief.json" },
+        { status: "modified", path: "CHANGELOG.md" },
+      ],
+    });
+    expect(disposition.apply).toBe(false);
+    if (disposition.apply) return;
+    expect(disposition.reason).toMatch(/productPullRequest/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("refuses empty live PR bodyText instead of local issue-ref fallback", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-5792-empty-body-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "story-5792.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "activation",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5792",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const disposition = evaluatePathBActivationAcDisposition({
+      projectRoot: root,
+      bodyText: "",
+      prNumber: 6075,
+      repo: "deftai/directive",
+      files: [
+        { status: "added", path: "xbrief/active/story-5792.xbrief.json" },
+        { status: "modified", path: "CHANGELOG.md" },
+      ],
+    });
+    expect(disposition.apply).toBe(false);
+    if (disposition.apply) return;
+    expect(disposition.reason).toMatch(/missing deft-story marks/);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("preserves rename previousFilename when a later dirty edit replaces the path", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-5792-rename-merge-"));
+    const brief = "xbrief/active/story-5792.xbrief.json";
+    const origin = "packages/core/src/old-product.json";
+    const runGit = (_cwd: string, args: readonly string[]) => {
+      const joined = args.join(" ");
+      if (joined.includes("is-inside-work-tree")) {
+        return { code: 0, stdout: "true\n", stderr: "" };
+      }
+      if (joined.includes("show-toplevel")) {
+        return { code: 0, stdout: `${root}\n`, stderr: "" };
+      }
+      if (joined.includes("rev-parse") && joined.includes("verify")) {
+        return { code: 0, stdout: "abc\n", stderr: "" };
+      }
+      if (joined.includes("diff") && joined.includes("...")) {
+        return { code: 0, stdout: `R100\0${origin}\0${brief}\0`, stderr: "" };
+      }
+      if (joined.includes("diff") && joined.includes("HEAD") && !joined.includes("cached")) {
+        return { code: 0, stdout: `M\0${brief}\0`, stderr: "" };
+      }
+      if (joined.includes("--cached") || joined.includes("ls-files")) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const inventory = collectBriefLandInventoryAsPrDiffPaths({
+      projectRoot: root,
+      baseRef: "origin/master",
+      runGit,
+    });
+    expect(inventory.ok).toBe(true);
+    if (!inventory.ok) return;
+    const entry = inventory.files.find((file) => file.path === brief);
+    expect(entry?.previousFilename).toBe(origin);
+    expect(inventory.files.some((file) => file.path === origin && file.status === "removed")).toBe(
+      true,
+    );
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("keeps brief→brief rename previousFilename without a deleted-nonterminal row", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-5792-brief-move-"));
+    const from = "xbrief/pending/story-5792.xbrief.json";
+    const to = "xbrief/active/story-5792.xbrief.json";
+    const runGit = (_cwd: string, args: readonly string[]) => {
+      const joined = args.join(" ");
+      if (joined.includes("is-inside-work-tree")) {
+        return { code: 0, stdout: "true\n", stderr: "" };
+      }
+      if (joined.includes("show-toplevel")) {
+        return { code: 0, stdout: `${root}\n`, stderr: "" };
+      }
+      if (joined.includes("rev-parse") && joined.includes("verify")) {
+        return { code: 0, stdout: "abc\n", stderr: "" };
+      }
+      if (joined.includes("diff") && joined.includes("...")) {
+        return { code: 0, stdout: `R100\0${from}\0${to}\0`, stderr: "" };
+      }
+      if (joined.includes("diff") && joined.includes("HEAD") && !joined.includes("cached")) {
+        return { code: 0, stdout: `M\0${to}\0`, stderr: "" };
+      }
+      if (joined.includes("--cached") || joined.includes("ls-files")) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const inventory = collectBriefLandInventoryAsPrDiffPaths({
+      projectRoot: root,
+      baseRef: "origin/master",
+      runGit,
+    });
+    expect(inventory.ok).toBe(true);
+    if (!inventory.ok) return;
+    const entry = inventory.files.find((file) => file.path === to);
+    expect(entry?.previousFilename).toBe(from);
+    expect(inventory.files.some((file) => file.path === from)).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("prefers typed deliveryBranch over master|main fallbacks for inventory base", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-5792-delivery-base-"));
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "t", status: "running", policy: { deliveryBranch: "develop" } },
+      }),
+      "utf8",
+    );
+    const brief = "xbrief/active/story-5792.xbrief.json";
+    const seenVerify: string[] = [];
+    const runGit = (_cwd: string, args: readonly string[]) => {
+      const joined = args.join(" ");
+      if (joined.includes("is-inside-work-tree")) {
+        return { code: 0, stdout: "true\n", stderr: "" };
+      }
+      if (joined.includes("show-toplevel")) {
+        return { code: 0, stdout: `${root}\n`, stderr: "" };
+      }
+      if (joined.includes("rev-parse") && joined.includes("verify")) {
+        seenVerify.push(joined);
+        if (joined.includes("origin/develop^{commit}") || joined.includes("origin/develop")) {
+          return { code: 0, stdout: "devsha\n", stderr: "" };
+        }
+        return { code: 1, stdout: "", stderr: "" };
+      }
+      if (joined.includes("abbrev-ref") && joined.includes("origin/HEAD")) {
+        return { code: 0, stdout: "origin/main\n", stderr: "" };
+      }
+      if (joined.includes("diff") && joined.includes("...")) {
+        return { code: 0, stdout: `A\0${brief}\0`, stderr: "" };
+      }
+      if (joined.includes("diff") || joined.includes("ls-files")) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const prevBase = process.env.DEFT_BASE_REF;
+    const prevGh = process.env.GITHUB_BASE_REF;
+    delete process.env.DEFT_BASE_REF;
+    delete process.env.GITHUB_BASE_REF;
+    try {
+      const inventory = collectBriefLandInventoryAsPrDiffPaths({
+        projectRoot: root,
+        runGit,
+      });
+      expect(inventory.ok).toBe(true);
+      if (!inventory.ok) return;
+      expect(inventory.files.some((file) => file.path === brief)).toBe(true);
+      expect(seenVerify.some((s) => s.includes("origin/develop"))).toBe(true);
+      expect(seenVerify.some((s) => s.includes("origin/master"))).toBe(false);
+    } finally {
+      if (prevBase === undefined) delete process.env.DEFT_BASE_REF;
+      else process.env.DEFT_BASE_REF = prevBase;
+      if (prevGh === undefined) delete process.env.GITHUB_BASE_REF;
+      else process.env.GITHUB_BASE_REF = prevGh;
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("remaps nested-project inventory paths to projectRoot so brief-land deferral holds", () => {
+    const gitRoot = mkdtempSync(join(tmpdir(), "deft-5792-nested-git-"));
+    const projectRoot = join(gitRoot, "apps", "example");
+    mkdirSync(join(projectRoot, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(projectRoot, "xbrief", "active", "story-5792.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "activation",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5792",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const gitBrief = "apps/example/xbrief/active/story-5792.xbrief.json";
+    const gitChangelog = "apps/example/CHANGELOG.md";
+    const sibling = "apps/other/src/product.js";
+    const runGit = (_cwd: string, args: readonly string[]) => {
+      const joined = args.join(" ");
+      if (joined.includes("is-inside-work-tree")) {
+        return { code: 0, stdout: "true\n", stderr: "" };
+      }
+      if (joined.includes("show-toplevel")) {
+        return { code: 0, stdout: `${gitRoot}\n`, stderr: "" };
+      }
+      if (joined.includes("rev-parse") && joined.includes("verify")) {
+        return { code: 0, stdout: "abc\n", stderr: "" };
+      }
+      if (joined.includes("diff") && joined.includes("...")) {
+        return {
+          code: 0,
+          stdout: `A\0${gitBrief}\0A\0${gitChangelog}\0A\0${sibling}\0`,
+          stderr: "",
+        };
+      }
+      if (joined.includes("diff") || joined.includes("ls-files")) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const inventory = collectBriefLandInventoryAsPrDiffPaths({
+      projectRoot,
+      baseRef: "origin/master",
+      runGit,
+    });
+    expect(inventory.ok).toBe(true);
+    if (!inventory.ok) return;
+    expect(
+      inventory.files.some((file) => file.path === "xbrief/active/story-5792.xbrief.json"),
+    ).toBe(true);
+    expect(inventory.files.some((file) => file.path === "CHANGELOG.md")).toBe(true);
+    expect(inventory.files.some((file) => file.path.includes("apps/example/"))).toBe(false);
+    expect(inventory.files.some((file) => /(?:^|\/)\.\.\//.test(file.path))).toBe(true);
+
+    const briefOnly = collectBriefLandInventoryAsPrDiffPaths({
+      projectRoot,
+      baseRef: "origin/master",
+      runGit: (_cwd, args) => {
+        const joined = args.join(" ");
+        if (joined.includes("is-inside-work-tree")) {
+          return { code: 0, stdout: "true\n", stderr: "" };
+        }
+        if (joined.includes("show-toplevel")) {
+          return { code: 0, stdout: `${gitRoot}\n`, stderr: "" };
+        }
+        if (joined.includes("rev-parse") && joined.includes("verify")) {
+          return { code: 0, stdout: "abc\n", stderr: "" };
+        }
+        if (joined.includes("diff") && joined.includes("...")) {
+          return { code: 0, stdout: `A\0${gitBrief}\0A\0${gitChangelog}\0`, stderr: "" };
+        }
+        if (joined.includes("diff") || joined.includes("ls-files")) {
+          return { code: 0, stdout: "", stderr: "" };
+        }
+        return { code: 0, stdout: "", stderr: "" };
+      },
+    });
+    expect(briefOnly.ok).toBe(true);
+    if (!briefOnly.ok) return;
+    const disposition = evaluatePathBActivationAcDisposition({
+      projectRoot,
+      bodyText: null,
+      repo: "deftai/directive",
+      files: briefOnly.files,
+    });
+    expect(disposition.apply).toBe(true);
+    expect(briefOnly.briefReadRoot).toBe(resolve(projectRoot));
+    rmSync(gitRoot, { recursive: true, force: true });
+  });
+
+  it("keeps repo-root brief deferral when projectRoot is a subdirectory cwd", () => {
+    const gitRoot = mkdtempSync(join(tmpdir(), "deft-5792-subdir-cwd-"));
+    const projectRoot = join(gitRoot, "packages", "core");
+    mkdirSync(projectRoot, { recursive: true });
+    mkdirSync(join(gitRoot, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(gitRoot, "xbrief", "active", "story-5792.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          title: "activation",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/5792",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    writeFileSync(join(gitRoot, "CHANGELOG.md"), "# Changelog\n", "utf8");
+    const gitBrief = "xbrief/active/story-5792.xbrief.json";
+    const gitChangelog = "CHANGELOG.md";
+    const runGit = (_cwd: string, args: readonly string[]) => {
+      const joined = args.join(" ");
+      if (joined.includes("is-inside-work-tree")) {
+        return { code: 0, stdout: "true\n", stderr: "" };
+      }
+      if (joined.includes("show-toplevel")) {
+        return { code: 0, stdout: `${gitRoot}\n`, stderr: "" };
+      }
+      if (joined.includes("rev-parse") && joined.includes("verify")) {
+        return { code: 0, stdout: "abc\n", stderr: "" };
+      }
+      if (joined.includes("diff") && joined.includes("...")) {
+        return { code: 0, stdout: `A\0${gitBrief}\0A\0${gitChangelog}\0`, stderr: "" };
+      }
+      if (joined.includes("diff") || joined.includes("ls-files")) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const inventory = collectBriefLandInventoryAsPrDiffPaths({
+      projectRoot,
+      baseRef: "origin/master",
+      runGit,
+    });
+    expect(inventory.ok).toBe(true);
+    if (!inventory.ok) return;
+    expect(inventory.briefReadRoot).toBe(resolve(gitRoot));
+    expect(inventory.files.some((file) => file.path === gitBrief)).toBe(true);
+    expect(inventory.files.some((file) => file.path === gitChangelog)).toBe(true);
+    const disposition = evaluatePathBActivationAcDisposition({
+      projectRoot,
+      bodyText: null,
+      repo: "deftai/directive",
+      runGit,
+      baseRef: "origin/master",
+    });
+    expect(disposition.apply).toBe(true);
+    rmSync(gitRoot, { recursive: true, force: true });
   });
 });
