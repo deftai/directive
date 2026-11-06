@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 =======
-- **Tracked completion record for brief-only retirement/restamp after product merge (#5890, #6067).**
+- **Issue #5890 is recorded completed and no longer active.** Brief-only retirement/restamp shipped; tracked completion is on the delivery branch.
 - **Clearer recovery advice when no active brief exists (#5890).** For edits to completed briefs and the changelog, the recovery message now points users to `deft scope:complete` instead of suggesting an unrelated active brief.
 - **Tracked completion record for Path B activation deferral after product merge (#5792, #6075).**
 =======
