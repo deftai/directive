@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- Document the edit_files short-search truncation hazard in the lessons pack and keep RULE-MAP in sync (#1037).
 - Widen #1037 file_scope so packs:render may refresh docs/RULE-MAP.md with the lessons-pack entry (#1037).
 - Prepare release-path gh JSON reads so CLICOLOR_FORCE in the parent env cannot break draft/tag/rollback lookups (#6032).
 - Capture the edit_files short-search truncation hazard as a lessons-pack entry maintainers can find in meta/lessons.md (#1037).

@@ -10,7 +10,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 
 - **Rules:** 25 groupings, 291 documents
 - **Tasks:** 66 namespaces, 290 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
-- **Packs:** 6 source-of-truth packs (720 entries from rules|lessons|patterns|skills|strategies|entries)
+- **Packs:** 6 source-of-truth packs (721 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
 
@@ -488,7 +488,7 @@ Directive turns a coding agent into an auditable process: load only the guidance
 
 | Pack | Version | Rules | MUST | SHOULD | MUST_NOT |
 |---|--:|--:|--:|--:|--:|
-| `content/packs/lessons/lessons-pack-0.1.json` | 0.1 | 51 | 0 | 0 | 0 |
+| `content/packs/lessons/lessons-pack-0.1.json` | 0.1 | 52 | 0 | 0 | 0 |
 | `content/packs/patterns/patterns-pack-0.1.json` | 0.1 | 12 | 0 | 0 | 0 |
 | `content/packs/rules/rules-pack-0.1.json` | 0.1 | 612 | 303 | 105 | 187 |
 | `content/packs/skills/skills-pack-0.1.json` | 0.1 | 27 | 0 | 0 | 0 |

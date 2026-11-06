@@ -744,3 +744,26 @@ The 2026-05-07 session surfaced the `graphql` bucket exhaustion failure mode for
 **Canonical encoding (strongest-applicable layer):** probe in `packages/core/src/pr-wait-mergeable/semantic-green.ts` (`requireCandidateValidation` / `validateCandidateAttestation`); operative MUST in `content/scm/github.md` § Cascade / Three-axis (#4888) and `skills/deft-directive-pre-pr/SKILL.md` merge-chokepoint attach; forge supersession in `content/scm/github.md` § Merge-gate aggregator (#633). AGENTS/agents-entry pointer only.
 
 **Cross-references:** #4888, #964, #2385, #1369, #633, #1517, #4883 (CLEAN = axis-1 necessity), #4889 (kept out).
+
+## edit_files search strings MUST capture full units, not substrings (2026-05)
+
+**Source:** Issue #1037 Prefer-A Bound 6689115138. Recurrence: PR #1034 (2026-05-11) Greptile P1 on truncated CHANGELOG #441 close-out bullet; sibling outcome class in the #911 cascade (2026-05-04).
+
+**Failure mode:** Exact-string replace tools (`edit_files` / StrReplace-class) replace only the matched `search` bytes. When the agent anchors on a substring of a longer single-line or multi-line entry (CHANGELOG bullet, ROADMAP list item, section body), the unmatched overflow past the search anchor is deleted with the match. The tool did what it was asked; the agent chose too short a search.
+
+**Rule:** When using exact-string-match replacement to modify a single-line or multi-line entry, the `search` value MUST match the FULL line / FULL entry being targeted, including any trailing prose / continuation the agent intends to preserve.
+
+**Anti-pattern:** Pick the first N words of a long bullet as the search anchor; the replacement silently truncates the bullet at the end of the matched substring.
+
+**Mitigation:**
+- ! When targeting a markdown bullet, the `search` value MUST extend to the next blank line or the next top-level list marker, whichever comes first. Re-read the file and capture ALL bytes that belong to the targeted entry.
+- ! When adding a new bullet ABOVE an existing one, an even safer pattern is to anchor `search` on the section heading (e.g. `### Refinement`) and re-emit the heading in `replace` followed by the new bullet and the existing first bullet -- but you MUST still capture every byte of that existing first bullet.
+- ! After every exact-string replace that touches CHANGELOG.md, ROADMAP.md, or any other append-only narrative file, re-read the surrounding 20 lines of the edited region and verify nothing was truncated. This is part of the standard pre-commit file review.
+
+**Recurrence record:**
+- PR #1034 (2026-05-11) -- CHANGELOG.md `### Refinement` first bullet truncated when adding a new bullet above it; Greptile caught it as a P1 in review-cycle.
+- PR #911 cascade (2026-05-04) -- different mechanism (HEAD-only slice resolution), same outcome class: CHANGELOG `[Unreleased]` branch entries dropped on conflict resolution.
+
+**Canonical encoding:** lessons-pack-0.1 entry (this body); projected via `task packs:render` into `meta/lessons.md`. Lesson-tier only -- no new AGENTS.md always-pin; optional `verify:changelog-bullets` stays out of Bound (#1037 Prefer-A Reject).
+
+**Cross-references:** Issue #1037, Prefer-A Bound 6689115138, PR #1034, PR #911 cascade, `skills/deft-directive-build/SKILL.md` / `skills/deft-directive-refinement/SKILL.md` pre-commit file review.
