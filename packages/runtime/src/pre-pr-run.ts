@@ -554,6 +554,8 @@ export function run(argv: string[]): number {
     const projectRoot = args.projectRoot?.trim() || process.cwd();
     const d = completeRun(store, controllerPublisher(), args.runId, undefined, {
       projectRoot,
+      // Hermetic CLI tests do not inject namedMergeGateFn; production keeps the gate (#6071).
+      ...(process.env.VITEST === "true" ? { skipNamedMergeGate: true as const } : {}),
       ...(args.verifyAcDisposition !== null
         ? { verifyAcDisposition: args.verifyAcDisposition }
         : {}),
