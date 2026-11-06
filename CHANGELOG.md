@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Committed sanctioned skip-count baseline ratchet (#6072). Live citation-shaped skip counts must match the baseline; raises need a shape-(B) hotfix with a same-PR baseline bump equal to the authorized net-new skips. Depends on the #6071 cited-skip scanner for inventory rows.
+
 ### Fixed
 - **`scope:complete` can complete a shipped brief whose issue was linked after merge (#6092).** When the PR's forge closer set misses the story, identity may instead be proven by the merged PR having added this exact brief alongside code changes; edit-only or move-only PRs still refuse, merge-commit and delivery-branch checks are unchanged, and provenance records `identityBasis: "brief-in-pr-diff"`. Tracking #6092.
 - **Widen #6071 merge-base file_scope for verify-review-clean.** Lets product PR #6088 default-skip the always-on named Merge gate inside Greptile cohort checks (not a merge invoker). Tracking #6071.
@@ -20,7 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Lifecycle uninspectable denies teach a usable next step (#5925).** When the host owner is known, deny copy keeps the true miss label, points at a simple re-run, and publishes the matching-owner hatch with launcher-correct `task <verb> -- … --session-id=<owner>` (or `deft …`) recovery so `| tee` / `&&` forms stop recursive-flail; unresolved `<host-published-id>` is omitted; owner-mismatch denies use the same spelling. Compound lifecycle without a matching owner stays fail-closed. Defer-owed form/hint remains on #5918.
 
+
 ### Changed
+- Record Issue #6072 completed after product merge (#6086).
+- Record Issue #6071 completed after product merge (#6088).
 - **Ordinary merges, pre-PR, finish-loop, and release refuse while master's Merge gate is red (#6071).** Only a maintainer-labeled hotfix (restore-green or cited skip) may proceed; offline/no-network refuses instead of soft-skipping.
 - Activate running work briefs for lifecycle shell recovery (#5925), master merge-gate hotfix rules (#6071), and sanctioned skip-count baseline tracking (#6072).
 

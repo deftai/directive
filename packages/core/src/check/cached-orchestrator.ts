@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
 
@@ -51,7 +52,14 @@ import {
   CONSUMER_HEADER_PLACEHOLDER_GATE_ID,
   evaluateConsumerHeaderPlaceholderAtRoot,
 } from "./consumer-header-placeholder.js";
-import { type CheckOrchestratorSeams, resolveCheckTarget } from "./context.js";
+import {
+  type CheckOrchestratorSeams,
+  isFrameworkRepoRoot,
+  resolveCheckTarget,
+  runSanctionedSkipCountBaselineGate,
+  SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID,
+  SANCTIONED_SKIP_COUNT_BASELINE_REL,
+} from "./context.js";
 import {
   checkGateId,
   checkGateSpawnArgs,
@@ -381,6 +389,38 @@ export function dispatchCachedTaskCheck(
         "cite open deftai/directive#N with skipped-tests block under admitted shape B, or remove the skip",
     });
     return finish(1, false);
+  }
+
+  // #6072 Prefer-A Bound P3: sanctioned skip-count baseline on cached check path.
+  if (options.skipSanctionedSkipBaseline !== true) {
+    const baselineRoot = target === "check:framework-source" ? resolvedFramework : resolvedProject;
+    const baselinePath = join(baselineRoot, ...SANCTIONED_SKIP_COUNT_BASELINE_REL.split("/"));
+    if (
+      (target === "check:framework-source" && isFrameworkRepoRoot(resolvedFramework)) ||
+      existsSync(baselinePath) ||
+      options.sanctionedSkipInventoryRows !== undefined ||
+      options.sanctionedSkipTargetBaselineCount !== undefined
+    ) {
+      const baseline = runSanctionedSkipCountBaselineGate({
+        projectRoot: baselineRoot,
+        phase: options.sanctionedSkipBaselinePhase ?? "merge-readiness",
+        shapeB: options.sanctionedSkipShapeB,
+        targetBaselineCount: options.sanctionedSkipTargetBaselineCount,
+        candidateRows: options.sanctionedSkipInventoryRows,
+      });
+      if (!baseline.ok) {
+        process.stderr.write(`${baseline.message}\n`);
+        gateOutcomes.push({
+          id: SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID,
+          status: "failed",
+          exit_code: baseline.code,
+          cause: baseline.message,
+          remedy:
+            "Align citation-shaped skip count with committed baseline or shape-(B) bump (#6072)",
+        });
+        return finish(baseline.code, false);
+      }
+    }
   }
 
   // #3282: toolchain preflight — degraded skip when framework tools missing.
