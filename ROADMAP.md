@@ -16,7 +16,6 @@
 - **#5852** -- feat(release): let the release skill choose the npm dist-tag (latest / maintainer / beta) for both packages -- `[running]`
 - **#5853** -- verify:pack-drift compares against the installed runtime package's rewritten copies instead of repo content/ (still in 0.128.0) -- `[running]`
 - **#5854** -- directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release) -- `[running]`
-- **#5855** -- bug(pre-pr,check): with multiple active briefs, verify:ac refuses (no story selected), so no maintainer can pass the #5804 push gate -- `[running]`
 - **#5994** -- feat(hooks): v261027 thin host .mjs outer; kill .sh; unify entry guards -- `[running]`
 
 ## Proposed
@@ -47,8 +46,18 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1876 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1886 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#6092** -- scope:complete cannot complete a shipped brief whose issue was linked after merge -- `[completed]`
+- **#6071** -- fix(merge,release,pre-pr): block ordinary merges while master's Merge gate is red; hotfix-only until green, with a cited skip fallback -- `[completed]`
+- **#6072** -- enhancement(check): baseline ratchet for sanctioned test-skip count -- `[completed]`
+- **#5925** -- bug(hooks,cli): lifecycle verbs still deny normal agent shells as not inspectable (regression class of #4577/#4780) -- `[completed]`
+- **#5890** -- Edit guard has no legitimate scope for brief-retirement or restamp changes -- `[completed]`
+- **#5792** -- [framework-gap] BLOCKER Scope activation requires future tests before merge-base write authority exists -- `[completed]`
+- **#5855** -- bug(pre-pr,check): with multiple active briefs, verify:ac refuses (no story selected), so no maintainer can pass the #5804 push gate -- `[completed]`
+- **#6011** -- Commit gate reads a story's file_scope from the merge-base with origin/main, not the repo's delivery branch -- `[completed]`
+- **#5970** -- bug(hooks,authz): read-only orientation shells false-denied as inventoried authz dest-of-write (Approach1 babysit) -- `[completed]`
+- **#5910** -- release: `task materialize:runtime` in a fresh worktree replaces the pinned runtime with master's 0.0.0 and the pin hook blocks the release -- `[completed]`
 - **#6040** -- bug(pre-pr): pre-PR is the Read-Write-Lint-Diff-Loop plus verify:ac on the active xBrief; drop the post-loop full task check and the coverage run -- `[completed]`
 - **#6041** -- ci(coverage): take the coverage run off the merge path; run it at release Step 5 ("release for now or on demand") -- `[completed]`
 - **#5992** -- docs(ovpr): v261027 entry-guard / host-outer requirements + problem ledger decision record -- `[completed]`
@@ -64,14 +73,4 @@ _Showing 25 of 1876 completed scopes (newest first). Full history: lifecycle `co
 - **#5796** -- fix(installer,doctor): Taskfile wiring probe uses YAML AST for includes.deft only -- `[completed]`
 - **#5804** -- bug(process,pre-pr): no hard refuse when always-pin pre-PR / RWDL is skipped before push -- `[completed]`
 - **#5805** -- bug(dogfood,ovpr): maintainer must run pinned runtime — close task auto-compile tip bypass -- `[completed]`
-- **#5736** -- perf(lifecycle): activation/widen PRs take 21–42 min to merge; extra heads and re-runs cost more than CI speed -- `[completed]`
-- **#5814** -- leftover(#5791): pre-PR lint_iteration command hardcodes vitest coverage -- `[completed]`
-- **#5791** -- [framework-gap] BLOCKER Directive 0.126.2 requires Istanbul coverage for a framework-only pin upgrade -- `[completed]`
-- **#5783** -- design(design-critique): carry Thin Fail-Closed / KISS into arc Bound + pain-audit harvest -- `[completed]`
-- **#5490** -- #5514 OVPR methodology — integration branch, soak, consumer-only self-host -- `[completed]`
-- **#5490** -- #5490 upgrade + legacy convert — migrate eras into OVPR L0 -- `[completed]`
-- **#5490** -- #5490 release tooling 1e + installer-refactor docs cutover -- `[completed]`
-- **#5490** -- #5490 One Version Per Repo — product delivery (installer + runtime pin) -- `[completed]`
-- **#5490** -- #5490 installer core — install, repair, doctor, uninstall happy path -- `[completed]`
-- **#5490** -- #5490 human-test automation acceptance — ht-auto + harness home -- `[completed]`
 

@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.129.5] - 2026-11-06
+
+> Always-on master Merge gate (#6071), skip-count baseline (#6072), lifecycle deny recovery (#5925), multi-active pre-PR (#5855), Path B activation defer (#5792), cut-context pin guard (#5910).
+
+### Added
 - Committed sanctioned skip-count baseline ratchet (#6072). Live citation-shaped skip counts must match the baseline; raises need a shape-(B) hotfix with a same-PR baseline bump equal to the authorized net-new skips. Depends on the #6071 cited-skip scanner for inventory rows.
 
 ### Fixed
@@ -7619,7 +7631,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.129.4...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.129.5...HEAD
+[0.129.5]: https://github.com/deftai/directive/compare/v0.129.4...v0.129.5
 [0.129.4]: https://github.com/deftai/directive/compare/v0.129.3...v0.129.4
 [0.129.3]: https://github.com/deftai/directive/compare/v0.129.2...v0.129.3
 [0.129.2]: https://github.com/deftai/directive/compare/v0.129.1...v0.129.2
