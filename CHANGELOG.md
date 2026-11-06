@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Widen #6071 merge-base file_scope for verify-review-clean.** Lets product PR #6088 default-skip the always-on named Merge gate inside Greptile cohort checks (not a merge invoker). Tracking #6071.
+
+
+
+### Fixed
 - **Widen #6071 merge-base file_scope for named Merge-gate plumbing paths (pr-monitor, release types, pre-pr-run).** Lets product PR #6088 clear multi-active scope-provenance without orphan production extras charging peer actives. Tracking #6071.
 
 
@@ -7880,13 +7885,3 @@ If you have custom scripts or references to deft files, update these paths:
 [0.2.0]: https://github.com/visionik/warping/releases/tag/v0.2.0
 
 [0.1.0]: https://github.com/visionik/warping/releases/tag/v0.1.0
-
-
-
-
-
-
-
-
-
-
