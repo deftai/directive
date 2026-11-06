@@ -1135,8 +1135,9 @@ describe("cited-skip scanner (#6071)", () => {
     const source = [
       "describe",
       '.skip("suite", () => {});',
+      "\n",
       "it.skipIf(process.platform === \"win32\")(\"symlink\", () => {});",
-    ].join("\n");
+    ].join("");
     const sites = inventoryCitedSkipsInSource(source, "x.test.ts");
     expect(sites.some((s) => s.kind === "describe.skip")).toBe(true);
     expect(sites.every((s) => s.kind !== "it.skip" || s.title !== "symlink")).toBe(true);
