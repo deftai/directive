@@ -21,7 +21,7 @@
       {
         "id": "clause.1",
         "title": "relieves: P1 — Publish the existing per-window same-owner hatch only on resolved-identity uninspectable denials, spelling task recovery in that hatch clause as task <verb> -- <flags…> --session-id=<owner>, with | tee / && as illustrations only.",
-        "status": "done",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Publish the existing per-window same-owner hatch only on resolved-identity uninspectable denials, spelling task recovery in that hatch clause as task <verb> -- <flags…> --session-id=<owner>, with | tee / && as illustrations only.",
           "Traces": "#5925",
@@ -31,7 +31,7 @@
       {
         "id": "clause.2",
         "title": "relieves: P1 — Land hatch-copy publication in the same change as the window-scoping fixture that a matching-owner lifecycle window plus a non-lifecycle mutating segment stays governed by its own upstream rule.",
-        "status": "done",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Land hatch-copy publication in the same change as the window-scoping fixture that a matching-owner lifecycle window plus a non-lifecycle mutating segment stays governed by its own upstream rule.",
           "Traces": "#5925",
@@ -41,7 +41,7 @@
       {
         "id": "clause.3",
         "title": "relieves: P1 — Add attachLifecycleIdentityRewrite fixtures on wire-host claude+GROK_HOOK_EVENT pairing matching-owner allow with same-host same-command non-matching-owner deny plus attached-redirect owner-glue deny.",
-        "status": "done",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Add attachLifecycleIdentityRewrite fixtures on wire-host claude+GROK_HOOK_EVENT pairing matching-owner allow with same-host same-command non-matching-owner deny plus attached-redirect owner-glue deny.",
           "Traces": "#5925",
@@ -51,7 +51,7 @@
       {
         "id": "clause.4",
         "title": "relieves: P2 — For task-executable uninspectable denials keep the true classifyUninspectableLifecycleMiss label and simple-command instruction; when demandOwner is true and namedOwner is a real resolved id, append one additive line task <verb> -- <flags…> --session-id=<owner>.",
-        "status": "done",
+        "status": "completed",
         "narrative": {
           "Acceptance": "relieves: P2 — For task-executable uninspectable denials keep the true classifyUninspectableLifecycleMiss label and simple-command instruction; when demandOwner is true and namedOwner is a real resolved id, append one additive line task <verb> -- <flags…> --session-id=<owner>.",
           "Traces": "#5925",
@@ -61,7 +61,7 @@
       {
         "id": "clause.5",
         "title": "relieves: P2 — In uninspectableLifecycleDenyMessage only, omit bare --session-id=<host-published-id> when namedOwner is the unresolved owner token; tell the agent to re-run from a session with a Directive hook registered, without importing formatOccupancyMintRefusal or claiming a pasteable owner exists.",
-        "status": "done",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — In uninspectableLifecycleDenyMessage only, omit bare --session-id=<host-published-id> when namedOwner is the unresolved owner token; tell the agent to re-run from a session with a Directive hook registered, without importing formatOccupancyMintRefusal or claiming a pasteable owner exists.",
           "Traces": "#5925",
@@ -71,7 +71,7 @@
       {
         "id": "clause.6",
         "title": "relieves: P2 — On the attachLifecycleIdentityRewrite owner-mismatch deny that currently emits pass --session-id=<owner>, apply the same launcher-correct task/deft spelling as the demandOwner uninspectable recovery without widening into occupancy mint formatters.",
-        "status": "done",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — On the attachLifecycleIdentityRewrite owner-mismatch deny that currently emits pass --session-id=<owner>, apply the same launcher-correct task/deft spelling as the demandOwner uninspectable recovery without widening into occupancy mint formatters.",
           "Traces": "#5925",
@@ -81,7 +81,7 @@
       {
         "id": "clause.7",
         "title": "relieves: P3 — Re-cite hatch publication against the Stop 1 metacharacter recursive-flail.",
-        "status": "done",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Re-cite hatch publication against the Stop 1 metacharacter recursive-flail.",
           "Traces": "#5925",
@@ -91,7 +91,7 @@
       {
         "id": "clause.8",
         "title": "operator-deferred: P4 #5918 — Keep defer-owed form/hint and contended-primary #5917 outside this Prefer-A Bound.",
-        "status": "done",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then product work leaves #5918 defer-owed form and #5917 contended-primary outside file_scope and verify commands reject edits that pull them in.",
           "Traces": "#5925",
@@ -187,10 +187,19 @@
         "writtenAt": "2026-11-06T05:30:12.487Z"
       },
       "completionProvenance": {
-        "disposition": "shipped",
+        "repository": "deftai/directive",
+        "implementationCommit": "2b1d067f17d2679d5d3af57dd945b22eb32764bb",
+        "prNumber": 6083,
+        "prBase": "master",
         "mergeCommit": "be48540c6109d2fee8933dba45066032a77696d4",
-        "pullRequest": 6083,
-        "completedAt": "2026-11-06T05:30:12.487Z"
+        "deliveryBranch": "master",
+        "deliveryCommit": "be48540c6109d2fee8933dba45066032a77696d4",
+        "verifiedAt": "2026-11-06T05:30:12.487Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
       }
     },
     "id": "github.issue.6042153490",
