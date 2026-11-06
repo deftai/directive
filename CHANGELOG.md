@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Committed sanctioned skip-count baseline ratchet under `packages/core/src/check/` (#6072). Live citation-shaped skip counts must match the baseline; raises need a shape-(B) hotfix with a same-PR baseline bump equal to the authorized net-new skips. Depends on the #6071 cited-skip scanner for inventory rows.
+
 ### Fixed
 - **Lifecycle uninspectable denies teach a usable next step (#5925).** When the host owner is known, deny copy keeps the true miss label, points at a simple re-run, and publishes the matching-owner hatch with launcher-correct `task <verb> -- … --session-id=<owner>` (or `deft …`) recovery so `| tee` / `&&` forms stop recursive-flail; unresolved `<host-published-id>` is omitted; owner-mismatch denies use the same spelling. Compound lifecycle without a matching owner stays fail-closed. Defer-owed form/hint remains on #5918.
+
 
 ### Changed
 - Activate running work briefs for lifecycle shell recovery (#5925), master merge-gate hotfix rules (#6071), and sanctioned skip-count baseline tracking (#6072).

@@ -3,6 +3,18 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { dispatchCachedTaskCheck } from "./cached-orchestrator.js";
+import {
+  countCitationShapedSanctionedSkips,
+  evaluateSanctionedSkipCountBaseline,
+  evaluateSanctionedSkipCountBaselineFromInventory,
+  isSanctionedSkipCountBaselinePath,
+  parseSanctionedSkipCountBaselineJson,
+  SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID,
+  SANCTIONED_SKIP_COUNT_BASELINE_REL,
+  SANCTIONED_SKIP_COUNT_BASELINE_SCHEMA,
+  type SanctionedSkipInventoryRow,
+  SHAPE_B_ALLOWED_BASELINE_PATHS,
+} from "./context.js";
 
 const tempDirs: string[] = [];
 afterEach(() => {
@@ -334,5 +346,152 @@ describe("degraded skip report in check (#3282)", () => {
     expect(msg).toMatch(/gate verify:branch failed/);
     expect(msg).toMatch(/cause:/);
     expect(msg).toMatch(/remedy:/);
+  });
+});
+
+const citedRow = (
+  title: string,
+  issueNumber: number | null,
+  citationShape: SanctionedSkipInventoryRow["citationShape"] = "cited",
+): SanctionedSkipInventoryRow => ({
+  path: "packages/core/src/example.test.ts",
+  title,
+  issueNumber,
+  citationShape,
+});
+
+describe("sanctioned-skip-count-baseline (#6072)", () => {
+  it("lists sanctioned skip count and compares to baseline on every run", () => {
+    const rows = [citedRow("a", 1), citedRow("b", 2), citedRow("c", 3, "uncited")];
+    expect(countCitationShapedSanctionedSkips(rows)).toBe(2);
+    const result = evaluateSanctionedSkipCountBaseline({
+      candidateTreeSyntaxCount: 2,
+      targetBaselineCount: 2,
+      candidateBaselineCount: 2,
+      shapeB: { admitted: false, authorizedNetNew: 0 },
+      phase: "pre-pr",
+    });
+    expect(result.ok).toBe(true);
+    expect(result.outcome).toBe("pass");
+    expect(result.message).toContain(SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID);
+    expect(result.invokedTaskCheck).toBe(false);
+  });
+
+  it("refuses PR that raises skip count above baseline without shape-B hotfix marker", () => {
+    const result = evaluateSanctionedSkipCountBaseline({
+      candidateTreeSyntaxCount: 3,
+      targetBaselineCount: 2,
+      candidateBaselineCount: 3,
+      shapeB: { admitted: false, authorizedNetNew: 0 },
+      phase: "merge-readiness",
+    });
+    expect(result.ok).toBe(false);
+    expect(result.outcome).toBe("raise-refused");
+    expect(result.code).toBe(1);
+  });
+
+  it("allows shape-B hotfix PR that raises skip count when baseline file is updated in the same PR", () => {
+    const result = evaluateSanctionedSkipCountBaseline({
+      candidateTreeSyntaxCount: 4,
+      targetBaselineCount: 2,
+      candidateBaselineCount: 4,
+      shapeB: { admitted: true, authorizedNetNew: 2 },
+      phase: "merge-readiness",
+    });
+    expect(result.ok).toBe(true);
+    expect(result.outcome).toBe("pass");
+    expect(result.message).toContain("shape-(B) raise admitted");
+  });
+
+  it("allows PR that only removes skips and ratchets baseline down", () => {
+    const result = evaluateSanctionedSkipCountBaseline({
+      candidateTreeSyntaxCount: 1,
+      targetBaselineCount: 3,
+      candidateBaselineCount: 1,
+      shapeB: { admitted: false, authorizedNetNew: 0 },
+      phase: "pre-pr",
+    });
+    expect(result.ok).toBe(true);
+    expect(result.message).toContain("down-ratchet ok");
+  });
+
+  it("refuses baseline bump without a matching net increase explained by new shape-B skips", () => {
+    const result = evaluateSanctionedSkipCountBaseline({
+      candidateTreeSyntaxCount: 5,
+      targetBaselineCount: 2,
+      candidateBaselineCount: 5,
+      shapeB: { admitted: true, authorizedNetNew: 1 },
+      phase: "merge-readiness",
+    });
+    expect(result.ok).toBe(false);
+    expect(result.outcome).toBe("baseline-bump-mismatch");
+  });
+
+  it("does not invoke task check or re-run Merge gate (task check) for this ratchet", () => {
+    const result = evaluateSanctionedSkipCountBaseline({
+      candidateTreeSyntaxCount: 0,
+      targetBaselineCount: 0,
+      candidateBaselineCount: 0,
+      shapeB: { admitted: false, authorizedNetNew: 0 },
+    });
+    expect(result.invokedTaskCheck).toBe(false);
+    expect(result.ok).toBe(true);
+  });
+
+  it("refuses missing or invalid baseline evidence instead of seeding zero", () => {
+    const missing = evaluateSanctionedSkipCountBaseline({
+      candidateTreeSyntaxCount: 0,
+      targetBaselineCount: 0,
+      candidateBaselineCount: null,
+      shapeB: { admitted: false, authorizedNetNew: 0 },
+    });
+    expect(missing.ok).toBe(false);
+    expect(missing.outcome).toBe("baseline-missing");
+
+    const mismatch = evaluateSanctionedSkipCountBaseline({
+      candidateTreeSyntaxCount: 2,
+      targetBaselineCount: 2,
+      candidateBaselineCount: 1,
+      shapeB: { admitted: false, authorizedNetNew: 0 },
+    });
+    expect(mismatch.ok).toBe(false);
+    expect(mismatch.outcome).toBe("baseline-mismatch");
+  });
+
+  it("ignores issue-state and counts only citation-shaped rows for the ratchet", () => {
+    const rows: SanctionedSkipInventoryRow[] = [
+      citedRow("open-cited", 1),
+      citedRow("closed-but-cited-shape", 2),
+      citedRow("uncited", null, "uncited"),
+    ];
+    expect(countCitationShapedSanctionedSkips(rows)).toBe(2);
+    const result = evaluateSanctionedSkipCountBaselineFromInventory({
+      candidateRows: rows,
+      candidateRoot: "/unused",
+      targetBaselineCount: 2,
+      shapeB: { admitted: false, authorizedNetNew: 0 },
+      seams: {
+        exists: () => true,
+        readText: () => JSON.stringify({ schema: SANCTIONED_SKIP_COUNT_BASELINE_SCHEMA, count: 2 }),
+      },
+    });
+    expect(result.ok).toBe(true);
+    expect(result.candidateTreeSyntaxCount).toBe(2);
+  });
+
+  it("admits the baseline count file in the shape-(B) allowed touch set", () => {
+    expect(SHAPE_B_ALLOWED_BASELINE_PATHS).toContain(SANCTIONED_SKIP_COUNT_BASELINE_REL);
+    expect(isSanctionedSkipCountBaselinePath(SANCTIONED_SKIP_COUNT_BASELINE_REL)).toBe(true);
+    expect(isSanctionedSkipCountBaselinePath("packages/core/src/check/other.json")).toBe(false);
+  });
+
+  it("parses the committed baseline schema strictly", () => {
+    const ok = parseSanctionedSkipCountBaselineJson(
+      JSON.stringify({ schema: SANCTIONED_SKIP_COUNT_BASELINE_SCHEMA, count: 0 }),
+    );
+    expect(ok.ok).toBe(true);
+    if (ok.ok) expect(ok.value.count).toBe(0);
+    expect(parseSanctionedSkipCountBaselineJson("{}").ok).toBe(false);
+    expect(parseSanctionedSkipCountBaselineJson("not-json").ok).toBe(false);
   });
 });

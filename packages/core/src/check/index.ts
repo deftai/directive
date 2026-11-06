@@ -37,6 +37,27 @@ export {
   readConfirmedOverviewAtRoot,
 } from "./consumer-header-placeholder.js";
 export {
+  countCitationShapedSanctionedSkips,
+  type EvaluateSanctionedSkipCountBaselineInput,
+  type EvaluateSanctionedSkipCountBaselineResult,
+  evaluateSanctionedSkipCountBaseline,
+  evaluateSanctionedSkipCountBaselineFromInventory,
+  isSanctionedSkipCountBaselinePath,
+  normalizeRepoRelativePath,
+  parseSanctionedSkipCountBaselineJson,
+  readSanctionedSkipCountBaselineAtRoot,
+  SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID,
+  SANCTIONED_SKIP_COUNT_BASELINE_REL,
+  SANCTIONED_SKIP_COUNT_BASELINE_SCHEMA,
+  type SanctionedSkipCitationShape,
+  type SanctionedSkipCountBaselineFile,
+  type SanctionedSkipCountBaselineOutcome,
+  type SanctionedSkipCountBaselinePhase,
+  type SanctionedSkipInventoryRow,
+  SHAPE_B_ALLOWED_BASELINE_PATHS,
+  type ShapeBBaselineAuthorization,
+} from "./context.js";
+export {
   type CheckGateSpec,
   CONSUMER_CHECK_GATES,
   checkGateId,
