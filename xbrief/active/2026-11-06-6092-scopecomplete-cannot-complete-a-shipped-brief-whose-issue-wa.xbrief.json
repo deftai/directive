@@ -1,0 +1,132 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6092",
+    "updated": "2026-11-06T14:07:58Z"
+  },
+  "plan": {
+    "title": "scope:complete cannot complete a shipped brief whose issue was linked after merge",
+    "status": "running",
+    "narratives": {
+      "UserStory": "Operators can leftover-complete a shipped brief when the tracking issue was opened after the delivering product PR merged, without using --non-delivery.",
+      "Description": "Operators can leftover-complete a shipped brief when the tracking issue was opened after the delivering product PR merged, without using --non-delivery.",
+      "Overview": "Operators can leftover-complete a shipped brief when the tracking issue was opened after the delivering product PR merged, without using --non-delivery.",
+      "ImplementationPlan": "Prefer the product path already in PR #6093: narrow brief-in-PR-diff identity fallback in delivery-evidence / transition with fail-closed lifecycle-only refuse.",
+      "Acceptance": "scope:complete succeeds with identityBasis brief-in-pr-diff for post-merge linked issues when the product PR added the exact brief."
+    },
+    "items": [
+      {
+        "id": "item-1",
+        "status": "pending",
+        "title": "When forge closer set misses the story, admit brief-in-PR-diff identity if the merged PR added this exact lifecycle brief and also changed at least one non-lifecycle file",
+        "x-directive/artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+        "narrative": {
+          "Acceptance": "Merged PR that only edits/moves lifecycle briefs still refuses; product PR that added the exact brief qualifies with identityBasis brief-in-pr-diff"
+        }
+      },
+      {
+        "id": "item-2",
+        "status": "pending",
+        "title": "Keep merge-commit identity and delivery-branch ancestry checks unchanged; record identityBasis brief-in-pr-diff in completion provenance when fallback used",
+        "x-directive/artifact_path": "packages/core/src/scope/transition.ts",
+        "narrative": {
+          "Acceptance": "Provenance shows identityBasis brief-in-pr-diff; --non-delivery remains unused for shipped work"
+        }
+      },
+      {
+        "id": "item-3",
+        "status": "pending",
+        "title": "Unit coverage for miss-closer + brief-added product PR green path and lifecycle-only refuse path",
+        "x-directive/artifact_path": "packages/core/src/scope/delivery-evidence.test.ts",
+        "narrative": {
+          "Acceptance": "delivery-evidence tests lock both paths"
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6092",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6092: scope:complete cannot complete a shipped brief whose issue was linked after merge"
+      }
+    ],
+    "acceptance": {
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Merged PR that only edits/moves lifecycle briefs still refuses; product PR that added the exact brief qualifies with identityBasis brief-in-pr-diff",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Provenance shows identityBasis brief-in-pr-diff; --non-delivery remains unused for shipped work",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "delivery-evidence tests lock both paths",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "commands": [],
+      "ambiguity_attestation": "none_found",
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "packages/core/src/scope/transition.ts"
+        ],
+        "module_boundary": "packages/core/src/scope",
+        "cohesion_exemption": "Story S: delivery-evidence + transition + tests are the Prefer-A product path already open as #6093."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6243035490,
+        "origin": "deftai/directive#6092",
+        "id": "github.issue.6243035490"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "scope-complete-brief-in-pr-diff-6092",
+        "file_scope": [
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "packages/core/src/scope/transition.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/scope/delivery-evidence.test.ts"
+        ],
+        "expected_outputs": [
+          "Tracking PR"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "parallel_safe": true,
+        "Traces": [
+          "issue #6092",
+          "product PR #6093"
+        ]
+      },
+      "derived_reason": "Hand-stamped after empty body harvest; limbs from issue Proposal + #6093 touch set (#4374)."
+    },
+    "id": "github.issue.6243035490",
+    "updated": "2026-11-06T14:07:58Z"
+  }
+}
