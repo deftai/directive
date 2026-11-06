@@ -88,7 +88,9 @@ describe("Limb 6 pre-PR evidence (identical code/body, different trusted evidenc
     const store = new InProcessPrePrStore();
     const runId = startPassingRun(store);
     const publisher = mintPublisher();
-    expect(completeRun(store, publisher, runId, undefined, { skipNamedMergeGate: true }).ok).toBe(true);
+    expect(completeRun(store, publisher, runId, undefined, { skipNamedMergeGate: true }).ok).toBe(
+      true,
+    );
     const live = {
       repo: REPO,
       baseSha: BASE,
@@ -219,7 +221,9 @@ describe("Limb 1 trust boundary", () => {
     });
     const id = started.runId as string;
     const publisher = mintPublisher();
-    expect(completeRun(store, publisher, id, undefined, { skipNamedMergeGate: true }).code).toBe("deny-omitted-phase");
+    expect(completeRun(store, publisher, id, undefined, { skipNamedMergeGate: true }).code).toBe(
+      "deny-omitted-phase",
+    );
 
     const record = store.getById(id) as PrePrExecutionRecord;
     observeCommandPhase(store, id, {
@@ -229,18 +233,24 @@ describe("Limb 1 trust boundary", () => {
       inputHash: record.inputHash,
       skipReason: null,
     });
-    expect(completeRun(store, publisher, id, undefined, { skipNamedMergeGate: true }).code).toBe("deny-failed");
+    expect(completeRun(store, publisher, id, undefined, { skipNamedMergeGate: true }).code).toBe(
+      "deny-failed",
+    );
 
     const store2 = new InProcessPrePrStore();
     const id2 = startPassingRun(store2, "ppr_int");
     interruptRun(store2, id2);
-    expect(completeRun(store2, mintPublisher(), id2, undefined, { skipNamedMergeGate: true }).code).toBe("deny-interrupted");
+    expect(
+      completeRun(store2, mintPublisher(), id2, undefined, { skipNamedMergeGate: true }).code,
+    ).toBe("deny-interrupted");
   });
 
   it("refuses complete without publisher credentials", () => {
     const store = new InProcessPrePrStore();
     const id = startPassingRun(store, "ppr_nopub");
-    expect(completeRun(store, { forged: true }, id, undefined, { skipNamedMergeGate: true }).code).toBe("deny-publisher-required");
+    expect(
+      completeRun(store, { forged: true }, id, undefined, { skipNamedMergeGate: true }).code,
+    ).toBe("deny-publisher-required");
     expect(store.getById(id)?.outcome).toBe("none");
   });
 });
@@ -493,4 +503,3 @@ describe("PR node identity and body hash", () => {
     ).toBe("deny-criteria-invalidated");
   });
 });
-

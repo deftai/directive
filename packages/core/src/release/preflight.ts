@@ -17,16 +17,16 @@ import { dispatchTaskCheck } from "../check/orchestrator.js";
 import { suiteActuallyRan } from "../check/suite-gate-supervisor.js";
 import { defaultRunGh } from "../pr-merge-readiness/gh.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
+import { MERGE_GATE_TASK_CHECK_NAME } from "../pr-wait-mergeable/constants.js";
+import {
+  evaluateAlwaysOnNamedMergeGate,
+  type NamedMergeGateFn,
+} from "../pr-wait-mergeable/semantic-green.js";
 import {
   ENV_CHECK_AC_ONLY,
   ENV_CHECK_MODE,
   ENV_HYGIENE_ADVISORY,
 } from "../product-first-done-gate/index.js";
-import {
-  evaluateAlwaysOnNamedMergeGate,
-  type NamedMergeGateFn,
-} from "../pr-wait-mergeable/semantic-green.js";
-import { MERGE_GATE_TASK_CHECK_NAME } from "../pr-wait-mergeable/constants.js";
 import { countFailedTestsFromSanitizedOutput } from "./auto-hatch.js";
 import {
   COVERAGE_DEBT_ENV,
@@ -323,7 +323,11 @@ export function runReleaseCheck(
         return sha.length > 0 ? sha : null;
       })();
     const namedFn = seams.namedMergeGateFn ?? evaluateAlwaysOnNamedMergeGate;
-    const named = namedFn(null, DEFAULT_REPO, {
+    const releaseRepo =
+      seams.checkSeams?.env?.GITHUB_REPOSITORY?.trim() ||
+      process.env.GITHUB_REPOSITORY?.trim() ||
+      DEFAULT_REPO;
+    const named = namedFn(null, releaseRepo, {
       runGh: seams.runGh ?? defaultRunGh,
       tipSha,
       projectRoot,

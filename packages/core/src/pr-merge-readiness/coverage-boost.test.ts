@@ -25,6 +25,7 @@ function computeGate(
 ) {
   return computeGateResult(prNumber, repo, runGh, {
     skipCloseoutAttestable: true,
+    skipNamedMergeGate: true,
     ...options,
   });
 }
@@ -261,9 +262,13 @@ describe("coverage boost branches", () => {
       }
       return { returncode: 1, stdout: "", stderr: "" };
     });
-    expect(run(["5", "--repo", "deftai/directive"], { runGh, skipCloseoutAttestable: true })).toBe(
-      0,
-    );
+    expect(
+      run(["5", "--repo", "deftai/directive"], {
+        runGh,
+        skipCloseoutAttestable: true,
+        skipNamedMergeGate: true,
+      }),
+    ).toBe(0);
     expect(String(stdout.mock.calls[0]?.[0])).toContain("MERGE-READY");
     stdout.mockRestore();
   });

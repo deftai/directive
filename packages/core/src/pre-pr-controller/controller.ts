@@ -22,12 +22,12 @@ import { evaluateCoverageHotspots } from "../coverage-hotspots/evaluate.js";
 import { admittedUntiedWorktreeKey, type VerifyAcDispositionKind } from "../hooks/scope.js";
 import { isCoverageModeSkipAuthorized, resolveCoverageMode } from "../policy/coverage-mode.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
+import { FIRST_HOTFIX_BOOTSTRAP_RECOVERY } from "../pr-wait-mergeable/constants.js";
 import {
   evaluateAlwaysOnNamedMergeGate,
   type HotfixAdmission,
   type NamedMergeGateFn,
 } from "../pr-wait-mergeable/semantic-green.js";
-import { FIRST_HOTFIX_BOOTSTRAP_RECOVERY } from "../pr-wait-mergeable/constants.js";
 import {
   coverageReportPresence,
   prePrCoverageReportPath,
@@ -118,6 +118,41 @@ function listDeletedPathsBetween(projectRoot: string, baseSha: string, headSha: 
       .map((p) => p.replaceAll("\\", "/"));
   } catch {
     return [];
+  }
+}
+
+/**
+ * Resolve a numeric PR number without parsing opaque GraphQL `node_id` (#6071).
+ * Order: explicit option → GITHUB_PR_NUMBER env → commits/<sha>/pulls REST.
+ */
+function resolveNumericPrNumber(input: {
+  readonly explicit?: number | null;
+  readonly env?: Readonly<Record<string, string | undefined>>;
+  readonly repo: string;
+  readonly headSha: string;
+  readonly runGh?: RunGhFn;
+}): number | null {
+  if (typeof input.explicit === "number" && Number.isFinite(input.explicit) && input.explicit > 0) {
+    return Math.trunc(input.explicit);
+  }
+  const envRaw = (input.env ?? process.env).GITHUB_PR_NUMBER?.trim() ?? "";
+  if (/^\d+$/.test(envRaw)) {
+    const n = Number(envRaw);
+    if (n > 0) return n;
+  }
+  const sha = input.headSha.trim();
+  if (sha.length === 0 || input.runGh === undefined) return null;
+  const rc = input.runGh(["gh", "api", `repos/${input.repo}/commits/${sha}/pulls`]);
+  if (rc.returncode !== 0 || !rc.stdout.trim()) return null;
+  try {
+    const payload = JSON.parse(rc.stdout) as unknown;
+    if (!Array.isArray(payload) || payload.length === 0) return null;
+    const first = payload[0];
+    if (first === null || typeof first !== "object" || Array.isArray(first)) return null;
+    const num = (first as Record<string, unknown>).number;
+    return typeof num === "number" && Number.isFinite(num) && num > 0 ? Math.trunc(num) : null;
+  } catch {
+    return null;
   }
 }
 
@@ -789,6 +824,8 @@ export function completeRun(
     readonly skipNamedMergeGate?: boolean;
     readonly env?: Readonly<Record<string, string | undefined>>;
     readonly firstHotfixBootstrap?: boolean;
+    /** Numeric PR number — never derive from opaque prNodeId (#6071 Greptile). */
+    readonly prNumber?: number | null;
   },
 ): PrePrDecision {
   const creds = requirePublisher(publisher);
@@ -801,20 +838,20 @@ export function completeRun(
   }
   // #6071: pre-PR refuses ordinary changes while master's named Merge gate is red.
   if (options?.skipNamedMergeGate !== true) {
-    const prNumber = (() => {
-      const node = current.prNodeId?.trim() ?? "";
-      // Prefer numeric PR from node id suffix when present; else null → bootstrap path.
-      const m = /(\d+)$/.exec(node);
-      return m ? Number(m[1]) : null;
-    })();
+    const prNumber = resolveNumericPrNumber({
+      explicit: options?.prNumber,
+      env: options?.env,
+      repo: current.repo,
+      headSha: current.headSha,
+      runGh: options?.runGh,
+    });
     const namedFn = options?.namedMergeGateFn ?? evaluateAlwaysOnNamedMergeGate;
     const named = namedFn(prNumber, current.repo, {
       runGh: options?.runGh,
       projectRoot: options?.projectRoot,
       hotfixAdmission: options?.hotfixAdmission,
       env: options?.env,
-      firstHotfixBootstrap:
-        options?.firstHotfixBootstrap === true || prNumber === null,
+      firstHotfixBootstrap: options?.firstHotfixBootstrap === true || prNumber === null,
     });
     if (!named.ok) {
       const bootstrap =

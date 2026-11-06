@@ -405,6 +405,31 @@ export function waitMergeableAndMerge(
     }
   }
 
+  // #6071 Greptile: re-read named Merge gate after the wait, immediately before merge.
+  if (!skipNamedMergeGate) {
+    const postWaitGreen = semanticGreenFn(prNumber, repo, {
+      cascadeMode: options.cascadeMode,
+      requireMasterCiGreen: options.requireMasterCiGreen,
+      baseBranch: options.baseBranch,
+      skipNamedMergeGate: false,
+      projectRoot,
+    });
+    if (!postWaitGreen.ok) {
+      return makeResult({
+        prNumber,
+        repo,
+        outcome: postWaitGreen.outcome ?? "semantic-green-blocked",
+        exitCode: postWaitGreen.exitCode ?? EXIT_TIMEOUT_OR_ESCALATION,
+        protectedCheck: protectedCheckPayload,
+        monitorResult: monitorPayload,
+        semanticGreen: { ...postWaitGreen.payload } as Record<string, unknown>,
+        error:
+          postWaitGreen.error ??
+          "named Merge gate refused on post-wait re-check before merge (#6071)",
+      });
+    }
+  }
+
   const [mergeRc, mergeStdout, mergeStderr] = mergeFn(prNumber, repo, {
     matchHeadCommit,
   });

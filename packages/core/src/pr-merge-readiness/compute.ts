@@ -5,6 +5,10 @@ import {
 import { resolveMinGreptileConfidence } from "../policy/min-greptile-confidence.js";
 import { resolveReviewers } from "../policy/reviewers.js";
 import { evaluate as evaluateCloseoutAttestable } from "../pr-closeout-attestable/evaluate.js";
+import {
+  evaluateAlwaysOnNamedMergeGate,
+  type NamedMergeGateFn,
+} from "../pr-wait-mergeable/semantic-green.js";
 import type { CiGateOptions } from "./ci-gate.js";
 import { buildCiSummaryLine, evaluateCiGate } from "./ci-gate.js";
 import {
@@ -147,6 +151,9 @@ export interface ComputeGateOptions extends CiGateOptions, SlizardGateOptions {
   readonly skipCloseoutAttestable?: boolean;
   /** Injectable closeout evaluator; production uses `evaluateCloseoutAttestable`. */
   readonly closeoutAttestableFn?: CloseoutAttestableGateFn;
+  /** Skip #6071 always-on named Merge gate (tests). */
+  readonly skipNamedMergeGate?: boolean;
+  readonly namedMergeGateFn?: NamedMergeGateFn;
 }
 
 function resolvedMinConfidence(options: ComputeGateOptions): number {
@@ -810,6 +817,30 @@ export function computeGateResult(
   runGh: RunGhFn,
   options: ComputeGateOptions = {},
 ): GateResult {
+  // #6071: ordinary merge-readiness also refuses when master's named check is red.
+  if (options.skipNamedMergeGate !== true && repo !== null && repo.trim().length > 0) {
+    const namedFn = options.namedMergeGateFn ?? evaluateAlwaysOnNamedMergeGate;
+    const named = namedFn(prNumber, repo, {
+      runGh,
+      projectRoot: options.projectRoot ?? undefined,
+    });
+    if (!named.ok) {
+      return {
+        prNumber,
+        repo,
+        headSha: named.status.tipSha,
+        verdict: emptyVerdict(),
+        failures: [
+          named.error ??
+            `named Merge gate refused (${named.outcome ?? "master-merge-gate-red"}) (#6071)`,
+        ],
+        via: VIA_PRIMARY,
+        partialData: { named_merge_gate: named.status },
+        error: null,
+      };
+    }
+  }
+
   let { result, partial } = computePrimary(prNumber, repo, runGh, options);
   if (result !== null) {
     return applyCloseoutAttestableGate(result, options);
