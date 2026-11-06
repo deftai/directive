@@ -3,8 +3,7 @@
   "kind": "disclosure",
   "surfaces": [
     "Taskfile.yml",
-    "packages/core/src/check/gate-lists.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for #6071 gate-lists.ts cited-skip scanner + prior #6041 Taskfile.yml coverage-lane wording. Disclosure only; not #3164 authorization."
+  "note": "Renew disclosure for #6041 Taskfile.yml coverage-lane wording. Disclosure only; not #3164 authorization."
 }
