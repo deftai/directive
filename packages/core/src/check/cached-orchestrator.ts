@@ -332,18 +332,20 @@ export function dispatchCachedTaskCheck(
     return finish(1, false);
   }
 
-  // #6071: cited-skip inventory on framework-source; refuse unsanctioned describe.skip.
+  // #6071 PRODUCTION wire: every framework-source `task check` calls evaluateCitedSkipScan
+  // here (default cached path via dispatchTaskCheck → dispatchCachedTaskCheck) and records
+  // cited-skip-scan on the check summary before other gates run.
   if (target === "check:framework-source" && options.skipCitedSkipScan !== true) {
-    const cited = evaluateCitedSkipScan({
+    const citedSkipScanResult = evaluateCitedSkipScan({
       projectRoot: resolvedProject,
       changedFiles: options.citedSkipChangedFiles,
       hotfixShapeB: options.citedSkipHotfixShapeB === true,
       fetchIssue: options.citedSkipFetchIssue,
       skipCommitTimeIso: options.citedSkipCommitTimeIso,
     });
-    process.stderr.write(`${cited.listing}\n`);
-    if (!cited.ok) {
-      for (const failure of cited.failures) {
+    process.stderr.write(`${citedSkipScanResult.listing}\n`);
+    if (!citedSkipScanResult.ok) {
+      for (const failure of citedSkipScanResult.failures) {
         process.stderr.write(`check: ${failure}\n`);
       }
       gateOutcomes.push({
