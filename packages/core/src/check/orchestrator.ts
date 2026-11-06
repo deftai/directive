@@ -18,6 +18,7 @@
  */
 
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { dispatchCachedTaskCheck } from "./cached-orchestrator.js";
 import {
@@ -28,7 +29,14 @@ import {
   CONSUMER_HEADER_PLACEHOLDER_GATE_ID,
   evaluateConsumerHeaderPlaceholderAtRoot,
 } from "./consumer-header-placeholder.js";
-import { type CheckOrchestratorSeams, resolveCheckTarget } from "./context.js";
+import {
+  type CheckOrchestratorSeams,
+  isFrameworkRepoRoot,
+  resolveCheckTarget,
+  runSanctionedSkipCountBaselineGate,
+  SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID,
+  SANCTIONED_SKIP_COUNT_BASELINE_REL,
+} from "./context.js";
 import {
   CONSUMER_CHECK_GATES,
   checkGateId,
@@ -160,6 +168,38 @@ export function dispatchTaskCheck(
         "  remedy: cite open deftai/directive#N with skipped-tests block under admitted shape B, or remove the skip\n",
     );
     return 1;
+  }
+
+  // #6072 Prefer-A Bound P3: sanctioned skip-count baseline on check path
+  // (same always-on surface as #6071 scanner / Merge gate task check).
+  if (seams.skipSanctionedSkipBaseline !== true) {
+    const baselineRoot = target === "check:framework-source" ? resolvedFramework : resolvedProject;
+    const baselinePath = join(baselineRoot, ...SANCTIONED_SKIP_COUNT_BASELINE_REL.split("/"));
+    // Production tip always commits the baseline file. Temp/test trees without it
+    // skip this gate; when called, missing evidence still refuses (Bound P4).
+    // Framework tip must always run (Bound P4 refuse-missing). Non-framework
+    // trees without the committed file are test/consumer fixtures.
+    if (
+      (target === "check:framework-source" && isFrameworkRepoRoot(resolvedFramework)) ||
+      existsSync(baselinePath) ||
+      seams.sanctionedSkipInventoryRows !== undefined ||
+      seams.sanctionedSkipTargetBaselineCount !== undefined
+    ) {
+      const baseline = runSanctionedSkipCountBaselineGate({
+        projectRoot: baselineRoot,
+        phase: seams.sanctionedSkipBaselinePhase ?? "merge-readiness",
+        shapeB: seams.sanctionedSkipShapeB,
+        targetBaselineCount: seams.sanctionedSkipTargetBaselineCount,
+        candidateRows: seams.sanctionedSkipInventoryRows,
+      });
+      if (!baseline.ok) {
+        process.stderr.write(`${baseline.message}\n`);
+        process.stderr.write(
+          `check: gate ${SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID} failed (exit ${baseline.code})\n`,
+        );
+        return baseline.code;
+      }
+    }
   }
 
   const spawn = seams.spawnFn ?? defaultSpawn;

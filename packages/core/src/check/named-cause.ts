@@ -87,6 +87,8 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
     "Add a `- ` entry under CHANGELOG.md [Unreleased] (same language as task change:changelog:check)",
   "verify:test-boundary":
     "Move tests to the allowed placement or update plan.policy test-boundary allowlist",
+  "verify:sanctioned-skip-count-baseline":
+    "Keep the committed baseline equal to the citation-shaped sanctioned-skip count; raise only via a shape-(B) hotfix with a same-PR baseline bump equal to #6071-authorized net-new skips (#6072)",
   "verify:class-checks": "Move or remove the path; class checks have no approve, skip, or phrase",
   "verify:scope-provenance": "Record approved scope provenance for the failing paths",
   "verify:consumer-check-contract": "Align consumer Taskfile includes with the required gate graph",
