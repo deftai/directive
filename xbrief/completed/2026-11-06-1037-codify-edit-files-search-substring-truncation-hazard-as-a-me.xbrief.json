@@ -379,11 +379,13 @@
         "writtenAt": "2026-11-06T19:49:59Z"
       },
       "completionProvenance": {
-        "schema": "deft.scope.completion-provenance.v1",
-        "productPullRequest": 6104,
-        "mergeCommit": "0b7d272ee4055d494d8910c00e4ec6a235018749",
+        "disposition": "delivered",
+        "verifiedAt": "2026-11-06T19:49:59Z",
+        "verifier": "leftover-land after #6104",
         "deliveryBranch": "master",
-        "completedAt": "2026-11-06T19:49:59Z"
+        "mergeCommit": "0b7d272ee4055d494d8910c00e4ec6a235018749",
+        "deliveryCommit": "0b7d272ee4055d494d8910c00e4ec6a235018749",
+        "pullRequestNumber": 6104
       },
       "completedAt": "2026-11-06T19:49:59Z"
     },
