@@ -10,14 +10,20 @@
         "tag-push",
         "gh-release-create-draft"
       ],
-      "explicit_required": ["release-publish", "release-rollback"],
+      "explicit_required": [
+        "release-publish",
+        "release-rollback"
+      ],
       "irreversibility": "reversible-via-release-rollback",
       "wildcard_allowed": false,
       "recurring_allowed": false,
       "default_expiry": "4h",
       "skill": "content/skills/deft-directive-release/SKILL.md",
       "phase": "Phase 4",
-      "authz_operations": ["release-cut", "deployment"],
+      "authz_operations": [
+        "release-cut",
+        "deployment"
+      ],
       "env_bypass": "DEFT_ALLOW_RELEASE_CUT"
     },
     "release-publish": {
@@ -29,7 +35,10 @@
       "default_expiry": "1h",
       "skill": "content/skills/deft-directive-release/SKILL.md",
       "phase": "Phase 5",
-      "authz_operations": ["release-publish", "deployment"],
+      "authz_operations": [
+        "release-publish",
+        "deployment"
+      ],
       "env_bypass": "DEFT_ALLOW_RELEASE_PUBLISH"
     },
     "release-rollback": {
@@ -41,8 +50,25 @@
       "default_expiry": "1h",
       "skill": "content/skills/deft-directive-release/SKILL.md",
       "phase": "Phase 7",
-      "authz_operations": ["release-rollback", "deployment"],
+      "authz_operations": [
+        "release-rollback",
+        "deployment"
+      ],
       "env_bypass": "DEFT_ALLOW_RELEASE_ROLLBACK"
+    },
+    "release-promote-latest": {
+      "closure_set": [],
+      "explicit_required": [],
+      "irreversibility": "destructive",
+      "wildcard_allowed": false,
+      "recurring_allowed": false,
+      "default_expiry": "1h",
+      "skill": "content/skills/deft-directive-release/SKILL.md",
+      "phase": "Phase 7",
+      "authz_operations": [
+        "release-promote-latest"
+      ],
+      "env_bypass": "DEFT_ALLOW_RELEASE_PROMOTE_LATEST"
     },
     "finish-loop": {
       "closure_set": [
@@ -54,14 +80,24 @@
         "pr-finish-loop",
         "directive-finish-loop"
       ],
-      "explicit_required": ["release-cut", "release-publish", "release-rollback"],
+      "explicit_required": [
+        "release-cut",
+        "release-publish",
+        "release-rollback",
+        "release-promote-latest"
+      ],
       "irreversibility": "reversible-via-git-revert",
       "wildcard_allowed": false,
       "recurring_allowed": true,
       "default_expiry": "8h",
       "skill": "content/contracts/finish-loop.md",
       "phase": "walk-away",
-      "authz_operations": ["edit", "push", "pr", "merge"],
+      "authz_operations": [
+        "edit",
+        "push",
+        "pr",
+        "merge"
+      ],
       "env_bypass": "DEFT_ALLOW_FINISH_LOOP"
     }
   }
