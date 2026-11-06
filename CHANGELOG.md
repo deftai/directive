@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- release(#5852): promoting a cut to npm `latest` now needs its own approval (not the publish grant), and the publish path refuses unsafe SemVer tag parsing.
+
+
 ### Added
 
 ### Changed
@@ -193,6 +198,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed - Doctor recovery is failure-shaped: schema-only → `directive upgrade`; wiring-only (e.g. Taskfile.yml) → wiring/probe + repair without `npm i -g`; install skew / missing readiness still get AC9.7. Refs #5798.
 - Fixed - On `ERR_PNPM_IGNORED_BUILDS`, install/upgrade fail closed with pnpm-shaped recovery (`pnpm approve-builds` / real `allowBuilds` boolean); Directive does not write `allowBuilds`. Refs #5797.
 
+- Fixed - Finish #5852 Prefer-A Recut-6 P1–P4 on top of #5863: committed Resolve script (read from github.workflow_sha) owns dist-tag mapping (stable→maintainer, never SemVer-implicit latest); promote-latest is a distinct workflow_dispatch job + release-promote-latest closed verb (DEFT_ALLOW_RELEASE_PROMOTE_LATEST; release-publish grant does not authorize); release-publish uses the channel-aware gate and draft-flips with make_latest=false; Phase 7 asks promote-now or explicit decline. Named leftover: channel-following upgrade advisory/hints. Refs #5852 Prefer-A Recut-6 6393543742 / #5365 / #5805.
 - Fixed - `migrate:xbrief` skips strip-plan refuse for dual `vBRIEFInfo`+`xBRIEFInfo` both@0.6 so hybrid rewrite owns the file. Refs #5795.
 - Fixed - Equal-version upgrade/migrate clears hybrid and mis-keyed `vBRIEFInfo@0.8` (including under `xbrief/completed/`) so doctor schema currency is not stuck `migration_needed`. Refs #5795.
 - Fixed - After product merge #5886, record #5807 complete so operators can close the issue and active scope no longer lists it. Refs #5807.
