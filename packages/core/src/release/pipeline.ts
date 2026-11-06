@@ -357,6 +357,19 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
     });
 
     if (stampEval.kind === "hit") {
+      // #6071 Greptile: suite stamp must not skip the always-on named Merge gate.
+      const [namedOk, namedReason] = runReleaseCheck(
+        projectRoot,
+        {
+          skipCi: true,
+          tipSha: headSha,
+        },
+        config.allowCoverageDebtIssue,
+      );
+      if (!namedOk) {
+        emit(5, label, `FAIL (suite stamp hit but named Merge gate refused: ${namedReason})`);
+        return EXIT_VIOLATION;
+      }
       // #6041: host-coverage witness on stamp is enough; GHA coverage-of-record cite retired.
       const debtNote =
         stampEval.stamp.suite === "pass_with_debt" && stampEval.stamp.debtIssue != null
@@ -365,7 +378,7 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
       emit(
         5,
         label,
-        `OK (suite stamp hit at ${stampEval.stamp.headSha.slice(0, 12)}; suite skipped${debtNote}; host coverage witnessed)`,
+        `OK (suite stamp hit at ${stampEval.stamp.headSha.slice(0, 12)}; suite skipped${debtNote}; host coverage witnessed; named Merge gate revalidated)`,
       );
     } else {
       // Bind auto-hatch coverage-final trust to this suite invocation (#3187).

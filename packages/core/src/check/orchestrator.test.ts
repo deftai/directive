@@ -1166,7 +1166,7 @@ it.skipIf(process.platform === "win32")("symlink", () => {});
   });
 
   it("pins four-site baseline including yoloSterile aliases", () => {
-    expect(CITED_SKIP_BASELINE).toHaveLength(4);
+    expect(CITED_SKIP_BASELINE).toHaveLength(5);
     expect(
       CITED_SKIP_BASELINE.filter((b) => b.file.includes("legacy-bridge-leg")).length,
     ).toBe(2);

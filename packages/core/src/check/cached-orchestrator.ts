@@ -55,6 +55,7 @@ import { type CheckOrchestratorSeams, resolveCheckTarget } from "./context.js";
 import {
   checkGateId,
   checkGateSpawnArgs,
+  evaluateCitedSkipScan,
   gatesForCheckTarget,
   isSuiteCheckGate,
 } from "./gate-lists.js";
@@ -333,9 +334,6 @@ export function dispatchCachedTaskCheck(
 
   // #6071: cited-skip inventory on framework-source; refuse unsanctioned describe.skip.
   if (target === "check:framework-source" && options.skipCitedSkipScan !== true) {
-    const { evaluateCitedSkipScan } = requireOrchestrator(
-      "./orchestrator.js",
-    ) as typeof import("./orchestrator.js");
     const cited = evaluateCitedSkipScan({
       projectRoot: resolvedProject,
       changedFiles: options.citedSkipChangedFiles,
