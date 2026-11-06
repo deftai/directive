@@ -2,55 +2,79 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6072",
-    "updated": "2026-11-06T04:20:39Z"
+    "updated": "2026-11-06T04:37:21Z"
   },
   "plan": {
     "title": "enhancement(check): baseline ratchet for sanctioned test-skip count",
     "status": "running",
     "narratives": {
-      "Description": "Sanctioned skip count has a committed baseline ratchet on top of the #6071 scanner.",
+      "Description": "Activate Prefer-A Bound work for a committed baseline count file beside the #6071 skip scanner so sanctioned skip count cannot rise without an authorized same-PR bump.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6072",
-      "Overview": "Sanctioned skip count has a committed baseline ratchet on top of the #6071 scanner.",
+      "Overview": "Activate Prefer-A Bound work for a committed baseline count file beside the #6071 skip scanner so sanctioned skip count cannot rise without an authorized same-PR bump.",
       "Labels": "enhancement, design-critique:ingest-ready, core-capabilities",
-      "UserStory": "Sanctioned skip count has a committed baseline ratchet on top of the #6071 scanner.",
-      "ImplementationPlan": "Prefer-A Recut-3 6670134573: baseline count file + shared evaluator; depends_on #6071 shape-B touch-set for baseline file."
+      "UserStory": "As a gate owner, I want a committed baseline for sanctioned test-skip count so new uncited skips cannot land without an authorized baseline bump.",
+      "ImplementationPlan": "Prefer-A Recut-3 6670134573: baseline count file plus shared evaluator; depends_on #6071 shape-B touch-set for the baseline file."
     },
     "items": [
       {
         "title": "relieves: P1 — Commit a baseline count file beside the #6071 scanner under packages/core/src/check/ and run one shared evaluator that refuses when the candidate tree-syntax sanctioned-skip count exceeds the target revision baseline unless the shape-(B) authorization and matching same-PR bump from the P2 limb hold, using the merge-base baseline at pre-PR as early feedback and the P3 current-target admission as the binding proof.",
         "status": "proposed",
         "id": "clause.1",
-        "artifact_path": "packages/core/src/check/cached-orchestrator.ts"
+        "artifact_path": "packages/core/src/check/cached-orchestrator.ts",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Commit a baseline count file beside the #6071 scanner under packages/core/src/check/ and run one shared evaluator that refuses when the candidate tree-syntax sanctioned-skip count exceeds the target revision baseline unless the shape-(B) authorization and matching same-PR bump from the P2 limb hold, using the merge-base baseline at pre-PR as early feedback and the P3 current-target admission as the binding proof.",
+          "Traces": "#6072"
+        }
       },
       {
         "title": "relieves: P2 — Derive the candidate ratchet count as #6071 listed rows at the named revision filtered on citation shape with the issue-state field ignored (so #6071 must expose those rows before live-state filtering), never auto-ratchet upward, and allow candidate baseline above target baseline only for a shape-(B) hotfix under #6071 authorization with a same-PR baseline bump equal to the net new skips #6071 authorizes on this diff (no follow-up raise-admit path).",
         "status": "proposed",
         "id": "clause.2",
-        "artifact_path": "packages/core/src/check/cli-native-gates.test.ts"
+        "artifact_path": "packages/core/src/check/cli-native-gates.test.ts",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Derive the candidate ratchet count as #6071 listed rows at the named revision filtered on citation shape with the issue-state field ignored (so #6071 must expose those rows before live-state filtering), never auto-ratchet upward, and allow candidate baseline above target baseline only for a shape-(B) hotfix under #6071 authorization with a same-PR baseline bump equal to the net new skips #6071 authorizes on this diff (no follow-up raise-admit path).",
+          "Traces": "#6072"
+        }
       },
       {
         "title": "relieves: P3 — Wire that evaluator into the same always-on pre-PR and merge-readiness call sites as the #6071 scanner, reuse #6071 shape-(B) and per-diff skip-identity verdicts for authorization and authorized delta, and at final merge-readiness consume inventory and baseline from the actual candidate against the current target (or require the PR head incorporates that target) with revalidation when either SHA changes using existing freshness or candidate machinery.",
         "status": "proposed",
         "id": "clause.3",
-        "artifact_path": "packages/core/src/check/cli-native-gates.ts"
+        "artifact_path": "packages/core/src/check/cli-native-gates.ts",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Wire that evaluator into the same always-on pre-PR and merge-readiness call sites as the #6071 scanner, reuse #6071 shape-(B) and per-diff skip-identity verdicts for authorization and authorized delta, and at final merge-readiness consume inventory and baseline from the actual candidate against the current target (or require the PR head incorporates that target) with revalidation when either SHA changes using existing freshness or candidate machinery.",
+          "Traces": "#6072"
+        }
       },
       {
         "title": "relieves: P4 — On every run require the candidate committed baseline to equal the candidate tree-syntax count, refuse any baseline bump whose amount does not equal the #6071-authorized net new skips on this diff, and refuse missing or invalid baseline evidence instead of seeding zero.",
         "status": "proposed",
         "id": "clause.4",
-        "artifact_path": "packages/core/src/check/consumer-gate-integrity.test.ts"
+        "artifact_path": "packages/core/src/check/consumer-gate-integrity.test.ts",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — On every run require the candidate committed baseline to equal the candidate tree-syntax count, refuse any baseline bump whose amount does not equal the #6071-authorized net new skips on this diff, and refuse missing or invalid baseline evidence instead of seeding zero.",
+          "Traces": "#6072"
+        }
       },
       {
         "title": "relieves: P5 — Do not invoke task check or re-run Merge gate (task check) for this ratchet, and never commit or push the baseline file from verification.",
         "status": "proposed",
         "id": "clause.5",
-        "artifact_path": "packages/core/src/check/consumer-gate-integrity.ts"
+        "artifact_path": "packages/core/src/check/consumer-gate-integrity.ts",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P5 — Do not invoke task check or re-run Merge gate (task check) for this ratchet, and never commit or push the baseline file from verification.",
+          "Traces": "#6072"
+        }
       },
       {
         "title": "relieves: P2 — Require #6071 shape-(B) allowed touch set to admit the packages/core/src/check/ baseline count file in the same hotfix PR that adds cited skips and bumps that baseline, so the AC3 raise path has an admissible input without a follow-up bump or shape-(A) relabel.",
         "status": "proposed",
         "id": "clause.6",
-        "artifact_path": "packages/core/src/check/consumer-header-placeholder.test.ts"
+        "artifact_path": "packages/core/src/check/consumer-header-placeholder.test.ts",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Require #6071 shape-(B) allowed touch set to admit the packages/core/src/check/ baseline count file in the same hotfix PR that adds cited skips and bumps that baseline, so the AC3 raise path has an admissible input without a follow-up bump or shape-(A) relabel.",
+          "Traces": "#6072"
+        }
       }
     ],
     "tags": [
@@ -155,9 +179,11 @@
           "packages/core/src/check/suite-gate-supervisor-worker.test.ts",
           "packages/core/src/check/suite-gate-supervisor-worker.ts",
           "packages/core/src/check/suite-gate-supervisor.test.ts",
-          "packages/core/src/check/suite-gate-supervisor.ts"
+          "packages/core/src/check/suite-gate-supervisor.ts",
+          "packages/core/src/check/sanctioned-skip-baseline.json"
         ],
-        "module_boundary": "packages/core/src/check"
+        "module_boundary": "packages/core/src/check",
+        "cohesion_exemption": "orchestrator.test.ts (1111) already exceeds the review trigger; this activation only stamps swarm readiness, acceptance fields, and the baseline path in file_scope, not a module split."
       },
       "x-directive/plan-id": {
         "version": 1,
@@ -212,6 +238,7 @@
           "packages/core/src/check/suite-gate-supervisor-worker.ts",
           "packages/core/src/check/suite-gate-supervisor.test.ts",
           "packages/core/src/check/suite-gate-supervisor.ts",
+          "packages/core/src/check/sanctioned-skip-baseline.json",
           "CHANGELOG.md"
         ],
         "verify_commands": [
@@ -234,6 +261,6 @@
       "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)"
     },
     "id": "github.issue.6231502901",
-    "updated": "2026-11-06T04:20:39Z"
+    "updated": "2026-11-06T04:37:21Z"
   }
 }

@@ -2,55 +2,79 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6071",
-    "updated": "2026-11-06T04:21:28Z"
+    "updated": "2026-11-06T04:37:21Z"
   },
   "plan": {
     "title": "fix(merge,release,pre-pr): block ordinary merges while master's Merge gate is red; hotfix-only until green, with a cited skip fallback",
     "status": "running",
     "narratives": {
-      "Description": "Ordinary merges refuse while master Merge gate (task check) is red; hotfix A/B cited-skip escape only.",
+      "Description": "Activate Prefer-A Bound work so ordinary merges and pre-PR refuse while master Merge gate (task check) is red, with a maintainer hotfix label path and a cited skip fallback for sanctioned skips.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6071",
-      "Overview": "Ordinary merges refuse while master Merge gate (task check) is red; hotfix A/B cited-skip escape only.",
+      "Overview": "Activate Prefer-A Bound work so ordinary merges and pre-PR refuse while master Merge gate (task check) is red, with a maintainer hotfix label path and a cited skip fallback for sanctioned skips.",
       "Labels": "bug, design-critique:ingest-ready, core-capabilities",
-      "UserStory": "Ordinary merges refuse while master Merge gate (task check) is red; hotfix A/B cited-skip escape only.",
-      "ImplementationPlan": "Prefer-A Recut-2 6669973193: always-on named Merge gate + cited-skip scanner + hotfix shapes; finish-loop before mergeFn."
+      "UserStory": "As a merge-path owner, ordinary merges stay blocked while master Merge gate is red, unless a maintainer hotfix path or cited-skip fallback admits the change.",
+      "ImplementationPlan": "Prefer-A Recut-2 6669973193: always-on named Merge gate status read, cited-skip scanner, hotfix A/B shapes, and finish-loop refuse before mergeFn."
     },
     "items": [
       {
         "title": "relieves: P1 — Always-on exact-name status read of Merge gate (task check) on master's tip on ordinary wait-mergeable / merge-readiness AND before mergeFn in pr:finish-loop / finish-loop (same refuse set: red, missing, pending past timeout, API fail, skipped); independent of cascadeMode and requireMasterCiGreen; paginated check-runs (per_page=100 + Link).",
         "status": "pending",
         "id": "clause.1",
-        "artifact_path": "packages/core/src/pr-wait-mergeable/semantic-green.ts"
+        "artifact_path": "packages/core/src/pr-wait-mergeable/semantic-green.ts",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Always-on exact-name status read of Merge gate (task check) on master's tip on ordinary wait-mergeable / merge-readiness AND before mergeFn in pr:finish-loop / finish-loop (same refuse set: red, missing, pending past timeout, API fail, skipped); independent of cascadeMode and requireMasterCiGreen; paginated check-runs (per_page=100 + Link).",
+          "Traces": "#6071"
+        }
       },
       {
         "title": "relieves: P2 — Same always-on named-check refuse at pre-PR for ordinary (non A/B) changes; under DEFT_NO_NETWORK=1 refuse with the same unreadable/API-fail closed outcome (do not soft-skip); whole-tree skip listing stays static; live probes cover every skip added or changed in the candidate diff.",
         "status": "pending",
         "id": "clause.2",
-        "artifact_path": "packages/core/src/pre-pr-controller/controller.ts"
+        "artifact_path": "packages/core/src/pre-pr-controller/controller.ts",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Same always-on named-check refuse at pre-PR for ordinary (non A/B) changes; under DEFT_NO_NETWORK=1 refuse with the same unreadable/API-fail closed outcome (do not soft-skip); whole-tree skip listing stays static; live probes cover every skip added or changed in the candidate diff.",
+          "Traces": "#6071"
+        }
       },
       {
         "title": "relieves: P3 — Hotfix escape when label hotfix is present, the effective labeled-timeline actor is a non-Bot maintainer-class account (OWNER/MEMBER or closed plan.policy maintainerLogins), provenance readable, and body matches exactly one shape (A) or (B); do not require actor≠author; re-validate at merge; fixtures cover Bot actor and unauthorized-human refuses; first-hotfix bootstrap is pre-PR refuse with recovery text that a human opens/labels the draft PR (no PR-create inside pre-pr-controller file_scope).",
         "status": "pending",
         "id": "clause.3",
-        "artifact_path": "packages/core/src/pre-pr-controller/controller.ts"
+        "artifact_path": "packages/core/src/pre-pr-controller/controller.ts",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Hotfix escape when label hotfix is present, the effective labeled-timeline actor is a non-Bot maintainer-class account (OWNER/MEMBER or closed plan.policy maintainerLogins), provenance readable, and body matches exactly one shape (A) or (B); do not require actor≠author; re-validate at merge; fixtures cover Bot actor and unauthorized-human refuses; first-hotfix bootstrap is pre-PR refuse with recovery text that a human opens/labels the draft PR (no PR-create inside pre-pr-controller file_scope).",
+          "Traces": "#6071"
+        }
       },
       {
         "title": "relieves: P4 — Cited-skip scanner inventories skipped tests with token boundary excluding skipIf helpers; pins baseline allowlist for the three legacy yoloSterile alias sites with dynamic-title reason; refuses new uncited skips and new describe-level skips; authorizes added or changed skips only under admitted A/B with B touch-set; live-validates every added or changed skip including same-issue or changed-title; lists sanctioned skips every run without network on unchanged inventory.",
         "status": "pending",
         "id": "clause.4",
-        "artifact_path": "packages/core/src/check/orchestrator.ts"
+        "artifact_path": "packages/core/src/check/orchestrator.ts",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — Cited-skip scanner inventories skipped tests with token boundary excluding skipIf helpers; pins baseline allowlist for the three legacy yoloSterile alias sites with dynamic-title reason; refuses new uncited skips and new describe-level skips; authorizes added or changed skips only under admitted A/B with B touch-set; live-validates every added or changed skip including same-issue or changed-title; lists sanctioned skips every run without network on unchanged inventory.",
+          "Traces": "#6071"
+        }
       },
       {
         "title": "relieves: P5 — Release admission refuses unless Merge gate (task check) on the pre-release master tip is successful completed at Step 5 outside skipCi/suite-stamp; same fail-closed dispositions; refuse stale closed/missing/absent-title skips except pinned baseline.",
         "status": "pending",
         "id": "clause.5",
-        "artifact_path": "packages/core/src/release/pipeline.ts"
+        "artifact_path": "packages/core/src/release/pipeline.ts",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: relieves: P5 — Release admission refuses unless Merge gate (task check) on the pre-release master tip is successful completed at Step 5 outside skipCi/suite-stamp; same fail-closed dispositions; refuse stale closed/missing/absent-title skips except pinned baseline.",
+          "Traces": "#6071"
+        }
       },
       {
         "title": "Footnote: bookkeeping reds accepted v1 cost; release commits after Step-5 tip read are not individually gated (accepted v1); skipIf/alias-resistant beyond token boundary leftover; baseline count ratchet follow-up; tickets-only; forge UI / bare gh pr merge enrollment leftover.",
         "status": "pending",
         "id": "clause.6",
-        "artifact_path": "packages/core/src/finish-loop/pr-finish-loop.ts"
+        "artifact_path": "packages/core/src/finish-loop/pr-finish-loop.ts",
+        "narrative": {
+          "Acceptance": "Given the Prefer-A Bound limbs, when this clause ships, then: Footnote: bookkeeping reds accepted v1 cost; release commits after Step-5 tip read are not individually gated (accepted v1); skipIf/alias-resistant beyond token boundary leftover; baseline count ratchet follow-up; tickets-only; forge UI / bare gh pr merge enrollment leftover.",
+          "Traces": "#6071"
+        }
       }
     ],
     "tags": [
@@ -240,7 +264,8 @@
           "packages/core/src/content-contracts/skills/agents_md_session_start.test.ts",
           "packages/core/src/content-contracts/standards/branch_gate.test.ts"
         ],
-        "module_boundary": "packages/core/src/pr-wait-mergeable"
+        "module_boundary": "packages/core/src/pr-wait-mergeable",
+        "cohesion_exemption": "orchestrator.test.ts (1111) and related check/merge modules already exceed the review trigger; this activation only stamps swarm readiness and acceptance fields, not a module split."
       },
       "x-directive/plan-id": {
         "version": 1,
@@ -398,6 +423,6 @@
       "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)"
     },
     "id": "github.issue.6231497602",
-    "updated": "2026-11-06T04:21:28Z"
+    "updated": "2026-11-06T04:37:21Z"
   }
 }
