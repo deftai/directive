@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "bug(hooks,cli): lifecycle verbs still deny normal agent shells as not inspectable (regression class of #4577/#4780)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Lifecycle verbs still deny normal agent compound shells as not inspectable even when the matching owner session-id is present. This activation records Prefer-A Bound so a later product PR can publish hatch copy and task -- recovery without weakening fail-closed ownership checks.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5925",
@@ -21,7 +21,7 @@
       {
         "id": "clause.1",
         "title": "relieves: P1 — Publish the existing per-window same-owner hatch only on resolved-identity uninspectable denials, spelling task recovery in that hatch clause as task <verb> -- <flags…> --session-id=<owner>, with | tee / && as illustrations only.",
-        "status": "proposed",
+        "status": "done",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Publish the existing per-window same-owner hatch only on resolved-identity uninspectable denials, spelling task recovery in that hatch clause as task <verb> -- <flags…> --session-id=<owner>, with | tee / && as illustrations only.",
           "Traces": "#5925",
@@ -31,7 +31,7 @@
       {
         "id": "clause.2",
         "title": "relieves: P1 — Land hatch-copy publication in the same change as the window-scoping fixture that a matching-owner lifecycle window plus a non-lifecycle mutating segment stays governed by its own upstream rule.",
-        "status": "proposed",
+        "status": "done",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Land hatch-copy publication in the same change as the window-scoping fixture that a matching-owner lifecycle window plus a non-lifecycle mutating segment stays governed by its own upstream rule.",
           "Traces": "#5925",
@@ -41,7 +41,7 @@
       {
         "id": "clause.3",
         "title": "relieves: P1 — Add attachLifecycleIdentityRewrite fixtures on wire-host claude+GROK_HOOK_EVENT pairing matching-owner allow with same-host same-command non-matching-owner deny plus attached-redirect owner-glue deny.",
-        "status": "proposed",
+        "status": "done",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Add attachLifecycleIdentityRewrite fixtures on wire-host claude+GROK_HOOK_EVENT pairing matching-owner allow with same-host same-command non-matching-owner deny plus attached-redirect owner-glue deny.",
           "Traces": "#5925",
@@ -51,7 +51,7 @@
       {
         "id": "clause.4",
         "title": "relieves: P2 — For task-executable uninspectable denials keep the true classifyUninspectableLifecycleMiss label and simple-command instruction; when demandOwner is true and namedOwner is a real resolved id, append one additive line task <verb> -- <flags…> --session-id=<owner>.",
-        "status": "proposed",
+        "status": "done",
         "narrative": {
           "Acceptance": "relieves: P2 — For task-executable uninspectable denials keep the true classifyUninspectableLifecycleMiss label and simple-command instruction; when demandOwner is true and namedOwner is a real resolved id, append one additive line task <verb> -- <flags…> --session-id=<owner>.",
           "Traces": "#5925",
@@ -61,7 +61,7 @@
       {
         "id": "clause.5",
         "title": "relieves: P2 — In uninspectableLifecycleDenyMessage only, omit bare --session-id=<host-published-id> when namedOwner is the unresolved owner token; tell the agent to re-run from a session with a Directive hook registered, without importing formatOccupancyMintRefusal or claiming a pasteable owner exists.",
-        "status": "proposed",
+        "status": "done",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — In uninspectableLifecycleDenyMessage only, omit bare --session-id=<host-published-id> when namedOwner is the unresolved owner token; tell the agent to re-run from a session with a Directive hook registered, without importing formatOccupancyMintRefusal or claiming a pasteable owner exists.",
           "Traces": "#5925",
@@ -71,7 +71,7 @@
       {
         "id": "clause.6",
         "title": "relieves: P2 — On the attachLifecycleIdentityRewrite owner-mismatch deny that currently emits pass --session-id=<owner>, apply the same launcher-correct task/deft spelling as the demandOwner uninspectable recovery without widening into occupancy mint formatters.",
-        "status": "proposed",
+        "status": "done",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — On the attachLifecycleIdentityRewrite owner-mismatch deny that currently emits pass --session-id=<owner>, apply the same launcher-correct task/deft spelling as the demandOwner uninspectable recovery without widening into occupancy mint formatters.",
           "Traces": "#5925",
@@ -81,7 +81,7 @@
       {
         "id": "clause.7",
         "title": "relieves: P3 — Re-cite hatch publication against the Stop 1 metacharacter recursive-flail.",
-        "status": "proposed",
+        "status": "done",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Re-cite hatch publication against the Stop 1 metacharacter recursive-flail.",
           "Traces": "#5925",
@@ -91,7 +91,7 @@
       {
         "id": "clause.8",
         "title": "operator-deferred: P4 #5918 — Keep defer-owed form/hint and contended-primary #5917 outside this Prefer-A Bound.",
-        "status": "proposed",
+        "status": "done",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then product work leaves #5918 defer-owed form and #5917 contended-primary outside file_scope and verify commands reject edits that pull them in.",
           "Traces": "#5925",
@@ -180,7 +180,18 @@
         ],
         "acceptance_criteria_justification": "Prefer-A Bound ships one acceptance item per locked limb; clause count follows the Bound comment and may exceed five."
       },
-      "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)"
+      "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)",
+      "productPullRequest": 6083,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-06T05:30:12.487Z"
+      },
+      "completionProvenance": {
+        "disposition": "shipped",
+        "mergeCommit": "be48540c6109d2fee8933dba45066032a77696d4",
+        "pullRequest": 6083,
+        "completedAt": "2026-11-06T05:30:12.487Z"
+      }
     },
     "id": "github.issue.6042153490",
     "updated": "2026-11-06T04:43:34Z"
