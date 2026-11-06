@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   type ResolveLifecycleDirtyFn,
   resolveLifecycleDirty,
@@ -746,3 +748,528 @@ export function evaluateNonCascadeCandidateGreen(
 }
 
 export type SemanticGreenFn = typeof evaluateSemanticGreen;
+
+/** Exact required aggregator check name on master's tip (#6071). */
+export const MASTER_MERGE_GATE_CHECK_NAME = "Merge gate (task check)";
+
+/** Match pr:watch default max-wait for pending named-check age (#6071). */
+export const NAMED_MERGE_GATE_PENDING_TIMEOUT_MS = 30 * 60 * 1000;
+
+export const OUTCOME_MASTER_MERGE_GATE_RED = "master-merge-gate-red";
+export const OUTCOME_HOTFIX_SHAPE_INVALID = "hotfix-shape-invalid";
+export const OUTCOME_MASTER_MERGE_GATE_UNREADABLE = "master-merge-gate-unreadable";
+
+const HOTFIX_SHAPE_A_RE =
+  /^Hotfix for red Merge gate \(task check\):\s+\S.*$/m;
+const HOTFIX_SHAPE_B_RE = /^Hotfix skip:\s+deftai\/directive#(\d+)\s*$/m;
+
+export type HotfixShape = "A" | "B";
+
+export type NamedMergeGateResult =
+  | {
+      readonly ok: true;
+      readonly tipSha: string;
+      readonly check: {
+        readonly name: string;
+        readonly status: string;
+        readonly conclusion: string;
+      };
+      readonly hotfixEscape: boolean;
+      readonly payload: Record<string, unknown>;
+    }
+  | {
+      readonly ok: false;
+      readonly outcome: string;
+      readonly exitCode: number;
+      readonly error: string;
+      readonly tipSha: string | null;
+      readonly payload: Record<string, unknown>;
+    };
+
+export type HotfixAdmissionResult =
+  | {
+      readonly admitted: true;
+      readonly shape: HotfixShape;
+      readonly actorLogin: string;
+      readonly skipIssue?: number;
+      readonly payload: Record<string, unknown>;
+    }
+  | {
+      readonly admitted: false;
+      readonly outcome: string;
+      readonly error: string;
+      readonly bootstrapRecovery: string | null;
+      readonly payload: Record<string, unknown>;
+    };
+
+export function parseHotfixBodyShape(
+  body: string | null | undefined,
+): { shape: HotfixShape; skipIssue?: number } | null {
+  if (typeof body !== "string" || body.length === 0) return null;
+  const a = HOTFIX_SHAPE_A_RE.test(body);
+  const bMatch = HOTFIX_SHAPE_B_RE.exec(body);
+  const b = bMatch !== null;
+  if (a === b) return null;
+  if (a) return { shape: "A" };
+  const issue = Number.parseInt(bMatch?.[1] ?? "", 10);
+  if (!Number.isFinite(issue) || issue <= 0) return null;
+  return { shape: "B", skipIssue: issue };
+}
+
+export function evaluateNamedMergeGateOnRuns(
+  tipSha: string,
+  checkRuns: readonly { name: string; status: string; conclusion: string; started_at?: string | null; created_at?: string | null }[],
+  options: { readonly nowMs?: number; readonly pendingTimeoutMs?: number } = {},
+): NamedMergeGateResult {
+  const nowMs = options.nowMs ?? Date.now();
+  const pendingTimeoutMs = options.pendingTimeoutMs ?? NAMED_MERGE_GATE_PENDING_TIMEOUT_MS;
+  const matches = checkRuns.filter((r) => r.name === MASTER_MERGE_GATE_CHECK_NAME);
+  if (matches.length === 0) {
+    return {
+      ok: false,
+      outcome: OUTCOME_MASTER_MERGE_GATE_RED,
+      exitCode: EXIT_TIMEOUT_OR_ESCALATION,
+      error:
+        `Required named check ${JSON.stringify(MASTER_MERGE_GATE_CHECK_NAME)} is missing on tip ${tipSha.slice(0, 12)}; ` +
+        "fail closed until the constant matches CI (#6071).",
+      tipSha,
+      payload: {
+        tip_sha: tipSha,
+        named_check: MASTER_MERGE_GATE_CHECK_NAME,
+        disposition: "missing",
+      },
+    };
+  }
+  const latest = matches[matches.length - 1]!;
+  const payloadBase = {
+    tip_sha: tipSha,
+    named_check: MASTER_MERGE_GATE_CHECK_NAME,
+    status: latest.status,
+    conclusion: latest.conclusion,
+  };
+  if (latest.status !== "completed") {
+    const startedRaw = latest.started_at ?? latest.created_at ?? null;
+    const startedMs = startedRaw !== null ? Date.parse(startedRaw) : Number.NaN;
+    const ageMs = Number.isFinite(startedMs) ? nowMs - startedMs : pendingTimeoutMs + 1;
+    if (ageMs > pendingTimeoutMs) {
+      return {
+        ok: false,
+        outcome: OUTCOME_MASTER_MERGE_GATE_RED,
+        exitCode: EXIT_TIMEOUT_OR_ESCALATION,
+        error:
+          `Named check ${JSON.stringify(MASTER_MERGE_GATE_CHECK_NAME)} is still pending past timeout on tip ${tipSha.slice(0, 12)} (#6071).`,
+        tipSha,
+        payload: { ...payloadBase, disposition: "pending-timeout", age_ms: ageMs },
+      };
+    }
+    return {
+      ok: false,
+      outcome: OUTCOME_MASTER_MERGE_GATE_RED,
+      exitCode: EXIT_TIMEOUT_OR_ESCALATION,
+      error:
+        `Named check ${JSON.stringify(MASTER_MERGE_GATE_CHECK_NAME)} is not completed on tip ${tipSha.slice(0, 12)} (status=${latest.status}) (#6071).`,
+      tipSha,
+      payload: { ...payloadBase, disposition: "pending" },
+    };
+  }
+  if (latest.conclusion === "skipped") {
+    return {
+      ok: false,
+      outcome: OUTCOME_MASTER_MERGE_GATE_RED,
+      exitCode: EXIT_TIMEOUT_OR_ESCALATION,
+      error:
+        `Named check ${JSON.stringify(MASTER_MERGE_GATE_CHECK_NAME)} concluded skipped on tip ${tipSha.slice(0, 12)}; refuse (#6071).`,
+      tipSha,
+      payload: { ...payloadBase, disposition: "skipped" },
+    };
+  }
+  if (latest.conclusion !== "success") {
+    return {
+      ok: false,
+      outcome: OUTCOME_MASTER_MERGE_GATE_RED,
+      exitCode: EXIT_TIMEOUT_OR_ESCALATION,
+      error:
+        `Named check ${JSON.stringify(MASTER_MERGE_GATE_CHECK_NAME)} is red on tip ${tipSha.slice(0, 12)} ` +
+        `(conclusion=${latest.conclusion}). Ordinary merges refuse until green; only a maintainer hotfix shape A/B may land (#6071).`,
+      tipSha,
+      payload: { ...payloadBase, disposition: "red" },
+    };
+  }
+  return {
+    ok: true,
+    tipSha,
+    check: {
+      name: latest.name,
+      status: latest.status,
+      conclusion: latest.conclusion,
+    },
+    hotfixEscape: false,
+    payload: { ...payloadBase, disposition: "success" },
+  };
+}
+
+function fetchBranchHeadShaForNamedGate(
+  repo: string,
+  branch: string,
+  runGh: RunGhFn,
+): { sha: string | null; error: string | null } {
+  return fetchBranchHeadSha(repo, branch, runGh);
+}
+
+function readMaintainerLogins(projectRoot: string | undefined): readonly string[] {
+  if (projectRoot === undefined || projectRoot.length === 0) return [];
+  try {
+    const pdPath = join(projectRoot, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    if (!existsSync(pdPath)) return [];
+    const raw = JSON.parse(readFileSync(pdPath, "utf8")) as unknown;
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return [];
+    const plan = (raw as Record<string, unknown>).plan;
+    if (plan === null || typeof plan !== "object" || Array.isArray(plan)) return [];
+    const policy =
+      (plan as Record<string, unknown>)["x-directive/policy"] ??
+      (plan as Record<string, unknown>).policy;
+    if (policy === null || typeof policy !== "object" || Array.isArray(policy)) return [];
+    const logins = (policy as Record<string, unknown>).maintainerLogins;
+    if (!Array.isArray(logins)) return [];
+    return logins.filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+  } catch {
+    return [];
+  }
+}
+
+function isMaintainerClassActor(
+  login: string,
+  associationOrPermission: string | null,
+  maintainerLogins: readonly string[],
+): boolean {
+  const normalized = login.trim().toLowerCase();
+  if (maintainerLogins.some((m) => m.trim().toLowerCase() === normalized)) return true;
+  const assoc = (associationOrPermission ?? "").toUpperCase();
+  return (
+    assoc === "OWNER" ||
+    assoc === "MEMBER" ||
+    assoc === "ADMIN" ||
+    assoc === "MAINTAIN" ||
+    assoc === "WRITE"
+  );
+}
+
+/**
+ * Evaluate maintainer hotfix A/B admission for a live PR (#6071 Recut-2).
+ * Does not require actor≠author. Bot actors and unauthorized humans refuse.
+ */
+export function evaluateHotfixAdmission(
+  prNumber: number,
+  repo: string,
+  options: {
+    readonly runGh?: RunGhFn;
+    readonly projectRoot?: string;
+    readonly body?: string | null;
+    readonly labels?: readonly string[];
+    readonly timelineJson?: unknown;
+    readonly permissionJson?: unknown;
+  } = {},
+): HotfixAdmissionResult {
+  const runGh = options.runGh ?? defaultRunGh;
+  const bootstrapRecovery =
+    "Master Merge gate (task check) is red. Ordinary pre-PR refuses. A human maintainer must open/label a draft PR with label `hotfix` and body shape (A) `Hotfix for red Merge gate (task check): <summary>` or (B) `Hotfix skip: deftai/directive#NNNN` (#6071).";
+
+  let body = options.body ?? null;
+  let labels = options.labels ?? null;
+  if (body === null || labels === null) {
+    const rc = runGh(["gh", "api", `repos/${repo}/pulls/${prNumber}`]);
+    if (rc.returncode !== 0) {
+      return {
+        admitted: false,
+        outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
+        error: `could not read PR #${prNumber} for hotfix admission: ${rc.stderr.trim()}`,
+        bootstrapRecovery,
+        payload: { provenance: "unreadable" },
+      };
+    }
+    try {
+      const pr = JSON.parse(rc.stdout) as Record<string, unknown>;
+      if (body === null) body = typeof pr.body === "string" ? pr.body : "";
+      if (labels === null) {
+        const rawLabels = Array.isArray(pr.labels) ? pr.labels : [];
+        labels = rawLabels
+          .map((l) =>
+            l !== null && typeof l === "object" && !Array.isArray(l)
+              ? String((l as Record<string, unknown>).name ?? "")
+              : "",
+          )
+          .filter((n) => n.length > 0);
+      }
+    } catch (exc: unknown) {
+      const message = exc instanceof Error ? exc.message : String(exc);
+      return {
+        admitted: false,
+        outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
+        error: `could not parse PR JSON for hotfix admission: ${message}`,
+        bootstrapRecovery,
+        payload: { provenance: "unreadable" },
+      };
+    }
+  }
+
+  if (!labels.includes("hotfix")) {
+    return {
+      admitted: false,
+      outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
+      error: `PR #${prNumber} lacks label hotfix while master named Merge gate is not green (#6071).`,
+      bootstrapRecovery,
+      payload: { labels, shape: null },
+    };
+  }
+
+  const shape = parseHotfixBodyShape(body);
+  if (shape === null) {
+    return {
+      admitted: false,
+      outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
+      error:
+        `PR #${prNumber} has label hotfix but body matches neither shape (A) nor exactly one shape (B) (#6071).`,
+      bootstrapRecovery,
+      payload: { labels, shape: null },
+    };
+  }
+
+  let timeline = options.timelineJson;
+  if (timeline === undefined) {
+    const rc = runGh([
+      "gh",
+      "api",
+      `repos/${repo}/issues/${prNumber}/timeline?per_page=100`,
+    ]);
+    if (rc.returncode !== 0) {
+      return {
+        admitted: false,
+        outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
+        error: `hotfix labeled-timeline provenance unreadable: ${rc.stderr.trim()}`,
+        bootstrapRecovery,
+        payload: { provenance: "unreadable", shape: shape.shape },
+      };
+    }
+    try {
+      timeline = JSON.parse(rc.stdout) as unknown;
+    } catch (exc: unknown) {
+      const message = exc instanceof Error ? exc.message : String(exc);
+      return {
+        admitted: false,
+        outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
+        error: `hotfix labeled-timeline provenance unreadable: ${message}`,
+        bootstrapRecovery,
+        payload: { provenance: "unreadable", shape: shape.shape },
+      };
+    }
+  }
+
+  if (!Array.isArray(timeline)) {
+    return {
+      admitted: false,
+      outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
+      error: "hotfix labeled-timeline provenance unreadable: not an array",
+      bootstrapRecovery,
+      payload: { provenance: "unreadable", shape: shape.shape },
+    };
+  }
+
+  let actorLogin: string | null = null;
+  let actorType: string | null = null;
+  for (let i = timeline.length - 1; i >= 0; i -= 1) {
+    const ev = timeline[i];
+    if (ev === null || typeof ev !== "object" || Array.isArray(ev)) continue;
+    const rec = ev as Record<string, unknown>;
+    if (rec.event !== "labeled") continue;
+    const label = rec.label;
+    const labelName =
+      label !== null && typeof label === "object" && !Array.isArray(label)
+        ? String((label as Record<string, unknown>).name ?? "")
+        : "";
+    if (labelName !== "hotfix") continue;
+    const actor = rec.actor;
+    if (actor !== null && typeof actor === "object" && !Array.isArray(actor)) {
+      const a = actor as Record<string, unknown>;
+      actorLogin = typeof a.login === "string" ? a.login : null;
+      actorType = typeof a.type === "string" ? a.type : null;
+    }
+    break;
+  }
+
+  if (actorLogin === null || actorLogin.length === 0) {
+    return {
+      admitted: false,
+      outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
+      error: "hotfix labeled-timeline actor missing; provenance unreadable (#6071).",
+      bootstrapRecovery,
+      payload: { provenance: "unreadable", shape: shape.shape },
+    };
+  }
+  if ((actorType ?? "").toLowerCase() === "bot" || actorLogin.endsWith("[bot]")) {
+    return {
+      admitted: false,
+      outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
+      error: `hotfix label actor ${actorLogin} is a Bot; maintainer-class human required (#6071).`,
+      bootstrapRecovery,
+      payload: { actor: actorLogin, actor_type: actorType, shape: shape.shape },
+    };
+  }
+
+  const maintainerLogins = readMaintainerLogins(options.projectRoot);
+  let permission = "NONE";
+  if (options.permissionJson !== undefined) {
+    const p = options.permissionJson;
+    if (p !== null && typeof p === "object" && !Array.isArray(p)) {
+      const perm = (p as Record<string, unknown>).permission;
+      if (typeof perm === "string") permission = perm;
+    }
+  } else {
+    const rc = runGh([
+      "gh",
+      "api",
+      `repos/${repo}/collaborators/${encodeURIComponent(actorLogin)}/permission`,
+    ]);
+    if (rc.returncode === 0 && rc.stdout.trim()) {
+      try {
+        const parsed = JSON.parse(rc.stdout) as Record<string, unknown>;
+        if (typeof parsed.permission === "string") permission = parsed.permission;
+      } catch {
+        permission = "NONE";
+      }
+    }
+  }
+
+  if (!isMaintainerClassActor(actorLogin, permission, maintainerLogins)) {
+    return {
+      admitted: false,
+      outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
+      error:
+        `hotfix label actor ${actorLogin} is not maintainer-class (OWNER/MEMBER or plan.policy.maintainerLogins) (#6071).`,
+      bootstrapRecovery,
+      payload: {
+        actor: actorLogin,
+        permission,
+        shape: shape.shape,
+      },
+    };
+  }
+
+  return {
+    admitted: true,
+    shape: shape.shape,
+    actorLogin,
+    ...(shape.skipIssue !== undefined ? { skipIssue: shape.skipIssue } : {}),
+    payload: {
+      actor: actorLogin,
+      permission,
+      shape: shape.shape,
+      skip_issue: shape.skipIssue ?? null,
+    },
+  };
+}
+
+export interface ReadNamedMasterMergeGateOptions {
+  readonly runGh?: RunGhFn;
+  readonly baseBranch?: string | null;
+  readonly env?: NodeJS.ProcessEnv;
+  readonly nowMs?: number;
+  readonly pendingTimeoutMs?: number;
+  readonly projectRoot?: string;
+  /** When named check is not green, evaluate hotfix escape for this PR. */
+  readonly prNumber?: number;
+  readonly hotfixAdmission?: HotfixAdmissionResult | null;
+  readonly allowHotfixEscape?: boolean;
+}
+
+/**
+ * Always-on named Merge gate (task check) status read on master's tip (#6071).
+ * Independent of cascadeMode / requireMasterCiGreen. DEFT_NO_NETWORK refuses.
+ */
+export function readNamedMasterMergeGate(
+  repo: string,
+  options: ReadNamedMasterMergeGateOptions = {},
+): NamedMergeGateResult {
+  const env = options.env ?? process.env;
+  if ((env.DEFT_NO_NETWORK ?? "").trim() === "1") {
+    return {
+      ok: false,
+      outcome: OUTCOME_MASTER_MERGE_GATE_UNREADABLE,
+      exitCode: EXIT_CONFIG_ERROR,
+      error:
+        "DEFT_NO_NETWORK=1: named Merge gate (task check) status read refuses (API-unreadable) (#6071).",
+      tipSha: null,
+      payload: { disposition: "no-network" },
+    };
+  }
+
+  const runGh = options.runGh ?? defaultRunGh;
+  const branch = options.baseBranch && options.baseBranch.length > 0 ? options.baseBranch : "master";
+  const head = fetchBranchHeadShaForNamedGate(repo, branch, runGh);
+  if (head.error !== null || head.sha === null) {
+    return {
+      ok: false,
+      outcome: OUTCOME_MASTER_MERGE_GATE_UNREADABLE,
+      exitCode: EXIT_CONFIG_ERROR,
+      error:
+        `Named Merge gate tip read failed for ${branch}: ${head.error ?? "missing sha"} (#6071).`,
+      tipSha: null,
+      payload: { disposition: "api-fail", branch },
+    };
+  }
+
+  const check = fetchCheckRunsRest(head.sha, repo, runGh);
+  if (check.error.length > 0) {
+    return {
+      ok: false,
+      outcome: OUTCOME_MASTER_MERGE_GATE_UNREADABLE,
+      exitCode: EXIT_CONFIG_ERROR,
+      error: `Named Merge gate check-runs API fail: ${check.error} (#6071).`,
+      tipSha: head.sha,
+      payload: { disposition: "api-fail", tip_sha: head.sha },
+    };
+  }
+
+  const evaluated = evaluateNamedMergeGateOnRuns(head.sha, check.checkRuns, {
+    nowMs: options.nowMs,
+    pendingTimeoutMs: options.pendingTimeoutMs,
+  });
+  if (evaluated.ok) return evaluated;
+
+  if (options.allowHotfixEscape === true && options.prNumber !== undefined) {
+    const admission =
+      options.hotfixAdmission ??
+      evaluateHotfixAdmission(options.prNumber, repo, {
+        runGh,
+        projectRoot: options.projectRoot,
+      });
+    if (admission.admitted) {
+      return {
+        ok: true,
+        tipSha: head.sha,
+        check: {
+          name: MASTER_MERGE_GATE_CHECK_NAME,
+          status: "completed",
+          conclusion: "failure",
+        },
+        hotfixEscape: true,
+        payload: {
+          ...evaluated.payload,
+          hotfix_escape: true,
+          hotfix: admission.payload,
+        },
+      };
+    }
+    return {
+      ...evaluated,
+      error: `${evaluated.error} Hotfix escape refused: ${admission.error}`,
+      payload: {
+        ...evaluated.payload,
+        hotfix_escape: false,
+        hotfix: admission.payload,
+        bootstrap_recovery: admission.bootstrapRecovery,
+      },
+    };
+  }
+
+  return evaluated;
+}

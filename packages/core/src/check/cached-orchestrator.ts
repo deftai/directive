@@ -60,6 +60,10 @@ import {
   evaluateCheckPersistedPlanningNarratives,
 } from "./persisted-planning-narratives-gate.js";
 import {
+  scanProjectTestSkips,
+  SKIP_CITATION_GATE_ID,
+} from "./gate-lists.js";
+import {
   projectHasLifecycleBrief,
   RAPID_SOFT_MISSING_NO_BRIEF_NOTICE,
   rapidCheckWarnsSoftMissingNoBrief,
@@ -322,6 +326,21 @@ export function dispatchCachedTaskCheck(
       exit_code: 1,
       cause: headerPlaceholder.reason,
       remedy: headerPlaceholder.message,
+    });
+    return finish(1, false);
+  }
+
+  // #6071: cited-skip scanner (static inventory every run).
+  const skipScan = scanProjectTestSkips(resolvedProject);
+  process.stderr.write(`${skipScan.message}\n`);
+  if (!skipScan.ok) {
+    gateOutcomes.push({
+      id: SKIP_CITATION_GATE_ID,
+      status: "failed",
+      exit_code: 1,
+      cause: "unsanctioned test skip(s)",
+      remedy:
+        "cite deftai/directive#N on open skipped-tests issues, or use maintainer hotfix A/B (#6071)",
     });
     return finish(1, false);
   }

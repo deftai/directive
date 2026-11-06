@@ -9,8 +9,14 @@ import {
   CANDIDATE_VALIDATION_PRODUCER,
   CANDIDATE_VALIDATION_SCHEMA,
   type CandidateValidationAttestation,
+  evaluateHotfixAdmission,
+  evaluateNamedMergeGateOnRuns,
   evaluateNonCascadeCandidateGreen,
   evaluateSemanticGreen,
+  MASTER_MERGE_GATE_CHECK_NAME,
+  OUTCOME_MASTER_MERGE_GATE_RED,
+  parseHotfixBodyShape,
+  readNamedMasterMergeGate,
   validateCandidateAttestation,
 } from "./semantic-green.js";
 
@@ -677,5 +683,97 @@ describe("content-contract: three-axis semantic policy (#4888)", () => {
     expect(metaLessons).toMatch(/## .+ \(2026-10\)/);
     expect(metaLessons).toContain("#4888");
     expect(metaLessons).toContain("Canonical encoding");
+  });
+});
+
+describe("named Merge gate (task check) (#6071)", () => {
+  it("accepts successful completed named check", () => {
+    const result = evaluateNamedMergeGateOnRuns("a".repeat(40), [
+      { name: MASTER_MERGE_GATE_CHECK_NAME, status: "completed", conclusion: "success" },
+    ]);
+    expect(result.ok).toBe(true);
+  });
+
+  it("refuses red, missing, skipped, and pending-past-timeout", () => {
+    expect(
+      evaluateNamedMergeGateOnRuns("a".repeat(40), [
+        { name: MASTER_MERGE_GATE_CHECK_NAME, status: "completed", conclusion: "failure" },
+      ]).outcome,
+    ).toBe(OUTCOME_MASTER_MERGE_GATE_RED);
+    expect(evaluateNamedMergeGateOnRuns("a".repeat(40), []).outcome).toBe(
+      OUTCOME_MASTER_MERGE_GATE_RED,
+    );
+    expect(
+      evaluateNamedMergeGateOnRuns("a".repeat(40), [
+        { name: MASTER_MERGE_GATE_CHECK_NAME, status: "completed", conclusion: "skipped" },
+      ]).ok,
+    ).toBe(false);
+    const old = new Date(Date.now() - 31 * 60 * 1000).toISOString();
+    expect(
+      evaluateNamedMergeGateOnRuns(
+        "a".repeat(40),
+        [
+          {
+            name: MASTER_MERGE_GATE_CHECK_NAME,
+            status: "in_progress",
+            conclusion: "none",
+            started_at: old,
+          },
+        ],
+        { nowMs: Date.now() },
+      ).payload,
+    ).toMatchObject({ disposition: "pending-timeout" });
+  });
+
+  it("parses exactly one hotfix body shape A or B", () => {
+    expect(
+      parseHotfixBodyShape("Hotfix for red Merge gate (task check): flake in wait"),
+    ).toEqual({ shape: "A" });
+    expect(parseHotfixBodyShape("Hotfix skip: deftai/directive#6071")).toEqual({
+      shape: "B",
+      skipIssue: 6071,
+    });
+    expect(parseHotfixBodyShape("Hotfix for red Merge gate (task check): x\nHotfix skip: deftai/directive#1")).toBeNull();
+    expect(parseHotfixBodyShape("nope")).toBeNull();
+  });
+
+  it("refuses Bot hotfix actors and admits maintainerLogins", () => {
+    const bot = evaluateHotfixAdmission(1, "deftai/directive", {
+      body: "Hotfix for red Merge gate (task check): restore",
+      labels: ["hotfix"],
+      timelineJson: [
+        {
+          event: "labeled",
+          label: { name: "hotfix" },
+          actor: { login: "greptileai[bot]", type: "Bot" },
+        },
+      ],
+      permissionJson: { permission: "admin" },
+    });
+    expect(bot.admitted).toBe(false);
+
+    const human = evaluateHotfixAdmission(1, "deftai/directive", {
+      body: "Hotfix for red Merge gate (task check): restore",
+      labels: ["hotfix"],
+      timelineJson: [
+        {
+          event: "labeled",
+          label: { name: "hotfix" },
+          actor: { login: "MScottAdams", type: "User" },
+        },
+      ],
+      permissionJson: { permission: "admin" },
+      projectRoot: join(__dirname, "..", "..", "..", ".."),
+    });
+    expect(human.admitted).toBe(true);
+    if (human.admitted) expect(human.shape).toBe("A");
+  });
+
+  it("refuses under DEFT_NO_NETWORK without soft-skip", () => {
+    const result = readNamedMasterMergeGate("deftai/directive", {
+      env: { DEFT_NO_NETWORK: "1" },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("DEFT_NO_NETWORK");
   });
 });

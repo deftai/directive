@@ -15,6 +15,17 @@ export type {
   WaitMergeableResult,
 } from "./types.js";
 export {
+  evaluateHotfixAdmission,
+  evaluateNamedMergeGateOnRuns,
+  MASTER_MERGE_GATE_CHECK_NAME,
+  NAMED_MERGE_GATE_PENDING_TIMEOUT_MS,
+  OUTCOME_HOTFIX_SHAPE_INVALID,
+  OUTCOME_MASTER_MERGE_GATE_RED,
+  OUTCOME_MASTER_MERGE_GATE_UNREADABLE,
+  parseHotfixBodyShape,
+  readNamedMasterMergeGate,
+} from "./semantic-green.js";
+export {
   captureExec,
   runGhMerge,
   runMonitor,

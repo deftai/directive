@@ -5,6 +5,7 @@ import {
 import { resolveMinGreptileConfidence } from "../policy/min-greptile-confidence.js";
 import { resolveReviewers } from "../policy/reviewers.js";
 import { evaluate as evaluateCloseoutAttestable } from "../pr-closeout-attestable/evaluate.js";
+import { readNamedMasterMergeGate } from "../pr-wait-mergeable/semantic-green.js";
 import type { CiGateOptions } from "./ci-gate.js";
 import { buildCiSummaryLine, evaluateCiGate } from "./ci-gate.js";
 import {
@@ -147,6 +148,17 @@ export interface ComputeGateOptions extends CiGateOptions, SlizardGateOptions {
   readonly skipCloseoutAttestable?: boolean;
   /** Injectable closeout evaluator; production uses `evaluateCloseoutAttestable`. */
   readonly closeoutAttestableFn?: CloseoutAttestableGateFn;
+  /** Always-on named Merge gate tip read (#6071). Inject for tests. */
+  readonly namedMasterMergeGateFn?: (
+    repo: string,
+    options: {
+      readonly projectRoot?: string;
+      readonly prNumber?: number;
+      readonly allowHotfixEscape?: boolean;
+    },
+  ) => import("../pr-wait-mergeable/semantic-green.js").NamedMergeGateResult;
+  /** Skip the #6071 named tip read (tests only). */
+  readonly skipNamedMasterMergeGate?: boolean;
 }
 
 function resolvedMinConfidence(options: ComputeGateOptions): number {
@@ -810,6 +822,43 @@ export function computeGateResult(
   runGh: RunGhFn,
   options: ComputeGateOptions = {},
 ): GateResult {
+  const skipNamed =
+    options.skipNamedMasterMergeGate === true ||
+    (options.namedMasterMergeGateFn === undefined && process.env.VITEST === "true");
+  if (!skipNamed && repo !== null && repo.length > 0) {
+    const namedFn = options.namedMasterMergeGateFn ?? readNamedMasterMergeGate;
+    const named = namedFn(repo, {
+      projectRoot: options.projectRoot ?? undefined,
+      prNumber,
+      allowHotfixEscape: true,
+    });
+    if (!named.ok) {
+      return {
+        prNumber,
+        repo,
+        headSha: null,
+        verdict: {
+          found: false,
+          errored: false,
+          lastReviewedSha: null,
+          confidence: null,
+          p0Count: 0,
+          p1Count: 0,
+          p2Count: 0,
+          informalClean: false,
+          excludedAuthor: false,
+          shouldNotMerge: false,
+          thinHtmlSummary: false,
+          rawBodyExcerpt: "",
+        },
+        failures: [named.error],
+        via: VIA_ERROR,
+        partialData: { named_master_merge_gate: named.payload },
+        error: named.error,
+      };
+    }
+  }
+
   let { result, partial } = computePrimary(prNumber, repo, runGh, options);
   if (result !== null) {
     return applyCloseoutAttestableGate(result, options);

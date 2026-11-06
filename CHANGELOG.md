@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Block ordinary merges while master's Merge gate (task check) is red (#6071).** Always-on named tip status read (paginated check-runs) refuses wait-mergeable / finish-loop / pre-PR / release Step 5 on red, missing, pending-past-timeout, skipped, or API-unreadable; maintainer hotfix shapes A/B escape; cited-skip scanner with four-site baseline (skipIf excluded). Refs #6082.
 - Activate running work briefs for lifecycle shell recovery (#5925), master merge-gate hotfix rules (#6071), and sanctioned skip-count baseline tracking (#6072).
 
 - **Issue #6011 is recorded completed and no longer active.** Typed deliveryBranch write-fence shipped; tracked completion is on the delivery branch.

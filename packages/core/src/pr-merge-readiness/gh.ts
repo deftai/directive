@@ -402,43 +402,99 @@ function extractCheckRunSummary(run: Record<string, unknown>): string | null {
   return typeof summary === "string" && summary.length > 0 ? summary : null;
 }
 
+export const CHECK_RUNS_PER_PAGE = 100;
+
+/** Parse Link rel=next from a gh api --include header block (#6071). */
+export function parseGithubLinkNext(headerBlock: string): string | null {
+  const line = headerBlock.split(/\r?\n/).find((l) => /^link:\s*/i.test(l));
+  if (line === undefined) return null;
+  for (const match of line.matchAll(/<([^>]+)>\s*;\s*rel="next"/gi)) {
+    const url = match[1];
+    if (typeof url === "string" && url.length > 0) return url;
+  }
+  return null;
+}
+
+/** Split gh api --include stdout into headers + body; null when not include-shaped. */
+export function splitGhApiIncludeOutput(
+  stdout: string,
+): { headers: string; body: string } | null {
+  const idx = stdout.search(/\r?\n\r?\n/);
+  if (idx < 0) return null;
+  const headers = stdout.slice(0, idx);
+  if (!/^HTTP\//i.test(headers.trimStart())) return null;
+  return { headers, body: stdout.slice(idx).replace(/^\r?\n\r?\n/, "") };
+}
+
+function githubApiPathFromLink(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.pathname.replace(/^\/+/, "")}${parsed.search}`;
+  } catch {
+    return url.replace(/^https?:\/\/api\.github\.com\//i, "");
+  }
+}
+
+function parseCheckRunsJson(raw: string): { runs: unknown[]; error: string } {
+  if (!raw.trim()) {
+    return { runs: [], error: "empty body from gh api /commits/<sha>/check-runs" };
+  }
+  let payload: unknown;
+  try {
+    payload = JSON.parse(raw) as unknown;
+  } catch (exc: unknown) {
+    const message = exc instanceof Error ? exc.message : String(exc);
+    return { runs: [], error: `could not parse check-runs JSON: ${message}` };
+  }
+  if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+    return { runs: [], error: "unexpected check-runs JSON shape (not a dict)" };
+  }
+  const runs = (payload as Record<string, unknown>).check_runs;
+  if (!Array.isArray(runs)) {
+    return { runs: [], error: "check-runs JSON missing check_runs list" };
+  }
+  return { runs, error: "" };
+}
+
+function recordFromCheckRun(run: unknown): CheckRunRecord | null {
+  if (run === null || typeof run !== "object" || Array.isArray(run)) return null;
+  const r = run as Record<string, unknown>;
+  const status = typeof r.status === "string" ? r.status : "unknown";
+  const conclusion = typeof r.conclusion === "string" ? r.conclusion : "none";
+  const name = typeof r.name === "string" && r.name.length > 0 ? r.name : "<unnamed>";
+  const runSummary = extractCheckRunSummary(r);
+  const createdAt = typeof r.created_at === "string" ? r.created_at : null;
+  const startedAt = typeof r.started_at === "string" ? r.started_at : null;
+  let appId: number | null = null;
+  const appBlock = r.app;
+  if (appBlock !== null && typeof appBlock === "object" && !Array.isArray(appBlock)) {
+    const id = (appBlock as Record<string, unknown>).id;
+    if (typeof id === "number" && Number.isFinite(id)) appId = id;
+  }
+  return {
+    name,
+    status,
+    conclusion,
+    created_at: createdAt,
+    started_at: startedAt,
+    appId,
+    ...(runSummary === null ? {} : { summary: runSummary }),
+  };
+}
+
+/**
+ * Fetch check-runs for a commit SHA with per_page=100 + Link pagination (#6071).
+ * Plain JSON responses (tests / non-include) stay single-page compatible; when a
+ * page returns a full page without Link, walk page=N until short.
+ */
 export function fetchCheckRunsRest(
   sha: string,
   repo: string,
   runGh: RunGhFn,
 ): { summary: Record<string, unknown> | null; checkRuns: CheckRunRecord[]; error: string } {
-  const rc = runGh(["gh", "api", `repos/${repo}/commits/${sha}/check-runs`]);
-  if (rc.returncode !== 0) {
-    return {
-      summary: null,
-      checkRuns: [],
-      error: `gh api /commits/${"<"}sha>/check-runs failed: ${rc.stderr.trim()}`,
-    };
-  }
-  if (!rc.stdout.trim()) {
-    return {
-      summary: null,
-      checkRuns: [],
-      error: "empty body from gh api /commits/<sha>/check-runs",
-    };
-  }
-  let payload: unknown;
-  try {
-    payload = JSON.parse(rc.stdout) as unknown;
-  } catch (exc: unknown) {
-    const message = exc instanceof Error ? exc.message : String(exc);
-    return { summary: null, checkRuns: [], error: `could not parse check-runs JSON: ${message}` };
-  }
-  if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
-    return { summary: null, checkRuns: [], error: "unexpected check-runs JSON shape (not a dict)" };
-  }
-  const runs = (payload as Record<string, unknown>).check_runs;
-  if (!Array.isArray(runs)) {
-    return { summary: null, checkRuns: [], error: "check-runs JSON missing check_runs list" };
-  }
   const checkRuns: CheckRunRecord[] = [];
   const summary: Record<string, unknown> = {
-    total: runs.length,
+    total: 0,
     by_status: {} as Record<string, number>,
     by_conclusion: {} as Record<string, number>,
     greptile_review: null,
@@ -446,44 +502,77 @@ export function fetchCheckRunsRest(
   };
   const byStatus = summary.by_status as Record<string, number>;
   const byConclusion = summary.by_conclusion as Record<string, number>;
-  for (const run of runs) {
-    if (run === null || typeof run !== "object" || Array.isArray(run)) {
-      continue;
+
+  let page = 1;
+  let nextPath: string | null =
+    `repos/${repo}/commits/${sha}/check-runs?per_page=${CHECK_RUNS_PER_PAGE}&page=1`;
+  let preferInclude = true;
+  let pages = 0;
+  const maxPages = 50;
+  const seenPaths = new Set<string>();
+
+  while (nextPath !== null && pages < maxPages) {
+    pages += 1;
+    const path = nextPath;
+    nextPath = null;
+    if (seenPaths.has(path)) break;
+    seenPaths.add(path);
+    const cmd = preferInclude ? ["gh", "api", "--include", path] : ["gh", "api", path];
+    const rc = runGh(cmd);
+    if (rc.returncode !== 0) {
+      if (preferInclude) {
+        preferInclude = false;
+        seenPaths.delete(path);
+        nextPath = path;
+        pages -= 1;
+        continue;
+      }
+      return {
+        summary: null,
+        checkRuns: [],
+        error: `gh api /commits/<sha>/check-runs failed: ${rc.stderr.trim()}`,
+      };
     }
-    const r = run as Record<string, unknown>;
-    const status = typeof r.status === "string" ? r.status : "unknown";
-    const conclusion = typeof r.conclusion === "string" ? r.conclusion : "none";
-    const name = typeof r.name === "string" && r.name.length > 0 ? r.name : "<unnamed>";
-    const runSummary = extractCheckRunSummary(r);
-    const createdAt = typeof r.created_at === "string" ? r.created_at : null;
-    const startedAt = typeof r.started_at === "string" ? r.started_at : null;
-    let appId: number | null = null;
-    const appBlock = r.app;
-    if (appBlock !== null && typeof appBlock === "object" && !Array.isArray(appBlock)) {
-      const id = (appBlock as Record<string, unknown>).id;
-      if (typeof id === "number" && Number.isFinite(id)) {
-        appId = id;
+    const split = splitGhApiIncludeOutput(rc.stdout);
+    const body = split?.body ?? rc.stdout;
+    if (split !== null) {
+      const linkNext = parseGithubLinkNext(split.headers);
+      if (linkNext !== null) {
+        const linked = githubApiPathFromLink(linkNext);
+        if (!seenPaths.has(linked)) nextPath = linked;
       }
     }
-    const record: CheckRunRecord = {
-      name,
-      status,
-      conclusion,
-      created_at: createdAt,
-      started_at: startedAt,
-      appId,
-      ...(runSummary === null ? {} : { summary: runSummary }),
-    };
-    checkRuns.push(record);
-    byStatus[status] = (byStatus[status] ?? 0) + 1;
-    byConclusion[conclusion] = (byConclusion[conclusion] ?? 0) + 1;
-    if (r.name === "Greptile Review") {
-      summary.greptile_review = { status, conclusion };
+    const parsed = parseCheckRunsJson(body);
+    if (parsed.error) {
+      return { summary: null, checkRuns: [], error: parsed.error };
     }
-    if (name.toLowerCase().includes("slizard")) {
-      summary.slizard_review = { status, conclusion };
+    let pageCount = 0;
+    for (const run of parsed.runs) {
+      const record = recordFromCheckRun(run);
+      if (record === null) continue;
+      pageCount += 1;
+      checkRuns.push(record);
+      byStatus[record.status] = (byStatus[record.status] ?? 0) + 1;
+      byConclusion[record.conclusion] = (byConclusion[record.conclusion] ?? 0) + 1;
+      if (record.name === "Greptile Review") {
+        summary.greptile_review = { status: record.status, conclusion: record.conclusion };
+      }
+      if (record.name.toLowerCase().includes("slizard")) {
+        summary.slizard_review = { status: record.status, conclusion: record.conclusion };
+      }
+    }
+    if (nextPath === null && pageCount >= CHECK_RUNS_PER_PAGE) {
+      page += 1;
+      const candidate = `repos/${repo}/commits/${sha}/check-runs?per_page=${CHECK_RUNS_PER_PAGE}&page=${page}`;
+      if (!seenPaths.has(candidate)) nextPath = candidate;
+    } else if (nextPath === null) {
+      break;
+    } else {
+      page += 1;
     }
   }
+
+  summary.total = checkRuns.length;
   return { summary, checkRuns, error: "" };
 }
 

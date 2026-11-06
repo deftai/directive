@@ -351,6 +351,50 @@ describe("runPrFinishLoop", () => {
     expect(disableSeen).toBe(true);
   });
 
+  it("refuses mergeFn when named Merge gate is red (#6071)", () => {
+    const mergeCalls: number[] = [];
+    const result = runPrFinishLoop({
+      projectRoot: process.cwd(),
+      prNumber: 6071,
+      repo: "deftai/directive",
+      merge: true,
+      skipGrantGate: true,
+      skipMergeApprovalHeadGate: true,
+      skipNamedMasterMergeGate: false,
+      writeProgress: false,
+      watchFn: () =>
+        ({
+          exitCode: 0,
+          verdict: "CLEAN",
+          prNumber: 6071,
+          repo: "deftai/directive",
+          headSha: "a".repeat(40),
+          polls: 1,
+          elapsedSeconds: 1,
+          error: null,
+        }) as never,
+      fetchPrHeadShaFn: () => "a".repeat(40),
+      agentMergeFn: () => ({ allowed: true, message: "ok", requireHumanMerge: false }) as never,
+      namedMasterMergeGateFn: () =>
+        ({
+          ok: false,
+          outcome: "master-merge-gate-red",
+          exitCode: 1,
+          error: "named check red",
+          tipSha: "b".repeat(40),
+          payload: { disposition: "red" },
+        }) as never,
+      mergeFn: () => {
+        mergeCalls.push(1);
+        return 0;
+      },
+    });
+    expect(mergeCalls).toEqual([]);
+    expect(result.mergeAttempted).toBe(false);
+    expect(result.mergeSkippedReason).toBe("master-merge-gate-red");
+    expect(result.message).toContain("named Merge gate");
+  });
+
   it("merge succeeds when policy allows and mergeFn returns 0", () => {
     const root = tmpRoot();
     mintFinishLoopTemplateGrant({ projectRoot: root });

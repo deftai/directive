@@ -158,6 +158,54 @@ describe("fetchCheckRunsRest", () => {
     const runGh: RunGhFn = () => ({ returncode: 0, stdout: "{}", stderr: "" });
     expect(fetchCheckRunsRest("sha", "deftai/directive", runGh).summary).toBeNull();
   });
+
+  it("paginates via Link rel=next (#6071)", () => {
+    const pages: string[] = [];
+    const pageNum = (path: string): number | null => {
+      const m = /(?:\?|&)page=(\d+)(?:&|$)/.exec(path);
+      return m ? Number.parseInt(m[1] ?? "", 10) : null;
+    };
+    const runGh: RunGhFn = (cmd) => {
+      const path = cmd[cmd.length - 1] ?? "";
+      pages.push(path);
+      const n = pageNum(path);
+      if (n === 1) {
+        return {
+          returncode: 0,
+          stdout:
+            "HTTP/2.0 200 OK\r\n" +
+            'Link: <https://api.github.com/repos/deftai/directive/commits/sha/check-runs?per_page=100&page=2>; rel="next"\r\n' +
+            "\r\n" +
+            JSON.stringify({
+              check_runs: [
+                { name: "Merge gate (task check)", status: "completed", conclusion: "success" },
+              ],
+            }),
+          stderr: "",
+        };
+      }
+      if (n === 2) {
+        return {
+          returncode: 0,
+          stdout:
+            "HTTP/2.0 200 OK\r\n\r\n" +
+            JSON.stringify({
+              check_runs: [{ name: "Other", status: "completed", conclusion: "success" }],
+            }),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: `unexpected ${path}` };
+    };
+    const result = fetchCheckRunsRest("sha", "deftai/directive", runGh);
+    expect(result.error).toBe("");
+    expect(result.checkRuns.map((r) => r.name)).toEqual([
+      "Merge gate (task check)",
+      "Other",
+    ]);
+    expect(pages.some((p) => pageNum(p) === 1)).toBe(true);
+    expect(pages.some((p) => pageNum(p) === 2)).toBe(true);
+  });
 });
 
 describe("required status contexts (#3234)", () => {

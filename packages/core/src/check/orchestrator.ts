@@ -29,13 +29,29 @@ import {
   evaluateConsumerHeaderPlaceholderAtRoot,
 } from "./consumer-header-placeholder.js";
 import { type CheckOrchestratorSeams, resolveCheckTarget } from "./context.js";
-import { CONSUMER_CHECK_GATES, checkGateId, FRAMEWORK_CHECK_GATES } from "./gate-lists.js";
+import {
+  CONSUMER_CHECK_GATES,
+  checkGateId,
+  FRAMEWORK_CHECK_GATES,
+  scanProjectTestSkips,
+  SKIP_CITATION_GATE_ID,
+} from "./gate-lists.js";
 import { listCompositionGatesMissingSpecificRemedies } from "./named-cause.js";
 import {
   CHECK_EMPTY_PLANNING_NARRATIVES_GATE_ID,
   checkRejectsEmptyPlanningNarratives,
   evaluateCheckPersistedPlanningNarratives,
 } from "./persisted-planning-narratives-gate.js";
+
+export {
+  evaluateSkipCitationInventory,
+  inventoryTestSkips,
+  scanProjectTestSkips,
+  SKIP_CITATION_BASELINE,
+  SKIP_CITATION_GATE_ID,
+  type SkipCitationScanResult,
+  type SkipInventoryEntry,
+} from "./gate-lists.js";
 
 export type {
   CachedCheckCompletion,
@@ -114,6 +130,18 @@ export function dispatchTaskCheck(
       `check: gate ${CONSUMER_HEADER_PLACEHOLDER_GATE_ID} failed (exit 1)\n` +
         `  cause: ${headerPlaceholder.reason}\n` +
         `  remedy: ${headerPlaceholder.message}\n`,
+    );
+    return 1;
+  }
+
+  // #6071: cited-skip inventory (static) + refuse new uncited / describe.skip.
+  const skipScan = scanProjectTestSkips(resolvedProject);
+  process.stderr.write(`${skipScan.message}\n`);
+  if (!skipScan.ok) {
+    process.stderr.write(
+      `check: gate ${SKIP_CITATION_GATE_ID} failed (exit 1)\n` +
+        `  cause: unsanctioned test skip(s)\n` +
+        `  remedy: cite deftai/directive#N on open skipped-tests issues, or use maintainer hotfix A/B (#6071)\n`,
     );
     return 1;
   }

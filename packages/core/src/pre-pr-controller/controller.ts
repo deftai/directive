@@ -22,6 +22,12 @@ import { evaluateCoverageHotspots } from "../coverage-hotspots/evaluate.js";
 import { admittedUntiedWorktreeKey, type VerifyAcDispositionKind } from "../hooks/scope.js";
 import { isCoverageModeSkipAuthorized, resolveCoverageMode } from "../policy/coverage-mode.js";
 import {
+  evaluateHotfixAdmission,
+  readNamedMasterMergeGate,
+  type NamedMergeGateResult,
+} from "../pr-wait-mergeable/semantic-green.js";
+import { scanProjectTestSkips } from "../check/gate-lists.js";
+import {
   coverageReportPresence,
   prePrCoverageReportPath,
   resolveObservedRoot,
@@ -762,6 +768,52 @@ export function deriveVerifyAcDisposition(input: {
 }
 
 /**
+ * Always-on named Merge gate + skip inventory for ordinary pre-PR (#6071).
+ * Hotfix A/B may escape when a live PR number is supplied; otherwise refuse
+ * with human draft-label recovery text (no PR-create inside this controller).
+ */
+export function evaluatePrePrMasterMergeGate(input: {
+  readonly repo: string;
+  readonly projectRoot?: string;
+  readonly prNumber?: number | null;
+  readonly namedGateFn?: typeof readNamedMasterMergeGate;
+  readonly env?: NodeJS.ProcessEnv;
+}): PrePrDecision {
+  const namedFn = input.namedGateFn ?? readNamedMasterMergeGate;
+  const prNumber =
+    typeof input.prNumber === "number" && Number.isFinite(input.prNumber) ? input.prNumber : null;
+  let hotfix: ReturnType<typeof evaluateHotfixAdmission> | null = null;
+  if (prNumber !== null) {
+    hotfix = evaluateHotfixAdmission(prNumber, input.repo, {
+      projectRoot: input.projectRoot,
+    });
+  }
+  const named: NamedMergeGateResult = namedFn(input.repo, {
+    projectRoot: input.projectRoot,
+    env: input.env,
+    ...(prNumber !== null
+      ? { prNumber, allowHotfixEscape: true, hotfixAdmission: hotfix }
+      : {}),
+  });
+  if (!named.ok) {
+    const recovery =
+      (named.payload.bootstrap_recovery as string | undefined) ??
+      "Master Merge gate (task check) is red. Ordinary pre-PR refuses. A human maintainer must open/label a draft PR with label `hotfix` and body shape (A) or (B) (#6071).";
+    return deny(
+      "deny-master-merge-gate",
+      `${named.error}\n${recovery}`,
+    );
+  }
+  if (input.projectRoot !== undefined && input.projectRoot.length > 0) {
+    const skips = scanProjectTestSkips(input.projectRoot);
+    if (!skips.ok) {
+      return deny("deny-unsanctioned-skip", skips.message);
+    }
+  }
+  return { ok: true, code: "allow-master-merge-gate", message: "named Merge gate admit" };
+}
+
+/**
  * Mint a pass only with publisher credentials. Incomplete/failed/interrupted
  * runs stay non-pass. Agent shells do not receive `publisher`.
  */
@@ -775,6 +827,11 @@ export function completeRun(
     readonly applicabilityDeps?: CoverageApplicabilityDeps;
     /** Direct verify:ac disposition for ordinary pre-PR without merge_chokepoint (#5855). */
     readonly verifyAcDisposition?: VerifyAcDispositionKind | null;
+    /** Optional live PR for hotfix A/B escape while master named gate is red (#6071). */
+    readonly prNumber?: number | null;
+    readonly skipNamedMasterMergeGate?: boolean;
+    readonly namedGateFn?: typeof readNamedMasterMergeGate;
+    readonly env?: NodeJS.ProcessEnv;
   },
 ): PrePrDecision {
   const creds = requirePublisher(publisher);
@@ -784,6 +841,19 @@ export function completeRun(
   const current = store.getById(runId);
   if (current === null) {
     return deny("deny-missing-record", `pre-PR run ${runId} is not in the private store`);
+  }
+  if (options?.skipNamedMasterMergeGate !== true) {
+    const gate = evaluatePrePrMasterMergeGate({
+      repo: current.repo,
+      projectRoot: options?.projectRoot,
+      prNumber: options?.prNumber,
+      namedGateFn: options?.namedGateFn,
+      env: options?.env ?? process.env,
+    });
+    // Under VITEST without injection, avoid live network (unit tests).
+    if (!(process.env.VITEST === "true" && options?.namedGateFn === undefined && options?.env === undefined)) {
+      if (!gate.ok) return gate;
+    }
   }
   const observables = runObservablesComplete(current, options);
   if (!observables.ok) return observables;

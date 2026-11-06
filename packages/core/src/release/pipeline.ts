@@ -1,5 +1,10 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { scanProjectTestSkips } from "../check/gate-lists.js";
+import {
+  readNamedMasterMergeGate,
+  type NamedMergeGateResult,
+} from "../pr-wait-mergeable/semantic-green.js";
 import { restIssueListOpenInventory } from "../scm/gh-rest.js";
 import { isStep5HostCoverage } from "../ts-check-lane/run-lane.js";
 import { readCoverageTotalsFromReport } from "../vitest-runner/coverage-debt.js";
@@ -301,6 +306,34 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
     emit(5, label, `FAIL (${changelogSafety.message})`);
     return changelogSafety.exitCode;
   }
+
+  // #6071 P5: named Merge gate on pre-release master tip — outside skipCi/suite-stamp.
+  {
+    const extended = seams as ReleaseSeams & {
+      readonly namedMasterMergeGateFn?: (
+        repo: string,
+        options: { readonly projectRoot?: string; readonly env?: NodeJS.ProcessEnv },
+      ) => NamedMergeGateResult;
+      readonly skipNamedMasterMergeGate?: boolean;
+    };
+    const skipNamed =
+      extended.skipNamedMasterMergeGate === true ||
+      (extended.namedMasterMergeGateFn === undefined && process.env.VITEST === "true");
+    if (!skipNamed) {
+      const namedFn = extended.namedMasterMergeGateFn ?? readNamedMasterMergeGate;
+      const named = namedFn(config.repo, { projectRoot });
+      if (!named.ok) {
+        emit(5, label, `FAIL (${named.error})`);
+        return EXIT_VIOLATION;
+      }
+      const skips = scanProjectTestSkips(projectRoot);
+      if (!skips.ok) {
+        emit(5, label, `FAIL (stale/unsanctioned test skip: ${skips.failures[0] ?? skips.message})`);
+        return EXIT_VIOLATION;
+      }
+    }
+  }
+
   if (config.skipCi) {
     // Mirror cmdRelease unpaid-ledger gate so programmatic runPipeline callers
     // cannot bypass production unpaid citation refusal (SLizard P1 / #5239).

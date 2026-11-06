@@ -17,6 +17,10 @@ import {
 } from "../policy/merge-approval-head.js";
 import { evaluateAgentMerge } from "../policy/require-human-merge.js";
 import {
+  readNamedMasterMergeGate,
+  type NamedMergeGateResult,
+} from "../pr-wait-mergeable/semantic-green.js";
+import {
   EXIT_CLEAN,
   EXIT_NEW_P0_P1,
   EXIT_TERMINAL_ERROR,
@@ -59,6 +63,20 @@ export interface PrFinishLoopOptions {
   readonly mergeApprovalHeadFn?: (input: EnforceMergeApprovalHeadInput) => MergeApprovalHeadResult;
   /** Inject live HEAD fetch (tests); defaults to REST pulls head.sha. */
   readonly fetchPrHeadShaFn?: (prNumber: number, repo: string | null) => string | null;
+  /**
+   * Always-on named Merge gate tip read before mergeFn (#6071).
+   * Inject for tests; production defaults to readNamedMasterMergeGate.
+   */
+  readonly namedMasterMergeGateFn?: (
+    repo: string,
+    options: {
+      readonly projectRoot?: string;
+      readonly prNumber?: number;
+      readonly allowHotfixEscape?: boolean;
+    },
+  ) => NamedMergeGateResult;
+  /** Skip the #6071 named tip read (tests only). */
+  readonly skipNamedMasterMergeGate?: boolean;
   readonly writeProgress?: boolean;
   readonly iteration?: number;
 }
@@ -367,6 +385,37 @@ export function runPrFinishLoop(options: PrFinishLoopOptions): PrFinishLoopResul
       }
     }
     const pinnedHead = liveHead;
+
+    // Same always-on named Merge gate refuse set before mergeFn (#6071).
+    const skipNamedGate =
+      options.skipNamedMasterMergeGate === true ||
+      (options.namedMasterMergeGateFn === undefined && process.env.VITEST === "true");
+    if (!skipNamedGate && repo !== null && repo !== undefined && repo.length > 0) {
+      const namedFn = options.namedMasterMergeGateFn ?? readNamedMasterMergeGate;
+      const named = namedFn(repo, {
+        projectRoot,
+        prNumber,
+        allowHotfixEscape: true,
+      });
+      if (!named.ok) {
+        disablePullRequestAutoMerge(prNumber, repo);
+        const message =
+          `pr:finish-loop ACTION_REQUIRED on PR #${prNumber}: named Merge gate refuse before merge. ` +
+          named.error;
+        log("merge", "error", message);
+        return {
+          exitCode: EXIT_ACTION_REQUIRED,
+          haltReason: "error",
+          message,
+          prNumber,
+          watchVerdict: VERDICT_CLEAN,
+          mergeAttempted: false,
+          mergeSkippedReason: named.outcome,
+          grantId: null,
+        };
+      }
+    }
+
     const rc = options.mergeFn(prNumber, repo, { matchHeadCommit: pinnedHead });
     if (rc === 0) {
       const message = `pr:finish-loop MERGED PR #${prNumber}`;

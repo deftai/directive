@@ -16,7 +16,12 @@ import { reconcileUmbrellas, renderUmbrellasReport } from "../vbrief-reconcile/u
 import { classifyMonitorOutcome, parseMonitorPayload } from "./classify.js";
 import { EXIT_CONFIG_ERROR, EXIT_MERGED, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
 import { makeResult } from "./result.js";
-import { evaluateSemanticGreen, type SemanticGreenFn } from "./semantic-green.js";
+import {
+  evaluateSemanticGreen,
+  readNamedMasterMergeGate,
+  type NamedMergeGateResult,
+  type SemanticGreenFn,
+} from "./semantic-green.js";
 import type {
   CloseoutAttestableFn,
   MergeFn,
@@ -78,6 +83,22 @@ export interface WaitMergeableOptions {
   readonly agentMergeFn?: (projectRoot: string) => AgentMergeEvaluateResult;
   /** When true, skip human-merge / intent preflight (tests only). */
   readonly skipHumanMergeGate?: boolean;
+  /**
+   * Always-on named Merge gate (task check) tip read (#6071). Inject for tests.
+   * Independent of cascadeMode / requireMasterCiGreen.
+   */
+  readonly namedMasterMergeGateFn?: (
+    repo: string,
+    options: {
+      readonly baseBranch?: string | null;
+      readonly projectRoot?: string;
+      readonly prNumber?: number;
+      readonly allowHotfixEscape?: boolean;
+      readonly runGh?: import("../pr-merge-readiness/types.js").RunGhFn;
+    },
+  ) => NamedMergeGateResult;
+  /** Skip the #6071 named tip read (tests only). */
+  readonly skipNamedMasterMergeGate?: boolean;
   /**
    * When true, skip head-bound plan:approved gate (#3235).
    * Default: same as skipHumanMergeGate (test harnesses that skip human-merge
@@ -212,6 +233,35 @@ export function waitMergeableAndMerge(
         protectedCheck: protectedCheckPayload,
         error:
           `protected-issue check exited ${prcRc} (config error). ` + `stderr: ${prcStderr.trim()}`,
+      });
+    }
+  }
+
+  // Always-on named Merge gate (task check) on master's tip (#6071).
+  // Independent of cascadeMode / requireMasterCiGreen; hotfix A/B may escape.
+  // Under VITEST, require an injected seam (or skipNamedMasterMergeGate) so unit
+  // tests stay offline; production always reads the tip.
+  const skipNamedGate =
+    options.skipNamedMasterMergeGate === true ||
+    (options.namedMasterMergeGateFn === undefined &&
+      (options.skipHumanMergeGate === true || process.env.VITEST === "true"));
+  if (!skipNamedGate) {
+    const namedFn = options.namedMasterMergeGateFn ?? readNamedMasterMergeGate;
+    const named = namedFn(repo, {
+      baseBranch: options.baseBranch,
+      projectRoot,
+      prNumber,
+      allowHotfixEscape: true,
+    });
+    if (!named.ok) {
+      return makeResult({
+        prNumber,
+        repo,
+        outcome: named.outcome,
+        exitCode: named.exitCode,
+        protectedCheck: protectedCheckPayload,
+        semanticGreen: { named_master_merge_gate: named.payload },
+        error: named.error,
       });
     }
   }

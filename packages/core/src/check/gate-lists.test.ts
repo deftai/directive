@@ -6,11 +6,15 @@ import {
   CONSUMER_CHECK_GATES,
   checkGateId,
   checkGateSpawnArgs,
+  evaluateSkipCitationInventory,
   FRAMEWORK_CHECK_GATES,
   gatesForCheckTarget,
+  inventoryTestSkips,
   isFastBeforeSlowOrder,
   isSuiteCheckGate,
   ORPHAN_ACTIVE_MERGE_GATE,
+  SKIP_CITATION_BASELINE,
+  type SkipInventoryEntry,
   SUITE_CHECK_GATE_IDS,
 } from "./gate-lists.js";
 
@@ -286,5 +290,71 @@ describe("gate-lists fast-before-slow (#3188)", () => {
   it("exposes ordered gates via gatesForCheckTarget", () => {
     expect(isFastBeforeSlowOrder(gatesForCheckTarget("check:framework-source"))).toBe(true);
     expect(isFastBeforeSlowOrder(gatesForCheckTarget("check:consumer"))).toBe(true);
+  });
+});
+
+describe("skip-citation scanner (#6071)", () => {
+  it("pins the four-site baseline allowlist", () => {
+    const skip = "skip";
+    expect(SKIP_CITATION_BASELINE).toHaveLength(4);
+    expect(SKIP_CITATION_BASELINE.map((b) => b.kind).sort()).toEqual([
+      "alias",
+      "alias",
+      `describe.${skip}`,
+      `it.${skip}`,
+    ]);
+  });
+
+  it("inventories bare skip calls with token boundary excluding skipIf", () => {
+    // Build fixture text without embedding live skip tokens in this test file
+    // (scanProjectTestSkips walks *.test.ts and would otherwise inventory us).
+    const skip = "skip";
+    const itKind = `it.${skip}` as SkipInventoryEntry["kind"];
+    const describeKind = `describe.${skip}` as SkipInventoryEntry["kind"];
+    const inventory = inventoryTestSkips([
+      {
+        path: "packages/core/src/example.test.ts",
+        content: [
+          `it.${skip}If(true)("platform", () => {});`,
+          `it.${skip}("uncited", () => {});`,
+          "// skip: deftai/directive#1234",
+          `it.${skip}("cited", () => {});`,
+          `describe.${skip}("suite", () => {});`,
+          `const itX = yolo ? it.${skip} : it;`,
+        ].join("\n"),
+      },
+    ]);
+    expect(inventory.some((e) => e.raw.includes("skipIf"))).toBe(false);
+    expect(inventory.filter((e) => e.kind === itKind || e.kind === "alias")).toHaveLength(3);
+    expect(inventory.some((e) => e.kind === describeKind)).toBe(true);
+    const cited = inventory.find((e) => e.title === "cited");
+    expect(cited?.issue).toBe(1234);
+  });
+
+  it("refuses new uncited skips and describe-level skips outside baseline", () => {
+    const skip = "skip";
+    const inventory = inventoryTestSkips([
+      {
+        path: "packages/core/src/example.test.ts",
+        content: `it.${skip}("x", () => {});\ndescribe.${skip}("y", () => {});`,
+      },
+    ]);
+    const result = evaluateSkipCitationInventory(inventory);
+    expect(result.ok).toBe(false);
+    expect(result.failures.some((f) => f.includes("uncited"))).toBe(true);
+    expect(result.failures.some((f) => f.includes(`describe.${skip}`))).toBe(true);
+  });
+
+  it("allows baseline alias sites without citation", () => {
+    const skip = "skip";
+    const inventory = inventoryTestSkips([
+      {
+        path: "packages/core/src/content-contracts/standards/branch_gate.test.ts",
+        content: `const itAgents = yoloSterile ? it.${skip} : it;`,
+      },
+    ]);
+    const result = evaluateSkipCitationInventory(inventory);
+    expect(result.ok).toBe(true);
+    expect(inventory[0]?.baseline).toBe(true);
   });
 });

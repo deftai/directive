@@ -41,11 +41,18 @@ export {
   CONSUMER_CHECK_GATES,
   checkGateId,
   checkGateSpawnArgs,
+  evaluateSkipCitationInventory,
   FRAMEWORK_CHECK_GATES,
   gatesForCheckTarget,
+  inventoryTestSkips,
   isFastBeforeSlowOrder,
   isSuiteCheckGate,
   PRODUCT_FIRST_AC_GATE,
+  scanProjectTestSkips,
+  SKIP_CITATION_BASELINE,
+  SKIP_CITATION_GATE_ID,
+  type SkipCitationScanResult,
+  type SkipInventoryEntry,
   SUITE_CHECK_GATE_IDS,
 } from "./gate-lists.js";
 export {

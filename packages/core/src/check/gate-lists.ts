@@ -1,5 +1,7 @@
 /** Gate execution order mirrors Taskfile.yml check targets (#1713 dogfood). */
 
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { PRODUCT_AC_GATE_ID } from "../product-first-done-gate/types.js";
 
 /**
@@ -206,4 +208,218 @@ export function gatesForCheckTarget(target: string): readonly CheckGateSpec[] {
     return CONSUMER_CHECK_GATES;
   }
   return [];
+}
+
+/** In-process cited-skip scanner gate id (#6071). */
+export const SKIP_CITATION_GATE_ID = "verify:skip-citation";
+
+/**
+ * Pinned baseline allowlist for legacy uncited skip sites (#6071 Recut-2).
+ * Paths are repo-relative with forward slashes. Aliases use dynamic-title reason.
+ */
+export const SKIP_CITATION_BASELINE: readonly {
+  readonly path: string;
+  readonly kind: "it.skip" | "test.skip" | "describe.skip" | "alias";
+  readonly reason: string;
+}[] = [
+  {
+    path: "packages/core/src/release-e2e/legacy-bridge-leg.test.ts",
+    kind: "describe.skip",
+    reason: "legacy AC10.10 archaeology describe.skip baseline",
+  },
+  {
+    path: "packages/core/src/release-e2e/legacy-bridge-leg.test.ts",
+    kind: "it.skip",
+    reason: "legacy AC10.10 archaeology it.skip baseline",
+  },
+  {
+    path: "packages/core/src/content-contracts/skills/agents_md_session_start.test.ts",
+    kind: "alias",
+    reason: "yoloSterile dynamic-title it.skip alias baseline",
+  },
+  {
+    path: "packages/core/src/content-contracts/standards/branch_gate.test.ts",
+    kind: "alias",
+    reason: "yoloSterile dynamic-title it.skip alias baseline",
+  },
+];
+
+/** Token-boundary skip match; excludes skipIf helpers (#6071). */
+const SKIP_CALL_RE =
+  /(?<![A-Za-z0-9_])(it|test|describe)\.skip(?!If)(?![A-Za-z0-9_])/g;
+const SKIP_COMMENT_RE = /\/\/\s*skip:\s*deftai\/directive#(\d+)/i;
+const SKIP_REASON_HASH_RE = /#(\d+)/;
+const TITLE_RE = /(?:it|test|describe)\.skip\s*\(\s*(["'`])([^"'`]+)\1/;
+
+export interface SkipInventoryEntry {
+  readonly path: string;
+  readonly line: number;
+  readonly kind: "it.skip" | "test.skip" | "describe.skip" | "alias";
+  readonly title: string | null;
+  readonly issue: number | null;
+  readonly baseline: boolean;
+  readonly raw: string;
+}
+
+export interface SkipCitationScanResult {
+  readonly ok: boolean;
+  readonly inventory: readonly SkipInventoryEntry[];
+  readonly failures: readonly string[];
+  readonly message: string;
+}
+
+function normalizeRel(path: string): string {
+  return path.replaceAll("\\", "/");
+}
+
+function isBaselineSite(path: string, kind: SkipInventoryEntry["kind"]): boolean {
+  const rel = normalizeRel(path);
+  return SKIP_CITATION_BASELINE.some((b) => b.path === rel && b.kind === kind);
+}
+
+function extractIssueNear(line: string, prevLine: string | undefined): number | null {
+  const comment = SKIP_COMMENT_RE.exec(line) ?? (prevLine ? SKIP_COMMENT_RE.exec(prevLine) : null);
+  if (comment?.[1]) return Number.parseInt(comment[1], 10);
+  const reason = SKIP_REASON_HASH_RE.exec(line);
+  if (reason?.[1]) return Number.parseInt(reason[1], 10);
+  return null;
+}
+
+function extractTitle(line: string): string | null {
+  const m = TITLE_RE.exec(line);
+  return m?.[2] ?? null;
+}
+
+/**
+ * Inventory it.skip/test.skip/describe.skip with token boundary excluding skipIf (#6071).
+ * Static / offline: no network. Live probes belong to diff-added callers.
+ */
+export function inventoryTestSkips(
+  files: readonly { readonly path: string; readonly content: string }[],
+): readonly SkipInventoryEntry[] {
+  const out: SkipInventoryEntry[] = [];
+  for (const file of files) {
+    const rel = normalizeRel(file.path);
+    const lines = file.content.split(/\r?\n/);
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = lines[i] ?? "";
+      SKIP_CALL_RE.lastIndex = 0;
+      const match = SKIP_CALL_RE.exec(line);
+      if (match === null) continue;
+      const callee = match[1] ?? "it";
+      const kind = `${callee}.skip` as SkipInventoryEntry["kind"];
+      const isAlias = /\?\s*(?:it|test)\.skip\s*:/.test(line) || /=\s*(?:it|test)\.skip\b/.test(line);
+      const entryKind: SkipInventoryEntry["kind"] = isAlias ? "alias" : kind;
+      out.push({
+        path: rel,
+        line: i + 1,
+        kind: entryKind,
+        title: extractTitle(line),
+        issue: extractIssueNear(line, lines[i - 1]),
+        baseline: isBaselineSite(rel, entryKind) || isBaselineSite(rel, kind),
+        raw: line.trim(),
+      });
+    }
+  }
+  return out;
+}
+
+export function evaluateSkipCitationInventory(
+  inventory: readonly SkipInventoryEntry[],
+  options: {
+    readonly changedPaths?: ReadonlySet<string>;
+    readonly hotfixAdmitted?: boolean;
+    readonly hotfixShape?: "A" | "B" | null;
+  } = {},
+): SkipCitationScanResult {
+  const failures: string[] = [];
+  const changed = options.changedPaths;
+  const diffMode = changed !== undefined;
+  for (const entry of inventory) {
+    if (entry.baseline) continue;
+    const inDiff = !diffMode || changed.has(entry.path);
+    if (entry.kind === "describe.skip") {
+      failures.push(
+        `new describe.skip refused at ${entry.path}:${entry.line} (v1 per-test only; baseline excepted) (#6071)`,
+      );
+      continue;
+    }
+    if (entry.issue === null) {
+      if (inDiff) {
+        failures.push(
+          `uncited ${entry.kind} at ${entry.path}:${entry.line} — require // skip: deftai/directive#N or reason #N (#6071)`,
+        );
+      }
+      continue;
+    }
+    // Diff-only: authorize added/changed cited skips under admitted A/B.
+    if (diffMode && inDiff && options.hotfixAdmitted !== true) {
+      failures.push(
+        `added/changed skip at ${entry.path}:${entry.line} requires admitted hotfix A/B (#6071)`,
+      );
+    } else if (
+      diffMode &&
+      inDiff &&
+      options.hotfixShape === "B" &&
+      options.hotfixAdmitted === true &&
+      !entry.path.includes(".test.")
+    ) {
+      failures.push(
+        `shape (B) skip touch-set refuses non-test path ${entry.path}:${entry.line} (#6071)`,
+      );
+    }
+  }
+  const lines = inventory.map(
+    (e) =>
+      `${e.path}:${e.line} ${e.kind} title=${JSON.stringify(e.title)} issue=${e.issue ?? "none"} baseline=${e.baseline}`,
+  );
+  const message =
+    failures.length === 0
+      ? `skip-citation: ok (${inventory.length} inventoried)\n${lines.join("\n")}`
+      : `skip-citation: FAIL\n${failures.join("\n")}\n--- inventory ---\n${lines.join("\n")}`;
+  return { ok: failures.length === 0, inventory, failures, message };
+}
+
+/** Walk common test roots under projectRoot for skip inventory (#6071). */
+export function scanProjectTestSkips(projectRoot: string): SkipCitationScanResult {
+  const files: { path: string; content: string }[] = [];
+  const roots = [
+    join(projectRoot, "packages", "core", "src"),
+    join(projectRoot, "packages", "runtime", "src"),
+  ];
+  const visit = (dir: string, relBase: string): void => {
+    let entries: string[] = [];
+    try {
+      entries = readdirSync(dir);
+    } catch {
+      return;
+    }
+    for (const name of entries) {
+      const abs = join(dir, name);
+      const rel = normalizeRel(join(relBase, name));
+      let st;
+      try {
+        st = statSync(abs);
+      } catch {
+        continue;
+      }
+      if (st.isDirectory()) {
+        if (name === "node_modules" || name === "dist" || name === ".git") continue;
+        visit(abs, rel);
+        continue;
+      }
+      if (!name.endsWith(".test.ts") && !name.endsWith(".test.tsx")) continue;
+      try {
+        files.push({ path: rel, content: readFileSync(abs, "utf8") });
+      } catch {
+        /* skip unreadable */
+      }
+    }
+  };
+  for (const root of roots) {
+    const rel = normalizeRel(root.slice(projectRoot.length).replace(/^[/\\]/, ""));
+    visit(root, rel);
+  }
+  const inventory = inventoryTestSkips(files);
+  return evaluateSkipCitationInventory(inventory);
 }
