@@ -1860,6 +1860,10 @@ describe("brief-in-PR-diff identity fallback (#3675)", () => {
     expect(prDiffAddsBrief([{ status: "added", filename: `docs/${brief}` }, code], brief)).toBe(
       false,
     );
+    // Lifecycle folder name under an unrelated root must not prove delivery (#6093 Greptile P1).
+    expect(
+      prDiffAddsBrief([{ status: "added", filename: `docs/active/${brief}` }, code], brief),
+    ).toBe(false);
     expect(
       prDiffAddsBrief(
         [{ status: "added", filename: "xbrief/active/other.xbrief.json" }, code],

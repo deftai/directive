@@ -584,7 +584,10 @@ const LIFECYCLE_FOLDER_SET: ReadonlySet<string> = new Set(LIFECYCLE_FOLDERS);
 
 function lifecycleBriefBasename(filename: string): string | null {
   const parts = filename.split("/");
-  if (parts.length < 2) return null;
+  // Require xbrief|vbrief/<lifecycle>/<file> so docs/active/... cannot prove delivery.
+  if (parts.length < 3) return null;
+  const root = parts[parts.length - 3] ?? "";
+  if (root !== "xbrief" && root !== "vbrief") return null;
   const folder = parts[parts.length - 2] ?? "";
   return LIFECYCLE_FOLDER_SET.has(folder) ? (parts[parts.length - 1] ?? null) : null;
 }
