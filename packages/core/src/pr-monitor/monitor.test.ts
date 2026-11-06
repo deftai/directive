@@ -358,6 +358,7 @@ describe("monitor loop", () => {
       clockFn: clock,
       runGh: fakeRunGh,
       skipCloseoutAttestable: true,
+      skipNamedMergeGate: true,
     });
     const emitted = stderr.mock.calls.map((c) => String(c[0])).join("");
     stderr.mockRestore();

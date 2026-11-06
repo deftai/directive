@@ -118,6 +118,8 @@ export interface RunOptions {
   readonly runGh?: RunGhFn;
   /** Tests that only score Greptile must opt out of closeout explicitly (#3875). */
   readonly skipCloseoutAttestable?: boolean;
+  /** Hermetic Greptile suites opt out of the always-on named Merge gate (#6071). */
+  readonly skipNamedMergeGate?: boolean;
   readonly closeoutAttestableFn?: ComputeGateOptions["closeoutAttestableFn"];
 }
 
@@ -134,6 +136,7 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
     skipSlizard: args.skipSlizard,
     ignoreCheckNames: args.ciIgnoreChecks,
     skipCloseoutAttestable: options.skipCloseoutAttestable,
+    skipNamedMergeGate: options.skipNamedMergeGate,
     closeoutAttestableFn: options.closeoutAttestableFn,
   });
 

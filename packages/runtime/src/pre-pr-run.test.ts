@@ -137,14 +137,18 @@ describe("deft pre-pr:run", () => {
       err.push(String(chunk));
       return true;
     });
-    expect(run(["--complete", "--run-id", "ppr_cli_incomplete"])).toBe(1);
+    expect(
+      run(["--complete", "--run-id", "ppr_cli_incomplete"], { skipNamedMergeGate: true }),
+    ).toBe(1);
     expect(err.join("")).toMatch(/required phase|omitted|incomplete/i);
   });
 
   it("observes required phases then completes, including across a new store instance", () => {
     expect(run([...START, "--run-id", "ppr_happy", "--json"])).toBe(0);
     observeAll("ppr_happy", fixturePath, contentsHash);
-    expect(run(["--complete", "--run-id", "ppr_happy", "--json"])).toBe(0);
+    expect(
+      run(["--complete", "--run-id", "ppr_happy", "--json"], { skipNamedMergeGate: true }),
+    ).toBe(0);
     setDefaultPrePrStore(new FileBackedPrePrStore(tmpRoot));
     const out: string[] = [];
     vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
@@ -181,7 +185,7 @@ describe("deft pre-pr:run", () => {
   it("evaluate uses live approved criteria so a different digest denies the old pass", () => {
     expect(run([...START, "--run-id", "ppr_weak", "--json"])).toBe(0);
     observeAll("ppr_weak", fixturePath, contentsHash);
-    expect(run(["--complete", "--run-id", "ppr_weak"])).toBe(0);
+    expect(run(["--complete", "--run-id", "ppr_weak"], { skipNamedMergeGate: true })).toBe(0);
     const err: string[] = [];
     vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
       err.push(String(chunk));

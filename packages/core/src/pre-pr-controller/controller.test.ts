@@ -24,6 +24,7 @@ import {
   failRun,
   observeCommandPhase,
   readPushBindingDisposition,
+  resolveNumericPrNumber,
   runObservablesComplete,
   startControllerRun,
   submitReviewerReport,
@@ -310,7 +311,9 @@ describe("controller observations", () => {
       }).ok,
     ).toBe(true);
     expect(store.getById(rec.id)?.finalNoChange).toBe(false);
-    expect(completeRun(store, mintPublisher(), rec.id).ok).toBe(false);
+    expect(
+      completeRun(store, mintPublisher(), rec.id, undefined, { skipNamedMergeGate: true }).ok,
+    ).toBe(false);
   });
 
   it("allows a closed skip with a non-zero exit and refuses a missing run", () => {
@@ -335,7 +338,9 @@ describe("controller observations", () => {
         skipReason: null,
       }).code,
     ).toBe("deny-missing-record");
-    expect(completeRun(store, mintPublisher(), "missing").code).toBe("deny-missing-record");
+    expect(
+      completeRun(store, mintPublisher(), "missing", undefined, { skipNamedMergeGate: true }).code,
+    ).toBe("deny-missing-record");
   });
 
   it("refuses a second publish and a semantic digest mismatch", () => {
@@ -368,7 +373,9 @@ describe("controller observations", () => {
         controllerObservedHash: "h",
       });
     }
-    expect(completeRun(store, mintPublisher(), rec.id).ok).toBe(true);
+    expect(
+      completeRun(store, mintPublisher(), rec.id, undefined, { skipNamedMergeGate: true }).ok,
+    ).toBe(true);
     expect(
       observeCommandPhase(store, rec.id, {
         phaseId: "branch_policy",
@@ -420,7 +427,9 @@ describe("controller observations", () => {
     }
     const decided = runObservablesComplete(store.getById(rec.id) as PrePrExecutionRecord);
     expect(decided.code).toBe("deny-out-of-order");
-    expect(completeRun(store, mintPublisher(), rec.id).code).toBe("deny-out-of-order");
+    expect(
+      completeRun(store, mintPublisher(), rec.id, undefined, { skipNamedMergeGate: true }).code,
+    ).toBe("deny-out-of-order");
   });
 
   it("publishes pass with pushBinding when optional merge_chokepoint and coverage_headroom rows are omitted (#6040)", () => {
@@ -447,7 +456,9 @@ describe("controller observations", () => {
         });
       }
     }
-    expect(completeRun(store, mintPublisher(), rec.id).ok).toBe(true);
+    expect(
+      completeRun(store, mintPublisher(), rec.id, undefined, { skipNamedMergeGate: true }).ok,
+    ).toBe(true);
     const published = store.getById(rec.id) as PrePrExecutionRecord;
     expect(published.outcome).toBe("pass");
     expect(published.pushBinding).not.toBeNull();
@@ -495,6 +506,7 @@ describe("controller observations", () => {
     }
     expect(
       completeRun(store, mintPublisher(), rec.id, undefined, {
+        skipNamedMergeGate: true,
         projectRoot: root,
         verifyAcDisposition: "no-obligation",
       }).ok,
@@ -542,9 +554,12 @@ describe("controller observations", () => {
       inputHash: rec.inputHash,
       skipReason: MERGE_CHOKPOINT_NO_OBLIGATION_SKIP,
     });
-    expect(completeRun(store, mintPublisher(), rec.id, undefined, { projectRoot: root }).ok).toBe(
-      true,
-    );
+    expect(
+      completeRun(store, mintPublisher(), rec.id, undefined, {
+        skipNamedMergeGate: true,
+        projectRoot: root,
+      }).ok,
+    ).toBe(true);
     expect(readPushBindingDisposition(store.getById(rec.id)?.pushBinding).verifyAcDisposition).toBe(
       "no-obligation",
     );
@@ -583,7 +598,9 @@ describe("controller observations", () => {
         skipReason: null,
       }).ok,
     ).toBe(true);
-    expect(completeRun(store, mintPublisher(), rec.id).code).toBe("deny-failed");
+    expect(
+      completeRun(store, mintPublisher(), rec.id, undefined, { skipNamedMergeGate: true }).code,
+    ).toBe("deny-failed");
   });
 
   it("still fails when an observed optional coverage_headroom is red (#6040)", () => {
@@ -619,7 +636,9 @@ describe("controller observations", () => {
         skipReason: null,
       }).ok,
     ).toBe(true);
-    expect(completeRun(store, mintPublisher(), rec.id).code).toBe("deny-failed");
+    expect(
+      completeRun(store, mintPublisher(), rec.id, undefined, { skipNamedMergeGate: true }).code,
+    ).toBe("deny-failed");
   });
 
   it("denies write, diff, and loop when supplied and observed hashes differ", () => {
@@ -2208,5 +2227,53 @@ describe("coverage N/A rests on applicability; one report path and observed root
       );
       expect(runObservablesComplete(rec, f.satisfy).ok).toBe(false);
     });
+  });
+});
+
+describe("resolveNumericPrNumber (#6071)", () => {
+  it("prefers explicit then GITHUB_PR_NUMBER and never parses opaque prNodeId digits", () => {
+    expect(
+      resolveNumericPrNumber({
+        explicit: 6088,
+        env: { GITHUB_PR_NUMBER: "1" },
+        repo: "deftai/directive",
+        headSha: "abc",
+        prNodeId: "PR_kwDOQx1qZc6abc6088",
+      }),
+    ).toBe(6088);
+    expect(
+      resolveNumericPrNumber({
+        explicit: null,
+        env: { GITHUB_PR_NUMBER: "6088" },
+        repo: "deftai/directive",
+        headSha: "abc",
+        prNodeId: "PR_kwDOQx1qZc6abc9999",
+      }),
+    ).toBe(6088);
+    expect(
+      resolveNumericPrNumber({
+        explicit: null,
+        env: {},
+        repo: "deftai/directive",
+        headSha: "abc",
+        prNodeId: "PR_kwDOQx1qZc6abc6088",
+      }),
+    ).toBeNull();
+  });
+
+  it("reads numeric number from commits/<sha>/pulls REST", () => {
+    const n = resolveNumericPrNumber({
+      explicit: null,
+      env: {},
+      repo: "deftai/directive",
+      headSha: "deadbeef",
+      prNodeId: "PR_kwDO_not_a_number",
+      runGh: () => ({
+        returncode: 0,
+        stdout: JSON.stringify([{ number: 6088, node_id: "PR_kwDO_not_a_number" }]),
+        stderr: "",
+      }),
+    });
+    expect(n).toBe(6088);
   });
 });

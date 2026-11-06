@@ -24,6 +24,28 @@ export interface CheckOrchestratorSeams extends CheckOrchestratorOptions {
    * without changing `dispatchTaskCheck`'s number return.
    */
   readonly onCheckComplete?: (completion: CachedCheckCompletion) => void;
+  /** #6071: skip cited-skip inventory/refuse (tests). */
+  readonly skipCitedSkipScan?: boolean;
+  /** Diff paths for live-probe; omit for inventory-only listing. */
+  readonly citedSkipChangedFiles?: readonly string[];
+  /** Admitted shape-B hotfix for live-probe authorization. */
+  readonly citedSkipHotfixShapeB?: boolean;
+  /** Issue fetch for live-probe citation validation. */
+  readonly citedSkipFetchIssue?: (issue: number) => {
+    readonly state: string;
+    readonly created_at: string;
+    readonly body: string;
+  } | null;
+  readonly citedSkipCommitTimeIso?: string;
+  /**
+   * Precomputed cited-skip result from dispatchTaskCheck entry (#6071).
+   * Cached runner stamps onCheckComplete from this instead of re-scanning.
+   */
+  readonly precomputedCitedSkipScan?: {
+    readonly ok: boolean;
+    readonly failures: readonly string[];
+    readonly listing: string;
+  } | null;
 }
 
 /** Completion snapshot forwarded to release Step 5 (suite-ran vs skip). */

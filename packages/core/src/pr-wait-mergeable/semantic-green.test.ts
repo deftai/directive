@@ -2,15 +2,26 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
-import { EXIT_CONFIG_ERROR, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
+import {
+  EXIT_CONFIG_ERROR,
+  EXIT_TIMEOUT_OR_ESCALATION,
+  MERGE_GATE_TASK_CHECK_NAME,
+  OUTCOME_FIRST_HOTFIX_BOOTSTRAP,
+  OUTCOME_HOTFIX_SHAPE_INVALID,
+  OUTCOME_MASTER_MERGE_GATE_RED,
+} from "./constants.js";
 import {
   ALLOWED_CANDIDATE_VALIDATION_COMMANDS,
   buildCandidateValidationAttestationFromProbe,
   CANDIDATE_VALIDATION_PRODUCER,
   CANDIDATE_VALIDATION_SCHEMA,
   type CandidateValidationAttestation,
+  evaluateAlwaysOnNamedMergeGate,
+  evaluateHotfixAdmission,
+  evaluateNamedMergeGateFromRuns,
   evaluateNonCascadeCandidateGreen,
   evaluateSemanticGreen,
+  parseHotfixShape,
   validateCandidateAttestation,
 } from "./semantic-green.js";
 
@@ -79,7 +90,10 @@ function validAttestation(
 
 describe("evaluateSemanticGreen", () => {
   it("no-ops when cascade mode is off", () => {
-    const result = evaluateSemanticGreen(PR, REPO, { cascadeMode: false });
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
+      cascadeMode: false,
+    });
     expect(result.ok).toBe(true);
     expect(result.outcome).toBeNull();
   });
@@ -89,7 +103,11 @@ describe("evaluateSemanticGreen", () => {
       "/pulls/": pullsHandler(PRE_SPINE_BASE),
       "/git/ref/heads/": branchRefHandler(SPINE_HEAD),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { cascadeMode: true, runGh });
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
+      cascadeMode: true,
+      runGh,
+    });
     expect(result.ok).toBe(false);
     expect(result.outcome).toBe("semantic-stale-base");
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
@@ -103,7 +121,11 @@ describe("evaluateSemanticGreen", () => {
       "/pulls/": pullsHandler(CURRENT_HEAD),
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { cascadeMode: true, runGh });
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
+      cascadeMode: true,
+      runGh,
+    });
     expect(result.ok).toBe(true);
   });
 
@@ -120,6 +142,7 @@ describe("evaluateSemanticGreen", () => {
       }),
     });
     const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       cascadeMode: true,
       requireMasterCiGreen: true,
       runGh,
@@ -137,6 +160,7 @@ describe("evaluateSemanticGreen", () => {
       "/check-runs": greenCheckRunsHandler(),
     });
     const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       cascadeMode: true,
       requireMasterCiGreen: true,
       runGh,
@@ -149,7 +173,11 @@ describe("evaluateSemanticGreen", () => {
     const runGh = makeRunGh({
       "/pulls/": () => ({ returncode: 1, stdout: "", stderr: "rate limit" }),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { cascadeMode: true, runGh });
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
+      cascadeMode: true,
+      runGh,
+    });
     expect(result.ok).toBe(false);
     expect(result.outcome).toBe("config-error");
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -160,7 +188,11 @@ describe("evaluateSemanticGreen", () => {
       "/pulls/": pullsHandler(CURRENT_HEAD),
       "/git/ref/heads/": () => ({ returncode: 1, stdout: "", stderr: "not found" }),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { cascadeMode: true, runGh });
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
+      cascadeMode: true,
+      runGh,
+    });
     expect(result.ok).toBe(false);
     expect(result.outcome).toBe("config-error");
     expect(result.error).toContain("/git/ref/heads/");
@@ -173,6 +205,7 @@ describe("evaluateSemanticGreen", () => {
       "/check-runs": () => ({ returncode: 1, stdout: "", stderr: "api down" }),
     });
     const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       cascadeMode: true,
       requireMasterCiGreen: true,
       runGh,
@@ -188,6 +221,7 @@ describe("evaluateSemanticGreen", () => {
       "/git/ref/heads/master": branchRefHandler(CURRENT_HEAD),
     });
     const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       cascadeMode: true,
       baseBranch: "master",
       runGh,
@@ -269,7 +303,11 @@ describe("evaluateSemanticGreen", () => {
       },
     ];
     for (const testCase of cases) {
-      const result = evaluateSemanticGreen(PR, REPO, { cascadeMode: true, runGh: testCase.runGh });
+      const result = evaluateSemanticGreen(PR, REPO, {
+        skipNamedMergeGate: true,
+        cascadeMode: true,
+        runGh: testCase.runGh,
+      });
       expect(result.ok, testCase.label).toBe(false);
       expect(result.error ?? "", testCase.label).toContain(testCase.expectSub);
     }
@@ -288,6 +326,7 @@ describe("evaluateSemanticGreen", () => {
       }),
     });
     const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       cascadeMode: true,
       requireMasterCiGreen: true,
       runGh,
@@ -299,6 +338,7 @@ describe("evaluateSemanticGreen", () => {
 
   it("covers missing base ref or sha and explicit empty base branch", () => {
     const missingRef = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       cascadeMode: true,
       runGh: makeRunGh({
         "/pulls/": () => ({
@@ -312,6 +352,7 @@ describe("evaluateSemanticGreen", () => {
     expect(missingRef.error).toContain("base.ref or base.sha");
 
     const missingSha = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       cascadeMode: true,
       runGh: makeRunGh({
         "/pulls/": () => ({
@@ -324,6 +365,7 @@ describe("evaluateSemanticGreen", () => {
     expect(missingSha.outcome).toBe("config-error");
 
     const emptyBranch = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       cascadeMode: true,
       baseBranch: "",
       runGh: makeRunGh({ "/pulls/": pullsHandler(CURRENT_HEAD) }),
@@ -340,6 +382,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
     });
     const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
       localHeadSha: PR_HEAD,
@@ -360,6 +403,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
     });
     const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
       localHeadSha: PR_HEAD,
@@ -379,6 +423,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
     });
     const attestation = validAttestation();
     const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
       localHeadSha: PR_HEAD,
@@ -402,6 +447,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       "/git/ref/heads/": branchRefHandler(SPINE_HEAD),
     });
     const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       cascadeMode: true,
       requireCandidateValidation: true,
       candidateValidationAttestation: validAttestation(PR_HEAD, SPINE_HEAD),
@@ -417,6 +463,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
     });
     const missing = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       cascadeMode: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
@@ -428,6 +475,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
 
     const attestation = validAttestation();
     const ok = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       cascadeMode: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
@@ -450,6 +498,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
     });
     const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
       localHeadSha: SPINE_HEAD,
@@ -467,6 +516,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
     });
     const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       requireCandidateValidation: true,
       localHeadSha: PR_HEAD,
       candidateValidationAttestation: validAttestation(),
@@ -506,15 +556,15 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
 
   it("surfaces candidate-validation config errors for pulls/branch/head", () => {
     const pullsFail = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
-      runGh: makeRunGh({
-        "/pulls/": () => ({ returncode: 1, stdout: "", stderr: "boom" }),
-      }),
+      runGh: makeRunGh({ "/pulls/": () => ({ returncode: 1, stdout: "", stderr: "boom" }) }),
     });
     expect(pullsFail.outcome).toBe("config-error");
 
     const emptyBase = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
       baseBranch: "",
@@ -524,6 +574,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
     expect(emptyBase.error).toContain("candidate validation");
 
     const branchFail = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
       runGh: makeRunGh({
@@ -534,6 +585,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
     expect(branchFail.outcome).toBe("config-error");
 
     const noHead = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
       runGh: makeRunGh({
@@ -556,6 +608,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
     });
     const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
       prHeadSha: injectedHead,
@@ -575,6 +628,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
     });
     const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
       prHeadSha: PR_HEAD,
@@ -593,6 +647,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
     });
     const missing = evaluateNonCascadeCandidateGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       checkLifecycleDirty: false,
       localHeadSha: PR_HEAD,
       runGh,
@@ -601,6 +656,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
     expect(missing.outcome).toBe("candidate-validation-missing-or-stale");
 
     const ok = evaluateNonCascadeCandidateGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       checkLifecycleDirty: false,
       localHeadSha: PR_HEAD,
       candidateValidationAttestation: validAttestation(),
@@ -645,6 +701,339 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
     expect(validateCandidateAttestation(forged, PR_HEAD, CURRENT_HEAD)).toContain(
       "ALLOWED_CANDIDATE_VALIDATION_COMMANDS",
     );
+  });
+});
+
+describe("always-on named Merge gate (#6071)", () => {
+  const greenNamed = {
+    name: MERGE_GATE_TASK_CHECK_NAME,
+    status: "completed",
+    conclusion: "success",
+  };
+  const redNamed = {
+    name: MERGE_GATE_TASK_CHECK_NAME,
+    status: "completed",
+    conclusion: "failure",
+  };
+
+  it("refuses ordinary merge when master Merge gate (task check) is red", () => {
+    const result = evaluateSemanticGreen(PR, REPO, {
+      cascadeMode: false,
+      namedMergeGateTipSha: CURRENT_HEAD,
+      namedMergeGateCheckRuns: [redNamed],
+      hotfixAdmission: {
+        admitted: false,
+        shape: null,
+        skipIssue: null,
+        actorLogin: null,
+        reason: null,
+        outcome: null,
+      },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.outcome).toBe(OUTCOME_MASTER_MERGE_GATE_RED);
+    expect(result.error).toContain(MERGE_GATE_TASK_CHECK_NAME);
+  });
+
+  it("allows hotfix-labeled restore-green PR when master Merge gate (task check) is red", () => {
+    const result = evaluateSemanticGreen(PR, REPO, {
+      cascadeMode: false,
+      namedMergeGateTipSha: CURRENT_HEAD,
+      namedMergeGateCheckRuns: [redNamed],
+      hotfixAdmission: {
+        admitted: true,
+        shape: "A",
+        skipIssue: null,
+        actorLogin: "MScottAdams",
+        reason: null,
+        outcome: null,
+      },
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("allows hotfix-labeled cited-skip PR when master Merge gate (task check) is red", () => {
+    const result = evaluateSemanticGreen(PR, REPO, {
+      cascadeMode: false,
+      namedMergeGateTipSha: CURRENT_HEAD,
+      namedMergeGateCheckRuns: [redNamed],
+      hotfixAdmission: {
+        admitted: true,
+        shape: "B",
+        skipIssue: 6066,
+        actorLogin: "MScottAdams",
+        reason: null,
+        outcome: null,
+      },
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("refuses hotfix label without matching body line", () => {
+    const parsed = parseHotfixShape("Just a hotfix without the required line");
+    expect(parsed.shape).toBeNull();
+    const admission = evaluateHotfixAdmission(PR, REPO, {
+      hotfixAdmission: {
+        admitted: false,
+        shape: null,
+        skipIssue: null,
+        actorLogin: "MScottAdams",
+        reason:
+          "hotfix label present without a matching shape (A) or (B) body line; refuse (#6071).",
+        outcome: "hotfix-shape-invalid",
+      },
+    });
+    expect(admission.admitted).toBe(false);
+    expect(admission.outcome).toBe("hotfix-shape-invalid");
+  });
+
+  it("refuses hotfix-labeled PR that is neither restore-green nor cited-skip", () => {
+    const result = evaluateAlwaysOnNamedMergeGate(PR, REPO, {
+      tipSha: CURRENT_HEAD,
+      checkRuns: [redNamed],
+      hotfixAdmission: {
+        admitted: false,
+        shape: null,
+        skipIssue: null,
+        actorLogin: "MScottAdams",
+        reason:
+          "hotfix label present without a matching shape (A) or (B) body line; refuse (#6071).",
+        outcome: "hotfix-shape-invalid",
+      },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.outcome).toBe("hotfix-shape-invalid");
+  });
+
+  it("refuses when master Merge gate (task check) is still pending past timeout (fail-closed)", () => {
+    const status = evaluateNamedMergeGateFromRuns(
+      CURRENT_HEAD,
+      [
+        {
+          name: MERGE_GATE_TASK_CHECK_NAME,
+          status: "in_progress",
+          conclusion: "none",
+          started_at: "2020-01-01T00:00:00Z",
+        },
+      ],
+      { pendingTimeoutMinutes: 30, nowMs: Date.parse("2020-01-01T01:00:00Z") },
+    );
+    expect(status.disposition).toBe("pending");
+    expect(status.error).toContain("pending past timeout");
+  });
+
+  it("refuses when the Merge gate check-runs read fails (fail-closed)", () => {
+    const result = evaluateAlwaysOnNamedMergeGate(PR, REPO, {
+      tipSha: CURRENT_HEAD,
+      runGh: () => ({ returncode: 1, stdout: "", stderr: "api down" }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.outcome).toBe(OUTCOME_MASTER_MERGE_GATE_RED);
+    expect(result.error).toContain("check-runs read failed");
+  });
+
+  it("refuses when the exact check name Merge gate (task check) is absent (fail-closed)", () => {
+    const status = evaluateNamedMergeGateFromRuns(CURRENT_HEAD, [
+      { name: "CI", status: "completed", conclusion: "success" },
+    ]);
+    expect(status.disposition).toBe("missing");
+  });
+
+  it("admits consumer repos when Merge gate (task check) is absent (consumer contract)", () => {
+    const result = evaluateAlwaysOnNamedMergeGate(PR, "acme/app", {
+      tipSha: CURRENT_HEAD,
+      checkRuns: [{ name: "CI", status: "completed", conclusion: "success" }],
+    });
+    expect(result.ok).toBe(true);
+    expect(result.status.disposition).toBe("missing");
+    expect(result.error).toBeNull();
+  });
+
+  it("still refuses deftai/directive when Merge gate (task check) is absent", () => {
+    const result = evaluateAlwaysOnNamedMergeGate(PR, REPO, {
+      tipSha: CURRENT_HEAD,
+      checkRuns: [{ name: "CI", status: "completed", conclusion: "success" }],
+      hotfixAdmission: {
+        admitted: false,
+        shape: null,
+        skipIssue: null,
+        actorLogin: null,
+        reason: null,
+        outcome: null,
+      },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.outcome).toBe(OUTCOME_MASTER_MERGE_GATE_RED);
+    expect(result.status.disposition).toBe("missing");
+  });
+
+  it("still refuses differently-cased deftai/directive when named gate is absent", () => {
+    const result = evaluateAlwaysOnNamedMergeGate(PR, "DeftAI/Directive", {
+      tipSha: CURRENT_HEAD,
+      checkRuns: [{ name: "CI", status: "completed", conclusion: "success" }],
+      hotfixAdmission: {
+        admitted: false,
+        shape: null,
+        skipIssue: null,
+        actorLogin: null,
+        reason: null,
+        outcome: null,
+      },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.outcome).toBe(OUTCOME_MASTER_MERGE_GATE_RED);
+    expect(result.status.disposition).toBe("missing");
+  });
+
+  it("still refuses consumer repos when Merge gate (task check) is red", () => {
+    const result = evaluateAlwaysOnNamedMergeGate(PR, "acme/app", {
+      tipSha: CURRENT_HEAD,
+      checkRuns: [redNamed],
+      hotfixAdmission: {
+        admitted: false,
+        shape: null,
+        skipIssue: null,
+        actorLogin: null,
+        reason: null,
+        outcome: null,
+      },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.outcome).toBe(OUTCOME_MASTER_MERGE_GATE_RED);
+  });
+
+  it("does not invoke task check or check:merge for the red-master gate", () => {
+    const cmds: string[] = [];
+    evaluateAlwaysOnNamedMergeGate(PR, REPO, {
+      tipSha: CURRENT_HEAD,
+      checkRuns: [greenNamed],
+      runGh: (cmd) => {
+        cmds.push(cmd.join(" "));
+        return { returncode: 1, stdout: "", stderr: "unused" };
+      },
+    });
+    expect(cmds.every((c) => !c.includes("task check") && !c.includes("check:merge"))).toBe(true);
+  });
+
+  it("refuses under DEFT_NO_NETWORK=1 (Recut-2)", () => {
+    const result = evaluateAlwaysOnNamedMergeGate(PR, REPO, {
+      tipSha: CURRENT_HEAD,
+      checkRuns: [greenNamed],
+      env: { DEFT_NO_NETWORK: "1" },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("DEFT_NO_NETWORK");
+  });
+
+  it("returns first-hotfix bootstrap recovery when tip is red and PR is unknown", () => {
+    const result = evaluateAlwaysOnNamedMergeGate(null, REPO, {
+      tipSha: CURRENT_HEAD,
+      checkRuns: [redNamed],
+      firstHotfixBootstrap: true,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.outcome).toBe(OUTCOME_FIRST_HOTFIX_BOOTSTRAP);
+    expect(result.error).toMatch(/First-hotfix bootstrap/);
+    expect(result.hotfix?.outcome).toBe(OUTCOME_FIRST_HOTFIX_BOOTSTRAP);
+  });
+
+  it("refuses Bot hotfix actor and accepts maintainer-class without actor≠author", () => {
+    const bot = evaluateHotfixAdmission(PR, REPO, {
+      hotfixAdmission: {
+        admitted: false,
+        shape: "A",
+        skipIssue: null,
+        actorLogin: "greptile-apps[bot]",
+        reason: "hotfix label actor greptile-apps[bot] is a Bot; refuse (#6071).",
+        outcome: "hotfix-actor-denied",
+      },
+    });
+    expect(bot.admitted).toBe(false);
+    expect(bot.outcome).toBe("hotfix-actor-denied");
+
+    const sameAuthor = evaluateHotfixAdmission(PR, REPO, {
+      hotfixAdmission: {
+        admitted: true,
+        shape: "A",
+        skipIssue: null,
+        actorLogin: "MScottAdams",
+        reason: null,
+        outcome: null,
+      },
+    });
+    expect(sameAuthor.admitted).toBe(true);
+  });
+
+  it("refuses shape B when cited issue lacks skipped-tests (#6071)", () => {
+    const fork = "acme/fork";
+    const runGh = (args: readonly string[]) => {
+      const path = args.join(" ");
+      if (path.includes(`repos/${fork}/pulls/${PR}`)) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            labels: [{ name: "hotfix" }],
+            body: "Hotfix skip: deftai/directive#6066\n",
+          }),
+          stderr: "",
+        };
+      }
+      if (path.includes(`repos/${fork}/issues/${PR}/events`)) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify([
+            {
+              event: "labeled",
+              label: { name: "hotfix" },
+              actor: { login: "MScottAdams", type: "User" },
+              author_association: "MEMBER",
+            },
+          ]),
+          stderr: "",
+        };
+      }
+      if (path.includes("repos/deftai/directive/issues/6066")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            state: "open",
+            body: "no skipped-tests fence",
+            created_at: "2026-01-01T00:00:00Z",
+          }),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: `unexpected ${path}` };
+    };
+    const missingBlock = evaluateHotfixAdmission(PR, fork, {
+      runGh,
+      maintainerLogins: ["MScottAdams"],
+    });
+    expect(missingBlock.admitted).toBe(false);
+    expect(missingBlock.outcome).toBe(OUTCOME_HOTFIX_SHAPE_INVALID);
+    expect(missingBlock.reason).toMatch(/skipped-tests/);
+    expect(missingBlock.reason).toMatch(/deftai\/directive#6066/);
+  });
+
+  it("parses exactly one hotfix shape A or B", () => {
+    expect(parseHotfixShape("Hotfix for red Merge gate (task check): flake in suite\n").shape).toBe(
+      "A",
+    );
+    expect(parseHotfixShape("Hotfix skip: deftai/directive#6066\n").shape).toBe("B");
+    expect(
+      parseHotfixShape(
+        "Hotfix for red Merge gate (task check): x\nHotfix skip: deftai/directive#1\n",
+      ).ambiguous,
+    ).toBe(true);
+    expect(
+      parseHotfixShape("Hotfix skip: deftai/directive#1\nHotfix skip: deftai/directive#2\n")
+        .ambiguous,
+    ).toBe(true);
+    expect(
+      parseHotfixShape(
+        "Hotfix for red Merge gate (task check): one\nHotfix for red Merge gate (task check): two\n",
+      ).ambiguous,
+    ).toBe(true);
   });
 });
 

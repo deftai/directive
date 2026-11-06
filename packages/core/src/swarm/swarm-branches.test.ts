@@ -81,7 +81,10 @@ describe("swarm verify-review-clean", () => {
       }
       return { returncode: 1, stdout: "", stderr: "unexpected" };
     });
-    const per = evaluatePr(1, "deftai/directive", runGh, { skipCloseoutAttestable: true });
+    const per = evaluatePr(1, "deftai/directive", runGh, {
+      skipCloseoutAttestable: true,
+      skipNamedMergeGate: true,
+    });
     expect(per?.clean).toBe(true);
   });
 
@@ -138,6 +141,7 @@ describe("swarm verify-review-clean", () => {
       repo: "bxc-3ci/FreshserviceAI",
       emitJson: true,
       runGh,
+      skipNamedMergeGate: true,
     });
 
     expect(result.exitCode).toBe(0);
@@ -162,6 +166,7 @@ describe("swarm verify-review-clean", () => {
       prNumbers: [24],
       repo: "bxc-3ci/FreshserviceAI",
       runGh,
+      skipNamedMergeGate: true,
     });
     expect(human.stdout).toContain("Gate via:           primary");
     expect(human.stdout).toContain("Verdict override:   verdict-absent");

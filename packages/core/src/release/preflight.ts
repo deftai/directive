@@ -17,6 +17,11 @@ import { dispatchTaskCheck } from "../check/orchestrator.js";
 import { suiteActuallyRan } from "../check/suite-gate-supervisor.js";
 import { defaultRunGh } from "../pr-merge-readiness/gh.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
+import { MERGE_GATE_TASK_CHECK_NAME } from "../pr-wait-mergeable/constants.js";
+import {
+  evaluateAlwaysOnNamedMergeGate,
+  type NamedMergeGateFn,
+} from "../pr-wait-mergeable/semantic-green.js";
 import {
   ENV_CHECK_AC_ONLY,
   ENV_CHECK_MODE,
@@ -77,6 +82,16 @@ export type CoverageOfRecordResult =
 
 /** Seams for test isolation of the native release pre-flight. */
 export interface ReleasePreflightSeams {
+  /** Override named Merge gate tip read (#6071). */
+  readonly namedMergeGateFn?: NamedMergeGateFn;
+  readonly runGh?: RunGhFn;
+  readonly tipSha?: string | null;
+  readonly skipNamedMergeGate?: boolean;
+  /**
+   * When true, run only the named Merge gate then return (suite-stamp path).
+   * Does not run the full framework-source check dispatcher (#6071 Greptile).
+   */
+  readonly skipCi?: boolean;
   /** Override the check dispatcher (default: dispatchTaskCheck from check/orchestrator). */
   readonly dispatchCheck?: (
     frameworkRoot: string,
@@ -297,6 +312,71 @@ export function runReleaseCheck(
   seams: ReleasePreflightSeams = {},
   allowCoverageDebtIssue: number | null = null,
 ): [boolean, string] {
+  // #6071 P5: refuse unless named Merge gate is successful completed on tip
+  // (outside skipCi/suite-stamp callers — those skip runReleaseCheck entirely).
+  if (seams.skipNamedMergeGate !== true) {
+    const tipSha =
+      seams.tipSha ??
+      (() => {
+        const result = spawnSync("git", ["rev-parse", "HEAD"], {
+          cwd: projectRoot,
+          encoding: "utf8",
+          shell: false,
+        });
+        if (result.status !== 0) return null;
+        const sha = (result.stdout ?? "").trim();
+        return sha.length > 0 ? sha : null;
+      })();
+    const namedFn = seams.namedMergeGateFn ?? evaluateAlwaysOnNamedMergeGate;
+    // Prefer checkout origin over hard-coded DEFAULT_REPO so forks / non-default remotes gate the right tip.
+    const namedRepo = (() => {
+      const fromEnv = (
+        seams.checkSeams?.env?.GH_REPO ??
+        seams.checkSeams?.env?.GITHUB_REPOSITORY ??
+        ""
+      )
+        .toString()
+        .trim();
+      if (fromEnv.length > 0) return fromEnv;
+      try {
+        const result = spawnSync("git", ["remote", "get-url", "origin"], {
+          cwd: projectRoot,
+          encoding: "utf8",
+          shell: false,
+        });
+        if (result.status === 0) {
+          const url = (result.stdout ?? "").trim();
+          // Allow dots inside the repo segment; only strip a trailing .git.
+          const m = /github\.com[:/]([^/]+\/[^/]+?)(?:\.git)?$/i.exec(url);
+          const captured = m?.[1];
+          if (captured !== undefined && captured.length > 0) {
+            return captured;
+          }
+        }
+      } catch {
+        /* fall through */
+      }
+      return DEFAULT_REPO;
+    })();
+    const named = namedFn(null, namedRepo, {
+      runGh: seams.runGh ?? defaultRunGh,
+      tipSha,
+      projectRoot,
+      env: seams.checkSeams?.env,
+    });
+    if (!named.ok) {
+      return [
+        false,
+        `${MERGE_GATE_TASK_CHECK_NAME} not successful completed on tip ${tipSha ?? "<unknown>"}; ` +
+          `release refused (#6071). ${named.error ?? ""}`.trim(),
+      ];
+    }
+  }
+
+  if (seams.skipCi === true) {
+    return [true, "named Merge gate ok (skipCi suite-stamp path)"];
+  }
+
   const dispatch = seams.dispatchCheck ?? dispatchTaskCheck;
   let completion: CachedCheckCompletion | undefined;
   const priorComplete = seams.checkSeams?.onCheckComplete;

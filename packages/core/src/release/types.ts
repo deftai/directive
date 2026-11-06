@@ -120,6 +120,10 @@ export interface ReleaseSeams {
   readonly headSha?: (projectRoot: string) => string | null;
   /** #3187 — CI detector; when true suite stamp is never trusted. */
   readonly isCi?: () => boolean;
+  /** #6071 — hermetic suites opt out of the always-on named Merge gate on stamp hit. */
+  readonly skipNamedMergeGate?: boolean;
+  readonly namedMergeGateFn?: import("../pr-wait-mergeable/semantic-green.js").NamedMergeGateFn;
+  readonly runGh?: import("../pr-merge-readiness/types.js").RunGhFn;
   /**
    * Legacy tip-SHA GHA coverage-of-record cite (#5026). Retired from Step 5
    * success / stamp-hit / auto-hatch paths under #6041 (host coverage is SoT).

@@ -1,5 +1,10 @@
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
+
+// Lazy require avoids a static cycle with orchestrator.ts (which imports this module).
+const requireOrchestrator = createRequire(import.meta.url);
+
 import {
   lintShippedRegistry,
   resolveTaskContract,
@@ -50,6 +55,7 @@ import { type CheckOrchestratorSeams, resolveCheckTarget } from "./context.js";
 import {
   checkGateId,
   checkGateSpawnArgs,
+  evaluateCitedSkipScan,
   gatesForCheckTarget,
   isSuiteCheckGate,
 } from "./gate-lists.js";
@@ -322,6 +328,57 @@ export function dispatchCachedTaskCheck(
       exit_code: 1,
       cause: headerPlaceholder.reason,
       remedy: headerPlaceholder.message,
+    });
+    return finish(1, false);
+  }
+
+  // #6071: stamp cited-skip-scan onto onCheckComplete. Prefer precomputed result
+  // from dispatchTaskCheck entry (production call site); else scan here.
+  if (target === "check:framework-source" && options.skipCitedSkipScan !== true) {
+    const citedSkipScanResult =
+      options.precomputedCitedSkipScan ??
+      evaluateCitedSkipScan({
+        // Baseline paths are framework-root-relative (#6071).
+        projectRoot: resolvedFramework,
+        changedFiles: options.citedSkipChangedFiles,
+        hotfixShapeB: options.citedSkipHotfixShapeB === true,
+        fetchIssue: options.citedSkipFetchIssue,
+        skipCommitTimeIso: options.citedSkipCommitTimeIso,
+      });
+    if (options.precomputedCitedSkipScan === undefined) {
+      process.stderr.write(`${citedSkipScanResult.listing}\n`);
+    }
+    if (!citedSkipScanResult.ok) {
+      for (const failure of citedSkipScanResult.failures) {
+        process.stderr.write(`check: ${failure}\n`);
+      }
+      gateOutcomes.push({
+        id: "cited-skip-scan",
+        status: "failed",
+        exit_code: 1,
+        cause: "unsanctioned or unvalidated test skips (#6071)",
+        remedy:
+          "cite open deftai/directive#N with skipped-tests block under admitted shape B, or remove the skip",
+      });
+      return finish(1, false);
+    }
+  } else if (
+    target === "check:framework-source" &&
+    options.precomputedCitedSkipScan !== null &&
+    options.precomputedCitedSkipScan !== undefined &&
+    !options.precomputedCitedSkipScan.ok
+  ) {
+    // Entry already scanned; skipCitedSkipScan was set to avoid a second walk.
+    for (const failure of options.precomputedCitedSkipScan.failures) {
+      process.stderr.write(`check: ${failure}\n`);
+    }
+    gateOutcomes.push({
+      id: "cited-skip-scan",
+      status: "failed",
+      exit_code: 1,
+      cause: "unsanctioned or unvalidated test skips (#6071)",
+      remedy:
+        "cite open deftai/directive#N with skipped-tests block under admitted shape B, or remove the skip",
     });
     return finish(1, false);
   }
