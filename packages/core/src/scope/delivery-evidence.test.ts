@@ -11,6 +11,7 @@ import {
   classifyStoredDeliveryDisposition,
   defaultFetchClosingIssueIds,
   defaultFetchClosingPrRefs,
+  defaultFetchPrChangedFiles,
   defaultFetchPrPayload,
   discoverDeliveryEvidenceForComplete,
   evaluateDeliveryGate,
@@ -18,11 +19,13 @@ import {
   evaluateStoredCompletionProvenanceForWriteGuard,
   type FetchClosingIssueIdsFn,
   type FetchClosingPrRefsFn,
+  type FetchPrChangedFilesFn,
   type FetchPrPayloadFn,
   hasExplicitDeliverySelectors,
   isCodeBearingScope,
   isEligibleStoredDeliveryDisposition,
   NON_DELIVERY_DISPOSITIONS,
+  prDiffAddsBrief,
   refreshRemoteDeliveryRef,
   resolveCompletionSessionId,
   resolvePlanGithubIssueRef,
@@ -1809,5 +1812,195 @@ describe("delivery evidence auto-discovery (#3583)", () => {
       plan: { metadata: { completionProvenance: { verifier: string } } };
     };
     expect(data.plan.metadata.completionProvenance.verifier).toBe("scope:complete");
+  });
+});
+
+describe("brief-in-PR-diff identity fallback (#3675)", () => {
+  let root: string | undefined;
+  afterEach(() => {
+    if (root !== undefined) rmSync(root, { recursive: true, force: true });
+    root = undefined;
+  });
+
+  const brief = "story.xbrief.json";
+  const deliveringFiles: FetchPrChangedFilesFn = (n, repo) =>
+    n === 42 && repo === "deftai/directive"
+      ? [
+          { status: "added", filename: `xbrief/active/${brief}` },
+          { status: "modified", filename: "packages/core/src/scope/transition.ts" },
+        ]
+      : null;
+  const plan = {
+    references: [
+      { type: "x-xbrief/github-issue", uri: "https://github.com/deftai/directive/issues/3041" },
+    ],
+  };
+  const evidence = { prNumber: 42, mergeCommit: "mergecommitsha" };
+
+  it("prDiffAddsBrief requires the brief added in a lifecycle folder plus a non-brief file", () => {
+    const code = { status: "modified", filename: "src/a.ts" };
+    expect(
+      prDiffAddsBrief([{ status: "added", filename: `xbrief/active/${brief}` }, code], brief),
+    ).toBe(true);
+    expect(
+      prDiffAddsBrief([{ status: "added", filename: `vbrief/proposed/${brief}` }, code], brief),
+    ).toBe(true);
+    // Brief only, no code: not delivery.
+    expect(prDiffAddsBrief([{ status: "added", filename: `xbrief/active/${brief}` }], brief)).toBe(
+      false,
+    );
+    // Edited or moved (a lifecycle PR), not added.
+    expect(
+      prDiffAddsBrief([{ status: "modified", filename: `xbrief/active/${brief}` }, code], brief),
+    ).toBe(false);
+    expect(
+      prDiffAddsBrief([{ status: "renamed", filename: `xbrief/completed/${brief}` }, code], brief),
+    ).toBe(false);
+    // Same name outside a lifecycle folder, or another brief.
+    expect(prDiffAddsBrief([{ status: "added", filename: `docs/${brief}` }, code], brief)).toBe(
+      false,
+    );
+    expect(
+      prDiffAddsBrief(
+        [{ status: "added", filename: "xbrief/active/other.xbrief.json" }, code],
+        brief,
+      ),
+    ).toBe(false);
+    expect(
+      prDiffAddsBrief([{ status: "added", filename: `xbrief/active/${brief}` }, code], " "),
+    ).toBe(false);
+  });
+
+  it("accepts a PR that added the brief when the issue was linked after merge", () => {
+    const result = verifyStoryPrMergeIdentity({
+      plan,
+      evidence,
+      mergeCommit: "mergecommitsha",
+      ...identityOk({ closingIssues: [] }),
+      briefBasename: brief,
+      fetchPrChangedFiles: deliveringFiles,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.identityBasis).toBe("brief-in-pr-diff");
+    expect(result.message).toMatch(/brief-in-PR-diff/);
+  });
+
+  it("still refuses a closer miss without the fallback inputs, a failed lookup, or an edit-only PR", () => {
+    const base = {
+      plan,
+      evidence,
+      mergeCommit: "mergecommitsha",
+      ...identityOk({ closingIssues: [] }),
+    };
+    const noFallback = verifyStoryPrMergeIdentity(base);
+    expect(noFallback.ok).toBe(false);
+    expect(noFallback.message).toMatch(/forge closer set does not include/);
+    expect(noFallback.message).not.toMatch(/fallback/);
+
+    const lookupFail = verifyStoryPrMergeIdentity({
+      ...base,
+      briefBasename: brief,
+      fetchPrChangedFiles: () => null,
+    });
+    expect(lookupFail.ok).toBe(false);
+    expect(lookupFail.message).toMatch(/lookup failure/);
+
+    const editOnly = verifyStoryPrMergeIdentity({
+      ...base,
+      briefBasename: brief,
+      fetchPrChangedFiles: () => [{ status: "modified", filename: `xbrief/active/${brief}` }],
+    });
+    expect(editOnly.ok).toBe(false);
+    expect(editOnly.message).toMatch(/fallback also failed/);
+  });
+
+  it("still enforces merge-commit identity on the fallback path", () => {
+    const result = verifyStoryPrMergeIdentity({
+      plan,
+      evidence: { prNumber: 42, mergeCommit: "othersha" },
+      mergeCommit: "othersha",
+      ...identityOk({ closingIssues: [] }),
+      briefBasename: brief,
+      fetchPrChangedFiles: deliveringFiles,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/merge_commit_sha/);
+  });
+
+  it("forge-closer joins keep identityBasis out of provenance", () => {
+    root = makeRepo();
+    const gate = evaluateDeliveryGate({
+      projectRoot: root,
+      plan,
+      nowIso: "2026-08-02T12:00:00Z",
+      evidence: { ...evidence, mergedAt: "2026-08-02T11:00:00Z", repository: "deftai/directive" },
+      ...identityOk(),
+      briefBasename: brief,
+      fetchPrChangedFiles: () => {
+        throw new Error("fallback must not run when the closer set matches");
+      },
+      runGit: gitOk(),
+    });
+    expect(gate.ok).toBe(true);
+    expect(gate.provenance).not.toBeNull();
+    expect(gate.provenance && "identityBasis" in gate.provenance).toBe(false);
+  });
+
+  it("scope:complete records identityBasis when completing via the fallback", () => {
+    root = makeRepo();
+    const file = writeCodeBearing(root, brief);
+    const result = runTransition("complete", file, new Date("2026-08-02T12:00:00Z"), {
+      runGit: gitOk(),
+      ...identityOk({ closingIssues: [] }),
+      fetchPrChangedFiles: deliveringFiles,
+      deliveryEvidence: {
+        repository: "deftai/directive",
+        prNumber: 42,
+        prBase: "master",
+        mergeCommit: "mergecommitsha",
+        mergedAt: "2026-08-02T11:00:00Z",
+        deliveryBranch: "master",
+      },
+    });
+    expect(result.ok).toBe(true);
+    const data = JSON.parse(readFileSync(join(root, "xbrief", "completed", brief), "utf8")) as {
+      plan: { metadata: { completionProvenance: { identityBasis?: string; disposition: string } } };
+    };
+    expect(data.plan.metadata.completionProvenance.identityBasis).toBe("brief-in-pr-diff");
+    expect(data.plan.metadata.completionProvenance.disposition).toBe("delivered");
+  });
+
+  it("defaultFetchPrChangedFiles parses paginated tsv and fails closed", () => {
+    const calls: string[][] = [];
+    const ok: RunGhFn = (cmd) => {
+      calls.push(cmd);
+      return {
+        returncode: 0,
+        stdout: "added\txbrief/active/a.xbrief.json\nmodified\tsrc/a b.ts\n",
+        stderr: "",
+      };
+    };
+    expect(defaultFetchPrChangedFiles(7, "o/r", ok)).toEqual([
+      { status: "added", filename: "xbrief/active/a.xbrief.json" },
+      { status: "modified", filename: "src/a b.ts" },
+    ]);
+    expect(calls[0]).toContain("--paginate");
+    expect(calls[0]?.join(" ")).toContain("repos/o/r/pulls/7/files");
+    expect(
+      defaultFetchPrChangedFiles(7, "o/r", () => ({ returncode: 1, stdout: "", stderr: "x" })),
+    ).toBeNull();
+    expect(
+      defaultFetchPrChangedFiles(7, "o/r", () => ({
+        returncode: 0,
+        stdout: "garbage\n",
+        stderr: "",
+      })),
+    ).toBeNull();
+    expect(defaultFetchPrChangedFiles(7, "not-a-repo", ok)).toBeNull();
+    expect(
+      defaultFetchPrChangedFiles(7, "o/r", () => {
+        throw new Error("spawn failed");
+      }),
+    ).toBeNull();
   });
 });

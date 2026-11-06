@@ -23,6 +23,7 @@ import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import type { RunGhFn, RunGhResult } from "../pr-protected-issues/types.js";
 import { defaultGitRunner, type GitRunner, gitIsAncestor } from "../session/git.js";
 import { readRitualState } from "../session/ritual-sentinel.js";
+import { LIFECYCLE_FOLDERS } from "./constants.js";
 
 /** Prefer-A #5545: refuse resolver error when branch is empty or unsafe. */
 function refuseUnsafeResolvedDelivery(resolved: DeliveryBranchResult): string | null {
@@ -114,6 +115,12 @@ export interface CompletionProvenance {
    * Consumers read sibling `plan.metadata.completedSessionId`, not this field.
    */
   readonly completedSessionId?: string | null;
+  /**
+   * How the story→PR identity was proven. Absent means the forge closer set
+   * (closingIssuesReferences). `brief-in-pr-diff` means the PR added this brief
+   * itself because the issue was linked after merge (#3675 fallback).
+   */
+  readonly identityBasis?: StoryPrIdentityBasis;
 }
 
 export interface DeliveryEvidenceInput {
@@ -162,6 +169,18 @@ export type FetchClosingIssueIdsFn = (
   repository: string,
 ) => ClosingIssueRef[] | null;
 
+/** One changed file in a PR (REST `pulls/{n}/files`). */
+export interface PrChangedFile {
+  readonly filename: string;
+  readonly status: string;
+}
+
+/** Changed files of a PR, or null on lookup failure (fail closed). */
+export type FetchPrChangedFilesFn = (
+  prNumber: number,
+  repository: string,
+) => PrChangedFile[] | null;
+
 export interface DeliveryGateOptions {
   readonly projectRoot: string;
   readonly plan: Record<string, unknown>;
@@ -183,6 +202,13 @@ export interface DeliveryGateOptions {
   readonly fetchPrPayload?: FetchPrPayloadFn;
   /** Test / inject seam: authoritative closing issue ids only (#3675). */
   readonly fetchClosingIssueIds?: FetchClosingIssueIdsFn;
+  /**
+   * File name of the brief being completed (basename). Enables the
+   * brief-in-PR-diff identity fallback when the forge closer set lacks the story.
+   */
+  readonly briefBasename?: string;
+  /** Test / inject seam: PR changed files for the brief-in-PR-diff fallback. */
+  readonly fetchPrChangedFiles?: FetchPrChangedFilesFn;
 }
 
 export interface DeliveryGateResult {
@@ -511,6 +537,74 @@ export function defaultFetchClosingIssueIds(
   return out;
 }
 
+/**
+ * PR changed files via REST `pulls/{n}/files` (paginated). Any failure or
+ * unparseable line returns null so the caller fails closed.
+ */
+export function defaultFetchPrChangedFiles(
+  prNumber: number,
+  repository: string,
+  runGh: RunGhFn = defaultRunGh,
+): PrChangedFile[] | null {
+  const parsed = parseOwnerRepo(repository);
+  if (parsed === null) {
+    return null;
+  }
+  let result: RunGhResult;
+  try {
+    result = runGh([
+      "gh",
+      "api",
+      "--paginate",
+      `repos/${parsed.owner}/${parsed.name}/pulls/${prNumber}/files?per_page=100`,
+      "--jq",
+      ".[] | [.status, .filename] | @tsv",
+    ]);
+  } catch {
+    return null;
+  }
+  if (result.returncode !== 0) {
+    return null;
+  }
+  const out: PrChangedFile[] = [];
+  for (const line of result.stdout.split("\n")) {
+    if (line.trim().length === 0) continue;
+    const tab = line.indexOf("\t");
+    if (tab <= 0 || tab === line.length - 1) {
+      return null;
+    }
+    out.push({ status: line.slice(0, tab), filename: line.slice(tab + 1) });
+  }
+  return out;
+}
+
+export type StoryPrIdentityBasis = "forge-closer" | "brief-in-pr-diff";
+
+const LIFECYCLE_FOLDER_SET: ReadonlySet<string> = new Set(LIFECYCLE_FOLDERS);
+
+function lifecycleBriefBasename(filename: string): string | null {
+  const parts = filename.split("/");
+  if (parts.length < 2) return null;
+  const folder = parts[parts.length - 2] ?? "";
+  return LIFECYCLE_FOLDER_SET.has(folder) ? (parts[parts.length - 1] ?? null) : null;
+}
+
+/**
+ * Brief-in-PR-diff identity (#3675 fallback). Holds only when the merged PR
+ * added this exact brief file to a lifecycle folder AND changed at least one
+ * file outside the lifecycle folders. A PR that only edits or moves the brief
+ * (a lifecycle PR) does not qualify.
+ */
+export function prDiffAddsBrief(files: readonly PrChangedFile[], briefBasename: string): boolean {
+  const name = briefBasename.trim();
+  if (name.length === 0) return false;
+  const addsBrief = files.some(
+    (f) => f.status === "added" && lifecycleBriefBasename(f.filename) === name,
+  );
+  const touchesCode = files.some((f) => lifecycleBriefBasename(f.filename) === null);
+  return addsBrief && touchesCode;
+}
+
 export interface StoryPrMergeIdentityResult {
   readonly ok: boolean;
   readonly message: string;
@@ -519,6 +613,7 @@ export interface StoryPrMergeIdentityResult {
   readonly mergedAt?: string;
   readonly prBase?: string | null;
   readonly headSha?: string | null;
+  readonly identityBasis?: StoryPrIdentityBasis;
 }
 
 /**
@@ -535,6 +630,9 @@ export function verifyStoryPrMergeIdentity(input: {
   readonly mergeCommit: string;
   readonly fetchPrPayload: FetchPrPayloadFn;
   readonly fetchClosingIssueIds: FetchClosingIssueIdsFn;
+  /** Basename of the brief being completed; enables the brief-in-PR-diff fallback. */
+  readonly briefBasename?: string;
+  readonly fetchPrChangedFiles?: FetchPrChangedFilesFn;
 }): StoryPrMergeIdentityResult {
   const expected = resolvePlanGithubIssueRef(input.plan);
   if (expected === null) {
@@ -617,13 +715,33 @@ export function verifyStoryPrMergeIdentity(input: {
   const closesStory = closerSet.some(
     (origin) => origin.repo === expectedRepoKey && origin.issueId === expected.issueNumber,
   );
+  let identityBasis: StoryPrIdentityBasis = "forge-closer";
   if (!closesStory) {
-    return {
-      ok: false,
-      message:
-        `Delivery identity join failed: PR #${prNumber} forge closer set does not include ` +
-        `${expected.repository}#${expected.issueNumber} (wrong story / absent association) (#3675).`,
-    };
+    const closerMiss =
+      `Delivery identity join failed: PR #${prNumber} forge closer set does not include ` +
+      `${expected.repository}#${expected.issueNumber} (wrong story / absent association) (#3675).`;
+    const briefBasename = input.briefBasename?.trim() ?? "";
+    if (briefBasename.length === 0 || input.fetchPrChangedFiles === undefined) {
+      return { ok: false, message: closerMiss };
+    }
+    const files = input.fetchPrChangedFiles(prNumber, expected.repository);
+    if (files === null) {
+      return {
+        ok: false,
+        message:
+          `${closerMiss} Brief-in-PR-diff fallback could not read PR #${prNumber} changed files ` +
+          `(lookup failure).`,
+      };
+    }
+    if (!prDiffAddsBrief(files, briefBasename)) {
+      return {
+        ok: false,
+        message:
+          `${closerMiss} Brief-in-PR-diff fallback also failed: PR #${prNumber} did not add ` +
+          `${briefBasename} alongside code changes.`,
+      };
+    }
+    identityBasis = "brief-in-pr-diff";
   }
 
   if (!shasEqual(input.mergeCommit, mergeCommitSha)) {
@@ -664,11 +782,14 @@ export function verifyStoryPrMergeIdentity(input: {
 
   return {
     ok: true,
-    message: `story→PR→merge identity joined: ${expected.repository}#${expected.issueNumber} via PR #${prNumber}`,
+    message:
+      `story→PR→merge identity joined: ${expected.repository}#${expected.issueNumber} via PR #${prNumber}` +
+      (identityBasis === "brief-in-pr-diff" ? " (brief-in-PR-diff)" : ""),
     mergeCommitSha,
     mergedAt,
     prBase,
     headSha,
+    identityBasis,
   };
 }
 
@@ -965,9 +1086,14 @@ function buildProvenance(input: {
   nowIso: string;
   verifier: string;
   deliveryCommit?: string | null;
+  identityBasis?: StoryPrIdentityBasis;
 }): CompletionProvenance {
   const e = input.evidence ?? {};
   return {
+    // Only non-default bases are recorded; absent keeps existing records unchanged.
+    ...(input.identityBasis !== undefined && input.identityBasis !== "forge-closer"
+      ? { identityBasis: input.identityBasis }
+      : {}),
     repository: e.repository ?? null,
     implementationCommit: e.implementationCommit ?? null,
     prNumber: e.prNumber ?? null,
@@ -1015,6 +1141,14 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
     options.fetchClosingIssueIds ??
     ((prNumber: number, repository: string) =>
       defaultFetchClosingIssueIds(prNumber, repository, runGh));
+  // Default the changed-files fetcher only when closer refs are not injected, so
+  // injected test seams never fall through to a live gh call.
+  const fetchPrChangedFiles =
+    options.fetchPrChangedFiles ??
+    (options.fetchClosingIssueIds === undefined
+      ? (prNumber: number, repository: string) =>
+          defaultFetchPrChangedFiles(prNumber, repository, runGh)
+      : undefined);
   const verifier = options.verifier ?? "scope:complete";
   const codeBearing = isCodeBearingScope(options.plan);
 
@@ -1164,6 +1298,8 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
     mergeCommit,
     fetchPrPayload,
     fetchClosingIssueIds,
+    briefBasename: options.briefBasename,
+    fetchPrChangedFiles,
   });
   if (!identity.ok) {
     return {
@@ -1193,6 +1329,7 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
       nowIso: options.nowIso,
       verifier,
       deliveryCommit: boundEvidence.deliveryCommit ?? boundEvidence.mergeCommit,
+      identityBasis: identity.identityBasis,
     });
     return {
       ok: true,
@@ -1243,6 +1380,7 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
     nowIso: options.nowIso,
     verifier,
     deliveryCommit: ancestry.remoteTip,
+    identityBasis: identity.identityBasis,
   });
   return {
     ok: true,
@@ -1284,6 +1422,7 @@ export function stampDeliveryProvenance(
     provenance.completedSessionId.trim().length > 0
       ? { completedSessionId: provenance.completedSessionId.trim() }
       : {}),
+    ...(provenance.identityBasis !== undefined ? { identityBasis: provenance.identityBasis } : {}),
   };
   meta.deliveryDisposition = provenance.disposition;
   meta.handoffState = provenance.handoffState;

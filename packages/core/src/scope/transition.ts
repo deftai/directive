@@ -103,6 +103,7 @@ import {
   evaluateDeliveryGate,
   type FetchClosingIssueIdsFn,
   type FetchClosingPrRefsFn,
+  type FetchPrChangedFilesFn,
   type FetchPrPayloadFn,
   type NonDeliveryDisposition,
   resolveCompletionSessionId,
@@ -133,6 +134,8 @@ export interface TransitionOptions {
   /** Prefer-A identity-join seams (#3675); forwarded to evaluateDeliveryGate. */
   readonly fetchPrPayload?: FetchPrPayloadFn;
   readonly fetchClosingIssueIds?: FetchClosingIssueIdsFn;
+  /** Brief-in-PR-diff identity fallback seam (#3675); forwarded to evaluateDeliveryGate. */
+  readonly fetchPrChangedFiles?: FetchPrChangedFilesFn;
   /** Prefer-A complete-time issue→PR discovery seam (#3583). */
   readonly fetchClosingPrRefs?: FetchClosingPrRefsFn;
   /**
@@ -732,6 +735,8 @@ export function runTransition(
       assumeEvidenceValidated: options.assumeEvidenceValidated,
       fetchPrPayload: options.fetchPrPayload,
       fetchClosingIssueIds: options.fetchClosingIssueIds,
+      briefBasename: basename,
+      fetchPrChangedFiles: options.fetchPrChangedFiles,
     });
     if (!gate.ok) {
       return { ok: false, message: gate.message };
@@ -1311,6 +1316,8 @@ function restampCompletedBrief(args: RestampArgs): TransitionResult {
     assumeEvidenceValidated: options.assumeEvidenceValidated,
     fetchPrPayload: options.fetchPrPayload,
     fetchClosingIssueIds: options.fetchClosingIssueIds,
+    briefBasename: basename,
+    fetchPrChangedFiles: options.fetchPrChangedFiles,
   });
   if (!gate.ok) {
     return { ok: false, message: gate.message };
