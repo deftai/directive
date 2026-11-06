@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5792",
-    "updated": "2026-11-05T21:29:36Z"
+    "updated": "2026-11-06T00:22:03Z"
   },
   "plan": {
     "title": "[framework-gap] BLOCKER Scope activation requires future tests before merge-base write authority exists",
@@ -18,28 +18,63 @@
     "items": [
       {
         "title": "relieves: P1 — Complete-set brief-land inventory maps merge-base..HEAD union working-tree and untracked paths with rename origins into PrDiffPath then isBriefLandShapedDiff; failed inventory yields no activation AC disposition.",
-        "status": "pending",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c80d774897ec97f99397d813086f70fc5bcc797e",
+          "recorded_at": "2026-11-06T00:22:03Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "relieves: P1 — One named activation AC disposition defers product command and artifact-clause execution before run after the witness; no opaque-npm selective forgiveness.",
-        "status": "pending",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c80d774897ec97f99397d813086f70fc5bcc797e",
+          "recorded_at": "2026-11-06T00:22:03Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "relieves: P3 — Local-or-PR Path B witness reuses brief-land + no-deleted-nonterminals + productPullRequest unset; deft-story mark coverage applies only when check has PR bodyText; when bodyText is absent, selected inventory brief issue-ref identity substitutes for mark coverage.",
-        "status": "pending",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c80d774897ec97f99397d813086f70fc5bcc797e",
+          "recorded_at": "2026-11-06T00:22:03Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "relieves: P2 — Concrete active-path brief land plus implement-branch start/rebase establishes merge-base write authority; loadStoryWriteFenceFromMergeBase stays unchanged; pending-to-active loader continuity stays out of scope.",
-        "status": "pending",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c80d774897ec97f99397d813086f70fc5bcc797e",
+          "recorded_at": "2026-11-06T00:22:03Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "relieves: P4 — Product path in inventory or productPullRequest set restores full verify:ac; activation disposition never banks as later product verified-pass; activation validation stays hard across full/pressure/rapid.",
-        "status": "pending",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c80d774897ec97f99397d813086f70fc5bcc797e",
+          "recorded_at": "2026-11-06T00:22:03Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -122,7 +157,10 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "[framework-gap] BLOCKER Scope activation requires future tests before merge-base write authority exists"
+      ]
     },
     "metadata": {
       "intended_placement": {
@@ -630,9 +668,32 @@
         ],
         "parallel_safe": true
       },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ccf89f098de2dfbed63049886b62daf305aafe57",
+        "prNumber": 6075,
+        "prBase": "master",
+        "mergeCommit": "c80d774897ec97f99397d813086f70fc5bcc797e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c80d774897ec97f99397d813086f70fc5bcc797e",
+        "verifiedAt": "2026-11-06T00:22:03Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-06T00:22:03Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-06T00:22:03Z"
+      },
       "productPullRequest": 6075
     },
     "id": "github.issue.5948036296",
-    "updated": "2026-11-05T21:29:36Z"
+    "updated": "2026-11-06T00:22:03Z"
   }
 }
