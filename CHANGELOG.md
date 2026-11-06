@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Issue #6011 is recorded completed and no longer active.** Typed deliveryBranch write-fence shipped; tracked completion is on the delivery branch.
+- **Issue #5970 is recorded completed and no longer active.** Approach1 existence probes as proven readers shipped; tracked completion is on the delivery branch.
 - **Issue #5910 is recorded completed and no longer active.** Release cut-context materialize refuse shipped; tracked completion is on the delivery branch.
 - **Issue #5890 is recorded completed and no longer active.** Brief-only retirement/restamp shipped; tracked completion is on the delivery branch.
 - **Clearer recovery advice when no active brief exists (#5890).** For edits to completed briefs and the changelog, the recovery message now points users to `deft scope:complete` instead of suggesting an unrelated active brief.
