@@ -18,24 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.5.
 
 ### Fixed
-- The shipped gitcrawl fallback documentation cleanup no longer appears as unfinished work (#1092).
-
-### Removed
-- **Stale gitcrawl fallback maintainer doc (#1092).** Deleted `docs/gitcrawl-fallback.md` after the v0.26 cache rebind made its gh-only install/recovery path misleading. UPGRADING From v0.25.x → v0.26.0 now points operators at `cache:*` instead; matching content-contract pins in `standards.test.ts` dropped.
-
-## [Unreleased]
-
-### Added
-
-### Changed
-- Widen #1037 file_scope so packs:render may refresh docs/RULE-MAP.md with the lessons-pack entry (#1037).
-- Prepare release-path gh JSON reads so CLICOLOR_FORCE in the parent env cannot break draft/tag/rollback lookups (#6032).
-- Capture the edit_files short-search truncation hazard as a lessons-pack entry maintainers can find in meta/lessons.md (#1037).
-- Activate running work brief for gitcrawl-fallback doc delete-and-redirect (#1092).
-- chore(dogfood): pin Directive to 0.129.5.
-
-### Fixed
-- Record tracked completion for gitcrawl-fallback doc delete-and-redirect (#1092).
+- Record tracked completion for edit_files truncation lessons-pack entry (#1037).
+- Release draft checks and rollback release lookups now read GitHub responses correctly when the parent environment forces terminal colors. This extends the color-output fix released in 0.129.3 to these two release paths. The release-publish lookup is unchanged and will be addressed separately. Refs #6032.
 
 ### Removed
 - **Stale gitcrawl fallback maintainer doc (#1092).** Deleted `docs/gitcrawl-fallback.md` after the v0.26 cache rebind made its gh-only install/recovery path misleading. UPGRADING From v0.25.x → v0.26.0 now points operators at `cache:*` instead; matching content-contract pins in `standards.test.ts` dropped.

@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #1037",
-    "updated": "2026-11-06T18:52:07Z"
+    "updated": "2026-11-06T19:40:51Z"
   },
   "plan": {
     "title": "Codify edit_files search-substring truncation hazard as a meta/lessons.md entry (recurrence on PR #1034)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Codify edit_files search-substring truncation hazard as a meta/lessons.md entry (recurrence on PR #1034)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1037",
@@ -19,22 +19,22 @@
       {
         "id": "1",
         "title": "Add one lessons-pack-0.1 entry for the edit_files truncation hazard",
-        "status": "pending"
+        "status": "completed"
       },
       {
         "id": "2",
         "title": "Require full-line/full-entry search anchors and post-edit re-read in the lesson body",
-        "status": "pending"
+        "status": "completed"
       },
       {
         "id": "3",
         "title": "Render meta/lessons.md from the pack SoT",
-        "status": "pending"
+        "status": "completed"
       },
       {
         "id": "4",
         "title": "Cite PR #1034 and the #911 cascade in the lesson body",
-        "status": "pending"
+        "status": "completed"
       }
     ],
     "tags": [
@@ -372,9 +372,18 @@
           "PA 6689167411"
         ],
         "parallel_safe": true
+      },
+      "productPullRequest": 6104,
+      "lifecycleWrite": true,
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6104,
+        "mergeCommit": "0b7d272ee4055d494d8910c00e4ec6a235018749",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-06T19:40:51Z"
       }
     },
     "id": "github.issue.4418069608",
-    "updated": "2026-11-06T18:52:07Z"
+    "updated": "2026-11-06T19:40:51Z"
   }
 }
