@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "scope:complete cannot complete a shipped brief whose issue was linked after merge",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "UserStory": "Operators can leftover-complete a shipped brief when the tracking issue was opened after the delivering product PR merged, without using --non-delivery.",
       "Description": "Operators can leftover-complete a shipped brief when the tracking issue was opened after the delivering product PR merged, without using --non-delivery.",
@@ -17,30 +17,30 @@
     "items": [
       {
         "id": "item-1",
-        "status": "pending",
         "title": "When forge closer set misses the story, admit brief-in-PR-diff identity if the merged PR added this exact lifecycle brief and also changed at least one non-lifecycle file",
-        "x-directive/artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Merged PR that only edits/moves lifecycle briefs still refuses; product PR that added the exact brief qualifies with identityBasis brief-in-pr-diff"
-        }
+        },
+        "x-directive/artifact_path": "packages/core/src/scope/delivery-evidence.ts"
       },
       {
         "id": "item-2",
-        "status": "pending",
         "title": "Keep merge-commit identity and delivery-branch ancestry checks unchanged; record identityBasis brief-in-pr-diff in completion provenance when fallback used",
-        "x-directive/artifact_path": "packages/core/src/scope/transition.ts",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Provenance shows identityBasis brief-in-pr-diff; --non-delivery remains unused for shipped work"
-        }
+        },
+        "x-directive/artifact_path": "packages/core/src/scope/transition.ts"
       },
       {
         "id": "item-3",
-        "status": "pending",
         "title": "Unit coverage for miss-closer + brief-added product PR green path and lifecycle-only refuse path",
-        "x-directive/artifact_path": "packages/core/src/scope/delivery-evidence.test.ts",
+        "status": "completed",
         "narrative": {
           "Acceptance": "delivery-evidence tests lock both paths"
-        }
+        },
+        "x-directive/artifact_path": "packages/core/src/scope/delivery-evidence.test.ts"
       }
     ],
     "references": [
@@ -124,7 +124,22 @@
           "product PR #6093"
         ]
       },
-      "derived_reason": "Hand-stamped after empty body harvest; limbs from issue Proposal + #6093 touch set (#4374)."
+      "derived_reason": "Hand-stamped after empty body harvest; limbs from issue Proposal + #6093 touch set (#4374).",
+      "productPullRequest": 6093,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-06T14:42:03.880Z"
+      },
+      "completionProvenance": {
+        "disposition": "delivered",
+        "verifiedAt": "2026-11-06T14:42:03.881Z",
+        "verifier": "leftover-land after #6093",
+        "deliveryBranch": "master",
+        "mergeCommit": "23135ccd0e11ebdcbe73e4a4933bf73d17f54670",
+        "deliveryCommit": "23135ccd0e11ebdcbe73e4a4933bf73d17f54670",
+        "pullRequestNumber": 6093,
+        "identityBasis": "brief-in-pr-diff"
+      }
     },
     "id": "github.issue.6243035490",
     "updated": "2026-11-06T14:07:58Z"
