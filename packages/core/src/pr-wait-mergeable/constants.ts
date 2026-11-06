@@ -15,8 +15,7 @@ export const OUTCOME_UNSANCTIONED_TEST_SKIP = "unsanctioned-test-skip" as const;
 export const HOTFIX_LABEL = "hotfix" as const;
 
 /** Shape (A) restore-green body line (#6071). */
-export const HOTFIX_SHAPE_A_RE =
-  /^Hotfix for red Merge gate \(task check\):\s+\S.*$/m;
+export const HOTFIX_SHAPE_A_RE = /^Hotfix for red Merge gate \(task check\):\s+\S.*$/m;
 
 /** Shape (B) cited-skip body line (#6071). */
 export const HOTFIX_SHAPE_B_RE = /^Hotfix skip:\s+deftai\/directive#(\d+)\s*$/m;

@@ -212,7 +212,8 @@ describe("tip-SHA GHA coverage-of-record (#5026)", () => {
 
 describe("runReleaseCheck", () => {
   it("returns ok when task check exits 0 without GHA coverage-of-record cite (#6041)", () => {
-    const [ok, msg] = runReleaseCheck("/proj", { skipNamedMergeGate: true,
+    const [ok, msg] = runReleaseCheck("/proj", {
+      skipNamedMergeGate: true,
       dispatchCheck: () => 0,
       resolveCoverageOfRecord: () => GREEN_CITE,
     });
@@ -222,7 +223,8 @@ describe("runReleaseCheck", () => {
   });
 
   it("does not fail closed when tip-SHA GHA coverage-of-record cite is missing (#6041)", () => {
-    const [ok, msg] = runReleaseCheck("/proj", { skipNamedMergeGate: true,
+    const [ok, msg] = runReleaseCheck("/proj", {
+      skipNamedMergeGate: true,
       dispatchCheck: () => 0,
       resolveCoverageOfRecord: () => ({
         ok: false,
@@ -235,7 +237,8 @@ describe("runReleaseCheck", () => {
   });
 
   it("returns timeout message on exit 124 (#2652)", () => {
-    const [ok, msg] = runReleaseCheck("/proj", { skipNamedMergeGate: true,
+    const [ok, msg] = runReleaseCheck("/proj", {
+      skipNamedMergeGate: true,
       dispatchCheck: (_fw, _proj, seams) => {
         expect(seams?.timeoutMs).toBe(RELEASE_CHECK_TIMEOUT_MS);
         return 124;
@@ -248,7 +251,8 @@ describe("runReleaseCheck", () => {
   });
 
   it("returns generic failure for other non-zero exits", () => {
-    const [ok, msg] = runReleaseCheck("/proj", { skipNamedMergeGate: true,
+    const [ok, msg] = runReleaseCheck("/proj", {
+      skipNamedMergeGate: true,
       dispatchCheck: () => 42,
       resolveCoverageOfRecord: () => GREEN_CITE,
     });
@@ -257,7 +261,8 @@ describe("runReleaseCheck", () => {
   });
 
   it("encodes failed-test count from suite tee without raw suite bytes (#4244)", () => {
-    const [ok, msg] = runReleaseCheck("/proj", { skipNamedMergeGate: true,
+    const [ok, msg] = runReleaseCheck("/proj", {
+      skipNamedMergeGate: true,
       dispatchCheck: (_fw, _proj, seams) => {
         seams?.onCheckComplete?.({
           exitCode: 1,
@@ -276,7 +281,8 @@ describe("runReleaseCheck", () => {
   });
 
   it("does not treat SKIP_NOTICE plus status run as suite-ran", () => {
-    const [ok, msg] = runReleaseCheck("/proj", { skipNamedMergeGate: true,
+    const [ok, msg] = runReleaseCheck("/proj", {
+      skipNamedMergeGate: true,
       dispatchCheck: (_fw, _proj, seams) => {
         seams?.onCheckComplete?.({
           exitCode: 0,
@@ -292,7 +298,8 @@ describe("runReleaseCheck", () => {
   });
 
   it("stamps a successful full-suite when the collector reports run without SKIP_NOTICE", () => {
-    const [ok, msg] = runReleaseCheck("/proj", { skipNamedMergeGate: true,
+    const [ok, msg] = runReleaseCheck("/proj", {
+      skipNamedMergeGate: true,
       dispatchCheck: (_fw, _proj, seams) => {
         seams?.onCheckComplete?.({
           exitCode: 0,
@@ -331,7 +338,8 @@ describe("runReleaseCheck hang bound (#4801)", () => {
   it("mints one absolute deadline at entry", () => {
     const now = 5_000_000;
     let seen: number | undefined;
-    runReleaseCheck("/proj", { skipNamedMergeGate: true,
+    runReleaseCheck("/proj", {
+      skipNamedMergeGate: true,
       nowMs: () => now,
       dispatchCheck: (_fw, _proj, seams) => {
         seen = seams?.deadlineAtMs;
@@ -346,7 +354,8 @@ describe("runReleaseCheck hang bound (#4801)", () => {
   });
 
   it("names the timed-out gate from completion.gates", () => {
-    const [ok, msg] = runReleaseCheck("/proj", { skipNamedMergeGate: true,
+    const [ok, msg] = runReleaseCheck("/proj", {
+      skipNamedMergeGate: true,
       dispatchCheck: (_fw, _proj, seams) => {
         seams?.onCheckComplete?.({
           exitCode: 124,
@@ -560,4 +569,3 @@ describe("cached remaining-time hang kill (#4801)", () => {
     errWrite.mockRestore();
   });
 });
-

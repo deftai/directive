@@ -7,11 +7,7 @@ import {
   shasMatch,
 } from "../pr-closeout-attestable/pr-head-assert.js";
 import { buildCiSummaryLine, evaluateCiGate } from "../pr-merge-readiness/ci-gate.js";
-import {
-  type CheckRunRecord,
-  defaultRunGh,
-  fetchCheckRunsRest,
-} from "../pr-merge-readiness/gh.js";
+import { type CheckRunRecord, defaultRunGh, fetchCheckRunsRest } from "../pr-merge-readiness/gh.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
 import { DEFAULT_MAX_WAIT_MINUTES } from "../pr-watch/constants.js";
 import {
@@ -1066,11 +1062,7 @@ function isMaintainerClassActor(
   return maintainerLogins.some((m) => m.toLowerCase() === needle);
 }
 
-function fetchCollaboratorAssociation(
-  repo: string,
-  login: string,
-  runGh: RunGhFn,
-): string | null {
+function fetchCollaboratorAssociation(repo: string, login: string, runGh: RunGhFn): string | null {
   const rc = runGh(["gh", "api", `repos/${repo}/collaborators/${login}/permission`]);
   if (rc.returncode !== 0 || !rc.stdout.trim()) return null;
   try {
@@ -1262,8 +1254,7 @@ export function evaluateHotfixAdmission(
       shape: null,
       skipIssue: null,
       actorLogin: null,
-      reason:
-        "hotfix label present without a matching shape (A) or (B) body line; refuse (#6071).",
+      reason: "hotfix label present without a matching shape (A) or (B) body line; refuse (#6071).",
       outcome: OUTCOME_HOTFIX_SHAPE_INVALID,
     };
   }
@@ -1284,8 +1275,7 @@ export function evaluateHotfixAdmission(
       shape: parsed.shape,
       skipIssue: parsed.skipIssue,
       actorLogin: null,
-      reason:
-        "hotfix label present but labeled-timeline actor provenance missing; refuse (#6071).",
+      reason: "hotfix label present but labeled-timeline actor provenance missing; refuse (#6071).",
       outcome: OUTCOME_HOTFIX_ACTOR_DENIED,
     };
   }
@@ -1301,9 +1291,7 @@ export function evaluateHotfixAdmission(
   }
   const maintainerLogins =
     options.maintainerLogins ?? loadMaintainerLogins(options.projectRoot ?? process.cwd());
-  if (
-    !isMaintainerClassActor(labeled.actor.association, labeled.actor.login, maintainerLogins)
-  ) {
+  if (!isMaintainerClassActor(labeled.actor.association, labeled.actor.login, maintainerLogins)) {
     return {
       admitted: false,
       shape: parsed.shape,

@@ -2,8 +2,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
-import { EXIT_CONFIG_ERROR, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
-import { MERGE_GATE_TASK_CHECK_NAME, OUTCOME_MASTER_MERGE_GATE_RED } from "./constants.js";
+import {
+  EXIT_CONFIG_ERROR,
+  EXIT_TIMEOUT_OR_ESCALATION,
+  MERGE_GATE_TASK_CHECK_NAME,
+  OUTCOME_MASTER_MERGE_GATE_RED,
+} from "./constants.js";
 import {
   ALLOWED_CANDIDATE_VALIDATION_COMMANDS,
   buildCandidateValidationAttestationFromProbe,
@@ -84,7 +88,10 @@ function validAttestation(
 
 describe("evaluateSemanticGreen", () => {
   it("no-ops when cascade mode is off", () => {
-    const result = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true, cascadeMode: false });
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
+      cascadeMode: false,
+    });
     expect(result.ok).toBe(true);
     expect(result.outcome).toBeNull();
   });
@@ -94,7 +101,11 @@ describe("evaluateSemanticGreen", () => {
       "/pulls/": pullsHandler(PRE_SPINE_BASE),
       "/git/ref/heads/": branchRefHandler(SPINE_HEAD),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true, cascadeMode: true, runGh });
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
+      cascadeMode: true,
+      runGh,
+    });
     expect(result.ok).toBe(false);
     expect(result.outcome).toBe("semantic-stale-base");
     expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
@@ -108,7 +119,11 @@ describe("evaluateSemanticGreen", () => {
       "/pulls/": pullsHandler(CURRENT_HEAD),
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true, cascadeMode: true, runGh });
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
+      cascadeMode: true,
+      runGh,
+    });
     expect(result.ok).toBe(true);
   });
 
@@ -124,7 +139,8 @@ describe("evaluateSemanticGreen", () => {
         stderr: "",
       }),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true,
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       cascadeMode: true,
       requireMasterCiGreen: true,
       runGh,
@@ -141,7 +157,8 @@ describe("evaluateSemanticGreen", () => {
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
       "/check-runs": greenCheckRunsHandler(),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true,
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       cascadeMode: true,
       requireMasterCiGreen: true,
       runGh,
@@ -154,7 +171,11 @@ describe("evaluateSemanticGreen", () => {
     const runGh = makeRunGh({
       "/pulls/": () => ({ returncode: 1, stdout: "", stderr: "rate limit" }),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true, cascadeMode: true, runGh });
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
+      cascadeMode: true,
+      runGh,
+    });
     expect(result.ok).toBe(false);
     expect(result.outcome).toBe("config-error");
     expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
@@ -165,7 +186,11 @@ describe("evaluateSemanticGreen", () => {
       "/pulls/": pullsHandler(CURRENT_HEAD),
       "/git/ref/heads/": () => ({ returncode: 1, stdout: "", stderr: "not found" }),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true, cascadeMode: true, runGh });
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
+      cascadeMode: true,
+      runGh,
+    });
     expect(result.ok).toBe(false);
     expect(result.outcome).toBe("config-error");
     expect(result.error).toContain("/git/ref/heads/");
@@ -177,7 +202,8 @@ describe("evaluateSemanticGreen", () => {
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
       "/check-runs": () => ({ returncode: 1, stdout: "", stderr: "api down" }),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true,
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       cascadeMode: true,
       requireMasterCiGreen: true,
       runGh,
@@ -192,7 +218,8 @@ describe("evaluateSemanticGreen", () => {
       "/pulls/": pullsHandler(PRE_SPINE_BASE, "develop"),
       "/git/ref/heads/master": branchRefHandler(CURRENT_HEAD),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true,
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       cascadeMode: true,
       baseBranch: "master",
       runGh,
@@ -274,7 +301,11 @@ describe("evaluateSemanticGreen", () => {
       },
     ];
     for (const testCase of cases) {
-      const result = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true, cascadeMode: true, runGh: testCase.runGh });
+      const result = evaluateSemanticGreen(PR, REPO, {
+        skipNamedMergeGate: true,
+        cascadeMode: true,
+        runGh: testCase.runGh,
+      });
       expect(result.ok, testCase.label).toBe(false);
       expect(result.error ?? "", testCase.label).toContain(testCase.expectSub);
     }
@@ -292,7 +323,8 @@ describe("evaluateSemanticGreen", () => {
         stderr: "",
       }),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true,
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       cascadeMode: true,
       requireMasterCiGreen: true,
       runGh,
@@ -347,7 +379,8 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       "/pulls/": pullsHandler(CURRENT_HEAD),
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true,
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
       localHeadSha: PR_HEAD,
@@ -367,7 +400,8 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       "/pulls/": pullsHandler(CURRENT_HEAD),
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true,
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
       localHeadSha: PR_HEAD,
@@ -386,7 +420,8 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
     });
     const attestation = validAttestation();
-    const result = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true,
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
       localHeadSha: PR_HEAD,
@@ -409,7 +444,8 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       "/pulls/": pullsHandler(PRE_SPINE_BASE),
       "/git/ref/heads/": branchRefHandler(SPINE_HEAD),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true,
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       cascadeMode: true,
       requireCandidateValidation: true,
       candidateValidationAttestation: validAttestation(PR_HEAD, SPINE_HEAD),
@@ -424,7 +460,8 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       "/pulls/": pullsHandler(CURRENT_HEAD),
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
     });
-    const missing = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true,
+    const missing = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       cascadeMode: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
@@ -435,7 +472,8 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
     expect(missing.outcome).toBe("candidate-validation-missing-or-stale");
 
     const attestation = validAttestation();
-    const ok = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true,
+    const ok = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       cascadeMode: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
@@ -457,7 +495,8 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       "/pulls/": pullsHandler(CURRENT_HEAD),
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true,
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
       localHeadSha: SPINE_HEAD,
@@ -474,7 +513,8 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       "/pulls/": pullsHandler(CURRENT_HEAD),
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true,
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       requireCandidateValidation: true,
       localHeadSha: PR_HEAD,
       candidateValidationAttestation: validAttestation(),
@@ -517,8 +557,7 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       skipNamedMergeGate: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
-      runGh: makeRunGh({ "/pulls/": () => ({ returncode: 1, stdout: "", stderr: "boom" }),
-      }),
+      runGh: makeRunGh({ "/pulls/": () => ({ returncode: 1, stdout: "", stderr: "boom" }) }),
     });
     expect(pullsFail.outcome).toBe("config-error");
 
@@ -536,7 +575,8 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       skipNamedMergeGate: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
-      runGh: makeRunGh({ "/pulls/": pullsHandler(CURRENT_HEAD),
+      runGh: makeRunGh({
+        "/pulls/": pullsHandler(CURRENT_HEAD),
         "/git/ref/heads/": () => ({ returncode: 1, stdout: "", stderr: "missing" }),
       }),
     });
@@ -565,7 +605,8 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       "/pulls/": pullsHandler(CURRENT_HEAD),
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true,
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
       prHeadSha: injectedHead,
@@ -584,7 +625,8 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       "/pulls/": pullsHandler(CURRENT_HEAD),
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
     });
-    const result = evaluateSemanticGreen(PR, REPO, { skipNamedMergeGate: true,
+    const result = evaluateSemanticGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       requireCandidateValidation: true,
       checkLifecycleDirty: false,
       prHeadSha: PR_HEAD,
@@ -602,7 +644,8 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
       "/pulls/": pullsHandler(CURRENT_HEAD),
       "/git/ref/heads/": branchRefHandler(CURRENT_HEAD),
     });
-    const missing = evaluateNonCascadeCandidateGreen(PR, REPO, { skipNamedMergeGate: true,
+    const missing = evaluateNonCascadeCandidateGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       checkLifecycleDirty: false,
       localHeadSha: PR_HEAD,
       runGh,
@@ -610,7 +653,8 @@ describe("evaluateSemanticGreen candidate validation (#4888)", () => {
     expect(missing.ok).toBe(false);
     expect(missing.outcome).toBe("candidate-validation-missing-or-stale");
 
-    const ok = evaluateNonCascadeCandidateGreen(PR, REPO, { skipNamedMergeGate: true,
+    const ok = evaluateNonCascadeCandidateGreen(PR, REPO, {
+      skipNamedMergeGate: true,
       checkLifecycleDirty: false,
       localHeadSha: PR_HEAD,
       candidateValidationAttestation: validAttestation(),
@@ -732,7 +776,8 @@ describe("always-on named Merge gate (#6071)", () => {
         shape: null,
         skipIssue: null,
         actorLogin: "MScottAdams",
-        reason: "hotfix label present without a matching shape (A) or (B) body line; refuse (#6071).",
+        reason:
+          "hotfix label present without a matching shape (A) or (B) body line; refuse (#6071).",
         outcome: "hotfix-shape-invalid",
       },
     });
@@ -749,7 +794,8 @@ describe("always-on named Merge gate (#6071)", () => {
         shape: null,
         skipIssue: null,
         actorLogin: "MScottAdams",
-        reason: "hotfix label present without a matching shape (A) or (B) body line; refuse (#6071).",
+        reason:
+          "hotfix label present without a matching shape (A) or (B) body line; refuse (#6071).",
         outcome: "hotfix-shape-invalid",
       },
     });
@@ -842,9 +888,9 @@ describe("always-on named Merge gate (#6071)", () => {
   });
 
   it("parses exactly one hotfix shape A or B", () => {
-    expect(
-      parseHotfixShape("Hotfix for red Merge gate (task check): flake in suite\n").shape,
-    ).toBe("A");
+    expect(parseHotfixShape("Hotfix for red Merge gate (task check): flake in suite\n").shape).toBe(
+      "A",
+    );
     expect(parseHotfixShape("Hotfix skip: deftai/directive#6066\n").shape).toBe("B");
     expect(
       parseHotfixShape(
@@ -885,5 +931,3 @@ describe("content-contract: three-axis semantic policy (#4888)", () => {
     expect(metaLessons).toContain("Canonical encoding");
   });
 });
-
-

@@ -87,7 +87,7 @@ describe("F-009 first-install plain English", () => {
     expect(text).toMatch(/git hooks will not be installed/i);
     expect(text).toMatch(/git init/i);
     expect(text).toMatch(/directive install --repair/i);
-    expect(text).toContain(HUMAN_GIT_HOOKS_INACTIVE_LINE.split(".")[0]!);
+    expect(text).toContain(HUMAN_GIT_HOOKS_INACTIVE_LINE.split(".")[0] ?? "");
   });
 
   it("-v shows Package manager will run + keyed script policy detail", () => {
