@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5852",
-    "updated": "2026-10-23T06:26:10Z"
+    "updated": "2026-11-06T22:11:39Z"
   },
   "plan": {
     "title": "feat(release): let the release skill choose the npm dist-tag (latest / maintainer / beta) for both packages",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(release): let the release skill choose the npm dist-tag (latest / maintainer / beta) for both packages",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5852",
@@ -16,22 +16,22 @@
     "items": [
       {
         "title": "relieves: P1 — Shared Resolve-tag version rule for push and workflow_dispatch (non-input): stable X.Y.Z → maintainer; prerelease → id/next; never SemVer-implicit latest; refuse PRE=latest tag spellings; no workflow_dispatch dist_tag input as SoT",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1"
       },
       {
         "title": "relieves: P2 — Explicit-latest is a distinct closed verb (own authz row and DEFT_ALLOW_* key) performed as a workflow_dispatch job inside environment: npm (OIDC trusted publisher); bare shell npm dist-tag add is not the primary path; ordinary release-publish cut grant / DEFT_ALLOW_RELEASE_PUBLISH do not authorize promote; Resolve never emits latest",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2"
       },
       {
         "title": "relieves: P3 — Carry channel-aware validation at release cut and release-publish (leave validateVersion strict for unrelated callers; sibling admits publishable prereleases for the version-derived non-latest channel and forbids prerelease→latest); GitHub make_latest follows the explicit-latest act; Phase-7 decision prompt for stable cuts (promote now or record explicit decline); consumer @latest registry readers stay keep-out/leftover",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3"
       },
       {
         "title": "relieves: P4 — Extract Resolve mapping to a committed script invoked by the workflow and read from the workflow ref (github.workflow_sha / sparse checkout at that SHA), never from the peeled tag tree; table-driven fixture proves stable→maintainer, never SemVer-alone latest, PRE=latest refusal; before tagging 0.129.0, fork-run or dry-run records revision/event/ref/exit and dist_tag=maintainer for a stable rehearsal",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4"
       }
     ],
@@ -1229,10 +1229,28 @@
           "#5783"
         ],
         "parallel_safe": false
+      },
+      "productPullRequest": 6111,
+      "completedAt": "2026-11-06T22:11:39Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-06T22:11:39Z"
+      },
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6111,
+        "mergeCommit": "2c72ac05b3d4e5e74e6cbecf9d2f62d189c1fdf8",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-06T22:11:39Z",
+        "disposition": "delivered",
+        "verifiedAt": "2026-11-06T22:11:39Z",
+        "verifier": "parent-through-merge",
+        "deliveryCommit": "2c72ac05b3d4e5e74e6cbecf9d2f62d189c1fdf8",
+        "pullRequestNumber": 6111
       }
     },
     "id": "github.issue.5991433022",
-    "updated": "2026-10-23T06:26:10Z",
+    "updated": "2026-11-06T22:11:39Z",
     "x-directive/intentConstraint": {
       "constraints": [
         {
