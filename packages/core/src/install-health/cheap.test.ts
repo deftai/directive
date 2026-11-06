@@ -2,11 +2,17 @@
  * Owner-boundary tests for the cheap hook in-sync check (AC2.4, AC2.6).
  * Fast path: pin/installed identity + readiness validity. No sleeps.
  */
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { checkCheapInSync, INSTALLATION_RECOVERY_GUIDANCE, RUNTIME_PIN_PACKAGE } from "./index.js";
+import {
+  checkCheapInSync,
+  INSTALLATION_RECOVERY_GUIDANCE,
+  MATERIALIZE_RUNTIME_OVERLAY_REL,
+  OVERLAY_RESTORE_RECOVERY_GUIDANCE,
+  RUNTIME_PIN_PACKAGE,
+} from "./index.js";
 
 const temps: string[] = [];
 
@@ -112,5 +118,85 @@ describe("checkCheapInSync (AC2.4)", () => {
     const elapsedMs = performance.now() - start;
     // Unit-testable without sleeping; 50 iterations well under 50ms*50 warm budget.
     expect(elapsedMs).toBeLessThan(2_000);
+  });
+});
+
+describe("checkCheapInSync overlay failClosed (#5910)", () => {
+  function writeOverlay(root: string): void {
+    mkdirSync(join(root, ".deft-scratch"), { recursive: true });
+    writeFileSync(
+      join(root, MATERIALIZE_RUNTIME_OVERLAY_REL),
+      `${JSON.stringify({ schema: "deft.materialize.runtime.overlay.v1", note: "tip overlay" }, null, 2)}\n`,
+    );
+  }
+
+  it("honest tip 0.0.0 with overlay present denies and names frozen-lockfile restore", () => {
+    const root = tempRoot();
+    writeCheapOkFixture(root, "0.129.0");
+    writeFileSync(
+      join(root, "node_modules", "@deftai", "directive-runtime", "package.json"),
+      `${JSON.stringify({ name: RUNTIME_PIN_PACKAGE, version: "0.0.0" }, null, 2)}\n`,
+    );
+    writeOverlay(root);
+    const result = checkCheapInSync(root);
+    expect(result.ok).toBe(false);
+    expect(result.failClosed).toBe(true);
+    expect(result.allowSetup).toBe(false);
+    expect(result.identityMatch).toBe(false);
+    expect(result.recoveryGuidance).toBe(OVERLAY_RESTORE_RECOVERY_GUIDANCE);
+    expect(result.recoveryGuidance).toContain("materialize-runtime-overlay.json");
+    expect(result.recoveryGuidance).toContain("pnpm install --frozen-lockfile");
+    expect(result.recoveryGuidance).toMatch(/retire/i);
+  });
+
+  it("version-spoofed tip (pinVersion === installedVersion) still fail-closes while overlay present", () => {
+    const root = tempRoot();
+    writeCheapOkFixture(root, "0.129.0");
+    // Spoof: rewrite installed version field to match pin while overlay remains.
+    writeFileSync(
+      join(root, "node_modules", "@deftai", "directive-runtime", "package.json"),
+      `${JSON.stringify({ name: RUNTIME_PIN_PACKAGE, version: "0.129.0" }, null, 2)}\n`,
+    );
+    writeOverlay(root);
+    const result = checkCheapInSync(root);
+    expect(result.identityMatch).toBe(true);
+    expect(result.failClosed).toBe(true);
+    expect(result.ok).toBe(false);
+    expect(result.allowSetup).toBe(false);
+    expect(result.recoveryGuidance).toBe(OVERLAY_RESTORE_RECOVERY_GUIDANCE);
+  });
+
+  it("frozen-lockfile restore retires overlay then identity passes", () => {
+    const root = tempRoot();
+    writeCheapOkFixture(root, "0.129.0");
+    writeFileSync(
+      join(root, "node_modules", "@deftai", "directive-runtime", "package.json"),
+      `${JSON.stringify({ name: RUNTIME_PIN_PACKAGE, version: "0.0.0" }, null, 2)}\n`,
+    );
+    writeOverlay(root);
+    expect(checkCheapInSync(root).failClosed).toBe(true);
+
+    // Exact restore: replace tip content with published pin bytes, then retire overlay.
+    writeFileSync(
+      join(root, "node_modules", "@deftai", "directive-runtime", "package.json"),
+      `${JSON.stringify({ name: RUNTIME_PIN_PACKAGE, version: "0.129.0" }, null, 2)}\n`,
+    );
+    unlinkSync(join(root, MATERIALIZE_RUNTIME_OVERLAY_REL));
+
+    const after = checkCheapInSync(root);
+    expect(after.failClosed).toBe(false);
+    expect(after.identityMatch).toBe(true);
+    expect(after.ok).toBe(true);
+    expect(after.recoveryGuidance).toBeNull();
+  });
+
+  it("stale overlay after content restore still denies until retirement", () => {
+    const root = tempRoot();
+    writeCheapOkFixture(root, "0.129.0");
+    writeOverlay(root);
+    const result = checkCheapInSync(root);
+    expect(result.identityMatch).toBe(true);
+    expect(result.failClosed).toBe(true);
+    expect(result.recoveryGuidance).not.toBe(INSTALLATION_RECOVERY_GUIDANCE);
   });
 });

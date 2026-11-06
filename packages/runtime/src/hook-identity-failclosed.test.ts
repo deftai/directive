@@ -13,6 +13,9 @@ import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-heal
 import { afterEach, describe, expect, it } from "vitest";
 import { resolveLaunchingCheckoutRootFromPath, run } from "./hook-dispatch.js";
 
+const OVERLAY_RECOVERY =
+  "Overlay present at .deft-scratch/materialize-runtime-overlay.json. Outside the blocked hook, run `pnpm install --frozen-lockfile` (or equivalent exact restore) to restore the published pin, then retire that overlay before identity may pass.";
+
 const temps: string[] = [];
 
 afterEach(() => {
@@ -51,6 +54,19 @@ function cheapFailClosed(): CheapInSyncResult {
     failClosed: true,
     allowSetup: false,
     recoveryGuidance: INSTALLATION_RECOVERY_GUIDANCE,
+  };
+}
+
+function cheapOverlaySpoof(): CheapInSyncResult {
+  return {
+    ok: false,
+    pinVersion: "0.129.0",
+    installedVersion: "0.129.0",
+    identityMatch: true,
+    readinessValid: true,
+    failClosed: true,
+    allowSetup: false,
+    recoveryGuidance: OVERLAY_RECOVERY,
   };
 }
 
@@ -218,6 +234,27 @@ describe("HOOK-ID pin≠installed fail-closed (AC14.8 / AC14.65)", () => {
     expect(msg).toContain(INSTALLATION_RECOVERY_GUIDANCE);
     expect(msg.toLowerCase()).not.toContain("ritual");
     expect(String(result.body.code ?? "")).not.toBe("ritual-not-ready");
+  });
+
+  it("overlay-present version-spoof denies with overlay + frozen-lockfile recovery (#5910)", () => {
+    const root = tempDir("hook-id-overlay");
+    writeFileSync(join(root, "a.txt"), "x\n");
+
+    const result = dispatchWrite({
+      projectRoot: root,
+      target: join(root, "a.txt"),
+      launchingCheckoutRoot: root,
+      cheapInSync: () => cheapOverlaySpoof(),
+    });
+
+    expect(result.code).toBe(0);
+    expect(result.body.permission ?? result.body.decision).toBe("deny");
+    const msg = denyMessage(result.body);
+    expect(msg).toContain("overlay");
+    expect(msg).toContain("pnpm install --frozen-lockfile");
+    expect(msg).toMatch(/retire/i);
+    expect(msg).toContain("materialize-runtime-overlay.json");
+    expect(msg.toLowerCase()).not.toContain("ritual");
   });
 });
 

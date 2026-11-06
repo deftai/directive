@@ -6,8 +6,12 @@
  * Full setup is not repeated on this path when readiness is valid.
  *
  * Pin≠installed fails closed with AC9.7 recovery guidance; no setup (AC2.6).
+ * Materialize overlay present fails closed even when versions match (#5910);
+ * recovery names frozen-lockfile restore then overlay retirement.
  */
 
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { INSTALLATION_RECOVERY_GUIDANCE } from "./constants.js";
 import {
   type FsSeams,
@@ -16,6 +20,31 @@ import {
   readRuntimePin,
 } from "./readers.js";
 import type { CheapInSyncResult } from "./types.js";
+
+/** Tip→pin materialize overlay marker (#5805 / #5910). */
+export const MATERIALIZE_RUNTIME_OVERLAY_REL = ".deft-scratch/materialize-runtime-overlay.json";
+
+/** Release cut-context marker (#5910); materialize refuses while present. */
+export const RELEASE_CUT_CONTEXT_REL = ".deft-scratch/release-cut-context.json";
+
+/**
+ * Operator-terminal recovery when the materialize overlay is present (#5910).
+ * Exact restore first; retire the overlay before identity may pass.
+ */
+export const OVERLAY_RESTORE_RECOVERY_GUIDANCE =
+  "Overlay present at .deft-scratch/materialize-runtime-overlay.json. Outside the blocked hook, run `pnpm install --frozen-lockfile` (or equivalent exact restore) to restore the published pin, then retire that overlay before identity may pass.";
+
+function overlayPresent(projectRoot: string, seams: FsSeams): boolean {
+  const overlayPath = join(projectRoot, MATERIALIZE_RUNTIME_OVERLAY_REL);
+  if (seams.isFile) {
+    return seams.isFile(overlayPath);
+  }
+  try {
+    return existsSync(overlayPath);
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Fast hook path: identity + readiness. Does not inspect lockfile, generation,
@@ -32,7 +61,10 @@ export function checkCheapInSync(projectRoot: string, seams: FsSeams = {}): Chea
   const identityMismatch =
     pinVersion !== null && installedVersion !== null && pinVersion !== installedVersion;
 
-  const failClosed = identityMismatch;
+  const hasOverlay = overlayPresent(projectRoot, seams);
+  // Overlay keeps fail-closed even when versions match so a version-string
+  // spoof cannot clear identity while the marker remains (#5910 P3).
+  const failClosed = identityMismatch || hasOverlay;
   const allowSetup = !failClosed;
 
   let readinessValid = false;
@@ -43,6 +75,13 @@ export function checkCheapInSync(projectRoot: string, seams: FsSeams = {}): Chea
 
   const ok = identityMatch && readinessValid && !failClosed;
 
+  let recoveryGuidance: string | null = null;
+  if (failClosed) {
+    recoveryGuidance = hasOverlay
+      ? OVERLAY_RESTORE_RECOVERY_GUIDANCE
+      : INSTALLATION_RECOVERY_GUIDANCE;
+  }
+
   return {
     ok,
     pinVersion,
@@ -51,6 +90,6 @@ export function checkCheapInSync(projectRoot: string, seams: FsSeams = {}): Chea
     readinessValid,
     failClosed,
     allowSetup,
-    recoveryGuidance: failClosed ? INSTALLATION_RECOVERY_GUIDANCE : null,
+    recoveryGuidance,
   };
 }

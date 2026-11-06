@@ -16,10 +16,68 @@ const path = require("node:path");
 const PIN_PKG = path.join("node_modules", "@deftai", "directive-runtime");
 const LOCK_REL = path.join(".deft-scratch", "materialize-runtime.lock");
 const OVERLAY_REL = path.join(".deft-scratch", "materialize-runtime-overlay.json");
+/** Release cut-context marker (#5910). Active from release entry through bump/tag. */
+const CUT_CONTEXT_REL = path.join(".deft-scratch", "release-cut-context.json");
+const CUT_CONTEXT_SCHEMA = "deft.release.cut-context.v1";
 
 function fail(msg, code = 2) {
   console.error(`materialize:runtime: ${msg}`);
   process.exit(code);
+}
+
+function isCutContextActive(projectRoot) {
+  return fs.existsSync(path.join(projectRoot, CUT_CONTEXT_REL));
+}
+
+/**
+ * Named cut-context producer for the release cut worktree (#5910 P1).
+ * Write at release entry; clear after version bump/tag. While active,
+ * materialize:runtime refuses before it moves or replaces the pin.
+ * Shares the materialize lock so cut entry cannot race an in-flight replace.
+ */
+function writeReleaseCutContext(projectRoot, meta = {}) {
+  const root = path.resolve(projectRoot);
+  const dest = path.join(root, CUT_CONTEXT_REL);
+  const lockPath = acquireLock(root);
+  try {
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    const body = {
+      schema: CUT_CONTEXT_SCHEMA,
+      writtenAt: new Date().toISOString(),
+      projectRoot: root,
+      phase: meta.phase || "release-entry",
+      note:
+        meta.note ||
+        "Release cut-context active through version bump/tag; task materialize:runtime refuses pin replace (#5910).",
+    };
+    fs.writeFileSync(dest, `${JSON.stringify(body, null, 2)}\n`);
+    return body;
+  } finally {
+    releaseLock(lockPath);
+  }
+}
+
+function clearReleaseCutContext(projectRoot) {
+  const dest = path.join(path.resolve(projectRoot), CUT_CONTEXT_REL);
+  try {
+    fs.unlinkSync(dest);
+    return true;
+  } catch (err) {
+    if (err && err.code === "ENOENT") return false;
+    throw err;
+  }
+}
+
+/** Retire the materialize overlay after exact restore (#5910 P2/P4). */
+function retireMaterializeOverlay(projectRoot) {
+  const dest = path.join(path.resolve(projectRoot), OVERLAY_REL);
+  try {
+    fs.unlinkSync(dest);
+    return true;
+  } catch (err) {
+    if (err && err.code === "ENOENT") return false;
+    throw err;
+  }
 }
 
 function runNode(script, args, opts = {}) {
@@ -121,15 +179,14 @@ function materialize(projectRoot, opts = {}) {
   const root = path.resolve(projectRoot);
   const stageScript = path.join(root, "packages", "runtime", "scripts", "stage-bundle.mjs");
   const packScript = path.join(root, "packages", "runtime", "scripts", "pack-staged-runtime.mjs");
-  if (!fs.existsSync(stageScript) || !fs.existsSync(packScript)) {
-    throw new Error("stage-bundle/pack-staged-runtime scripts missing; run from framework-source checkout");
-  }
 
   const pinDir = path.join(root, PIN_PKG);
   if (fs.existsSync(pinDir) && !isCheckoutOwnedDir(pinDir, root)) {
     throw new Error(`refusing to mutate linked/shared pin at ${pinDir}`);
   }
 
+  // Hold the same lock as cut entry; check cut-context under the lock so a
+  // mid-flight cut cannot outlive an unlocked pre-check (#5910 Greptile P1).
   const lockPath = acquireLock(root);
   const priorPinUsable = fs.existsSync(path.join(pinDir, "dist", "bin.js"));
   let priorBackup = null;
@@ -137,6 +194,14 @@ function materialize(projectRoot, opts = {}) {
   let packDir;
   let extractDir;
   try {
+    if (isCutContextActive(root)) {
+      throw new Error(
+        `refusing materialize:runtime while release cut-context is active (${CUT_CONTEXT_REL}); keep the published pin through version bump/tag (#5910)`,
+      );
+    }
+    if (!fs.existsSync(stageScript) || !fs.existsSync(packScript)) {
+      throw new Error("stage-bundle/pack-staged-runtime scripts missing; run from framework-source checkout");
+    }
     stageDir = fs.mkdtempSync(path.join(os.tmpdir(), "deft-materialize-stage-"));
     packDir = fs.mkdtempSync(path.join(os.tmpdir(), "deft-materialize-pack-"));
     runNode(stageScript, [stageDir], { cwd: root });
@@ -155,6 +220,13 @@ function materialize(projectRoot, opts = {}) {
     const entries = fs.readdirSync(extractDir);
     if (entries.length !== 1) throw new Error(`expected one package folder in tgz, got ${entries.join(",")}`);
     const extracted = path.join(extractDir, entries[0]);
+
+    // Final cut-context check under lock immediately before pin move/replace.
+    if (isCutContextActive(root)) {
+      throw new Error(
+        `refusing materialize:runtime while release cut-context is active (${CUT_CONTEXT_REL}); keep the published pin through version bump/tag (#5910)`,
+      );
+    }
 
     const parent = path.dirname(pinDir);
     fs.mkdirSync(parent, { recursive: true });
@@ -226,9 +298,33 @@ function materialize(projectRoot, opts = {}) {
 }
 
 if (require.main === module) {
-  const root = process.argv[2] || process.cwd();
+  const argv = process.argv.slice(2);
+  const flag = argv[0];
   try {
-    materialize(root);
+    if (flag === "--write-cut-context") {
+      const target = argv[1] || process.cwd();
+      const body = writeReleaseCutContext(target);
+      process.stdout.write(
+        `materialize:runtime: cut-context written ${path.join(path.resolve(target), CUT_CONTEXT_REL)}\n`,
+      );
+      process.stdout.write(`${JSON.stringify(body)}\n`);
+    } else if (flag === "--clear-cut-context") {
+      const cleared = clearReleaseCutContext(argv[1] || process.cwd());
+      process.stdout.write(
+        cleared
+          ? `materialize:runtime: cut-context cleared\n`
+          : `materialize:runtime: cut-context absent\n`,
+      );
+    } else if (flag === "--retire-overlay") {
+      const retired = retireMaterializeOverlay(argv[1] || process.cwd());
+      process.stdout.write(
+        retired
+          ? `materialize:runtime: overlay retired\n`
+          : `materialize:runtime: overlay absent\n`,
+      );
+    } else {
+      materialize(flag || process.cwd());
+    }
   } catch (err) {
     fail(err && err.message ? err.message : String(err), err && err.code ? Number(err.code) || 2 : 2);
   }
@@ -240,7 +336,12 @@ module.exports = {
   releaseLock,
   isCheckoutOwnedDir,
   movePath,
+  isCutContextActive,
+  writeReleaseCutContext,
+  clearReleaseCutContext,
+  retireMaterializeOverlay,
   PIN_PKG,
   LOCK_REL,
   OVERLAY_REL,
+  CUT_CONTEXT_REL,
 };
