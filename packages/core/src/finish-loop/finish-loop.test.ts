@@ -373,6 +373,7 @@ describe("runPrFinishLoop", () => {
         },
       }),
       fetchPrHeadShaFn: () => "abc",
+      skipNamedMergeGate: true,
       mergeFn: (_pr, _repo, opts) => {
         pinned = opts?.matchHeadCommit;
         return 0;
@@ -383,6 +384,57 @@ describe("runPrFinishLoop", () => {
     expect(r.haltReason).toBe("merged");
     expect(r.mergeAttempted).toBe(true);
     expect(pinned).toBe("abc");
+  });
+
+  it("refuses mergeFn when named Merge gate is red (#6071)", () => {
+    const root = tmpRoot();
+    mintFinishLoopTemplateGrant({ projectRoot: root });
+    let mergeCalls = 0;
+    const r = runPrFinishLoop({
+      projectRoot: root,
+      prNumber: 3,
+      repo: "deftai/directive",
+      merge: true,
+      watchFn: () => cleanWatch(3),
+      agentMergeFn: () => ({
+        exitCode: 0 as const,
+        allowed: true,
+        message: "ok",
+        policy: {
+          requireHumanMerge: false,
+          source: "env-bypass",
+          error: null,
+          deprecationWarning: null,
+          autoDeployOnMerge: false,
+        },
+      }),
+      fetchPrHeadShaFn: () => "abc",
+      namedMergeGateFn: () => ({
+        ok: false,
+        outcome: "master-merge-gate-red",
+        exitCode: 1,
+        error: "Merge gate (task check) is completed/failure on tip tipsha",
+        status: {
+          disposition: "red",
+          tipSha: "tipsha",
+          checkName: "Merge gate (task check)",
+          status: "completed",
+          conclusion: "failure",
+          error: "red",
+          pendingAgeMs: null,
+        },
+        hotfix: null,
+      }),
+      mergeFn: () => {
+        mergeCalls += 1;
+        return 0;
+      },
+      writeProgress: false,
+    });
+    expect(r.exitCode).toBe(EXIT_ACTION_REQUIRED);
+    expect(r.mergeAttempted).toBe(false);
+    expect(r.mergeSkippedReason).toBe("master-merge-gate-red");
+    expect(mergeCalls).toBe(0);
   });
 
   it("MERGED watch verdict skips merge path (#4288)", () => {

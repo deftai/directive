@@ -402,43 +402,130 @@ function extractCheckRunSummary(run: Record<string, unknown>): string | null {
   return typeof summary === "string" && summary.length > 0 ? summary : null;
 }
 
-export function fetchCheckRunsRest(
-  sha: string,
-  repo: string,
-  runGh: RunGhFn,
-): { summary: Record<string, unknown> | null; checkRuns: CheckRunRecord[]; error: string } {
-  const rc = runGh(["gh", "api", `repos/${repo}/commits/${sha}/check-runs`]);
-  if (rc.returncode !== 0) {
-    return {
-      summary: null,
-      checkRuns: [],
-      error: `gh api /commits/${"<"}sha>/check-runs failed: ${rc.stderr.trim()}`,
-    };
+const CHECK_RUNS_PER_PAGE = 100;
+
+/** Parse Link rel=next from a `gh api --include` header block (#6071). */
+export function parseNextLinkFromIncludeHeaders(headers: string): string | null {
+  const linkLine = headers.split(/\r?\n/).find((line) => /^link:\s*/i.test(line.trim()));
+  if (linkLine === undefined) {
+    return null;
   }
-  if (!rc.stdout.trim()) {
+  const value = linkLine.replace(/^link:\s*/i, "").trim();
+  for (const part of value.split(",")) {
+    const m = /<([^>]+)>\s*;\s*rel="?next"?/i.exec(part.trim());
+    if (m?.[1]) {
+      return m[1];
+    }
+  }
+  return null;
+}
+
+function splitIncludeResponse(raw: string): { headers: string; body: string } {
+  const normalized = raw.replace(/^\uFEFF/, "");
+  const match = /\r?\n\r?\n/.exec(normalized);
+  if (match === null || match.index === undefined) {
+    return { headers: "", body: normalized.trim() };
+  }
+  return {
+    headers: normalized.slice(0, match.index),
+    body: normalized.slice(match.index + match[0].length).trim(),
+  };
+}
+
+function recordFromCheckRun(run: unknown): CheckRunRecord | null {
+  if (run === null || typeof run !== "object" || Array.isArray(run)) {
+    return null;
+  }
+  const r = run as Record<string, unknown>;
+  const status = typeof r.status === "string" ? r.status : "unknown";
+  const conclusion = typeof r.conclusion === "string" ? r.conclusion : "none";
+  const name = typeof r.name === "string" && r.name.length > 0 ? r.name : "<unnamed>";
+  const runSummary = extractCheckRunSummary(r);
+  const createdAt = typeof r.created_at === "string" ? r.created_at : null;
+  const startedAt = typeof r.started_at === "string" ? r.started_at : null;
+  let appId: number | null = null;
+  const appBlock = r.app;
+  if (appBlock !== null && typeof appBlock === "object" && !Array.isArray(appBlock)) {
+    const id = (appBlock as Record<string, unknown>).id;
+    if (typeof id === "number" && Number.isFinite(id)) {
+      appId = id;
+    }
+  }
+  return {
+    name,
+    status,
+    conclusion,
+    created_at: createdAt,
+    started_at: startedAt,
+    appId,
+    ...(runSummary === null ? {} : { summary: runSummary }),
+  };
+}
+
+function parseCheckRunsPage(body: string): {
+  checkRuns: CheckRunRecord[];
+  rawCount: number;
+  totalCount: number | null;
+  error: string;
+} {
+  if (!body.trim()) {
     return {
-      summary: null,
       checkRuns: [],
+      rawCount: 0,
+      totalCount: null,
       error: "empty body from gh api /commits/<sha>/check-runs",
     };
   }
   let payload: unknown;
   try {
-    payload = JSON.parse(rc.stdout) as unknown;
+    payload = JSON.parse(body) as unknown;
   } catch (exc: unknown) {
     const message = exc instanceof Error ? exc.message : String(exc);
-    return { summary: null, checkRuns: [], error: `could not parse check-runs JSON: ${message}` };
+    return {
+      checkRuns: [],
+      rawCount: 0,
+      totalCount: null,
+      error: `could not parse check-runs JSON: ${message}`,
+    };
   }
   if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
-    return { summary: null, checkRuns: [], error: "unexpected check-runs JSON shape (not a dict)" };
+    return {
+      checkRuns: [],
+      rawCount: 0,
+      totalCount: null,
+      error: "unexpected check-runs JSON shape (not a dict)",
+    };
   }
-  const runs = (payload as Record<string, unknown>).check_runs;
+  const record = payload as Record<string, unknown>;
+  const runs = record.check_runs;
   if (!Array.isArray(runs)) {
-    return { summary: null, checkRuns: [], error: "check-runs JSON missing check_runs list" };
+    return {
+      checkRuns: [],
+      rawCount: 0,
+      totalCount: null,
+      error: "check-runs JSON missing check_runs list",
+    };
   }
+  const totalCount =
+    typeof record.total_count === "number" && Number.isFinite(record.total_count)
+      ? record.total_count
+      : null;
   const checkRuns: CheckRunRecord[] = [];
+  for (const run of runs) {
+    const parsed = recordFromCheckRun(run);
+    if (parsed !== null) {
+      checkRuns.push(parsed);
+    }
+  }
+  return { checkRuns, rawCount: runs.length, totalCount, error: "" };
+}
+
+function summarizeCheckRuns(
+  checkRuns: readonly CheckRunRecord[],
+  totalOverride?: number,
+): Record<string, unknown> {
   const summary: Record<string, unknown> = {
-    total: runs.length,
+    total: totalOverride ?? checkRuns.length,
     by_status: {} as Record<string, number>,
     by_conclusion: {} as Record<string, number>,
     greptile_review: null,
@@ -446,45 +533,112 @@ export function fetchCheckRunsRest(
   };
   const byStatus = summary.by_status as Record<string, number>;
   const byConclusion = summary.by_conclusion as Record<string, number>;
-  for (const run of runs) {
-    if (run === null || typeof run !== "object" || Array.isArray(run)) {
-      continue;
+  for (const run of checkRuns) {
+    byStatus[run.status] = (byStatus[run.status] ?? 0) + 1;
+    byConclusion[run.conclusion] = (byConclusion[run.conclusion] ?? 0) + 1;
+    if (run.name === "Greptile Review") {
+      summary.greptile_review = { status: run.status, conclusion: run.conclusion };
     }
-    const r = run as Record<string, unknown>;
-    const status = typeof r.status === "string" ? r.status : "unknown";
-    const conclusion = typeof r.conclusion === "string" ? r.conclusion : "none";
-    const name = typeof r.name === "string" && r.name.length > 0 ? r.name : "<unnamed>";
-    const runSummary = extractCheckRunSummary(r);
-    const createdAt = typeof r.created_at === "string" ? r.created_at : null;
-    const startedAt = typeof r.started_at === "string" ? r.started_at : null;
-    let appId: number | null = null;
-    const appBlock = r.app;
-    if (appBlock !== null && typeof appBlock === "object" && !Array.isArray(appBlock)) {
-      const id = (appBlock as Record<string, unknown>).id;
-      if (typeof id === "number" && Number.isFinite(id)) {
-        appId = id;
-      }
-    }
-    const record: CheckRunRecord = {
-      name,
-      status,
-      conclusion,
-      created_at: createdAt,
-      started_at: startedAt,
-      appId,
-      ...(runSummary === null ? {} : { summary: runSummary }),
-    };
-    checkRuns.push(record);
-    byStatus[status] = (byStatus[status] ?? 0) + 1;
-    byConclusion[conclusion] = (byConclusion[conclusion] ?? 0) + 1;
-    if (r.name === "Greptile Review") {
-      summary.greptile_review = { status, conclusion };
-    }
-    if (name.toLowerCase().includes("slizard")) {
-      summary.slizard_review = { status, conclusion };
+    if (run.name.toLowerCase().includes("slizard")) {
+      summary.slizard_review = { status: run.status, conclusion: run.conclusion };
     }
   }
-  return { summary, checkRuns, error: "" };
+  return summary;
+}
+
+function normalizeCheckRunsEndpoint(urlOrPath: string): string {
+  if (urlOrPath.startsWith("http://") || urlOrPath.startsWith("https://")) {
+    return urlOrPath.replace(/^https?:\/\/api\.github\.com\//, "");
+  }
+  return urlOrPath;
+}
+
+/**
+ * Fetch check-runs for a commit SHA with per_page=100 pagination (#6071).
+ * Follows Link rel=next when `gh api --include` headers are present; otherwise
+ * pages via total_count / short-page until exhausted.
+ */
+export function fetchCheckRunsRest(
+  sha: string,
+  repo: string,
+  runGh: RunGhFn,
+): { summary: Record<string, unknown> | null; checkRuns: CheckRunRecord[]; error: string } {
+  const allRuns: CheckRunRecord[] = [];
+  let rawTotal = 0;
+  let page = 1;
+  let nextUrl: string | null =
+    `repos/${repo}/commits/${sha}/check-runs?per_page=${CHECK_RUNS_PER_PAGE}&page=${page}`;
+  let pages = 0;
+  const maxPages = 50;
+
+  while (nextUrl !== null && pages < maxPages) {
+    pages += 1;
+    const endpoint = normalizeCheckRunsEndpoint(nextUrl);
+    let body = "";
+    let headers = "";
+    let failedStderr = "";
+    let ok = false;
+
+    const includeRc = runGh(["gh", "api", "--include", endpoint]);
+    if (includeRc.returncode === 0 && includeRc.stdout.trim().length > 0) {
+      const split = splitIncludeResponse(includeRc.stdout);
+      headers = split.headers;
+      body = split.body;
+      // Injectable seams may ignore --include and return bare JSON.
+      if (body.startsWith("{") || body.startsWith("[")) {
+        ok = true;
+      }
+    }
+    if (!ok) {
+      const bare = runGh(["gh", "api", endpoint]);
+      if (bare.returncode !== 0) {
+        failedStderr = bare.stderr.trim() || includeRc.stderr.trim();
+        return {
+          summary: null,
+          checkRuns: [],
+          error: `gh api /commits/${"<"}sha>/check-runs failed: ${failedStderr}`,
+        };
+      }
+      body = bare.stdout;
+      headers = "";
+    }
+
+    const parsed = parseCheckRunsPage(body);
+    if (parsed.error.length > 0) {
+      return { summary: null, checkRuns: [], error: parsed.error };
+    }
+    allRuns.push(...parsed.checkRuns);
+    rawTotal += parsed.rawCount;
+
+    const linkNext = headers.length > 0 ? parseNextLinkFromIncludeHeaders(headers) : null;
+    if (linkNext !== null) {
+      nextUrl = linkNext;
+      continue;
+    }
+    if (
+      parsed.totalCount !== null &&
+      allRuns.length < parsed.totalCount &&
+      parsed.checkRuns.length >= CHECK_RUNS_PER_PAGE
+    ) {
+      page += 1;
+      nextUrl = `repos/${repo}/commits/${sha}/check-runs?per_page=${CHECK_RUNS_PER_PAGE}&page=${page}`;
+      continue;
+    }
+    if (parsed.checkRuns.length >= CHECK_RUNS_PER_PAGE && parsed.totalCount === null) {
+      page += 1;
+      nextUrl = `repos/${repo}/commits/${sha}/check-runs?per_page=${CHECK_RUNS_PER_PAGE}&page=${page}`;
+      continue;
+    }
+    nextUrl = null;
+  }
+
+  // Single-page null placeholders: keep legacy summary.total = raw array length.
+  const totalOverride = pages === 1 && rawTotal !== allRuns.length ? rawTotal : undefined;
+  return {
+    summary: summarizeCheckRuns(allRuns, totalOverride),
+    checkRuns: allRuns,
+    error: "",
+  };
 }
 
 /** PR base branch ref (rulesets / branch protection apply to the merge target) (#3234). */
