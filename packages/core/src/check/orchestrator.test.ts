@@ -89,7 +89,11 @@ describe("dispatchTaskCheck", () => {
     };
 
     const root = "/home/user/deft";
-    const code = dispatchTaskCheck(root, root, { spawnFn, useTaskCache: false });
+    const code = dispatchTaskCheck(root, root, {
+      skipSanctionedSkipBaseline: true,
+      spawnFn,
+      useTaskCache: false,
+    });
     expect(code).toBe(0);
     expect(calls).toHaveLength(1);
     expect(calls[0]?.args[0]).toBe("check:framework-source");
@@ -105,7 +109,11 @@ describe("dispatchTaskCheck", () => {
 
     const framework = "/home/user/deft";
     const project = "/home/user/consumer-project";
-    const code = dispatchTaskCheck(framework, project, { spawnFn, useTaskCache: false });
+    const code = dispatchTaskCheck(framework, project, {
+      skipSanctionedSkipBaseline: true,
+      spawnFn,
+      useTaskCache: false,
+    });
     expect(code).toBe(0);
     expect(calls).toHaveLength(1);
     expect(calls[0]?.args[0]).toBe("check:consumer");
@@ -119,7 +127,11 @@ describe("dispatchTaskCheck", () => {
     };
 
     const root = "/home/user/deft";
-    dispatchTaskCheck(root, root, { spawnFn, useTaskCache: false });
+    dispatchTaskCheck(root, root, {
+      skipSanctionedSkipBaseline: true,
+      spawnFn,
+      useTaskCache: false,
+    });
     expect(calls[0]?.cwd).toBe(resolve(root));
   });
 
@@ -132,7 +144,11 @@ describe("dispatchTaskCheck", () => {
 
     const framework = "/home/user/deft";
     const project = "/home/user/consumer";
-    dispatchTaskCheck(framework, project, { spawnFn, useTaskCache: false });
+    dispatchTaskCheck(framework, project, {
+      skipSanctionedSkipBaseline: true,
+      spawnFn,
+      useTaskCache: false,
+    });
     expect(calls[0]?.cwd).toBe(resolve(project));
   });
 
@@ -156,6 +172,7 @@ describe("dispatchTaskCheck", () => {
       return { status: 0 };
     };
     const scaffoldCode = dispatchTaskCheck(scaffold, scaffold, {
+      skipSanctionedSkipBaseline: true,
       spawnFn: scaffoldSpawn,
       useTaskCache: false,
     });
@@ -175,6 +192,7 @@ describe("dispatchTaskCheck", () => {
     };
     const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const mutatedCode = dispatchTaskCheck(mutated, mutated, {
+      skipSanctionedSkipBaseline: true,
       spawnFn: mutatedSpawn,
       useTaskCache: false,
     });
@@ -194,7 +212,11 @@ describe("dispatchTaskCheck", () => {
       calls.push("spawned");
       return { status: 0 };
     };
-    const code = dispatchTaskCheck(project, project, { spawnFn, useTaskCache: false });
+    const code = dispatchTaskCheck(project, project, {
+      skipSanctionedSkipBaseline: true,
+      spawnFn,
+      useTaskCache: false,
+    });
     expect(code).toBe(0);
     expect(calls).toHaveLength(1);
   });
@@ -239,7 +261,11 @@ tasks:
       return { status: 0 };
     };
     const project = join(tmpdir(), "consumer-project");
-    const code = dispatchTaskCheck(framework, project, { spawnFn, useTaskCache: false });
+    const code = dispatchTaskCheck(framework, project, {
+      skipSanctionedSkipBaseline: true,
+      spawnFn,
+      useTaskCache: false,
+    });
     expect(code).toBe(2);
     expect(calls).toHaveLength(0);
   });
@@ -251,7 +277,12 @@ tasks:
       return { status: 0 };
     };
 
-    dispatchTaskCheck("/root", "/root", { taskBin: "my-task", spawnFn, useTaskCache: false });
+    dispatchTaskCheck("/root", "/root", {
+      skipSanctionedSkipBaseline: true,
+      taskBin: "my-task",
+      spawnFn,
+      useTaskCache: false,
+    });
     expect(calls[0]?.cmd).toBe("my-task");
   });
 
@@ -261,7 +292,11 @@ tasks:
       return { status: null, error: new Error("task not found") };
     };
 
-    const code = dispatchTaskCheck("/root", "/root", { spawnFn, useTaskCache: false });
+    const code = dispatchTaskCheck("/root", "/root", {
+      skipSanctionedSkipBaseline: true,
+      spawnFn,
+      useTaskCache: false,
+    });
     expect(code).toBe(2);
     errWrite.mockRestore();
   });
@@ -271,7 +306,11 @@ tasks:
       return { status: null };
     };
 
-    const code = dispatchTaskCheck("/root", "/root", { spawnFn, useTaskCache: false });
+    const code = dispatchTaskCheck("/root", "/root", {
+      skipSanctionedSkipBaseline: true,
+      spawnFn,
+      useTaskCache: false,
+    });
     expect(code).toBe(1);
   });
 
@@ -282,7 +321,11 @@ tasks:
       return { status: 0 };
     };
 
-    dispatchTaskCheck("/my/framework", "/my/consumer", { spawnFn, useTaskCache: false });
+    dispatchTaskCheck("/my/framework", "/my/consumer", {
+      skipSanctionedSkipBaseline: true,
+      spawnFn,
+      useTaskCache: false,
+    });
     const taskfileIdx = calls[0]?.args.indexOf("--taskfile") ?? -1;
     expect(taskfileIdx).toBeGreaterThan(-1);
     const taskfilePath = calls[0]?.args[taskfileIdx + 1];
@@ -294,7 +337,11 @@ tasks:
       return { status: 42 };
     };
 
-    const code = dispatchTaskCheck("/root", "/root", { spawnFn, useTaskCache: false });
+    const code = dispatchTaskCheck("/root", "/root", {
+      skipSanctionedSkipBaseline: true,
+      spawnFn,
+      useTaskCache: false,
+    });
     expect(code).toBe(42);
   });
 
@@ -314,7 +361,12 @@ tasks:
       DEFT_ALLOW_DEFAULT_BRANCH_COMMIT: "1",
       DEFT_RELEASE_PREFLIGHT: "1",
     };
-    dispatchTaskCheck("/root", "/root", { spawnFn, useTaskCache: false, env });
+    dispatchTaskCheck("/root", "/root", {
+      skipSanctionedSkipBaseline: true,
+      spawnFn,
+      useTaskCache: false,
+      env,
+    });
     expect(calls[0]?.env?.FOO).toBe("bar");
     expect(calls[0]?.env?.DEFT_ALLOW_DEFAULT_BRANCH_COMMIT).toBe("1");
     expect(calls[0]?.env?.DEFT_RELEASE_PREFLIGHT).toBe("1");
@@ -329,6 +381,7 @@ tasks:
     ) => ({ status: null, signal: "SIGTERM" as const });
 
     const code = dispatchTaskCheck("/root", "/root", {
+      skipSanctionedSkipBaseline: true,
       spawnFn,
       useTaskCache: false,
       timeoutMs: 60_000,
@@ -343,6 +396,7 @@ tasks:
     // spawnSync to populate result.error (ENOENT), which maps to exit 2.
     const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const code = dispatchTaskCheck("/tmp/fake-fw", "/tmp/fake-fw", {
+      skipSanctionedSkipBaseline: true,
       taskBin: "/absolutely-nonexistent-binary-that-cannot-exist",
       useTaskCache: false,
     });
@@ -357,6 +411,7 @@ describe("dispatchCachedTaskCheck fail-fast before suite (#3188)", () => {
     const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
 
     const code = dispatchCachedTaskCheck("/fw-root-3188", "/fw-root-3188", {
+      skipSanctionedSkipBaseline: true,
       noCache: true,
       // #3282: isolate fail-fast ordering from live toolchain preflight.
       preflight: null,
@@ -393,6 +448,7 @@ describe("dispatchCachedTaskCheck fail-fast before suite (#3188)", () => {
     const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const plans: Array<{ timeoutMs?: number; command: string; args: readonly string[] }> = [];
     const code = dispatchCachedTaskCheck("/fw-root-4230", "/fw-root-4230", {
+      skipSanctionedSkipBaseline: true,
       noCache: true,
       preflight: null,
       emitRunSummary: false,
@@ -424,6 +480,7 @@ describe("dispatchCachedTaskCheck fail-fast before suite (#3188)", () => {
 
     plans.length = 0;
     dispatchCachedTaskCheck("/fw-root-4230b", "/fw-root-4230b", {
+      skipSanctionedSkipBaseline: true,
       noCache: true,
       preflight: null,
       emitRunSummary: false,
@@ -533,6 +590,7 @@ tasks:
     const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const project = join(tmpdir(), "consumer-project-3188");
     const code = dispatchCachedTaskCheck(framework, project, {
+      skipSanctionedSkipBaseline: true,
       noCache: true,
       preflight: null,
       emitRunSummary: false,
@@ -562,6 +620,7 @@ tasks:
     const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
 
     const code = dispatchCachedTaskCheck("/fw-root-3188-ok", "/fw-root-3188-ok", {
+      skipSanctionedSkipBaseline: true,
       noCache: true,
       preflight: null,
       emitRunSummary: false,
@@ -666,6 +725,7 @@ tasks:
     const project = mkdtempSync(join(tmpdir(), "consumer-3334-"));
     tempDirs.push(project);
     const code = dispatchCachedTaskCheck(framework, project, {
+      skipSanctionedSkipBaseline: true,
       noCache: true,
       preflight: null,
       env: { DEFT_RUN_SUMMARY_PATH: summary },
@@ -730,6 +790,7 @@ describe("dispatchCachedTaskCheck rapid zero-verified walk (#4866)", () => {
     let acGate: { status?: string; exit_code?: number } | undefined;
     const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const code = dispatchCachedTaskCheck(`/fw-root-4866-${mode}`, `/fw-root-4866-${mode}`, {
+      skipSanctionedSkipBaseline: true,
       noCache: true,
       preflight: null,
       emitRunSummary: false,
@@ -942,6 +1003,7 @@ tasks:
     let acOutcome: { status?: string; cause?: string; exit_code?: number } | undefined;
     const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     dispatchCachedTaskCheck(framework, project, {
+      skipSanctionedSkipBaseline: true,
       noCache: true,
       preflight: null,
       onGateStart: (id) => started.push(id),
@@ -1007,6 +1069,7 @@ tasks:
       return true;
     });
     dispatchCachedTaskCheck(framework, project, {
+      skipSanctionedSkipBaseline: true,
       noCache: true,
       preflight: null,
       gateSpawnFn: (gateId) => {
@@ -1046,6 +1109,7 @@ describe("armed coverage aggregate preserves real required outcomes (#5079)", ()
     const errors = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     let coverageStarted = false;
     const code = dispatchCachedTaskCheck("/fw-5079", "/fw-5079", {
+      skipSanctionedSkipBaseline: true,
       noCache: true,
       preflight: null,
       emitRunSummary: false,
@@ -1068,6 +1132,7 @@ describe("armed coverage aggregate preserves real required outcomes (#5079)", ()
   });
   it("retains the existing off-ceiling pressure behavior", () => {
     const code = dispatchCachedTaskCheck("/fw-5079-off", "/fw-5079-off", {
+      skipSanctionedSkipBaseline: true,
       noCache: true,
       preflight: null,
       emitRunSummary: false,
@@ -1083,6 +1148,7 @@ describe("armed coverage aggregate preserves real required outcomes (#5079)", ()
   it("accepts cold-build stdout before a complete armed report in rapid mode", () => {
     expect(
       dispatchCachedTaskCheck("/fw-5079-cold", "/fw-5079-cold", {
+        skipSanctionedSkipBaseline: true,
         noCache: true,
         preflight: null,
         emitRunSummary: false,
@@ -1099,6 +1165,7 @@ describe("armed coverage aggregate preserves real required outcomes (#5079)", ()
   it("refuses a rapid green exit without required typed coverage", () => {
     expect(
       dispatchCachedTaskCheck("/fw-5079-rapid", "/fw-5079-rapid", {
+        skipSanctionedSkipBaseline: true,
         noCache: true,
         preflight: null,
         emitRunSummary: false,
