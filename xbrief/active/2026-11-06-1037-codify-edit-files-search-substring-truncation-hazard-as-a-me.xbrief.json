@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #1037",
-    "updated": "2026-11-06T17:52:13Z"
+    "updated": "2026-11-06T18:52:07Z"
   },
   "plan": {
     "title": "Codify edit_files search-substring truncation hazard as a meta/lessons.md entry (recurrence on PR #1034)",
@@ -91,7 +91,8 @@
         "files": [
           "content/packs/lessons/lessons-pack-0.1.json",
           "meta/lessons.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "docs/RULE-MAP.md"
         ],
         "module_boundary": "content/packs/lessons/lessons-pack-0.1.json",
         "cohesion_exemption": "Pack entry plus rendered meta/lessons.md projection and thin CHANGELOG Docs note for the same Bound unit"
@@ -360,7 +361,8 @@
         "file_scope": [
           "content/packs/lessons/lessons-pack-0.1.json",
           "meta/lessons.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "docs/RULE-MAP.md"
         ],
         "size": "S",
         "file_scope_confidence": "high",
@@ -373,6 +375,6 @@
       }
     },
     "id": "github.issue.4418069608",
-    "updated": "2026-11-06T17:52:13Z"
+    "updated": "2026-11-06T18:52:07Z"
   }
 }
