@@ -46,7 +46,12 @@ import {
   CONSUMER_HEADER_PLACEHOLDER_GATE_ID,
   evaluateConsumerHeaderPlaceholderAtRoot,
 } from "./consumer-header-placeholder.js";
-import { type CheckOrchestratorSeams, resolveCheckTarget } from "./context.js";
+import {
+  type CheckOrchestratorSeams,
+  resolveCheckTarget,
+  runSanctionedSkipCountBaselineGate,
+  SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID,
+} from "./context.js";
 import {
   checkGateId,
   checkGateSpawnArgs,
@@ -324,6 +329,28 @@ export function dispatchCachedTaskCheck(
       remedy: headerPlaceholder.message,
     });
     return finish(1, false);
+  }
+
+  // #6072 Prefer-A Bound P3: sanctioned skip-count baseline on cached check path.
+  if (options.skipSanctionedSkipBaseline !== true) {
+    const baseline = runSanctionedSkipCountBaselineGate({
+      projectRoot: resolvedProject,
+      phase: options.sanctionedSkipBaselinePhase ?? "merge-readiness",
+      shapeB: options.sanctionedSkipShapeB,
+      targetBaselineCount: options.sanctionedSkipTargetBaselineCount,
+      candidateRows: options.sanctionedSkipInventoryRows,
+    });
+    if (!baseline.ok) {
+      process.stderr.write(`${baseline.message}\n`);
+      gateOutcomes.push({
+        id: SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID,
+        status: "failed",
+        exit_code: baseline.code,
+        cause: baseline.message,
+        remedy: "Align citation-shaped skip count with committed baseline or shape-(B) bump (#6072)",
+      });
+      return finish(baseline.code, false);
+    }
   }
 
   // #3282: toolchain preflight — degraded skip when framework tools missing.

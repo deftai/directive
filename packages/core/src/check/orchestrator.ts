@@ -28,7 +28,12 @@ import {
   CONSUMER_HEADER_PLACEHOLDER_GATE_ID,
   evaluateConsumerHeaderPlaceholderAtRoot,
 } from "./consumer-header-placeholder.js";
-import { type CheckOrchestratorSeams, resolveCheckTarget } from "./context.js";
+import {
+  type CheckOrchestratorSeams,
+  resolveCheckTarget,
+  runSanctionedSkipCountBaselineGate,
+  SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID,
+} from "./context.js";
 import { CONSUMER_CHECK_GATES, checkGateId, FRAMEWORK_CHECK_GATES } from "./gate-lists.js";
 import { listCompositionGatesMissingSpecificRemedies } from "./named-cause.js";
 import {
@@ -116,6 +121,25 @@ export function dispatchTaskCheck(
         `  remedy: ${headerPlaceholder.message}\n`,
     );
     return 1;
+  }
+
+  // #6072 Prefer-A Bound P3: sanctioned skip-count baseline on check path
+  // (same always-on surface as #6071 scanner / Merge gate task check).
+  if (seams.skipSanctionedSkipBaseline !== true) {
+    const baseline = runSanctionedSkipCountBaselineGate({
+      projectRoot: resolvedProject,
+      phase: seams.sanctionedSkipBaselinePhase ?? "merge-readiness",
+      shapeB: seams.sanctionedSkipShapeB,
+      targetBaselineCount: seams.sanctionedSkipTargetBaselineCount,
+      candidateRows: seams.sanctionedSkipInventoryRows,
+    });
+    if (!baseline.ok) {
+      process.stderr.write(`${baseline.message}\n`);
+      process.stderr.write(
+        `check: gate ${SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID} failed (exit ${baseline.code})\n`,
+      );
+      return baseline.code;
+    }
   }
 
   const spawn = seams.spawnFn ?? defaultSpawn;

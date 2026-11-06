@@ -8,6 +8,9 @@ import {
   evaluateSanctionedSkipCountBaseline,
   evaluateSanctionedSkipCountBaselineFromInventory,
   isSanctionedSkipCountBaselinePath,
+  inventoryCitedSkipsInTree,
+  mapCitedSkipSitesToSanctionedRows,
+  runSanctionedSkipCountBaselineGate,
   parseSanctionedSkipCountBaselineJson,
   SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID,
   SANCTIONED_SKIP_COUNT_BASELINE_REL,
@@ -114,6 +117,7 @@ describe("degraded skip report in check (#3282)", () => {
     const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const started: string[] = [];
     const code = dispatchCachedTaskCheck("/fw", "/fw", {
+      skipSanctionedSkipBaseline: true,
       noCache: true,
       emitRunSummary: false,
       preflight: {
@@ -152,6 +156,7 @@ describe("degraded skip report in check (#3282)", () => {
     const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const spawned: Array<{ gateId: string; bin: string; args: readonly string[] }> = [];
     const code = dispatchCachedTaskCheck(framework, project, {
+      skipSanctionedSkipBaseline: true,
       noCache: true,
       emitRunSummary: false,
       cliBin: "deft",
@@ -199,6 +204,7 @@ describe("degraded skip report in check (#3282)", () => {
     const { framework, project } = writeConsumerFramework();
     const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const code = dispatchCachedTaskCheck(framework, project, {
+      skipSanctionedSkipBaseline: true,
       noCache: true,
       emitRunSummary: false,
       cliBin: "deft",
@@ -245,6 +251,7 @@ describe("degraded skip report in check (#3282)", () => {
     const { framework, project } = writeConsumerFramework();
     const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const code = dispatchCachedTaskCheck(framework, project, {
+      skipSanctionedSkipBaseline: true,
       noCache: true,
       emitRunSummary: false,
       preflight: {
@@ -296,6 +303,7 @@ describe("degraded skip report in check (#3282)", () => {
     );
     const probed: string[] = [];
     const code = dispatchCachedTaskCheck(framework, project, {
+      skipSanctionedSkipBaseline: true,
       noCache: true,
       emitRunSummary: false,
       env: { DEFT_PACKAGE_MANAGER: "npm" },
@@ -320,6 +328,7 @@ describe("degraded skip report in check (#3282)", () => {
   it("prints named cause when a gate fails", () => {
     const errWrite = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const code = dispatchCachedTaskCheck("/fw-named", "/fw-named", {
+      skipSanctionedSkipBaseline: true,
       noCache: true,
       emitRunSummary: false,
       preflight: null,
@@ -493,5 +502,31 @@ describe("sanctioned-skip-count-baseline (#6072)", () => {
     if (ok.ok) expect(ok.value.count).toBe(0);
     expect(parseSanctionedSkipCountBaselineJson("{}").ok).toBe(false);
     expect(parseSanctionedSkipCountBaselineJson("not-json").ok).toBe(false);
+  });
+});
+
+describe("sanctioned-skip baseline production wire (#6072 P3)", () => {
+  it("runs baseline gate on inventory rows for merge-readiness phase", () => {
+    const sites = inventoryCitedSkipsInTree(process.cwd());
+    const rows = mapCitedSkipSitesToSanctionedRows(sites);
+    const result = runSanctionedSkipCountBaselineGate({
+      projectRoot: process.cwd(),
+      phase: "merge-readiness",
+      candidateRows: rows,
+      shapeB: { admitted: false, authorizedNetNew: 0 },
+    });
+    expect(result.ok).toBe(true);
+    expect(result.code).toBe(0);
+  });
+
+  it("runs baseline gate for pre-pr phase with explicit target baseline", () => {
+    const result = runSanctionedSkipCountBaselineGate({
+      projectRoot: process.cwd(),
+      phase: "pre-pr",
+      targetBaselineCount: 0,
+      candidateRows: [],
+      shapeB: { admitted: false, authorizedNetNew: 0 },
+    });
+    expect(result.ok).toBe(true);
   });
 });
