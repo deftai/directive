@@ -78,7 +78,11 @@ describe("runPromoteLatest exclusive claim before dispatch (#5852 Greptile P1)",
     };
     const grantsDir = join(root, ".deft", "authz", "grants");
     mkdirSync(grantsDir, { recursive: true });
-    writeFileSync(join(grantsDir, `${grant.id}.json`), `${JSON.stringify(grant, null, 2)}\n`, "utf8");
+    writeFileSync(
+      join(grantsDir, `${grant.id}.json`),
+      `${JSON.stringify(grant, null, 2)}\n`,
+      "utf8",
+    );
 
     vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     let dispatched = false;
