@@ -337,10 +337,11 @@ export function runReleaseCheck(
         });
         if (result.status === 0) {
           const url = (result.stdout ?? "").trim();
-          const m = /github\.com[:/]([^/]+\/[^/.]+)/i.exec(url);
+          // Allow dots inside the repo segment; only strip a trailing .git.
+          const m = /github\.com[:/]([^/]+\/[^/]+?)(?:\.git)?$/i.exec(url);
           const captured = m?.[1];
           if (captured !== undefined && captured.length > 0) {
-            return captured.replace(/\.git$/i, "");
+            return captured;
           }
         }
       } catch {

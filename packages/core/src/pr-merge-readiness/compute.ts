@@ -61,6 +61,10 @@ import {
 } from "./reviewer-presence.js";
 import type { SlizardGateOptions } from "./slizard-gate.js";
 import { evaluateSlizardGate, isSlizardCheck } from "./slizard-gate.js";
+import {
+  evaluateAlwaysOnNamedMergeGate,
+  type NamedMergeGateFn,
+} from "../pr-wait-mergeable/semantic-green.js";
 import type { GateResult, GreptileVerdict, RunGhFn } from "./types.js";
 
 function buildGateResult(
@@ -147,6 +151,10 @@ export interface ComputeGateOptions extends CiGateOptions, SlizardGateOptions {
   readonly skipCloseoutAttestable?: boolean;
   /** Injectable closeout evaluator; production uses `evaluateCloseoutAttestable`. */
   readonly closeoutAttestableFn?: CloseoutAttestableGateFn;
+  /** #6071: skip always-on named Merge gate on master's tip (tests only). */
+  readonly skipNamedMergeGate?: boolean;
+  /** Injectable named Merge gate; production uses `evaluateAlwaysOnNamedMergeGate`. */
+  readonly namedMergeGateFn?: NamedMergeGateFn;
 }
 
 function resolvedMinConfidence(options: ComputeGateOptions): number {
@@ -804,6 +812,54 @@ function applyCloseoutAttestableGate(result: GateResult, options: ComputeGateOpt
   };
 }
 
+function applyNamedMergeGate(
+  result: GateResult,
+  runGh: RunGhFn,
+  options: ComputeGateOptions,
+): GateResult {
+  if (options.skipNamedMergeGate === true) {
+    return result;
+  }
+  if (result.via === VIA_ERROR || result.via === VIA_FALLBACK2) {
+    return result;
+  }
+  if (!isMergeReady(result.failures)) {
+    return result;
+  }
+  const repo = result.repo;
+  if (repo === null || repo.length === 0) {
+    const message =
+      "named Merge gate requires a resolved repository for merge-readiness (#6071)";
+    return {
+      ...result,
+      failures: [...result.failures, message],
+      partialData: {
+        ...result.partialData,
+        named_merge_gate: { ok: false, outcome: "repo-missing" },
+      },
+    };
+  }
+  const namedFn = options.namedMergeGateFn ?? evaluateAlwaysOnNamedMergeGate;
+  const named = namedFn(result.prNumber, repo, {
+    runGh,
+    projectRoot: options.projectRoot ?? process.cwd(),
+  });
+  if (named.ok) {
+    return result;
+  }
+  const message =
+    named.error?.trim() ||
+    `named Merge gate refused merge-readiness (${named.outcome ?? "master-merge-gate-red"}) (#6071)`;
+  return {
+    ...result,
+    failures: [...result.failures, message],
+    partialData: {
+      ...result.partialData,
+      named_merge_gate: { ok: false, outcome: named.outcome ?? "master-merge-gate-red" },
+    },
+  };
+}
+
 export function computeGateResult(
   prNumber: number,
   repo: string | null,
@@ -812,12 +868,12 @@ export function computeGateResult(
 ): GateResult {
   let { result, partial } = computePrimary(prNumber, repo, runGh, options);
   if (result !== null) {
-    return applyCloseoutAttestableGate(result, options);
+    return applyNamedMergeGate(applyCloseoutAttestableGate(result, options), runGh, options);
   }
 
   ({ result, partial } = computeFallback1(prNumber, repo, partial, runGh, options));
   if (result !== null) {
-    return applyCloseoutAttestableGate(result, options);
+    return applyNamedMergeGate(applyCloseoutAttestableGate(result, options), runGh, options);
   }
 
   ({ result, partial } = computeFallback2(prNumber, repo, partial, runGh));

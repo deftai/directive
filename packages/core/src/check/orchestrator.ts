@@ -119,6 +119,29 @@ export function dispatchTaskCheck(
     return 1;
   }
 
+  // #6071: cited-skip inventory every framework-source check; refuse unsanctioned.
+  if (target === "check:framework-source" && seams.skipCitedSkipScan !== true) {
+    const cited = evaluateCitedSkipScan({
+      projectRoot: resolvedProject,
+      changedFiles: seams.citedSkipChangedFiles,
+      hotfixShapeB: seams.citedSkipHotfixShapeB === true,
+      fetchIssue: seams.citedSkipFetchIssue,
+      skipCommitTimeIso: seams.citedSkipCommitTimeIso,
+    });
+    process.stderr.write(`${cited.listing}\n`);
+    if (!cited.ok) {
+      for (const failure of cited.failures) {
+        process.stderr.write(`check: ${failure}\n`);
+      }
+      process.stderr.write(
+        "check: gate cited-skip-scan failed (exit 1)\n" +
+          "  cause: unsanctioned or unvalidated test skips (#6071)\n" +
+          "  remedy: cite open deftai/directive#N with skipped-tests block under admitted shape B, or remove the skip\n",
+      );
+      return 1;
+    }
+  }
+
   const spawn = seams.spawnFn ?? defaultSpawn;
   const result = spawn(taskBin, [target, "--taskfile", taskfilePath], {
     cwd,
@@ -359,10 +382,10 @@ export function evaluateCitedSkipScan(options: CitedSkipScanOptions): CitedSkipS
   const inventory = inventoryCitedSkipsInTree(options.projectRoot);
   const listing = formatCitedSkipListing(inventory);
   const failures: string[] = [];
-  const changed = new Set(
-    (options.changedFiles ?? []).map((f) => f.replaceAll("\\", "/")),
-  );
-  const liveAll = changed.size === 0;
+  // undefined changedFiles => inventory-only (list every run; no live probes).
+  // provided list (including []) => live-validate only those paths (#6071 Bound).
+  const liveProbe = options.changedFiles !== undefined;
+  const changed = new Set((options.changedFiles ?? []).map((f) => f.replaceAll("\\", "/")));
 
   for (const site of inventory) {
     if (isBaselineSite(site)) {
@@ -374,9 +397,8 @@ export function evaluateCitedSkipScan(options: CitedSkipScanOptions): CitedSkipS
       );
       continue;
     }
-    const inDiff = liveAll || changed.has(site.file);
-    if (!inDiff) {
-      // Static inventory only for unchanged sites.
+    if (!liveProbe || !changed.has(site.file)) {
+      // Static inventory only for unchanged / inventory-only runs.
       continue;
     }
     if (!options.hotfixShapeB) {

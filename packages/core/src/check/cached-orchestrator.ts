@@ -1,5 +1,9 @@
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
+
+// Lazy require avoids a static cycle with orchestrator.ts (which imports this module).
+const requireOrchestrator = createRequire(import.meta.url);
 import {
   lintShippedRegistry,
   resolveTaskContract,
@@ -324,6 +328,33 @@ export function dispatchCachedTaskCheck(
       remedy: headerPlaceholder.message,
     });
     return finish(1, false);
+  }
+
+  // #6071: cited-skip inventory on framework-source; refuse unsanctioned describe.skip.
+  if (target === "check:framework-source" && options.skipCitedSkipScan !== true) {
+    const { evaluateCitedSkipScan } = requireOrchestrator("./orchestrator.js") as typeof import("./orchestrator.js");
+    const cited = evaluateCitedSkipScan({
+      projectRoot: resolvedProject,
+      changedFiles: options.citedSkipChangedFiles,
+      hotfixShapeB: options.citedSkipHotfixShapeB === true,
+      fetchIssue: options.citedSkipFetchIssue,
+      skipCommitTimeIso: options.citedSkipCommitTimeIso,
+    });
+    process.stderr.write(`${cited.listing}\n`);
+    if (!cited.ok) {
+      for (const failure of cited.failures) {
+        process.stderr.write(`check: ${failure}\n`);
+      }
+      gateOutcomes.push({
+        id: "cited-skip-scan",
+        status: "failed",
+        exit_code: 1,
+        cause: "unsanctioned or unvalidated test skips (#6071)",
+        remedy:
+          "cite open deftai/directive#N with skipped-tests block under admitted shape B, or remove the skip",
+      });
+      return finish(1, false);
+    }
   }
 
   // #3282: toolchain preflight — degraded skip when framework tools missing.
