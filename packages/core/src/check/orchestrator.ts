@@ -74,16 +74,44 @@ export function dispatchTaskCheck(
 ): number {
   const resolvedFramework = resolve(frameworkRoot);
   const resolvedProject = resolve(projectRoot);
+  const target = resolveCheckTarget(resolvedFramework, resolvedProject);
+
+  // #6071 Greptile: production entry calls evaluateCitedSkipScan before cache/uncached fork.
+  if (target === "check:framework-source" && seams.skipCitedSkipScan !== true) {
+    const cited = evaluateCitedSkipScan({
+      projectRoot: resolvedProject,
+      changedFiles: seams.citedSkipChangedFiles,
+      hotfixShapeB: seams.citedSkipHotfixShapeB === true,
+      fetchIssue: seams.citedSkipFetchIssue,
+      skipCommitTimeIso: seams.citedSkipCommitTimeIso,
+    });
+    process.stderr.write(`${cited.listing}\n`);
+    if (!cited.ok) {
+      for (const failure of cited.failures) {
+        process.stderr.write(`check: ${failure}\n`);
+      }
+      process.stderr.write(
+        "check: gate cited-skip-scan failed (exit 1)\n" +
+          "  cause: unsanctioned or unvalidated test skips (#6071)\n" +
+          "  remedy: cite open deftai/directive#N with skipped-tests block under admitted shape B, or remove the skip\n",
+      );
+      return 1;
+    }
+  }
+
   const useTaskCache = seams.useTaskCache !== false && !seams.noCache;
 
   if (useTaskCache) {
-    return dispatchCachedTaskCheck(resolvedFramework, resolvedProject, seams);
+    // Cached path re-runs the same scan; skip duplicate inventory when already green above.
+    return dispatchCachedTaskCheck(resolvedFramework, resolvedProject, {
+      ...seams,
+      skipCitedSkipScan: true,
+    });
   }
 
   const taskfilePath = join(resolvedFramework, "Taskfile.yml");
   const taskBin = seams.taskBin ?? "task";
 
-  const target = resolveCheckTarget(resolvedFramework, resolvedProject);
   const cwd = target === "check:framework-source" ? resolvedFramework : resolvedProject;
 
   // #3070: pre-flight consumer check-graph integrity (same path as cached
@@ -122,29 +150,6 @@ export function dispatchTaskCheck(
         `  remedy: ${headerPlaceholder.message}\n`,
     );
     return 1;
-  }
-
-  // #6071: cited-skip inventory every framework-source check; refuse unsanctioned.
-  if (target === "check:framework-source" && seams.skipCitedSkipScan !== true) {
-    const cited = evaluateCitedSkipScan({
-      projectRoot: resolvedProject,
-      changedFiles: seams.citedSkipChangedFiles,
-      hotfixShapeB: seams.citedSkipHotfixShapeB === true,
-      fetchIssue: seams.citedSkipFetchIssue,
-      skipCommitTimeIso: seams.citedSkipCommitTimeIso,
-    });
-    process.stderr.write(`${cited.listing}\n`);
-    if (!cited.ok) {
-      for (const failure of cited.failures) {
-        process.stderr.write(`check: ${failure}\n`);
-      }
-      process.stderr.write(
-        "check: gate cited-skip-scan failed (exit 1)\n" +
-          "  cause: unsanctioned or unvalidated test skips (#6071)\n" +
-          "  remedy: cite open deftai/directive#N with skipped-tests block under admitted shape B, or remove the skip\n",
-      );
-      return 1;
-    }
   }
 
   const spawn = seams.spawnFn ?? defaultSpawn;
