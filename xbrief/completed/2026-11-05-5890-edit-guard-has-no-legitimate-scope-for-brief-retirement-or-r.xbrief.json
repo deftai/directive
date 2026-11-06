@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "Edit guard has no legitimate scope for brief-retirement or restamp changes",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Edit guard has no legitimate scope for brief-retirement or restamp changes",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5890",
@@ -3093,7 +3093,8 @@
           "#5783"
         ],
         "parallel_safe": true
-      }
+      },
+      "productPullRequest": 6067
     },
     "id": "github.issue.6020000186",
     "updated": "2026-11-05T19:02:28Z"
