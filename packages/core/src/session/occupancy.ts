@@ -1351,6 +1351,13 @@ function uniquePrintCompanion(
   return printed.length === 1 ? (printed[0] as string) : null;
 }
 
+/**
+ * Mint-refusal recovery on the occupancy claim path.
+ * Not the #5925 Prefer-A Bound matching-owner hatch (Stop 1 metacharacter
+ * recursive-flail cite) — that hatch lives in
+ * `uninspectableLifecycleDenyMessage` / `formatMatchingOwnerLifecycleHatch`.
+ * Do not import this formatter into hook deny rendering.
+ */
 export function formatOccupancyMintRefusal(input: {
   readonly hosts: readonly HookHostIdentityProvider[];
   readonly suggestedSessionId: string | null;

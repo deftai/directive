@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   exactLifecycleCommandVerb,
+  formatMatchingOwnerLifecycleHatch,
   hintUninspectableLifecycleCommand,
   hookHostIdentitySource,
   hostIdentityFallsBackToExplicitOwner,
@@ -8,6 +9,8 @@ import {
   MAX_HOOK_HOST_IDENTITY_UTF8_BYTES,
   resolveHookHostIdentity,
   rewriteExactLifecycleCommand,
+  UNRESOLVED_LIFECYCLE_OWNER_TOKEN,
+  uninspectableLifecycleDenyMessage,
 } from "./host-session-identity.js";
 
 const CODEX_SESSION_ID = "host:codex:v1:c2Vzc2lvbi1B";
@@ -693,5 +696,68 @@ describe("rewriteExactLifecycleCommand (#3611)", () => {
         "owner; echo pwned",
       ),
     ).toBeNull();
+  });
+});
+
+describe("uninspectable lifecycle hatch copy (#5925 Prefer-A Bound)", () => {
+  const OWNER = "host:claude:v1:c2Vzc2lvbi1h";
+
+  it("keeps the true miss label and appends a deft matching-owner hatch when resolved", () => {
+    const payload = {
+      tool_name: "Bash",
+      tool_input: { command: "deft session:start && echo ok" },
+    };
+    const message = uninspectableLifecycleDenyMessage("session:start", OWNER, payload);
+    expect(message).toContain("(chain)");
+    expect(message).toContain(`Re-run as a simple command with --session-id=${OWNER}.`);
+    expect(message).toContain(
+      `Matching-owner hatch: deft session:start --session-id=${OWNER} (illustrations only: | tee / &&).`,
+    );
+  });
+
+  it("spells task recovery with the -- CLI_ARGS boundary", () => {
+    const payload = {
+      tool_name: "Bash",
+      tool_input: { command: "task session:start -- --read-only | tee log" },
+    };
+    const hatch = formatMatchingOwnerLifecycleHatch("session:start", OWNER, payload);
+    expect(hatch).toBe(
+      `Matching-owner hatch: task session:start -- --read-only --session-id=${OWNER} ` +
+        `(illustrations only: | tee / &&).`,
+    );
+    const message = uninspectableLifecycleDenyMessage("session:start", OWNER, payload);
+    expect(message).toContain("(pipe)");
+    expect(message).toContain(hatch);
+  });
+
+  it("omits bare --session-id=<host-published-id> when the owner is unresolved", () => {
+    const payload = {
+      tool_name: "Bash",
+      tool_input: { command: "deft session:start 2>&1" },
+    };
+    const message = uninspectableLifecycleDenyMessage(
+      "session:start",
+      UNRESOLVED_LIFECYCLE_OWNER_TOKEN,
+      payload,
+    );
+    expect(message).toContain("(redirect)");
+    expect(message).toContain(
+      "Re-run as a simple command from a session that has a Directive hook registered.",
+    );
+    expect(message).not.toContain(`--session-id=${UNRESOLVED_LIFECYCLE_OWNER_TOKEN}`);
+    expect(message).not.toContain("Matching-owner hatch:");
+    expect(message).not.toContain("occupancy refuses to mint");
+  });
+
+  it("keeps #4793 whitespace read-only without demanding --session-id", () => {
+    const payload = {
+      tool_name: "Bash",
+      tool_input: { command: " deft session:start --read-only" },
+    };
+    const message = uninspectableLifecycleDenyMessage("session:start", OWNER, payload);
+    expect(message).toMatch(/\(whitespace\)|\(empty token\)/);
+    expect(message).toContain("Re-run as a simple command.");
+    expect(message).not.toContain("--session-id=");
+    expect(message).not.toContain("Matching-owner hatch:");
   });
 });

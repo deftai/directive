@@ -879,7 +879,113 @@ function hintedLifecycleRequiresOwner(payload: unknown): boolean {
   });
 }
 
-/** Hinted deny copy (#4793). Whitespace --read-only session:start omits --session-id. */
+/** Unresolved owner token when the host did not publish a pasteable id (#5925). */
+export const UNRESOLVED_LIFECYCLE_OWNER_TOKEN = "<host-published-id>";
+
+function isUnresolvedLifecycleOwner(namedOwner: string): boolean {
+  return (
+    namedOwner === UNRESOLVED_LIFECYCLE_OWNER_TOKEN ||
+    (namedOwner.startsWith("<") && namedOwner.endsWith(">"))
+  );
+}
+
+function isTaskLifecycleExecutable(executable: string): boolean {
+  const exe = executable.toLowerCase();
+  return exe === "task" || exe === "task.exe";
+}
+
+function stripLifecycleSessionIdArgs(args: readonly string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < args.length; i += 1) {
+    const token = args[i] ?? "";
+    if (token.startsWith("--session-id=")) continue;
+    if (token === "--session-id") {
+      i += 1;
+      continue;
+    }
+    out.push(token);
+  }
+  return out;
+}
+
+/**
+ * First lifecycle window launcher + args for hatch recovery spelling (#5925).
+ * Task keeps the `--` CLI_ARGS boundary; deft/directive do not.
+ */
+function firstLifecycleLauncherWindow(
+  command: string,
+): { task: boolean; verb: ExactLifecycleVerb; args: string[] } | null {
+  const tokens = tokenizeUninspectableShell(shellCommandOutsideQuotesAndComments(command));
+  let i = skipLeadingEnvAssignments(tokens, 0);
+  while (i < tokens.length) {
+    const tok = tokens[i] ?? "";
+    if (CHAIN_TOKENS.has(tok)) {
+      i = skipLeadingEnvAssignments(tokens, i + 1);
+      continue;
+    }
+    const exe = tok.toLowerCase();
+    if (LIFECYCLE_EXECUTABLES.has(exe)) {
+      let verbTok = tokens[i + 1] ?? "";
+      if (verbTok === "swarm-launch") verbTok = "swarm:launch";
+      if ((EXACT_LIFECYCLE_VERBS as readonly string[]).includes(verbTok)) {
+        const args: string[] = [];
+        let j = i + 2;
+        for (; j < tokens.length; j += 1) {
+          const next = tokens[j] ?? "";
+          if (CHAIN_TOKENS.has(next)) break;
+          args.push(next);
+        }
+        return {
+          task: isTaskLifecycleExecutable(tok),
+          verb: verbTok as ExactLifecycleVerb,
+          args,
+        };
+      }
+    }
+    i += 1;
+    while (i < tokens.length && !CHAIN_TOKENS.has(tokens[i] ?? "")) {
+      i += 1;
+    }
+  }
+  return null;
+}
+
+/**
+ * Launcher-correct matching-owner hatch (#5925 Prefer-A Bound).
+ * Illustrations (| tee / &&) are examples only — not an allow of compound forms.
+ */
+export function formatMatchingOwnerLifecycleHatch(
+  verb: ExactLifecycleVerb,
+  owner: string,
+  payload: unknown,
+): string {
+  const command = rawLifecycleCommand(payload) ?? "";
+  const window = firstLifecycleLauncherWindow(command);
+  const task = window?.task ?? false;
+  const rawArgs = window !== null && window.verb === verb ? window.args : (window?.args ?? []);
+  const withoutOwner = stripLifecycleSessionIdArgs(rawArgs);
+  const forwarded = withoutOwner[0] === "--" ? withoutOwner.slice(1) : withoutOwner;
+  // Keep flag-shaped tokens only; redirect crumbs (e.g. "2" from 2>&1) stay out.
+  const flags = forwarded.filter((token) => token.startsWith("-"));
+  const flagPart = flags.length > 0 ? `${flags.join(" ")} ` : "";
+  if (task) {
+    return (
+      `Matching-owner hatch: task ${verb} -- ${flagPart}--session-id=${owner} ` +
+      `(illustrations only: | tee / &&).`
+    );
+  }
+  return (
+    `Matching-owner hatch: deft ${verb} ${flagPart}--session-id=${owner} ` +
+    `(illustrations only: | tee / &&).`
+  );
+}
+
+/**
+ * Hinted deny copy (#4793 / #5925 Prefer-A Bound).
+ * Keeps the true miss label + simple-command instruction; publishes the
+ * matching-owner hatch only when demandOwner and namedOwner are resolved.
+ * Whitespace --read-only session:start omits --session-id (#4793).
+ */
 export function uninspectableLifecycleDenyMessage(
   verb: ExactLifecycleVerb,
   namedOwner: string,
@@ -890,12 +996,22 @@ export function uninspectableLifecycleDenyMessage(
   const label = UNINSPECTABLE_MISS_LABELS[miss];
   const horizontal = miss === "whitespace" || miss === "empty-token";
   const demandOwner = !horizontal || hintedLifecycleRequiresOwner(payload);
-  const recovery = demandOwner
-    ? `Re-run as a simple command with --session-id=${namedOwner}.`
-    : "Re-run as a simple command.";
-  return (
+  const prefix =
     `Directive denied lifecycle command ${verb}: the invocation is not inspectable ` +
-    `(${label}). ${recovery}`
+    `(${label}). `;
+  if (!demandOwner) {
+    return `${prefix}Re-run as a simple command.`;
+  }
+  if (isUnresolvedLifecycleOwner(namedOwner)) {
+    // Omit bare --session-id=<host-published-id>; no pasteable owner exists.
+    return (
+      `${prefix}Re-run as a simple command from a session that has a Directive ` +
+      "hook registered."
+    );
+  }
+  return (
+    `${prefix}Re-run as a simple command with --session-id=${namedOwner}. ` +
+    formatMatchingOwnerLifecycleHatch(verb, namedOwner, payload)
   );
 }
 

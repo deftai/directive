@@ -6974,6 +6974,78 @@ describe("exact-miss session:start hint deny (#4793)", () => {
     expect(decision.message).not.toContain(FALSE_CAUSE);
     expect(decision.message).toContain(`--session-id=${CLAUDE_OWNER}`);
   });
+
+  it("publishes the matching-owner hatch on resolved-identity uninspectable denials", () => {
+    const decision = decideClaudeShell("deft session:start | tee /tmp/out");
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("occupancy-identity-unavailable");
+    expect(decision.message).toContain("(pipe)");
+    expect(decision.message).toContain(
+      `Matching-owner hatch: deft session:start --session-id=${CLAUDE_OWNER} (illustrations only: | tee / &&).`,
+    );
+  });
+});
+
+describe("attachLifecycleIdentityRewrite wire-host claude+GROK_HOOK_EVENT (#5925 Prefer-A Bound)", () => {
+  const RAW = "session-a";
+  const GROK_OWNER = "host:grok:v1:c2Vzc2lvbi1h";
+
+  function decideClaudeGrokShell(command: string) {
+    return decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Bash",
+          session_id: RAW,
+          tool_input: { command },
+        },
+        environ: { GROK_HOOK_EVENT: "PreToolUse" },
+      },
+      readySeams(),
+    );
+  }
+
+  it("allows a matching-owner chained session:start under claude+GROK_HOOK_EVENT", () => {
+    const decision = decideClaudeGrokShell(
+      `deft session:start --session-id=${GROK_OWNER} && echo ok`,
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(decision.updatedInput).toBeUndefined();
+  });
+
+  it("denies the same-host same-command form with a non-matching owner and spells the hatch", () => {
+    const decision = decideClaudeGrokShell(
+      "deft session:start --session-id=other-owner && echo ok",
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("occupancy-identity-conflict");
+    expect(decision.message).toContain("other-owner");
+    expect(decision.message).toContain(GROK_OWNER);
+    expect(decision.message).toContain(
+      `Matching-owner hatch: deft session:start --session-id=${GROK_OWNER} (illustrations only: | tee / &&).`,
+    );
+    expect(decision.message).not.toMatch(/pass --session-id=/);
+  });
+
+  it("denies attached-redirect owner-glue when --session-id sits after the redirect breaker", () => {
+    const decision = decideClaudeGrokShell(`deft session:start 2>&1 --session-id=${GROK_OWNER}`);
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("occupancy-identity-unavailable");
+    expect(decision.message).toContain("not inspectable");
+    expect(decision.message).toContain(
+      `Matching-owner hatch: deft session:start --session-id=${GROK_OWNER} (illustrations only: | tee / &&).`,
+    );
+  });
+
+  it("keeps a matching-owner lifecycle window under the upstream destructive rule for a mutating sibling", () => {
+    const decision = decideClaudeGrokShell(
+      `deft session:start --session-id=${GROK_OWNER} && git reset --hard`,
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("git-destructive-deny");
+  });
 });
 
 describe("requirements posture (#4444)", () => {

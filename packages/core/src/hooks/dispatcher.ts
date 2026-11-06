@@ -125,7 +125,10 @@ import {
   type RoutingHonorSurface,
   type RoutingSpawnClass,
 } from "../swarm/routing-honor.js";
-import { uninspectableLifecycleDenyMessage } from "./classify/host-session-identity.js";
+import {
+  formatMatchingOwnerLifecycleHatch,
+  uninspectableLifecycleDenyMessage,
+} from "./classify/host-session-identity.js";
 import {
   applyPatchHarvestedInputUnclassified,
   fieldString,
@@ -3390,8 +3393,8 @@ function attachLifecycleIdentityRewrite(
         toolName,
         `Directive denied ${toolName}: lifecycle command ${hinted} names ` +
           `${hintedSession.sessionId ?? "<missing>"}, but the host owner is ` +
-          `${identity.sessionId}. Re-run as a simple command or pass ` +
-          `--session-id=${identity.sessionId}.`,
+          `${identity.sessionId}. Re-run as a simple command. ` +
+          formatMatchingOwnerLifecycleHatch(hinted, identity.sessionId, input.payload),
       );
     }
     if (hintedSession.status === "invalid") {

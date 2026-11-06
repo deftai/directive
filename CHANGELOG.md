@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Lifecycle uninspectable denials publish a launcher-correct matching-owner hatch (#5925 Prefer-A Bound).** Compound/piped/redirected `session:*` / `occupancy:*` denials keep the true miss label and simple-command instruction; when a resolved host owner is available they append `task <verb> -- … --session-id=<owner>` (or `deft …`) recovery, and owner-mismatch copy uses the same spelling. Unresolved `<host-published-id>` omits a pasteable `--session-id=` line. Refs #6082.
+
 ### Changed
 - Activate running work briefs for lifecycle shell recovery (#5925), master merge-gate hotfix rules (#6071), and sanctioned skip-count baseline tracking (#6072).
 
