@@ -615,4 +615,38 @@ describe("pr:merge-ready closeout invoker (#3875)", () => {
     );
     expect(isMergeReady(result.failures)).toBe(true);
   });
+
+  it("does not skip named Merge gate solely because VITEST=true", () => {
+    const prev = process.env.VITEST;
+    process.env.VITEST = "true";
+    try {
+      const result = computeGateResult(
+        3875,
+        "deftai/directive",
+        fakeRunGh({
+          commentBody: cleanGreptileBody(HEAD),
+          mergeableState: "clean",
+          mergeable: true,
+        }),
+        {
+          skipCi: true,
+          skipSlizard: true,
+          skipCloseoutAttestable: true,
+          namedMergeGateFn: () => ({
+            ok: false,
+            outcome: "master-merge-gate-red",
+            exitCode: 1,
+            error: "named Merge gate red under vitest (#6071)",
+            status: null,
+            hotfix: null,
+          }),
+        },
+      );
+      expect(isMergeReady(result.failures)).toBe(false);
+      expect(result.failures.some((f) => f.includes("named Merge gate"))).toBe(true);
+    } finally {
+      if (prev === undefined) delete process.env.VITEST;
+      else process.env.VITEST = prev;
+    }
+  });
 });

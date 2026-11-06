@@ -6,6 +6,7 @@ import {
   EXIT_CONFIG_ERROR,
   EXIT_TIMEOUT_OR_ESCALATION,
   MERGE_GATE_TASK_CHECK_NAME,
+  OUTCOME_FIRST_HOTFIX_BOOTSTRAP,
   OUTCOME_HOTFIX_SHAPE_INVALID,
   OUTCOME_MASTER_MERGE_GATE_RED,
 } from "./constants.js";
@@ -861,6 +862,18 @@ describe("always-on named Merge gate (#6071)", () => {
     expect(result.error).toContain("DEFT_NO_NETWORK");
   });
 
+  it("returns first-hotfix bootstrap recovery when tip is red and PR is unknown", () => {
+    const result = evaluateAlwaysOnNamedMergeGate(null, REPO, {
+      tipSha: CURRENT_HEAD,
+      checkRuns: [redNamed],
+      firstHotfixBootstrap: true,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.outcome).toBe(OUTCOME_FIRST_HOTFIX_BOOTSTRAP);
+    expect(result.error).toMatch(/First-hotfix bootstrap/);
+    expect(result.hotfix?.outcome).toBe(OUTCOME_FIRST_HOTFIX_BOOTSTRAP);
+  });
+
   it("refuses Bot hotfix actor and accepts maintainer-class without actor≠author", () => {
     const bot = evaluateHotfixAdmission(PR, REPO, {
       hotfixAdmission: {
@@ -947,6 +960,16 @@ describe("always-on named Merge gate (#6071)", () => {
     expect(
       parseHotfixShape(
         "Hotfix for red Merge gate (task check): x\nHotfix skip: deftai/directive#1\n",
+      ).ambiguous,
+    ).toBe(true);
+    expect(
+      parseHotfixShape(
+        "Hotfix skip: deftai/directive#1\nHotfix skip: deftai/directive#2\n",
+      ).ambiguous,
+    ).toBe(true);
+    expect(
+      parseHotfixShape(
+        "Hotfix for red Merge gate (task check): one\nHotfix for red Merge gate (task check): two\n",
       ).ambiguous,
     ).toBe(true);
   });

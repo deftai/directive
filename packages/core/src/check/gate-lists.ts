@@ -364,11 +364,28 @@ export function inventoryCitedSkipsInTree(projectRoot: string): CitedSkipSite[] 
   return sites;
 }
 
-function isBaselineSite(site: CitedSkipSite): boolean {
-  return CITED_SKIP_BASELINE.some(
-    (b) =>
-      b.file === site.file && b.kind === site.kind && (b.dynamicTitle ? site.dynamicTitle : true),
+function matchesBaselineEntry(
+  site: CitedSkipSite,
+  baseline: (typeof CITED_SKIP_BASELINE)[number],
+): boolean {
+  return (
+    baseline.file === site.file &&
+    baseline.kind === site.kind &&
+    baseline.dynamicTitle === site.dynamicTitle
   );
+}
+
+/** True when a fresh baseline slot matches; each baseline entry admits one site (#6071). */
+function claimBaselineSite(site: CitedSkipSite, claimed: Set<number>): boolean {
+  for (let i = 0; i < CITED_SKIP_BASELINE.length; i++) {
+    if (claimed.has(i)) continue;
+    const baseline = CITED_SKIP_BASELINE[i];
+    if (baseline === undefined) continue;
+    if (!matchesBaselineEntry(site, baseline)) continue;
+    claimed.add(i);
+    return true;
+  }
+  return false;
 }
 
 export interface CitedSkipScanOptions {
@@ -410,9 +427,10 @@ export function evaluateCitedSkipScan(options: CitedSkipScanOptions): CitedSkipS
   // provided list (including []) => live-validate only those paths (#6071 Bound).
   const liveProbe = options.changedFiles !== undefined;
   const changed = new Set((options.changedFiles ?? []).map((f) => f.replaceAll("\\", "/")));
+  const claimedBaseline = new Set<number>();
 
   for (const site of inventory) {
-    if (isBaselineSite(site)) {
+    if (claimBaselineSite(site, claimedBaseline)) {
       continue;
     }
     if (site.kind === "describe.skip") {

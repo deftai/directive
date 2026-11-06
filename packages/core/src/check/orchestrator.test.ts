@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { COMPOSED_GATE_IDS } from "../presentation-coverage/gates.js";
 import { dispatchCachedTaskCheck } from "./cached-orchestrator.js";
@@ -1170,5 +1170,27 @@ describe("cited-skip scanner (#6071)", () => {
     expect(CITED_SKIP_BASELINE).toHaveLength(5);
     expect(CITED_SKIP_BASELINE.filter((b) => b.file.includes("legacy-bridge-leg")).length).toBe(2);
     expect(CITED_SKIP_BASELINE.filter((b) => b.dynamicTitle).length).toBe(2);
+  });
+
+  it("refuses a second matching skip after baseline slot is consumed", () => {
+    const root = mkdtempSync(join(tmpdir(), "cited-skip-baseline-"));
+    tempDirs.push(root);
+    const rel = "packages/core/src/check/orchestrator.test.ts";
+    const abs = join(root, rel);
+    mkdirSync(dirname(abs), { recursive: true });
+    writeFileSync(
+      abs,
+      [
+        'describe.skip("baseline slot one", () => {});',
+        'describe.skip("extra unsanctioned suite", () => {});',
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    const result = evaluateCitedSkipScan({ projectRoot: root, changedFiles: [rel] });
+    expect(result.ok).toBe(false);
+    expect(result.failures.some((f) => f.includes("extra unsanctioned suite") || f.includes("describe.skip"))).toBe(
+      true,
+    );
   });
 });

@@ -151,7 +151,10 @@ export interface ComputeGateOptions extends CiGateOptions, SlizardGateOptions {
   readonly skipCloseoutAttestable?: boolean;
   /** Injectable closeout evaluator; production uses `evaluateCloseoutAttestable`. */
   readonly closeoutAttestableFn?: CloseoutAttestableGateFn;
-  /** #6071: skip always-on named Merge gate on master's tip (tests only). */
+  /**
+   * #6071: skip always-on named Merge gate on master's tip (tests only).
+   * Must be set explicitly — inherited `VITEST=true` does not skip.
+   */
   readonly skipNamedMergeGate?: boolean;
   /** Injectable named Merge gate; production uses `evaluateAlwaysOnNamedMergeGate`. */
   readonly namedMergeGateFn?: NamedMergeGateFn;
@@ -817,13 +820,8 @@ function applyNamedMergeGate(
   runGh: RunGhFn,
   options: ComputeGateOptions,
 ): GateResult {
-  // Hermetic suites default-skip unless they inject namedMergeGateFn or set skip false (#6071).
-  if (
-    options.skipNamedMergeGate === true ||
-    (options.skipNamedMergeGate === undefined &&
-      process.env.VITEST === "true" &&
-      options.namedMergeGateFn === undefined)
-  ) {
+  // Explicit opt-out only — never inherit VITEST=true to skip the gate (#6071).
+  if (options.skipNamedMergeGate === true) {
     return result;
   }
   if (result.via === VIA_ERROR || result.via === VIA_FALLBACK2) {

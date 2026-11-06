@@ -997,17 +997,22 @@ export function parseHotfixShape(body: string): {
   skipIssue: number | null;
   ambiguous: boolean;
 } {
-  const a = HOTFIX_SHAPE_A_RE.test(body);
-  const bMatch = HOTFIX_SHAPE_B_RE.exec(body);
-  const b = bMatch !== null;
-  if (a && b) {
+  // Fresh global regexes — .test/.exec mutate lastIndex on shared constants (#6071).
+  const aMatches = body.match(new RegExp(HOTFIX_SHAPE_A_RE.source, "gm")) ?? [];
+  const bMatches = [...body.matchAll(new RegExp(HOTFIX_SHAPE_B_RE.source, "gm"))];
+  const total = aMatches.length + bMatches.length;
+  if (total === 0) {
+    return { shape: null, skipIssue: null, ambiguous: false };
+  }
+  if (total > 1) {
     return { shape: null, skipIssue: null, ambiguous: true };
   }
-  if (a) {
+  if (aMatches.length === 1) {
     return { shape: "A", skipIssue: null, ambiguous: false };
   }
-  if (b && bMatch?.[1]) {
-    return { shape: "B", skipIssue: Number(bMatch[1]), ambiguous: false };
+  const issue = bMatches[0]?.[1];
+  if (issue !== undefined) {
+    return { shape: "B", skipIssue: Number(issue), ambiguous: false };
   }
   return { shape: null, skipIssue: null, ambiguous: false };
 }
@@ -1483,6 +1488,17 @@ export function evaluateAlwaysOnNamedMergeGate(
   }
 
   if (prNumber === null) {
+    if (options.firstHotfixBootstrap === true) {
+      const hotfix = evaluateHotfixAdmission(0, repo, options);
+      return {
+        ok: false,
+        outcome: OUTCOME_FIRST_HOTFIX_BOOTSTRAP,
+        exitCode: EXIT_TIMEOUT_OR_ESCALATION,
+        error: hotfix.reason ?? FIRST_HOTFIX_BOOTSTRAP_RECOVERY,
+        status,
+        hotfix,
+      };
+    }
     return {
       ok: false,
       outcome: OUTCOME_MASTER_MERGE_GATE_RED,
