@@ -1,11 +1,22 @@
-import { describe, expect, it, vi } from "vitest";
+import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { spawnText } from "../release/spawn.js";
 import { DEFAULT_BOT_THRESHOLD, EXIT_CONFIG_ERROR, EXIT_OK, EXIT_VIOLATION } from "./constants.js";
-import { ghReleaseDelete, ghReleaseExists } from "./gh.js";
+import { ghReleaseDelete, ghReleaseExists, ghReleaseViewJson } from "./gh.js";
 import { gitPushBase, gitRevertReleaseCommit, resolveReleasePrepSha } from "./git.js";
 import { computeThreshold, doubleReadDownloads, releaseAgeSeconds, sumDownloads } from "./guard.js";
 import { cmdRollback } from "./main.js";
 import { detectState, runRollback, unwindLocal, unwindReleased } from "./pipeline.js";
 import type { GhReleasePayload, RollbackConfig, RollbackSeams } from "./types.js";
+
+const COLOR_GH_STUB = resolve(
+  import.meta.dirname,
+  "..",
+  "pr-protected-issues",
+  "fixtures",
+  "color-gh-stub.mjs",
+);
 
 const RELEASE_PREP_SHA = "6573335cafef00d000000000000000000000bbbb";
 const INTERVENING_SHA = "94d1aa5deadbeef0000000000000000000aaaaa1";
@@ -546,5 +557,50 @@ describe("gh helpers", () => {
     const [ok, reason] = ghReleaseDelete("0.21.0", "deftai/directive", seams);
     expect(ok).toBe(false);
     expect(reason).toContain("gh CLI not found");
+  });
+});
+
+describe("ghReleaseViewJson plain gh env (#6032)", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("stub colors release-view JSON when CLICOLOR_FORCE reaches it (pre-fix base)", () => {
+    const raw = execFileSync(
+      process.execPath,
+      [
+        COLOR_GH_STUB,
+        "release",
+        "view",
+        "v0.21.0",
+        "--repo",
+        "deftai/directive",
+        "--json",
+        "isDraft,name,tagName,createdAt,publishedAt,assets,url",
+      ],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        env: { ...process.env, CLICOLOR_FORCE: "1" },
+      },
+    );
+    expect(raw).toContain("\u001b[");
+    expect(() => JSON.parse(raw)).toThrow();
+  });
+
+  it("returns parseable payload under parent CLICOLOR_FORCE=1", () => {
+    vi.stubEnv("CLICOLOR_FORCE", "1");
+    vi.stubEnv("NO_COLOR", "");
+    const seams: RollbackSeams = {
+      whichGh: () => "/usr/bin/gh",
+      spawnText: (_cmd, args, options) =>
+        spawnText(process.execPath, [COLOR_GH_STUB, ...args], options),
+    };
+    const [ok, payload, reason] = ghReleaseViewJson("0.21.0", "deftai/directive", seams);
+    expect(ok).toBe(true);
+    expect(reason).toBe("");
+    expect(payload?.isDraft).toBe(true);
+    expect(payload?.tagName).toBe("v0.21.0");
+    expect(process.env.CLICOLOR_FORCE).toBe("1");
   });
 });
