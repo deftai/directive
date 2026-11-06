@@ -335,7 +335,8 @@ export function dispatchCachedTaskCheck(
 
   // #6072 Prefer-A Bound P3: sanctioned skip-count baseline on cached check path.
   if (options.skipSanctionedSkipBaseline !== true) {
-    const baselinePath = join(resolvedProject, ...SANCTIONED_SKIP_COUNT_BASELINE_REL.split("/"));
+    const baselineRoot = target === "check:framework-source" ? resolvedFramework : resolvedProject;
+    const baselinePath = join(baselineRoot, ...SANCTIONED_SKIP_COUNT_BASELINE_REL.split("/"));
     if (
       target === "check:framework-source" ||
       existsSync(baselinePath) ||
@@ -343,7 +344,7 @@ export function dispatchCachedTaskCheck(
       options.sanctionedSkipTargetBaselineCount !== undefined
     ) {
       const baseline = runSanctionedSkipCountBaselineGate({
-        projectRoot: resolvedProject,
+        projectRoot: baselineRoot,
         phase: options.sanctionedSkipBaselinePhase ?? "merge-readiness",
         shapeB: options.sanctionedSkipShapeB,
         targetBaselineCount: options.sanctionedSkipTargetBaselineCount,

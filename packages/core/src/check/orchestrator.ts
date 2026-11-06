@@ -128,7 +128,8 @@ export function dispatchTaskCheck(
   // #6072 Prefer-A Bound P3: sanctioned skip-count baseline on check path
   // (same always-on surface as #6071 scanner / Merge gate task check).
   if (seams.skipSanctionedSkipBaseline !== true) {
-    const baselinePath = join(resolvedProject, ...SANCTIONED_SKIP_COUNT_BASELINE_REL.split("/"));
+    const baselineRoot = target === "check:framework-source" ? resolvedFramework : resolvedProject;
+    const baselinePath = join(baselineRoot, ...SANCTIONED_SKIP_COUNT_BASELINE_REL.split("/"));
     // Production tip always commits the baseline file. Temp/test trees without it
     // skip this gate; when called, missing evidence still refuses (Bound P4).
     // Framework tip must always run (Bound P4 refuse-missing). Non-framework
@@ -140,7 +141,7 @@ export function dispatchTaskCheck(
       seams.sanctionedSkipTargetBaselineCount !== undefined
     ) {
       const baseline = runSanctionedSkipCountBaselineGate({
-        projectRoot: resolvedProject,
+        projectRoot: baselineRoot,
         phase: seams.sanctionedSkipBaselinePhase ?? "merge-readiness",
         shapeB: seams.sanctionedSkipShapeB,
         targetBaselineCount: seams.sanctionedSkipTargetBaselineCount,
