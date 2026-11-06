@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
+- Record Issue #6092 completed after product merge (#6093).
 - Activate running work brief for leftover-complete when a product PR added the brief but the issue was linked after merge (#6092).
 - Record Issue #6072 completed after product merge (#6086).
 - Record Issue #6071 completed after product merge (#6088).
