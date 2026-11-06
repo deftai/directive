@@ -22,6 +22,7 @@ export const CLOSED_VERB_TEMPLATE_NAMES = [
   "release-cut",
   "release-publish",
   "release-rollback",
+  "release-promote-latest",
 ] as const;
 
 export type ClosedVerbTemplateName = (typeof CLOSED_VERB_TEMPLATE_NAMES)[number];

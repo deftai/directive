@@ -218,6 +218,20 @@ export function builtinReleaseVerbClassification(): VerbClassificationTable {
         authz_operations: ["release-rollback", "deployment"],
         env_bypass: "DEFT_ALLOW_RELEASE_ROLLBACK",
       },
+      // #5852 P2: explicit-latest is its own closed verb; release-publish / deployment
+      // grants do not authorize it.
+      "release-promote-latest": {
+        closure_set: [],
+        explicit_required: [],
+        irreversibility: "destructive",
+        wildcard_allowed: false,
+        recurring_allowed: false,
+        default_expiry: "1h",
+        skill: "content/skills/deft-directive-release/SKILL.md",
+        phase: "Phase 7",
+        authz_operations: ["release-promote-latest"],
+        env_bypass: "DEFT_ALLOW_RELEASE_PROMOTE_LATEST",
+      },
       "finish-loop": {
         closure_set: [
           "edit",
@@ -228,7 +242,12 @@ export function builtinReleaseVerbClassification(): VerbClassificationTable {
           "pr-finish-loop",
           "directive-finish-loop",
         ],
-        explicit_required: ["release-cut", "release-publish", "release-rollback"],
+        explicit_required: [
+          "release-cut",
+          "release-publish",
+          "release-rollback",
+          "release-promote-latest",
+        ],
         irreversibility: "reversible-via-git-revert",
         wildcard_allowed: false,
         recurring_allowed: true,
@@ -269,9 +288,10 @@ export function resolveVerbClassificationPath(projectRoot?: string | null): stri
 }
 
 export function loadVerbClassification(projectRoot?: string | null): VerbClassificationTable {
+  const builtin = builtinReleaseVerbClassification();
   const path = resolveVerbClassificationPath(projectRoot);
   if (path === null) {
-    return builtinReleaseVerbClassification();
+    return builtin;
   }
   const text = readFileSync(path, "utf8");
   let raw: unknown;
@@ -283,7 +303,14 @@ export function loadVerbClassification(projectRoot?: string | null): VerbClassif
       `failed to parse ${path}: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
-  return parseVerbClassification(raw);
+  // File overlays builtin so new closed verbs land in code before conventions JSON
+  // (coverage-applicability still classifies conventions/*.json as unknown).
+  const file = parseVerbClassification(raw);
+  return {
+    schemaVersion: file.schemaVersion,
+    description: file.description,
+    verbs: { ...builtin.verbs, ...file.verbs },
+  };
 }
 
 export function getVerbRow(

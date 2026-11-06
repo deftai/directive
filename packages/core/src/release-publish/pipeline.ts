@@ -1,8 +1,18 @@
 import { closedVerbEnvBypassKey, type EnvMap, evaluateClosedVerb } from "../authz/closed-verb.js";
-import { listActiveHumanGrants, loadAuthzState, loadGrant, markGrantUsed } from "../authz/store.js";
+import {
+  claimSingleUseGrantForApply,
+  listActiveHumanGrants,
+  loadAuthzState,
+  loadGrant,
+  markGrantUsed,
+} from "../authz/store.js";
 import type { ClosedVerbDecision, HumanOriginGrant } from "../authz/types.js";
 import { loadVerbClassification } from "../authz/verb-classification.js";
 import { EXIT_OK, EXIT_VIOLATION } from "../release/constants.js";
+import { resolveGh } from "../release/gh.js";
+import { spawnText } from "../release/spawn.js";
+import type { SpawnResult } from "../release/types.js";
+import { plainGhEnv } from "../subprocess/plain-gh-env.js";
 import { editReleasePublish, viewRelease } from "./gh-api.js";
 import type { PublishConfig, ReleasePublishSeams } from "./types.js";
 
@@ -40,6 +50,171 @@ export function evaluateReleasePublishGate(
   });
 }
 
+/**
+ * Fail-closed gate before npm latest promotion (#5852 P2 / Greptile P1).
+ * release-publish grants / DEFT_ALLOW_RELEASE_PUBLISH do not authorize this verb.
+ */
+export function evaluateReleasePromoteLatestGate(
+  version: string,
+  projectRoot: string,
+  options: {
+    readonly grants?: readonly HumanOriginGrant[];
+    readonly env?: EnvMap;
+    readonly repo?: string | null;
+  } = {},
+): ClosedVerbDecision {
+  const classification = loadVerbClassification(projectRoot);
+  const state = loadAuthzState(projectRoot);
+  const grants = options.grants ?? listActiveHumanGrants(projectRoot, state);
+  return evaluateClosedVerb({
+    verb: "release-promote-latest",
+    target: version,
+    grants,
+    env: options.env ?? (process.env as EnvMap),
+    projectRoot,
+    repo: options.repo ?? null,
+    classification,
+  });
+}
+
+function emitPromote(label: string, status: string): void {
+  process.stderr.write(`[promote-latest] ${label}... ${status}\n`);
+}
+
+/** Dispatch promote-latest workflow only after the closed-verb gate allows. */
+export function runPromoteLatest(config: PublishConfig, seams: ReleasePublishSeams = {}): number {
+  const { version, repo, dryRun, projectRoot } = config;
+  const tag = `v${version}`;
+  // Workflow promote-latest accepts only stable vX.Y.Z; refuse earlier so grants are not spent (#5852).
+  if (!/^[0-9]+\.[0-9]+\.[0-9]+$/.test(version)) {
+    emitPromote(
+      `Stable version gate ${tag}`,
+      "FAIL (only a stable X.Y.Z may be promoted to latest)",
+    );
+    return EXIT_VIOLATION;
+  }
+  const gateSeams = seams as ReleasePublishSeams & {
+    closedVerbGrants?: readonly HumanOriginGrant[];
+    closedVerbEnv?: EnvMap;
+  };
+  const gate = evaluateReleasePromoteLatestGate(version, projectRoot, {
+    grants: gateSeams.closedVerbGrants,
+    env: gateSeams.closedVerbEnv,
+    repo,
+  });
+  if (!gate.allowed) {
+    const bypassKey =
+      gate.envBypassKey ??
+      closedVerbEnvBypassKey("release-promote-latest", projectRoot) ??
+      "DEFT_ALLOW_RELEASE_PROMOTE_LATEST";
+    emitPromote(
+      `Closed-verb gate release-promote-latest ${tag}`,
+      `FAIL (${gate.code}: ${gate.reason})`,
+    );
+    process.stderr.write(
+      `[promote-latest] denied code=${gate.code} — set ${bypassKey}=1 or ` +
+        `mint \`deft authz:grant -- --template release-promote-latest --target ${version}\`\n`,
+    );
+    return EXIT_VIOLATION;
+  }
+  emitPromote(
+    `Closed-verb gate release-promote-latest ${tag}`,
+    `OK (${gate.code}${gate.humanApprovalRef !== null ? ` grant=${gate.humanApprovalRef}` : ""})`,
+  );
+  const args = [
+    "workflow",
+    "run",
+    "npm-publish.yml",
+    "--repo",
+    repo,
+    "--ref",
+    "master",
+    "-f",
+    "action=promote-latest",
+    "-f",
+    `tag=${tag}`,
+  ];
+  const label = `Dispatch promote-latest ${tag} on ${repo}`;
+  if (dryRun) {
+    emitPromote(label, `DRYRUN (would run \`gh ${args.join(" ")}\`)`);
+    return EXIT_OK;
+  }
+  const ghPath = resolveGh(seams);
+  if (ghPath === null) {
+    emitPromote(label, "FAIL (gh CLI not found on PATH)");
+    return EXIT_VIOLATION;
+  }
+  const spawn = seams.spawnText ?? spawnText;
+  // Returned-failure only (no throw): operational gh miss / non-zero are caller-may-retry
+  // (#5852 intent-constraint / Greptile P2). plainGhEnv drops color-force vars (#6032).
+  const dispatchOnce = (): { ok: true } | { ok: false; reason: string } => {
+    let result: SpawnResult;
+    try {
+      result = spawn(ghPath, args, { timeoutMs: 120_000, env: plainGhEnv() });
+    } catch {
+      return { ok: false, reason: "gh CLI not found on PATH" };
+    }
+    if (result.status !== 0) {
+      return {
+        ok: false,
+        reason: (result.stderr ?? "").trim() || "gh workflow run failed",
+      };
+    }
+    return { ok: true };
+  };
+  // Exclusive claim → revalidate → permanent spend, THEN dispatch (#5852 Greptile P1).
+  // Do not put dispatch in claim `apply`: a lost/ambiguous gh response must not roll
+  // usedAt back (that would let one approval queue promote-latest twice). Remint on
+  // true dispatch failure. Concurrent claimants fail closed on the lock.
+  if (gate.humanApprovalRef !== null && gate.code === "closed-verb-allow") {
+    const gateSeamsClaim = seams as ReleasePublishSeams & {
+      claimGrant?: typeof claimSingleUseGrantForApply;
+    };
+    const claim = gateSeamsClaim.claimGrant ?? claimSingleUseGrantForApply;
+    const claimed = claim(projectRoot, gate.humanApprovalRef, {
+      revalidate: (g) => {
+        if (g.semantics.revokedAt !== null) {
+          return { ok: false, reason: `grant ${g.id} revoked` };
+        }
+        if (g.semantics.expiresAt !== null && Date.parse(g.semantics.expiresAt) <= Date.now()) {
+          return { ok: false, reason: `grant ${g.id} expired` };
+        }
+        const again = evaluateReleasePromoteLatestGate(version, projectRoot, {
+          grants: [g],
+          env: gateSeams.closedVerbEnv ?? {},
+          repo,
+        });
+        if (!again.allowed || again.code !== "closed-verb-allow") {
+          return {
+            ok: false,
+            reason: again.reason || `grant ${g.id} no longer authorizes promote-latest`,
+          };
+        }
+        return { ok: true };
+      },
+    });
+    if (!claimed.ok) {
+      emitPromote(label, `FAIL (${claimed.reason})`);
+      return EXIT_VIOLATION;
+    }
+    emitPromote(`Spend grant ${gate.humanApprovalRef}`, "OK (claimed before dispatch)");
+    const dispatched = dispatchOnce();
+    if (!dispatched.ok) {
+      emitPromote(label, `FAIL (${dispatched.reason}; grant already spent — remint to retry)`);
+      return EXIT_VIOLATION;
+    }
+    emitPromote(label, "OK (workflow dispatched; grant claimed before dispatch)");
+    return EXIT_OK;
+  }
+  const dispatched = dispatchOnce();
+  if (!dispatched.ok) {
+    emitPromote(label, `FAIL (${dispatched.reason})`);
+    return EXIT_VIOLATION;
+  }
+  emitPromote(label, "OK (workflow dispatched)");
+  return EXIT_OK;
+}
+
 export function runPublish(config: PublishConfig, seams: ReleasePublishSeams = {}): number {
   const { version, repo, dryRun, projectRoot } = config;
   const tag = `v${version}`;
@@ -52,7 +227,7 @@ export function runPublish(config: PublishConfig, seams: ReleasePublishSeams = {
     );
     emit(
       `Edit ${tag}`,
-      `DRYRUN (would run \`gh api -X PATCH repos/${repo}/releases/<id> -F draft=false\`)`,
+      `DRYRUN (would run \`gh api -X PATCH repos/${repo}/releases/<id> -F draft=false -f make_latest=false\`)`,
     );
     return EXIT_OK;
   }

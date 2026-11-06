@@ -1,18 +1,28 @@
 import { EXIT_CONFIG_ERROR } from "../release/constants.js";
 import { resolveProjectRoot, resolveRepo } from "../release/paths.js";
-import { validateVersion } from "../release/version.js";
+import { validateReleaseChannelVersion } from "../release/version.js";
 import { formatMissingVersionError, formatReleasePublishHelp, parsePublishFlags } from "./flags.js";
-import { runPublish } from "./pipeline.js";
+import { runPromoteLatest, runPublish } from "./pipeline.js";
 import type { PublishConfig, ReleasePublishSeams } from "./types.js";
 
 export function cmdReleasePublish(
   args: readonly string[],
   seams: ReleasePublishSeams = {},
 ): number {
-  const flags = parsePublishFlags(args);
+  const promoteLatest = args.includes("--promote-latest");
+  const filtered = args.filter((a) => a !== "--promote-latest");
+  const flags = parsePublishFlags(filtered);
 
   if (flags.help) {
+    // Keep byte-stable RELEASE_PUBLISH_HELP as the first write (main.test contract);
+    // append promote-latest discovery (#5852 Greptile P2) without widening constants.ts.
     process.stdout.write(formatReleasePublishHelp());
+    process.stdout.write(
+      "\nAlso: --promote-latest dispatches npm-publish promote-latest for stable X.Y.Z " +
+        "(requires release-promote-latest grant or DEFT_ALLOW_RELEASE_PROMOTE_LATEST=1; " +
+        "a release-publish grant does not authorize this). Publish accepts X.Y.Z or " +
+        "publishable prereleases X.Y.Z-(alpha|beta|rc).N; promote requires stable X.Y.Z.\n",
+    );
     return 0;
   }
 
@@ -29,7 +39,7 @@ export function cmdReleasePublish(
   }
 
   try {
-    validateVersion(flags.version);
+    validateReleaseChannelVersion(flags.version);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     process.stderr.write(`Error: ${msg}\n`);
@@ -46,5 +56,8 @@ export function cmdReleasePublish(
     dryRun: flags.dryRun,
   };
 
+  if (promoteLatest) {
+    return runPromoteLatest(config, seams);
+  }
   return runPublish(config, seams);
 }
