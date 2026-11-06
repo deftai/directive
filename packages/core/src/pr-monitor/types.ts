@@ -30,6 +30,7 @@ export interface MonitorOptions {
   readonly projectRoot?: string | null;
   /** Hermetic Greptile suites must opt out of closeout explicitly (#3875). */
   readonly skipCloseoutAttestable?: boolean;
+  readonly skipNamedMergeGate?: boolean;
 }
 
 export interface MonitorRunResult {
@@ -45,4 +46,5 @@ export interface CallReadinessOptions {
   readonly projectRoot?: string | null;
   /** Hermetic Greptile suites must opt out of closeout explicitly (#3875). */
   readonly skipCloseoutAttestable?: boolean;
+  readonly skipNamedMergeGate?: boolean;
 }

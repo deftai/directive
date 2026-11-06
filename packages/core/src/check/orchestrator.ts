@@ -37,7 +37,12 @@ import {
   SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID,
   SANCTIONED_SKIP_COUNT_BASELINE_REL,
 } from "./context.js";
-import { CONSUMER_CHECK_GATES, checkGateId, FRAMEWORK_CHECK_GATES } from "./gate-lists.js";
+import {
+  CONSUMER_CHECK_GATES,
+  checkGateId,
+  evaluateCitedSkipScan,
+  FRAMEWORK_CHECK_GATES,
+} from "./gate-lists.js";
 import { listCompositionGatesMissingSpecificRemedies } from "./named-cause.js";
 import {
   CHECK_EMPTY_PLANNING_NARRATIVES_GATE_ID,
@@ -76,16 +81,43 @@ export function dispatchTaskCheck(
 ): number {
   const resolvedFramework = resolve(frameworkRoot);
   const resolvedProject = resolve(projectRoot);
+  const target = resolveCheckTarget(resolvedFramework, resolvedProject);
   const useTaskCache = seams.useTaskCache !== false && !seams.noCache;
 
+  // #6071 PRODUCTION: evaluateCitedSkipScan is called here on every
+  // framework-source `task check` entry (cached + uncached). Cached runner
+  // stamps cited-skip-scan onto onCheckComplete from this precomputed result
+  // so a refuse does not lose the check summary (#6071 Greptile P2).
+  let precomputedCitedSkipScan: CheckOrchestratorSeams["precomputedCitedSkipScan"] = null;
+  if (target === "check:framework-source" && seams.skipCitedSkipScan !== true) {
+    // Baseline paths are framework-root-relative (#6071); scan from resolvedFramework
+    // so subdirectory --project-root does not reject allowed skips.
+    const cited = evaluateCitedSkipScan({
+      projectRoot: resolvedFramework,
+      changedFiles: seams.citedSkipChangedFiles,
+      hotfixShapeB: seams.citedSkipHotfixShapeB === true,
+      fetchIssue: seams.citedSkipFetchIssue,
+      skipCommitTimeIso: seams.citedSkipCommitTimeIso,
+    });
+    precomputedCitedSkipScan = {
+      ok: cited.ok,
+      failures: cited.failures,
+      listing: cited.listing,
+    };
+    process.stderr.write(`${cited.listing}\n`);
+  }
+
   if (useTaskCache) {
-    return dispatchCachedTaskCheck(resolvedFramework, resolvedProject, seams);
+    return dispatchCachedTaskCheck(resolvedFramework, resolvedProject, {
+      ...seams,
+      skipCitedSkipScan: true,
+      precomputedCitedSkipScan,
+    });
   }
 
   const taskfilePath = join(resolvedFramework, "Taskfile.yml");
   const taskBin = seams.taskBin ?? "task";
 
-  const target = resolveCheckTarget(resolvedFramework, resolvedProject);
   const cwd = target === "check:framework-source" ? resolvedFramework : resolvedProject;
 
   // #3070: pre-flight consumer check-graph integrity (same path as cached
@@ -122,6 +154,18 @@ export function dispatchTaskCheck(
       `check: gate ${CONSUMER_HEADER_PLACEHOLDER_GATE_ID} failed (exit 1)\n` +
         `  cause: ${headerPlaceholder.reason}\n` +
         `  remedy: ${headerPlaceholder.message}\n`,
+    );
+    return 1;
+  }
+
+  if (precomputedCitedSkipScan !== null && !precomputedCitedSkipScan.ok) {
+    for (const failure of precomputedCitedSkipScan.failures) {
+      process.stderr.write(`check: ${failure}\n`);
+    }
+    process.stderr.write(
+      "check: gate cited-skip-scan failed (exit 1)\n" +
+        "  cause: unsanctioned or unvalidated test skips (#6071)\n" +
+        "  remedy: cite open deftai/directive#N with skipped-tests block under admitted shape B, or remove the skip\n",
     );
     return 1;
   }
@@ -203,3 +247,16 @@ function defaultSpawn(
   });
   return { status: result.status, signal: result.signal, error: result.error };
 }
+
+// Cited-skip scanner lives in gate-lists.ts (shared import for cached-orchestrator; #6071).
+export {
+  CITED_SKIP_BASELINE,
+  type CitedSkipScanOptions,
+  type CitedSkipScanResult,
+  type CitedSkipSite,
+  evaluateCitedSkipScan,
+  formatCitedSkipListing,
+  inventoryCitedSkipsInSource,
+  inventoryCitedSkipsInTree,
+  parseSkippedTestsBlock,
+} from "./gate-lists.js";

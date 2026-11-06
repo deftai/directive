@@ -108,6 +108,12 @@ export interface WaitMergeableOptions {
    * is true and watchFn is omitted (test harness convention).
    */
   readonly watchFn?: WaitMergeableWatchFn;
+  /**
+   * Skip always-on named Merge gate (#6071). Test harnesses that set
+   * skipHumanMergeGate without injecting semanticGreenFn inherit skip
+   * (same convention as head/closeout gates). Production must not set this.
+   */
+  readonly skipNamedMergeGate?: boolean;
 }
 
 /** Run protected-check -> wait -> merge cascade (#1369). */
@@ -216,10 +222,15 @@ export function waitMergeableAndMerge(
     }
   }
 
+  const skipNamedMergeGate =
+    options.skipNamedMergeGate === true ||
+    (options.skipHumanMergeGate === true && options.semanticGreenFn === undefined);
   const semanticGreen = semanticGreenFn(prNumber, repo, {
     cascadeMode: options.cascadeMode,
     requireMasterCiGreen: options.requireMasterCiGreen,
     baseBranch: options.baseBranch,
+    skipNamedMergeGate,
+    projectRoot,
   });
   if (!semanticGreen.ok) {
     return makeResult({
@@ -390,6 +401,30 @@ export function waitMergeableAndMerge(
         monitorResult: monitorPayload,
         protectedCheck: protectedCheckPayload,
         error: coStderr.trim(),
+      });
+    }
+  }
+
+  // #6071: re-read named Merge gate after the wait, immediately before mergeFn,
+  // so master tip churn during monitorFn cannot land an ordinary PR on a red tip.
+  if (!skipNamedMergeGate) {
+    const recheckGreen = semanticGreenFn(prNumber, repo, {
+      cascadeMode: options.cascadeMode,
+      requireMasterCiGreen: options.requireMasterCiGreen,
+      baseBranch: options.baseBranch,
+      skipNamedMergeGate: false,
+      projectRoot,
+    });
+    if (!recheckGreen.ok) {
+      return makeResult({
+        prNumber,
+        repo,
+        outcome: recheckGreen.outcome ?? "semantic-green-blocked",
+        exitCode: recheckGreen.exitCode ?? EXIT_TIMEOUT_OR_ESCALATION,
+        monitorResult: monitorPayload,
+        protectedCheck: protectedCheckPayload,
+        semanticGreen: { ...recheckGreen.payload } as Record<string, unknown>,
+        error: recheckGreen.error,
       });
     }
   }

@@ -147,8 +147,8 @@ describe("L2 thin detect → shape_id (reuses pin + legacy fingerprints)", () =>
     pinRuntimeExact(root);
     const resolved = resolveInstallShape(root);
     expect(resolved).not.toBeNull();
-    expect(resolved!.shapeId).toBe("ovpr-runtime-pin");
-    expect(resolved!.decision).toBe("l0-current");
+    expect(resolved?.shapeId).toBe("ovpr-runtime-pin");
+    expect(resolved?.decision).toBe("l0-current");
     expect(readPin(root).oldStyle).toBe(false);
   });
 
@@ -159,8 +159,8 @@ describe("L2 thin detect → shape_id (reuses pin + legacy fingerprints)", () =>
     expect(readProjectInstallState(root).oldStyle).toBe(true);
     const resolved = resolveInstallShape(root);
     expect(resolved).not.toBeNull();
-    expect(resolved!.shapeId).toBe("npm-hybrid-pin-copied-core");
-    expect(resolved!.decision).toBe("l0-latest-legacy-convert");
+    expect(resolved?.shapeId).toBe("npm-hybrid-pin-copied-core");
+    expect(resolved?.decision).toBe("l0-latest-legacy-convert");
   });
 
   it("vendored-core-go: copied core, no exact pin → convert-via-removals", () => {
@@ -169,8 +169,8 @@ describe("L2 thin detect → shape_id (reuses pin + legacy fingerprints)", () =>
     expect(readPin(root).oldStyle).toBe(false);
     const resolved = resolveInstallShape(root);
     expect(resolved).not.toBeNull();
-    expect(resolved!.shapeId).toBe("vendored-core-go");
-    expect(resolved!.decision).toBe("convert-via-removals");
+    expect(resolved?.shapeId).toBe("vendored-core-go");
+    expect(resolved?.decision).toBe("convert-via-removals");
   });
 
   it("go-tarball-deft-root / legacy-deft-prefixed → convert-via-removals", () => {
@@ -178,8 +178,8 @@ describe("L2 thin detect → shape_id (reuses pin + legacy fingerprints)", () =>
     writeGoTarballDeft(root);
     const resolved = resolveInstallShape(root);
     expect(resolved).not.toBeNull();
-    expect(resolved!.shapeId).toBe("go-tarball-deft-root");
-    expect(resolved!.decision).toBe("convert-via-removals");
+    expect(resolved?.shapeId).toBe("go-tarball-deft-root");
+    expect(resolved?.decision).toBe("convert-via-removals");
   });
 
   it("submodule-deft → convert-via-removals", () => {
@@ -187,8 +187,8 @@ describe("L2 thin detect → shape_id (reuses pin + legacy fingerprints)", () =>
     writeSubmoduleDeft(root);
     const resolved = resolveInstallShape(root);
     expect(resolved).not.toBeNull();
-    expect(resolved!.shapeId).toBe("submodule-deft");
-    expect(resolved!.decision).toBe("convert-via-removals");
+    expect(resolved?.shapeId).toBe("submodule-deft");
+    expect(resolved?.decision).toBe("convert-via-removals");
   });
 
   it("orphan-deft-version → convert-via-removals", () => {
@@ -198,8 +198,8 @@ describe("L2 thin detect → shape_id (reuses pin + legacy fingerprints)", () =>
     expect(existsSync(join(root, ".deft", "core"))).toBe(false);
     const resolved = resolveInstallShape(root);
     expect(resolved).not.toBeNull();
-    expect(resolved!.shapeId).toBe("orphan-deft-version");
-    expect(resolved!.decision).toBe("convert-via-removals");
+    expect(resolved?.shapeId).toBe("orphan-deft-version");
+    expect(resolved?.decision).toBe("convert-via-removals");
   });
 
   it("dual-layout-deft-and-core → convert-via-removals", () => {
@@ -208,8 +208,8 @@ describe("L2 thin detect → shape_id (reuses pin + legacy fingerprints)", () =>
     writeGoTarballDeft(root);
     const resolved = resolveInstallShape(root);
     expect(resolved).not.toBeNull();
-    expect(resolved!.shapeId).toBe("dual-layout-deft-and-core");
-    expect(resolved!.decision).toBe("convert-via-removals");
+    expect(resolved?.shapeId).toBe("dual-layout-deft-and-core");
+    expect(resolved?.decision).toBe("convert-via-removals");
   });
 
   it("greenfield (no footprint) → null (not a historical shape)", () => {
@@ -222,8 +222,8 @@ describe("L2 thin detect → shape_id (reuses pin + legacy fingerprints)", () =>
     pinRuntimeExact(root);
     writeCopiedCoreEvidence(root);
     const resolved = resolveInstallShape(root);
-    expect(resolved!.shapeId).toBe("ovpr-runtime-pin");
-    expect(resolved!.decision).toBe("l0-current");
+    expect(resolved?.shapeId).toBe("ovpr-runtime-pin");
+    expect(resolved?.decision).toBe("l0-current");
   });
 });
 

@@ -382,7 +382,12 @@ function asPhaseId(value: string): PrePrPhaseId | null {
   return (PRE_PR_PHASE_IDS as readonly string[]).includes(value) ? (value as PrePrPhaseId) : null;
 }
 
-export function run(argv: string[]): number {
+export interface PrePrRunOptions {
+  /** Hermetic tests inject this; production CLI never sets it (#6071 Greptile). */
+  readonly skipNamedMergeGate?: boolean;
+}
+
+export function run(argv: string[], options: PrePrRunOptions = {}): number {
   const args = parseArgs(argv);
   if (args.help) {
     process.stdout.write(USAGE);
@@ -554,6 +559,7 @@ export function run(argv: string[]): number {
     const projectRoot = args.projectRoot?.trim() || process.cwd();
     const d = completeRun(store, controllerPublisher(), args.runId, undefined, {
       projectRoot,
+      ...(options.skipNamedMergeGate === true ? { skipNamedMergeGate: true as const } : {}),
       ...(args.verifyAcDisposition !== null
         ? { verifyAcDisposition: args.verifyAcDisposition }
         : {}),

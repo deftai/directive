@@ -1,5 +1,7 @@
 /** Gate execution order mirrors Taskfile.yml check targets (#1713 dogfood). */
 
+import { readdirSync, readFileSync as readFileSyncFs, statSync } from "node:fs";
+import { join, relative } from "node:path";
 import { PRODUCT_AC_GATE_ID } from "../product-first-done-gate/types.js";
 
 /**
@@ -206,4 +208,291 @@ export function gatesForCheckTarget(target: string): readonly CheckGateSpec[] {
     return CONSUMER_CHECK_GATES;
   }
   return [];
+}
+
+// --- Cited-skip scanner (#6071 Prefer-A Recut-2) ---
+
+/** Token-boundary skip forms; deliberately excludes skipIf (#6071 Recut-2). */
+const SKIP_CALL_RE =
+  /(?<![\w$.])((?:it|test|describe)\.skip)\s*\(\s*(?:(["'`])((?:\\.|(?!\2)[\s\S])*?)\2|([A-Za-z_$][\w$]*))/g;
+
+const SKIP_COMMENT_RE = /\/\/\s*skip:\s*deftai\/directive#(\d+)/i;
+const SKIPPED_TESTS_BLOCK_RE = /```skipped-tests:\r?\n([\s\S]*?)```/;
+
+export interface CitedSkipSite {
+  readonly file: string;
+  readonly kind: "it.skip" | "test.skip" | "describe.skip";
+  readonly title: string | null;
+  readonly dynamicTitle: boolean;
+  readonly issue: number | null;
+  readonly line: number;
+}
+
+/** Four-site baseline allowlist (legacy-bridge describe.skip+it.skip + two yoloSterile aliases). */
+export const CITED_SKIP_BASELINE: readonly {
+  readonly file: string;
+  readonly kind: CitedSkipSite["kind"];
+  readonly dynamicTitle: boolean;
+}[] = [
+  {
+    file: "packages/core/src/release-e2e/legacy-bridge-leg.test.ts",
+    kind: "describe.skip",
+    dynamicTitle: false,
+  },
+  {
+    file: "packages/core/src/release-e2e/legacy-bridge-leg.test.ts",
+    kind: "it.skip",
+    dynamicTitle: false,
+  },
+  {
+    file: "packages/core/src/content-contracts/skills/agents_md_session_start.test.ts",
+    kind: "it.skip",
+    dynamicTitle: true,
+  },
+  {
+    file: "packages/core/src/content-contracts/standards/branch_gate.test.ts",
+    kind: "it.skip",
+    dynamicTitle: true,
+  },
+  {
+    file: "packages/core/src/check/orchestrator.test.ts",
+    kind: "describe.skip",
+    dynamicTitle: false,
+  },
+] as const;
+
+export function parseSkippedTestsBlock(body: string): string[] {
+  const m = SKIPPED_TESTS_BLOCK_RE.exec(body);
+  if (m === null || m[1] === undefined) return [];
+  return m[1]
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("- "))
+    .map((line) => line.slice(2).trim())
+    .filter((line) => line.length > 0);
+}
+
+function lineNumberAt(source: string, index: number): number {
+  let line = 1;
+  for (let i = 0; i < index && i < source.length; i++) {
+    if (source[i] === "\n") line++;
+  }
+  return line;
+}
+
+/** Inventory it.skip/test.skip/describe.skip with token boundary excluding skipIf. */
+export function inventoryCitedSkipsInSource(source: string, file: string): CitedSkipSite[] {
+  const sites: CitedSkipSite[] = [];
+  const re = new RegExp(SKIP_CALL_RE.source, SKIP_CALL_RE.flags);
+  let match: RegExpExecArray | null = re.exec(source);
+  while (match !== null) {
+    const kind = match[1] as CitedSkipSite["kind"];
+    const title = match[3] ?? null;
+    const dynamicTitle = title === null && match[4] !== undefined;
+    const line = lineNumberAt(source, match.index);
+    const windowStart = Math.max(0, match.index - 200);
+    const window = source.slice(windowStart, match.index + match[0].length);
+    const comment = SKIP_COMMENT_RE.exec(window);
+    const issue = comment?.[1] !== undefined ? Number(comment[1]) : null;
+    sites.push({
+      file: file.replaceAll("\\", "/"),
+      kind,
+      title,
+      dynamicTitle,
+      issue,
+      line,
+    });
+    match = re.exec(source);
+  }
+  // yoloSterile alias form: `const itX = cond ? it.skip : it` (dynamic title; not a call).
+  const aliasRe = /\byoloSterile\s*\?\s*it\.skip\b/g;
+  let alias: RegExpExecArray | null = aliasRe.exec(source);
+  while (alias !== null) {
+    sites.push({
+      file: file.replaceAll("\\", "/"),
+      kind: "it.skip",
+      title: null,
+      dynamicTitle: true,
+      issue: null,
+      line: lineNumberAt(source, alias.index),
+    });
+    alias = aliasRe.exec(source);
+  }
+  return sites;
+}
+
+function walkTestFiles(root: string, dir: string, out: string[]): void {
+  let entries: string[] = [];
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return;
+  }
+  for (const name of entries) {
+    if (name === "node_modules" || name === "dist" || name === ".git") continue;
+    const full = join(dir, name);
+    let st: ReturnType<typeof statSync>;
+    try {
+      st = statSync(full);
+    } catch {
+      continue;
+    }
+    if (st.isDirectory()) {
+      walkTestFiles(root, full, out);
+      continue;
+    }
+    if (/\.(test|spec)\.(ts|tsx|js|mjs|cjs)$/.test(name)) {
+      out.push(full);
+    }
+  }
+}
+
+export function inventoryCitedSkipsInTree(projectRoot: string): CitedSkipSite[] {
+  const files: string[] = [];
+  walkTestFiles(projectRoot, projectRoot, files);
+  const sites: CitedSkipSite[] = [];
+  for (const abs of files) {
+    let source = "";
+    try {
+      source = readFileSyncFs(abs, "utf8");
+    } catch {
+      continue;
+    }
+    const rel = relative(projectRoot, abs).replaceAll("\\", "/");
+    sites.push(...inventoryCitedSkipsInSource(source, rel));
+  }
+  return sites;
+}
+
+function matchesBaselineEntry(
+  site: CitedSkipSite,
+  baseline: (typeof CITED_SKIP_BASELINE)[number],
+): boolean {
+  return (
+    baseline.file === site.file &&
+    baseline.kind === site.kind &&
+    baseline.dynamicTitle === site.dynamicTitle
+  );
+}
+
+/** True when a fresh baseline slot matches; each baseline entry admits one site (#6071). */
+function claimBaselineSite(site: CitedSkipSite, claimed: Set<number>): boolean {
+  for (let i = 0; i < CITED_SKIP_BASELINE.length; i++) {
+    if (claimed.has(i)) continue;
+    const baseline = CITED_SKIP_BASELINE[i];
+    if (baseline === undefined) continue;
+    if (!matchesBaselineEntry(site, baseline)) continue;
+    claimed.add(i);
+    return true;
+  }
+  return false;
+}
+
+export interface CitedSkipScanOptions {
+  readonly projectRoot: string;
+  /** When set, only these relative paths are live-validated for issue probes. */
+  readonly changedFiles?: readonly string[];
+  readonly hotfixShapeB?: boolean;
+  readonly fetchIssue?: (
+    issue: number,
+  ) => { state: string; created_at: string; body: string } | null;
+  readonly skipCommitTimeIso?: string;
+}
+
+export interface CitedSkipScanResult {
+  readonly ok: boolean;
+  readonly inventory: readonly CitedSkipSite[];
+  readonly failures: readonly string[];
+  readonly listing: string;
+}
+
+export function formatCitedSkipListing(sites: readonly CitedSkipSite[]): string {
+  if (sites.length === 0) return "cited-skips: (none)";
+  const lines = sites.map(
+    (s) =>
+      `- ${s.file}:${s.line} ${s.kind} title=${JSON.stringify(s.title)} issue=${s.issue ?? "none"}`,
+  );
+  return ["cited-skips:", ...lines].join("\n");
+}
+
+/**
+ * Scan tree for unsanctioned skips. Lists inventory every run; live-probes
+ * only changed sites when changedFiles is provided (#6071).
+ */
+export function evaluateCitedSkipScan(options: CitedSkipScanOptions): CitedSkipScanResult {
+  const inventory = inventoryCitedSkipsInTree(options.projectRoot);
+  const listing = formatCitedSkipListing(inventory);
+  const failures: string[] = [];
+  // undefined changedFiles => inventory-only (list every run; no live probes).
+  // provided list (including []) => live-validate only those paths (#6071 Bound).
+  const liveProbe = options.changedFiles !== undefined;
+  const changed = new Set((options.changedFiles ?? []).map((f) => f.replaceAll("\\", "/")));
+  const claimedBaseline = new Set<number>();
+
+  for (const site of inventory) {
+    if (claimBaselineSite(site, claimedBaseline)) {
+      continue;
+    }
+    if (site.kind === "describe.skip") {
+      failures.push(
+        `unsanctioned-test-skip: ${site.file}:${site.line} describe.skip refused in v1 (#6071)`,
+      );
+      continue;
+    }
+    if (!liveProbe || !changed.has(site.file)) {
+      // Static inventory only for unchanged / inventory-only runs.
+      continue;
+    }
+    if (!options.hotfixShapeB) {
+      failures.push(
+        `unsanctioned-test-skip: ${site.file}:${site.line} skip added outside admitted shape (B) hotfix (#6071)`,
+      );
+      continue;
+    }
+    if (site.issue === null) {
+      failures.push(
+        `unsanctioned-test-skip: ${site.file}:${site.line} missing // skip: deftai/directive#N citation (#6071)`,
+      );
+      continue;
+    }
+    if (options.fetchIssue === undefined) {
+      continue;
+    }
+    const issue = options.fetchIssue(site.issue);
+    if (issue === null) {
+      failures.push(
+        `unsanctioned-test-skip: ${site.file}:${site.line} issue #${site.issue} missing (#6071)`,
+      );
+      continue;
+    }
+    if (issue.state !== "open") {
+      failures.push(
+        `unsanctioned-test-skip: ${site.file}:${site.line} issue #${site.issue} is ${issue.state} (#6071)`,
+      );
+      continue;
+    }
+    if (
+      options.skipCommitTimeIso !== undefined &&
+      Date.parse(issue.created_at) > Date.parse(options.skipCommitTimeIso)
+    ) {
+      failures.push(
+        `unsanctioned-test-skip: ${site.file}:${site.line} issue #${site.issue} created_at after skip commit (#6071)`,
+      );
+      continue;
+    }
+    const titles = parseSkippedTestsBlock(issue.body);
+    if (titles.length === 0) {
+      failures.push(
+        `unsanctioned-test-skip: ${site.file}:${site.line} issue #${site.issue} lacks skipped-tests block (#6071)`,
+      );
+      continue;
+    }
+    if (site.title !== null && !titles.includes(site.title)) {
+      failures.push(
+        `unsanctioned-test-skip: ${site.file}:${site.line} title not in issue #${site.issue} skipped-tests (#6071)`,
+      );
+    }
+  }
+
+  return { ok: failures.length === 0, inventory, failures, listing };
 }

@@ -21,6 +21,13 @@ import {
 import { evaluateCoverageHotspots } from "../coverage-hotspots/evaluate.js";
 import { admittedUntiedWorktreeKey, type VerifyAcDispositionKind } from "../hooks/scope.js";
 import { isCoverageModeSkipAuthorized, resolveCoverageMode } from "../policy/coverage-mode.js";
+import type { RunGhFn } from "../pr-merge-readiness/types.js";
+import { FIRST_HOTFIX_BOOTSTRAP_RECOVERY } from "../pr-wait-mergeable/constants.js";
+import {
+  evaluateAlwaysOnNamedMergeGate,
+  type HotfixAdmission,
+  type NamedMergeGateFn,
+} from "../pr-wait-mergeable/semantic-green.js";
 import {
   coverageReportPresence,
   prePrCoverageReportPath,
@@ -41,6 +48,47 @@ import {
   phaseSpec,
   VERIFY_AC_NO_OBLIGATION_EXIT,
 } from "./phases.js";
+
+/**
+ * Resolve a numeric PR number without parsing opaque GraphQL `node_id` (#6071).
+ * Order: explicit option → GITHUB_PR_NUMBER env → commits/<sha>/pulls REST.
+ * ⊗ Digits from `prNodeId` (e.g. PR_kwDO…123) — those are not PR numbers.
+ * Kept in controller.ts (in file_scope) so numeric-pr.ts is not an extra (#4956).
+ */
+export function resolveNumericPrNumber(input: {
+  readonly explicit?: number | null;
+  readonly env?: Readonly<Record<string, string | undefined>>;
+  readonly repo: string;
+  readonly headSha: string;
+  readonly runGh?: RunGhFn;
+  /** Ignored on purpose — opaque GraphQL ids are never numeric PR sources. */
+  readonly prNodeId?: string | null;
+}): number | null {
+  void input.prNodeId;
+  if (typeof input.explicit === "number" && Number.isFinite(input.explicit) && input.explicit > 0) {
+    return Math.trunc(input.explicit);
+  }
+  const envRaw = (input.env ?? process.env).GITHUB_PR_NUMBER?.trim() ?? "";
+  if (/^\d+$/.test(envRaw)) {
+    const n = Number(envRaw);
+    if (n > 0) return n;
+  }
+  const sha = input.headSha.trim();
+  if (sha.length === 0 || input.runGh === undefined) return null;
+  const rc = input.runGh(["gh", "api", `repos/${input.repo}/commits/${sha}/pulls`]);
+  if (rc.returncode !== 0 || !rc.stdout.trim()) return null;
+  try {
+    const payload = JSON.parse(rc.stdout) as unknown;
+    if (!Array.isArray(payload) || payload.length === 0) return null;
+    const first = payload[0];
+    if (first === null || typeof first !== "object" || Array.isArray(first)) return null;
+    const num = (first as Record<string, unknown>).number;
+    return typeof num === "number" && Number.isFinite(num) && num > 0 ? Math.trunc(num) : null;
+  } catch {
+    return null;
+  }
+}
+
 import {
   isPublisher,
   mintPublisher,
@@ -775,6 +823,15 @@ export function completeRun(
     readonly applicabilityDeps?: CoverageApplicabilityDeps;
     /** Direct verify:ac disposition for ordinary pre-PR without merge_chokepoint (#5855). */
     readonly verifyAcDisposition?: VerifyAcDispositionKind | null;
+    /** Always-on named Merge gate (#6071). */
+    readonly namedMergeGateFn?: NamedMergeGateFn;
+    readonly runGh?: RunGhFn;
+    readonly hotfixAdmission?: HotfixAdmission | null;
+    readonly skipNamedMergeGate?: boolean;
+    readonly env?: Readonly<Record<string, string | undefined>>;
+    readonly firstHotfixBootstrap?: boolean;
+    /** Numeric PR number — never derive from opaque prNodeId (#6071 Greptile). */
+    readonly prNumber?: number | null;
   },
 ): PrePrDecision {
   const creds = requirePublisher(publisher);
@@ -784,6 +841,34 @@ export function completeRun(
   const current = store.getById(runId);
   if (current === null) {
     return deny("deny-missing-record", `pre-PR run ${runId} is not in the private store`);
+  }
+  // #6071: pre-PR refuses ordinary changes while master's named Merge gate is red.
+  if (options?.skipNamedMergeGate !== true) {
+    // Numeric PR only — pass opaque prNodeId so resolveNumericPrNumber can ignore it
+    // (never digit-parse GraphQL node_id; #6071 Greptile sticky).
+    const prNumber = resolveNumericPrNumber({
+      explicit: options?.prNumber,
+      env: options?.env,
+      repo: current.repo,
+      headSha: current.headSha,
+      runGh: options?.runGh,
+      prNodeId: current.prNodeId,
+    });
+    const namedFn = options?.namedMergeGateFn ?? evaluateAlwaysOnNamedMergeGate;
+    const named = namedFn(prNumber, current.repo, {
+      runGh: options?.runGh,
+      projectRoot: options?.projectRoot,
+      hotfixAdmission: options?.hotfixAdmission,
+      env: options?.env,
+      firstHotfixBootstrap: options?.firstHotfixBootstrap === true || prNumber === null,
+    });
+    if (!named.ok) {
+      const bootstrap =
+        named.outcome === "first-hotfix-bootstrap"
+          ? FIRST_HOTFIX_BOOTSTRAP_RECOVERY
+          : (named.error ?? "named Merge gate refused");
+      return deny("deny-master-merge-gate-red", bootstrap);
+    }
   }
   const observables = runObservablesComplete(current, options);
   if (!observables.ok) return observables;

@@ -5,6 +5,10 @@ import {
 import { resolveMinGreptileConfidence } from "../policy/min-greptile-confidence.js";
 import { resolveReviewers } from "../policy/reviewers.js";
 import { evaluate as evaluateCloseoutAttestable } from "../pr-closeout-attestable/evaluate.js";
+import {
+  evaluateAlwaysOnNamedMergeGate,
+  type NamedMergeGateFn,
+} from "../pr-wait-mergeable/semantic-green.js";
 import type { CiGateOptions } from "./ci-gate.js";
 import { buildCiSummaryLine, evaluateCiGate } from "./ci-gate.js";
 import {
@@ -147,6 +151,13 @@ export interface ComputeGateOptions extends CiGateOptions, SlizardGateOptions {
   readonly skipCloseoutAttestable?: boolean;
   /** Injectable closeout evaluator; production uses `evaluateCloseoutAttestable`. */
   readonly closeoutAttestableFn?: CloseoutAttestableGateFn;
+  /**
+   * #6071: skip always-on named Merge gate on master's tip (tests only).
+   * Must be set explicitly — inherited `VITEST=true` does not skip.
+   */
+  readonly skipNamedMergeGate?: boolean;
+  /** Injectable named Merge gate; production uses `evaluateAlwaysOnNamedMergeGate`. */
+  readonly namedMergeGateFn?: NamedMergeGateFn;
 }
 
 function resolvedMinConfidence(options: ComputeGateOptions): number {
@@ -804,6 +815,65 @@ function applyCloseoutAttestableGate(result: GateResult, options: ComputeGateOpt
   };
 }
 
+function applyNamedMergeGate(
+  result: GateResult,
+  runGh: RunGhFn,
+  options: ComputeGateOptions,
+): GateResult {
+  // Explicit opt-out only — never inherit VITEST=true to skip the gate (#6071).
+  if (options.skipNamedMergeGate === true) {
+    return result;
+  }
+  // Greptile-only / non-merge-invoker scoring (verify-review-clean) skips closeout and
+  // leaves named tip-check unset — default-skip named gate in that conjunct only (#6071).
+  if (
+    options.skipNamedMergeGate === undefined &&
+    options.skipCloseoutAttestable === true &&
+    options.namedMergeGateFn === undefined
+  ) {
+    return result;
+  }
+  if (result.via === VIA_ERROR || result.via === VIA_FALLBACK2) {
+    return result;
+  }
+  if (!isMergeReady(result.failures)) {
+    return result;
+  }
+  const repo = result.repo;
+  if (repo === null || repo.length === 0) {
+    const message = "named Merge gate requires a resolved repository for merge-readiness (#6071)";
+    return {
+      ...result,
+      failures: [...result.failures, message],
+      partialData: {
+        ...result.partialData,
+        named_merge_gate: { ok: false, outcome: "repo-missing" },
+      },
+    };
+  }
+  // evaluateAlwaysOnNamedMergeGate admits consumers when the exact check name is
+  // absent; deftai/directive stays always-on fail-closed (#6071 / Greptile P1).
+  const namedFn = options.namedMergeGateFn ?? evaluateAlwaysOnNamedMergeGate;
+  const named = namedFn(result.prNumber, repo, {
+    runGh,
+    projectRoot: options.projectRoot ?? process.cwd(),
+  });
+  if (named.ok) {
+    return result;
+  }
+  const message =
+    named.error?.trim() ||
+    `named Merge gate refused merge-readiness (${named.outcome ?? "master-merge-gate-red"}) (#6071)`;
+  return {
+    ...result,
+    failures: [...result.failures, message],
+    partialData: {
+      ...result.partialData,
+      named_merge_gate: { ok: false, outcome: named.outcome ?? "master-merge-gate-red" },
+    },
+  };
+}
+
 export function computeGateResult(
   prNumber: number,
   repo: string | null,
@@ -812,12 +882,12 @@ export function computeGateResult(
 ): GateResult {
   let { result, partial } = computePrimary(prNumber, repo, runGh, options);
   if (result !== null) {
-    return applyCloseoutAttestableGate(result, options);
+    return applyNamedMergeGate(applyCloseoutAttestableGate(result, options), runGh, options);
   }
 
   ({ result, partial } = computeFallback1(prNumber, repo, partial, runGh, options));
   if (result !== null) {
-    return applyCloseoutAttestableGate(result, options);
+    return applyNamedMergeGate(applyCloseoutAttestableGate(result, options), runGh, options);
   }
 
   ({ result, partial } = computeFallback2(prNumber, repo, partial, runGh));

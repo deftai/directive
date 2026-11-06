@@ -169,7 +169,8 @@ export type PrePrDecisionCode =
   | "deny-push-stage-marker"
   | "deny-push-unreviewed-outgoing"
   | "deny-push-missing-binding"
-  | "deny-push-stdin";
+  | "deny-push-stdin"
+  | "deny-master-merge-gate-red";
 
 export interface PrePrDecision {
   readonly ok: boolean;

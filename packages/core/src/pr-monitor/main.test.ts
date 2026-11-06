@@ -73,6 +73,7 @@ describe("callReadiness", () => {
     const result = callReadiness(1, "deftai/directive", {
       runGh: fakeRunGh(),
       skipCloseoutAttestable: true,
+      skipNamedMergeGate: true,
     });
     expect(result.payload.via).toBe("primary");
     expect(result.payload.merge_ready).toBe(true);
@@ -169,6 +170,7 @@ describe("integration monitor with runGh", () => {
       clockFn: { now: () => 0 },
       runGh: fakeRunGh(),
       skipCloseoutAttestable: true,
+      skipNamedMergeGate: true,
     });
     expect(result.exitCode).toBe(EXIT_CLEAN);
     stderr.mockRestore();
