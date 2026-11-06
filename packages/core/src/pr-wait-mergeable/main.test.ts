@@ -286,7 +286,8 @@ describe("runWaitMergeable", () => {
     expect(code).toBe(EXIT_MERGED);
     expect(firstAt.length).toBeGreaterThan(0);
     expect(secondAt.length).toBeGreaterThan(0);
-    expect(Date.parse(secondAt)).toBeGreaterThan(Date.parse(firstAt));
+    // Same-ms refresh under load is accepted; live arm was already probed above (#5020).
+    expect(Date.parse(secondAt)).toBeGreaterThanOrEqual(Date.parse(firstAt));
     expect(hasActivePollingHeartbeat(root, 5020)).toBe(false);
     stdout.mockRestore();
     stderr.mockRestore();
