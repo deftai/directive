@@ -1131,10 +1131,12 @@ describe("cited-skip scanner (#6071)", () => {
   });
 
   it("refuses describe.skip and does not treat skipIf as skip", () => {
-    const source = `
-describe.skip("suite", () => {});
-it.skipIf(process.platform === "win32")("symlink", () => {});
-`;
+    // Build fixture at runtime so tree inventory does not treat this file as a real skip.
+    const source = [
+      "describe",
+      '.skip("suite", () => {});',
+      "it.skipIf(process.platform === \"win32\")(\"symlink\", () => {});",
+    ].join("\n");
     const sites = inventoryCitedSkipsInSource(source, "x.test.ts");
     expect(sites.some((s) => s.kind === "describe.skip")).toBe(true);
     expect(sites.every((s) => s.kind !== "it.skip" || s.title !== "symlink")).toBe(true);
