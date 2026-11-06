@@ -145,17 +145,22 @@ export function runPromoteLatest(config: PublishConfig, seams: ReleasePublishSea
     return EXIT_VIOLATION;
   }
   const spawn = seams.spawnText ?? spawnText;
-  const dispatchOnce = (): void => {
+  // Returned-failure only (no throw): operational gh miss / non-zero are caller-may-retry
+  // (#5852 intent-constraint / Greptile P2). plainGhEnv drops color-force vars (#6032).
+  const dispatchOnce = (): { ok: true } | { ok: false; reason: string } => {
     let result: SpawnResult;
     try {
-      // plainGhEnv: drop color-force vars that break gh captures (#6032); keep PATH/GH_TOKEN.
       result = spawn(ghPath, args, { timeoutMs: 120_000, env: plainGhEnv() });
     } catch {
-      throw new Error("gh CLI not found on PATH");
+      return { ok: false, reason: "gh CLI not found on PATH" };
     }
     if (result.status !== 0) {
-      throw new Error((result.stderr ?? "").trim() || "gh workflow run failed");
+      return {
+        ok: false,
+        reason: (result.stderr ?? "").trim() || "gh workflow run failed",
+      };
     }
+    return { ok: true };
   };
   // Exclusive claim → revalidate → permanent spend, THEN dispatch (#5852 Greptile P1).
   // Do not put dispatch in claim `apply`: a lost/ambiguous gh response must not roll
@@ -166,55 +171,44 @@ export function runPromoteLatest(config: PublishConfig, seams: ReleasePublishSea
       claimGrant?: typeof claimSingleUseGrantForApply;
     };
     const claim = gateSeamsClaim.claimGrant ?? claimSingleUseGrantForApply;
-    let claimed: ReturnType<typeof claimSingleUseGrantForApply>;
-    try {
-      claimed = claim(projectRoot, gate.humanApprovalRef, {
-        revalidate: (g) => {
-          if (g.semantics.revokedAt !== null) {
-            return { ok: false, reason: `grant ${g.id} revoked` };
-          }
-          if (g.semantics.expiresAt !== null && Date.parse(g.semantics.expiresAt) <= Date.now()) {
-            return { ok: false, reason: `grant ${g.id} expired` };
-          }
-          const again = evaluateReleasePromoteLatestGate(version, projectRoot, {
-            grants: [g],
-            env: gateSeams.closedVerbEnv ?? {},
-            repo,
-          });
-          if (!again.allowed || again.code !== "closed-verb-allow") {
-            return {
-              ok: false,
-              reason: again.reason || `grant ${g.id} no longer authorizes promote-latest`,
-            };
-          }
-          return { ok: true };
-        },
-      });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      emitPromote(label, `FAIL (${msg})`);
-      return EXIT_VIOLATION;
-    }
+    const claimed = claim(projectRoot, gate.humanApprovalRef, {
+      revalidate: (g) => {
+        if (g.semantics.revokedAt !== null) {
+          return { ok: false, reason: `grant ${g.id} revoked` };
+        }
+        if (g.semantics.expiresAt !== null && Date.parse(g.semantics.expiresAt) <= Date.now()) {
+          return { ok: false, reason: `grant ${g.id} expired` };
+        }
+        const again = evaluateReleasePromoteLatestGate(version, projectRoot, {
+          grants: [g],
+          env: gateSeams.closedVerbEnv ?? {},
+          repo,
+        });
+        if (!again.allowed || again.code !== "closed-verb-allow") {
+          return {
+            ok: false,
+            reason: again.reason || `grant ${g.id} no longer authorizes promote-latest`,
+          };
+        }
+        return { ok: true };
+      },
+    });
     if (!claimed.ok) {
       emitPromote(label, `FAIL (${claimed.reason})`);
       return EXIT_VIOLATION;
     }
     emitPromote(`Spend grant ${gate.humanApprovalRef}`, "OK (claimed before dispatch)");
-    try {
-      dispatchOnce();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      emitPromote(label, `FAIL (${msg}; grant already spent — remint to retry)`);
+    const dispatched = dispatchOnce();
+    if (!dispatched.ok) {
+      emitPromote(label, `FAIL (${dispatched.reason}; grant already spent — remint to retry)`);
       return EXIT_VIOLATION;
     }
     emitPromote(label, "OK (workflow dispatched; grant claimed before dispatch)");
     return EXIT_OK;
   }
-  try {
-    dispatchOnce();
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    emitPromote(label, `FAIL (${msg})`);
+  const dispatched = dispatchOnce();
+  if (!dispatched.ok) {
+    emitPromote(label, `FAIL (${dispatched.reason})`);
     return EXIT_VIOLATION;
   }
   emitPromote(label, "OK (workflow dispatched)");
