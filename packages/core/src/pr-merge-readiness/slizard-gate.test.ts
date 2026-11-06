@@ -22,6 +22,7 @@ function computeGate(
 ) {
   return computeGateResult(prNumber, repo, runGh, {
     skipCloseoutAttestable: true,
+    skipNamedMergeGate: true,
     ...options,
   });
 }

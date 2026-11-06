@@ -177,6 +177,7 @@ export function monitor(
         runGh: options.runGh,
         projectRoot: options.projectRoot ?? process.cwd(),
         skipCloseoutAttestable: options.skipCloseoutAttestable,
+        skipNamedMergeGate: options.skipNamedMergeGate,
       }));
 
   const startedAt = clockFn.now();

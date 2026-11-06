@@ -363,6 +363,9 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
         {
           skipCi: true,
           tipSha: headSha,
+          skipNamedMergeGate: seams.skipNamedMergeGate,
+          namedMergeGateFn: seams.namedMergeGateFn,
+          runGh: seams.runGh,
         },
         config.allowCoverageDebtIssue,
       );

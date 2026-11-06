@@ -17,6 +17,7 @@ function computeGate(
 ) {
   return computeGateResult(prNumber, repo, runGh, {
     skipCloseoutAttestable: true,
+    skipNamedMergeGate: true,
     ...options,
   });
 }
@@ -608,6 +609,7 @@ describe("pr:merge-ready closeout invoker (#3875)", () => {
       {
         skipCi: true,
         skipSlizard: true,
+        skipNamedMergeGate: true,
         closeoutAttestableFn: () => ({ code: 0, message: "ok" }),
       },
     );

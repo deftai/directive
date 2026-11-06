@@ -817,7 +817,13 @@ function applyNamedMergeGate(
   runGh: RunGhFn,
   options: ComputeGateOptions,
 ): GateResult {
-  if (options.skipNamedMergeGate === true) {
+  // Hermetic suites default-skip unless they inject namedMergeGateFn or set skip false (#6071).
+  if (
+    options.skipNamedMergeGate === true ||
+    (options.skipNamedMergeGate === undefined &&
+      process.env.VITEST === "true" &&
+      options.namedMergeGateFn === undefined)
+  ) {
     return result;
   }
   if (result.via === VIA_ERROR || result.via === VIA_FALLBACK2) {

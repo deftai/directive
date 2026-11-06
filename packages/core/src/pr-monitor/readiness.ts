@@ -40,6 +40,7 @@ export function callReadiness(
     const result = computeGateResult(prNumber, repo, runGh, {
       projectRoot: options.projectRoot ?? process.cwd(),
       skipCloseoutAttestable: options.skipCloseoutAttestable,
+      skipNamedMergeGate: options.skipNamedMergeGate,
     });
     const payload = gateResultToDict(result);
     const exitCode = exitCodeFor(result);

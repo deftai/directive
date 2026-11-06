@@ -242,6 +242,7 @@ describe("pipeline Step 5 auto-hatch + suite stamp (#3187)", () => {
       },
       writeFile: () => undefined,
       isCi: () => false,
+      skipNamedMergeGate: true,
     };
 
     try {
