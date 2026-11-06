@@ -743,7 +743,7 @@ function isRetirementShapedMutationTargets(projectRoot: string, payload: unknown
  * that constant still claims optional CHANGELOG as lifecycle-only (#6061).
  */
 const ZERO_ELIGIBLE_RETIREMENT_SHAPED_RECOVERY =
-  " Recovery: leftover-land / `task scope:complete` owns the reachable brief-only " +
+  " Recovery: leftover-land / `deft scope:complete` owns the reachable brief-only " +
   "completed/ sequence (active→completed retirement and already-completed restamp). " +
   "Staging CHANGELOG.md alongside still requires a ready scope and remains a named residual. " +
   "Do not select an unrelated active brief for this work.";
