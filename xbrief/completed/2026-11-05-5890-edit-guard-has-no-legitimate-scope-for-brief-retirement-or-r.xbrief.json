@@ -18,97 +18,97 @@
     "items": [
       {
         "title": "relieves: P1 — task scope:complete owns active→completed retirement and already-completed restamp of the brief artifact only.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.1",
         "x-directive/requires": "merge",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "a27d4c8de97bb4b4110b37ab380401634fd957d7",
-          "recorded_at": "2026-11-06T00:51:56Z",
+          "recorded_at": "2026-11-06T00:52:53Z",
           "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P1 — Prefer-A P1 relief is scope reduction plus fail-closed refusals: no dispatcher admit changes for CHANGELOG; the brief-only residue is already reachable at this pin (completed/ exemption #4422 for restamp; the verb-owned active→completed write is an in-process atomicWriteBrief, not a hook-gated tool call).",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.2",
         "x-directive/requires": "merge",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "a27d4c8de97bb4b4110b37ab380401634fd957d7",
-          "recorded_at": "2026-11-06T00:51:56Z",
+          "recorded_at": "2026-11-06T00:52:53Z",
           "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P1 — scope:complete does not author CHANGELOG.md and does not add a product-gate admit, staged-delta association, ownership tag, or --changelog-note commit path for Fixed bullets.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.3",
         "x-directive/requires": "merge",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "a27d4c8de97bb4b4110b37ab380401634fd957d7",
-          "recorded_at": "2026-11-06T00:51:56Z",
+          "recorded_at": "2026-11-06T00:52:53Z",
           "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P1 — Combined brief+CHANGELOG close-out and CHANGELOG-only close-out remain named residuals under current product-cover rules (operator-deferred #6061); this Bound does not claim they are a present-tense sanctioned reachable unit.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.4",
         "x-directive/requires": "merge",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "a27d4c8de97bb4b4110b37ab380401634fd957d7",
-          "recorded_at": "2026-11-06T00:51:56Z",
+          "recorded_at": "2026-11-06T00:52:53Z",
           "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P2 — On retirement-shaped zero-eligible denies composed in packages/core/src/hooks/dispatcher.ts, recovery text and proposedPathHint must not steer borrow-another-brief or DEFT_ACTIVE_SCOPE; P2 regression asserts that property only over that dispatcher-composed zero-eligible text (multiple-eligible scope.message / hooks/scope.ts pin steer stays residual on #6061).",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.5",
         "x-directive/requires": "merge",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "a27d4c8de97bb4b4110b37ab380401634fd957d7",
-          "recorded_at": "2026-11-06T00:51:56Z",
+          "recorded_at": "2026-11-06T00:52:53Z",
           "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P3 — On denyKind zero-eligible with retirement-shaped harvested Write targets (targets drawn from hookMutationTargetPaths / relTarget; all-completed/ payloads are allowed upstream by #4422 before inspectActiveScope and so are out of this branch by construction), replace the dispatcher else recovery lead with copy that names leftover-land / scope:complete for the reachable brief-only completed/ sequence and explicitly states that staging CHANGELOG.md alongside still requires a ready scope and remains a named residual; do not say cancelled in that reachable-sequence lead; do not emit LEFTOVER_LAND_PR_REMEDIATION verbatim as that prospective lead; suppress SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE and invent-scope/proposal tails on the gated arm; ungated zero-eligible keeps today copy byte-for-byte on both exempt and non-exempt else arms.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.6",
         "x-directive/requires": "merge",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "a27d4c8de97bb4b4110b37ab380401634fd957d7",
-          "recorded_at": "2026-11-06T00:51:56Z",
+          "recorded_at": "2026-11-06T00:52:53Z",
           "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P1 — Do not mint a PreToolUse completed/ Write class for CHANGELOG and do not widen allowExemptLifecycleWrite for CHANGELOG companions or active/ hand edits.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.7",
         "x-directive/requires": "merge",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "a27d4c8de97bb4b4110b37ab380401634fd957d7",
-          "recorded_at": "2026-11-06T00:51:56Z",
+          "recorded_at": "2026-11-06T00:52:53Z",
           "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P4 — Regressions cover brief-only complete/restamp without CHANGELOG mutation (both complete stamp sites; packages/core/src/scope/transition.test.ts in lean for that row), zero-eligible gated lead containing completed-only reachable wording and the CHANGELOG-residual qualifier and omitting cancelled / verbatim LEFTOVER_LAND_PR_REMEDIATION / invent-scope lead, ungated keep, paired brief+CHANGELOG and CHANGELOG-only commit refusal without unrelated-scope borrowing, refuse inventing product-gate CHANGELOG provenance paths, and unrelated-brief write-fence refuse for nonqualifying hand Writes.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.8",
         "x-directive/requires": "merge",
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "a27d4c8de97bb4b4110b37ab380401634fd957d7",
-          "recorded_at": "2026-11-06T00:51:56Z",
+          "recorded_at": "2026-11-06T00:52:53Z",
           "recorded_by": "scope:complete"
         }
       }
@@ -211,7 +211,10 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "Edit guard has no legitimate scope for brief-retirement or restamp changes"
+      ]
     },
     "metadata": {
       "intended_placement": {
