@@ -17,7 +17,6 @@ function computeGate(
 ) {
   return computeGateResult(prNumber, repo, runGh, {
     skipCloseoutAttestable: true,
-    skipNamedMergeGate: true,
     ...options,
   });
 }
@@ -561,7 +560,6 @@ describe("pr:merge-ready closeout invoker (#3875)", () => {
       {
         skipCi: true,
         skipSlizard: true,
-        skipNamedMergeGate: true,
         closeoutAttestableFn: () => ({
           code: 1,
           message: "verify:pr-closeout-attestable: PR #3875 closes #3609, leaving 5 unattested",
@@ -588,7 +586,6 @@ describe("pr:merge-ready closeout invoker (#3875)", () => {
       {
         skipCi: true,
         skipSlizard: true,
-        skipNamedMergeGate: true,
         closeoutAttestableFn: () => ({
           code: 2,
           message: "verify:pr-closeout-attestable: working tree HEAD is not PR head",
@@ -611,7 +608,6 @@ describe("pr:merge-ready closeout invoker (#3875)", () => {
       {
         skipCi: true,
         skipSlizard: true,
-        skipNamedMergeGate: true,
         closeoutAttestableFn: () => ({ code: 0, message: "ok" }),
       },
     );

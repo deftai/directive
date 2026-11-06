@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 
 // Lazy require avoids a static cycle with orchestrator.ts (which imports this module).
 const requireOrchestrator = createRequire(import.meta.url);
+
 import {
   lintShippedRegistry,
   resolveTaskContract,
@@ -332,7 +333,9 @@ export function dispatchCachedTaskCheck(
 
   // #6071: cited-skip inventory on framework-source; refuse unsanctioned describe.skip.
   if (target === "check:framework-source" && options.skipCitedSkipScan !== true) {
-    const { evaluateCitedSkipScan } = requireOrchestrator("./orchestrator.js") as typeof import("./orchestrator.js");
+    const { evaluateCitedSkipScan } = requireOrchestrator(
+      "./orchestrator.js",
+    ) as typeof import("./orchestrator.js");
     const cited = evaluateCitedSkipScan({
       projectRoot: resolvedProject,
       changedFiles: options.citedSkipChangedFiles,

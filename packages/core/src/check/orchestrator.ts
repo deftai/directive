@@ -254,14 +254,11 @@ function lineNumberAt(source: string, index: number): number {
 }
 
 /** Inventory it.skip/test.skip/describe.skip with token boundary excluding skipIf. */
-export function inventoryCitedSkipsInSource(
-  source: string,
-  file: string,
-): CitedSkipSite[] {
+export function inventoryCitedSkipsInSource(source: string, file: string): CitedSkipSite[] {
   const sites: CitedSkipSite[] = [];
   const re = new RegExp(SKIP_CALL_RE.source, SKIP_CALL_RE.flags);
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(source)) !== null) {
+  let match: RegExpExecArray | null = re.exec(source);
+  while (match !== null) {
     const kind = match[1] as CitedSkipSite["kind"];
     const title = match[3] ?? null;
     const dynamicTitle = title === null && match[4] !== undefined;
@@ -278,11 +275,12 @@ export function inventoryCitedSkipsInSource(
       issue,
       line,
     });
+    match = re.exec(source);
   }
   // yoloSterile alias form: `const itX = cond ? it.skip : it` (dynamic title; not a call).
   const aliasRe = /\byoloSterile\s*\?\s*it\.skip\b/g;
-  let alias: RegExpExecArray | null;
-  while ((alias = aliasRe.exec(source)) !== null) {
+  let alias: RegExpExecArray | null = aliasRe.exec(source);
+  while (alias !== null) {
     sites.push({
       file: file.replaceAll("\\", "/"),
       kind: "it.skip",
@@ -291,6 +289,7 @@ export function inventoryCitedSkipsInSource(
       issue: null,
       line: lineNumberAt(source, alias.index),
     });
+    alias = aliasRe.exec(source);
   }
   return sites;
 }
@@ -305,7 +304,7 @@ function walkTestFiles(root: string, dir: string, out: string[]): void {
   for (const name of entries) {
     if (name === "node_modules" || name === "dist" || name === ".git") continue;
     const full = join(dir, name);
-    let st;
+    let st: ReturnType<typeof statSync>;
     try {
       st = statSync(full);
     } catch {
@@ -341,9 +340,7 @@ export function inventoryCitedSkipsInTree(projectRoot: string): CitedSkipSite[] 
 function isBaselineSite(site: CitedSkipSite): boolean {
   return CITED_SKIP_BASELINE.some(
     (b) =>
-      b.file === site.file &&
-      b.kind === site.kind &&
-      (b.dynamicTitle ? site.dynamicTitle : true),
+      b.file === site.file && b.kind === site.kind && (b.dynamicTitle ? site.dynamicTitle : true),
   );
 }
 

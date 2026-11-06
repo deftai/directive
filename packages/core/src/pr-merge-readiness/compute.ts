@@ -5,6 +5,10 @@ import {
 import { resolveMinGreptileConfidence } from "../policy/min-greptile-confidence.js";
 import { resolveReviewers } from "../policy/reviewers.js";
 import { evaluate as evaluateCloseoutAttestable } from "../pr-closeout-attestable/evaluate.js";
+import {
+  evaluateAlwaysOnNamedMergeGate,
+  type NamedMergeGateFn,
+} from "../pr-wait-mergeable/semantic-green.js";
 import type { CiGateOptions } from "./ci-gate.js";
 import { buildCiSummaryLine, evaluateCiGate } from "./ci-gate.js";
 import {
@@ -61,10 +65,6 @@ import {
 } from "./reviewer-presence.js";
 import type { SlizardGateOptions } from "./slizard-gate.js";
 import { evaluateSlizardGate, isSlizardCheck } from "./slizard-gate.js";
-import {
-  evaluateAlwaysOnNamedMergeGate,
-  type NamedMergeGateFn,
-} from "../pr-wait-mergeable/semantic-green.js";
 import type { GateResult, GreptileVerdict, RunGhFn } from "./types.js";
 
 function buildGateResult(
@@ -828,8 +828,7 @@ function applyNamedMergeGate(
   }
   const repo = result.repo;
   if (repo === null || repo.length === 0) {
-    const message =
-      "named Merge gate requires a resolved repository for merge-readiness (#6071)";
+    const message = "named Merge gate requires a resolved repository for merge-readiness (#6071)";
     return {
       ...result,
       failures: [...result.failures, message],

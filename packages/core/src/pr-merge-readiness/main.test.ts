@@ -81,7 +81,6 @@ describe("run CLI", () => {
     const code = run(["1", "--repo", "deftai/directive", "--json"], {
       runGh: fakeRunGh(),
       skipCloseoutAttestable: true,
-      skipNamedMergeGate: true,
     });
     expect(code).toBe(0);
     expect(stdout.mock.calls[0]?.[0]).toContain('"merge_ready": true');
@@ -99,7 +98,6 @@ describe("run CLI", () => {
       cmdPrMergeReadiness(["1", "--repo", "deftai/directive", "--json"], {
         runGh: fakeRunGh(),
         skipCloseoutAttestable: true,
-        skipNamedMergeGate: true,
       }),
     ).toBe(0);
   });

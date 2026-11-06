@@ -119,9 +119,6 @@ export interface RunOptions {
   /** Tests that only score Greptile must opt out of closeout explicitly (#3875). */
   readonly skipCloseoutAttestable?: boolean;
   readonly closeoutAttestableFn?: ComputeGateOptions["closeoutAttestableFn"];
-  /** Tests that only score Greptile must opt out of #6071 named Merge gate. */
-  readonly skipNamedMergeGate?: boolean;
-  readonly namedMergeGateFn?: ComputeGateOptions["namedMergeGateFn"];
 }
 
 export function run(argv: readonly string[], options: RunOptions = {}): number {
@@ -138,8 +135,6 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
     ignoreCheckNames: args.ciIgnoreChecks,
     skipCloseoutAttestable: options.skipCloseoutAttestable,
     closeoutAttestableFn: options.closeoutAttestableFn,
-    skipNamedMergeGate: options.skipNamedMergeGate,
-    namedMergeGateFn: options.namedMergeGateFn,
   });
 
   if (args.emitJson) {
