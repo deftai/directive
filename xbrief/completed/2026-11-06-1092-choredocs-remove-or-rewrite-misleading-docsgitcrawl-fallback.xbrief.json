@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #1092",
-    "updated": "2026-11-06T17:07:53Z"
+    "updated": "2026-11-06T18:41:20Z"
   },
   "plan": {
     "title": "chore(docs): remove or rewrite misleading docs/gitcrawl-fallback.md",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "chore(docs): remove or rewrite misleading docs/gitcrawl-fallback.md",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1092",
@@ -19,22 +19,22 @@
       {
         "id": "1",
         "title": "Delete the stale gitcrawl fallback maintainer doc from the tree",
-        "status": "pending"
+        "status": "done"
       },
       {
         "id": "2",
         "title": "Add one negative pointer under From v0.25.x to v0.26.0 that gitcrawl fallback semantics no longer apply after the cache rebind",
-        "status": "pending"
+        "status": "done"
       },
       {
         "id": "3",
         "title": "Remove the two content-contract it cases that still require the gitcrawl fallback doc path",
-        "status": "pending"
+        "status": "done"
       },
       {
         "id": "4",
         "title": "Confirm no live skill or docs refs remain and record Unreleased Docs Removed for issue 1092",
-        "status": "pending"
+        "status": "done"
       }
     ],
     "tags": [
@@ -109,9 +109,17 @@
           "PA 6689061799"
         ],
         "parallel_safe": true
+      },
+      "productPullRequest": 6103,
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6103,
+        "mergeCommit": "fc9b64fa75bd5f72b97262c6f8325b8618eaa75b",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-06T18:41:20Z"
       }
     },
     "id": "github.issue.4431734591",
-    "updated": "2026-11-06T17:07:53Z"
+    "updated": "2026-11-06T18:41:20Z"
   }
 }
