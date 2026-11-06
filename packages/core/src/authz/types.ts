@@ -22,6 +22,8 @@ export const AUTHZ_OPERATIONS = [
   "release-cut",
   "release-publish",
   "release-rollback",
+  /** Explicit npm latest promotion (#5852) - NOT satisfied by `deployment`. */
+  "release-promote-latest",
   /** Human-origin exact-draft-digest gate for scope:decompose apply (#3239). */
   SCOPE_DECOMPOSE_APPLY_STRUCTURAL,
 ] as const;

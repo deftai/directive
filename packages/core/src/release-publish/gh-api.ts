@@ -106,10 +106,14 @@ export function editReleasePublish(
   const endpoint = `repos/${repo}/releases/${resolvedId}`;
   let result: SpawnResult;
   try {
-    result = spawn(ghPath, ["api", endpoint, "--method", "PATCH", "-F", "draft=false"], {
-      timeoutMs: 60_000,
-      env: { ...process.env },
-    });
+    result = spawn(
+      ghPath, // make_latest=false (#5852 P3): only the explicit promote-latest act marks Latest.
+      ["api", endpoint, "--method", "PATCH", "-F", "draft=false", "-f", "make_latest=false"],
+      {
+        timeoutMs: 60_000,
+        env: { ...process.env },
+      },
+    );
   } catch {
     return [false, "gh CLI not found on PATH"];
   }
