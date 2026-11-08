@@ -31,6 +31,7 @@ import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import {
   defaultGitRunner,
+  envGitRunner,
   type GitRunner,
   showBlobsBatch,
   timedGitRunner,
@@ -38,6 +39,7 @@ import {
 import { parseGithubIssueUri } from "../triage/reconcile/parse-uri.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
 import {
+  DURABLE_FINALIZE_HEAD_PREFIX,
   type FinalizeCohortResult,
   finalizeClaimRef,
   finalizeCohort,
@@ -48,6 +50,18 @@ export const FINALIZE_OWED_LABEL = "finalize-owed";
 
 /** Age bound before a claim ref with no open PR is stale (#4919). */
 export const FINALIZE_CLAIM_STALE_MS = 2 * 60 * 60 * 1000;
+
+/** Sanitized unknown detail — never surface raw remote stdout/stderr (#6008). */
+export const CLAIM_PROBE_UNKNOWN_DETAIL = "claim metadata unavailable";
+
+/**
+ * Production claimRunner: GIT_TERMINAL_PROMPT=0, no probe timeout const (#6008 free form).
+ * Callers (session-start, finalizeOwed) construct and pass this; discover does not
+ * attach claim behavior by `runGit === defaultGitRunner` identity.
+ */
+export function createFinalizeClaimRunner(): GitRunner {
+  return envGitRunner({ GIT_TERMINAL_PROMPT: "0" });
+}
 
 export type FinalizeOwedState =
   | "owed"
@@ -91,6 +105,8 @@ export interface FinalizeOwedArgs {
   readonly waitThroughLand?: boolean;
   readonly runGh?: RunGhFn;
   readonly runGit?: GitRunner;
+  /** Bounded runner for claim ls-remote + hit-fetch only (#6008). */
+  readonly claimRunner?: GitRunner;
   readonly now?: () => number;
   /** Test seam: skip live finalizeCohort. */
   readonly runFinalize?: (args: {
@@ -471,47 +487,132 @@ export function isReclaimableClaimFetchFailure(stderr: string, stdout: string): 
   );
 }
 
-function remoteClaimMeta(
-  projectRoot: string,
-  claimRef: string,
-  runGit: GitRunner,
-  nowMs: number,
-): { exists: boolean; stale: boolean; ageMs: number | null } {
-  const ls = runGit(projectRoot, ["ls-remote", "--heads", "origin", claimRef]);
-  if (ls.code !== 0 || ls.stdout.trim().length === 0) {
-    return { exists: false, stale: false, ageMs: null };
+type ClaimMeta =
+  | { readonly kind: "missing" }
+  | { readonly kind: "live"; readonly ageMs: number | null }
+  | { readonly kind: "stale"; readonly ageMs: number | null }
+  | { readonly kind: "unknown" };
+
+type ClaimBatchCache =
+  | { status: "idle" }
+  | { status: "ok"; byHead: Map<string, string> }
+  | { status: "failed" };
+
+/** Parse `git ls-remote` claim-batch stdout; null = unparseable nonempty (#6008). */
+export function parseFinalizeClaimBatchStdout(stdout: string): Map<string, string> | null {
+  const byHead = new Map<string, string>();
+  const lines = stdout
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+  if (lines.length === 0) {
+    return byHead;
   }
-  const sha = ls.stdout.trim().split(/\s+/)[0] ?? "";
-  if (sha.length === 0) {
-    return { exists: false, stale: false, ageMs: null };
-  }
-  // Privately fetch the claim tip; ls-remote alone leaves objects missing locally.
-  const privateRef = `refs/deft/finalize-owed-claim/${claimRef.replace(/\//g, "-")}`;
-  const fetch = runGit(projectRoot, [
-    "fetch",
-    "origin",
-    `refs/heads/${claimRef}:${privateRef}`,
-    "--force",
-  ]);
-  if (fetch.code !== 0) {
-    if (isReclaimableClaimFetchFailure(fetch.stderr, fetch.stdout)) {
-      // Missing object / remote ref gone after ls-remote → reclaimable.
-      return { exists: true, stale: true, ageMs: null };
+  let parsed = 0;
+  for (const line of lines) {
+    const match = /^(\S+)\s+(refs\/heads\/.+)$/.exec(line);
+    if (match === null) {
+      continue;
     }
-    // Transient network/auth or unknown fetch failure: keep live (#4919).
-    return { exists: true, stale: false, ageMs: null };
+    const sha = match[1] ?? "";
+    const fullRef = match[2] ?? "";
+    if (sha.length === 0 || fullRef.length === 0) {
+      continue;
+    }
+    const head = fullRef.replace(/^refs\/heads\//, "");
+    byHead.set(head, sha);
+    parsed += 1;
   }
-  // Claim marker commit uses committer time (not delivery-tip author age).
-  const committer = runGit(projectRoot, ["log", "-1", "--format=%ct", privateRef]);
-  if (committer.code !== 0) {
-    return { exists: true, stale: true, ageMs: null };
+  if (parsed === 0) {
+    return null;
   }
-  const ts = Number.parseInt(committer.stdout.trim(), 10);
-  if (!Number.isFinite(ts)) {
-    return { exists: true, stale: true, ageMs: null };
-  }
-  const ageMs = Math.max(0, nowMs - ts * 1000);
-  return { exists: true, stale: ageMs >= FINALIZE_CLAIM_STALE_MS, ageMs };
+  return byHead;
+}
+
+/**
+ * Memoized first-demand claim batch for one discoverFinalizeOwed run (#6008).
+ * Snapshot-age residual: batch SHA map is fixed at first probe while O(n) gh continues.
+ */
+function createClaimBatchContext(
+  projectRoot: string,
+  claimGit: GitRunner,
+  localGit: GitRunner,
+  nowMs: number,
+): { remoteClaimMeta: (claimRef: string) => ClaimMeta } {
+  let cache: ClaimBatchCache = { status: "idle" };
+
+  const ensureBatch = (): ClaimBatchCache => {
+    if (cache.status !== "idle") {
+      return cache;
+    }
+    try {
+      const pattern = `refs/heads/${DURABLE_FINALIZE_HEAD_PREFIX}*`;
+      const ls = claimGit(projectRoot, ["ls-remote", "--heads", "origin", pattern]);
+      if (ls.code !== 0) {
+        cache = { status: "failed" };
+        return cache;
+      }
+      const parsed = parseFinalizeClaimBatchStdout(ls.stdout);
+      if (parsed === null) {
+        cache = { status: "failed" };
+        return cache;
+      }
+      cache = { status: "ok", byHead: parsed };
+      return cache;
+    } catch {
+      cache = { status: "failed" };
+      return cache;
+    }
+  };
+
+  const remoteClaimMeta = (claimRef: string): ClaimMeta => {
+    const batch = ensureBatch();
+    // Narrow away idle|failed so byHead is definite for the TypeScript build (#6008).
+    if (batch.status !== "ok") {
+      return { kind: "unknown" };
+    }
+    const sha = batch.byHead.get(claimRef);
+    if (sha === undefined || sha.length === 0) {
+      return { kind: "missing" };
+    }
+    // Privately fetch the claim tip; ls-remote alone leaves objects missing locally.
+    const privateRef = `refs/deft/finalize-owed-claim/${claimRef.replace(/\//g, "-")}`;
+    let fetch: { code: number; stdout: string; stderr: string };
+    try {
+      fetch = claimGit(projectRoot, [
+        "fetch",
+        "origin",
+        `refs/heads/${claimRef}:${privateRef}`,
+        "--force",
+      ]);
+    } catch {
+      return { kind: "unknown" };
+    }
+    if (fetch.code !== 0) {
+      if (isReclaimableClaimFetchFailure(fetch.stderr, fetch.stdout)) {
+        // Missing object / remote ref gone after ls-remote → reclaimable stale (#6008).
+        return { kind: "stale", ageMs: null };
+      }
+      // Timeout / unparseable / non-reclaimable → unknown+blocking (#6008 Recut-5).
+      return { kind: "unknown" };
+    }
+    // Claim marker commit uses committer time (not delivery-tip author age). Local read.
+    const committer = localGit(projectRoot, ["log", "-1", "--format=%ct", privateRef]);
+    if (committer.code !== 0) {
+      return { kind: "stale", ageMs: null };
+    }
+    const ts = Number.parseInt(committer.stdout.trim(), 10);
+    if (!Number.isFinite(ts)) {
+      return { kind: "stale", ageMs: null };
+    }
+    const ageMs = Math.max(0, nowMs - ts * 1000);
+    if (ageMs >= FINALIZE_CLAIM_STALE_MS) {
+      return { kind: "stale", ageMs };
+    }
+    return { kind: "live", ageMs };
+  };
+
+  return { remoteClaimMeta };
 }
 
 function snapshotAccepts(
@@ -587,7 +688,8 @@ export function fetchDeliveryTipPrivate(
   if (!fetchArgv.ok) {
     return { tip: null, error: fetchArgv.error };
   }
-  // Prefer injected runner (tests); otherwise bound the live fetch.
+  // Tip-fetch identity residual (#6008): keep runGit===defaultGitRunner attach here;
+  // claim bound must not be attached by that identity comparison.
   const fetcher = runGit === defaultGitRunner ? timedGitRunner(timeoutMs) : runGit;
   const fetch = fetcher(projectRoot, fetchArgv.argv);
   if (fetch.code !== 0) {
@@ -611,11 +713,14 @@ export function discoverFinalizeOwed(
     readonly tip: string;
     readonly runGh?: RunGhFn;
     readonly runGit?: GitRunner;
+    /** Claim ls-remote + hit-fetch only; falls back to runGit then default (#6008). */
+    readonly claimRunner?: GitRunner;
     readonly now?: () => number;
   },
 ): FinalizeOwedInventory {
   const runGh = options.runGh ?? defaultRunGh;
   const runGit = options.runGit ?? defaultGitRunner;
+  const claimGit = options.claimRunner ?? options.runGit ?? defaultGitRunner;
   const nowMs = (options.now ?? Date.now)();
   const openPrs = listOpenFinalizePrs(options.repo, runGh);
   const nonterminal = listTipPaths(projectRoot, options.tip, NONTERMINAL_PREFIXES, runGit);
@@ -628,6 +733,7 @@ export function discoverFinalizeOwed(
     [...nonterminal, ...completed],
     runGit,
   );
+  const claimBatch = createClaimBatchContext(projectRoot, claimGit, runGit, nowMs);
   const stories: FinalizeOwedStory[] = [];
 
   for (const relPath of nonterminal) {
@@ -746,8 +852,8 @@ export function discoverFinalizeOwed(
       });
       continue;
     }
-    const claim = remoteClaimMeta(projectRoot, claimRef, runGit, nowMs);
-    if (claim.exists && !claim.stale) {
+    const claim = claimBatch.remoteClaimMeta(claimRef);
+    if (claim.kind === "live") {
       stories.push({
         issue,
         productPr,
@@ -762,9 +868,45 @@ export function discoverFinalizeOwed(
       continue;
     }
     const issueState = fetchIssueState(issue, options.repo, runGh);
+    if (claim.kind === "unknown") {
+      // Unverifiable issue-state stays unknown+blocking; closed / unmarked protected exempt (#6008).
+      if (issueState.error !== null || issueState.state === null) {
+        stories.push({
+          issue,
+          productPr,
+          relPath,
+          state: "unknown",
+          claimRef,
+          pairingKey: briefPairingKey(relPath),
+          planIdentity: briefPlanIdentity(plan),
+          detail: CLAIM_PROBE_UNKNOWN_DETAIL,
+          blocks: true,
+        });
+        continue;
+      }
+      if (issueState.state === "closed") {
+        continue;
+      }
+      if (issueState.protectedUmbrella && unmarkedDetail !== null) {
+        continue;
+      }
+      // Marked nonterminal protectedUmbrella leftovers remain unknown+blocking (#6008).
+      stories.push({
+        issue,
+        productPr,
+        relPath,
+        state: "unknown",
+        claimRef,
+        pairingKey: briefPairingKey(relPath),
+        planIdentity: briefPlanIdentity(plan),
+        detail: CLAIM_PROBE_UNKNOWN_DETAIL,
+        blocks: true,
+      });
+      continue;
+    }
     if (issueState.error !== null || issueState.state === null) {
       // Stale + unverified issue: block session, never reclaim/delete (#4919).
-      if (claim.exists && claim.stale) {
+      if (claim.kind === "stale") {
         stories.push({
           issue,
           productPr,
@@ -800,7 +942,7 @@ export function discoverFinalizeOwed(
     if (issueState.protectedUmbrella && unmarkedDetail !== null) {
       continue;
     }
-    if (claim.exists && claim.stale) {
+    if (claim.kind === "stale") {
       stories.push({
         issue,
         productPr,
@@ -854,7 +996,8 @@ export function discoverFinalizeOwed(
         (s.state === "owed" ||
           s.state === "in-flight" ||
           s.state === "stale" ||
-          s.state === "stale-unverified"),
+          s.state === "stale-unverified" ||
+          s.state === "unknown"),
     );
     if (already) {
       continue;
@@ -874,8 +1017,8 @@ export function discoverFinalizeOwed(
       });
       continue;
     }
-    const claim = remoteClaimMeta(projectRoot, claimRef, runGit, nowMs);
-    if (claim.exists && !claim.stale) {
+    const claim = claimBatch.remoteClaimMeta(claimRef);
+    if (claim.kind === "live") {
       stories.push({
         issue,
         productPr,
@@ -890,9 +1033,41 @@ export function discoverFinalizeOwed(
       continue;
     }
     const issueState = fetchIssueState(issue, options.repo, runGh);
+    if (claim.kind === "unknown") {
+      if (issueState.error !== null || issueState.state === null) {
+        stories.push({
+          issue,
+          productPr,
+          relPath,
+          state: "unknown",
+          claimRef,
+          pairingKey: key,
+          planIdentity: identity,
+          detail: CLAIM_PROBE_UNKNOWN_DETAIL,
+          blocks: true,
+        });
+        continue;
+      }
+      // Closed or protected completed-loop stories stay exempt (#6008).
+      if (issueState.state === "closed" || issueState.protectedUmbrella) {
+        continue;
+      }
+      stories.push({
+        issue,
+        productPr,
+        relPath,
+        state: "unknown",
+        claimRef,
+        pairingKey: key,
+        planIdentity: identity,
+        detail: CLAIM_PROBE_UNKNOWN_DETAIL,
+        blocks: true,
+      });
+      continue;
+    }
     if (issueState.error !== null || issueState.state === null) {
       // Stale + unverified issue: block session, never reclaim/delete (#4919).
-      if (claim.exists && claim.stale) {
+      if (claim.kind === "stale") {
         stories.push({
           issue,
           productPr,
@@ -923,7 +1098,7 @@ export function discoverFinalizeOwed(
     if (issueState.state === "closed" || issueState.protectedUmbrella) {
       continue;
     }
-    if (claim.exists && claim.stale) {
+    if (claim.kind === "stale") {
       stories.push({
         issue,
         productPr,
@@ -1029,6 +1204,9 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
   const projectRoot = resolve(args.projectRoot ?? process.cwd());
   const runGh = args.runGh ?? defaultRunGh;
   const runGit = args.runGit ?? defaultGitRunner;
+  // Production constructs claimRunner; tests that inject only runGit reuse that mock (#6008).
+  const claimRunner =
+    args.claimRunner ?? (args.runGit !== undefined ? args.runGit : createFinalizeClaimRunner());
   const dryRun = args.dryRun ?? false;
   const emitJson = args.emitJson ?? false;
   const inventoryOnly = args.inventoryOnly ?? false;
@@ -1153,6 +1331,7 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
     tip: fetched.tip,
     runGh,
     runGit,
+    claimRunner,
     now: args.now,
   });
   if (inventory.fetchError !== null) {
@@ -1181,7 +1360,15 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
   }
 
   for (const story of inventory.stories) {
-    if (story.state === "in-flight" || story.state === "unverified" || story.state === "backlog") {
+    if (
+      story.state === "in-flight" ||
+      story.state === "unverified" ||
+      story.state === "backlog" ||
+      story.state === "unknown"
+    ) {
+      if (story.state === "unknown") {
+        warnings.push(`#${String(story.issue)}: ${CLAIM_PROBE_UNKNOWN_DETAIL}`);
+      }
       skipped.push(story.issue);
       continue;
     }
@@ -1273,6 +1460,9 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
     (w) => w.includes("origin-close pending") || w.includes("origin-issue unverified"),
   );
   const failed = errors.length > 0;
+  // Ordinary path: unknown stories force non-zero so session gate cannot stay blocked while exit 0 (#6008).
+  const hasUnknown = inventory.stories.some((s) => s.state === "unknown");
+  const exitCode = failed || hasUnknown ? EXIT_GATE_FAILED : incomplete ? EXIT_INCOMPLETE : EXIT_OK;
   return respondFinalizeOwed({
     delivery_branch: deliveryBranch,
     tip: fetched.tip,
@@ -1282,9 +1472,9 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
     errors,
     warnings,
     fetch_error: null,
-    ok: !failed,
+    ok: !failed && !hasUnknown,
     emitJson,
-    exitCode: failed ? EXIT_GATE_FAILED : incomplete ? EXIT_INCOMPLETE : EXIT_OK,
+    exitCode,
   });
 }
 

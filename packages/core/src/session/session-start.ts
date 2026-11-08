@@ -82,6 +82,7 @@ import {
 import { workClaimSessionScanLines } from "../scm/work-claim.js";
 import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
 import {
+  createFinalizeClaimRunner,
   discoverFinalizeOwed,
   fetchDeliveryTipPrivate,
   formatFinalizeOwedInventoryLines,
@@ -867,14 +868,17 @@ export function evaluateFinalizeOwedSessionGate(
       deferReason: null,
     };
   }
+  const claimRunner = createFinalizeClaimRunner();
   const inventory = discoverFinalizeOwed(projectRoot, {
     repo,
     deliveryBranch: delivery,
     tip: fetched.tip,
     runGit,
+    claimRunner,
   });
   const lines = formatFinalizeOwedInventoryLines(inventory);
   const blocking = inventoryHasBlockingOwed(inventory);
+  const hasUnknown = inventory.stories.some((s) => s.state === "unknown");
   if (blocking && deferred && deferReason !== null) {
     lines.push(`finalize owed deferred: ${deferReason}`);
   }
@@ -886,7 +890,7 @@ export function evaluateFinalizeOwedSessionGate(
   return {
     lines,
     blocks: blocking && !deferred,
-    unknown: false,
+    unknown: hasUnknown,
     deferred,
     deferReason: deferred ? deferReason : null,
   };

@@ -29,7 +29,19 @@ function gitStdoutString(raw: Buffer, args: readonly string[]): string {
   return raw.toString("latin1").trimEnd();
 }
 
-function execGit(projectRoot: string, args: readonly string[], timeoutMs?: number): GitRunResult {
+export interface ExecGitOptions {
+  readonly timeoutMs?: number;
+  /** Merged over process.env when set — never replaces the child env wholesale (#6008). */
+  readonly env?: NodeJS.ProcessEnv;
+}
+
+function execGit(
+  projectRoot: string,
+  args: readonly string[],
+  options: ExecGitOptions = {},
+): GitRunResult {
+  const timeoutMs = options.timeoutMs;
+  const childEnv = options.env === undefined ? undefined : { ...process.env, ...options.env };
   try {
     const stdout = execFileSync("git", [...args], {
       cwd: projectRoot,
@@ -38,6 +50,7 @@ function execGit(projectRoot: string, args: readonly string[], timeoutMs?: numbe
       // past Node's 1 MB default (#3903).
       maxBuffer: SUBPROCESS_MAX_BUFFER,
       ...(timeoutMs === undefined ? {} : { timeout: timeoutMs }),
+      ...(childEnv === undefined ? {} : { env: childEnv }),
     });
     return { code: 0, stdout: gitStdoutString(coerceGitBytes(stdout), args), stderr: "" };
   } catch (err: unknown) {
@@ -83,9 +96,27 @@ function execGit(projectRoot: string, args: readonly string[], timeoutMs?: numbe
 
 export const defaultGitRunner: GitRunner = (projectRoot, args) => execGit(projectRoot, args);
 
-/** Same silent stdio as {@link defaultGitRunner}, with a child timeout (#3914). */
-export function timedGitRunner(timeoutMs: number): GitRunner {
-  return (projectRoot, args) => execGit(projectRoot, args, timeoutMs);
+/**
+ * Same silent stdio as {@link defaultGitRunner}, with env overlay merged over process.env
+ * (never replaces wholesale) (#6008).
+ */
+export function envGitRunner(env: NodeJS.ProcessEnv): GitRunner {
+  return (projectRoot, args) => execGit(projectRoot, args, { env });
+}
+
+/**
+ * Same silent stdio as {@link defaultGitRunner}, with a direct-child timeout (#3914 / #6008).
+ * Optional `env` merges over process.env (never replaces wholesale).
+ *
+ * Risk (#6008): timeout kills/times the direct git child only — not a wall-clock bound on
+ * session:start. An orphan helper holding inherited pipes can keep the sync call blocked past
+ * the child timeout on every platform; win32 has no process-group kill option.
+ */
+export function timedGitRunner(
+  timeoutMs: number,
+  options: { readonly env?: NodeJS.ProcessEnv } = {},
+): GitRunner {
+  return (projectRoot, args) => execGit(projectRoot, args, { timeoutMs, env: options.env });
 }
 
 /**

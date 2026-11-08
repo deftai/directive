@@ -49,6 +49,22 @@ describe("evaluateFinalizeOwedSessionGate (#4919)", () => {
     expect(result.blocks).toBe(false);
   });
 
+  it("wires inventory unknown stories onto the session gate (#6008)", () => {
+    const result = evaluateFinalizeOwedSessionGate("/tmp/proj", {
+      probeFinalizeOwed: () => ({
+        lines: [
+          "finalize owed inventory:",
+          "  #6008 unknown [blocks] pr=#6100 xbrief/active/a.json",
+        ],
+        blocks: true,
+        unknown: true,
+      }),
+    });
+    expect(result.unknown).toBe(true);
+    expect(result.blocks).toBe(true);
+    expect(result.lines.join("\n")).toContain("6008");
+  });
+
   it("preserves --defer-owed when tip fetch fails so dests can inherit (#5172)", () => {
     const result = evaluateFinalizeOwedSessionGate("/tmp/proj", {
       deferOwedReason: "afk-release",
