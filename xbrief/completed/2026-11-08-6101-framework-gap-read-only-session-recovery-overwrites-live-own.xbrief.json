@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "[framework-gap] Read-only session recovery overwrites live-owner identity and blocks bare cleanup",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] Read-only session recovery overwrites live-owner identity and blocks bare cleanup",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6101",
@@ -18,23 +18,51 @@
     "items": [
       {
         "title": "relieves: P1 — Enforce live-occupant skip inside publishApplyingHost helpers under occupancy writer lock keyed to the canonical session id being written with no unlocked write fallback and no third publish predicate",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5fac93f06f915a636e96995789c075f4fc0fe70f",
+          "recorded_at": "2026-11-08T05:35:43Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "relieves: P2 — Deposit-key live-owner cleanup on depositSessionId equaling liveId for the ok branch and for the stale branch with no applyingHostSessionId relation conjunct, map onto liveOwnerBypass so effectiveOwner is live deposit identity, keep bare rewrite injection, and delete dead ok-branch soft-pass",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5fac93f06f915a636e96995789c075f4fc0fe70f",
+          "recorded_at": "2026-11-08T05:35:43Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "relieves: P3 — When live foreign occupant exists stop repair guidance from prescribing another owner session-id recipe and return a discriminated deferred or failed publish outcome distinct from non-canonical null into CLI text and JSON without claiming conflict recovery",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5fac93f06f915a636e96995789c075f4fc0fe70f",
+          "recorded_at": "2026-11-08T05:35:43Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "relieves: P4 — Assert admission claims on the dispatcher path including real CLI read-only completion with project-root plus stale-branch bare cleanup and deferred-outcome text and json rows, and refuse evaluator-only soft-pass coverage as sufficient proof",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5fac93f06f915a636e96995789c075f4fc0fe70f",
+          "recorded_at": "2026-11-08T05:35:43Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -103,7 +131,14 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "[framework-gap] Read-only session recovery overwrites live-owner identity and blocks bare cleanup",
+        "relieves: P1 — Enforce live-occupant skip inside publishApplyingHost helpers under occupancy writer lock keyed to the canonical session id being written with no unlocked write fallback and no third publish predicate",
+        "relieves: P2 — Deposit-key live-owner cleanup on depositSessionId equaling liveId for the ok branch and for the stale branch with no applyingHostSessionId relation conjunct, map onto liveOwnerBypass so effectiveOwner is live deposit identity, keep bare rewrite injection, and delete dead ok-branch soft-pass",
+        "relieves: P3 — When live foreign occupant exists stop repair guidance from prescribing another owner session-id recipe and return a discriminated deferred or failed publish outcome distinct from non-canonical null into CLI text and JSON without claiming conflict recovery",
+        "relieves: P4 — Assert admission claims on the dispatcher path including real CLI read-only completion with project-root plus stale-branch bare cleanup and deferred-outcome text and json rows, and refuse evaluator-only soft-pass coverage as sufficient proof"
+      ]
     },
     "metadata": {
       "intended_placement": {
@@ -164,6 +199,30 @@
           "Prefer-A Bound 6694813944"
         ],
         "parallel_safe": true
+      },
+      "productPullRequest": 6118,
+      "x-directive/productPullRequest": 6118,
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-08T05:39:02.850Z",
+        "actor": "Scott",
+        "via": "prefer-a-leftover-hand-stamp"
+      },
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6118,
+        "pullRequestNumber": 6118,
+        "mergeCommit": "5fac93f06f915a636e96995789c075f4fc0fe70f",
+        "deliveryCommit": "5fac93f06f915a636e96995789c075f4fc0fe70f",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-08T05:39:02.850Z",
+        "verifiedAt": "2026-11-08T05:39:02.850Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "parent-through-merge",
+        "repository": "deftai/directive"
       }
     },
     "id": "github.issue.6247667402",
