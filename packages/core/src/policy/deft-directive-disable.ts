@@ -17,6 +17,12 @@
  * - Deposit presence is **OK**.
  * - Full re-enable requires: delete the file **and** start a **new** agent session.
  * - Precedence: active kill-switch first, then `.no-deft-directive`, else normal.
+ *
+ * Eligibility (#6122 / Prefer-A Bound): override only when positively validated
+ * eligible (project-root non-symlink regular file + successful untracked
+ * `git ls-files` listing). Tracked / wrong kind / absent → ineligible.
+ * Probe launch failure, nonzero status, timeout, or unavailable output →
+ * indeterminate (never active; never cached as untracked).
  */
 
 import { execFileSync } from "node:child_process";
@@ -61,17 +67,45 @@ export const DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING =
 /** Cap git probe so hot-path hooks never hang on a slow VCS call. */
 const GIT_TRACKED_PROBE_TIMEOUT_MS = 1500;
 
-/** Process-local cache: avoid re-spawning git on every PreToolUse while the flag is present. */
+/**
+ * Three-way operator-override eligibility (#6122).
+ * Only `eligible` selects the kill-switch short-circuit.
+ */
+export type OperatorDisableEligibility = "eligible" | "ineligible" | "indeterminate";
+
+/** Successful `git ls-files` listing outcome (cacheable). */
+export type GitTrackListingOutcome = "tracked" | "untracked";
+
+/** Listing probe result including indeterminate inspection failures. */
+export type GitTrackProbeResult = GitTrackListingOutcome | "indeterminate";
+
+/** Process-local cache: successful tracked|untracked only — never indeterminate. */
 const trackedProbeCache = new Map<string, { readonly tracked: boolean; readonly atMs: number }>();
 const TRACKED_PROBE_CACHE_TTL_MS = 30_000;
+
+/** Test helper: drop cached listing outcomes. */
+export function clearDeftDirectiveDisableTrackedProbeCache(): void {
+  trackedProbeCache.clear();
+}
 
 export interface DeftDirectiveDisableSeams {
   readonly isFile?: (path: string) => boolean;
   readonly isDir?: (path: string) => boolean;
-  /** Return true when `git ls-files` lists the flag (tracked). */
+  /**
+   * Legacy boolean seam: true = tracked, false = untracked.
+   * Does not model indeterminate; prefer `probeGitTrackListing` for that.
+   */
   readonly isGitTracked?: (projectRoot: string, relPath: string) => boolean;
+  /** Three-way listing probe; wins over `isGitTracked` when both are set. */
+  readonly probeGitTrackListing?: (projectRoot: string, relPath: string) => GitTrackProbeResult;
   /** Skip tracked probe + cache (tests / doctor full re-check). */
   readonly skipTrackedCache?: boolean;
+  /**
+   * Adapter seam for the default `git ls-files` capture used by
+   * `probeGitLsFilesListing` (cached + skipTrackedCache paths). Throw to
+   * model launch/nonzero failure; return stdout string on success.
+   */
+  readonly gitLsFilesCapture?: (projectRoot: string, relPath: string) => string;
 }
 
 export interface DeftDirectiveDisableState {
@@ -80,12 +114,15 @@ export interface DeftDirectiveDisableState {
   readonly depositPresent: boolean;
   /**
    * True when the flag file is tracked by git (misconfig — should be gitignored).
-   * Always false when the flag is absent or when the probe cannot run.
+   * Always false when the flag is absent or when the probe is not a successful
+   * tracked listing (including indeterminate).
    */
   readonly trackedByGit: boolean;
+  /** Three-way eligibility; `active` is true only when this is `eligible`. */
+  readonly eligibility: OperatorDisableEligibility;
   /**
    * True when the kill-switch is **active** for enforcement short-circuit:
-   * present and **not** tracked by git.
+   * positively validated eligible (present regular file + successful untracked listing).
    */
   readonly active: boolean;
 }
@@ -115,27 +152,94 @@ function defaultIsDir(path: string): boolean {
   }
 }
 
-function defaultIsGitTracked(projectRoot: string, relPath: string): boolean {
+/**
+ * Explicit Git success predicate (#6122): successful `git ls-files` with usable
+ * captured output. Empty listing = untracked; nonempty = tracked; launch failure,
+ * nonzero, timeout, or unavailable output = indeterminate.
+ */
+export function probeGitLsFilesListing(
+  projectRoot: string,
+  relPath: string,
+  capture?: (projectRoot: string, relPath: string) => string,
+): GitTrackProbeResult {
+  try {
+    const out =
+      capture !== undefined
+        ? capture(projectRoot, relPath)
+        : execFileSync("git", ["ls-files", "--", relPath], {
+            cwd: projectRoot,
+            encoding: "utf8",
+            stdio: ["ignore", "pipe", "ignore"],
+            timeout: GIT_TRACKED_PROBE_TIMEOUT_MS,
+          });
+    if (typeof out !== "string") return "indeterminate";
+    return out.trim().length > 0 ? "tracked" : "untracked";
+  } catch {
+    return "indeterminate";
+  }
+}
+
+function defaultProbeGitTrackListing(
+  projectRoot: string,
+  relPath: string,
+  capture?: (projectRoot: string, relPath: string) => string,
+): GitTrackProbeResult {
   const cacheKey = `${projectRoot}\0${relPath}`;
   const now = Date.now();
   const cached = trackedProbeCache.get(cacheKey);
   if (cached !== undefined && now - cached.atMs < TRACKED_PROBE_CACHE_TTL_MS) {
-    return cached.tracked;
+    return cached.tracked ? "tracked" : "untracked";
   }
-  let tracked = false;
-  try {
-    const out = execFileSync("git", ["ls-files", "--", relPath], {
-      cwd: projectRoot,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-      timeout: GIT_TRACKED_PROBE_TIMEOUT_MS,
-    });
-    tracked = out.trim().length > 0;
-  } catch {
-    tracked = false;
+  const result = probeGitLsFilesListing(projectRoot, relPath, capture);
+  if (result === "tracked" || result === "untracked") {
+    trackedProbeCache.set(cacheKey, { tracked: result === "tracked", atMs: now });
   }
-  trackedProbeCache.set(cacheKey, { tracked, atMs: now });
-  return tracked;
+  return result;
+}
+
+function resolveTrackProbe(
+  projectRoot: string,
+  seams: DeftDirectiveDisableSeams,
+): GitTrackProbeResult {
+  if (seams.probeGitTrackListing) {
+    return seams.probeGitTrackListing(projectRoot, DEFT_DIRECTIVE_DISABLE_FLAG_NAME);
+  }
+  if (seams.isGitTracked) {
+    return seams.isGitTracked(projectRoot, DEFT_DIRECTIVE_DISABLE_FLAG_NAME)
+      ? "tracked"
+      : "untracked";
+  }
+  if (seams.skipTrackedCache) {
+    return probeGitLsFilesListing(
+      projectRoot,
+      DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
+      seams.gitLsFilesCapture,
+    );
+  }
+  return defaultProbeGitTrackListing(
+    projectRoot,
+    DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
+    seams.gitLsFilesCapture,
+  );
+}
+
+function eligibilityFromPresentProbe(
+  present: boolean,
+  probe: GitTrackProbeResult,
+): {
+  readonly eligibility: OperatorDisableEligibility;
+  readonly trackedByGit: boolean;
+} {
+  if (!present) {
+    return { eligibility: "ineligible", trackedByGit: false };
+  }
+  if (probe === "tracked") {
+    return { eligibility: "ineligible", trackedByGit: true };
+  }
+  if (probe === "untracked") {
+    return { eligibility: "eligible", trackedByGit: false };
+  }
+  return { eligibility: "indeterminate", trackedByGit: false };
 }
 
 /** Absolute path to the root kill-switch flag file. */
@@ -148,7 +252,7 @@ export function deftDirectiveDisableFlagPath(projectRoot: string): string {
  * (empty or short comment OK). Deposit presence is reported but never treated
  * as inconsistent (#3039 vs #2926).
  *
- * Enforcement short-circuit uses `state.active` (present && !trackedByGit).
+ * Enforcement short-circuit uses `state.active` (eligibility === "eligible").
  */
 export function detectDeftDirectiveDisable(
   projectRoot: string,
@@ -157,40 +261,23 @@ export function detectDeftDirectiveDisable(
   const flagPath = deftDirectiveDisableFlagPath(projectRoot);
   const isFile = seams.isFile ?? defaultIsFile;
   const isDir = seams.isDir ?? defaultIsDir;
-  const isGitTracked = seams.isGitTracked ?? defaultIsGitTracked;
   const present = isFile(flagPath);
   const depositPresent = isDir(join(projectRoot, CANONICAL_INSTALL_ROOT));
-  let trackedByGit = false;
-  if (present) {
-    if (seams.skipTrackedCache && seams.isGitTracked === undefined) {
-      // Fresh probe without reading process cache (doctor / one-shot CLI).
-      try {
-        const out = execFileSync("git", ["ls-files", "--", DEFT_DIRECTIVE_DISABLE_FLAG_NAME], {
-          cwd: projectRoot,
-          encoding: "utf8",
-          stdio: ["ignore", "pipe", "ignore"],
-          timeout: GIT_TRACKED_PROBE_TIMEOUT_MS,
-        });
-        trackedByGit = out.trim().length > 0;
-      } catch {
-        trackedByGit = false;
-      }
-    } else {
-      trackedByGit = isGitTracked(projectRoot, DEFT_DIRECTIVE_DISABLE_FLAG_NAME);
-    }
-  }
+  const probe: GitTrackProbeResult = present ? resolveTrackProbe(projectRoot, seams) : "untracked";
+  const { eligibility, trackedByGit } = eligibilityFromPresentProbe(present, probe);
   return {
     present,
     flagPath,
     depositPresent,
     trackedByGit,
-    active: present && !trackedByGit,
+    eligibility,
+    active: eligibility === "eligible",
   };
 }
 
 /**
  * True when the local (untracked) kill-switch is active for enforcement
- * short-circuit. Tracked flags return false so hooks stay enforced.
+ * short-circuit. Tracked / indeterminate flags return false so hooks stay enforced.
  */
 export function isDeftDirectiveDisableActive(
   projectRoot: string,
