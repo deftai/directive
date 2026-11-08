@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.5.
 
 ### Fixed
+- Record tracked completion for plainGhEnv on release-path JSON reads (#6032).
 - Record tracked completion for Prefer-A Recut-6 npm dist-tag Resolve + promote-latest (#5852).
 - Stable cuts publish to the maintainer npm tag by default; moving latest needs a separate promote approval (#5852).
 - `--promote-latest` now spends its approval before queuing the promote workflow (so one approval cannot promote twice), keeps Class-4 publish tips on the inline dist-tag rule, and documents the promote flag on `--help` (#5852).
