@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.5.
 
 ### Fixed
+- Applying-host publish skips overwrite while another session holds a live occupancy lease and surfaces deferred publish in CLI text/JSON (#6101).
 - Cache drift probing now reuses the already-fetched open-issue list payload instead of issuing a second list fetch (#6099).
 - Record tracked completion for plainGhEnv on release-path JSON reads (#6032).
 - Record tracked completion for Prefer-A Recut-6 npm dist-tag Resolve + promote-latest (#5852).
