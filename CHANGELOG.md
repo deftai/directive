@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+- Phase 7 maintainer local checkout closeout: `task release:local-update -- <version> --checkout <primary>` fail-closed ff-pull / frozen install / tip-pin-equals-released / same-version `directive upgrade --target-version` / `verify:hooks-installed --project-root --scope=all`, refusing ambient release-worktree-only success, foreign occupancy, missing agent-hook deposit, and post-upgrade tracked diffs (no reset/commit/`npm i -g`). Refs #5953 Prefer-A Bound 6430511888.
 
 ### Changed
 - Activate Prefer-A Bound running xBRIEFs for #6021 (pnpm packageManager security pin), #5983 (Grok human-presence mint markers), #5953 (release Phase 7 maintainer local checkout update), and #6122 (operator-disable eligibility lock) so product implement can proceed under the write fence.
