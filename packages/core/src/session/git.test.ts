@@ -15,6 +15,7 @@ import {
   memoizeGitRunner,
   parseGitCatFileBatch,
   showBlobsBatch,
+  timedGitRunner,
   worktreePath,
   worktreePathOrNull,
 } from "./git.js";
@@ -102,6 +103,17 @@ describe("session git helpers", () => {
 
   it("detectBranch returns null when git unavailable", () => {
     expect(detectBranch("/tmp", () => ({ code: 127, stdout: "", stderr: "" }))).toBeNull();
+  });
+
+  it("timedGitRunner merges env over process.env (#6008)", () => {
+    const root = mkdtempSync(join(tmpdir(), "git-env-merge-"));
+    temps.push(root);
+    execFileSync("git", ["init"], { cwd: root });
+    // Overlay alone (no PATH) would yield 127 if env replaced wholesale.
+    const runner = timedGitRunner(5_000, { env: { GIT_TERMINAL_PROMPT: "0" } });
+    const rev = runner(root, ["rev-parse", "--is-inside-work-tree"]);
+    expect(rev.code).toBe(0);
+    expect(rev.stdout).toContain("true");
   });
 
   it("gitIsAncestor handles equal shas and git exit codes", () => {

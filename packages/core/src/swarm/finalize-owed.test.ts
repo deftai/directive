@@ -4,15 +4,17 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { defaultRunGh } from "../pr-protected-issues/gh.js";
-import { EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
+import { EXIT_GATE_FAILED, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
 import {
   bindUnmarkedFinalizePair,
+  CLAIM_PROBE_UNKNOWN_DETAIL,
   discoverFinalizeOwed,
   fetchDeliveryTipPrivate,
   finalizeOwed,
   formatFinalizeOwedInventoryLines,
   inventoryHasBlockingOwed,
   loadTipPlanBodies,
+  parseFinalizeClaimBatchStdout,
   UNMARKED_STAMP_REMEDIATION,
 } from "./finalize-owed.js";
 import { parseFinalizeOwedArgv } from "./finalize-owed-cli.js";
@@ -380,7 +382,7 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
           : { code: 1, stdout: "", stderr: "missing" };
       }
       if (args[0] === "ls-remote") {
-        return { code: 0, stdout: "deadbeef refs/heads/swarm/finalize/5100-4919\n", stderr: "" };
+        return { code: 0, stdout: "deadbeef refs/heads/swarm/finalize/pr-5100\n", stderr: "" };
       }
       if (args[0] === "fetch" && args.some((a) => String(a).includes("finalize-owed-claim"))) {
         return { code: 1, stdout: "", stderr: "missing objects" };
@@ -455,7 +457,7 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
           : { code: 1, stdout: "", stderr: "missing" };
       }
       if (args[0] === "ls-remote") {
-        return { code: 0, stdout: "claimsha refs/heads/swarm/finalize/x\n", stderr: "" };
+        return { code: 0, stdout: "claimsha refs/heads/swarm/finalize/pr-5100\n", stderr: "" };
       }
       if (args[0] === "fetch" && args.some((a) => String(a).includes("finalize-owed-claim"))) {
         return { code: 0, stdout: "", stderr: "" };
@@ -625,7 +627,7 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("does not mark live claims stale on transient fetch/auth failure (#4919)", () => {
+  it("maps transient claim hit-fetch failure to unknown+blocking (#6008 Recut-5)", () => {
     const root = mkdtempSync(join(tmpdir(), "finalize-owed-fetch-"));
     writeTipBrief(root, "xbrief/active/story-a.xbrief.json", 4919, {
       productPullRequest: 5100,
@@ -654,7 +656,7 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
           : { code: 1, stdout: "", stderr: "missing" };
       }
       if (args[0] === "ls-remote") {
-        return { code: 0, stdout: "deadbeef refs/heads/swarm/finalize/5100-4919\n", stderr: "" };
+        return { code: 0, stdout: "deadbeef refs/heads/swarm/finalize/pr-5100\n", stderr: "" };
       }
       if (args[0] === "fetch" && args.some((a) => String(a).includes("finalize-owed-claim"))) {
         return {
@@ -699,12 +701,13 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
         return { returncode: 1, stdout: "", stderr: "unexpected" };
       },
     });
-    expect(inventory.stories.some((s) => s.state === "in-flight")).toBe(true);
+    expect(inventory.stories.some((s) => s.state === "unknown" && s.blocks)).toBe(true);
     expect(inventory.stories.some((s) => s.state === "stale")).toBe(false);
+    expect(inventory.stories.some((s) => s.state === "in-flight")).toBe(false);
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("keeps claims live on unknown fetch failure (not reclaim) (#4919)", () => {
+  it("maps unknown claim hit-fetch failure to unknown+blocking (#6008 Recut-5)", () => {
     const root = mkdtempSync(join(tmpdir(), "finalize-owed-unknown-fetch-"));
     writeTipBrief(root, "xbrief/active/story-a.xbrief.json", 4919, {
       productPullRequest: 5100,
@@ -733,7 +736,7 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
           : { code: 1, stdout: "", stderr: "missing" };
       }
       if (args[0] === "ls-remote") {
-        return { code: 0, stdout: "deadbeef refs/heads/swarm/finalize/5100-4919\n", stderr: "" };
+        return { code: 0, stdout: "deadbeef refs/heads/swarm/finalize/pr-5100\n", stderr: "" };
       }
       if (args[0] === "fetch" && args.some((a) => String(a).includes("finalize-owed-claim"))) {
         return { code: 1, stdout: "", stderr: "fatal: remote error: unexpected backend failure" };
@@ -774,8 +777,9 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
         return { returncode: 1, stdout: "", stderr: "unexpected" };
       },
     });
-    expect(inventory.stories.some((s) => s.state === "in-flight")).toBe(true);
+    expect(inventory.stories.some((s) => s.state === "unknown" && s.blocks)).toBe(true);
     expect(inventory.stories.some((s) => s.state === "stale")).toBe(false);
+    expect(inventory.stories.some((s) => s.state === "in-flight")).toBe(false);
     rmSync(root, { recursive: true, force: true });
   });
 
@@ -828,7 +832,7 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
           : { code: 1, stdout: "", stderr: "missing" };
       }
       if (args[0] === "ls-remote") {
-        return { code: 0, stdout: "claimsha refs/heads/swarm/finalize/5100-4919\n", stderr: "" };
+        return { code: 0, stdout: "claimsha refs/heads/swarm/finalize/pr-5100\n", stderr: "" };
       }
       if (args[0] === "fetch" && args.some((a) => String(a).includes("finalize-owed-claim"))) {
         return { code: 0, stdout: "", stderr: "" };
@@ -898,7 +902,7 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
           : { code: 1, stdout: "", stderr: "missing" };
       }
       if (args[0] === "ls-remote") {
-        return { code: 0, stdout: "claimsha refs/heads/swarm/finalize/5100-4919\n", stderr: "" };
+        return { code: 0, stdout: "claimsha refs/heads/swarm/finalize/pr-5100\n", stderr: "" };
       }
       if (args[0] === "fetch" && args.some((a) => String(a).includes("finalize-owed-claim"))) {
         return { code: 0, stdout: "", stderr: "" };
@@ -993,7 +997,7 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
             : { code: 1, stdout: "", stderr: "missing" };
         }
         if (args[0] === "ls-remote") {
-          return { code: 0, stdout: "claimsha refs/heads/swarm/finalize/5100-4919\n", stderr: "" };
+          return { code: 0, stdout: "claimsha refs/heads/swarm/finalize/pr-5100\n", stderr: "" };
         }
         if (args[0] === "fetch" && args.some((a) => String(a).includes("finalize-owed-claim"))) {
           return { code: 0, stdout: "", stderr: "" };
@@ -1101,7 +1105,7 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
           : { code: 1, stdout: "", stderr: "missing" };
       }
       if (args[0] === "ls-remote") {
-        return { code: 0, stdout: "claimsha refs/heads/swarm/finalize/5100-4919\n", stderr: "" };
+        return { code: 0, stdout: "claimsha refs/heads/swarm/finalize/pr-5100\n", stderr: "" };
       }
       if (args[0] === "fetch" && args.some((a) => String(a).includes("finalize-owed-claim"))) {
         return { code: 0, stdout: "", stderr: "" };
@@ -1174,7 +1178,7 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
         return { code: 0, stdout: tipBody, stderr: "" };
       }
       if (args[0] === "ls-remote") {
-        return { code: 0, stdout: "claimsha refs/heads/swarm/finalize/5100-4919\n", stderr: "" };
+        return { code: 0, stdout: "claimsha refs/heads/swarm/finalize/pr-5100\n", stderr: "" };
       }
       if (args[0] === "fetch" && args.some((a) => String(a).includes("finalize-owed-claim"))) {
         return { code: 0, stdout: "", stderr: "" };
@@ -1689,6 +1693,418 @@ describe("finalize-owed AppSec fetch gate (#5545)", () => {
     expect(result.exitCode).not.toBe(0);
     expect(result.result.errors.some((e) => /Invalid|--upload-pack/i.test(e))).toBe(true);
     expect(calls.every((c) => c[0] !== "fetch")).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("finalize-owed claim batch (#6008)", () => {
+  it("parses claim-batch stdout by exact head name", () => {
+    const map = parseFinalizeClaimBatchStdout(
+      "abc123 refs/heads/swarm/finalize/1-2\ndef456\trefs/heads/swarm/finalize/3-4\n",
+    );
+    expect(map).not.toBeNull();
+    expect(map?.get("swarm/finalize/1-2")).toBe("abc123");
+    expect(map?.get("swarm/finalize/3-4")).toBe("def456");
+    expect(parseFinalizeClaimBatchStdout("not-a-ref-line\n")).toBeNull();
+    expect(parseFinalizeClaimBatchStdout("").size).toBe(0);
+  });
+
+  it("memoizes one ls-remote batch across two probe demands", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-batch-once-"));
+    writeTipBrief(root, "xbrief/active/story-a.xbrief.json", 6008, {
+      productPullRequest: 6100,
+    });
+    writeTipBrief(root, "xbrief/active/story-b.xbrief.json", 6009, {
+      productPullRequest: 6101,
+    });
+    const tipBlobs = new Map<string, string>();
+    for (const rel of ["xbrief/active/story-a.xbrief.json", "xbrief/active/story-b.xbrief.json"]) {
+      tipBlobs.set(rel, readFileSync(join(root, rel), "utf8"));
+    }
+    let lsRemoteCalls = 0;
+    const inventory = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      runGit: (_projectRoot, args) => {
+        if (args[0] === "ls-tree") {
+          const dash = args.indexOf("--");
+          const prefixes = dash >= 0 ? args.slice(dash + 1) : [];
+          const matched = [...tipBlobs.keys()].filter((p) =>
+            prefixes.some((pref) => p.startsWith(String(pref))),
+          );
+          return { code: 0, stdout: matched.join("\n"), stderr: "" };
+        }
+        if (args[0] === "show") {
+          const spec = String(args[1] ?? "");
+          const rel = spec.includes(":") ? spec.slice(spec.indexOf(":") + 1) : "";
+          const body = tipBlobs.get(rel);
+          return body !== undefined
+            ? { code: 0, stdout: body, stderr: "" }
+            : { code: 1, stdout: "", stderr: "missing" };
+        }
+        if (args[0] === "ls-remote") {
+          lsRemoteCalls += 1;
+          expect(args).toContain("refs/heads/swarm/finalize/*");
+          return { code: 0, stdout: "", stderr: "" };
+        }
+        if (args[0] === "merge-base") {
+          return { code: 0, stdout: "", stderr: "" };
+        }
+        return { code: 0, stdout: "", stderr: "" };
+      },
+      runGh: (cmd) => {
+        const joined = cmd.join(" ");
+        if (joined.includes("/pulls?")) {
+          return { returncode: 0, stdout: "[]", stderr: "" };
+        }
+        if (joined.includes("/pulls/")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({
+              merged_at: "2026-11-01T00:00:00Z",
+              merge_commit_sha: "abc",
+              base: { ref: "master" },
+            }),
+            stderr: "",
+          };
+        }
+        if (joined.includes("/issues/")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({ state: "open", labels: [] }),
+            stderr: "",
+          };
+        }
+        return { returncode: 1, stdout: "", stderr: `unexpected ${joined}` };
+      },
+    });
+    expect(lsRemoteCalls).toBe(1);
+    expect(inventory.stories.filter((s) => s.state === "owed")).toHaveLength(2);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("maps batch failure to unknown+blocking and skips network when no probe demand", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-batch-fail-"));
+    writeTipBrief(root, "xbrief/active/story-a.xbrief.json", 6008, {
+      productPullRequest: 6100,
+    });
+    const tipBlobs = new Map<string, string>([
+      [
+        "xbrief/active/story-a.xbrief.json",
+        readFileSync(join(root, "xbrief/active/story-a.xbrief.json"), "utf8"),
+      ],
+    ]);
+    let lsRemoteCalls = 0;
+    const tipGit = (_projectRoot: string, args: readonly string[]) => {
+      if (args[0] === "ls-tree") {
+        const dash = args.indexOf("--");
+        const prefixes = dash >= 0 ? args.slice(dash + 1) : [];
+        const matched = [...tipBlobs.keys()].filter((p) =>
+          prefixes.some((pref) => p.startsWith(String(pref))),
+        );
+        return { code: 0, stdout: matched.join("\n"), stderr: "" };
+      }
+      if (args[0] === "show") {
+        const spec = String(args[1] ?? "");
+        const rel = spec.includes(":") ? spec.slice(spec.indexOf(":") + 1) : "";
+        const body = tipBlobs.get(rel);
+        return body !== undefined
+          ? { code: 0, stdout: body, stderr: "" }
+          : { code: 1, stdout: "", stderr: "missing" };
+      }
+      if (args[0] === "ls-remote") {
+        lsRemoteCalls += 1;
+        return { code: 128, stdout: "", stderr: "timed out" };
+      }
+      if (args[0] === "merge-base") {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const inventory = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      runGit: tipGit,
+      runGh: (cmd) => {
+        const joined = cmd.join(" ");
+        if (joined.includes("/pulls?")) {
+          return { returncode: 0, stdout: "[]", stderr: "" };
+        }
+        if (joined.includes("/pulls/")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({
+              merged_at: "2026-11-01T00:00:00Z",
+              merge_commit_sha: "abc",
+              base: { ref: "master" },
+            }),
+            stderr: "",
+          };
+        }
+        if (joined.includes("/issues/")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({ state: "open", labels: [] }),
+            stderr: "",
+          };
+        }
+        return { returncode: 1, stdout: "", stderr: "unexpected" };
+      },
+    });
+    expect(lsRemoteCalls).toBe(1);
+    expect(inventory.stories).toHaveLength(1);
+    expect(inventory.stories[0]?.state).toBe("unknown");
+    expect(inventory.stories[0]?.blocks).toBe(true);
+    expect(inventory.stories[0]?.detail).toBe(CLAIM_PROBE_UNKNOWN_DETAIL);
+    expect(inventory.stories[0]?.detail).not.toMatch(/timed out|stderr/i);
+
+    // Open leftover PR → in-flight without claim probe.
+    lsRemoteCalls = 0;
+    const inFlightOnly = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      runGit: (_projectRoot, args) => {
+        if (args[0] === "ls-tree") {
+          const dash = args.indexOf("--");
+          const prefixes = dash >= 0 ? args.slice(dash + 1) : [];
+          const matched = [...tipBlobs.keys()].filter((p) =>
+            prefixes.some((pref) => p.startsWith(String(pref))),
+          );
+          return { code: 0, stdout: matched.join("\n"), stderr: "" };
+        }
+        if (args[0] === "show") {
+          const spec = String(args[1] ?? "");
+          const rel = spec.includes(":") ? spec.slice(spec.indexOf(":") + 1) : "";
+          const body = tipBlobs.get(rel);
+          return body !== undefined
+            ? { code: 0, stdout: body, stderr: "" }
+            : { code: 1, stdout: "", stderr: "missing" };
+        }
+        if (args[0] === "ls-remote") {
+          lsRemoteCalls += 1;
+          return { code: 0, stdout: "", stderr: "" };
+        }
+        if (args[0] === "merge-base") {
+          return { code: 0, stdout: "", stderr: "" };
+        }
+        return { code: 0, stdout: "", stderr: "" };
+      },
+      runGh: (cmd) => {
+        const joined = cmd.join(" ");
+        if (joined.includes("/pulls?")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify([{ head: { ref: "swarm/finalize/pr-6100" } }]),
+            stderr: "",
+          };
+        }
+        if (joined.includes("/pulls/")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({
+              merged_at: "2026-11-01T00:00:00Z",
+              merge_commit_sha: "abc",
+              base: { ref: "master" },
+            }),
+            stderr: "",
+          };
+        }
+        return { returncode: 1, stdout: "", stderr: "unexpected" };
+      },
+    });
+    expect(lsRemoteCalls).toBe(0);
+    expect(inFlightOnly.stories[0]?.state).toBe("in-flight");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("keeps reclaimable hit-fetch as stale and remaps non-reclaimable to unknown", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-reclaimable-"));
+    writeTipBrief(root, "xbrief/active/story-a.xbrief.json", 6008, {
+      productPullRequest: 6100,
+    });
+    const tipBlobs = new Map<string, string>([
+      [
+        "xbrief/active/story-a.xbrief.json",
+        readFileSync(join(root, "xbrief/active/story-a.xbrief.json"), "utf8"),
+      ],
+    ]);
+    const claimLine = "deadbeef refs/heads/swarm/finalize/pr-6100\n";
+    const baseGit = (fetchStderr: string) => (_projectRoot: string, args: readonly string[]) => {
+      if (args[0] === "ls-tree") {
+        const dash = args.indexOf("--");
+        const prefixes = dash >= 0 ? args.slice(dash + 1) : [];
+        const matched = [...tipBlobs.keys()].filter((p) =>
+          prefixes.some((pref) => p.startsWith(String(pref))),
+        );
+        return { code: 0, stdout: matched.join("\n"), stderr: "" };
+      }
+      if (args[0] === "show") {
+        const spec = String(args[1] ?? "");
+        const rel = spec.includes(":") ? spec.slice(spec.indexOf(":") + 1) : "";
+        const body = tipBlobs.get(rel);
+        return body !== undefined
+          ? { code: 0, stdout: body, stderr: "" }
+          : { code: 1, stdout: "", stderr: "missing" };
+      }
+      if (args[0] === "ls-remote") {
+        return { code: 0, stdout: claimLine, stderr: "" };
+      }
+      if (args[0] === "fetch" && args.some((a) => String(a).includes("finalize-owed-claim"))) {
+        return { code: 1, stdout: "", stderr: fetchStderr };
+      }
+      if (args[0] === "merge-base") {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const ghOpen = (cmd: readonly string[]) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("/pulls?")) {
+        return { returncode: 0, stdout: "[]", stderr: "" };
+      }
+      if (joined.includes("/pulls/")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            merged_at: "2026-11-01T00:00:00Z",
+            merge_commit_sha: "abc",
+            base: { ref: "master" },
+          }),
+          stderr: "",
+        };
+      }
+      if (joined.includes("/issues/")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ state: "open", labels: [] }),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: "unexpected" };
+    };
+
+    const reclaimable = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      runGit: baseGit("couldn't find remote ref swarm/finalize/pr-6100"),
+      runGh: ghOpen,
+    });
+    expect(reclaimable.stories[0]?.state).toBe("stale");
+    expect(reclaimable.stories[0]?.blocks).toBe(true);
+
+    const nonReclaimable = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      runGit: baseGit("fatal: unable to access 'https://github.com/': Could not resolve host"),
+      runGh: ghOpen,
+    });
+    expect(nonReclaimable.stories[0]?.state).toBe("unknown");
+    expect(nonReclaimable.stories[0]?.blocks).toBe(true);
+    expect(nonReclaimable.stories[0]?.detail).toBe(CLAIM_PROBE_UNKNOWN_DETAIL);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("finalizeOwed ordinary path exits non-zero on unknown; inventory-only stays report-only", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-unknown-exit-"));
+    writeTipBrief(root, "xbrief/active/story-a.xbrief.json", 6008, {
+      productPullRequest: 6100,
+    });
+    const tipBlobs = new Map<string, string>([
+      [
+        "xbrief/active/story-a.xbrief.json",
+        readFileSync(join(root, "xbrief/active/story-a.xbrief.json"), "utf8"),
+      ],
+    ]);
+    const runGit = (_projectRoot: string, args: readonly string[]) => {
+      if (
+        args[0] === "fetch" &&
+        args.includes("origin") &&
+        !args.some((a) => String(a).includes("finalize-owed-claim"))
+      ) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "rev-parse") {
+        return { code: 0, stdout: "TIPSHA\n", stderr: "" };
+      }
+      if (args[0] === "ls-tree") {
+        const dash = args.indexOf("--");
+        const prefixes = dash >= 0 ? args.slice(dash + 1) : [];
+        const matched = [...tipBlobs.keys()].filter((p) =>
+          prefixes.some((pref) => p.startsWith(String(pref))),
+        );
+        return { code: 0, stdout: matched.join("\n"), stderr: "" };
+      }
+      if (args[0] === "show") {
+        const spec = String(args[1] ?? "");
+        const rel = spec.includes(":") ? spec.slice(spec.indexOf(":") + 1) : "";
+        const body = tipBlobs.get(rel);
+        return body !== undefined
+          ? { code: 0, stdout: body, stderr: "" }
+          : { code: 1, stdout: "", stderr: "missing" };
+      }
+      if (args[0] === "ls-remote") {
+        return { code: 128, stdout: "", stderr: "network down" };
+      }
+      if (args[0] === "merge-base") {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+    const runGh = (cmd: readonly string[]) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("/pulls?")) {
+        return { returncode: 0, stdout: "[]", stderr: "" };
+      }
+      if (joined.includes("/pulls/")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            merged_at: "2026-11-01T00:00:00Z",
+            merge_commit_sha: "abc",
+            base: { ref: "master" },
+          }),
+          stderr: "",
+        };
+      }
+      if (joined.includes("/issues/")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({ state: "open", labels: [] }),
+          stderr: "",
+        };
+      }
+      return { returncode: 1, stdout: "", stderr: "unexpected" };
+    };
+
+    const live = finalizeOwed({
+      projectRoot: root,
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      runGit,
+      runGh,
+      runFinalize: () => {
+        throw new Error("must not finalize unknown");
+      },
+    });
+    expect(live.exitCode).toBe(EXIT_GATE_FAILED);
+    expect(live.result.ok).toBe(false);
+    expect(live.result.stories.some((s) => s.state === "unknown")).toBe(true);
+
+    const inventoryOnly = finalizeOwed({
+      projectRoot: root,
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      inventoryOnly: true,
+      runGit,
+      runGh,
+    });
+    expect(inventoryOnly.exitCode).toBe(EXIT_OK);
+    expect(inventoryOnly.result.stories.some((s) => s.state === "unknown")).toBe(true);
     rmSync(root, { recursive: true, force: true });
   });
 });
