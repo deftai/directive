@@ -9,6 +9,7 @@ import {
   AUTHZ_INTERACTIVE_CONFIRM_PHRASE,
   controllingTerminalOpenFlag,
   controllingTerminalPath,
+  detectedAgentShellMarkers,
   looksLikeAgentShell,
   refuseMintWhileUatActive,
   refuseNonInteractiveMint,
@@ -46,6 +47,36 @@ describe("shared #3110 human-presence mint (#3384)", () => {
     expect(AUTHZ_AGENT_SHELL_ENV_MARKERS).toContain("CURSOR_AGENT");
   });
 
+  it("places GROK_AGENT then GROK_SESSION_ID after OPENAI_CODEX (#5983)", () => {
+    const openai = AUTHZ_AGENT_SHELL_ENV_MARKERS.indexOf("OPENAI_CODEX");
+    const grokAgent = AUTHZ_AGENT_SHELL_ENV_MARKERS.indexOf("GROK_AGENT");
+    const grokSession = AUTHZ_AGENT_SHELL_ENV_MARKERS.indexOf("GROK_SESSION_ID");
+    expect(openai).toBeGreaterThanOrEqual(0);
+    expect(grokAgent).toBe(openai + 1);
+    expect(grokSession).toBe(grokAgent + 1);
+    expect(AUTHZ_AGENT_SHELL_ENV_MARKERS).not.toContain("GROK_BUILD");
+  });
+
+  it("T6 static membership: each declared identity host has a denylist marker (#5983)", () => {
+    // Static cross-list only — do not merge the two lists (Bound Recut-2).
+    const declaredHostMarkers = [
+      "GROK_AGENT",
+      "GROK_SESSION_ID",
+      "CLAUDECODE",
+      "CLAUDE_CODE",
+      "CLAUDE_CODE_ENTRYPOINT",
+      "CURSOR_AGENT",
+      "CURSOR_TRACE_ID",
+      "CURSOR_SESSION_ID",
+      "CODEX_SANDBOX",
+      "CODEX_CI",
+      "OPENAI_CODEX",
+    ] as const;
+    for (const key of declaredHostMarkers) {
+      expect(AUTHZ_AGENT_SHELL_ENV_MARKERS).toContain(key);
+    }
+  });
+
   it("detects agent and CI markers; empty or whitespace values do not", () => {
     expect(looksLikeAgentShell({})).toBe(false);
     expect(looksLikeAgentShell({ CI: "" })).toBe(false);
@@ -54,6 +85,34 @@ describe("shared #3110 human-presence mint (#3384)", () => {
     expect(looksLikeAgentShell({ CLAUDECODE: "1" })).toBe(true);
     expect(looksLikeAgentShell({ CURSOR_AGENT: "1" })).toBe(true);
     expect(looksLikeAgentShell({ GITHUB_ACTIONS: "true" })).toBe(true);
+  });
+
+  it("detectedAgentShellMarkers returns matching keys in list order (#5983)", () => {
+    expect(detectedAgentShellMarkers({})).toEqual([]);
+    expect(
+      detectedAgentShellMarkers({
+        GROK_SESSION_ID: "sess-1",
+        GROK_AGENT: "1",
+        CI: "true",
+      }),
+    ).toEqual(["GROK_AGENT", "GROK_SESSION_ID", "CI"]);
+    expect(looksLikeAgentShell({ GROK_AGENT: "1" })).toBe(true);
+    expect(looksLikeAgentShell({ GROK_SESSION_ID: "sess" })).toBe(true);
+  });
+
+  it("T5 blank/whitespace marker values yield empty list, not null (#5983)", () => {
+    for (const key of ["GROK_AGENT", "GROK_SESSION_ID", "CI", "CLAUDECODE"] as const) {
+      expect(detectedAgentShellMarkers({ [key]: "" })).toEqual([]);
+      expect(detectedAgentShellMarkers({ [key]: "   " })).toEqual([]);
+      expect(looksLikeAgentShell({ [key]: "" })).toBe(false);
+      expect(looksLikeAgentShell({ [key]: "\t" })).toBe(false);
+    }
+  });
+
+  it("T4 GROK_HOME alone does not match; no GROK_* prefix (#5983)", () => {
+    expect(detectedAgentShellMarkers({ GROK_HOME: "C:\\Users\\op" })).toEqual([]);
+    expect(looksLikeAgentShell({ GROK_HOME: "C:\\Users\\op" })).toBe(false);
+    expect(detectedAgentShellMarkers({ GROK_BUILD: "1" })).toEqual([]);
   });
 
   it("refuse matrix: markers, non-TTY, missing confirm, wrong phrase, no controlling tty", () => {
@@ -103,6 +162,30 @@ describe("shared #3110 human-presence mint (#3384)", () => {
       }),
     ).toBe(2);
     expect(err.join("")).toMatch(/agent|CI|TTY|--confirm|controlling terminal|phrase|mint/i);
+  });
+
+  it("T3 refuse names matched keys with unset hint and never prints values (#5983)", () => {
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    const secretAgent = "secret-agent-value-xyz";
+    const secretSession = "secret-session-value-abc";
+    expect(
+      refuseNonInteractiveMint({
+        verb: "authz:grant",
+        confirm: true,
+        ...operatorSeams(),
+        environ: { GROK_AGENT: secretAgent, GROK_SESSION_ID: secretSession },
+      }),
+    ).toBe(2);
+    const msg = err.join("");
+    expect(msg).toContain("GROK_AGENT");
+    expect(msg).toContain("GROK_SESSION_ID");
+    expect(msg).toMatch(/Unset GROK_AGENT, GROK_SESSION_ID/);
+    expect(msg).not.toContain(secretAgent);
+    expect(msg).not.toContain(secretSession);
   });
 
   it("allows mint when all multi-factor seams pass", () => {

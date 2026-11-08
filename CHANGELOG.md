@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.5.
 
 ### Fixed
+- Human-presence mint refuses Grok agent shells: `GROK_AGENT` and `GROK_SESSION_ID` join the denylist after `OPENAI_CODEX`, `detectedAgentShellMarkers` names every matched key with an unset hint (never prints values), and blank/whitespace marker values stay clear (#5983).
 - Record tracked completion for guarded linked-worktree Codex prep (#6100).
 - Record tracked completion for applying-host live-occupant publish guard (#6101).
 - Record tracked completion for open-issue list reuse in cache drift probing (#6099).

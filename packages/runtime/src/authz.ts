@@ -68,6 +68,8 @@ export type { HumanPresenceMintSeams as AuthzMainSeams } from "./human-presence-
 export {
   AUTHZ_AGENT_SHELL_ENV_MARKERS,
   AUTHZ_INTERACTIVE_CONFIRM_PHRASE,
+  detectedAgentShellMarkers,
+  looksLikeAgentShell,
 } from "./human-presence-mint.js";
 
 interface Parsed {
