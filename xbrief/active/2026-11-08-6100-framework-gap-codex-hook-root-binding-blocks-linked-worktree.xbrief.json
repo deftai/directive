@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6100",
-    "updated": "2026-11-08T01:02:18Z"
+    "updated": "2026-11-08T01:18:41Z"
   },
   "plan": {
     "title": "[framework-gap] Codex hook root binding blocks linked-worktree reads and dependency bootstrap",
@@ -19,50 +19,42 @@
       {
         "title": "relieves: P1 — Keep operator-callable one-path prep verb + shared guarded prep (foreign-worktree via mainWorktreeRoot; live foreign lease via occupancyAdmission===stranger and liveOccupancyOnTree; then PM; success = outer-visible PIN_REL exists)",
         "status": "proposed",
-        "id": "clause.1",
-        "artifact_path": "packages/core/src/swarm/worktree-pm-install.ts"
+        "id": "clause.1"
       },
       {
         "title": "relieves: P1 — worktree create/reuse and dest-place create/reuse create/reuse newly-installing paths call that guarded prep before success; lease/foreign refuse runs before reconstituteLinkedWorktreeDeposit writes and before PM; regression zero PM and zero deposit mutation on stranger live lease",
         "status": "proposed",
-        "id": "clause.2",
-        "artifact_path": "packages/core/src/swarm/dest-place.ts"
+        "id": "clause.2"
       },
       {
         "title": "relieves: P1 — arc-dest ensure is in-contract: create path runs shared guarded prep after worktree add; reuse refuses stranger live occupancy before checkout; a deliberate process-only no-install mode is allowed only when the caller records verification-path pin-read and that mode is not the supported Codex consumer handoff",
         "status": "proposed",
-        "id": "clause.3",
-        "artifact_path": "packages/core/src/design-critique/arc-dest.ts"
+        "id": "clause.3"
       },
       {
         "title": "relieves: P1 — Host-boundary + ordering unchanged: dest-rooted host session for matching launchRoot (6692738765); prep before re-root",
         "status": "proposed",
-        "id": "clause.4",
-        "artifact_path": "packages/runtime/src/hook-dispatch.ts"
+        "id": "clause.4"
       },
       {
         "title": "relieves: P2 — Unchanged: dedicated root-mismatch constant; shared INSTALLATION_RECOVERY_GUIDANCE untouched",
         "status": "proposed",
-        "id": "clause.5",
-        "artifact_path": "packages/core/src/install-health/constants.ts"
+        "id": "clause.5"
       },
       {
         "title": "relieves: P3 — Unchanged: inspection under matching identity; maybeSelfCompleteSetup is setup; product mutations still gated",
         "status": "proposed",
-        "id": "clause.6",
-        "artifact_path": "packages/core/src/swarm/worktrees.ts"
+        "id": "clause.6"
       },
       {
         "title": "relieves: P4 — Unchanged: packaged-consumer fixture with materialized .pnpm layout; injected launchingCheckoutRoot-only insufficient",
         "status": "proposed",
-        "id": "clause.7",
-        "artifact_path": "packages/core/src/swarm/worktree-pm-install.test.ts"
+        "id": "clause.7"
       },
       {
         "title": "Footnote: CHANGELOG / docs; #5836 keep-out",
         "status": "proposed",
-        "id": "clause.8",
-        "artifact_path": "CHANGELOG.md"
+        "id": "clause.8"
       }
     ],
     "tags": [
@@ -188,7 +180,7 @@
           "packages/core/src/swarm/worktrees-cli.ts"
         ],
         "module_boundary": "packages/core/src/swarm/worktree-pm-install.ts",
-        "cohesion_exemption": "CHANGELOG + swarm dest prep + hook-dispatch root binding + arc-dest create path"
+        "cohesion_exemption": "CHANGELOG + swarm dest prep + hook-dispatch/dispatch root binding + worktrees-cli prep verb + arc-dest create path"
       },
       "x-directive/plan-id": {
         "version": 1,
@@ -245,7 +237,6 @@
       }
     },
     "id": "github.issue.6247665170",
-    "overview": "As a Codex/Grok leaf operator, I need linked-worktree dest prep that refuses stranger leases and installs under matching launchRoot so empty dest handoff works.",
-    "updated": "2026-11-08T01:02:18Z"
+    "updated": "2026-11-08T01:18:41Z"
   }
 }

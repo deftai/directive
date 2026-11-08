@@ -19,62 +19,52 @@
       {
         "title": "relieves: P1 — Inside cache drift probe’s default path, list once into a call-scoped Map and derive live-open membership from its keys without changing open-issue list helper or the injected open-list function Set type.",
         "status": "proposed",
-        "id": "clause.1",
-        "artifact_path": "packages/core/src/cache/fetch.ts"
+        "id": "clause.1"
       },
       {
         "title": "relieves: P1 — When injected open-list function is injected, build no records Map and perform no second enumeration so injected-Set callers stay byte-identical to today.",
         "status": "proposed",
-        "id": "clause.2",
-        "artifact_path": "packages/core/src/cache/main.test.ts"
+        "id": "clause.2"
       },
       {
         "title": "relieves: P1 — Reuse each eligible Map record through REST issue normaliser then issue content fingerprint before any singleIssueFetcherImpl call, taking only the call-scoped Map-first shape from fetch-all path, not its unguarded completeness policy.",
         "status": "proposed",
-        "id": "clause.3",
-        "artifact_path": "CHANGELOG.md"
+        "id": "clause.3"
       },
       {
         "title": "relieves: P2 — Leave the cache_fresh call site cache_fresh call site seam-free so the only caller that pays the sampled GETs gains reuse with no call-site edit.",
         "status": "proposed",
-        "id": "clause.4",
-        "artifact_path": "packages/core/src/cache/fetch.ts"
+        "id": "clause.4"
       },
       {
         "title": "relieves: P3 — Gate reuse with present keys via the in operator plus usable values: body must be string or null, title and state must be strings, and labels must be an array whose entries expose usable string names.",
         "status": "proposed",
-        "id": "clause.5",
-        "artifact_path": "packages/core/src/cache/main.test.ts"
+        "id": "clause.5"
       },
       {
         "title": "relieves: P3 — On any missing required key or unusable body/title/state/labels shape, call single-issue fetch exactly once for that number and never skip the content check.",
         "status": "proposed",
-        "id": "clause.6",
-        "artifact_path": "CHANGELOG.md"
+        "id": "clause.6"
       },
       {
         "title": "relieves: P3 — Prove seamless-default reuse in one run with schema-valid TTL-fresh meta fixtures, exactly one mutated list record, contentDriftNumbers equal to that number, and zero single-issue fetch calls under paginated lister setter and single-issue fetcher setter with only repo/source/cacheRoot.",
         "status": "proposed",
-        "id": "clause.7",
-        "artifact_path": "packages/core/src/cache/fetch.ts"
+        "id": "clause.7"
       },
       {
         "title": "relieves: P3 — Add present-but-undefined body and invalid title/state fixtures that assert exactly one single-issue fetch fallback and drift detection from the fallback fingerprint.",
         "status": "proposed",
-        "id": "clause.8",
-        "artifact_path": "packages/core/src/cache/main.test.ts"
+        "id": "clause.8"
       },
       {
         "title": "Keep comparison-count default content-drift check cap behavior unchanged in this Prefer-A; do not re-point the counter to single-issue fetch-only in this ticket.",
         "status": "proposed",
-        "id": "clause.9",
-        "artifact_path": "CHANGELOG.md"
+        "id": "clause.9"
       },
       {
         "title": "Keep-outs: deleting or optionalizing .deft-cache/github-issue; changing verify:cache-fresh meaning when upstream data matches; applying the new eligibility predicate to pre-existing fetch-all path Map-first reuse; ghx/#3513; sleepImpl Retry-After fix; Approach B return-type churn; Approach C module memo.",
         "status": "proposed",
-        "id": "clause.10",
-        "artifact_path": "packages/core/src/cache/fetch.ts"
+        "id": "clause.10"
       }
     ],
     "tags": [
@@ -247,7 +237,6 @@
       }
     },
     "id": "github.issue.6247234308",
-    "overview": "As a session-start operator, cache drift probing should reuse the open-issue list payload instead of refetching up to 25 issues.",
     "updated": "2026-11-08T01:02:42Z"
   }
 }

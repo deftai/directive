@@ -19,26 +19,22 @@
       {
         "title": "relieves: P1 — Enforce live-occupant skip inside publishApplyingHost helpers under occupancy writer lock keyed to the canonical session id being written with no unlocked write fallback and no third publish predicate",
         "status": "proposed",
-        "id": "clause.1",
-        "artifact_path": "packages/core/src/session/occupancy.ts"
+        "id": "clause.1"
       },
       {
         "title": "relieves: P2 — Deposit-key live-owner cleanup on depositSessionId equaling liveId for the ok branch and for the stale branch with no applyingHostSessionId relation conjunct, map onto liveOwnerBypass so effectiveOwner is live deposit identity, keep bare rewrite injection, and delete dead ok-branch soft-pass",
         "status": "proposed",
-        "id": "clause.2",
-        "artifact_path": "packages/runtime/src/session-start.ts"
+        "id": "clause.2"
       },
       {
         "title": "relieves: P3 — When live foreign occupant exists stop repair guidance from prescribing another owner session-id recipe and return a discriminated deferred or failed publish outcome distinct from non-canonical null into CLI text and JSON without claiming conflict recovery",
         "status": "proposed",
-        "id": "clause.3",
-        "artifact_path": "packages/core/src/hooks/dispatcher.ts"
+        "id": "clause.3"
       },
       {
         "title": "relieves: P4 — Assert admission claims on the dispatcher path including real CLI read-only completion with project-root plus stale-branch bare cleanup and deferred-outcome text and json rows, and refuse evaluator-only soft-pass coverage as sufficient proof",
         "status": "proposed",
-        "id": "clause.4",
-        "artifact_path": "packages/core/src/session/occupancy.test.ts"
+        "id": "clause.4"
       }
     ],
     "tags": [
@@ -171,7 +167,6 @@
       }
     },
     "id": "github.issue.6247667402",
-    "overview": "As a session operator, read-only recovery must not overwrite a live owner's applying-host identity and bare cleanup must still work.",
     "updated": "2026-11-08T01:02:23Z"
   }
 }
