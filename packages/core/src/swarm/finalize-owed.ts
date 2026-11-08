@@ -31,6 +31,7 @@ import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import {
   defaultGitRunner,
+  envGitRunner,
   type GitRunner,
   showBlobsBatch,
   timedGitRunner,
@@ -50,21 +51,16 @@ export const FINALIZE_OWED_LABEL = "finalize-owed";
 /** Age bound before a claim ref with no open PR is stale (#4919). */
 export const FINALIZE_CLAIM_STALE_MS = 2 * 60 * 60 * 1000;
 
-/** Direct-child timeout for claim ls-remote / hit-fetch (#6008). */
-export const FINALIZE_CLAIM_PROBE_TIMEOUT_MS = 30_000;
-
 /** Sanitized unknown detail — never surface raw remote stdout/stderr (#6008). */
 export const CLAIM_PROBE_UNKNOWN_DETAIL = "claim metadata unavailable";
 
 /**
- * Production claimRunner: timed direct-child + GIT_TERMINAL_PROMPT=0 (#6008).
+ * Production claimRunner: GIT_TERMINAL_PROMPT=0, no probe timeout const (#6008 free form).
  * Callers (session-start, finalizeOwed) construct and pass this; discover does not
- * attach the bound by `runGit === defaultGitRunner` identity.
+ * attach claim behavior by `runGit === defaultGitRunner` identity.
  */
-export function createFinalizeClaimRunner(
-  timeoutMs: number = FINALIZE_CLAIM_PROBE_TIMEOUT_MS,
-): GitRunner {
-  return timedGitRunner(timeoutMs, { env: { GIT_TERMINAL_PROMPT: "0" } });
+export function createFinalizeClaimRunner(): GitRunner {
+  return envGitRunner({ GIT_TERMINAL_PROMPT: "0" });
 }
 
 export type FinalizeOwedState =

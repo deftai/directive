@@ -97,6 +97,14 @@ function execGit(
 export const defaultGitRunner: GitRunner = (projectRoot, args) => execGit(projectRoot, args);
 
 /**
+ * Same silent stdio as {@link defaultGitRunner}, with env overlay merged over process.env
+ * (never replaces wholesale) (#6008).
+ */
+export function envGitRunner(env: NodeJS.ProcessEnv): GitRunner {
+  return (projectRoot, args) => execGit(projectRoot, args, { env });
+}
+
+/**
  * Same silent stdio as {@link defaultGitRunner}, with a direct-child timeout (#3914 / #6008).
  * Optional `env` merges over process.env (never replaces wholesale).
  *
