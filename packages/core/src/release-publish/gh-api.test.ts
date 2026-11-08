@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   editReleasePublish,
   ghApiFindReleaseByTag,
@@ -282,3 +282,33 @@ describe("editReleasePublish", () => {
     expect(reason).toContain("gh CLI not found");
   });
 });
+
+describe("ghApiFindReleaseByTag plain gh env (#6032)", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("passes plainGhEnv to spawn under parent CLICOLOR_FORCE=1", () => {
+    vi.stubEnv("CLICOLOR_FORCE", "1");
+    vi.stubEnv("NO_COLOR", "");
+    let capturedEnv: NodeJS.ProcessEnv | undefined;
+    const seams: ReleasePublishSeams = {
+      whichGh: () => "/usr/bin/gh",
+      spawnText: (_cmd, _args, options) => {
+        capturedEnv = options?.env as NodeJS.ProcessEnv | undefined;
+        return {
+          status: 0,
+          stdout: JSON.stringify([REST_DRAFT]),
+          stderr: "",
+        };
+      },
+    };
+    const [state] = ghApiFindReleaseByTag("/usr/bin/gh", "deftai/directive", "v0.21.0", seams);
+    expect(state).toBe("draft");
+    expect(capturedEnv).toBeDefined();
+    expect(capturedEnv?.CLICOLOR_FORCE).toBeUndefined();
+    expect(capturedEnv?.NO_COLOR).toBe("1");
+    expect(process.env.CLICOLOR_FORCE).toBe("1");
+  });
+});
+
