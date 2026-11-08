@@ -191,7 +191,10 @@ describe("prepareLinkedWorktree (#6100)", () => {
     // Stale installed runtime 1.0.0 under outer-visible pin path tree
     const runtimePkg = join(wt, "node_modules", "@deftai", "directive-runtime");
     mkdirSync(join(runtimePkg, "dist"), { recursive: true });
-    writeFileSync(join(runtimePkg, "package.json"), JSON.stringify({ name: "@deftai/directive-runtime", version: "1.0.0" }));
+    writeFileSync(
+      join(runtimePkg, "package.json"),
+      JSON.stringify({ name: "@deftai/directive-runtime", version: "1.0.0" }),
+    );
     writeFileSync(join(runtimePkg, "dist", "hook-bin.js"), "export {};\n");
     expect(runtimePinMatchesRequest(wt)).toBe(false);
     let pmCalls = 0;
@@ -201,7 +204,10 @@ describe("prepareLinkedWorktree (#6100)", () => {
       runner: () => {
         pmCalls += 1;
         // Simulate install refreshing to requested version + pin
-        writeFileSync(join(runtimePkg, "package.json"), JSON.stringify({ name: "@deftai/directive-runtime", version: "9.9.9" }));
+        writeFileSync(
+          join(runtimePkg, "package.json"),
+          JSON.stringify({ name: "@deftai/directive-runtime", version: "9.9.9" }),
+        );
         return { status: 0, stdout: "ok", stderr: "" };
       },
     });

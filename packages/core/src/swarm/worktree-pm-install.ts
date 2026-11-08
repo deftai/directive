@@ -181,7 +181,6 @@ export function runtimePinMatchesRequest(worktreePath: string): boolean {
   return installed === reqNorm || installed === requested;
 }
 
-
 /** Detect npm vs pnpm from lockfile / packageManager field (AC5.6 subset). */
 export function detectWorktreePm(worktreePath: string): WorktreePm | null {
   if (existsSync(join(worktreePath, "yarn.lock")) || existsSync(join(worktreePath, "bun.lockb"))) {
