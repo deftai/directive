@@ -138,6 +138,49 @@ function sameTree(left: string, right: string): boolean {
 export function outerVisibleRuntimePinExists(worktreePath: string): boolean {
   return existsSync(join(resolve(worktreePath), OUTER_VISIBLE_RUNTIME_PIN_REL));
 }
+/** Read requested @deftai/directive-runtime range from package.json. */
+function readRequestedRuntimePin(pkg: Record<string, unknown>): string | null {
+  for (const key of ["dependencies", "devDependencies", "optionalDependencies"] as const) {
+    const block = pkg[key];
+    if (block !== null && typeof block === "object" && !Array.isArray(block)) {
+      const v = (block as Record<string, unknown>)["@deftai/directive-runtime"];
+      if (typeof v === "string" && v.trim().length > 0) return v.trim();
+    }
+  }
+  return null;
+}
+
+/** Installed runtime package version under the worktree, or null. */
+function readInstalledRuntimeVersion(worktreePath: string): string | null {
+  try {
+    const raw = readFileSync(
+      join(resolve(worktreePath), "node_modules", "@deftai", "directive-runtime", "package.json"),
+      "utf8",
+    );
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const version = (parsed as Record<string, unknown>).version;
+    return typeof version === "string" && version.trim().length > 0 ? version.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Outer pin may skip install only when the installed runtime matches the
+ * package.json requested pin (stale node_modules after checkout must refresh).
+ */
+export function runtimePinMatchesRequest(worktreePath: string): boolean {
+  if (!outerVisibleRuntimePinExists(worktreePath)) return false;
+  const pkg = readPackageJson(worktreePath);
+  if (pkg === null || !hasRuntimePin(pkg)) return true;
+  const requested = readRequestedRuntimePin(pkg);
+  const installed = readInstalledRuntimeVersion(worktreePath);
+  if (requested === null || installed === null) return false;
+  const reqNorm = requested.replace(/^[\^~>=<\s]+/, "");
+  return installed === reqNorm || installed === requested;
+}
+
 
 /** Detect npm vs pnpm from lockfile / packageManager field (AC5.6 subset). */
 export function detectWorktreePm(worktreePath: string): WorktreePm | null {
@@ -298,7 +341,8 @@ export function prepareLinkedWorktree(
     }
   }
 
-  if (outerVisibleRuntimePinExists(worktreePath)) {
+  // Skip install only when outer pin exists AND installed runtime matches request (#6100).
+  if (outerVisibleRuntimePinExists(worktreePath) && runtimePinMatchesRequest(worktreePath)) {
     return {
       ok: true,
       worktreePath,
