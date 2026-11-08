@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
 ### Added
 
 ### Changed
+- Activate Prefer-A Bound running xBRIEFs for #6021 (pnpm packageManager security pin), #5983 (Grok human-presence mint markers), #5953 (release Phase 7 maintainer local checkout update), and #6122 (operator-disable eligibility lock) so product implement can proceed under the write fence.
 
 - Keep read-only session recovery from overwriting a live owner's applying-host identity, and report deferred publish honestly in CLI text/JSON (#6101).
 - Reuse the open-issue list payload inside cache drift probing so session-start does not refetch up to 25 issues (#6099).
