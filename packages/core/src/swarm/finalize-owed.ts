@@ -571,7 +571,8 @@ function createClaimBatchContext(
 
   const remoteClaimMeta = (claimRef: string): ClaimMeta => {
     const batch = ensureBatch();
-    if (batch.status === "failed") {
+    // Narrow away idle|failed so byHead is definite for the TypeScript build (#6008).
+    if (batch.status !== "ok") {
       return { kind: "unknown" };
     }
     const sha = batch.byHead.get(claimRef);
