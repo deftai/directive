@@ -311,4 +311,3 @@ describe("ghApiFindReleaseByTag plain gh env (#6032)", () => {
     expect(process.env.CLICOLOR_FORCE).toBe("1");
   });
 });
-
