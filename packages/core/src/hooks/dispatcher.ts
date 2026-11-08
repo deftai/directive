@@ -3517,7 +3517,11 @@ function attachLifecycleIdentityRewrite(
     return denyIdentity("occupancy-identity-conflict", applyingAdmission.message);
   }
   let liveOwnerBypass = false;
-  if (applyingAdmission.kind === "foreign-owner") {
+  if (applyingAdmission.kind === "live-owner-cleanup") {
+    // Deposit equals live lease holder (#6101 Prefer-A): effectiveOwner is the
+    // live deposit identity; bare stays on the rewrite path (not soft-pass).
+    liveOwnerBypass = true;
+  } else if (applyingAdmission.kind === "foreign-owner") {
     const live = liveOccupant(resolve(input.projectRoot));
     if (live !== null && live.sessionId === identity.sessionId) {
       // Applying-host was replaced by another SessionStart; keep live lease owner

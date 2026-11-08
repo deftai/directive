@@ -22,11 +22,15 @@ import {
   formatSoftAgentsRebindChecklist,
   softAgentsRebindForbiddenHits,
 } from "../session/compact-ritual.js";
+import { canonicalHostSessionId } from "../session/host-session-owner.js";
 import {
+  applyingHostPath,
   applyWorktreeOccupancy,
   OCCUPANCY_MAX_LEASE_MS,
   OCCUPANCY_STALE_WARN_MS,
   occupancyPath,
+  publishApplyingHost,
+  readApplyingHost,
   readOccupancy,
 } from "../session/occupancy.js";
 import { persistTrustedSessionPosture } from "../session/posture.js";
@@ -7901,5 +7905,101 @@ describe("Prefer-A #5890 retirement-shaped zero-eligible", () => {
     expect(decision.verdict).toBe("deny");
     expect(decision.code).not.toBe("write-ready");
     expect(decision.message).not.toMatch(/borrow another brief/i);
+  });
+});
+
+describe("applying-host live-owner cleanup + deferred publish (#6101)", () => {
+  const RAW = "dcd6d34c-5e07-4e3c-89dd-83471ee80fdf";
+  const CURSOR_OWNER = canonicalHostSessionId("cursor", RAW);
+  const PAYLOAD_RAW = "01a0b008-c21f-79e1-b6fd-9ade8fd67bef";
+  const temps: string[] = [];
+
+  afterEach(() => {
+    for (const t of temps.splice(0)) rmSync(t, { recursive: true, force: true });
+  });
+
+  function seams(overrides: HookPolicySeams = {}): HookPolicySeams {
+    return {
+      sessionStart: () => ({ code: 0, stdout: "", stderr: "" }),
+      runningInsideDeftRepo: () => true,
+      ...overrides,
+    };
+  }
+
+  it("bare live-owner lifecycle rewrites deposit id after applying-host replace", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-6101-live-owner-bare-"));
+    temps.push(root);
+    const now = new Date();
+    applyWorktreeOccupancy(root, {
+      sessionId: CURSOR_OWNER,
+      now,
+      intent: "mutation",
+    });
+    const seed = mkdtempSync(join(tmpdir(), "hook-6101-ah-seed-"));
+    temps.push(seed);
+    publishApplyingHost(seed, {
+      provider: "claude",
+      rawSessionId: "second-host",
+      claimedAt: now,
+      transport: "native",
+    });
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(applyingHostPath(root), readFileSync(applyingHostPath(seed), "utf8"));
+    const decision = decideHook(
+      {
+        host: "cursor",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Shell",
+          conversation_id: RAW,
+          session_id: RAW,
+          tool_input: {
+            command: "deft occupancy:heartbeat",
+            cwd: root,
+          },
+        },
+        environ: {},
+      },
+      seams(),
+    );
+    expect(
+      decision,
+      JSON.stringify({ v: decision.verdict, c: decision.code, m: decision.message }),
+    ).toMatchObject({ verdict: "allow" });
+    expect(JSON.stringify(decision.updatedInput ?? {})).toContain(CURSOR_OWNER);
+    expect(JSON.stringify(decision.updatedInput ?? {})).not.toContain("second-host");
+  });
+
+  it("SessionStart does not overwrite applying-host while live foreign occupant exists", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-6101-session-start-defer-"));
+    temps.push(root);
+    const now = new Date();
+    applyWorktreeOccupancy(root, {
+      sessionId: CURSOR_OWNER,
+      now,
+      intent: "mutation",
+    });
+    publishApplyingHost(root, {
+      provider: "cursor",
+      rawSessionId: RAW,
+      transport: "native",
+      claimedAt: now,
+    });
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "session.start",
+        projectRoot: root,
+        payload: { session_id: PAYLOAD_RAW },
+        environ: {},
+      },
+      seams(),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "session-start" });
+    expect(readApplyingHost(root)).toMatchObject({
+      status: "ok",
+      record: { applyingHostSessionId: CURSOR_OWNER, provider: "cursor" },
+    });
   });
 });

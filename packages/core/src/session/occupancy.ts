@@ -463,7 +463,12 @@ export type ApplyingHostLifecycleAdmission =
   | {
       readonly kind: "soft-pass";
       readonly record: ApplyingHostRecord;
-      readonly reason: "non-matching-deposit-names-applying-host" | "live-lease-owner-cleanup";
+      readonly reason: "non-matching-deposit-names-applying-host";
+    }
+  | {
+      /** Deposit equals live lease holder; map onto dispatcher liveOwnerBypass (#6101). */
+      readonly kind: "live-owner-cleanup";
+      readonly record: ApplyingHostRecord;
     }
   | {
       readonly kind: "foreign-owner";
@@ -477,6 +482,16 @@ export type ApplyingHostLifecycleAdmission =
       readonly message: string;
     }
   | { readonly kind: "absent"; readonly record: null };
+
+/** Discriminated publish outcome (#6101 Prefer-A Recut-2); distinct from non-canonical null. */
+export type PublishApplyingHostResult =
+  | { readonly status: "published"; readonly record: ApplyingHostRecord }
+  | {
+      readonly status: "deferred";
+      readonly reason: "live-foreign-occupant";
+      readonly liveSessionId: string;
+      readonly attemptedSessionId: string;
+    };
 
 function isHookHostIdentityProvider(value: string): value is HookHostIdentityProvider {
   return (HOST_IDENTITY_PROVIDERS as readonly string[]).includes(value);
@@ -555,9 +570,16 @@ export function readApplyingHost(projectRoot: string, now: Date = new Date()): A
  * Supported repair when the applying-host record is missing, stale, or
  * conflicting (#5676 Prefer-A Recut-5). Mutation session:start is reinforcement
  * only — first publication is SessionStart or read-only session:start.
+ *
+ * When a live foreign occupant holds the lease (#6101), do not prescribe another
+ * owner's session-id republish recipe — name the incumbent and supported exits.
  */
 export function formatApplyingHostRepairDiagnostic(
   reason: "missing" | "stale" | "conflicting" | "invalid" = "missing",
+  opts: {
+    readonly liveSessionId?: string | null;
+    readonly callerSessionId?: string | null;
+  } = {},
 ): string {
   const subject =
     reason === "missing"
@@ -567,6 +589,15 @@ export function formatApplyingHostRepairDiagnostic(
         : reason === "conflicting"
           ? "Applying-host record conflicts with this host session"
           : "Applying-host record is invalid";
+  const live = opts.liveSessionId?.trim() || null;
+  const caller = opts.callerSessionId?.trim() || null;
+  if (live !== null && live !== caller) {
+    return (
+      `${subject}. Live occupant ${live} still holds this worktree. ` +
+      "Supported exits: that owner runs occupancy:release / session:end, or wait for lease TTL. " +
+      "Do not republish applying-host with another owner's session-id."
+    );
+  }
   return (
     `${subject}. Republish via host SessionStart reconnect and/or ` +
     "`deft session:start --read-only --session-id=<applyingHostSessionId>` " +
@@ -581,11 +612,17 @@ export interface PublishApplyingHostInput {
   readonly transport?: ApplyingHostTransport;
 }
 
-/** Write/replace the worktree applying-host record (#5676). */
+/**
+ * Write/replace the worktree applying-host record (#5676 / #6101).
+ *
+ * Under the occupancy writer lock, skip when a live foreign occupant holds the
+ * lease — keyed to the canonical session id being written. No unlocked write
+ * fallback. Deferred is distinct from non-canonical null on the FromCanonical path.
+ */
 export function publishApplyingHost(
   projectRoot: string,
   input: PublishApplyingHostInput,
-): ApplyingHostRecord {
+): PublishApplyingHostResult {
   if (!isUsableHostSessionId(input.rawSessionId)) {
     throw new Error("publishApplyingHost: rawSessionId is not a usable host session id");
   }
@@ -599,33 +636,46 @@ export function publishApplyingHost(
     claimed_at: timestampIso(claimedAt),
     transport: input.transport ?? "native",
   };
-  const target = applyingHostPath(root);
-  assertWriteTargetSafe(root, target);
-  const dir = dirname(target);
-  const tmpName = join(dir, `.applying-host.${process.pid}.json.tmp`);
-  const text = `${stableJson(record, 2)}\n`;
-  try {
-    containedWrite({ root, target: tmpName, data: text, mode: "create" });
-    renameSync(tmpName, target);
-  } finally {
-    try {
-      rmSync(tmpName, { force: true });
-    } catch {
-      /* best-effort cleanup of tmp only */
+  return withOccupancyLock(root, (fence) => {
+    const live = liveOccupant(root, claimedAt);
+    if (live !== null && live.sessionId !== record.applyingHostSessionId) {
+      return {
+        status: "deferred" as const,
+        reason: "live-foreign-occupant" as const,
+        liveSessionId: live.sessionId,
+        attemptedSessionId: record.applyingHostSessionId,
+      };
     }
-  }
-  return record;
+    fence();
+    const target = applyingHostPath(root);
+    assertWriteTargetSafe(root, target);
+    const dir = dirname(target);
+    const tmpName = join(dir, `.applying-host.${process.pid}.json.tmp`);
+    const text = `${stableJson(record, 2)}\n`;
+    try {
+      containedWrite({ root, target: tmpName, data: text, mode: "create" });
+      renameSync(tmpName, target);
+    } finally {
+      try {
+        rmSync(tmpName, { force: true });
+      } catch {
+        /* best-effort cleanup of tmp only */
+      }
+    }
+    return { status: "published" as const, record };
+  });
 }
 
 /**
- * Publish from a canonical `host:<provider>:v1:<base64url>` owner (#5676).
+ * Publish from a canonical `host:<provider>:v1:<base64url>` owner (#5676 / #6101).
  * Returns null when the id is not canonical (opaque UUID leftovers stay #5544).
+ * Deferred live-foreign skip is a discriminated result, never collapsed into null.
  */
 export function publishApplyingHostFromCanonicalSessionId(
   projectRoot: string,
   sessionId: string,
   opts: { readonly claimedAt?: Date; readonly transport?: ApplyingHostTransport } = {},
-): ApplyingHostRecord | null {
+): PublishApplyingHostResult | null {
   const parsed = parseCanonicalHostSessionId(sessionId.trim());
   if (parsed === null) return null;
   return publishApplyingHost(projectRoot, {
@@ -651,7 +701,10 @@ export function evaluateApplyingHostLifecycleAdmission(input: {
   readonly namedSessionId: string | null;
   readonly now?: Date;
 }): ApplyingHostLifecycleAdmission {
-  const read = readApplyingHost(input.projectRoot, input.now ?? new Date());
+  const now = input.now ?? new Date();
+  const deposit = input.depositSessionId?.trim() || null;
+  const named = input.namedSessionId?.trim() || null;
+  const read = readApplyingHost(input.projectRoot, now);
   if (read.status === "invalid") {
     return {
       kind: "repair",
@@ -660,28 +713,28 @@ export function evaluateApplyingHostLifecycleAdmission(input: {
     };
   }
   if (read.status === "stale") {
-    // Live occupancy owner cleanup when applying-host TTL elapsed but the lease
-    // is still heartbeat-fresh (#5676 Greptile P1). Soft-pass only when argv
-    // already names that live owner so bare commands keep the rewrite path.
-    const staleLive = liveOccupant(input.projectRoot, input.now ?? new Date());
+    // Deposit-keyed live-owner cleanup (#6101 Prefer-A Recut-2): key solely on
+    // depositSessionId === liveId with no applyingHostSessionId relation conjunct.
+    // Maps onto dispatcher liveOwnerBypass so bare keeps rewrite injection.
+    const staleLive = liveOccupant(input.projectRoot, now);
     const staleLiveId = staleLive?.sessionId ?? null;
-    const staleNamed = input.namedSessionId?.trim() || null;
-    if (
-      staleLiveId !== null &&
-      read.record.applyingHostSessionId === staleLiveId &&
-      staleNamed === staleLiveId
-    ) {
+    if (staleLiveId !== null && deposit === staleLiveId) {
       return {
-        kind: "soft-pass",
+        kind: "live-owner-cleanup",
         record: read.record,
-        reason: "live-lease-owner-cleanup",
       };
     }
-    return { kind: "repair", record: read.record, message: read.message };
+    return {
+      kind: "repair",
+      record: read.record,
+      message: formatApplyingHostRepairDiagnostic("stale", {
+        liveSessionId: staleLiveId,
+        callerSessionId: deposit ?? named,
+      }),
+    };
   }
   if (read.status === "missing" || read.record === null) {
-    const named = input.namedSessionId?.trim() || null;
-    const deposit = input.depositSessionId?.trim() || null;
+    const missingLive = liveOccupant(input.projectRoot, now);
     if (named !== null && deposit !== null && named !== deposit) {
       const namedParts = parseCanonicalHostSessionId(named);
       const depositParts = parseCanonicalHostSessionId(deposit);
@@ -694,24 +747,25 @@ export function evaluateApplyingHostLifecycleAdmission(input: {
         return {
           kind: "repair",
           record: null,
-          message: formatApplyingHostRepairDiagnostic("missing"),
+          message: formatApplyingHostRepairDiagnostic("missing", {
+            liveSessionId: missingLive?.sessionId ?? null,
+            callerSessionId: deposit,
+          }),
         };
       }
     }
     return { kind: "absent", record: null };
   }
   const record = read.record;
-  // Live occupancy owner cleanup when a later SessionStart replaced applying-host
-  // (#5676 Greptile P1). Only soft-pass when argv already names that live owner so
+  // Deposit-keyed live-owner cleanup when applying-host was replaced (#6101).
+  // Delete dead ok-branch soft-pass; map onto liveOwnerBypass via new kind so
   // bare commands still take the rewrite path (do not skip --session-id injection).
-  const live = liveOccupant(input.projectRoot, input.now ?? new Date());
+  const live = liveOccupant(input.projectRoot, now);
   const liveId = live?.sessionId ?? null;
-  const named = input.namedSessionId?.trim() || null;
-  if (liveId !== null && record.applyingHostSessionId !== liveId && named === liveId) {
+  if (liveId !== null && deposit === liveId && record.applyingHostSessionId !== liveId) {
     return {
-      kind: "soft-pass",
+      kind: "live-owner-cleanup",
       record,
-      reason: "live-lease-owner-cleanup",
     };
   }
   if (
@@ -725,7 +779,10 @@ export function evaluateApplyingHostLifecycleAdmission(input: {
       return {
         kind: "repair",
         record,
-        message: formatApplyingHostRepairDiagnostic("conflicting"),
+        message: formatApplyingHostRepairDiagnostic("conflicting", {
+          liveSessionId: liveId,
+          callerSessionId: deposit ?? named,
+        }),
       };
     }
   }

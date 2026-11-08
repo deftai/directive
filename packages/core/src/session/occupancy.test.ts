@@ -4147,20 +4147,25 @@ describe("applying-host record (#5676 Prefer-A)", () => {
     const root = mkdtempSync(join(tmpdir(), "applying-host-pub-"));
     ephemeralTemps.push(root);
     const claimedAt = new Date("2026-10-16T12:00:00Z");
-    const record = publishApplyingHost(root, {
+    const published = publishApplyingHost(root, {
       provider: "cursor",
       rawSessionId: RAW,
       claimedAt,
       transport: "native",
     });
-    expect(record).toMatchObject({
-      schema: APPLYING_HOST_SCHEMA,
-      provider: "cursor",
-      rawSessionId: RAW,
-      applyingHostSessionId: CURSOR_OWNER,
-      claimed_at: "2026-10-16T12:00:00Z",
-      transport: "native",
+    expect(published).toMatchObject({
+      status: "published",
+      record: {
+        schema: APPLYING_HOST_SCHEMA,
+        provider: "cursor",
+        rawSessionId: RAW,
+        applyingHostSessionId: CURSOR_OWNER,
+        claimed_at: "2026-10-16T12:00:00Z",
+        transport: "native",
+      },
     });
+    const record = published.status === "published" ? published.record : null;
+    expect(record).not.toBeNull();
     expect(readFileSync(applyingHostPath(root), "utf8")).toContain(CURSOR_OWNER);
     expect(readApplyingHost(root, claimedAt)).toEqual({ status: "ok", record });
   });
@@ -4168,7 +4173,10 @@ describe("applying-host record (#5676 Prefer-A)", () => {
   it("publishes from a canonical session id and refuses opaque UUID leftovers", () => {
     const root = mkdtempSync(join(tmpdir(), "applying-host-canon-"));
     ephemeralTemps.push(root);
-    expect(publishApplyingHostFromCanonicalSessionId(root, CURSOR_OWNER)?.provider).toBe("cursor");
+    expect(publishApplyingHostFromCanonicalSessionId(root, CURSOR_OWNER)).toMatchObject({
+      status: "published",
+      record: { provider: "cursor" },
+    });
     expect(publishApplyingHostFromCanonicalSessionId(root, RAW)).toBeNull();
   });
 
@@ -4258,7 +4266,7 @@ describe("applying-host record (#5676 Prefer-A)", () => {
     ).toMatchObject({ kind: "absent" });
   });
 
-  it("soft-passes named live occupancy owner when applying-host was replaced (#5676 P1)", () => {
+  it("maps deposit-keyed live owner to live-owner-cleanup when applying-host was replaced (#6101)", () => {
     const root = mkdtempSync(join(tmpdir(), "applying-host-live-owner-"));
     ephemeralTemps.push(root);
     applyWorktreeOccupancy(root, {
@@ -4266,11 +4274,18 @@ describe("applying-host record (#5676 Prefer-A)", () => {
       now: new Date("2026-10-16T12:00:00Z"),
       intent: "mutation",
     });
-    publishApplyingHost(root, {
+    // Seed a replaced applying-host into the occupied root (simulates a prior
+    // SessionStart that landed before the live-occupant guard existed).
+    // publishApplyingHost itself defers while the live foreign lease is held.
+    const seed = mkdtempSync(join(tmpdir(), "applying-host-seed-"));
+    ephemeralTemps.push(seed);
+    publishApplyingHost(seed, {
       provider: "claude",
       rawSessionId: "second-host",
       claimedAt: new Date("2026-10-16T12:01:00Z"),
     });
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(applyingHostPath(root), readFileSync(applyingHostPath(seed), "utf8"));
     expect(
       evaluateApplyingHostLifecycleAdmission({
         projectRoot: root,
@@ -4279,8 +4294,17 @@ describe("applying-host record (#5676 Prefer-A)", () => {
         namedSessionId: CURSOR_OWNER,
         now: new Date("2026-10-16T12:02:00Z"),
       }),
-    ).toMatchObject({ kind: "soft-pass", reason: "live-lease-owner-cleanup" });
+    ).toMatchObject({ kind: "live-owner-cleanup" });
     // Bare (unnamed) must not soft-pass — rewrite path should still inject --session-id.
+    expect(
+      evaluateApplyingHostLifecycleAdmission({
+        projectRoot: root,
+        depositHost: "cursor",
+        depositSessionId: CURSOR_OWNER,
+        namedSessionId: null,
+        now: new Date("2026-10-16T12:02:00Z"),
+      }),
+    ).toMatchObject({ kind: "live-owner-cleanup" });
     expect(
       evaluateApplyingHostLifecycleAdmission({
         projectRoot: root,
@@ -4292,7 +4316,7 @@ describe("applying-host record (#5676 Prefer-A)", () => {
     ).not.toBe("soft-pass");
   });
 
-  it("soft-passes named live occupancy owner when applying-host is stale (#5676 P1)", () => {
+  it("deposit-keys stale-branch live-owner cleanup with no applyingHost conjunct (#6101)", () => {
     const root = mkdtempSync(join(tmpdir(), "applying-host-stale-live-"));
     ephemeralTemps.push(root);
     const claimedAt = new Date("2026-10-01T00:00:00Z");
@@ -4322,7 +4346,8 @@ describe("applying-host record (#5676 Prefer-A)", () => {
         namedSessionId: CURSOR_OWNER,
         now: later,
       }),
-    ).toMatchObject({ kind: "soft-pass", reason: "live-lease-owner-cleanup" });
+    ).toMatchObject({ kind: "live-owner-cleanup" });
+    // Bare deposit-keyed cleanup (no argv name) — not repair.
     expect(
       evaluateApplyingHostLifecycleAdmission({
         projectRoot: root,
@@ -4330,8 +4355,31 @@ describe("applying-host record (#5676 Prefer-A)", () => {
         depositSessionId: CURSOR_OWNER,
         namedSessionId: null,
         now: later,
-      }).kind,
-    ).toBe("repair");
+      }),
+    ).toMatchObject({ kind: "live-owner-cleanup" });
+  });
+
+  it("defers publish when a live foreign occupant holds the lease (#6101)", () => {
+    const root = mkdtempSync(join(tmpdir(), "applying-host-defer-"));
+    ephemeralTemps.push(root);
+    applyWorktreeOccupancy(root, {
+      sessionId: CURSOR_OWNER,
+      now: new Date("2026-10-16T12:00:00Z"),
+      intent: "mutation",
+    });
+    const deferred = publishApplyingHost(root, {
+      provider: "claude",
+      rawSessionId: "second-host",
+      claimedAt: new Date("2026-10-16T12:01:00Z"),
+    });
+    expect(deferred).toMatchObject({
+      status: "deferred",
+      reason: "live-foreign-occupant",
+      liveSessionId: CURSOR_OWNER,
+    });
+    expect(readApplyingHost(root).status).toBe("missing");
+    // Non-canonical remains null (distinct from deferred).
+    expect(publishApplyingHostFromCanonicalSessionId(root, RAW)).toBeNull();
   });
 
   it("isolates concurrent worktrees and replaces same-worktree claims", () => {
@@ -4356,7 +4404,10 @@ describe("applying-host record (#5676 Prefer-A)", () => {
       provider: "cursor",
       rawSessionId: "replaced-raw",
     });
-    expect(replaced.rawSessionId).toBe("replaced-raw");
+    expect(replaced).toMatchObject({
+      status: "published",
+      record: { rawSessionId: "replaced-raw" },
+    });
     expect(readApplyingHost(a)).toMatchObject({
       status: "ok",
       record: { rawSessionId: "replaced-raw" },
