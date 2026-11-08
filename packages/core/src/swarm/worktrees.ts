@@ -153,7 +153,9 @@ function resolveCommitOid(repoRoot: string, revision: string, git: GitRunner): s
   return oid;
 }
 
-type CreateWorktreeResult = { readonly ok: true } | { readonly ok: false; readonly message: string };
+type CreateWorktreeResult =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly message: string };
 
 function createWorktree(
   repoRoot: string,

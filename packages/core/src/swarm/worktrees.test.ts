@@ -444,7 +444,6 @@ describe("swarm worktrees", () => {
     rmSync(repo, { recursive: true, force: true });
   });
 
-
   it("returns ok:false when create-path prep refuses (no throw) (#6100)", () => {
     const repo = mkdtempSync(join(tmpdir(), "sw-wt-prep-create-"));
     gitInit(repo);

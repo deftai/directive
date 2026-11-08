@@ -9,11 +9,7 @@
  * no-worktree. Direct tokens resolve to `no-ingest`. Ingest as
  * `issue:ingest` stays a later verb after the completed-arc record.
  */
-import {
-  type EnsureArcDestInput,
-  type EnsureArcDestResult,
-  ensureArcDest,
-} from "./arc-dest.js";
+import { type EnsureArcDestInput, type EnsureArcDestResult, ensureArcDest } from "./arc-dest.js";
 
 export const ARC_RUN_POSTURES = ["no-ingest", "checkout"] as const;
 

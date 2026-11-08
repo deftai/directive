@@ -164,8 +164,7 @@ function refuseStrangerLiveLease(
     return {
       ok: false,
       code: "live-stranger-lease",
-      message:
-        `arc dest ${destPath} has a live occupancy lease and presenter admission is stranger; refuse before checkout/deposit/PM`,
+      message: `arc dest ${destPath} has a live occupancy lease and presenter admission is stranger; refuse before checkout/deposit/PM`,
     };
   }
   return { ok: true };

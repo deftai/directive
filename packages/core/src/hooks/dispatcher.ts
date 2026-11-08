@@ -3698,7 +3698,8 @@ function prepareProcessOnlyDestPath(
       destPath,
       againstImplementationSha: against,
     });
-    if (!prepared.ok) {
+    // Strict false only: legacy success mocks may omit `ok` and still carry `record` (#6100).
+    if (prepared.ok === false) {
       return {
         ok: false,
         message:

@@ -22,8 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.5.
 
 ### Fixed
+- Prepare linked worktrees for Codex sessions with `deft swarm-worktrees prep --path <dest>`. Prep refuses worktrees owned by another repository or a different live session and checks that the required runtime hook is installed. Root-mismatch errors now explain how to prepare and reopen the destination worktree (#6100).
 - Finalize-owed claim probes batch ls-remote, narrow claim-batch status, and use env-only GIT_TERMINAL_PROMPT=0 without a probe-timeout numeric const (#6008).
-- Guarded linked-worktree prep refuses stranger leases before deposit/PM, requires the outer-visible hook-bin pin when package.json is present, wires dest-place/worktrees create+reuse as returned-failure (no new throw sites), and gives root-mismatch its own recovery constant (#6100).
 - Applying-host publish skips overwrite while another session holds a live occupancy lease and surfaces deferred publish in CLI text/JSON (#6101).
 - Cache drift probing now reuses the already-fetched open-issue list payload instead of issuing a second list fetch (#6099).
 - Record tracked completion for plainGhEnv on release-path JSON reads (#6032).
