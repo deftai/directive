@@ -9,7 +9,11 @@
  * no-worktree. Direct tokens resolve to `no-ingest`. Ingest as
  * `issue:ingest` stays a later verb after the completed-arc record.
  */
-import { type EnsureArcDestInput, type EnsureArcDestResult, ensureArcDest } from "./arc-dest.js";
+import {
+  type EnsureArcDestInput,
+  type EnsureArcDestResult,
+  ensureArcDest,
+} from "./arc-dest.js";
 
 export const ARC_RUN_POSTURES = ["no-ingest", "checkout"] as const;
 
@@ -122,13 +126,18 @@ export function arcModeRecordLine(posture: ArcRunPosture): string {
  * Parent Stop 1 dest step (#4296). Fetches origin/<default> (or PR head), creates
  * or verifies the dest, and emits the parser arc-mode plus dest pin lines.
  */
-export function prepareGithubOnlyDest(input: EnsureArcDestInput): {
-  dest: EnsureArcDestResult;
-  record: string;
-} {
+export function prepareGithubOnlyDest(
+  input: EnsureArcDestInput,
+):
+  | { readonly ok: true; readonly dest: EnsureArcDestResult; readonly record: string }
+  | { readonly ok: false; readonly code: string; readonly message: string } {
   // #6100: github-only critics are verification pin-read — not Codex handoff.
   const dest = ensureArcDest({ ...input, installMode: "process-only-no-install" });
+  if (!dest.ok) {
+    return { ok: false, code: dest.code, message: dest.message };
+  }
   return {
+    ok: true,
     dest,
     record: [
       arcModeRecordLine(NO_INGEST_ARC_MODE),

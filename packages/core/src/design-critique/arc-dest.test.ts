@@ -53,6 +53,8 @@ describe("ensureArcDest (#4296)", () => {
       repoRoot: root,
       destPath: dest,
     });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unreachable");
     expect(result.reused).toBe(false);
     expect(result.pinKind).toBe("origin-default");
     expect(result.dispatchSha).toBe(originSha);
@@ -74,6 +76,8 @@ describe("ensureArcDest (#4296)", () => {
       repoRoot: root,
       destPath: dest,
     });
+    expect(first.ok).toBe(true);
+    if (!first.ok) throw new Error("unreachable");
     expect(first.reused).toBe(false);
     expect(second.reused).toBe(true);
     expect(second.dispatchSha).toBe(originSha);
@@ -95,6 +99,8 @@ describe("ensureArcDest (#4296)", () => {
       repoRoot: root,
       destPath: dest,
     });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unreachable");
     expect(result.reused).toBe(true);
     expect(result.dispatchSha).toBe(newTip);
     expect(git(dest, ["rev-parse", "HEAD"])).toBe(newTip);
@@ -115,6 +121,8 @@ describe("ensureArcDest (#4296)", () => {
       destPath: dest,
       againstImplementationSha: prHead,
     });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unreachable");
     expect(result.pinKind).toBe("against-implementation");
     expect(result.dispatchSha).toBe(prHead);
     expect(git(dest, ["rev-parse", "HEAD"])).toBe(prHead);
@@ -147,6 +155,8 @@ describe("ensureArcDest (#4296)", () => {
   it("prepareGithubOnlyDest is the Stop 1 dest caller and records the pin", () => {
     const { root, originSha, dest } = repoWithOrigin();
     const prepared = prepareGithubOnlyDest({ repoRoot: root, destPath: dest });
+    expect(prepared.ok).toBe(true);
+    if (!prepared.ok) throw new Error("unreachable");
     expect(prepared.dest.dispatchSha).toBe(originSha);
     expect(prepared.record).toContain("arc-mode: no-ingest");
     expect(prepared.record).toContain(`dest: ${prepared.dest.destPath}`);
@@ -194,14 +204,16 @@ describe("ensureArcDest (#4296)", () => {
     git(root, ["add", "MOVED"]);
     git(root, ["commit", "-q", "-m", "origin moved"]);
     git(root, ["push", "-q", "origin", "HEAD:master"]);
-    expect(() =>
-      ensureArcDest({
-        installMode: "process-only-no-install",
-        repoRoot: root,
-        destPath: dest,
-        presenterSessionId: "stranger-me",
-      }),
-    ).toThrow(/live-stranger-lease|stranger/);
+    const refused = ensureArcDest({
+      installMode: "process-only-no-install",
+      repoRoot: root,
+      destPath: dest,
+      presenterSessionId: "stranger-me",
+    });
+    expect(refused.ok).toBe(false);
+    if (refused.ok) throw new Error("unreachable");
+    expect(refused.code).toBe("live-stranger-lease");
+    expect(refused.message).toMatch(/stranger/);
   });
 
   it("resolveOriginDefaultTip never returns local HEAD when origin is behind", () => {

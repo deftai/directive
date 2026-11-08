@@ -3698,6 +3698,14 @@ function prepareProcessOnlyDestPath(
       destPath,
       againstImplementationSha: against,
     });
+    if (!prepared.ok) {
+      return {
+        ok: false,
+        message:
+          `Directive denied process-only critic spawn: dest prepare failed: ${prepared.code}: ${prepared.message}. ` +
+          "Parent must fetch origin and create or verify the dest at origin/<default> before spawn.",
+      };
+    }
     return { ok: true, record: prepared.record };
   } catch (cause) {
     return {

@@ -110,7 +110,11 @@ export function worktreesMain(argv: string[] = process.argv.slice(2)): number {
   try {
     const mapping = loadWorktreeMapFile(mapPath);
     const resolved = resolveWorktreeMap(mapping, baseBranch, createMissing, { repoRoot });
-    process.stdout.write(`${JSON.stringify(resolved, null, 2)}\n`);
+    if (!resolved.ok) {
+      process.stderr.write(`config error: ${resolved.message}\n`);
+      return 2;
+    }
+    process.stdout.write(`${JSON.stringify(resolved.records, null, 2)}\n`);
     return 0;
   } catch (err) {
     if (err instanceof WorktreeMapError) {

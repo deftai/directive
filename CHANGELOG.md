@@ -11,7 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Guarded linked-worktree prep (`deft swarm-worktrees prep`) refuses stranger leases before deposit/PM, requires the outer-visible hook-bin pin when package.json is present, wires dest-place/worktrees/ensureArcDest create paths, and gives root-mismatch its own recovery constant (#6100).
 - Keep read-only session recovery from overwriting a live owner's applying-host identity, and report deferred publish honestly in CLI text/JSON (#6101).
 - Reuse the open-issue list payload inside cache drift probing so session-start does not refetch up to 25 issues (#6099).
 - Batch and bound finalize-owed claim ls-remote probes so session-start no longer runs one unbounded probe per claim ref (#6008).
@@ -24,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Finalize-owed claim probes batch ls-remote, narrow claim-batch status, and use env-only GIT_TERMINAL_PROMPT=0 without a probe-timeout numeric const (#6008).
+- Guarded linked-worktree prep refuses stranger leases before deposit/PM, requires the outer-visible hook-bin pin when package.json is present, wires dest-place/worktrees create+reuse as returned-failure (no new throw sites), and gives root-mismatch its own recovery constant (#6100).
 - Applying-host publish skips overwrite while another session holds a live occupancy lease and surfaces deferred publish in CLI text/JSON (#6101).
 - Cache drift probing now reuses the already-fetched open-issue list payload instead of issuing a second list fetch (#6099).
 - Record tracked completion for plainGhEnv on release-path JSON reads (#6032).

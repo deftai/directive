@@ -104,6 +104,8 @@ describe("swarm worktrees", () => {
       repoRoot: repo,
       git,
     });
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
     expect(first).toEqual(second);
     expect(existsSync(join(wt, ".deft-scratch", "subagent-status"))).toBe(true);
     rmSync(repo, { recursive: true, force: true });
@@ -241,7 +243,9 @@ describe("swarm worktrees", () => {
       createMissing,
       { repoRoot: repo },
     );
-    expect(result).toHaveLength(1);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unreachable");
+    expect(result.records).toHaveLength(1);
     expect(headOid(wt)).toBe(sha);
     removeWorktree(repo, wt);
     rmSync(repo, { recursive: true, force: true });
@@ -440,6 +444,55 @@ describe("swarm worktrees", () => {
     rmSync(repo, { recursive: true, force: true });
   });
 
+
+  it("returns ok:false when create-path prep refuses (no throw) (#6100)", () => {
+    const repo = mkdtempSync(join(tmpdir(), "sw-wt-prep-create-"));
+    gitInit(repo);
+    const wt = join(repo, "wt-prep");
+    const sha = headOid(repo);
+    const git = (args: readonly string[]): TextCaptureResult => {
+      if (args[0] === "worktree" && args[1] === "list") {
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "rev-parse") {
+        return { returncode: 0, stdout: `${sha}\n`, stderr: "" };
+      }
+      if (args[0] === "worktree" && args[1] === "add") {
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
+      return { returncode: 1, stdout: "", stderr: "unhandled" };
+    };
+    mkdirSync(wt, { recursive: true });
+    writeFileSync(join(wt, "package.json"), JSON.stringify({ name: "wt-prep" }), "utf8");
+    const result = resolveWorktreeMap([{ story_id: "s1", worktree_path: wt }], "master", true, {
+      repoRoot: repo,
+      git,
+      pmRunner: () => ({ status: 1, stdout: "", stderr: "install boom" }),
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("unreachable");
+    expect(result.message).toMatch(/prep|install|pin|PM|refused/i);
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  it("returns ok:false when reuse-path prep refuses (no throw) (#6100)", () => {
+    const repo = mkdtempSync(join(tmpdir(), "sw-wt-prep-reuse-"));
+    gitInit(repo);
+    const sha = headOid(repo);
+    const wt = join(repo, "wt-reuse");
+    addDetachedWorktree(repo, wt, sha);
+    writeFileSync(join(wt, "package.json"), JSON.stringify({ name: "wt-reuse" }), "utf8");
+    const result = resolveWorktreeMap([{ story_id: "s1", worktree_path: wt }], "master", false, {
+      repoRoot: repo,
+      pmRunner: () => ({ status: 1, stdout: "", stderr: "reuse install boom" }),
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("unreachable");
+    expect(result.message).toMatch(/prep|install|pin|PM|refused/i);
+    removeWorktree(repo, wt);
+    rmSync(repo, { recursive: true, force: true });
+  });
+
   it("provisions .deft/core from the primary payload and does not copy occupancy.json (#4443)", () => {
     const repo = mkdtempSync(join(tmpdir(), "sw-wt-dep-"));
     gitInit(repo);
@@ -453,9 +506,10 @@ describe("swarm worktrees", () => {
     writeFileSync(join(repo, ".deft", "occupancy.json"), '{"sessionId":"primary"}\n', "utf8");
     writeFileSync(join(repo, ".deft", "ritual-state.json"), '{"ready":true}\n', "utf8");
     const wt = join(repo, "wt-dep");
-    resolveWorktreeMap([{ story_id: "s-dep", worktree_path: wt }], "master", true, {
+    const dep = resolveWorktreeMap([{ story_id: "s-dep", worktree_path: wt }], "master", true, {
       repoRoot: repo,
     });
+    expect(dep.ok).toBe(true);
     expect(existsSync(join(wt, ".deft", "core", "main.md"))).toBe(true);
     expect(existsSync(join(wt, ".deft", "occupancy.json"))).toBe(false);
     expect(existsSync(join(wt, ".deft", "ritual-state.json"))).toBe(false);
