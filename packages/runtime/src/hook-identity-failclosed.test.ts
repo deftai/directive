@@ -8,7 +8,10 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { INSTALLATION_RECOVERY_GUIDANCE } from "@deftai/directive-core/dist/install-health/constants.js";
+import {
+  HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE,
+  INSTALLATION_RECOVERY_GUIDANCE,
+} from "@deftai/directive-core/dist/install-health/constants.js";
 import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-health/types.js";
 import { afterEach, describe, expect, it } from "vitest";
 import { resolveLaunchingCheckoutRootFromPath, run } from "./hook-dispatch.js";
@@ -152,7 +155,8 @@ describe("SEC-WT foreign worktree payload fail-closed (AC9.5 / AC14.26)", () => 
     expect(result.code).toBe(0);
     expect(result.body.permission ?? result.body.decision).toBe("deny");
     const msg = denyMessage(result.body);
-    expect(msg).toContain(INSTALLATION_RECOVERY_GUIDANCE);
+    expect(msg).toContain(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE);
+    expect(msg).not.toContain(INSTALLATION_RECOVERY_GUIDANCE);
     expect(msg.toLowerCase()).not.toContain("ritual");
     expect(String(result.body.code ?? "")).not.toBe("ritual-not-ready");
     // No policy side-effects into the foreign tree.
@@ -281,9 +285,64 @@ describe("SEC-WT real linked worktree payload (AC9.5)", () => {
     expect(result.code).toBe(0);
     expect(result.body.decision).toBe("deny");
     const msg = String(result.body.reason ?? "");
-    expect(msg).toContain(INSTALLATION_RECOVERY_GUIDANCE);
+    expect(msg).toContain(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE);
+    expect(msg).not.toContain(INSTALLATION_RECOVERY_GUIDANCE);
     expect(msg.toLowerCase()).not.toContain("ritual");
     expect(msg.toLowerCase()).toContain(resolve(primary).toLowerCase());
     expect(existsSync(join(wt, ".deft-cache"))).toBe(false);
+  });
+});
+
+describe("packaged-consumer deposited outer (#6100 P4)", () => {
+  it("materialized .pnpm layout resolves launchRoot to consumer root; primary session still mismatches dest", () => {
+    const base = tempDir("pkg-consumer-6100");
+    const primary = join(base, "primary");
+    const dest = join(base, "dest");
+    mkdirSync(primary, { recursive: true });
+    mkdirSync(dest, { recursive: true });
+    // Materialized pnpm store layout under dest
+    const storePkg = join(
+      dest,
+      "node_modules",
+      ".pnpm",
+      "@deftai+directive-runtime@1.2.3",
+      "node_modules",
+      "@deftai",
+      "directive-runtime",
+      "dist",
+    );
+    mkdirSync(storePkg, { recursive: true });
+    writeFileSync(join(storePkg, "hook-bin.js"), "export {};\n");
+    const linked = join(dest, "node_modules", "@deftai", "directive-runtime", "dist");
+    mkdirSync(linked, { recursive: true });
+    writeFileSync(join(linked, "hook-bin.js"), "export {};\n");
+
+    const resolved = resolveLaunchingCheckoutRootFromPath(
+      join(
+        dest,
+        "node_modules",
+        ".pnpm",
+        "@deftai+directive-runtime@1.2.3",
+        "node_modules",
+        "@deftai",
+        "directive-runtime",
+        "dist",
+        "hook-bin.js",
+      ),
+    );
+    expect(resolved?.replace(/\\/g, "/")).toBe(dest.replace(/\\/g, "/"));
+
+    // Primary-session negative after dest install alone: launchRoot=primary vs payload=dest
+    const result = dispatchWrite({
+      projectRoot: dest,
+      target: join(dest, "note.txt"),
+      launchingCheckoutRoot: primary,
+      cheapInSync: () => cheapOk(),
+    });
+    expect(result.code).toBe(0);
+    expect(result.body.permission ?? result.body.decision).toBe("deny");
+    const msg = denyMessage(result.body);
+    expect(msg).toContain(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE);
+    expect(msg).toMatch(/prep|swarm-worktrees prep|open that worktree/i);
   });
 });

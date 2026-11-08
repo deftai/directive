@@ -75,6 +75,7 @@ describe("swarm coverage boost", () => {
   it("covers cli main usage paths", () => {
     const emptyRoot = mkdtempSync(join(tmpdir(), "sw-cli-"));
     expect(worktreesMain([])).toBe(2);
+    expect(worktreesMain(["prep"])).toBe(2);
     expect(readinessMain(["--project-root", emptyRoot])).toBe(1);
     expect(typeof launchMain(["--stories", ""])).toBe("number");
   });

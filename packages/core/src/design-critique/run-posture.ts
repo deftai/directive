@@ -126,7 +126,8 @@ export function prepareGithubOnlyDest(input: EnsureArcDestInput): {
   dest: EnsureArcDestResult;
   record: string;
 } {
-  const dest = ensureArcDest(input);
+  // #6100: github-only critics are verification pin-read — not Codex handoff.
+  const dest = ensureArcDest({ ...input, installMode: "process-only-no-install" });
   return {
     dest,
     record: [

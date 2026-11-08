@@ -8,6 +8,8 @@ import { existsSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { defaultGitRunner, type GitRunner, type GitRunResult } from "../session/git.js";
 import { isLinkedWorktreePath } from "../session/main-worktree.js";
+import { liveOccupancyOnTree, occupancyAdmission, readOccupancy } from "../session/occupancy.js";
+import { prepareLinkedWorktree, type WorktreePmRunner } from "../swarm/worktree-pm-install.js";
 
 const DISPATCH_SHA_RE = /^[0-9a-f]{7,40}$/i;
 const ORIGIN_DEFAULT_CANDIDATES = ["origin/HEAD", "origin/main", "origin/master"] as const;
@@ -18,12 +20,21 @@ function isHexPin(value: string): boolean {
 
 export type ArcDestPinKind = "origin-default" | "against-implementation";
 
+export type ArcDestInstallMode = "guarded-prep" | "process-only-no-install";
+
 export interface EnsureArcDestInput {
   readonly repoRoot: string;
   readonly destPath: string;
   readonly git?: GitRunner;
   /** Fetched PR head SHA. When set, dest pins that SHA instead of origin/<default>. */
   readonly againstImplementationSha?: string;
+  /**
+   * Default guarded-prep (#6100). process-only-no-install is for verification
+   * pin-read callers only — not the supported Codex consumer handoff path.
+   */
+  readonly installMode?: ArcDestInstallMode;
+  readonly pmRunner?: WorktreePmRunner;
+  readonly presenterSessionId?: string;
 }
 
 export interface EnsureArcDestResult {
@@ -136,6 +147,35 @@ function destHeadSha(destPath: string, git: GitRunner): string | null {
  * Create or verify one arc dest at the fetched pin. Reuse only when HEAD matches
  * that tip after fetch. Never pins local HEAD.
  */
+function refuseStrangerLiveLease(destPath: string, presenterSessionId: string | undefined): void {
+  const now = new Date();
+  const live = liveOccupancyOnTree(destPath, readOccupancy(destPath), now);
+  if (live === null) return;
+  const presenter = (presenterSessionId ?? process.env.DEFT_SESSION_ID ?? "").trim();
+  if (occupancyAdmission(live, presenter, now) === "stranger") {
+    throw new ArcDestError(
+      "live-stranger-lease",
+      `arc dest ${destPath} has a live occupancy lease and presenter admission is stranger; refuse before checkout/deposit/PM`,
+    );
+  }
+}
+
+function maybeGuardedPrep(input: EnsureArcDestInput, repoRoot: string, destPath: string): void {
+  const mode: ArcDestInstallMode = input.installMode ?? "guarded-prep";
+  if (mode === "process-only-no-install") {
+    // Deliberate verification-path pin-read mode — not Codex consumer handoff.
+    return;
+  }
+  const prep = prepareLinkedWorktree(destPath, {
+    repoRoot,
+    runner: input.pmRunner,
+    presenterSessionId: input.presenterSessionId,
+  });
+  if (!prep.ok) {
+    throw new ArcDestError(prep.code, prep.message);
+  }
+}
+
 export function ensureArcDest(input: EnsureArcDestInput): EnsureArcDestResult {
   const repoRoot = resolve(input.repoRoot);
   const destPath = resolve(input.destPath);
@@ -149,8 +189,11 @@ export function ensureArcDest(input: EnsureArcDestInput): EnsureArcDestResult {
         `arc dest ${destPath} exists and is not a linked worktree`,
       );
     }
+    // Recut-3: refuse stranger live occupancy before checkout.
+    refuseStrangerLiveLease(destPath, input.presenterSessionId);
     const head = destHeadSha(destPath, git);
     if (head === pin.sha) {
+      maybeGuardedPrep(input, repoRoot, destPath);
       return {
         destPath,
         dispatchSha: pin.sha,
@@ -166,6 +209,7 @@ export function ensureArcDest(input: EnsureArcDestInput): EnsureArcDestResult {
       "dest-checkout-failed",
       `git checkout --detach ${pin.sha}`,
     );
+    maybeGuardedPrep(input, repoRoot, destPath);
     return {
       destPath,
       dispatchSha: pin.sha,
@@ -183,6 +227,8 @@ export function ensureArcDest(input: EnsureArcDestInput): EnsureArcDestResult {
     "worktree-add-failed",
     `git worktree add --detach ${destPath} ${pin.sha}`,
   );
+  // Recut-3: create path runs shared guarded prep after worktree add.
+  maybeGuardedPrep(input, repoRoot, destPath);
   return {
     destPath,
     dispatchSha: pin.sha,

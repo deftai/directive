@@ -1,13 +1,16 @@
 /**
  * AC14.25 worktree PM install unit tests.
  */
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   detectWorktreePm,
   installWorktreePackages,
+  OUTER_VISIBLE_RUNTIME_PIN_REL,
+  prepareLinkedWorktree,
   worktreeHasRuntimePin,
 } from "./worktree-pm-install.js";
 
@@ -53,13 +56,13 @@ describe("worktree-pm-install (AC14.25)", () => {
     const r = installWorktreePackages(root, {
       runner: (cmd, args, cwd) => {
         calls.push([cmd, ...args, cwd]);
-        mkdirSync(join(root, "node_modules", "@deftai", "directive-runtime"), {
-          recursive: true,
-        });
+        const runtime = join(root, "node_modules", "@deftai", "directive-runtime");
+        mkdirSync(join(runtime, "dist"), { recursive: true });
         writeFileSync(
-          join(root, "node_modules", "@deftai", "directive-runtime", "package.json"),
+          join(runtime, "package.json"),
           JSON.stringify({ name: "@deftai/directive-runtime", version: "1.2.3" }),
         );
+        writeFileSync(join(runtime, "dist", "hook-bin.js"), "export {};\n");
         return { status: 0, stdout: "ok", stderr: "" };
       },
     });
@@ -95,7 +98,7 @@ describe("worktree-pm-install (AC14.25)", () => {
       runner: () => ({ status: 0, stdout: "ok", stderr: "" }),
     });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.message).toMatch(/directive-runtime is missing/i);
+    if (!r.ok) expect(r.message).toMatch(/outer-visible pin missing/i);
   });
 
   it("refuses Yarn lockfiles", () => {
@@ -104,5 +107,86 @@ describe("worktree-pm-install (AC14.25)", () => {
     const r = installWorktreePackages(root);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.message).toMatch(/Yarn|Bun/i);
+  });
+});
+
+describe("prepareLinkedWorktree (#6100)", () => {
+  it("refuses live stranger lease before any PM or deposit call", () => {
+    const repo = mkdtempSync(join(tmpdir(), "prep-lease-"));
+    execFileSync("git", ["init", "-q", "-b", "master", repo], { encoding: "utf8" });
+    execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: repo, encoding: "utf8" });
+    execFileSync("git", ["config", "user.name", "T"], { cwd: repo, encoding: "utf8" });
+    writeFileSync(
+      join(repo, "package.json"),
+      JSON.stringify({
+        name: "prep-lease",
+        private: true,
+        devDependencies: { "@deftai/directive-runtime": "1.2.3" },
+      }),
+    );
+    writeFileSync(join(repo, "package-lock.json"), "{}\n");
+    execFileSync("git", ["add", "-A"], { cwd: repo, encoding: "utf8" });
+    execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: repo, encoding: "utf8" });
+    const wt = join(repo, "wt");
+    execFileSync("git", ["worktree", "add", "--detach", "-q", wt], { cwd: repo, encoding: "utf8" });
+    const now = new Date().toISOString();
+    mkdirSync(join(wt, ".deft"), { recursive: true });
+    writeFileSync(
+      join(wt, ".deft", "occupancy.json"),
+      JSON.stringify({
+        session_id: "owner-other",
+        worktree_path: wt,
+        claimed_at: now,
+        heartbeat_at: now,
+        intent: "mutation",
+        host: "none",
+        address: "none",
+        grants: [],
+      }),
+    );
+    let pmCalls = 0;
+    let depositCalls = 0;
+    const r = prepareLinkedWorktree(wt, {
+      repoRoot: repo,
+      presenterSessionId: "stranger-me",
+      reconstitute: () => {
+        depositCalls += 1;
+        return {
+          status: "skipped",
+          source: null,
+          dest: join(wt, ".deft", "core"),
+          message: "test",
+        };
+      },
+      runner: () => {
+        pmCalls += 1;
+        return { status: 0, stdout: "ok", stderr: "" };
+      },
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe("live-stranger-lease");
+    expect(pmCalls).toBe(0);
+    expect(depositCalls).toBe(0);
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  it("fails closed when PM ok but outer-visible pin missing after retry-shaped install", () => {
+    const root = fixture(
+      {
+        name: "configured",
+        devDependencies: { "@deftai/directive-runtime": "1.2.3" },
+      },
+      "npm",
+    );
+    const r = installWorktreePackages(root, {
+      runner: (_cmd, args) => {
+        // npm ci fails then install succeeds without writing hook-bin
+        if (args[0] === "ci") return { status: 1, stdout: "", stderr: "ci fail" };
+        return { status: 0, stdout: "ok", stderr: "" };
+      },
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.message).toMatch(/outer-visible pin missing/i);
+    expect(OUTER_VISIBLE_RUNTIME_PIN_REL).toContain("hook-bin.js");
   });
 });

@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Prep linked worktrees with a guarded install path so Codex/Grok dest sessions can bootstrap dependencies under a matching launch root (#6100).
+- Guarded linked-worktree prep (`deft swarm-worktrees prep`) refuses stranger leases before deposit/PM, requires the outer-visible hook-bin pin when package.json is present, wires dest-place/worktrees/ensureArcDest create paths, and gives root-mismatch its own recovery constant (#6100).
 - Keep read-only session recovery from overwriting a live owner's applying-host identity, and report deferred publish honestly in CLI text/JSON (#6101).
 - Reuse the open-issue list payload inside cache drift probing so session-start does not refetch up to 25 issues (#6099).
 - Batch and bound finalize-owed claim ls-remote probes so session-start no longer runs one unbounded probe per claim ref (#6008).

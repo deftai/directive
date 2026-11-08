@@ -4,15 +4,10 @@ import {
   assertProjectionContained,
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
-import { reconstituteLinkedWorktreeDeposit } from "../init-deposit/gitignore.js";
 import { C3_FIELDS } from "./constants.js";
 import { ensureSubagentStatusDir } from "./subagent-status-dir.js";
 import { runText, type TextCaptureResult } from "./subprocess.js";
-import {
-  installWorktreePackages,
-  type WorktreePmRunner,
-  worktreeHasRuntimePin,
-} from "./worktree-pm-install.js";
+import { prepareLinkedWorktree, type WorktreePmRunner } from "./worktree-pm-install.js";
 
 export class WorktreeMapError extends Error {
   override name = "WorktreeMapError";
@@ -180,27 +175,13 @@ function createWorktree(
         `(rc=${proc.returncode}): ${proc.stderr.trim() || "<no stderr>"}`,
     );
   }
-  // AC14.25: PM install materializes the pinned runtime; skip legacy .deft/core copy
-  // when the new runtime pin is present (AC13.1).
-  if (worktreeHasRuntimePin(worktreePath)) {
-    const pm = installWorktreePackages(worktreePath, { runner: seams.pmRunner });
-    if (!pm.ok) {
-      throw new WorktreeMapConfigError(pm.message);
-    }
-    return;
-  }
-  const deposit = reconstituteLinkedWorktreeDeposit(worktreePath, {
-    preferPrimaryCore: true,
+  // #6100: shared guarded prep (foreign/lease refuse before deposit/PM; pin-present success).
+  const prep = prepareLinkedWorktree(worktreePath, {
+    repoRoot,
+    runner: seams.pmRunner,
   });
-  if (deposit.status === "refused") {
-    throw new WorktreeMapConfigError(
-      `deposit reconstitution refused for ${worktreePath}: ${deposit.message}`,
-    );
-  }
-  // Best-effort PM install for package.json without a runtime pin (legacy / unconfigured).
-  const pm = installWorktreePackages(worktreePath, { runner: seams.pmRunner });
-  if (!pm.ok && pm.message.includes("Yarn/Bun")) {
-    throw new WorktreeMapConfigError(pm.message);
+  if (!prep.ok) {
+    throw new WorktreeMapConfigError(prep.message);
   }
 }
 interface InternalRecord extends WorktreeRecord {
@@ -307,6 +288,14 @@ export function resolveWorktreeMap(
             `but requested base '${trimmedBase}' resolves to ${requestedOid}; ` +
             `this is a snapshot check at resolution time, not a pin on the worker's start revision`,
         );
+      }
+      // #6100: reuse must run guarded prep when outer-visible pin is missing.
+      const reusePrep = prepareLinkedWorktree(entry._abs, {
+        repoRoot: root,
+        runner: options.pmRunner,
+      });
+      if (!reusePrep.ok) {
+        throw new WorktreeMapConfigError(reusePrep.message);
       }
       // Heartbeat dir only. Child occupancy owner is recorded at claim (#3999).
       ensureSubagentStatusDir(entry._abs);

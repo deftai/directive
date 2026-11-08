@@ -1,11 +1,21 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdirSync as mkdirSyncFs,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+  writeFileSync as writeFileSyncFs,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname as dirnamePath, join, join as joinPath, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { consultImplementSpawnOccupancy } from "../session/spawn-occupancy.js";
 import { destPlaceImplementSpawn, suggestImplementSpawnDestPath } from "./dest-place.js";
 import type { TextCaptureResult } from "./subprocess.js";
+import { OUTER_VISIBLE_RUNTIME_PIN_REL } from "./worktree-pm-install.js";
 
 const created: string[] = [];
 
@@ -46,7 +56,36 @@ function freshRepo(prefix: string): string {
   const repo = mkdtempSync(join(tmpdir(), prefix));
   created.push(repo);
   gitInit(repo);
+  writeFileSync(
+    join(repo, "package.json"),
+    JSON.stringify(
+      {
+        name: "dest-place-fixture",
+        private: true,
+        devDependencies: { "@deftai/directive-runtime": "1.2.3" },
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
+  writeFileSync(join(repo, "package-lock.json"), "{}\n", "utf8");
+  execFileSync("git", ["add", "-A"], { cwd: repo, encoding: "utf8" });
+  execFileSync("git", ["commit", "-q", "-m", "pkg"], { cwd: repo, encoding: "utf8" });
   return repo;
+}
+
+function materializePinRunner(worktreePath: string) {
+  return () => {
+    const pin = joinPath(worktreePath, OUTER_VISIBLE_RUNTIME_PIN_REL);
+    mkdirSyncFs(dirnamePath(pin), { recursive: true });
+    writeFileSyncFs(pin, "export {};\n");
+    writeFileSyncFs(
+      joinPath(worktreePath, "node_modules", "@deftai", "directive-runtime", "package.json"),
+      JSON.stringify({ name: "@deftai/directive-runtime", version: "1.2.3" }),
+    );
+    return { status: 0, stdout: "ok", stderr: "" };
+  };
 }
 
 describe("destPlaceImplementSpawn (#4575 Prefer-A)", () => {
@@ -92,6 +131,7 @@ describe("destPlaceImplementSpawn (#4575 Prefer-A)", () => {
       worktreePath: wt,
       commitIsh: sha,
       git,
+      pmRunner: materializePinRunner(wt),
     });
     expect(placed.ok).toBe(true);
     if (!placed.ok) return;
@@ -131,6 +171,7 @@ describe("destPlaceImplementSpawn (#4575 Prefer-A)", () => {
       worktreePath: wt,
       commitIsh: sha,
       git: liveGit,
+      pmRunner: materializePinRunner(wt),
     });
     expect(first.ok).toBe(true);
     if (!first.ok) return;
@@ -139,6 +180,7 @@ describe("destPlaceImplementSpawn (#4575 Prefer-A)", () => {
       worktreePath: wt,
       commitIsh: sha,
       git: liveGit,
+      pmRunner: materializePinRunner(wt),
     });
     expect(second.ok).toBe(true);
     if (!second.ok) return;
@@ -170,6 +212,7 @@ describe("destPlaceImplementSpawn (#4575 Prefer-A)", () => {
       worktreePath: wt,
       commitIsh: firstSha,
       git: liveGit,
+      pmRunner: materializePinRunner(wt),
     });
     expect(first.ok).toBe(true);
     if (!first.ok) return;
@@ -188,6 +231,60 @@ describe("destPlaceImplementSpawn (#4575 Prefer-A)", () => {
     if (reused.ok) return;
     expect(reused.code).toBe("revision-mismatch");
     expect(reused.message).toMatch(/Reuse requires a matching HEAD/);
+  });
+
+  it("refuses reuse on live stranger lease with zero PM", () => {
+    const repo = freshRepo("dest-place-lease-");
+    const sha = headOid(repo);
+    const wt = join(repo, "wt-lease");
+    const first = destPlaceImplementSpawn({
+      repoRoot: repo,
+      worktreePath: wt,
+      commitIsh: sha,
+      git: liveGit,
+      pmRunner: materializePinRunner(wt),
+    });
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    // Remove pin so reuse would want to install; plant stranger lease via occupancy file.
+    const pin = join(wt, OUTER_VISIBLE_RUNTIME_PIN_REL);
+    if (existsSync(pin)) {
+      // keep tree linked; delete pin to force prep path
+      rmSync(join(wt, "node_modules"), { recursive: true, force: true });
+    }
+    mkdirSync(join(wt, ".deft"), { recursive: true });
+    const now = new Date().toISOString();
+    writeFileSync(
+      join(wt, ".deft", "occupancy.json"),
+      JSON.stringify({
+        schema_version: 1,
+        session_id: "owner-other",
+        worktree_path: wt,
+        claimed_at: now,
+        heartbeat_at: now,
+        last_write_at: null,
+        grants: [],
+        intent: "mutation",
+        host: "none",
+        address: "none",
+      }),
+      "utf8",
+    );
+    let pmCalls = 0;
+    const reused = destPlaceImplementSpawn({
+      repoRoot: repo,
+      worktreePath: wt,
+      commitIsh: sha,
+      git: liveGit,
+      pmRunner: () => {
+        pmCalls += 1;
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+    expect(reused.ok).toBe(false);
+    if (reused.ok) return;
+    expect(reused.code).toBe("live-stranger-lease");
+    expect(pmCalls).toBe(0);
   });
 
   it("suggestImplementSpawnDestPath stays under .deft-scratch/worktrees", () => {
