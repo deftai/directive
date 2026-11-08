@@ -36,6 +36,20 @@ export type WorktreePmRunner = (
 ) => { readonly status: number | null; readonly stderr: string; readonly stdout: string };
 
 /** Outer-visible runtime pin the deposited host wrapper tests (#6100). */
+/** Presenter for live-lease admission — match claim path (DEFT then GROK) (#6100). */
+export function resolvePresenterSessionId(
+  explicit?: string,
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  const fromExplicit = explicit?.trim() ?? "";
+  if (fromExplicit.length > 0) return fromExplicit;
+  for (const key of ["DEFT_SESSION_ID", "GROK_SESSION_ID"] as const) {
+    const value = typeof env[key] === "string" ? env[key].trim() : "";
+    if (value.length > 0) return value;
+  }
+  return "";
+}
+
 export const OUTER_VISIBLE_RUNTIME_PIN_REL = HOST_HOOK_OUTER_PIN_HOOK_BIN_REL;
 
 export type PrepareLinkedWorktreeFailureCode =
@@ -328,7 +342,7 @@ export function prepareLinkedWorktree(
   const admit = seams.occupancyAdmission ?? occupancyAdmission;
   const live = liveOnTree(worktreePath, readOcc(worktreePath), now);
   if (live !== null) {
-    const presenter = (seams.presenterSessionId ?? process.env.DEFT_SESSION_ID ?? "").trim() || "";
+    const presenter = resolvePresenterSessionId(seams.presenterSessionId, process.env);
     if (admit(live, presenter, now) === "stranger") {
       return {
         ok: false,

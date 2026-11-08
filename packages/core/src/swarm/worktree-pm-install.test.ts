@@ -11,6 +11,7 @@ import {
   installWorktreePackages,
   OUTER_VISIBLE_RUNTIME_PIN_REL,
   prepareLinkedWorktree,
+  resolvePresenterSessionId,
   runtimePinMatchesRequest,
   worktreeHasRuntimePin,
 } from "./worktree-pm-install.js";
@@ -112,6 +113,16 @@ describe("worktree-pm-install (AC14.25)", () => {
 });
 
 describe("prepareLinkedWorktree (#6100)", () => {
+  it("resolvePresenterSessionId prefers DEFT then GROK (#6100)", () => {
+    expect(resolvePresenterSessionId("explicit", {})).toBe("explicit");
+    expect(resolvePresenterSessionId(undefined, { DEFT_SESSION_ID: "d1" })).toBe("d1");
+    expect(resolvePresenterSessionId(undefined, { GROK_SESSION_ID: "g1" })).toBe("g1");
+    expect(
+      resolvePresenterSessionId(undefined, { DEFT_SESSION_ID: "d1", GROK_SESSION_ID: "g1" }),
+    ).toBe("d1");
+    expect(resolvePresenterSessionId(undefined, {})).toBe("");
+  });
+
   it("refuses live stranger lease before any PM or deposit call", () => {
     const repo = mkdtempSync(join(tmpdir(), "prep-lease-"));
     execFileSync("git", ["init", "-q", "-b", "master", repo], { encoding: "utf8" });

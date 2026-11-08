@@ -9,7 +9,11 @@ import { dirname, resolve } from "node:path";
 import { defaultGitRunner, type GitRunner, type GitRunResult } from "../session/git.js";
 import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import { liveOccupancyOnTree, occupancyAdmission, readOccupancy } from "../session/occupancy.js";
-import { prepareLinkedWorktree, type WorktreePmRunner } from "../swarm/worktree-pm-install.js";
+import {
+  prepareLinkedWorktree,
+  resolvePresenterSessionId,
+  type WorktreePmRunner,
+} from "../swarm/worktree-pm-install.js";
 
 const DISPATCH_SHA_RE = /^[0-9a-f]{7,40}$/i;
 const ORIGIN_DEFAULT_CANDIDATES = ["origin/HEAD", "origin/main", "origin/master"] as const;
@@ -159,7 +163,7 @@ function refuseStrangerLiveLease(
   const now = new Date();
   const live = liveOccupancyOnTree(destPath, readOccupancy(destPath), now);
   if (live === null) return { ok: true };
-  const presenter = (presenterSessionId ?? process.env.DEFT_SESSION_ID ?? "").trim();
+  const presenter = resolvePresenterSessionId(presenterSessionId, process.env);
   if (occupancyAdmission(live, presenter, now) === "stranger") {
     return {
       ok: false,
