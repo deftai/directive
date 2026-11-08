@@ -9,15 +9,10 @@
 
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve as pathResolve } from "node:path";
-import { reconstituteLinkedWorktreeDeposit } from "../init-deposit/gitignore.js";
 import { isLinkedWorktreePath, mainWorktreeRoot } from "../session/main-worktree.js";
 import { ensureSubagentStatusDir } from "./subagent-status-dir.js";
 import type { TextCaptureResult } from "./subprocess.js";
-import {
-  installWorktreePackages,
-  type WorktreePmRunner,
-  worktreeHasRuntimePin,
-} from "./worktree-pm-install.js";
+import { prepareLinkedWorktree, type WorktreePmRunner } from "./worktree-pm-install.js";
 import { defaultGitRunner, type GitRunner } from "./worktrees.js";
 
 export type DestPlaceFailureCode =
@@ -27,7 +22,10 @@ export type DestPlaceFailureCode =
   | "worktree-add-failed"
   | "deposit-refused"
   | "revision-mismatch"
-  | "foreign-worktree";
+  | "foreign-worktree"
+  | "live-stranger-lease"
+  | "pin-missing"
+  | "pm-failed";
 
 export type DestPlaceResult =
   | {
@@ -174,17 +172,25 @@ export function destPlaceImplementSpawn(input: DestPlaceImplementSpawnInput): De
           `(ownership check before deposit reconstitution).`,
       };
     }
-    const reuseDeposit = reconstituteLinkedWorktreeDeposit(worktreePath, {
-      preferPrimaryCore: true,
+    const prep = prepareLinkedWorktree(worktreePath, {
+      repoRoot,
+      runner: input.pmRunner,
     });
-    if (reuseDeposit.status === "refused") {
+    if (!prep.ok) {
+      const code =
+        prep.code === "foreign-worktree"
+          ? "foreign-worktree"
+          : prep.code === "live-stranger-lease"
+            ? "live-stranger-lease"
+            : prep.code === "pin-missing"
+              ? "pin-missing"
+              : prep.code === "pm-failed"
+                ? "pm-failed"
+                : "deposit-refused";
       return {
         ok: false,
-        code: "deposit-refused",
-        message:
-          `dest-place refused reuse of ${worktreePath}: deposit reconstitution refused: ` +
-          `${reuseDeposit.message}. Pick a fresh path or repair the payload source; ` +
-          `this path was left in place (no force-remove).`,
+        code,
+        message: `dest-place refused reuse of ${worktreePath}: ${prep.message}`,
       };
     }
     ensureSubagentStatusDir(worktreePath);
@@ -218,39 +224,28 @@ export function destPlaceImplementSpawn(input: DestPlaceImplementSpawnInput): De
     };
   }
 
-  if (worktreeHasRuntimePin(worktreePath)) {
-    const pm = installWorktreePackages(worktreePath, { runner: input.pmRunner });
-    if (!pm.ok) {
-      return {
-        ok: false,
-        code: "deposit-refused",
-        message:
-          `dest-place PM install failed for ${worktreePath}: ${pm.message}. ` +
-          `Worktree left in place (no force-remove).`,
-      };
-    }
-  } else {
-    const deposit = reconstituteLinkedWorktreeDeposit(worktreePath, {
-      preferPrimaryCore: true,
-    });
-    if (deposit.status === "refused") {
-      return {
-        ok: false,
-        code: "deposit-refused",
-        message:
-          `dest-place deposit reconstitution refused for ${worktreePath}: ${deposit.message}. ` +
-          `Worktree left in place (no force-remove). Retry reconstitutes the same path when HEAD matches; ` +
-          `or pick a fresh path.`,
-      };
-    }
-    const pm = installWorktreePackages(worktreePath, { runner: input.pmRunner });
-    if (!pm.ok && pm.message.includes("Yarn/Bun")) {
-      return {
-        ok: false,
-        code: "deposit-refused",
-        message: `dest-place PM install refused for ${worktreePath}: ${pm.message}`,
-      };
-    }
+  const prep = prepareLinkedWorktree(worktreePath, {
+    repoRoot,
+    runner: input.pmRunner,
+  });
+  if (!prep.ok) {
+    const code =
+      prep.code === "foreign-worktree"
+        ? "foreign-worktree"
+        : prep.code === "live-stranger-lease"
+          ? "live-stranger-lease"
+          : prep.code === "pin-missing"
+            ? "pin-missing"
+            : prep.code === "pm-failed"
+              ? "pm-failed"
+              : "deposit-refused";
+    return {
+      ok: false,
+      code,
+      message:
+        `dest-place prep failed for ${worktreePath}: ${prep.message}. ` +
+        `Worktree left in place (no force-remove).`,
+    };
   }
 
   ensureSubagentStatusDir(worktreePath);

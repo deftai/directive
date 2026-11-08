@@ -11,7 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Prep linked worktrees with a guarded install path so Codex/Grok dest sessions can bootstrap dependencies under a matching launch root (#6100).
 - Keep read-only session recovery from overwriting a live owner's applying-host identity, and report deferred publish honestly in CLI text/JSON (#6101).
 - Reuse the open-issue list payload inside cache drift probing so session-start does not refetch up to 25 issues (#6099).
 - Batch and bound finalize-owed claim ls-remote probes so session-start no longer runs one unbounded probe per claim ref (#6008).
@@ -23,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.5.
 
 ### Fixed
+- Prepare linked worktrees for Codex sessions with `deft swarm-worktrees prep --path <dest>`. Prep refuses worktrees owned by another repository or a different live session and checks that the required runtime hook is installed. Root-mismatch errors now explain how to prepare and reopen the destination worktree. `prep --help` / `-h` print usage without running deposit or install (#6100).
 - Finalize-owed claim probes batch ls-remote, narrow claim-batch status, and use env-only GIT_TERMINAL_PROMPT=0 without a probe-timeout numeric const (#6008).
 - Applying-host publish skips overwrite while another session holds a live occupancy lease and surfaces deferred publish in CLI text/JSON (#6101).
 - Cache drift probing now reuses the already-fetched open-issue list payload instead of issuing a second list fetch (#6099).

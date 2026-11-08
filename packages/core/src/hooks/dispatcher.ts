@@ -3698,6 +3698,15 @@ function prepareProcessOnlyDestPath(
       destPath,
       againstImplementationSha: against,
     });
+    // Strict false only: legacy success mocks may omit `ok` and still carry `record` (#6100).
+    if (prepared.ok === false) {
+      return {
+        ok: false,
+        message:
+          `Directive denied process-only critic spawn: dest prepare failed: ${prepared.code}: ${prepared.message}. ` +
+          "Parent must fetch origin and create or verify the dest at origin/<default> before spawn.",
+      };
+    }
     return { ok: true, record: prepared.record };
   } catch (cause) {
     return {

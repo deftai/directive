@@ -1,12 +1,22 @@
 /**
- * Swarm worktree package install (AC14.25).
+ * Swarm worktree package install (AC14.25) + guarded linked-worktree prep (#6100).
  * After `git worktree add`, materialize node_modules via the project PM.
  * Failure must prevent claiming readiness.
  */
 
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { reconstituteLinkedWorktreeDeposit } from "../init-deposit/gitignore.js";
+import { HOST_HOOK_OUTER_PIN_HOOK_BIN_REL } from "../init-deposit/host-hook-outer.js";
+import { isLinkedWorktreePath, mainWorktreeRoot } from "../session/main-worktree.js";
+import {
+  liveOccupancyOnTree,
+  type OccupancyAdmission,
+  type OccupancyRecord,
+  occupancyAdmission,
+  readOccupancy,
+} from "../session/occupancy.js";
 
 export type WorktreePm = "npm" | "pnpm";
 
@@ -24,6 +34,67 @@ export type WorktreePmRunner = (
   args: readonly string[],
   cwd: string,
 ) => { readonly status: number | null; readonly stderr: string; readonly stdout: string };
+
+/** Outer-visible runtime pin the deposited host wrapper tests (#6100). */
+/** Presenter for live-lease admission — match claim path (DEFT then GROK) (#6100). */
+export function resolvePresenterSessionId(
+  explicit?: string,
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  const fromExplicit = explicit?.trim() ?? "";
+  if (fromExplicit.length > 0) return fromExplicit;
+  for (const key of ["DEFT_SESSION_ID", "GROK_SESSION_ID"] as const) {
+    const value = typeof env[key] === "string" ? env[key].trim() : "";
+    if (value.length > 0) return value;
+  }
+  return "";
+}
+
+export const OUTER_VISIBLE_RUNTIME_PIN_REL = HOST_HOOK_OUTER_PIN_HOOK_BIN_REL;
+
+export type PrepareLinkedWorktreeFailureCode =
+  | "not-linked"
+  | "foreign-worktree"
+  | "live-stranger-lease"
+  | "deposit-refused"
+  | "pm-failed"
+  | "pin-missing";
+
+export type PrepareLinkedWorktreeResult =
+  | {
+      readonly ok: true;
+      readonly worktreePath: string;
+      readonly pm: WorktreePm | null;
+      readonly skippedInstall: boolean;
+      readonly pinRel: string;
+    }
+  | {
+      readonly ok: false;
+      readonly code: PrepareLinkedWorktreeFailureCode;
+      readonly message: string;
+    };
+
+export interface PrepareLinkedWorktreeSeams {
+  readonly repoRoot?: string;
+  readonly presenterSessionId?: string;
+  readonly runner?: WorktreePmRunner;
+  readonly now?: Date;
+  readonly readOccupancy?: (root: string) => OccupancyRecord | null;
+  readonly liveOccupancyOnTree?: (
+    root: string,
+    record: OccupancyRecord | null,
+    now?: Date,
+  ) => OccupancyRecord | null;
+  readonly occupancyAdmission?: (
+    record: OccupancyRecord,
+    sessionId: string,
+    now?: Date,
+  ) => OccupancyAdmission;
+  readonly mainWorktreeRoot?: (root: string) => string | null;
+  readonly reconstitute?: typeof reconstituteLinkedWorktreeDeposit;
+  /** When true, skip deposit/PM and only enforce lease/foreign gates + pin presence. */
+  readonly requirePinOnly?: boolean;
+}
 
 function defaultRunner(
   command: string,
@@ -70,6 +141,60 @@ function hasRuntimePin(pkg: Record<string, unknown>): boolean {
   return false;
 }
 
+function sameTree(left: string, right: string): boolean {
+  const a = resolve(left);
+  const b = resolve(right);
+  if (process.platform === "win32") return a.toLowerCase() === b.toLowerCase();
+  return a === b;
+}
+
+/** True when the deposited-outer-visible hook-bin exists under the worktree. */
+export function outerVisibleRuntimePinExists(worktreePath: string): boolean {
+  return existsSync(join(resolve(worktreePath), OUTER_VISIBLE_RUNTIME_PIN_REL));
+}
+/** Read requested @deftai/directive-runtime range from package.json. */
+function readRequestedRuntimePin(pkg: Record<string, unknown>): string | null {
+  for (const key of ["dependencies", "devDependencies", "optionalDependencies"] as const) {
+    const block = pkg[key];
+    if (block !== null && typeof block === "object" && !Array.isArray(block)) {
+      const v = (block as Record<string, unknown>)["@deftai/directive-runtime"];
+      if (typeof v === "string" && v.trim().length > 0) return v.trim();
+    }
+  }
+  return null;
+}
+
+/** Installed runtime package version under the worktree, or null. */
+function readInstalledRuntimeVersion(worktreePath: string): string | null {
+  try {
+    const raw = readFileSync(
+      join(resolve(worktreePath), "node_modules", "@deftai", "directive-runtime", "package.json"),
+      "utf8",
+    );
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const version = (parsed as Record<string, unknown>).version;
+    return typeof version === "string" && version.trim().length > 0 ? version.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Outer pin may skip install only when the installed runtime matches the
+ * package.json requested pin (stale node_modules after checkout must refresh).
+ */
+export function runtimePinMatchesRequest(worktreePath: string): boolean {
+  if (!outerVisibleRuntimePinExists(worktreePath)) return false;
+  const pkg = readPackageJson(worktreePath);
+  if (pkg === null || !hasRuntimePin(pkg)) return true;
+  const requested = readRequestedRuntimePin(pkg);
+  const installed = readInstalledRuntimeVersion(worktreePath);
+  if (requested === null || installed === null) return false;
+  const reqNorm = requested.replace(/^[\^~>=<\s]+/, "");
+  return installed === reqNorm || installed === requested;
+}
+
 /** Detect npm vs pnpm from lockfile / packageManager field (AC5.6 subset). */
 export function detectWorktreePm(worktreePath: string): WorktreePm | null {
   if (existsSync(join(worktreePath, "yarn.lock")) || existsSync(join(worktreePath, "bun.lockb"))) {
@@ -87,10 +212,27 @@ export function detectWorktreePm(worktreePath: string): WorktreePm | null {
   return null;
 }
 
+function assertOuterVisiblePin(
+  worktreePath: string,
+  pm: WorktreePm | null,
+): WorktreePmInstallResult {
+  if (outerVisibleRuntimePinExists(worktreePath)) {
+    return { ok: true, pm: pm ?? "npm", skipped: false };
+  }
+  return {
+    ok: false,
+    pm,
+    message:
+      `worktree PM install finished but outer-visible pin missing at ` +
+      `${OUTER_VISIBLE_RUNTIME_PIN_REL}; not claiming readiness`,
+  };
+}
+
 /**
  * Run project PM install in a newly created worktree (AC14.25).
  * Skips when there is no package.json. Fails closed on PM error when a
- * runtime pin is present (configured project).
+ * runtime pin is present (configured project). Success requires the
+ * outer-visible hook-bin for configured (pinned) projects (#6100).
  */
 export function installWorktreePackages(
   worktreePath: string,
@@ -127,6 +269,9 @@ export function installWorktreePackages(
     if (pm === "npm" && useArgs[0] === "ci") {
       const retry = runner(pm, ["install", "--include=dev"], worktreePath);
       if (retry.status === 0) {
+        if (hasRuntimePin(pkg)) {
+          return assertOuterVisiblePin(worktreePath, pm);
+        }
         return { ok: true, pm, skipped: false };
       }
       const detail = (retry.stderr || retry.stdout || proc.stderr || "").trim();
@@ -143,17 +288,9 @@ export function installWorktreePackages(
       message: `worktree PM install failed (${pm} ${useArgs.join(" ")}): ${detail || `exit ${proc.status}`}`,
     };
   }
-  // Configured projects must end with a local runtime after install.
+  // Configured projects must end with the outer-visible pin after install (#6100).
   if (hasRuntimePin(pkg)) {
-    const runtimeDir = join(worktreePath, "node_modules", "@deftai", "directive-runtime");
-    if (!existsSync(runtimeDir)) {
-      return {
-        ok: false,
-        pm,
-        message:
-          "worktree PM install finished but @deftai/directive-runtime is missing under node_modules; not claiming readiness",
-      };
-    }
+    return assertOuterVisiblePin(worktreePath, pm);
   }
   return { ok: true, pm, skipped: false };
 }
@@ -162,4 +299,133 @@ export function installWorktreePackages(
 export function worktreeHasRuntimePin(worktreePath: string): boolean {
   const pkg = readPackageJson(worktreePath);
   return pkg !== null && hasRuntimePin(pkg);
+}
+
+/**
+ * Shared guarded prep for an existing linked worktree (#6100 Prefer-A Recut-3).
+ *
+ * Order: foreign-worktree refuse → live stranger-lease refuse → deposit/PM →
+ * success only when the outer-visible PIN_REL exists. Lease/foreign refuse runs
+ * before any deposit write or PM invocation.
+ */
+export function prepareLinkedWorktree(
+  worktreePathRaw: string,
+  seams: PrepareLinkedWorktreeSeams = {},
+): PrepareLinkedWorktreeResult {
+  const worktreePath = resolve(worktreePathRaw);
+  if (!isLinkedWorktreePath(worktreePath)) {
+    return {
+      ok: false,
+      code: "not-linked",
+      message: `linked-worktree prep refused: ${worktreePath} is not a linked worktree`,
+    };
+  }
+
+  const mainOf = seams.mainWorktreeRoot ?? mainWorktreeRoot;
+  const destMain = mainOf(worktreePath);
+  const repoRootRaw = seams.repoRoot?.trim() ?? "";
+  const ownershipRoot = repoRootRaw.length > 0 ? resolve(repoRootRaw) : worktreePath;
+  const repoMain = mainOf(ownershipRoot);
+  if (repoMain === null || destMain === null || !sameTree(repoMain, destMain)) {
+    return {
+      ok: false,
+      code: "foreign-worktree",
+      message:
+        `linked-worktree prep refused: ${worktreePath} is not a linked worktree of ` +
+        `${ownershipRoot} (mainWorktreeRoot mismatch before deposit/PM)`,
+    };
+  }
+
+  const now = seams.now ?? new Date();
+  const readOcc = seams.readOccupancy ?? readOccupancy;
+  const liveOnTree = seams.liveOccupancyOnTree ?? liveOccupancyOnTree;
+  const admit = seams.occupancyAdmission ?? occupancyAdmission;
+  const live = liveOnTree(worktreePath, readOcc(worktreePath), now);
+  if (live !== null) {
+    const presenter = resolvePresenterSessionId(seams.presenterSessionId, process.env);
+    if (admit(live, presenter, now) === "stranger") {
+      return {
+        ok: false,
+        code: "live-stranger-lease",
+        message:
+          `linked-worktree prep refused: ${worktreePath} has a live occupancy lease ` +
+          `and presenter admission is stranger (zero deposit/PM mutation)`,
+      };
+    }
+  }
+
+  // Skip install only when outer pin exists AND installed runtime matches request (#6100).
+  if (outerVisibleRuntimePinExists(worktreePath) && runtimePinMatchesRequest(worktreePath)) {
+    return {
+      ok: true,
+      worktreePath,
+      pm: detectWorktreePm(worktreePath),
+      skippedInstall: true,
+      pinRel: OUTER_VISIBLE_RUNTIME_PIN_REL,
+    };
+  }
+
+  if (seams.requirePinOnly) {
+    return {
+      ok: false,
+      code: "pin-missing",
+      message:
+        `linked-worktree prep refused: outer-visible pin missing at ` +
+        `${OUTER_VISIBLE_RUNTIME_PIN_REL} (requirePinOnly)`,
+    };
+  }
+
+  const reconstitute = seams.reconstitute ?? reconstituteLinkedWorktreeDeposit;
+  const pinned = worktreeHasRuntimePin(worktreePath);
+  const pkg = readPackageJson(worktreePath);
+
+  if (pinned) {
+    const pm = installWorktreePackages(worktreePath, { runner: seams.runner });
+    if (!pm.ok) {
+      return { ok: false, code: "pm-failed", message: pm.message };
+    }
+  } else {
+    const deposit = reconstitute(worktreePath, { preferPrimaryCore: true });
+    if (deposit.status === "refused") {
+      return {
+        ok: false,
+        code: "deposit-refused",
+        message: `linked-worktree prep deposit refused: ${deposit.message}`,
+      };
+    }
+    if (pkg !== null) {
+      // Unpinned consumer with package.json: install and require outer-visible pin.
+      const pm = installWorktreePackages(worktreePath, { runner: seams.runner });
+      if (!pm.ok) {
+        return { ok: false, code: "pm-failed", message: pm.message };
+      }
+    } else {
+      // No package.json: deposit-only / fixture path — not Codex pin handoff.
+      return {
+        ok: true,
+        worktreePath,
+        pm: null,
+        skippedInstall: true,
+        pinRel: OUTER_VISIBLE_RUNTIME_PIN_REL,
+      };
+    }
+  }
+
+  if (!outerVisibleRuntimePinExists(worktreePath)) {
+    return {
+      ok: false,
+      code: "pin-missing",
+      message:
+        `linked-worktree prep finished but outer-visible pin missing at ` +
+        `${OUTER_VISIBLE_RUNTIME_PIN_REL}; not claiming readiness`,
+    };
+  }
+
+  return {
+    ok: true,
+    worktreePath,
+    pm: detectWorktreePm(worktreePath),
+    skippedInstall: false,
+    pinRel: OUTER_VISIBLE_RUNTIME_PIN_REL,
+  };
 }

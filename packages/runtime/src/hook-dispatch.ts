@@ -3,7 +3,10 @@ import { readFileSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkCheapInSync } from "@deftai/directive-core/dist/install-health/cheap.js";
-import { INSTALLATION_RECOVERY_GUIDANCE } from "@deftai/directive-core/dist/install-health/constants.js";
+import {
+  HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE,
+  INSTALLATION_RECOVERY_GUIDANCE,
+} from "@deftai/directive-core/dist/install-health/constants.js";
 import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-health/types.js";
 import {
   decideHook,
@@ -297,7 +300,7 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   // owns the running hook-bin. Mismatch → fail closed (no setup, no policy).
   const launchRoot = (seams.launchingCheckoutRoot ?? resolveLaunchingCheckoutRoot)();
   if (launchRoot !== null && !rootsMatch(launchRoot, projectRoot)) {
-    const guidance = INSTALLATION_RECOVERY_GUIDANCE;
+    const guidance = HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE;
     const decision = installationIdentityDeny(
       args.host,
       args.event,

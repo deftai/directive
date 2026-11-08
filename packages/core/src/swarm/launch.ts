@@ -1883,7 +1883,6 @@ export function swarmLaunch(args: LaunchArgs): {
 
   let worktreeRecordMap = new Map<string, WorktreeRecord>();
   if (args.worktreeMap !== undefined && args.worktreeMap !== null) {
-    const resolver = args.worktreeResolver ?? resolveWorktreeMap;
     try {
       const payload = JSON.parse(readFileSync(args.worktreeMap, "utf8")) as unknown;
       if (!Array.isArray(payload)) {
@@ -1892,14 +1891,23 @@ export function swarmLaunch(args: LaunchArgs): {
           `Error: --worktree-map ${args.worktreeMap} must contain a JSON array of records.\n`,
         );
       }
-      const records = resolver(
-        payload as Record<string, unknown>[],
-        args.baseBranch ?? DEFAULT_BASE_BRANCH,
-        !(args.noCreateWorktrees ?? false),
-        {
-          repoRoot: projectRoot,
-        },
-      );
+      const mapping = payload as Record<string, unknown>[];
+      const base = args.baseBranch ?? DEFAULT_BASE_BRANCH;
+      const createMissing = !(args.noCreateWorktrees ?? false);
+      const opts = { repoRoot: projectRoot };
+      let records: WorktreeRecord[];
+      if (args.worktreeResolver !== undefined) {
+        records = args.worktreeResolver(mapping, base, createMissing, opts);
+      } else {
+        const resolved = resolveWorktreeMap(mapping, base, createMissing, opts);
+        if (!resolved.ok) {
+          return failAfterClaim(
+            EXIT_CONFIG_ERROR,
+            `Error: worktree map resolution failed: ${resolved.message}\n`,
+          );
+        }
+        records = resolved.records;
+      }
       worktreeRecordMap = new Map(records.map((r) => [r.story_id, r]));
     } catch (exc: unknown) {
       return failAfterClaim(

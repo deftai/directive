@@ -18,6 +18,16 @@ export const RUNTIME_PACKAGE_PATH_PREFIX = "node_modules/@deftai/directive-runti
 export const INSTALLATION_RECOVERY_GUIDANCE =
   "npm i -g @deftai/directive, then directive install --repair";
 
+/**
+ * Recovery when payload project root does not match launching checkout (SEC-WT / #6100).
+ * Distinct from {@link INSTALLATION_RECOVERY_GUIDANCE} (pin ladder).
+ * Prep the linked worktree under the primary session, then open that worktree
+ * as the host project root so launchRoot matches. Primary global repair does
+ * not rebind a primary-rooted host session (operator note 6692738765).
+ */
+export const HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE =
+  "Prep the linked worktree (`deft swarm-worktrees prep --path <dest>`), then open that worktree as the host project root so launchRoot matches payloadRoot. Primary `npm i -g @deftai/directive` / `directive install --repair` does not rebind a primary-rooted session.";
+
 /** Relative path of the committed setup record. */
 export const GENERATION_REL = ".deft/GENERATION.json";
 

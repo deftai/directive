@@ -4,15 +4,10 @@ import {
   assertProjectionContained,
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
-import { reconstituteLinkedWorktreeDeposit } from "../init-deposit/gitignore.js";
 import { C3_FIELDS } from "./constants.js";
 import { ensureSubagentStatusDir } from "./subagent-status-dir.js";
 import { runText, type TextCaptureResult } from "./subprocess.js";
-import {
-  installWorktreePackages,
-  type WorktreePmRunner,
-  worktreeHasRuntimePin,
-} from "./worktree-pm-install.js";
+import { prepareLinkedWorktree, type WorktreePmRunner } from "./worktree-pm-install.js";
 
 export class WorktreeMapError extends Error {
   override name = "WorktreeMapError";
@@ -158,13 +153,17 @@ function resolveCommitOid(repoRoot: string, revision: string, git: GitRunner): s
   return oid;
 }
 
+type CreateWorktreeResult =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly message: string };
+
 function createWorktree(
   repoRoot: string,
   worktreePath: string,
   baseBranch: string,
   git: GitRunner,
   seams: { readonly pmRunner?: WorktreePmRunner } = {},
-): void {
+): CreateWorktreeResult {
   mkdirSync(pathResolve(worktreePath, ".."), { recursive: true });
   let proc: TextCaptureResult;
   try {
@@ -180,33 +179,26 @@ function createWorktree(
         `(rc=${proc.returncode}): ${proc.stderr.trim() || "<no stderr>"}`,
     );
   }
-  // AC14.25: PM install materializes the pinned runtime; skip legacy .deft/core copy
-  // when the new runtime pin is present (AC13.1).
-  if (worktreeHasRuntimePin(worktreePath)) {
-    const pm = installWorktreePackages(worktreePath, { runner: seams.pmRunner });
-    if (!pm.ok) {
-      throw new WorktreeMapConfigError(pm.message);
-    }
-    return;
-  }
-  const deposit = reconstituteLinkedWorktreeDeposit(worktreePath, {
-    preferPrimaryCore: true,
+  // #6100: shared guarded prep (foreign/lease refuse before deposit/PM; pin-present success).
+  // Operational prep denials return ok:false (dest-place pattern); no new throw sites.
+  const prep = prepareLinkedWorktree(worktreePath, {
+    repoRoot,
+    runner: seams.pmRunner,
   });
-  if (deposit.status === "refused") {
-    throw new WorktreeMapConfigError(
-      `deposit reconstitution refused for ${worktreePath}: ${deposit.message}`,
-    );
+  if (!prep.ok) {
+    return { ok: false, message: prep.message };
   }
-  // Best-effort PM install for package.json without a runtime pin (legacy / unconfigured).
-  const pm = installWorktreePackages(worktreePath, { runner: seams.pmRunner });
-  if (!pm.ok && pm.message.includes("Yarn/Bun")) {
-    throw new WorktreeMapConfigError(pm.message);
-  }
+  return { ok: true };
 }
 interface InternalRecord extends WorktreeRecord {
   readonly _key: string;
   readonly _abs: string;
 }
+
+/** Prep/create operational outcome for resolveWorktreeMap (#6100 returned-failure). */
+export type ResolveWorktreeMapResult =
+  | { readonly ok: true; readonly records: WorktreeRecord[] }
+  | { readonly ok: false; readonly message: string };
 
 /**
  * Resolve a story-to-worktree mapping into normalized C3 records (frozen contract).
@@ -214,13 +206,16 @@ interface InternalRecord extends WorktreeRecord {
  * Registered paths are reused only when their porcelain HEAD OID matches the
  * requested base OID. That comparison is a snapshot at resolution time — not a
  * pin on the worker's start revision (`swarm:launch` emits a manifest and stops).
+ *
+ * Map/config/git-list invariant failures still throw. Linked-worktree prep
+ * denials return `{ ok: false, message }` (same shape as dest-place).
  */
 export function resolveWorktreeMap(
   mapping: readonly Record<string, unknown>[],
   baseBranch: string,
   createMissing = true,
   options: { repoRoot?: string; git?: GitRunner; pmRunner?: WorktreePmRunner } = {},
-): WorktreeRecord[] {
+): ResolveWorktreeMapResult {
   if (!Array.isArray(mapping)) {
     throw new WorktreeMapConfigError(
       `worktree map must be a list of records, got ${typeof mapping}`,
@@ -308,6 +303,14 @@ export function resolveWorktreeMap(
             `this is a snapshot check at resolution time, not a pin on the worker's start revision`,
         );
       }
+      // #6100: reuse must run guarded prep when outer-visible pin is missing.
+      const reusePrep = prepareLinkedWorktree(entry._abs, {
+        repoRoot: root,
+        runner: options.pmRunner,
+      });
+      if (!reusePrep.ok) {
+        return { ok: false, message: reusePrep.message };
+      }
       // Heartbeat dir only. Child occupancy owner is recorded at claim (#3999).
       ensureSubagentStatusDir(entry._abs);
       continue;
@@ -317,16 +320,24 @@ export function resolveWorktreeMap(
         `story '${entry.story_id}' maps to '${entry.worktree_path}' which is not a registered git worktree and create_missing is disabled`,
       );
     }
-    createWorktree(root, entry._abs, trimmedBase, git, { pmRunner: options.pmRunner });
+    const created = createWorktree(root, entry._abs, trimmedBase, git, {
+      pmRunner: options.pmRunner,
+    });
+    if (!created.ok) {
+      return { ok: false, message: created.message };
+    }
     // Heartbeat dir only. Child occupancy owner is recorded at claim (#3999).
     ensureSubagentStatusDir(entry._abs);
   }
 
-  return resolved.map(({ story_id, worktree_path, base_branch }) => ({
-    story_id,
-    worktree_path,
-    base_branch,
-  }));
+  return {
+    ok: true,
+    records: resolved.map(({ story_id, worktree_path, base_branch }) => ({
+      story_id,
+      worktree_path,
+      base_branch,
+    })),
+  };
 }
 
 export function loadWorktreeMapFile(mapPath: string): Record<string, unknown>[] {

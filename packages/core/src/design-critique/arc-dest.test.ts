@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync, writeFileSync as writeFs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -48,7 +48,13 @@ describe("ensureArcDest (#4296)", () => {
     const localHead = git(root, ["rev-parse", "HEAD"]);
     expect(localHead).not.toBe(originSha);
 
-    const result = ensureArcDest({ repoRoot: root, destPath: dest });
+    const result = ensureArcDest({
+      installMode: "process-only-no-install",
+      repoRoot: root,
+      destPath: dest,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unreachable");
     expect(result.reused).toBe(false);
     expect(result.pinKind).toBe("origin-default");
     expect(result.dispatchSha).toBe(originSha);
@@ -60,8 +66,18 @@ describe("ensureArcDest (#4296)", () => {
 
   it("reuses dest when HEAD already matches the fetched origin tip", () => {
     const { root, originSha, dest } = repoWithOrigin();
-    const first = ensureArcDest({ repoRoot: root, destPath: dest });
-    const second = ensureArcDest({ repoRoot: root, destPath: dest });
+    const first = ensureArcDest({
+      installMode: "process-only-no-install",
+      repoRoot: root,
+      destPath: dest,
+    });
+    const second = ensureArcDest({
+      installMode: "process-only-no-install",
+      repoRoot: root,
+      destPath: dest,
+    });
+    expect(first.ok).toBe(true);
+    if (!first.ok) throw new Error("unreachable");
     expect(first.reused).toBe(false);
     expect(second.reused).toBe(true);
     expect(second.dispatchSha).toBe(originSha);
@@ -70,7 +86,7 @@ describe("ensureArcDest (#4296)", () => {
 
   it("fast-forwards a stale dest onto the fetched pin", () => {
     const { root, originSha, dest } = repoWithOrigin();
-    ensureArcDest({ repoRoot: root, destPath: dest });
+    ensureArcDest({ installMode: "process-only-no-install", repoRoot: root, destPath: dest });
     writeFileSync(join(root, "NEXT"), "next\n", "utf8");
     git(root, ["add", "NEXT"]);
     git(root, ["commit", "-q", "-m", "origin moved"]);
@@ -78,7 +94,13 @@ describe("ensureArcDest (#4296)", () => {
     const newTip = git(root, ["rev-parse", "HEAD"]);
     expect(newTip).not.toBe(originSha);
 
-    const result = ensureArcDest({ repoRoot: root, destPath: dest });
+    const result = ensureArcDest({
+      installMode: "process-only-no-install",
+      repoRoot: root,
+      destPath: dest,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unreachable");
     expect(result.reused).toBe(true);
     expect(result.dispatchSha).toBe(newTip);
     expect(git(dest, ["rev-parse", "HEAD"])).toBe(newTip);
@@ -94,10 +116,13 @@ describe("ensureArcDest (#4296)", () => {
     git(root, ["reset", "-q", "--hard", originSha]);
 
     const result = ensureArcDest({
+      installMode: "process-only-no-install",
       repoRoot: root,
       destPath: dest,
       againstImplementationSha: prHead,
     });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("unreachable");
     expect(result.pinKind).toBe("against-implementation");
     expect(result.dispatchSha).toBe(prHead);
     expect(git(dest, ["rev-parse", "HEAD"])).toBe(prHead);
@@ -130,6 +155,8 @@ describe("ensureArcDest (#4296)", () => {
   it("prepareGithubOnlyDest is the Stop 1 dest caller and records the pin", () => {
     const { root, originSha, dest } = repoWithOrigin();
     const prepared = prepareGithubOnlyDest({ repoRoot: root, destPath: dest });
+    expect(prepared.ok).toBe(true);
+    if (!prepared.ok) throw new Error("unreachable");
     expect(prepared.dest.dispatchSha).toBe(originSha);
     expect(prepared.record).toContain("arc-mode: no-ingest");
     expect(prepared.record).toContain(`dest: ${prepared.dest.destPath}`);
@@ -140,11 +167,53 @@ describe("ensureArcDest (#4296)", () => {
     const { root, dest } = repoWithOrigin();
     expect(() =>
       ensureArcDest({
+        installMode: "process-only-no-install",
         repoRoot: root,
         destPath: dest,
         againstImplementationSha: "origin/master",
       }),
     ).toThrow(ArcDestError);
+  });
+
+  it("refuses reuse checkout under live stranger lease (#6100)", () => {
+    const { root, dest } = repoWithOrigin();
+    ensureArcDest({
+      installMode: "process-only-no-install",
+      repoRoot: root,
+      destPath: dest,
+    });
+    mkdirSync(join(dest, ".deft"), { recursive: true });
+    const now = new Date().toISOString();
+    writeFs(
+      join(dest, ".deft", "occupancy.json"),
+      JSON.stringify({
+        schema_version: 1,
+        session_id: "owner-other",
+        worktree_path: dest,
+        claimed_at: now,
+        heartbeat_at: now,
+        last_write_at: null,
+        grants: [],
+        intent: "mutation",
+        host: "none",
+        address: "none",
+      }),
+      "utf8",
+    );
+    writeFileSync(join(root, "MOVED"), "moved\n", "utf8");
+    git(root, ["add", "MOVED"]);
+    git(root, ["commit", "-q", "-m", "origin moved"]);
+    git(root, ["push", "-q", "origin", "HEAD:master"]);
+    const refused = ensureArcDest({
+      installMode: "process-only-no-install",
+      repoRoot: root,
+      destPath: dest,
+      presenterSessionId: "stranger-me",
+    });
+    expect(refused.ok).toBe(false);
+    if (refused.ok) throw new Error("unreachable");
+    expect(refused.code).toBe("live-stranger-lease");
+    expect(refused.message).toMatch(/stranger/);
   });
 
   it("resolveOriginDefaultTip never returns local HEAD when origin is behind", () => {
