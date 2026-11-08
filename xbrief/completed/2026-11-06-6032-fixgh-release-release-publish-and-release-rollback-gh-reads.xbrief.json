@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6032",
-    "updated": "2026-11-06T17:52:09Z"
+    "updated": "2026-11-08T00:36:56Z"
   },
   "plan": {
     "title": "fix(gh): release, release-publish and release-rollback gh reads still inherit the color env (#6023 follow-up)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "fix(gh): release, release-publish and release-rollback gh reads still inherit the color env (#6023 follow-up)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6032",
@@ -19,17 +19,17 @@
       {
         "id": "1",
         "title": "Pass plainGhEnv() into the three JSON-parse release gh reads",
-        "status": "pending"
+        "status": "completed"
       },
       {
         "id": "2",
         "title": "Add one color-env parse fixture per parse site",
-        "status": "pending"
+        "status": "completed"
       },
       {
         "id": "3",
         "title": "Record Unreleased Fixed for the three release-path parse sites",
-        "status": "pending"
+        "status": "completed"
       }
     ],
     "tags": [
@@ -348,9 +348,27 @@
           "PA 6689395911"
         ],
         "parallel_safe": true
+      },
+      "productPullRequest": 6113,
+      "completedAt": "2026-11-08T00:36:56Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-08T00:36:56Z"
+      },
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6113,
+        "mergeCommit": "dda6d917f2b663e86307a2be2185935830a76a63",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-08T00:36:56Z",
+        "disposition": "delivered",
+        "verifiedAt": "2026-11-08T00:36:56Z",
+        "verifier": "parent-through-merge",
+        "deliveryCommit": "dda6d917f2b663e86307a2be2185935830a76a63",
+        "pullRequestNumber": 6113
       }
     },
     "id": "github.issue.6153667451",
-    "updated": "2026-11-06T17:52:09Z"
+    "updated": "2026-11-08T00:36:56Z"
   }
 }
