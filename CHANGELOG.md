@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stable cuts publish to the maintainer npm tag by default; moving latest needs a separate promote approval (#5852).
 - `--promote-latest` now spends its approval before queuing the promote workflow (so one approval cannot promote twice), keeps Class-4 publish tips on the inline dist-tag rule, and documents the promote flag on `--help` (#5852).
 - Record tracked completion for edit_files truncation lessons-pack entry (#1037).
-- Release draft checks and rollback release lookups now read GitHub responses correctly when the parent environment forces terminal colors. This extends the color-output fix released in 0.129.3 to these two release paths. The release-publish lookup is unchanged and will be addressed separately. Refs #6032.
+- Release draft checks, rollback release lookups, and release-publish tag lookups (`ghApiFindReleaseByTag`) now read GitHub responses correctly when the parent environment forces terminal colors. This extends the color-output fix released in 0.129.3 across those three release-path parse sites. Refs #6032.
 
 ### Removed
 - **Stale gitcrawl fallback maintainer doc (#1092).** Deleted `docs/gitcrawl-fallback.md` after the v0.26 cache rebind made its gh-only install/recovery path misleading. UPGRADING From v0.25.x → v0.26.0 now points operators at `cache:*` instead; matching content-contract pins in `standards.test.ts` dropped.
