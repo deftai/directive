@@ -182,7 +182,10 @@
           "packages/runtime/src/hook-dispatch.ts",
           "packages/runtime/src/hook-dispatch.test.ts",
           "packages/core/src/install-health/constants.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/runtime/src/dispatch.ts",
+          "packages/runtime/src/dispatch.test.ts",
+          "packages/core/src/swarm/worktrees-cli.ts"
         ],
         "module_boundary": "packages/core/src/swarm/worktree-pm-install.ts",
         "cohesion_exemption": "CHANGELOG + swarm dest prep + hook-dispatch root binding + arc-dest create path"
@@ -227,7 +230,10 @@
           "packages/runtime/src/hook-dispatch.ts",
           "packages/runtime/src/hook-dispatch.test.ts",
           "packages/core/src/install-health/constants.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/runtime/src/dispatch.ts",
+          "packages/runtime/src/dispatch.test.ts",
+          "packages/core/src/swarm/worktrees-cli.ts"
         ],
         "size": "M",
         "file_scope_confidence": "high",

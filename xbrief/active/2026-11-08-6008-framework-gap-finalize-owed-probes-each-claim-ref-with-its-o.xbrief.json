@@ -128,7 +128,9 @@
           "packages/core/src/swarm/finalize-owed.test.ts",
           "packages/core/src/session/session-start.ts",
           "packages/core/src/session/session-start-finalize-owed.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/core/src/session/git.ts",
+          "packages/core/src/session/git.test.ts"
         ],
         "size": "M",
         "file_scope_confidence": "high",
@@ -145,7 +147,9 @@
           "packages/core/src/swarm/finalize-owed.test.ts",
           "packages/core/src/session/session-start.ts",
           "packages/core/src/session/session-start-finalize-owed.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/core/src/session/git.ts",
+          "packages/core/src/session/git.test.ts"
         ],
         "module_boundary": "packages/core/src/swarm/finalize-owed.ts",
         "cohesion_exemption": "CHANGELOG + finalize-owed claim probe + session-start caller wiring"
