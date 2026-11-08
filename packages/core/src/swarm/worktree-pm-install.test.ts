@@ -123,6 +123,59 @@ describe("prepareLinkedWorktree (#6100)", () => {
     expect(resolvePresenterSessionId(undefined, {})).toBe("");
   });
 
+  it("admits live owner when only GROK_SESSION_ID is set (#6100)", () => {
+    const repo = mkdtempSync(join(tmpdir(), "prep-grok-owner-"));
+    execFileSync("git", ["init", "-q", "-b", "master", repo], { encoding: "utf8" });
+    execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: repo, encoding: "utf8" });
+    execFileSync("git", ["config", "user.name", "T"], { cwd: repo, encoding: "utf8" });
+    writeFileSync(
+      join(repo, "package.json"),
+      JSON.stringify({
+        name: "prep-grok-owner",
+        private: true,
+        devDependencies: { "@deftai/directive-runtime": "1.2.3" },
+      }),
+    );
+    writeFileSync(join(repo, "package-lock.json"), "{}\n");
+    execFileSync("git", ["add", "-A"], { cwd: repo, encoding: "utf8" });
+    execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: repo, encoding: "utf8" });
+    const wt = join(repo, "wt");
+    execFileSync("git", ["worktree", "add", "--detach", "-q", wt], { cwd: repo, encoding: "utf8" });
+    const now = new Date().toISOString();
+    mkdirSync(join(wt, ".deft"), { recursive: true });
+    writeFileSync(
+      join(wt, ".deft", "occupancy.json"),
+      JSON.stringify({
+        session_id: "grok-owner-1",
+        worktree_path: wt,
+        claimed_at: now,
+        heartbeat_at: now,
+        intent: "mutation",
+        host: "none",
+        address: "none",
+        grants: [],
+      }),
+    );
+    const prevDeft = process.env.DEFT_SESSION_ID;
+    const prevGrok = process.env.GROK_SESSION_ID;
+    delete process.env.DEFT_SESSION_ID;
+    process.env.GROK_SESSION_ID = "grok-owner-1";
+    try {
+      const r = prepareLinkedWorktree(wt, {
+        repoRoot: repo,
+        requirePinOnly: true,
+      });
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.code).toBe("pin-missing");
+    } finally {
+      if (prevDeft === undefined) delete process.env.DEFT_SESSION_ID;
+      else process.env.DEFT_SESSION_ID = prevDeft;
+      if (prevGrok === undefined) delete process.env.GROK_SESSION_ID;
+      else process.env.GROK_SESSION_ID = prevGrok;
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
   it("refuses live stranger lease before any PM or deposit call", () => {
     const repo = mkdtempSync(join(tmpdir(), "prep-lease-"));
     execFileSync("git", ["init", "-q", "-b", "master", repo], { encoding: "utf8" });

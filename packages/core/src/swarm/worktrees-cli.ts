@@ -40,17 +40,31 @@ export function parseWorktreesArgv(argv: readonly string[]): {
   return { mapPath, baseBranch, repoRoot, createMissing };
 }
 
+const PREP_USAGE =
+  "usage: deft swarm-worktrees prep --path <linked-worktree> [--repo-root <path>] [--session-id <id>]\n" +
+  "  Prepare one linked worktree (ownership + live-lease gates, then deposit/PM as needed).\n" +
+  "  --help, -h  Show this help without mutating the worktree.\n";
+
+const MAP_USAGE =
+  "usage: deft swarm-worktrees --map <file> --base-branch <branch> [--repo-root <path>] [--no-create-missing]\n" +
+  "  Or: deft swarm-worktrees prep --path <linked-worktree> [...]\n" +
+  "  --help, -h  Show this help.\n";
+
 export function parsePrepArgv(argv: readonly string[]): {
   path: string;
   repoRoot: string;
   sessionId: string;
+  help: boolean;
 } {
   let path = "";
   let repoRoot = ".";
   let sessionId = "";
+  let help = false;
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i] ?? "";
-    if ((arg === "--path" || arg === "--worktree") && argv[i + 1] !== undefined) {
+    if (arg === "--help" || arg === "-h") {
+      help = true;
+    } else if ((arg === "--path" || arg === "--worktree") && argv[i + 1] !== undefined) {
       path = argv[i + 1] ?? "";
       i += 1;
     } else if (arg === "--repo-root" && argv[i + 1] !== undefined) {
@@ -63,11 +77,15 @@ export function parsePrepArgv(argv: readonly string[]): {
       path = arg;
     }
   }
-  return { path, repoRoot, sessionId };
+  return { path, repoRoot, sessionId, help };
 }
 
 function prepMain(argv: readonly string[]): number {
-  const { path, repoRoot, sessionId } = parsePrepArgv(argv);
+  const { path, repoRoot, sessionId, help } = parsePrepArgv(argv);
+  if (help) {
+    process.stdout.write(PREP_USAGE);
+    return 0;
+  }
   if (path.trim().length === 0) {
     process.stderr.write("config error: swarm-worktrees prep requires --path <linked-worktree>\n");
     return 2;
@@ -97,6 +115,10 @@ function prepMain(argv: readonly string[]): number {
 }
 
 export function worktreesMain(argv: string[] = process.argv.slice(2)): number {
+  if (argv.some((a) => a === "--help" || a === "-h") && (argv[0] ?? "").trim() !== "prep") {
+    process.stdout.write(MAP_USAGE);
+    return 0;
+  }
   if ((argv[0] ?? "").trim() === "prep") {
     return prepMain(argv.slice(1));
   }

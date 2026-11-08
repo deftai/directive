@@ -15,6 +15,7 @@ import {
   WorktreePathEscapeError,
   WorktreeRevisionMismatchError,
 } from "./worktrees.js";
+import { parsePrepArgv, worktreesMain } from "./worktrees-cli.js";
 
 function gitInit(repo: string): void {
   execFileSync("git", ["init", "-q", "-b", "master", repo], { encoding: "utf8" });
@@ -513,5 +514,15 @@ describe("swarm worktrees", () => {
     expect(existsSync(join(wt, ".deft", "occupancy.json"))).toBe(false);
     expect(existsSync(join(wt, ".deft", "ritual-state.json"))).toBe(false);
     rmSync(repo, { recursive: true, force: true });
+  });
+});
+
+describe("swarm-worktrees prep help (#6100)", () => {
+  it("parsePrepArgv and worktreesMain honor --help/-h without prep", () => {
+    expect(parsePrepArgv(["--help"]).help).toBe(true);
+    expect(parsePrepArgv(["-h", "--path", "/tmp/x"]).help).toBe(true);
+    expect(worktreesMain(["--help"])).toBe(0);
+    expect(worktreesMain(["prep", "--help"])).toBe(0);
+    expect(worktreesMain(["prep", "-h", "--path", join(tmpdir(), "no-such-wt")])).toBe(0);
   });
 });
