@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5983",
-    "updated": "2026-11-08T19:34:29Z"
+    "updated": "2026-11-08T19:42:33Z"
   },
   "plan": {
     "title": "[framework-gap] Human-presence mint: agent-shell marker list has no Grok entry",
@@ -19,38 +19,32 @@
       {
         "id": "clause.1",
         "title": "Add exact GROK_AGENT then GROK_SESSION_ID to AUTHZ_AGENT_SHELL_ENV_MARKERS after OPENAI_CODEX with non-empty-after-trim matching and both markers unconditional",
-        "status": "pending",
-        "artifact_path": "packages/runtime/src/human-presence-mint.ts"
+        "status": "pending"
       },
       {
         "id": "clause.2",
         "title": "Export detectedAgentShellMarkers returning matching keys in list order; looksLikeAgentShell is length > 0; blank or whitespace-only values yield empty list",
-        "status": "pending",
-        "artifact_path": "packages/runtime/src/human-presence-mint.ts"
+        "status": "pending"
       },
       {
         "id": "clause.3",
         "title": "Shared refuseNonInteractiveMint message names every matched key with unset hint and never prints values",
-        "status": "pending",
-        "artifact_path": "packages/runtime/src/human-presence-mint.ts"
+        "status": "pending"
       },
       {
         "id": "clause.4",
         "title": "Keep GROK_AGENT on the denylist so dual-use false refuses stay diagnosable via the named-unset message",
-        "status": "pending",
-        "artifact_path": "packages/runtime/src/human-presence-mint.ts"
+        "status": "pending"
       },
       {
         "id": "clause.5",
         "title": "Extend human-presence mint and approved-scope tests for Grok markers including blank-value empty-list behavior",
-        "status": "pending",
-        "artifact_path": "packages/runtime/src/human-presence-mint.test.ts"
+        "status": "pending"
       },
       {
         "id": "clause.6",
         "title": "CHANGELOG Unreleased Fixed for Grok agent-shell mint markers",
-        "status": "pending",
-        "artifact_path": "CHANGELOG.md"
+        "status": "pending"
       }
     ],
     "tags": [
@@ -183,12 +177,6 @@
       }
     },
     "id": "github.issue.6065251499",
-    "updated": "2026-11-08T19:34:29Z"
-  },
-  "acceptance": {
-    "none_stated": true,
-    "clauses": [],
-    "commands": [],
-    "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)"
+    "updated": "2026-11-08T19:42:33Z"
   }
 }

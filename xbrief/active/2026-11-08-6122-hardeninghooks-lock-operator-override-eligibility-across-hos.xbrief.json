@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6122",
-    "updated": "2026-11-08T19:33:45Z"
+    "updated": "2026-11-08T19:42:33Z"
   },
   "plan": {
     "title": "hardening(hooks): lock operator-override eligibility across host entry points",
@@ -19,44 +19,37 @@
       {
         "id": "clause.1",
         "title": "Introduce three-way eligibility distinguishing positively validated eligible from ineligible and indeterminate; only eligible selects operator override",
-        "status": "pending",
-        "artifact_path": "packages/core/src/policy/deft-directive-disable.ts"
+        "status": "pending"
       },
       {
         "id": "clause.2",
         "title": "Require successfully completed git ls-files listing with usable captured output; launch failure nonzero or unavailable output is indeterminate",
-        "status": "pending",
-        "artifact_path": "packages/core/src/policy/deft-directive-disable.ts"
+        "status": "pending"
       },
       {
         "id": "clause.3",
         "title": "Do not cache indeterminate probe results as untracked success; later successful tracked probe must re-probe and remain inactive",
-        "status": "pending",
-        "artifact_path": "packages/core/src/policy/deft-directive-disable.ts"
+        "status": "pending"
       },
       {
         "id": "clause.4",
         "title": "Outer uses lstat regular-file parity with policy; table-driven tests cover adapters and generated host fixtures for four hosts",
-        "status": "pending",
-        "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts"
+        "status": "pending"
       },
       {
         "id": "clause.5",
         "title": "Positively validated eligible override remains usable before project runtime is installed Node-built-ins-only",
-        "status": "pending",
-        "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts"
+        "status": "pending"
       },
       {
         "id": "clause.6",
         "title": "Extend policy and host-hook-outer tests for eligibility matrix cache transitions and host refusal survival",
-        "status": "pending",
-        "artifact_path": "packages/core/src/policy/deft-directive-disable.test.ts"
+        "status": "pending"
       },
       {
         "id": "clause.7",
         "title": "CHANGELOG Unreleased Security or Fixed for operator-disable eligibility lock Refs 6034 never Closes",
-        "status": "pending",
-        "artifact_path": "CHANGELOG.md"
+        "status": "pending"
       }
     ],
     "tags": [
@@ -193,12 +186,6 @@
       }
     },
     "id": "github.issue.6274375450",
-    "updated": "2026-11-08T19:33:45Z"
-  },
-  "acceptance": {
-    "none_stated": true,
-    "clauses": [],
-    "commands": [],
-    "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)"
+    "updated": "2026-11-08T19:42:33Z"
   }
 }

@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6021",
-    "updated": "2026-11-08T19:33:40Z"
+    "updated": "2026-11-08T19:42:33Z"
   },
   "plan": {
     "title": "chore(deps): raise `packageManager` pnpm to >= 11.11.0 (upstream pnpm security advisories)",
@@ -19,32 +19,27 @@
       {
         "id": "clause.1",
         "title": "Raise package.json packageManager to pnpm release at or above 11.11.0 (preferred pnpm@11.28.9; floor pnpm@11.11.0 on P3 ladder)",
-        "status": "pending",
-        "artifact_path": "package.json"
+        "status": "pending"
       },
       {
         "id": "clause.2",
         "title": "Keep package.json packageManager as the sole distribution pin for packageManager readers",
-        "status": "pending",
-        "artifact_path": "package.json"
+        "status": "pending"
       },
       {
         "id": "clause.3",
         "title": "Record successful pnpm version and frozen-lockfile install at chosen pin without unrelated dependency churn; halt for Recut on floor freeze failure",
-        "status": "pending",
-        "artifact_path": "package.json"
+        "status": "pending"
       },
       {
         "id": "clause.4",
         "title": "Resolve-probe pull_request packageManager readers only; leave merge_group and npm-publish as Keep-outs residuals",
-        "status": "pending",
-        "artifact_path": "package.json"
+        "status": "pending"
       },
       {
         "id": "clause.5",
         "title": "CHANGELOG Unreleased note for packageManager pnpm security pin raise",
-        "status": "pending",
-        "artifact_path": "CHANGELOG.md"
+        "status": "pending"
       }
     ],
     "tags": [
@@ -153,12 +148,6 @@
       }
     },
     "id": "github.issue.6141354219",
-    "updated": "2026-11-08T19:33:40Z"
-  },
-  "acceptance": {
-    "none_stated": true,
-    "clauses": [],
-    "commands": [],
-    "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)"
+    "updated": "2026-11-08T19:42:33Z"
   }
 }

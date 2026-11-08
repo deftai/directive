@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5953",
-    "updated": "2026-11-08T19:34:34Z"
+    "updated": "2026-11-08T19:42:33Z"
   },
   "plan": {
     "title": "feat(release): update the maintainer's local checkout to the new pin after every release",
@@ -19,68 +19,57 @@
       {
         "id": "clause.1",
         "title": "Require --checkout naming the maintainer primary occupancy root; refuse ambient release-worktree-only success",
-        "status": "pending",
-        "artifact_path": "content/skills/deft-directive-release/SKILL.md"
+        "status": "pending"
       },
       {
         "id": "clause.2",
         "title": "Refuse when the target checkout holds a live foreign occupancy lease before any write",
-        "status": "pending",
-        "artifact_path": "content/skills/deft-directive-release/SKILL.md"
+        "status": "pending"
       },
       {
         "id": "clause.3",
         "title": "Define release:local-update as inline Taskfile cmds without engine:invoke or ts:build deps; re-resolve upgrade binary after frozen install",
-        "status": "pending",
-        "artifact_path": "Taskfile.yml"
+        "status": "pending"
       },
       {
         "id": "clause.4",
         "title": "Require version-matched agent-hook deposit already merged on tip before upgrade; keep Phase 7 local closeout incomplete until that evidence exists",
-        "status": "pending",
-        "artifact_path": "content/skills/deft-directive-release/SKILL.md"
+        "status": "pending"
       },
       {
         "id": "clause.5",
         "title": "Run directive upgrade with explicit --target-version against the checkout never registry-latest",
-        "status": "pending",
-        "artifact_path": "content/skills/deft-directive-release/SKILL.md"
+        "status": "pending"
       },
       {
         "id": "clause.6",
         "title": "After upgrade any tracked-file diff keeps closeout non-zero and incomplete with deposit-merge recovery paths",
-        "status": "pending",
-        "artifact_path": "content/skills/deft-directive-release/SKILL.md"
+        "status": "pending"
       },
       {
         "id": "clause.7",
         "title": "After upgrade run deft verify:hooks-installed with --project-root and --scope=all from checkout post-install runtime and re-assert installed runtime equals version",
-        "status": "pending",
-        "artifact_path": "content/skills/deft-directive-release/SKILL.md"
+        "status": "pending"
       },
       {
         "id": "clause.8",
         "title": "Keep ff-only pull frozen-lockfile install and pin assert; never reset force-push commit or global npm i -g",
-        "status": "pending",
-        "artifact_path": "content/skills/deft-directive-release/SKILL.md"
+        "status": "pending"
       },
       {
         "id": "clause.9",
         "title": "Keep local-update required for maintainer non-latest cuts where npm latest will not advance the checkout by accident",
-        "status": "pending",
-        "artifact_path": "content/skills/deft-directive-release/SKILL.md"
+        "status": "pending"
       },
       {
         "id": "clause.10",
         "title": "Anchor Phase 7 step on tip-pin-equals-released observable rather than a phantom pin-PR step",
-        "status": "pending",
-        "artifact_path": "content/skills/deft-directive-release/SKILL.md"
+        "status": "pending"
       },
       {
         "id": "clause.11",
         "title": "CHANGELOG Unreleased note for maintainer local checkout update after release",
-        "status": "pending",
-        "artifact_path": "CHANGELOG.md"
+        "status": "pending"
       }
     ],
     "tags": [
@@ -258,12 +247,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6048674564",
-    "updated": "2026-11-08T19:34:34Z"
-  },
-  "acceptance": {
-    "none_stated": true,
-    "clauses": [],
-    "commands": [],
-    "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)"
+    "updated": "2026-11-08T19:42:33Z"
   }
 }
