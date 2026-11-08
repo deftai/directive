@@ -1,0 +1,289 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6008",
+    "updated": "2026-11-08T01:02:28Z"
+  },
+  "plan": {
+    "title": "[framework-gap] finalize-owed probes each claim ref with its own unbounded ls-remote",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] finalize-owed probes each claim ref with its own unbounded ls-remote",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6008",
+      "Overview": "\n\n- Memoized first-demand claim batch — on first remoteClaimMeta demand in a discoverFinalizeOwed run, run one `git ls-remote --heads origin refs/heads/swarm/finalize/*`, map hits by exact full ref name, and reuse that in-memory map for later demands in both loops; completed loop still runs after nonterminal states are final; if no story reaches a probe demand, make no claim-probe network call; if that first-demand listing fails/times out/unparses/throws, treat every story that reached a probe demand as claim-unknown under the unknown wire (do not empty-map into owed, and do not re-probe per demand).\n- Every production caller owns claimRunner — session-start and finalizeOwed each construct the bounded claim runner and pass claimRunner into discoverFinalizeOwed; discover resolves `options.claimRunner ?? options.runGit ?? defaultGitRunner` for claim ls-remote and claim hit-fetch only; do not attach the claim bound by `runGit === defaultGitRunner` identity comparison.\n- Tip-fetch identity residual — leave fetchDeliveryTipPrivate's existing tip identity attach in place as a named residual; do not delete it under the claim-bound identity ban.\n- Env-merging timed claim runner — the claimRunner constructor is a timed (30s) runner that can set GIT_TERMINAL_PROMPT=0 via an env/options bag on execGit; when env is supplied it must merge over process.env (never replace the child environment wholesale).\n- Direct-child timeout class — the claim bound kills/times the direct git child; process-group kill stays outside this Bound.\n- Bounded claim hit-fetch with reclaimable preserve — claim hit-fetch uses claimRunner; timeout/unparseable/non-reclaimable failures are unknown+blocking; isReclaimableClaimFetchFailure outcomes stay stale (self-clearing delete path) and are not remapped to unknown.\n- Unknown at today's classification points — for a story that reached the probe, claim ls-remote failure/timeout/unparseable/throw and non-reclaimable hit-fetch failure set unknown through inventory formatting and finalizeOwed; preserve each loop's existing issue-state exemptions (closed stay exempt; protectedUmbrella exempts unmarked admits in the nonterminal loop and qualifying completed-loop stories); marked nonterminal protectedUmbrella leftovers remain unknown+blocking on claim failure unless deferred; unverifiable issue-state stays unknown+blocking; never surface raw remote stdout/stderr.\n- Dedupe includes unknown — add unknown to the completed-loop twin-dedupe allowlist so one batch failure does not emit duplicate blocking rows / duplicate issue reads for the same identity.\n- finalizeOwed unknown terminal — on the ordinary finalizeOwed path (not --inventory-only / --dry-run), unknown stories must force a non-zero exit so the command cannot exit 0 while the session gate stays blocked; inventory-only/dry-run stay report-only.\n- Behavior-class semantics with snapshot residual — when claim metadata is successfully obtained, owed / close-owed / in-flight / stale stay behavior-class equivalent to today modulo the memoized-batch snapshot age across the remaining O(n) gh leg; tryClaimRef create-only --force-with-lease remains the double-claim backstop; name that snapshot-age residual rather than asserting byte-perfect in-flight equivalence for the whole inventory.\n- Direct-child Risk note — document that the 30s claim bound is on the direct child, not a wall-clock bound on session:start: an orphan helper holding inherited pipes can keep the sync call blocked past the child timeout on every platform, and win32 has no process-group kill option; do not invent a fake win32 group kill.\n\n\n",
+      "Labels": "bug, design-critique:ingest-ready",
+      "UserStory": "As a session operator, finalize-owed claim probing must use one bounded batched ls-remote instead of unbounded per-ref probes.",
+      "ImplementationPlan": "Stamp Prefer-A Recut-5 Bound 6692703907: memoized claim batch; caller-owned claimRunner; reclaimable preserve; unknown terminal non-zero exit."
+    },
+    "items": [
+      {
+        "title": "Memoized first-demand claim batch — on first claim metadata probe demand in a finalize-owed discovery run, run one claim batch listing, map hits by exact full ref name, and reuse that in-memory map for later demands in both loops; completed loop still runs after nonterminal states are final; if no story reaches a probe demand, make no claim-probe network call; if that first-demand listing fails/times out/unparses/throws, treat every story that reached a probe demand as claim-unknown under the unknown wire (do not empty-map into owed, and do not re-probe per demand).",
+        "status": "proposed",
+        "id": "clause.1",
+        "artifact_path": "packages/core/src/swarm/finalize-owed.ts"
+      },
+      {
+        "title": "Every production caller owns bounded claim runner — session-start and finalize-owed command each construct the bounded claim runner and pass bounded claim runner into finalize-owed discovery; discover resolves claim batch listing for claim ls-remote and claim hit-fetch only; do not attach the claim bound by claim batch listing identity comparison.",
+        "status": "proposed",
+        "id": "clause.2",
+        "artifact_path": "packages/core/src/session/session-start.ts"
+      },
+      {
+        "title": "Tip-fetch identity residual — leave delivery tip private fetch's existing tip identity attach in place as a named residual; do not delete it under the claim-bound identity ban.",
+        "status": "proposed",
+        "id": "clause.3",
+        "artifact_path": "packages/core/src/swarm/finalize-owed.test.ts"
+      },
+      {
+        "title": "Env-merging timed claim runner — the bounded claim runner constructor is a timed (30s) runner that can set GIT_TERMINAL_PROMPT=0 via an env/options bag on execGit; when env is supplied it must merge over process.env (never replace the child environment wholesale).",
+        "status": "proposed",
+        "id": "clause.4",
+        "artifact_path": "packages/core/src/session/session-start-finalize-owed.test.ts"
+      },
+      {
+        "title": "Direct-child timeout class — the claim bound kills/times the direct git child; process-group kill stays outside this Bound.",
+        "status": "proposed",
+        "id": "clause.5",
+        "artifact_path": "CHANGELOG.md"
+      },
+      {
+        "title": "Bounded claim hit-fetch with reclaimable preserve — claim hit-fetch uses bounded claim runner; timeout/unparseable/non-reclaimable failures are unknown+blocking; reclaimable claim-fetch failure helper outcomes stay stale (self-clearing delete path) and are not remapped to unknown.",
+        "status": "proposed",
+        "id": "clause.6",
+        "artifact_path": "packages/core/src/swarm/finalize-owed.ts"
+      },
+      {
+        "title": "Unknown at today's classification points — for a story that reached the probe, claim ls-remote failure/timeout/unparseable/throw and non-reclaimable hit-fetch failure set unknown through inventory formatting and finalize-owed command; preserve each loop's existing issue-state exemptions (closed stay exempt; protected-umbrella exemption exempts unmarked admits in the nonterminal loop and qualifying completed-loop stories); marked nonterminal protected-umbrella exemption leftovers remain unknown+blocking on claim failure unless deferred; unverifiable issue-state stays unknown+blocking; never surface raw remote stdout/stderr.",
+        "status": "proposed",
+        "id": "clause.7",
+        "artifact_path": "packages/core/src/session/session-start.ts"
+      },
+      {
+        "title": "Dedupe includes unknown — add unknown to the completed-loop twin-dedupe allowlist so one batch failure does not emit duplicate blocking rows / duplicate issue reads for the same identity.",
+        "status": "proposed",
+        "id": "clause.8",
+        "artifact_path": "packages/core/src/swarm/finalize-owed.test.ts"
+      },
+      {
+        "title": "finalize-owed command unknown terminal — on the ordinary finalize-owed command path (not --inventory-only / --dry-run), unknown stories must force a non-zero exit so the command cannot exit 0 while the session gate stays blocked; inventory-only/dry-run stay report-only.",
+        "status": "proposed",
+        "id": "clause.9",
+        "artifact_path": "packages/core/src/session/session-start-finalize-owed.test.ts"
+      },
+      {
+        "title": "Behavior-class semantics with snapshot residual — when claim metadata is successfully obtained, owed / close-owed / in-flight / stale stay behavior-class equivalent to today modulo the memoized-batch snapshot age across the remaining O(n) gh leg; claim-ref create helper create-only --force-with-lease remains the double-claim backstop; name that snapshot-age residual rather than asserting byte-perfect in-flight equivalence for the whole inventory.",
+        "status": "proposed",
+        "id": "clause.10",
+        "artifact_path": "CHANGELOG.md"
+      },
+      {
+        "title": "Direct-child Risk note — document that the 30s claim bound is on the direct child, not a wall-clock bound on session:start: an orphan helper holding inherited pipes can keep the sync call blocked past the child timeout on every platform, and win32 has no process-group kill option; do not invent a fake win32 group kill.",
+        "status": "proposed",
+        "id": "clause.11",
+        "artifact_path": "packages/core/src/swarm/finalize-owed.ts"
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6008",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6008: [framework-gap] finalize-owed probes each claim ref with its own unbounded ls-remote"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "git ls-remote --heads origin refs/heads/swarm/finalize/*",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "finalize-owed-batched-bounded-claim-ls-remote",
+        "expected_outputs": [
+          "memoized first-demand claim ls-remote batch",
+          "claimRunner on session-start and finalizeOwed",
+          "reclaimable hit-fetch preserve + unknown wire",
+          "finalizeOwed non-zero on unknown",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/swarm/finalize-owed.test.ts packages/core/src/session/session-start-finalize-owed.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/swarm/finalize-owed.ts",
+          "packages/core/src/swarm/finalize-owed.test.ts",
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/session/session-start-finalize-owed.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#6008",
+          "Prefer-A Bound 6692703907"
+        ],
+        "parallel_safe": true
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/swarm/finalize-owed.ts",
+          "packages/core/src/swarm/finalize-owed.test.ts",
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/session/session-start-finalize-owed.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/swarm/finalize-owed.ts",
+        "cohesion_exemption": "CHANGELOG + finalize-owed claim probe + session-start caller wiring"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6085443182,
+        "origin": "deftai/directive#6008",
+        "id": "github.issue.6085443182"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "e937e641a58394010028480d81adc7985b3c8ae014af849d783e9efd1f4684a3"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 11 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "[framework-gap] finalize-owed probes each claim ref with its own unbounded ls-remote",
+        "Memoized first-demand claim batch — on first remoteClaimMeta demand in a discoverFinalizeOwed run, run one `git ls-remote --heads origin refs/heads/swarm/finalize/*`, map hits by exact full ref name, and reuse that in-memory map for later demands in both loops; completed loop still runs after nonterminal states are final; if no story reaches a probe demand, make no claim-probe network call; if that first-demand listing fails/times out/unparses/throws, treat every story that reached a probe demand as claim-unknown under the unknown wire (do not empty-map into owed, and do not re-probe per demand).",
+        "Every production caller owns claimRunner — session-start and finalizeOwed each construct the bounded claim runner and pass claimRunner into discoverFinalizeOwed; discover resolves `options.claimRunner ??",
+        "options.runGit ??",
+        "defaultGitRunner` for claim ls-remote and claim hit-fetch only; do not attach the claim bound by `runGit === defaultGitRunner` identity comparison.",
+        "Tip-fetch identity residual — leave fetchDeliveryTipPrivate's existing tip identity attach in place as a named residual; do not delete it under the claim-bound identity ban.",
+        "Env-merging timed claim runner — the claimRunner constructor is a timed (30s) runner that can set GIT_TERMINAL_PROMPT=0 via an env/options bag on execGit; when env is supplied it must merge over process.env (never replace the child environment wholesale).",
+        "Direct-child timeout class — the claim bound kills/times the direct git child; process-group kill stays outside this Bound.",
+        "Bounded claim hit-fetch with reclaimable preserve — claim hit-fetch uses claimRunner; timeout/unparseable/non-reclaimable failures are unknown+blocking; isReclaimableClaimFetchFailure outcomes stay stale (self-clearing delete path) and are not remapped to unknown.",
+        "Unknown at today's classification points — for a story that reached the probe, claim ls-remote failure/timeout/unparseable/throw and non-reclaimable hit-fetch failure set unknown through inventory formatting and finalizeOwed; preserve each loop's existing issue-state exemptions (closed stay exempt; protectedUmbrella exempts unmarked admits in the nonterminal loop and qualifying completed-loop stories); marked nonterminal protectedUmbrella leftovers remain unknown+blocking on claim failure unless deferred; unverifiable issue-state stays unknown+blocking; never surface raw remote stdout/stderr.",
+        "Dedupe includes unknown — add unknown to the completed-loop twin-dedupe allowlist so one batch failure does not emit duplicate blocking rows / duplicate issue reads for the same identity.",
+        "finalizeOwed unknown terminal — on the ordinary finalizeOwed path (not --inventory-only / --dry-run), unknown stories must force a non-zero exit so the command cannot exit 0 while the session gate stays blocked; inventory-only/dry-run stay report-only.",
+        "Behavior-class semantics with snapshot residual — when claim metadata is successfully obtained, owed / close-owed / in-flight / stale stay behavior-class equivalent to today modulo the memoized-batch snapshot age across the remaining O(n) gh leg; tryClaimRef create-only --force-with-lease remains the double-claim backstop; name that snapshot-age residual rather than asserting byte-perfect in-flight equivalence for the whole inventory.",
+        "Direct-child Risk note — document that the 30s claim bound is on the direct child, not a wall-clock bound on session:start: an orphan helper holding inherited pipes can keep the sync call blocked past the child timeout on every platform, and win32 has no process-group kill option; do not invent a fake win32 group kill."
+      ],
+      "admitted_source_sentences": [
+        "Memoized first-demand claim batch — on first remoteClaimMeta demand in a discoverFinalizeOwed run, run one `git ls-remote --heads origin refs/heads/swarm/finalize/*`, map hits by exact full ref name, and reuse that in-memory map for later demands in both loops; completed loop still runs after nonterminal states are final; if no story reaches a probe demand, make no claim-probe network call; if that first-demand listing fails/times out/unparses/throws, treat every story that reached a probe demand as claim-unknown under the unknown wire (do not empty-map into owed, and do not re-probe per demand).",
+        "Every production caller owns claimRunner — session-start and finalizeOwed each construct the bounded claim runner and pass claimRunner into discoverFinalizeOwed; discover resolves `options.claimRunner ??",
+        "options.runGit ??",
+        "defaultGitRunner` for claim ls-remote and claim hit-fetch only; do not attach the claim bound by `runGit === defaultGitRunner` identity comparison.",
+        "Tip-fetch identity residual — leave fetchDeliveryTipPrivate's existing tip identity attach in place as a named residual; do not delete it under the claim-bound identity ban.",
+        "Env-merging timed claim runner — the claimRunner constructor is a timed (30s) runner that can set GIT_TERMINAL_PROMPT=0 via an env/options bag on execGit; when env is supplied it must merge over process.env (never replace the child environment wholesale).",
+        "Direct-child timeout class — the claim bound kills/times the direct git child; process-group kill stays outside this Bound.",
+        "Bounded claim hit-fetch with reclaimable preserve — claim hit-fetch uses claimRunner; timeout/unparseable/non-reclaimable failures are unknown+blocking; isReclaimableClaimFetchFailure outcomes stay stale (self-clearing delete path) and are not remapped to unknown.",
+        "Unknown at today's classification points — for a story that reached the probe, claim ls-remote failure/timeout/unparseable/throw and non-reclaimable hit-fetch failure set unknown through inventory formatting and finalizeOwed; preserve each loop's existing issue-state exemptions (closed stay exempt; protectedUmbrella exempts unmarked admits in the nonterminal loop and qualifying completed-loop stories); marked nonterminal protectedUmbrella leftovers remain unknown+blocking on claim failure unless deferred; unverifiable issue-state stays unknown+blocking; never surface raw remote stdout/stderr.",
+        "Dedupe includes unknown — add unknown to the completed-loop twin-dedupe allowlist so one batch failure does not emit duplicate blocking rows / duplicate issue reads for the same identity.",
+        "finalizeOwed unknown terminal — on the ordinary finalizeOwed path (not --inventory-only / --dry-run), unknown stories must force a non-zero exit so the command cannot exit 0 while the session gate stays blocked; inventory-only/dry-run stay report-only.",
+        "Behavior-class semantics with snapshot residual — when claim metadata is successfully obtained, owed / close-owed / in-flight / stale stay behavior-class equivalent to today modulo the memoized-batch snapshot age across the remaining O(n) gh leg; tryClaimRef create-only --force-with-lease remains the double-claim backstop; name that snapshot-age residual rather than asserting byte-perfect in-flight equivalence for the whole inventory.",
+        "Direct-child Risk note — document that the 30s claim bound is on the direct child, not a wall-clock bound on session:start: an orphan helper holding inherited pipes can keep the sync call blocked past the child timeout on every platform, and win32 has no process-group kill option; do not invent a fake win32 group kill."
+      ],
+      "admitted_source_digest": "0bf39ba79be2366ca69227206a0ef2816bd35dacea54ec14366658103bb0df16",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Memoized first-demand claim batch — on first claim metadata probe demand in a finalize-owed discovery run, run one claim batch listing, map hits by exact full ref name, and reuse that in-memory map for later demands in both loops; completed loop still runs after nonterminal states are final; if no story reaches a probe demand, make no claim-probe network call; if that first-demand listing fails/times out/unparses/throws, treat every story that reached a probe demand as claim-unknown under the unknown wire (do not empty-map into owed, and do not re-probe per demand).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Every production caller owns bounded claim runner — session-start and finalize-owed command each construct the bounded claim runner and pass bounded claim runner into finalize-owed discovery; discover resolves claim batch listing for claim ls-remote and claim hit-fetch only; do not attach the claim bound by claim batch listing identity comparison.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Tip-fetch identity residual — leave delivery tip private fetch's existing tip identity attach in place as a named residual; do not delete it under the claim-bound identity ban.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Env-merging timed claim runner — the bounded claim runner constructor is a timed (30s) runner that can set GIT_TERMINAL_PROMPT=0 via an env/options bag on execGit; when env is supplied it must merge over process.env (never replace the child environment wholesale).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Direct-child timeout class — the claim bound kills/times the direct git child; process-group kill stays outside this Bound.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Bounded claim hit-fetch with reclaimable preserve — claim hit-fetch uses bounded claim runner; timeout/unparseable/non-reclaimable failures are unknown+blocking; reclaimable claim-fetch failure helper outcomes stay stale (self-clearing delete path) and are not remapped to unknown.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Unknown at today's classification points — for a story that reached the probe, claim ls-remote failure/timeout/unparseable/throw and non-reclaimable hit-fetch failure set unknown through inventory formatting and finalize-owed command; preserve each loop's existing issue-state exemptions (closed stay exempt; protected-umbrella exemption exempts unmarked admits in the nonterminal loop and qualifying completed-loop stories); marked nonterminal protected-umbrella exemption leftovers remain unknown+blocking on claim failure unless deferred; unverifiable issue-state stays unknown+blocking; never surface raw remote stdout/stderr.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Dedupe includes unknown — add unknown to the completed-loop twin-dedupe allowlist so one batch failure does not emit duplicate blocking rows / duplicate issue reads for the same identity.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "finalize-owed command unknown terminal — on the ordinary finalize-owed command path (not --inventory-only / --dry-run), unknown stories must force a non-zero exit so the command cannot exit 0 while the session gate stays blocked; inventory-only/dry-run stay report-only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Behavior-class semantics with snapshot residual — when claim metadata is successfully obtained, owed / close-owed / in-flight / stale stay behavior-class equivalent to today modulo the memoized-batch snapshot age across the remaining O(n) gh leg; claim-ref create helper create-only --force-with-lease remains the double-claim backstop; name that snapshot-age residual rather than asserting byte-perfect in-flight equivalence for the whole inventory.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Direct-child Risk note — document that the 30s claim bound is on the direct child, not a wall-clock bound on session:start: an orphan helper holding inherited pipes can keep the sync call blocked past the child timeout on every platform, and win32 has no process-group kill option; do not invent a fake win32 group kill.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6085443182",
+    "overview": "As a session operator, finalize-owed claim probing must use one bounded batched ls-remote instead of unbounded per-ref probes.",
+    "updated": "2026-11-08T01:02:28Z"
+  }
+}
