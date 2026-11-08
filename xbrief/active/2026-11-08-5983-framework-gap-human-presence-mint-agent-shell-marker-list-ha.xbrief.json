@@ -1,0 +1,194 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5983",
+    "updated": "2026-11-08T19:34:29Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Human-presence mint: agent-shell marker list has no Grok entry",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] Human-presence mint: agent-shell marker list has no Grok entry",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5983",
+      "Overview": "\n- relieves: P1 — Add exact env names GROK_AGENT then GROK_SESSION_ID to AUTHZ_AGENT_SHELL_ENV_MARKERS after OPENAI_CODEX with non-empty-after-trim matching, no GROK_* prefix match, and both markers unconditional with the session-id-only fallback struck.\n- relieves: P2 — Export detectedAgentShellMarkers(environ) returning every matching key in list order, implement looksLikeAgentShell as length > 0, and change the single shared refuseNonInteractiveMint message so every mint caller names those keys, includes an unset hint, and never prints values.\n- relieves: P3 — Keep GROK_AGENT on the denylist so dual-use false refuses stay diagnosable and recoverable through the P2 named-unset message, knowingly carrying the residual that a human profile export is still refused rather than dropping the strong marker.\n\n\n",
+      "Labels": "bug, grok-build, harness, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates",
+      "UserStory": "As a maintainer I want human-presence-mint-grok-agent-shell-markers so Prefer-A Bound remedy ships through merge.",
+      "ImplementationPlan": "Implement Prefer-A Bound limbs for #5983; verify via swarm.verify_commands; CHANGELOG Unreleased."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Add exact GROK_AGENT then GROK_SESSION_ID to AUTHZ_AGENT_SHELL_ENV_MARKERS after OPENAI_CODEX with non-empty-after-trim matching and both markers unconditional",
+        "status": "pending",
+        "artifact_path": "packages/runtime/src/human-presence-mint.ts"
+      },
+      {
+        "id": "clause.2",
+        "title": "Export detectedAgentShellMarkers returning matching keys in list order; looksLikeAgentShell is length > 0; blank or whitespace-only values yield empty list",
+        "status": "pending",
+        "artifact_path": "packages/runtime/src/human-presence-mint.ts"
+      },
+      {
+        "id": "clause.3",
+        "title": "Shared refuseNonInteractiveMint message names every matched key with unset hint and never prints values",
+        "status": "pending",
+        "artifact_path": "packages/runtime/src/human-presence-mint.ts"
+      },
+      {
+        "id": "clause.4",
+        "title": "Keep GROK_AGENT on the denylist so dual-use false refuses stay diagnosable via the named-unset message",
+        "status": "pending",
+        "artifact_path": "packages/runtime/src/human-presence-mint.ts"
+      },
+      {
+        "id": "clause.5",
+        "title": "Extend human-presence mint and approved-scope tests for Grok markers including blank-value empty-list behavior",
+        "status": "pending",
+        "artifact_path": "packages/runtime/src/human-presence-mint.test.ts"
+      },
+      {
+        "id": "clause.6",
+        "title": "CHANGELOG Unreleased Fixed for Grok agent-shell mint markers",
+        "status": "pending",
+        "artifact_path": "CHANGELOG.md"
+      }
+    ],
+    "tags": [
+      "bug",
+      "grok-build",
+      "harness",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5983",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5983: [framework-gap] Human-presence mint: agent-shell marker list has no Grok entry"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Add exact GROK_AGENT then GROK_SESSION_ID to AUTHZ_AGENT_SHELL_ENV_MARKERS after OPENAI_CODEX with non-empty-after-trim matching and both markers unconditional",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Export detectedAgentShellMarkers returning matching keys in list order; looksLikeAgentShell is length > 0; blank or whitespace-only values yield empty list",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Shared refuseNonInteractiveMint message names every matched key with unset hint and never prints values",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Keep GROK_AGENT on the denylist so dual-use false refuses stay diagnosable via the named-unset message",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Extend human-presence mint and approved-scope tests for Grok markers including blank-value empty-list behavior",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "CHANGELOG Unreleased Fixed for Grok agent-shell mint markers",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "commands": [],
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "source_rung": "derived",
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/runtime/src/human-presence-mint.ts",
+          "packages/runtime/src/human-presence-mint.test.ts",
+          "packages/runtime/src/authz.ts",
+          "packages/runtime/src/scope-record-approved-scope.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/runtime/src/human-presence-mint.ts",
+        "cohesion_exemption": "CHANGELOG Unreleased + Bound product paths for thin activation write fence"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6065251499,
+        "origin": "deftai/directive#5983",
+        "id": "github.issue.6065251499"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "3a55f86f4c7be9fabf26d29226784668b37a1fcce40cbb09d68c06381ffb47b8"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "human-presence-mint-grok-agent-shell-markers",
+        "expected_outputs": [
+          "GROK_AGENT and GROK_SESSION_ID on AUTHZ_AGENT_SHELL_ENV_MARKERS",
+          "detectedAgentShellMarkers plural export; blank/whitespace => []",
+          "refuseNonInteractiveMint names matched keys with unset hint",
+          "CHANGELOG Unreleased Fixed"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/runtime/src/human-presence-mint.test.ts packages/runtime/src/scope-record-approved-scope.test.ts"
+        ],
+        "file_scope": [
+          "packages/runtime/src/human-presence-mint.ts",
+          "packages/runtime/src/human-presence-mint.test.ts",
+          "packages/runtime/src/authz.ts",
+          "packages/runtime/src/scope-record-approved-scope.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5983",
+          "Prefer-A Recut-2 Bound 6453002013",
+          "Plan amendment T5 6453463532"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.6065251499",
+    "updated": "2026-11-08T19:34:29Z"
+  },
+  "acceptance": {
+    "none_stated": true,
+    "clauses": [],
+    "commands": [],
+    "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)"
+  }
+}

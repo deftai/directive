@@ -1,0 +1,164 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6021",
+    "updated": "2026-11-08T19:33:40Z"
+  },
+  "plan": {
+    "title": "chore(deps): raise `packageManager` pnpm to >= 11.11.0 (upstream pnpm security advisories)",
+    "status": "running",
+    "narratives": {
+      "Description": "chore(deps): raise `packageManager` pnpm to >= 11.11.0 (upstream pnpm security advisories)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6021",
+      "Overview": "\n\n- relieves: P1 — Set root package.json packageManager to a pnpm release ≥ 11.11.0; preferred instance pnpm@11.28.9 (npm latest-11), or pnpm@11.11.0 if the P3 ladder fires\n- relieves: P2 — Leave that pin as the sole distribution fix for packageManager readers (workflows plus tasks/engine-pm-run.cjs corepack pnpm@semver)\n- relieves: P3 — Record pnpm --version with a successful pnpm install --frozen-lockfile against the original committed lockfile and no unrelated dependency churn; on freeze failure at 11.28.9 fall back to pnpm@11.11.0; on floor freeze failure halt for lockfile-migration Recut (no silent lockfile regenerate)\n- relieves: P4 — Resolve-probe pull_request packageManager readers only (ci.yml including Windows corepack prepare --activate consumer-fixture path, ci-lane.yml, branch-gate.yml, greenfield-python-free-smoke.yml pnpm/action-setup without version)\n\n\n",
+      "Labels": "bug, security, design-critique:ingest-ready",
+      "UserStory": "As a maintainer I want packageManager-pnpm-raise-ge-11-11-0-security so Prefer-A Bound remedy ships through merge.",
+      "ImplementationPlan": "Implement Prefer-A Bound limbs for #6021; verify via swarm.verify_commands; CHANGELOG Unreleased."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Raise package.json packageManager to pnpm release at or above 11.11.0 (preferred pnpm@11.28.9; floor pnpm@11.11.0 on P3 ladder)",
+        "status": "pending",
+        "artifact_path": "package.json"
+      },
+      {
+        "id": "clause.2",
+        "title": "Keep package.json packageManager as the sole distribution pin for packageManager readers",
+        "status": "pending",
+        "artifact_path": "package.json"
+      },
+      {
+        "id": "clause.3",
+        "title": "Record successful pnpm version and frozen-lockfile install at chosen pin without unrelated dependency churn; halt for Recut on floor freeze failure",
+        "status": "pending",
+        "artifact_path": "package.json"
+      },
+      {
+        "id": "clause.4",
+        "title": "Resolve-probe pull_request packageManager readers only; leave merge_group and npm-publish as Keep-outs residuals",
+        "status": "pending",
+        "artifact_path": "package.json"
+      },
+      {
+        "id": "clause.5",
+        "title": "CHANGELOG Unreleased note for packageManager pnpm security pin raise",
+        "status": "pending",
+        "artifact_path": "CHANGELOG.md"
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6021",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6021: chore(deps): raise `packageManager` pnpm to >= 11.11.0 (upstream pnpm security advisories)"
+      }
+    ],
+    "acceptance": {
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Raise package.json packageManager to pnpm release at or above 11.11.0 (preferred pnpm@11.28.9; floor pnpm@11.11.0 on P3 ladder)",
+          "artifact_path": "package.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Keep package.json packageManager as the sole distribution pin for packageManager readers",
+          "artifact_path": "package.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Record successful pnpm version and frozen-lockfile install at chosen pin without unrelated dependency churn; halt for Recut on floor freeze failure",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Resolve-probe pull_request packageManager readers only; leave merge_group and npm-publish as Keep-outs residuals",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "CHANGELOG Unreleased note for packageManager pnpm security pin raise",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "commands": [],
+      "derived_reason": "derived 5 independently testable clauses from the task statement before product edit (#3323)",
+      "source_rung": "derived",
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "package.json",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "package.json",
+        "cohesion_exemption": "CHANGELOG Unreleased + Bound product paths for thin activation write fence"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6141354219,
+        "origin": "deftai/directive#6021",
+        "id": "github.issue.6141354219"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "fe55b8ed237f860303c0007a62cda0680eaa5af28ad280775d38f609c0cfceb3"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "packageManager-pnpm-raise-ge-11-11-0-security",
+        "expected_outputs": [
+          "package.json packageManager pnpm >= 11.11.0 (preferred 11.28.9)",
+          "frozen-lockfile install evidence at chosen pin",
+          "CHANGELOG Unreleased Fixed/Security"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "node -e \"const p=require('./package.json'); const m=String(p.packageManager||''); if(!/^pnpm@11\\.(1[1-9]|[2-9]\\d)\\./.test(m) && m!=='pnpm@11.11.0') { console.error(m); process.exit(1)}; console.log(m)\""
+        ],
+        "file_scope": [
+          "package.json",
+          "CHANGELOG.md"
+        ],
+        "size": "S",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#6021",
+          "Prefer-A Recut-1 Bound 6725562707"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.6141354219",
+    "updated": "2026-11-08T19:33:40Z"
+  },
+  "acceptance": {
+    "none_stated": true,
+    "clauses": [],
+    "commands": [],
+    "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)"
+  }
+}

@@ -1,0 +1,204 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6122",
+    "updated": "2026-11-08T19:33:45Z"
+  },
+  "plan": {
+    "title": "hardening(hooks): lock operator-override eligibility across host entry points",
+    "status": "running",
+    "narratives": {
+      "Description": "hardening(hooks): lock operator-override eligibility across host entry points",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6122",
+      "Overview": "## Problem statement\nMake the existing operator-disable contract an explicit conformance boundary for generated host entry points and the policy detector. Cover both eligibility and indeterminate-state handling without changing the supported operator workflow.\n\n## Required behavior\n- An operator-disable override is eligible only at the project root, for a non-symlink regular file, after a successful repository-tracking check establishes that it is untracked. A tracked entry is not eligible. Other filesystem objects and unresolved metadata are not eligible.\n- Distinguish a successful untracked result from an inspection/probe failure. Missing tooling, process failures, abnormal termination, unreadable state, and filesystem inspection errors must never grant the override. Do not cache an indeterminate result as a successful untracked result.\n- When no eligible override exists, retain normal hook enforcement and propagate the runtime decision. If safe evaluation or runtime dispatch is unavailable, retain the host's fail-closed response and recovery guidance; never substitute an unconditional allow.\n- Preserve the existing valid operator workflow: a positively validated local override remains usable before the project runtime is installed. Keep the generated entry point Node-built-ins-only until its entry checks complete; do not introduce a dependency on the missing runtime to evaluate the override.\n- Keep the policy detector and generated host entry points consistent on these eligibility/error semantics. Preserve host-specific deny/error protocols, project-root binding, and installation-recovery behavior.\n\n## Implementation scope\nPrimary implementation and tests:\n- `packages/core/src/init-deposit/host-hook-outer.ts`\n- `packages/core/src/init-deposit/host-hook-outer.test.ts`\n- `packages/core/src/policy/deft-directive-disable.ts`\n- `packages/core/src/policy/deft-directive-disable.test.ts`\n\nUse existing helpers where compatible with the standalone entry-point constraint, otherwise enforce parity through shared conformance cases. Refresh any repository-owned generated entry-point fixtures/deposits only through the existing generation path, with content-derived filenames/hashes. Do not hand-edit hashes or modify consumer checkouts.\n\n## Acceptance criteria and refusal tests\n1. **Eligibility matrix:** table-driven policy and generated-entry-point tests cover valid local regular-file state, tracked state, absent state, ineligible filesystem-kind fixtures, and indeterminate inspection/tracking state. Only a positively validated eligible state selects the operator override.\n2. **Enforcement retained:** for every ineligible state, use a deterministic test runtime whose policy response is deny. The generated entry point must reach normal enforcement and preserve that refusal; an empty successful process result is not a sufficient assertion. With the test runtime unavailable, assert the existing host-specific fail-closed response instead.\n3. **Unknown is not permission:** inject filesystem inspection errors and Git launch/probe errors, abnormal termination, and unsuccessful probe outcomes. Assert that none selects the override. Distinguish these cases from a successful probe with no tracked entry; test both cached and fresh policy-detector paths.\n4. **Valid compatibility control:** a positively validated local regular-file override retains the documented early-disable behavior even without the project runtime. Make the fixture's repository-tracking result explicit and deterministic; do not rely on failure outside a repository as evidence of being untracked.\n5. **Host conformance:** exercise generated entry-point behavior for Grok, Claude, Cursor, and Codex using their existing event/protocol fixtures. Assert the actual host refusal output/status for negative cases, not merely a source-string match or exit status shared by allow and deny.\n6. **Generation and regression:** generated content hashes and registered commands remain consistent. Run the two focused suites above and affected existing host-deposit/protocol checks. No new skips, platform-privilege dependencies, or weakened assertions. Document the focused test results in the PR.\n\n## Out of scope\nNo new features, new override mechanism, broader write-authorization catalog, host-root policy changes, timeout redesign, dependency/bootstrap redesign, safety-check disabling, or manual edits to consumer deposits. Preserve the valid missing-runtime workflow tracked by #5809; this issue does not absorb or close that work.\n\n## Tracking\nRefs #6034\n\nThe implementation PR must use `Refs #6034`, never an auto-closing reference to #6034. That issue remains open for its other items. Completion here is limited to the control and tests above, not disposition of the parent issue.\n\nFiled for @MScottAdams\n\n",
+      "Labels": "bug, security, design-critique:ingest-ready",
+      "UserStory": "As a maintainer I want hooks-operator-disable-eligibility-conformance so Prefer-A Bound remedy ships through merge.",
+      "ImplementationPlan": "Implement Prefer-A Bound limbs for #6122; verify via swarm.verify_commands; CHANGELOG Unreleased."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Introduce three-way eligibility distinguishing positively validated eligible from ineligible and indeterminate; only eligible selects operator override",
+        "status": "pending",
+        "artifact_path": "packages/core/src/policy/deft-directive-disable.ts"
+      },
+      {
+        "id": "clause.2",
+        "title": "Require successfully completed git ls-files listing with usable captured output; launch failure nonzero or unavailable output is indeterminate",
+        "status": "pending",
+        "artifact_path": "packages/core/src/policy/deft-directive-disable.ts"
+      },
+      {
+        "id": "clause.3",
+        "title": "Do not cache indeterminate probe results as untracked success; later successful tracked probe must re-probe and remain inactive",
+        "status": "pending",
+        "artifact_path": "packages/core/src/policy/deft-directive-disable.ts"
+      },
+      {
+        "id": "clause.4",
+        "title": "Outer uses lstat regular-file parity with policy; table-driven tests cover adapters and generated host fixtures for four hosts",
+        "status": "pending",
+        "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts"
+      },
+      {
+        "id": "clause.5",
+        "title": "Positively validated eligible override remains usable before project runtime is installed Node-built-ins-only",
+        "status": "pending",
+        "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts"
+      },
+      {
+        "id": "clause.6",
+        "title": "Extend policy and host-hook-outer tests for eligibility matrix cache transitions and host refusal survival",
+        "status": "pending",
+        "artifact_path": "packages/core/src/policy/deft-directive-disable.test.ts"
+      },
+      {
+        "id": "clause.7",
+        "title": "CHANGELOG Unreleased Security or Fixed for operator-disable eligibility lock Refs 6034 never Closes",
+        "status": "pending",
+        "artifact_path": "CHANGELOG.md"
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6122",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6122: hardening(hooks): lock operator-override eligibility across host entry points"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6034",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6034"
+      }
+    ],
+    "acceptance": {
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Introduce three-way eligibility distinguishing positively validated eligible from ineligible and indeterminate; only eligible selects operator override",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Require successfully completed git ls-files listing with usable captured output; launch failure nonzero or unavailable output is indeterminate",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Do not cache indeterminate probe results as untracked success; later successful tracked probe must re-probe and remain inactive",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Outer uses lstat regular-file parity with policy; table-driven tests cover adapters and generated host fixtures for four hosts",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Positively validated eligible override remains usable before project runtime is installed Node-built-ins-only",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Extend policy and host-hook-outer tests for eligibility matrix cache transitions and host refusal survival",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "CHANGELOG Unreleased Security or Fixed for operator-disable eligibility lock Refs 6034 never Closes",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "commands": [],
+      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "source_rung": "derived",
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "packages/core/src/policy/deft-directive-disable.ts",
+          "packages/core/src/policy/deft-directive-disable.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/policy/deft-directive-disable.ts",
+        "cohesion_exemption": "CHANGELOG Unreleased + Bound product paths for thin activation write fence"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6274375450,
+        "origin": "deftai/directive#6122",
+        "id": "github.issue.6274375450"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "ff4ed7b31b55e329776fd0bb5a7c5a855265e97108cf57794481a4ea1a9676e6"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "hooks-operator-disable-eligibility-conformance",
+        "expected_outputs": [
+          "three-way eligibility eligible|ineligible|indeterminate",
+          "explicit git ls-files success predicate",
+          "no cache of indeterminate as untracked",
+          "regular-file + four-host conformance matrix",
+          "CHANGELOG Unreleased Security/Fixed Refs #6034"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/policy/deft-directive-disable.test.ts packages/core/src/init-deposit/host-hook-outer.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "packages/core/src/policy/deft-directive-disable.ts",
+          "packages/core/src/policy/deft-directive-disable.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#6122",
+          "Prefer-A Bound 6725774847",
+          "Refs #6034"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.6274375450",
+    "updated": "2026-11-08T19:33:45Z"
+  },
+  "acceptance": {
+    "none_stated": true,
+    "clauses": [],
+    "commands": [],
+    "derived_reason": "Prefer-A Bound limbs hand-stamped after Prefer-A Bound harvest (#4374)"
+  }
+}
