@@ -3,7 +3,11 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { agentsRefreshPlan, payloadIsOwnGitRoot } from "@deftai/directive-core/platform";
-import { applyingHostPath, readApplyingHost } from "@deftai/directive-core/session";
+import {
+  applyWorktreeOccupancy,
+  applyingHostPath,
+  readApplyingHost,
+} from "@deftai/directive-core/session";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseArgs, run } from "./session-start.js";
 
@@ -331,6 +335,106 @@ describe("session-start run", () => {
         status: "ok",
         record: { applyingHostSessionId: owner, provider: "cursor", transport: "native" },
       });
+    } finally {
+      process.stdout.write = prevStdout;
+      process.stderr.write = prevStderr;
+    }
+  });
+
+  it("read-only defers applying-host publish in text when live foreign occupant exists (#6101)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-session-start-ah-defer-text-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "T", status: "running", items: [] } })}\n`,
+      "utf8",
+    );
+    const liveOwner = "host:cursor:v1:ZGNkNmQzNGMtNWUwNy00ZTNjLTg5ZGQtODM0NzFlZTgwZmRm";
+    const attempted = "host:claude:v1:c2Vjb25kLWhvc3Q";
+    applyWorktreeOccupancy(root, {
+      sessionId: liveOwner,
+      now: new Date(),
+      intent: "mutation",
+    });
+    const prevStdout = process.stdout.write.bind(process.stdout);
+    const prevStderr = process.stderr.write.bind(process.stderr);
+    let out = "";
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      out += String(chunk);
+      return true;
+    }) as typeof process.stdout.write;
+    process.stderr.write = (() => true) as typeof process.stderr.write;
+    try {
+      expect(
+        run([
+          "--project-root",
+          root,
+          "--read-only",
+          "--no-history",
+          `--session-id=${attempted}`,
+        ]),
+      ).toBe(0);
+      expect(existsSync(applyingHostPath(root))).toBe(false);
+      expect(out).toContain("applying-host publish deferred");
+      expect(out).toContain(liveOwner);
+      expect(out).toContain("not a conflict recovery");
+    } finally {
+      process.stdout.write = prevStdout;
+      process.stderr.write = prevStderr;
+    }
+  });
+
+  it("read-only defers applying-host publish in --json when live foreign occupant exists (#6101)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-session-start-ah-defer-json-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: { title: "T", status: "running", items: [] } })}\n`,
+      "utf8",
+    );
+    const liveOwner = "host:cursor:v1:ZGNkNmQzNGMtNWUwNy00ZTNjLTg5ZGQtODM0NzFlZTgwZmRm";
+    const attempted = "host:claude:v1:c2Vjb25kLWhvc3Q";
+    applyWorktreeOccupancy(root, {
+      sessionId: liveOwner,
+      now: new Date(),
+      intent: "mutation",
+    });
+    const prevStdout = process.stdout.write.bind(process.stdout);
+    const prevStderr = process.stderr.write.bind(process.stderr);
+    let out = "";
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      out += String(chunk);
+      return true;
+    }) as typeof process.stdout.write;
+    process.stderr.write = (() => true) as typeof process.stderr.write;
+    try {
+      expect(
+        run([
+          "--project-root",
+          root,
+          "--read-only",
+          "--no-history",
+          "--json",
+          `--session-id=${attempted}`,
+        ]),
+      ).toBe(0);
+      const payload = JSON.parse(out) as {
+        applyingHostPublish?: {
+          status: string;
+          reason?: string;
+          liveSessionId?: string;
+          attemptedSessionId?: string;
+        };
+      };
+      expect(payload.applyingHostPublish).toMatchObject({
+        status: "deferred",
+        reason: "live-foreign-occupant",
+        liveSessionId: liveOwner,
+        attemptedSessionId: attempted,
+      });
+      expect(existsSync(applyingHostPath(root))).toBe(false);
     } finally {
       process.stdout.write = prevStdout;
       process.stderr.write = prevStderr;

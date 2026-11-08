@@ -583,13 +583,27 @@ export function run(argv: readonly string[]): number {
     lines.push(stray);
   }
 
-  // #5676: read-only may bootstrap the applying-host record; mutation/rearm
+  // #5676 / #6101: read-only may bootstrap the applying-host record; mutation/rearm
   // republishes as reinforcement after a successful ceremony. Skip opt-out /
   // kill-switch disabled results so .no-deft-directive stays write-free.
+  // Helper owns the live-occupant skip; CLI surfaces published / deferred / failed
+  // (deferred distinct from non-canonical null) without claiming conflict recovery.
   const disabled =
     typeof result.payload === "object" &&
     result.payload !== null &&
     (result.payload as { disabled?: unknown }).disabled === true;
+  type ApplyingHostPublishReport =
+    | { readonly status: "published"; readonly applyingHostSessionId: string }
+    | {
+        readonly status: "deferred";
+        readonly reason: "live-foreign-occupant";
+        readonly liveSessionId: string;
+        readonly attemptedSessionId: string;
+      }
+    | { readonly status: "failed"; readonly message: string }
+    | { readonly status: "non-canonical" }
+    | { readonly status: "skipped" };
+  let applyingHostPublish: ApplyingHostPublishReport = { status: "skipped" };
   if (result.code === 0 && !disabled) {
     const owner =
       args.sessionId?.trim() ||
@@ -603,20 +617,43 @@ export function run(argv: readonly string[]): number {
     if (owner.length > 0) {
       try {
         const transport = process.env.GROK_HOOK_EVENT?.trim() ? "grok-hook-event" : "native";
-        publishApplyingHostFromCanonicalSessionId(projectRoot, owner, {
+        const published = publishApplyingHostFromCanonicalSessionId(projectRoot, owner, {
           transport: owner.startsWith("host:cursor:") ? "native" : transport,
         });
-      } catch {
-        /* ceremony success stays authoritative; applying-host is best-effort */
+        if (published === null) {
+          applyingHostPublish = { status: "non-canonical" };
+        } else if (published.status === "published") {
+          applyingHostPublish = {
+            status: "published",
+            applyingHostSessionId: published.record.applyingHostSessionId,
+          };
+        } else {
+          applyingHostPublish = {
+            status: "deferred",
+            reason: published.reason,
+            liveSessionId: published.liveSessionId,
+            attemptedSessionId: published.attemptedSessionId,
+          };
+        }
+      } catch (err) {
+        applyingHostPublish = {
+          status: "failed",
+          message: err instanceof Error ? err.message : String(err),
+        };
       }
     }
   }
 
+  const payloadWithPublish =
+    applyingHostPublish.status === "skipped"
+      ? result.payload
+      : { ...result.payload, applyingHostPublish };
+
   if (args.emitJson) {
-    const sorted = Object.keys(result.payload)
+    const sorted = Object.keys(payloadWithPublish)
       .sort()
       .reduce<Record<string, unknown>>((acc, key) => {
-        acc[key] = result.payload[key];
+        acc[key] = payloadWithPublish[key];
         return acc;
       }, {});
     process.stdout.write(`${JSON.stringify(sorted)}\n`);
@@ -634,6 +671,17 @@ export function run(argv: readonly string[]): number {
     } else {
       process.stdout.write(
         `[deft] session ritual recorded at ${ritualStatePath(projectRoot)} (diagnostic-only; not posture authority)\n`,
+      );
+    }
+    if (applyingHostPublish.status === "deferred") {
+      process.stdout.write(
+        `[deft] applying-host publish deferred: live occupant ${applyingHostPublish.liveSessionId} ` +
+          `still holds this worktree (attempted ${applyingHostPublish.attemptedSessionId}); ` +
+          "not a conflict recovery — that owner must release/end or wait for lease TTL.\n",
+      );
+    } else if (applyingHostPublish.status === "failed") {
+      process.stdout.write(
+        `[deft] applying-host publish failed: ${applyingHostPublish.message}\n`,
       );
     }
   }
