@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+- Prep linked worktrees with a guarded install path so Codex/Grok dest sessions can bootstrap dependencies under a matching launch root (#6100).
+- Keep read-only session recovery from overwriting a live owner's applying-host identity, and report deferred publish honestly in CLI text/JSON (#6101).
+- Reuse the open-issue list payload inside cache drift probing so session-start does not refetch up to 25 issues (#6099).
+- Batch and bound finalize-owed claim ls-remote probes so session-start no longer runs one unbounded probe per claim ref (#6008).
 - Document the edit_files short-search truncation hazard in the lessons pack and keep RULE-MAP in sync (#1037).
 - Widen #1037 file_scope so packs:render may refresh docs/RULE-MAP.md with the lessons-pack entry (#1037).
 - Prepare release-path gh JSON reads so CLICOLOR_FORCE in the parent env cannot break draft/tag/rollback lookups (#6032).

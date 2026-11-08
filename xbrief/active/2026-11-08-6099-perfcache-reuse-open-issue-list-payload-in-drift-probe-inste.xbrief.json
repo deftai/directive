@@ -1,0 +1,242 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6099",
+    "updated": "2026-11-08T01:02:42Z"
+  },
+  "plan": {
+    "title": "perf(cache): reuse open-issue list payload in drift probe instead of refetching up to 25 issues",
+    "status": "running",
+    "narratives": {
+      "Description": "perf(cache): reuse open-issue list payload in drift probe instead of refetching up to 25 issues",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6099",
+      "Overview": "\n\n- relieves: P1 — Inside probeCacheDrift’s default path, list once into a call-scoped Map and derive live-open membership from its keys without changing listOpenIssueNumbers or the listOpenFn Set type.\n- relieves: P1 — When listOpenFn is injected, build no records Map and perform no second enumeration so injected-Set callers stay byte-identical to today.\n- relieves: P1 — Reuse each eligible Map record through normaliseRestIssue then issueContentFingerprint before any singleIssueFetcherImpl call, taking only the call-scoped Map-first shape from runFetchAll, not its unguarded completeness policy.\n- relieves: P2 — Leave the evaluate.ts cache_fresh call site seam-free so the only caller that pays the sampled GETs gains reuse with no call-site edit.\n- relieves: P3 — Gate reuse with present keys via the in operator plus usable values: body must be string or null, title and state must be strings, and labels must be an array whose entries expose usable string names.\n- relieves: P3 — On any missing required key or unusable body/title/state/labels shape, call fetchSingle exactly once for that number and never skip the content check.\n- relieves: P3 — Prove seamless-default reuse in one run with schema-valid TTL-fresh meta fixtures, exactly one mutated list record, contentDriftNumbers equal to that number, and zero fetchSingle calls under setPaginatedLister and setSingleIssueFetcher with only repo/source/cacheRoot.\n- relieves: P3 — Add present-but-undefined body and invalid title/state fixtures that assert exactly one fetchSingle fallback and drift detection from the fallback fingerprint.\n- Keep comparison-count DEFAULT_MAX_CONTENT_DRIFT_CHECKS behavior unchanged in this Prefer-A; do not re-point the counter to fetchSingle-only in this ticket.\n- Keep-outs: deleting or optionalizing .deft-cache/github-issue; changing verify:cache-fresh meaning when upstream data matches; applying the new eligibility predicate to pre-existing runFetchAll Map-first reuse; ghx/#3513; sleepImpl Retry-After fix; Approach B return-type churn; Approach C module memo.\n\n\n",
+      "Labels": "bug, design-critique:ingest-ready, core-capabilities",
+      "UserStory": "As a session-start operator, cache drift probing should reuse the open-issue list payload instead of refetching up to 25 issues.",
+      "ImplementationPlan": "Stamp Prefer-A Recut-1 Bound 6691254585: list-once Map reuse with usable-value eligibility; injected-Set path unchanged; seamless-default proof."
+    },
+    "items": [
+      {
+        "title": "relieves: P1 — Inside cache drift probe’s default path, list once into a call-scoped Map and derive live-open membership from its keys without changing open-issue list helper or the injected open-list function Set type.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "relieves: P1 — When injected open-list function is injected, build no records Map and perform no second enumeration so injected-Set callers stay byte-identical to today.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "relieves: P1 — Reuse each eligible Map record through REST issue normaliser then issue content fingerprint before any singleIssueFetcherImpl call, taking only the call-scoped Map-first shape from fetch-all path, not its unguarded completeness policy.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "relieves: P2 — Leave the cache_fresh call site cache_fresh call site seam-free so the only caller that pays the sampled GETs gains reuse with no call-site edit.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "relieves: P3 — Gate reuse with present keys via the in operator plus usable values: body must be string or null, title and state must be strings, and labels must be an array whose entries expose usable string names.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "relieves: P3 — On any missing required key or unusable body/title/state/labels shape, call single-issue fetch exactly once for that number and never skip the content check.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "relieves: P3 — Prove seamless-default reuse in one run with schema-valid TTL-fresh meta fixtures, exactly one mutated list record, contentDriftNumbers equal to that number, and zero single-issue fetch calls under paginated lister setter and single-issue fetcher setter with only repo/source/cacheRoot.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "relieves: P3 — Add present-but-undefined body and invalid title/state fixtures that assert exactly one single-issue fetch fallback and drift detection from the fallback fingerprint.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "Keep comparison-count default content-drift check cap behavior unchanged in this Prefer-A; do not re-point the counter to single-issue fetch-only in this ticket.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "Keep-outs: deleting or optionalizing .deft-cache/github-issue; changing verify:cache-fresh meaning when upstream data matches; applying the new eligibility predicate to pre-existing fetch-all path Map-first reuse; ghx/#3513; sleepImpl Retry-After fix; Approach B return-type churn; Approach C module memo.",
+        "status": "proposed",
+        "id": "clause.10"
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready",
+      "core-capabilities"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6099",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6099: perf(cache): reuse open-issue list payload in drift probe instead of refetching up to 25 issues"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 10 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "perf(cache): reuse open-issue list payload in drift probe instead of refetching up to 25 issues",
+        "relieves: P1 — Inside probeCacheDrift’s default path, list once into a call-scoped Map and derive live-open membership from its keys without changing listOpenIssueNumbers or the listOpenFn Set type.",
+        "relieves: P1 — When listOpenFn is injected, build no records Map and perform no second enumeration so injected-Set callers stay byte-identical to today.",
+        "relieves: P1 — Reuse each eligible Map record through normaliseRestIssue then issueContentFingerprint before any singleIssueFetcherImpl call, taking only the call-scoped Map-first shape from runFetchAll, not its unguarded completeness policy.",
+        "relieves: P2 — Leave the evaluate.ts cache_fresh call site seam-free so the only caller that pays the sampled GETs gains reuse with no call-site edit.",
+        "relieves: P3 — Gate reuse with present keys via the in operator plus usable values: body must be string or null, title and state must be strings, and labels must be an array whose entries expose usable string names.",
+        "relieves: P3 — On any missing required key or unusable body/title/state/labels shape, call fetchSingle exactly once for that number and never skip the content check.",
+        "relieves: P3 — Prove seamless-default reuse in one run with schema-valid TTL-fresh meta fixtures, exactly one mutated list record, contentDriftNumbers equal to that number, and zero fetchSingle calls under setPaginatedLister and setSingleIssueFetcher with only repo/source/cacheRoot.",
+        "relieves: P3 — Add present-but-undefined body and invalid title/state fixtures that assert exactly one fetchSingle fallback and drift detection from the fallback fingerprint.",
+        "Keep comparison-count DEFAULT_MAX_CONTENT_DRIFT_CHECKS behavior unchanged in this Prefer-A; do not re-point the counter to fetchSingle-only in this ticket.",
+        "Keep-outs: deleting or optionalizing .deft-cache/github-issue; changing verify:cache-fresh meaning when upstream data matches; applying the new eligibility predicate to pre-existing runFetchAll Map-first reuse; ghx/#3513; sleepImpl Retry-After fix; Approach B return-type churn; Approach C module memo."
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — Inside probeCacheDrift’s default path, list once into a call-scoped Map and derive live-open membership from its keys without changing listOpenIssueNumbers or the listOpenFn Set type.",
+        "relieves: P1 — When listOpenFn is injected, build no records Map and perform no second enumeration so injected-Set callers stay byte-identical to today.",
+        "relieves: P1 — Reuse each eligible Map record through normaliseRestIssue then issueContentFingerprint before any singleIssueFetcherImpl call, taking only the call-scoped Map-first shape from runFetchAll, not its unguarded completeness policy.",
+        "relieves: P2 — Leave the evaluate.ts cache_fresh call site seam-free so the only caller that pays the sampled GETs gains reuse with no call-site edit.",
+        "relieves: P3 — Gate reuse with present keys via the in operator plus usable values: body must be string or null, title and state must be strings, and labels must be an array whose entries expose usable string names.",
+        "relieves: P3 — On any missing required key or unusable body/title/state/labels shape, call fetchSingle exactly once for that number and never skip the content check.",
+        "relieves: P3 — Prove seamless-default reuse in one run with schema-valid TTL-fresh meta fixtures, exactly one mutated list record, contentDriftNumbers equal to that number, and zero fetchSingle calls under setPaginatedLister and setSingleIssueFetcher with only repo/source/cacheRoot.",
+        "relieves: P3 — Add present-but-undefined body and invalid title/state fixtures that assert exactly one fetchSingle fallback and drift detection from the fallback fingerprint.",
+        "Keep comparison-count DEFAULT_MAX_CONTENT_DRIFT_CHECKS behavior unchanged in this Prefer-A; do not re-point the counter to fetchSingle-only in this ticket.",
+        "Keep-outs: deleting or optionalizing .deft-cache/github-issue; changing verify:cache-fresh meaning when upstream data matches; applying the new eligibility predicate to pre-existing runFetchAll Map-first reuse; ghx/#3513; sleepImpl Retry-After fix; Approach B return-type churn; Approach C module memo."
+      ],
+      "admitted_source_digest": "bd1d71ae4d17b706373d5786973dcb9f428041f9d9695386b59d8b900d40decf",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Inside cache drift probe’s default path, list once into a call-scoped Map and derive live-open membership from its keys without changing open-issue list helper or the injected open-list function Set type.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P1 — When injected open-list function is injected, build no records Map and perform no second enumeration so injected-Set callers stay byte-identical to today.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P1 — Reuse each eligible Map record through REST issue normaliser then issue content fingerprint before any singleIssueFetcherImpl call, taking only the call-scoped Map-first shape from fetch-all path, not its unguarded completeness policy.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "relieves: P2 — Leave the cache_fresh call site cache_fresh call site seam-free so the only caller that pays the sampled GETs gains reuse with no call-site edit.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "relieves: P3 — Gate reuse with present keys via the in operator plus usable values: body must be string or null, title and state must be strings, and labels must be an array whose entries expose usable string names.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "relieves: P3 — On any missing required key or unusable body/title/state/labels shape, call single-issue fetch exactly once for that number and never skip the content check.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "relieves: P3 — Prove seamless-default reuse in one run with schema-valid TTL-fresh meta fixtures, exactly one mutated list record, contentDriftNumbers equal to that number, and zero single-issue fetch calls under paginated lister setter and single-issue fetcher setter with only repo/source/cacheRoot.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "relieves: P3 — Add present-but-undefined body and invalid title/state fixtures that assert exactly one single-issue fetch fallback and drift detection from the fallback fingerprint.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Keep comparison-count default content-drift check cap behavior unchanged in this Prefer-A; do not re-point the counter to single-issue fetch-only in this ticket.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Keep-outs: deleting or optionalizing .deft-cache/github-issue; changing verify:cache-fresh meaning when upstream data matches; applying the new eligibility predicate to pre-existing fetch-all path Map-first reuse; ghx/#3513; sleepImpl Retry-After fix; Approach B return-type churn; Approach C module memo.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/cache/fetch.ts",
+          "packages/core/src/cache/main.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/cache/fetch.ts",
+        "cohesion_exemption": "CHANGELOG + cache drift probe list-reuse"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6247234308,
+        "origin": "deftai/directive#6099",
+        "id": "github.issue.6247234308"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "c3e40f0083ecbd42b44c711f7e4c1a07147d8400026ce753587a8a8c159ce2ef"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "cache-drift-probe-reuse-open-list-payload",
+        "expected_outputs": [
+          "probeCacheDrift list-once Map reuse",
+          "usable-value eligibility gate",
+          "seamless-default zero fetchSingle proof",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/cache/main.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/cache/fetch.ts",
+          "packages/core/src/cache/main.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#6099",
+          "Prefer-A Bound 6691254585"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.6247234308",
+    "updated": "2026-11-08T01:02:42Z"
+  }
+}

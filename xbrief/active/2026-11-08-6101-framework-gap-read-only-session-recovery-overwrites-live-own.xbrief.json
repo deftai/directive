@@ -1,0 +1,172 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6101",
+    "updated": "2026-11-08T01:02:23Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Read-only session recovery overwrites live-owner identity and blocks bare cleanup",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] Read-only session recovery overwrites live-owner identity and blocks bare cleanup",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6101",
+      "Overview": "\n\n- relieves: P1 — Enforce live-occupant skip inside publishApplyingHost helpers under occupancy writer lock keyed to the canonical session id being written with no unlocked write fallback and no third publish predicate\n- relieves: P2 — Deposit-key live-owner cleanup on depositSessionId equaling liveId for the ok branch and for the stale branch with no applyingHostSessionId relation conjunct, map onto liveOwnerBypass so effectiveOwner is live deposit identity, keep bare rewrite injection, and delete dead ok-branch soft-pass\n- relieves: P3 — When live foreign occupant exists stop repair guidance from prescribing another owner session-id recipe and return a discriminated deferred or failed publish outcome distinct from non-canonical null into CLI text and JSON without claiming conflict recovery\n- relieves: P4 — Assert admission claims on the dispatcher path including real CLI read-only completion with project-root plus stale-branch bare cleanup and deferred-outcome text and json rows, and refuse evaluator-only soft-pass coverage as sufficient proof\n\n\n",
+      "Labels": "bug, design-critique:ingest-ready, core-capabilities",
+      "UserStory": "As a session operator, read-only recovery must not overwrite a live owner's applying-host identity and bare cleanup must still work.",
+      "ImplementationPlan": "Stamp Prefer-A Recut-2 Bound 6694813944: locked live-occupant skip; depositSessionId-only stale key; discriminated deferred publish into CLI text/JSON; admission path tests."
+    },
+    "items": [
+      {
+        "title": "relieves: P1 — Enforce live-occupant skip inside publishApplyingHost helpers under occupancy writer lock keyed to the canonical session id being written with no unlocked write fallback and no third publish predicate",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "relieves: P2 — Deposit-key live-owner cleanup on depositSessionId equaling liveId for the ok branch and for the stale branch with no applyingHostSessionId relation conjunct, map onto liveOwnerBypass so effectiveOwner is live deposit identity, keep bare rewrite injection, and delete dead ok-branch soft-pass",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "relieves: P3 — When live foreign occupant exists stop repair guidance from prescribing another owner session-id recipe and return a discriminated deferred or failed publish outcome distinct from non-canonical null into CLI text and JSON without claiming conflict recovery",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "relieves: P4 — Assert admission claims on the dispatcher path including real CLI read-only completion with project-root plus stale-branch bare cleanup and deferred-outcome text and json rows, and refuse evaluator-only soft-pass coverage as sufficient proof",
+        "status": "proposed",
+        "id": "clause.4"
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready",
+      "core-capabilities"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6101",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6101: [framework-gap] Read-only session recovery overwrites live-owner identity and blocks bare cleanup"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "[framework-gap] Read-only session recovery overwrites live-owner identity and blocks bare cleanup",
+        "relieves: P1 — Enforce live-occupant skip inside publishApplyingHost helpers under occupancy writer lock keyed to the canonical session id being written with no unlocked write fallback and no third publish predicate",
+        "relieves: P2 — Deposit-key live-owner cleanup on depositSessionId equaling liveId for the ok branch and for the stale branch with no applyingHostSessionId relation conjunct, map onto liveOwnerBypass so effectiveOwner is live deposit identity, keep bare rewrite injection, and delete dead ok-branch soft-pass",
+        "relieves: P3 — When live foreign occupant exists stop repair guidance from prescribing another owner session-id recipe and return a discriminated deferred or failed publish outcome distinct from non-canonical null into CLI text and JSON without claiming conflict recovery",
+        "relieves: P4 — Assert admission claims on the dispatcher path including real CLI read-only completion with project-root plus stale-branch bare cleanup and deferred-outcome text and json rows, and refuse evaluator-only soft-pass coverage as sufficient proof"
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — Enforce live-occupant skip inside publishApplyingHost helpers under occupancy writer lock keyed to the canonical session id being written with no unlocked write fallback and no third publish predicate",
+        "relieves: P2 — Deposit-key live-owner cleanup on depositSessionId equaling liveId for the ok branch and for the stale branch with no applyingHostSessionId relation conjunct, map onto liveOwnerBypass so effectiveOwner is live deposit identity, keep bare rewrite injection, and delete dead ok-branch soft-pass",
+        "relieves: P3 — When live foreign occupant exists stop repair guidance from prescribing another owner session-id recipe and return a discriminated deferred or failed publish outcome distinct from non-canonical null into CLI text and JSON without claiming conflict recovery",
+        "relieves: P4 — Assert admission claims on the dispatcher path including real CLI read-only completion with project-root plus stale-branch bare cleanup and deferred-outcome text and json rows, and refuse evaluator-only soft-pass coverage as sufficient proof"
+      ],
+      "admitted_source_digest": "585abe26c1833b6148b6e8f01beb06531aa5ea91b82593b522fcc3e3f2103ca1",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Enforce live-occupant skip inside publishApplyingHost helpers under occupancy writer lock keyed to the canonical session id being written with no unlocked write fallback and no third publish predicate",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P2 — Deposit-key live-owner cleanup on depositSessionId equaling liveId for the ok branch and for the stale branch with no applyingHostSessionId relation conjunct, map onto liveOwnerBypass so effectiveOwner is live deposit identity, keep bare rewrite injection, and delete dead ok-branch soft-pass",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P3 — When live foreign occupant exists stop repair guidance from prescribing another owner session-id recipe and return a discriminated deferred or failed publish outcome distinct from non-canonical null into CLI text and JSON without claiming conflict recovery",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "relieves: P4 — Assert admission claims on the dispatcher path including real CLI read-only completion with project-root plus stale-branch bare cleanup and deferred-outcome text and json rows, and refuse evaluator-only soft-pass coverage as sufficient proof",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "packages/runtime/src/session-start.ts",
+          "packages/runtime/src/session-start.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/session/occupancy.ts",
+        "cohesion_exemption": "CHANGELOG + occupancy publishApplyingHost + session-start CLI + dispatcher liveOwnerBypass mapping"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6247667402,
+        "origin": "deftai/directive#6101",
+        "id": "github.issue.6247667402"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "761a0e2731f1deae874c4197df60dc42396d31094a1e51c70db10f0bc7783ce1"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "read-only-session-recovery-overwrites-live-owner-applying-host",
+        "expected_outputs": [
+          "live-occupant skip under occupancy writer lock",
+          "deposit-only stale cleanup key",
+          "discriminated deferred publish outcome",
+          "CLI text/JSON deferred rows",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/session/occupancy.test.ts packages/runtime/src/session-start.test.ts packages/core/src/hooks/dispatcher.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "packages/runtime/src/session-start.ts",
+          "packages/runtime/src/session-start.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#6101",
+          "Prefer-A Bound 6694813944"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.6247667402",
+    "updated": "2026-11-08T01:02:23Z"
+  }
+}

@@ -1,0 +1,242 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6100",
+    "updated": "2026-11-08T01:18:41Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Codex hook root binding blocks linked-worktree reads and dependency bootstrap",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] Codex hook root binding blocks linked-worktree reads and dependency bootstrap",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6100",
+      "Overview": "\n\n- relieves: P1 — Keep operator-callable one-path prep verb + shared guarded prep (foreign-worktree via mainWorktreeRoot; live foreign lease via occupancyAdmission===stranger and liveOccupancyOnTree; then PM; success = outer-visible PIN_REL exists)\n- relieves: P1 — worktrees.ts and dest-place.ts create/reuse newly-installing paths call that guarded prep before success; lease/foreign refuse runs before reconstituteLinkedWorktreeDeposit writes and before PM; regression zero PM and zero deposit mutation on stranger live lease\n- relieves: P1 — ensureArcDest is in-contract: create path runs shared guarded prep after worktree add; reuse refuses stranger live occupancy before checkout; a deliberate process-only no-install mode is allowed only when the caller records verification-path pin-read and that mode is not the supported Codex consumer handoff\n- relieves: P1 — Host-boundary + ordering unchanged: dest-rooted host session for matching launchRoot (6692738765); prep before re-root\n- relieves: P2 — Unchanged: dedicated root-mismatch constant; shared INSTALLATION_RECOVERY_GUIDANCE untouched\n- relieves: P3 — Unchanged: inspection under matching identity; maybeSelfCompleteSetup is setup; product mutations still gated\n- relieves: P4 — Unchanged: packaged-consumer fixture with materialized .pnpm layout; injected launchingCheckoutRoot-only insufficient\n- Footnote: CHANGELOG / docs; #5836 keep-out\n\n\n",
+      "Labels": "design-critique:ingest-ready",
+      "UserStory": "As a Codex/Grok leaf operator, I need linked-worktree dest prep that refuses stranger leases and installs under matching launchRoot so empty dest handoff works.",
+      "ImplementationPlan": "Stamp Prefer-A Recut-3 Bound 6693612913: shared guarded prep before deposit/PM; arc-dest in-contract; host re-root after prep; root-mismatch constant; packaged-consumer fixture."
+    },
+    "items": [
+      {
+        "title": "relieves: P1 — Keep operator-callable one-path prep verb + shared guarded prep (foreign-worktree via mainWorktreeRoot; live foreign lease via occupancyAdmission===stranger and liveOccupancyOnTree; then PM; success = outer-visible PIN_REL exists)",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "relieves: P1 — worktree create/reuse and dest-place create/reuse create/reuse newly-installing paths call that guarded prep before success; lease/foreign refuse runs before reconstituteLinkedWorktreeDeposit writes and before PM; regression zero PM and zero deposit mutation on stranger live lease",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "relieves: P1 — arc-dest ensure is in-contract: create path runs shared guarded prep after worktree add; reuse refuses stranger live occupancy before checkout; a deliberate process-only no-install mode is allowed only when the caller records verification-path pin-read and that mode is not the supported Codex consumer handoff",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "relieves: P1 — Host-boundary + ordering unchanged: dest-rooted host session for matching launchRoot (6692738765); prep before re-root",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "relieves: P2 — Unchanged: dedicated root-mismatch constant; shared INSTALLATION_RECOVERY_GUIDANCE untouched",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "relieves: P3 — Unchanged: inspection under matching identity; maybeSelfCompleteSetup is setup; product mutations still gated",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "relieves: P4 — Unchanged: packaged-consumer fixture with materialized .pnpm layout; injected launchingCheckoutRoot-only insufficient",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "Footnote: CHANGELOG / docs; #5836 keep-out",
+        "status": "proposed",
+        "id": "clause.8"
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6100",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6100: [framework-gap] Codex hook root binding blocks linked-worktree reads and dependency bootstrap"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 8 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "[framework-gap] Codex hook root binding blocks linked-worktree reads and dependency bootstrap",
+        "relieves: P1 — Keep operator-callable one-path prep verb + shared guarded prep (foreign-worktree via mainWorktreeRoot; live foreign lease via occupancyAdmission===stranger and liveOccupancyOnTree; then PM; success = outer-visible PIN_REL exists)",
+        "relieves: P1 — worktrees.ts and dest-place.ts create/reuse newly-installing paths call that guarded prep before success; lease/foreign refuse runs before reconstituteLinkedWorktreeDeposit writes and before PM; regression zero PM and zero deposit mutation on stranger live lease",
+        "relieves: P1 — ensureArcDest is in-contract: create path runs shared guarded prep after worktree add; reuse refuses stranger live occupancy before checkout; a deliberate process-only no-install mode is allowed only when the caller records verification-path pin-read and that mode is not the supported Codex consumer handoff",
+        "relieves: P1 — Host-boundary + ordering unchanged: dest-rooted host session for matching launchRoot (6692738765); prep before re-root",
+        "relieves: P2 — Unchanged: dedicated root-mismatch constant; shared INSTALLATION_RECOVERY_GUIDANCE untouched",
+        "relieves: P3 — Unchanged: inspection under matching identity; maybeSelfCompleteSetup is setup; product mutations still gated",
+        "relieves: P4 — Unchanged: packaged-consumer fixture with materialized .pnpm layout; injected launchingCheckoutRoot-only insufficient",
+        "Footnote: CHANGELOG / docs; #5836 keep-out"
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — Keep operator-callable one-path prep verb + shared guarded prep (foreign-worktree via mainWorktreeRoot; live foreign lease via occupancyAdmission===stranger and liveOccupancyOnTree; then PM; success = outer-visible PIN_REL exists)",
+        "relieves: P1 — worktrees.ts and dest-place.ts create/reuse newly-installing paths call that guarded prep before success; lease/foreign refuse runs before reconstituteLinkedWorktreeDeposit writes and before PM; regression zero PM and zero deposit mutation on stranger live lease",
+        "relieves: P1 — ensureArcDest is in-contract: create path runs shared guarded prep after worktree add; reuse refuses stranger live occupancy before checkout; a deliberate process-only no-install mode is allowed only when the caller records verification-path pin-read and that mode is not the supported Codex consumer handoff",
+        "relieves: P1 — Host-boundary + ordering unchanged: dest-rooted host session for matching launchRoot (6692738765); prep before re-root",
+        "relieves: P2 — Unchanged: dedicated root-mismatch constant; shared INSTALLATION_RECOVERY_GUIDANCE untouched",
+        "relieves: P3 — Unchanged: inspection under matching identity; maybeSelfCompleteSetup is setup; product mutations still gated",
+        "relieves: P4 — Unchanged: packaged-consumer fixture with materialized .pnpm layout; injected launchingCheckoutRoot-only insufficient",
+        "Footnote: CHANGELOG / docs; #5836 keep-out"
+      ],
+      "admitted_source_digest": "4860b746a8de5682f1c1111aa29558ed478a6d931ec4c912f6fb567ac8000eae",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Keep operator-callable one-path prep verb + shared guarded prep (foreign-worktree via mainWorktreeRoot; live foreign lease via occupancyAdmission===stranger and liveOccupancyOnTree; then PM; success = outer-visible PIN_REL exists)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P1 — worktree create/reuse and dest-place create/reuse create/reuse newly-installing paths call that guarded prep before success; lease/foreign refuse runs before reconstituteLinkedWorktreeDeposit writes and before PM; regression zero PM and zero deposit mutation on stranger live lease",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P1 — arc-dest ensure is in-contract: create path runs shared guarded prep after worktree add; reuse refuses stranger live occupancy before checkout; a deliberate process-only no-install mode is allowed only when the caller records verification-path pin-read and that mode is not the supported Codex consumer handoff",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "relieves: P1 — Host-boundary + ordering unchanged: dest-rooted host session for matching launchRoot (6692738765); prep before re-root",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "relieves: P2 — Unchanged: dedicated root-mismatch constant; shared INSTALLATION_RECOVERY_GUIDANCE untouched",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "relieves: P3 — Unchanged: inspection under matching identity; maybeSelfCompleteSetup is setup; product mutations still gated",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "relieves: P4 — Unchanged: packaged-consumer fixture with materialized .pnpm layout; injected launchingCheckoutRoot-only insufficient",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Footnote: CHANGELOG / docs; #5836 keep-out",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/swarm/worktree-pm-install.ts",
+          "packages/core/src/swarm/worktree-pm-install.test.ts",
+          "packages/core/src/swarm/dest-place.ts",
+          "packages/core/src/swarm/dest-place.test.ts",
+          "packages/core/src/swarm/worktrees.ts",
+          "packages/core/src/swarm/worktrees.test.ts",
+          "packages/core/src/design-critique/arc-dest.ts",
+          "packages/core/src/design-critique/arc-dest.test.ts",
+          "packages/runtime/src/hook-dispatch.ts",
+          "packages/runtime/src/hook-dispatch.test.ts",
+          "packages/core/src/install-health/constants.ts",
+          "CHANGELOG.md",
+          "packages/runtime/src/dispatch.ts",
+          "packages/runtime/src/dispatch.test.ts",
+          "packages/core/src/swarm/worktrees-cli.ts"
+        ],
+        "module_boundary": "packages/core/src/swarm/worktree-pm-install.ts",
+        "cohesion_exemption": "CHANGELOG + swarm dest prep + hook-dispatch/dispatch root binding + worktrees-cli prep verb + arc-dest create path"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6247665170,
+        "origin": "deftai/directive#6100",
+        "id": "github.issue.6247665170"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "47f35b9e01235092938a739ca215daf1de75830f138059d2a814321bc569634d"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "codex-primary-hook-root-blocks-linked-worktree-bootstrap",
+        "expected_outputs": [
+          "operator-callable guarded prep verb",
+          "dest-place/worktrees/ensureArcDest lease-before-install",
+          "root-mismatch constant",
+          "packaged-consumer .pnpm fixture",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/swarm/worktree-pm-install.test.ts packages/core/src/swarm/dest-place.test.ts packages/core/src/swarm/worktrees.test.ts packages/core/src/design-critique/arc-dest.test.ts packages/runtime/src/hook-dispatch.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/swarm/worktree-pm-install.ts",
+          "packages/core/src/swarm/worktree-pm-install.test.ts",
+          "packages/core/src/swarm/dest-place.ts",
+          "packages/core/src/swarm/dest-place.test.ts",
+          "packages/core/src/swarm/worktrees.ts",
+          "packages/core/src/swarm/worktrees.test.ts",
+          "packages/core/src/design-critique/arc-dest.ts",
+          "packages/core/src/design-critique/arc-dest.test.ts",
+          "packages/runtime/src/hook-dispatch.ts",
+          "packages/runtime/src/hook-dispatch.test.ts",
+          "packages/core/src/install-health/constants.ts",
+          "CHANGELOG.md",
+          "packages/runtime/src/dispatch.ts",
+          "packages/runtime/src/dispatch.test.ts",
+          "packages/core/src/swarm/worktrees-cli.ts"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#6100",
+          "Prefer-A Bound 6693612913"
+        ],
+        "parallel_safe": true
+      }
+    },
+    "id": "github.issue.6247665170",
+    "updated": "2026-11-08T01:18:41Z"
+  }
+}
