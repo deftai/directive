@@ -845,6 +845,24 @@ function issueContentFingerprint(raw: Record<string, unknown>): string {
   });
 }
 
+/** True when a list-enumeration record has present, fingerprint-usable fields (#6099). */
+function isReusableOpenListRecord(raw: Record<string, unknown>): boolean {
+  if (!("body" in raw) || !("title" in raw) || !("state" in raw) || !("labels" in raw)) {
+    return false;
+  }
+  const body = raw.body;
+  if (!(typeof body === "string" || body === null)) return false;
+  if (typeof raw.title !== "string") return false;
+  if (typeof raw.state !== "string") return false;
+  if (!Array.isArray(raw.labels)) return false;
+  for (const entry of raw.labels) {
+    if (entry === null || typeof entry !== "object" || Array.isArray(entry)) return false;
+    const name = (entry as Record<string, unknown>).name;
+    if (typeof name !== "string") return false;
+  }
+  return true;
+}
+
 function scanCacheForSingleRepo(cacheRoot: string, source: string): string | null {
   const base = join(cacheRoot, source);
   if (!existsSync(base)) return null;
@@ -884,14 +902,33 @@ export function probeCacheDrift(options: {
   const limit = options.limit ?? 1000;
   const includeContentDrift = options.includeContentDrift !== false;
   const maxContentDriftChecks = options.maxContentDriftChecks ?? DEFAULT_MAX_CONTENT_DRIFT_CHECKS;
-  const listOpen =
-    options.listOpenFn ??
-    ((repo: string, listLimit: number) => listOpenIssueNumbers(repo, { limit: listLimit }));
   const fetchSingle = options.fetchSingleFn ?? singleIssueFetcherImpl;
   const isFreshFn = options.isFreshFn ?? ((metaPath: string) => isFresh(metaPath));
 
+  // Prefer-A #6099: default path lists once into a call-scoped Map and reuses
+  // eligible records. Injected listOpenFn keeps today's Set-only path (no Map,
+  // no second enumeration).
+  const openIssueByNumber = new Map<number, Record<string, unknown>>();
+  let liveOpen: Set<number>;
+  if (options.listOpenFn) {
+    liveOpen = options.listOpenFn(options.repo, limit);
+  } else {
+    const issues = listIssuesRest(options.repo, {
+      state: "open",
+      limit,
+      labels: [],
+      author: null,
+    });
+    for (const issue of issues) {
+      const number = issue.number;
+      if (typeof number === "number" && number > 0) {
+        openIssueByNumber.set(number, issue);
+      }
+    }
+    liveOpen = new Set(openIssueByNumber.keys());
+  }
+
   const cachedOpen = scanCachedOpenEntries(options.repo, source, cacheRoot);
-  const liveOpen = listOpen(options.repo, limit);
   const stateDriftNumbers: number[] = [];
   const contentDriftNumbers: number[] = [];
   let contentChecks = 0;
@@ -909,7 +946,11 @@ export function probeCacheDrift(options: {
     if (!isFreshFn(metaPath)) continue;
     contentChecks += 1;
     try {
-      const live = normaliseRestIssue(fetchSingle(options.repo, number));
+      const fromList = openIssueByNumber.get(number);
+      const live =
+        fromList !== undefined && isReusableOpenListRecord(fromList)
+          ? normaliseRestIssue(fromList)
+          : normaliseRestIssue(fetchSingle(options.repo, number));
       if (issueContentFingerprint(cachedRaw) !== issueContentFingerprint(live)) {
         contentDriftNumbers.push(number);
       }

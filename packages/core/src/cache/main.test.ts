@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { restIssueView } from "../scm/gh-rest.js";
 import {
   cacheRefreshClosed,
   detectRateLimit,
@@ -12,6 +13,7 @@ import {
   runFetchAll,
   StateRefreshReportImpl,
   setPaginatedLister,
+  setSingleIssueFetcher,
   setSleepFn,
 } from "./fetch.js";
 
@@ -259,6 +261,178 @@ describe("fetch-all", () => {
       expect(fetchCount).toBe(1);
     } finally {
       rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("probeCacheDrift reuses eligible open-list payload without fetchSingle (#6099)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-drift-reuse-"));
+    const base = join(root, "github-issue/deftai/directive/21");
+    mkdirSync(base, { recursive: true });
+    writeFileSync(
+      join(base, "raw.json"),
+      JSON.stringify({ number: 21, state: "open", title: "cached", body: "old-body", labels: [] }),
+      "utf8",
+    );
+    writeFileSync(
+      join(base, "meta.json"),
+      JSON.stringify({
+        source: "github-issue",
+        key: "deftai/directive/21",
+        fetched_at: "2026-01-01T00:00:00Z",
+        ttl_seconds: 3600,
+        expires_at: "2099-01-01T00:00:00Z",
+        scan_result: {
+          passed: true,
+          scanned_at: "2026-01-01T00:00:00Z",
+          scanner_version: "2.1.0",
+          flags: [],
+        },
+        size_bytes: 100,
+        stale: false,
+      }),
+      "utf8",
+    );
+    let fetchCount = 0;
+    setPaginatedLister(() => [
+      {
+        number: 21,
+        state: "open",
+        title: "cached",
+        body: "mutated-list-body",
+        labels: [{ name: "bug" }],
+      },
+    ]);
+    setSingleIssueFetcher(() => {
+      fetchCount += 1;
+      return { number: 21, state: "open", title: "from-single", body: "single", labels: [] };
+    });
+    try {
+      const drift = probeCacheDrift({
+        repo: "deftai/directive",
+        source: "github-issue",
+        cacheRoot: root,
+      });
+      expect(drift.contentDriftNumbers).toEqual([21]);
+      expect(drift.stateDriftNumbers).toEqual([]);
+      expect(fetchCount).toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      setPaginatedLister(restIssueListPaginated);
+      setSingleIssueFetcher(restIssueView);
+    }
+  });
+
+  it("probeCacheDrift falls back to fetchSingle for present-but-undefined body (#6099)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-drift-undef-body-"));
+    const base = join(root, "github-issue/deftai/directive/22");
+    mkdirSync(base, { recursive: true });
+    writeFileSync(
+      join(base, "raw.json"),
+      JSON.stringify({ number: 22, state: "open", title: "cached", body: "old-body", labels: [] }),
+      "utf8",
+    );
+    writeFileSync(
+      join(base, "meta.json"),
+      JSON.stringify({
+        source: "github-issue",
+        key: "deftai/directive/22",
+        fetched_at: "2026-01-01T00:00:00Z",
+        ttl_seconds: 3600,
+        expires_at: "2099-01-01T00:00:00Z",
+        scan_result: {
+          passed: true,
+          scanned_at: "2026-01-01T00:00:00Z",
+          scanner_version: "2.1.0",
+          flags: [],
+        },
+        size_bytes: 100,
+        stale: false,
+      }),
+      "utf8",
+    );
+    let fetchCount = 0;
+    setPaginatedLister(() => [
+      {
+        number: 22,
+        state: "open",
+        title: "cached",
+        body: undefined,
+        labels: [{ name: "bug" }],
+      },
+    ]);
+    setSingleIssueFetcher(() => {
+      fetchCount += 1;
+      return { number: 22, state: "open", title: "cached", body: "from-single", labels: [] };
+    });
+    try {
+      const drift = probeCacheDrift({
+        repo: "deftai/directive",
+        source: "github-issue",
+        cacheRoot: root,
+      });
+      expect(fetchCount).toBe(1);
+      expect(drift.contentDriftNumbers).toEqual([22]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      setPaginatedLister(restIssueListPaginated);
+      setSingleIssueFetcher(restIssueView);
+    }
+  });
+
+  it("probeCacheDrift falls back to fetchSingle for invalid title/state (#6099)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-drift-bad-title-"));
+    const base = join(root, "github-issue/deftai/directive/23");
+    mkdirSync(base, { recursive: true });
+    writeFileSync(
+      join(base, "raw.json"),
+      JSON.stringify({ number: 23, state: "open", title: "cached", body: "old-body", labels: [] }),
+      "utf8",
+    );
+    writeFileSync(
+      join(base, "meta.json"),
+      JSON.stringify({
+        source: "github-issue",
+        key: "deftai/directive/23",
+        fetched_at: "2026-01-01T00:00:00Z",
+        ttl_seconds: 3600,
+        expires_at: "2099-01-01T00:00:00Z",
+        scan_result: {
+          passed: true,
+          scanned_at: "2026-01-01T00:00:00Z",
+          scanner_version: "2.1.0",
+          flags: [],
+        },
+        size_bytes: 100,
+        stale: false,
+      }),
+      "utf8",
+    );
+    let fetchCount = 0;
+    setPaginatedLister(() => [
+      {
+        number: 23,
+        state: 1,
+        title: null,
+        body: "list-body",
+        labels: [{ name: "bug" }],
+      },
+    ]);
+    setSingleIssueFetcher(() => {
+      fetchCount += 1;
+      return { number: 23, state: "open", title: "from-single", body: "from-single", labels: [] };
+    });
+    try {
+      const drift = probeCacheDrift({
+        repo: "deftai/directive",
+        source: "github-issue",
+        cacheRoot: root,
+      });
+      expect(fetchCount).toBe(1);
+      expect(drift.contentDriftNumbers).toEqual([23]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      setPaginatedLister(restIssueListPaginated);
+      setSingleIssueFetcher(restIssueView);
     }
   });
 
