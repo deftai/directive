@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.5.
 
 ### Fixed
+- Record tracked completion for guarded linked-worktree Codex prep (#6100).
+- Record tracked completion for applying-host live-occupant publish guard (#6101).
+- Record tracked completion for open-issue list reuse in cache drift probing (#6099).
+- Record tracked completion for batched finalize-owed claim probes (#6008).
 - Prepare linked worktrees for Codex sessions with `deft swarm-worktrees prep --path <dest>`. Prep refuses worktrees owned by another repository or a different live session and checks that the required runtime hook is installed. Root-mismatch errors now explain how to prepare and reopen the destination worktree. `prep --help` / `-h` print usage without running deposit or install (#6100).
 - Finalize-owed claim probes batch ls-remote, narrow claim-batch status, and use env-only GIT_TERMINAL_PROMPT=0 without a probe-timeout numeric const (#6008).
 - Applying-host publish skips overwrite while another session holds a live occupancy lease and surfaces deferred publish in CLI text/JSON (#6101).

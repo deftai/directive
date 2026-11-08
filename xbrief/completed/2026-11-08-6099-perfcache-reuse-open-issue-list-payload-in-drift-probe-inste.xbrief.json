@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "perf(cache): reuse open-issue list payload in drift probe instead of refetching up to 25 issues",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "perf(cache): reuse open-issue list payload in drift probe instead of refetching up to 25 issues",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6099",
@@ -18,53 +18,193 @@
     "items": [
       {
         "title": "relieves: P1 — Inside cache drift probe’s default path, list once into a call-scoped Map and derive live-open membership from its keys without changing open-issue list helper or the injected open-list function Set type.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "76b515d9d3f8b0f298fca0bf726e9404738d3cfd",
+          "recorded_at": "2026-11-08T05:35:19Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "actor": "Scott",
+          "provenance": "operator-session",
+          "at": "2026-11-08T05:39:02.850Z",
+          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
+        }
       },
       {
         "title": "relieves: P1 — When injected open-list function is injected, build no records Map and perform no second enumeration so injected-Set callers stay byte-identical to today.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "76b515d9d3f8b0f298fca0bf726e9404738d3cfd",
+          "recorded_at": "2026-11-08T05:35:19Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "actor": "Scott",
+          "provenance": "operator-session",
+          "at": "2026-11-08T05:39:02.850Z",
+          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
+        }
       },
       {
         "title": "relieves: P1 — Reuse each eligible Map record through REST issue normaliser then issue content fingerprint before any singleIssueFetcherImpl call, taking only the call-scoped Map-first shape from fetch-all path, not its unguarded completeness policy.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "76b515d9d3f8b0f298fca0bf726e9404738d3cfd",
+          "recorded_at": "2026-11-08T05:35:19Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "actor": "Scott",
+          "provenance": "operator-session",
+          "at": "2026-11-08T05:39:02.850Z",
+          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
+        }
       },
       {
         "title": "relieves: P2 — Leave the cache_fresh call site cache_fresh call site seam-free so the only caller that pays the sampled GETs gains reuse with no call-site edit.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "76b515d9d3f8b0f298fca0bf726e9404738d3cfd",
+          "recorded_at": "2026-11-08T05:35:19Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "actor": "Scott",
+          "provenance": "operator-session",
+          "at": "2026-11-08T05:39:02.850Z",
+          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
+        }
       },
       {
         "title": "relieves: P3 — Gate reuse with present keys via the in operator plus usable values: body must be string or null, title and state must be strings, and labels must be an array whose entries expose usable string names.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "76b515d9d3f8b0f298fca0bf726e9404738d3cfd",
+          "recorded_at": "2026-11-08T05:35:19Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "actor": "Scott",
+          "provenance": "operator-session",
+          "at": "2026-11-08T05:39:02.850Z",
+          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
+        }
       },
       {
         "title": "relieves: P3 — On any missing required key or unusable body/title/state/labels shape, call single-issue fetch exactly once for that number and never skip the content check.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "76b515d9d3f8b0f298fca0bf726e9404738d3cfd",
+          "recorded_at": "2026-11-08T05:35:19Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "actor": "Scott",
+          "provenance": "operator-session",
+          "at": "2026-11-08T05:39:02.850Z",
+          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
+        }
       },
       {
         "title": "relieves: P3 — Prove seamless-default reuse in one run with schema-valid TTL-fresh meta fixtures, exactly one mutated list record, contentDriftNumbers equal to that number, and zero single-issue fetch calls under paginated lister setter and single-issue fetcher setter with only repo/source/cacheRoot.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "76b515d9d3f8b0f298fca0bf726e9404738d3cfd",
+          "recorded_at": "2026-11-08T05:35:19Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "actor": "Scott",
+          "provenance": "operator-session",
+          "at": "2026-11-08T05:39:02.850Z",
+          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
+        }
       },
       {
         "title": "relieves: P3 — Add present-but-undefined body and invalid title/state fixtures that assert exactly one single-issue fetch fallback and drift detection from the fallback fingerprint.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "76b515d9d3f8b0f298fca0bf726e9404738d3cfd",
+          "recorded_at": "2026-11-08T05:35:19Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "actor": "Scott",
+          "provenance": "operator-session",
+          "at": "2026-11-08T05:39:02.850Z",
+          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
+        }
       },
       {
         "title": "Keep comparison-count default content-drift check cap behavior unchanged in this Prefer-A; do not re-point the counter to single-issue fetch-only in this ticket.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "76b515d9d3f8b0f298fca0bf726e9404738d3cfd",
+          "recorded_at": "2026-11-08T05:35:19Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "actor": "Scott",
+          "provenance": "operator-session",
+          "at": "2026-11-08T05:39:02.850Z",
+          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
+        }
       },
       {
         "title": "Keep-outs: deleting or optionalizing .deft-cache/github-issue; changing verify:cache-fresh meaning when upstream data matches; applying the new eligibility predicate to pre-existing fetch-all path Map-first reuse; ghx/#3513; sleepImpl Retry-After fix; Approach B return-type churn; Approach C module memo.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "76b515d9d3f8b0f298fca0bf726e9404738d3cfd",
+          "recorded_at": "2026-11-08T05:35:19Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/disposition": {
+          "kind": "not_applicable",
+          "actor": "Scott",
+          "provenance": "operator-session",
+          "at": "2026-11-08T05:39:02.850Z",
+          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
+        }
       }
     ],
     "tags": [
@@ -116,73 +256,189 @@
           "text": "relieves: P1 — Inside cache drift probe’s default path, list once into a call-scoped Map and derive live-open membership from its keys without changing open-issue list helper or the injected open-list function Set type.",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "actor": "Scott",
+            "provenance": "operator-session",
+            "at": "2026-11-08T05:39:02.850Z",
+            "reason": "Pathless Prefer-A leftover disposition after product merge."
+          }
         },
         {
           "id": 2,
           "text": "relieves: P1 — When injected open-list function is injected, build no records Map and perform no second enumeration so injected-Set callers stay byte-identical to today.",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "actor": "Scott",
+            "provenance": "operator-session",
+            "at": "2026-11-08T05:39:02.850Z",
+            "reason": "Pathless Prefer-A leftover disposition after product merge."
+          }
         },
         {
           "id": 3,
           "text": "relieves: P1 — Reuse each eligible Map record through REST issue normaliser then issue content fingerprint before any singleIssueFetcherImpl call, taking only the call-scoped Map-first shape from fetch-all path, not its unguarded completeness policy.",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "actor": "Scott",
+            "provenance": "operator-session",
+            "at": "2026-11-08T05:39:02.850Z",
+            "reason": "Pathless Prefer-A leftover disposition after product merge."
+          }
         },
         {
           "id": 4,
           "text": "relieves: P2 — Leave the cache_fresh call site cache_fresh call site seam-free so the only caller that pays the sampled GETs gains reuse with no call-site edit.",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "actor": "Scott",
+            "provenance": "operator-session",
+            "at": "2026-11-08T05:39:02.850Z",
+            "reason": "Pathless Prefer-A leftover disposition after product merge."
+          }
         },
         {
           "id": 5,
           "text": "relieves: P3 — Gate reuse with present keys via the in operator plus usable values: body must be string or null, title and state must be strings, and labels must be an array whose entries expose usable string names.",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "actor": "Scott",
+            "provenance": "operator-session",
+            "at": "2026-11-08T05:39:02.850Z",
+            "reason": "Pathless Prefer-A leftover disposition after product merge."
+          }
         },
         {
           "id": 6,
           "text": "relieves: P3 — On any missing required key or unusable body/title/state/labels shape, call single-issue fetch exactly once for that number and never skip the content check.",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "actor": "Scott",
+            "provenance": "operator-session",
+            "at": "2026-11-08T05:39:02.850Z",
+            "reason": "Pathless Prefer-A leftover disposition after product merge."
+          }
         },
         {
           "id": 7,
           "text": "relieves: P3 — Prove seamless-default reuse in one run with schema-valid TTL-fresh meta fixtures, exactly one mutated list record, contentDriftNumbers equal to that number, and zero single-issue fetch calls under paginated lister setter and single-issue fetcher setter with only repo/source/cacheRoot.",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "actor": "Scott",
+            "provenance": "operator-session",
+            "at": "2026-11-08T05:39:02.850Z",
+            "reason": "Pathless Prefer-A leftover disposition after product merge."
+          }
         },
         {
           "id": 8,
           "text": "relieves: P3 — Add present-but-undefined body and invalid title/state fixtures that assert exactly one single-issue fetch fallback and drift detection from the fallback fingerprint.",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "actor": "Scott",
+            "provenance": "operator-session",
+            "at": "2026-11-08T05:39:02.850Z",
+            "reason": "Pathless Prefer-A leftover disposition after product merge."
+          }
         },
         {
           "id": 9,
           "text": "Keep comparison-count default content-drift check cap behavior unchanged in this Prefer-A; do not re-point the counter to single-issue fetch-only in this ticket.",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "actor": "Scott",
+            "provenance": "operator-session",
+            "at": "2026-11-08T05:39:02.850Z",
+            "reason": "Pathless Prefer-A leftover disposition after product merge."
+          }
         },
         {
           "id": 10,
           "text": "Keep-outs: deleting or optionalizing .deft-cache/github-issue; changing verify:cache-fresh meaning when upstream data matches; applying the new eligibility predicate to pre-existing fetch-all path Map-first reuse; ghx/#3513; sleepImpl Retry-After fix; Approach B return-type churn; Approach C module memo.",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement"
+          "provenance": "statement",
+          "x-directive/disposition": {
+            "kind": "not_applicable",
+            "actor": "Scott",
+            "provenance": "operator-session",
+            "at": "2026-11-08T05:39:02.850Z",
+            "reason": "Pathless Prefer-A leftover disposition after product merge."
+          }
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        {
+          "text": "perf(cache): reuse open-issue list payload in drift probe instead of refetching up to 25 issues",
+          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
+        },
+        {
+          "text": "relieves: P1 — Inside probeCacheDrift’s default path, list once into a call-scoped Map and derive live-open membership from its keys without changing listOpenIssueNumbers or the listOpenFn Set type.",
+          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
+        },
+        {
+          "text": "relieves: P1 — When listOpenFn is injected, build no records Map and perform no second enumeration so injected-Set callers stay byte-identical to today.",
+          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
+        },
+        {
+          "text": "relieves: P1 — Reuse each eligible Map record through normaliseRestIssue then issueContentFingerprint before any singleIssueFetcherImpl call, taking only the call-scoped Map-first shape from runFetchAll, not its unguarded completeness policy.",
+          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
+        },
+        {
+          "text": "relieves: P2 — Leave the evaluate.ts cache_fresh call site seam-free so the only caller that pays the sampled GETs gains reuse with no call-site edit.",
+          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
+        },
+        {
+          "text": "relieves: P3 — Gate reuse with present keys via the in operator plus usable values: body must be string or null, title and state must be strings, and labels must be an array whose entries expose usable string names.",
+          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
+        },
+        {
+          "text": "relieves: P3 — On any missing required key or unusable body/title/state/labels shape, call fetchSingle exactly once for that number and never skip the content check.",
+          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
+        },
+        {
+          "text": "relieves: P3 — Prove seamless-default reuse in one run with schema-valid TTL-fresh meta fixtures, exactly one mutated list record, contentDriftNumbers equal to that number, and zero fetchSingle calls under setPaginatedLister and setSingleIssueFetcher with only repo/source/cacheRoot.",
+          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
+        },
+        {
+          "text": "relieves: P3 — Add present-but-undefined body and invalid title/state fixtures that assert exactly one fetchSingle fallback and drift detection from the fallback fingerprint.",
+          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
+        },
+        {
+          "text": "Keep comparison-count DEFAULT_MAX_CONTENT_DRIFT_CHECKS behavior unchanged in this Prefer-A; do not re-point the counter to fetchSingle-only in this ticket.",
+          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
+        },
+        {
+          "text": "Keep-outs: deleting or optionalizing .deft-cache/github-issue; changing verify:cache-fresh meaning when upstream data matches; applying the new eligibility predicate to pre-existing runFetchAll Map-first reuse; ghx/#3513; sleepImpl Retry-After fix; Approach B return-type churn; Approach C module memo.",
+          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
+        }
+      ]
     },
     "metadata": {
       "intended_placement": {
@@ -234,6 +490,30 @@
           "Prefer-A Bound 6691254585"
         ],
         "parallel_safe": true
+      },
+      "productPullRequest": 6116,
+      "x-directive/productPullRequest": 6116,
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-08T05:39:02.850Z",
+        "actor": "Scott",
+        "via": "prefer-a-leftover-hand-stamp"
+      },
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6116,
+        "pullRequestNumber": 6116,
+        "mergeCommit": "76b515d9d3f8b0f298fca0bf726e9404738d3cfd",
+        "deliveryCommit": "76b515d9d3f8b0f298fca0bf726e9404738d3cfd",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-08T05:39:02.850Z",
+        "verifiedAt": "2026-11-08T05:39:02.850Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "parent-through-merge",
+        "repository": "deftai/directive"
       }
     },
     "id": "github.issue.6247234308",
