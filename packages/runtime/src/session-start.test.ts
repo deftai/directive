@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { agentsRefreshPlan, payloadIsOwnGitRoot } from "@deftai/directive-core/platform";
 import {
-  applyWorktreeOccupancy,
   applyingHostPath,
+  applyWorktreeOccupancy,
   readApplyingHost,
 } from "@deftai/directive-core/session";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -367,13 +367,7 @@ describe("session-start run", () => {
     process.stderr.write = (() => true) as typeof process.stderr.write;
     try {
       expect(
-        run([
-          "--project-root",
-          root,
-          "--read-only",
-          "--no-history",
-          `--session-id=${attempted}`,
-        ]),
+        run(["--project-root", root, "--read-only", "--no-history", `--session-id=${attempted}`]),
       ).toBe(0);
       expect(existsSync(applyingHostPath(root))).toBe(false);
       expect(out).toContain("applying-host publish deferred");

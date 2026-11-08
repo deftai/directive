@@ -680,9 +680,7 @@ export function run(argv: readonly string[]): number {
           "not a conflict recovery — that owner must release/end or wait for lease TTL.\n",
       );
     } else if (applyingHostPublish.status === "failed") {
-      process.stdout.write(
-        `[deft] applying-host publish failed: ${applyingHostPublish.message}\n`,
-      );
+      process.stdout.write(`[deft] applying-host publish failed: ${applyingHostPublish.message}\n`);
     }
   }
   return result.code;
