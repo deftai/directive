@@ -26,13 +26,6 @@
           "pointer": "c0c8d2c15e9b07073508299643a4be0db5d2781e",
           "recorded_at": "2026-11-08T05:37:30Z",
           "recorded_by": "scope:complete"
-        },
-        "x-directive/disposition": {
-          "kind": "not_applicable",
-          "actor": "Scott",
-          "provenance": "operator-session",
-          "at": "2026-11-08T05:39:02.850Z",
-          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
         }
       },
       {
@@ -45,13 +38,6 @@
           "pointer": "c0c8d2c15e9b07073508299643a4be0db5d2781e",
           "recorded_at": "2026-11-08T05:37:30Z",
           "recorded_by": "scope:complete"
-        },
-        "x-directive/disposition": {
-          "kind": "not_applicable",
-          "actor": "Scott",
-          "provenance": "operator-session",
-          "at": "2026-11-08T05:39:02.850Z",
-          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
         }
       },
       {
@@ -64,13 +50,6 @@
           "pointer": "c0c8d2c15e9b07073508299643a4be0db5d2781e",
           "recorded_at": "2026-11-08T05:37:30Z",
           "recorded_by": "scope:complete"
-        },
-        "x-directive/disposition": {
-          "kind": "not_applicable",
-          "actor": "Scott",
-          "provenance": "operator-session",
-          "at": "2026-11-08T05:39:02.850Z",
-          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
         }
       },
       {
@@ -83,13 +62,6 @@
           "pointer": "c0c8d2c15e9b07073508299643a4be0db5d2781e",
           "recorded_at": "2026-11-08T05:37:30Z",
           "recorded_by": "scope:complete"
-        },
-        "x-directive/disposition": {
-          "kind": "not_applicable",
-          "actor": "Scott",
-          "provenance": "operator-session",
-          "at": "2026-11-08T05:39:02.850Z",
-          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
         }
       },
       {
@@ -102,13 +74,6 @@
           "pointer": "c0c8d2c15e9b07073508299643a4be0db5d2781e",
           "recorded_at": "2026-11-08T05:37:30Z",
           "recorded_by": "scope:complete"
-        },
-        "x-directive/disposition": {
-          "kind": "not_applicable",
-          "actor": "Scott",
-          "provenance": "operator-session",
-          "at": "2026-11-08T05:39:02.850Z",
-          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
         }
       },
       {
@@ -121,13 +86,6 @@
           "pointer": "c0c8d2c15e9b07073508299643a4be0db5d2781e",
           "recorded_at": "2026-11-08T05:37:30Z",
           "recorded_by": "scope:complete"
-        },
-        "x-directive/disposition": {
-          "kind": "not_applicable",
-          "actor": "Scott",
-          "provenance": "operator-session",
-          "at": "2026-11-08T05:39:02.850Z",
-          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
         }
       },
       {
@@ -140,13 +98,6 @@
           "pointer": "c0c8d2c15e9b07073508299643a4be0db5d2781e",
           "recorded_at": "2026-11-08T05:37:30Z",
           "recorded_by": "scope:complete"
-        },
-        "x-directive/disposition": {
-          "kind": "not_applicable",
-          "actor": "Scott",
-          "provenance": "operator-session",
-          "at": "2026-11-08T05:39:02.850Z",
-          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
         }
       },
       {
@@ -159,13 +110,6 @@
           "pointer": "c0c8d2c15e9b07073508299643a4be0db5d2781e",
           "recorded_at": "2026-11-08T05:37:30Z",
           "recorded_by": "scope:complete"
-        },
-        "x-directive/disposition": {
-          "kind": "not_applicable",
-          "actor": "Scott",
-          "provenance": "operator-session",
-          "at": "2026-11-08T05:39:02.850Z",
-          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
         }
       }
     ],
@@ -217,152 +161,69 @@
           "text": "relieves: P1 — Keep operator-callable one-path prep verb + shared guarded prep (foreign-worktree via mainWorktreeRoot; live foreign lease via occupancyAdmission===stranger and liveOccupancyOnTree; then PM; success = outer-visible PIN_REL exists)",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement",
-          "x-directive/disposition": {
-            "kind": "not_applicable",
-            "actor": "Scott",
-            "provenance": "operator-session",
-            "at": "2026-11-08T05:39:02.850Z",
-            "reason": "Pathless Prefer-A leftover disposition after product merge."
-          }
+          "provenance": "statement"
         },
         {
           "id": 2,
           "text": "relieves: P1 — worktree create/reuse and dest-place create/reuse create/reuse newly-installing paths call that guarded prep before success; lease/foreign refuse runs before reconstituteLinkedWorktreeDeposit writes and before PM; regression zero PM and zero deposit mutation on stranger live lease",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement",
-          "x-directive/disposition": {
-            "kind": "not_applicable",
-            "actor": "Scott",
-            "provenance": "operator-session",
-            "at": "2026-11-08T05:39:02.850Z",
-            "reason": "Pathless Prefer-A leftover disposition after product merge."
-          }
+          "provenance": "statement"
         },
         {
           "id": 3,
           "text": "relieves: P1 — arc-dest ensure is in-contract: create path runs shared guarded prep after worktree add; reuse refuses stranger live occupancy before checkout; a deliberate process-only no-install mode is allowed only when the caller records verification-path pin-read and that mode is not the supported Codex consumer handoff",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement",
-          "x-directive/disposition": {
-            "kind": "not_applicable",
-            "actor": "Scott",
-            "provenance": "operator-session",
-            "at": "2026-11-08T05:39:02.850Z",
-            "reason": "Pathless Prefer-A leftover disposition after product merge."
-          }
+          "provenance": "statement"
         },
         {
           "id": 4,
           "text": "relieves: P1 — Host-boundary + ordering unchanged: dest-rooted host session for matching launchRoot (6692738765); prep before re-root",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement",
-          "x-directive/disposition": {
-            "kind": "not_applicable",
-            "actor": "Scott",
-            "provenance": "operator-session",
-            "at": "2026-11-08T05:39:02.850Z",
-            "reason": "Pathless Prefer-A leftover disposition after product merge."
-          }
+          "provenance": "statement"
         },
         {
           "id": 5,
           "text": "relieves: P2 — Unchanged: dedicated root-mismatch constant; shared INSTALLATION_RECOVERY_GUIDANCE untouched",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement",
-          "x-directive/disposition": {
-            "kind": "not_applicable",
-            "actor": "Scott",
-            "provenance": "operator-session",
-            "at": "2026-11-08T05:39:02.850Z",
-            "reason": "Pathless Prefer-A leftover disposition after product merge."
-          }
+          "provenance": "statement"
         },
         {
           "id": 6,
           "text": "relieves: P3 — Unchanged: inspection under matching identity; maybeSelfCompleteSetup is setup; product mutations still gated",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement",
-          "x-directive/disposition": {
-            "kind": "not_applicable",
-            "actor": "Scott",
-            "provenance": "operator-session",
-            "at": "2026-11-08T05:39:02.850Z",
-            "reason": "Pathless Prefer-A leftover disposition after product merge."
-          }
+          "provenance": "statement"
         },
         {
           "id": 7,
           "text": "relieves: P4 — Unchanged: packaged-consumer fixture with materialized .pnpm layout; injected launchingCheckoutRoot-only insufficient",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement",
-          "x-directive/disposition": {
-            "kind": "not_applicable",
-            "actor": "Scott",
-            "provenance": "operator-session",
-            "at": "2026-11-08T05:39:02.850Z",
-            "reason": "Pathless Prefer-A leftover disposition after product merge."
-          }
+          "provenance": "statement"
         },
         {
           "id": 8,
           "text": "Footnote: CHANGELOG / docs; #5836 keep-out",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement",
-          "x-directive/disposition": {
-            "kind": "not_applicable",
-            "actor": "Scott",
-            "provenance": "operator-session",
-            "at": "2026-11-08T05:39:02.850Z",
-            "reason": "Pathless Prefer-A leftover disposition after product merge."
-          }
+          "provenance": "statement"
         }
       ],
       "ambiguity_attestation": "none_found",
       "confessions": [
-        {
-          "text": "[framework-gap] Codex hook root binding blocks linked-worktree reads and dependency bootstrap",
-          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
-        },
-        {
-          "text": "relieves: P1 — Keep operator-callable one-path prep verb + shared guarded prep (foreign-worktree via mainWorktreeRoot; live foreign lease via occupancyAdmission===stranger and liveOccupancyOnTree; then PM; success = outer-visible PIN_REL exists)",
-          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
-        },
-        {
-          "text": "relieves: P1 — worktrees.ts and dest-place.ts create/reuse newly-installing paths call that guarded prep before success; lease/foreign refuse runs before reconstituteLinkedWorktreeDeposit writes and before PM; regression zero PM and zero deposit mutation on stranger live lease",
-          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
-        },
-        {
-          "text": "relieves: P1 — ensureArcDest is in-contract: create path runs shared guarded prep after worktree add; reuse refuses stranger live occupancy before checkout; a deliberate process-only no-install mode is allowed only when the caller records verification-path pin-read and that mode is not the supported Codex consumer handoff",
-          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
-        },
-        {
-          "text": "relieves: P1 — Host-boundary + ordering unchanged: dest-rooted host session for matching launchRoot (6692738765); prep before re-root",
-          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
-        },
-        {
-          "text": "relieves: P2 — Unchanged: dedicated root-mismatch constant; shared INSTALLATION_RECOVERY_GUIDANCE untouched",
-          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
-        },
-        {
-          "text": "relieves: P3 — Unchanged: inspection under matching identity; maybeSelfCompleteSetup is setup; product mutations still gated",
-          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
-        },
-        {
-          "text": "relieves: P4 — Unchanged: packaged-consumer fixture with materialized .pnpm layout; injected launchingCheckoutRoot-only insufficient",
-          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
-        },
-        {
-          "text": "Footnote: CHANGELOG / docs; #5836 keep-out",
-          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
-        }
+        "[framework-gap] Codex hook root binding blocks linked-worktree reads and dependency bootstrap",
+        "relieves: P1 — Keep operator-callable one-path prep verb + shared guarded prep (foreign-worktree via mainWorktreeRoot; live foreign lease via occupancyAdmission===stranger and liveOccupancyOnTree; then PM; success = outer-visible PIN_REL exists)",
+        "relieves: P1 — worktrees.ts and dest-place.ts create/reuse newly-installing paths call that guarded prep before success; lease/foreign refuse runs before reconstituteLinkedWorktreeDeposit writes and before PM; regression zero PM and zero deposit mutation on stranger live lease",
+        "relieves: P1 — ensureArcDest is in-contract: create path runs shared guarded prep after worktree add; reuse refuses stranger live occupancy before checkout; a deliberate process-only no-install mode is allowed only when the caller records verification-path pin-read and that mode is not the supported Codex consumer handoff",
+        "relieves: P1 — Host-boundary + ordering unchanged: dest-rooted host session for matching launchRoot (6692738765); prep before re-root",
+        "relieves: P2 — Unchanged: dedicated root-mismatch constant; shared INSTALLATION_RECOVERY_GUIDANCE untouched",
+        "relieves: P3 — Unchanged: inspection under matching identity; maybeSelfCompleteSetup is setup; product mutations still gated",
+        "relieves: P4 — Unchanged: packaged-consumer fixture with materialized .pnpm layout; injected launchingCheckoutRoot-only insufficient",
+        "Footnote: CHANGELOG / docs; #5836 keep-out"
       ]
     },
     "metadata": {

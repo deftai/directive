@@ -26,13 +26,6 @@
           "pointer": "5fac93f06f915a636e96995789c075f4fc0fe70f",
           "recorded_at": "2026-11-08T05:35:43Z",
           "recorded_by": "scope:complete"
-        },
-        "x-directive/disposition": {
-          "kind": "not_applicable",
-          "actor": "Scott",
-          "provenance": "operator-session",
-          "at": "2026-11-08T05:39:02.850Z",
-          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
         }
       },
       {
@@ -45,13 +38,6 @@
           "pointer": "5fac93f06f915a636e96995789c075f4fc0fe70f",
           "recorded_at": "2026-11-08T05:35:43Z",
           "recorded_by": "scope:complete"
-        },
-        "x-directive/disposition": {
-          "kind": "not_applicable",
-          "actor": "Scott",
-          "provenance": "operator-session",
-          "at": "2026-11-08T05:39:02.850Z",
-          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
         }
       },
       {
@@ -64,13 +50,6 @@
           "pointer": "5fac93f06f915a636e96995789c075f4fc0fe70f",
           "recorded_at": "2026-11-08T05:35:43Z",
           "recorded_by": "scope:complete"
-        },
-        "x-directive/disposition": {
-          "kind": "not_applicable",
-          "actor": "Scott",
-          "provenance": "operator-session",
-          "at": "2026-11-08T05:39:02.850Z",
-          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
         }
       },
       {
@@ -83,13 +62,6 @@
           "pointer": "5fac93f06f915a636e96995789c075f4fc0fe70f",
           "recorded_at": "2026-11-08T05:35:43Z",
           "recorded_by": "scope:complete"
-        },
-        "x-directive/disposition": {
-          "kind": "not_applicable",
-          "actor": "Scott",
-          "provenance": "operator-session",
-          "at": "2026-11-08T05:39:02.850Z",
-          "reason": "Shipped via Tracking product PR; Prefer-A leftover hand path after verify:ac unmapped-sentence/commands fence."
         }
       }
     ],
@@ -135,80 +107,37 @@
           "text": "relieves: P1 — Enforce live-occupant skip inside publishApplyingHost helpers under occupancy writer lock keyed to the canonical session id being written with no unlocked write fallback and no third publish predicate",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement",
-          "x-directive/disposition": {
-            "kind": "not_applicable",
-            "actor": "Scott",
-            "provenance": "operator-session",
-            "at": "2026-11-08T05:39:02.850Z",
-            "reason": "Pathless Prefer-A leftover disposition after product merge."
-          }
+          "provenance": "statement"
         },
         {
           "id": 2,
           "text": "relieves: P2 — Deposit-key live-owner cleanup on depositSessionId equaling liveId for the ok branch and for the stale branch with no applyingHostSessionId relation conjunct, map onto liveOwnerBypass so effectiveOwner is live deposit identity, keep bare rewrite injection, and delete dead ok-branch soft-pass",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement",
-          "x-directive/disposition": {
-            "kind": "not_applicable",
-            "actor": "Scott",
-            "provenance": "operator-session",
-            "at": "2026-11-08T05:39:02.850Z",
-            "reason": "Pathless Prefer-A leftover disposition after product merge."
-          }
+          "provenance": "statement"
         },
         {
           "id": 3,
           "text": "relieves: P3 — When live foreign occupant exists stop repair guidance from prescribing another owner session-id recipe and return a discriminated deferred or failed publish outcome distinct from non-canonical null into CLI text and JSON without claiming conflict recovery",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement",
-          "x-directive/disposition": {
-            "kind": "not_applicable",
-            "actor": "Scott",
-            "provenance": "operator-session",
-            "at": "2026-11-08T05:39:02.850Z",
-            "reason": "Pathless Prefer-A leftover disposition after product merge."
-          }
+          "provenance": "statement"
         },
         {
           "id": 4,
           "text": "relieves: P4 — Assert admission claims on the dispatcher path including real CLI read-only completion with project-root plus stale-branch bare cleanup and deferred-outcome text and json rows, and refuse evaluator-only soft-pass coverage as sufficient proof",
           "artifact_path": null,
           "ambiguous": false,
-          "provenance": "statement",
-          "x-directive/disposition": {
-            "kind": "not_applicable",
-            "actor": "Scott",
-            "provenance": "operator-session",
-            "at": "2026-11-08T05:39:02.850Z",
-            "reason": "Pathless Prefer-A leftover disposition after product merge."
-          }
+          "provenance": "statement"
         }
       ],
       "ambiguity_attestation": "none_found",
       "confessions": [
-        {
-          "text": "[framework-gap] Read-only session recovery overwrites live-owner identity and blocks bare cleanup",
-          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
-        },
-        {
-          "text": "relieves: P1 — Enforce live-occupant skip inside publishApplyingHost helpers under occupancy writer lock keyed to the canonical session id being written with no unlocked write fallback and no third publish predicate",
-          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
-        },
-        {
-          "text": "relieves: P2 — Deposit-key live-owner cleanup on depositSessionId equaling liveId for the ok branch and for the stale branch with no applyingHostSessionId relation conjunct, map onto liveOwnerBypass so effectiveOwner is live deposit identity, keep bare rewrite injection, and delete dead ok-branch soft-pass",
-          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
-        },
-        {
-          "text": "relieves: P3 — When live foreign occupant exists stop repair guidance from prescribing another owner session-id recipe and return a discriminated deferred or failed publish outcome distinct from non-canonical null into CLI text and JSON without claiming conflict recovery",
-          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
-        },
-        {
-          "text": "relieves: P4 — Assert admission claims on the dispatcher path including real CLI read-only completion with project-root plus stale-branch bare cleanup and deferred-outcome text and json rows, and refuse evaluator-only soft-pass coverage as sufficient proof",
-          "reason": "Prefer-A leftover confession: Tracking product shipped; sentence not bound to artifact_path."
-        }
+        "[framework-gap] Read-only session recovery overwrites live-owner identity and blocks bare cleanup",
+        "relieves: P1 — Enforce live-occupant skip inside publishApplyingHost helpers under occupancy writer lock keyed to the canonical session id being written with no unlocked write fallback and no third publish predicate",
+        "relieves: P2 — Deposit-key live-owner cleanup on depositSessionId equaling liveId for the ok branch and for the stale branch with no applyingHostSessionId relation conjunct, map onto liveOwnerBypass so effectiveOwner is live deposit identity, keep bare rewrite injection, and delete dead ok-branch soft-pass",
+        "relieves: P3 — When live foreign occupant exists stop repair guidance from prescribing another owner session-id recipe and return a discriminated deferred or failed publish outcome distinct from non-canonical null into CLI text and JSON without claiming conflict recovery",
+        "relieves: P4 — Assert admission claims on the dispatcher path including real CLI read-only completion with project-root plus stale-branch bare cleanup and deferred-outcome text and json rows, and refuse evaluator-only soft-pass coverage as sufficient proof"
       ]
     },
     "metadata": {
