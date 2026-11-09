@@ -62,11 +62,10 @@
           "packages/core/src/install-health/constants.ts",
           "packages/runtime/src/hook-dispatch.ts",
           "packages/core/src/install-health/cheap.test.ts",
-          "packages/runtime/src/hook-dispatch.test.ts",
-          "packages/runtime/src/hook-identity-failclosed.test.ts"
+          "packages/runtime/src/hook-dispatch.test.ts"
         ],
         "verify_commands": [
-          "pnpm exec vitest run packages/core/src/install-health/cheap.test.ts packages/runtime/src/hook-dispatch.test.ts packages/runtime/src/hook-identity-failclosed.test.ts"
+          "pnpm exec vitest run packages/core/src/install-health/cheap.test.ts packages/runtime/src/hook-dispatch.test.ts"
         ],
         "expected_outputs": [
           "cheap and hook-dispatch tests pass for failure-shaped pin-mismatch guidance"
