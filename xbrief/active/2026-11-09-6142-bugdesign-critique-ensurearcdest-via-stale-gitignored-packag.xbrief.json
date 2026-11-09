@@ -2,39 +2,60 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6142",
-    "updated": "2026-11-09T19:54:48.611Z"
+    "updated": "2026-11-09T20:19:52.216Z"
   },
   "plan": {
     "title": "bug(design-critique): ensureArcDest via stale gitignored packages/core/dist skips guarded-prep, so arc dests launch without runtime",
     "status": "running",
     "narratives": {
-      "Description": "bug(design-critique): ensureArcDest via stale gitignored packages/core/dist skips guarded-prep, so arc dests launch without runtime",
+      "Description": "Calling ensureArcDest through a stale gitignored packages/core/dist can skip guarded-prep and leave arc dests without a runtime pin. This activation records Prefer-A Bound so a later product PR can ship a pin-bin ensure-arc-dest path that fails closed when the pin is still missing.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6142",
-      "Overview": "## Summary\n\nAgents that call `ensureArcDest` via `require(packages/core/dist/design-critique/arc-dest.js)` against a **gitignored stale local dist** get `ok: true` without running default `installMode: guarded-prep` (#6100 source). Arc dests then lack `node_modules/@deftai/directive-runtime`, and host hooks block `gh` / other verbs in that cwd. Silent incomplete prep is the failure mode.\n\n## Evidence (dogfood arc #6136)\n\n1. Source at tip (`packages/core/src/design-critique/arc-dest.ts`) defaults `installMode` to `guarded-prep` and calls `prepareLinkedWorktree`.\n2. `packages/*/dist/` is gitignored. Local dist on this host was weeks stale and had **no** `installMode` / `prepareLinkedWorktree`.\n3. `ensureArcDest({ repoRoot, destPath: '.deft-scratch/worktrees/arc-6136' })` returned `ok` / `reused: false` after bare `git worktree add --detach` only.\n4. Dest had `package.json`, no `node_modules`, no runtime pin. Dest-rooted Grok Round-1 critic hung: hooks refused `gh` (\"runtime package is missing\").\n5. Recovery: operator-authorized kill; `pnpm install --frozen-lockfile --prod=false` in the dest; rebuild primary `packages/core` dist restored guarded-prep.\n\n## Expected Prefer-A shape (thin)\n\nOne fail-closed path so arc dest create cannot silently skip guarded-prep:\n\n1. Ship a pin-bin verb (e.g. `deft design-critique:ensure-arc-dest`) that always runs current guarded-prep (or explicit `process-only-no-install`), **or**\n2. Skill/contract MUST: never `require(packages/core/dist/...)` for `ensureArcDest` on framework-source without a fresh build / pin path; refuse or warn when dist lacks `installMode`.\n\nOptional: dest readiness probe before critic spawn (`worktreeHasRuntimePin` / outer-visible pin) fail-closed with remediation.\n\n## Non-goals / keep-outs\n\n- #5892 — primary checkout pin/install drift blocking read-only parent session (different location).\n- #5882 — `swarm:finalize-cohort` lifecycle checkout skips package install.\n- #5836 — SEC-WT junction realpath into primary `.pnpm`.\n- Closed #6100 — Codex hook-root / linked-worktree bootstrap Prefer-A (source already has guarded-prep; this issue is the **invocation/stale-dist** hole).\n\n## Acceptance\n\n1. Creating an arc dest via the sanctioned path runs guarded-prep (or records explicit `process-only-no-install`) and cannot return success with missing runtime pin when guarded-prep was selected.\n2. Docs/skill name the sanctioned invocation (verb or rebuild/pin rule).\n3. Dogfood: fresh `arc-<N>` dest can post `gh issue comment` without manual `pnpm install` when using the sanctioned path.\n\nRefs #6136 (dogfood), #6100, #5892, #5882\n\nFiled for @MScottAdams\r\n\n",
+      "Overview": "Calling ensureArcDest through a stale gitignored packages/core/dist can skip guarded-prep and leave arc dests without a runtime pin. This activation records Prefer-A Bound so a later product PR can ship a pin-bin ensure-arc-dest path that fails closed when the pin is still missing.",
       "Labels": "bug, design-critique:ingest-ready",
-      "UserStory": "As a design-critique operator, I want ensureArcDest always run through a pin-bin path so stale local dist cannot skip guarded-prep.",
-      "ImplementationPlan": "Add or wire pin-bin ensure-arc-dest; fail closed on missing runtime pin after guarded-prep; update skill/contract MUST language."
+      "UserStory": "As a design-critique operator, I want ensureArcDest to run only through a pin-bin path, so that stale local dist cannot skip guarded-prep.",
+      "ImplementationPlan": "1. Add packages/runtime/src/design-critique-ensure-arc-dest.ts and register it from packages/runtime/src/dispatch.ts with guarded-prep default or explicit process-only.\n2. Fail closed in packages/core/src/design-critique/arc-dest.ts when guarded-prep leaves the runtime pin missing; cover with packages/core/src/design-critique/arc-dest.test.ts and packages/runtime/src/design-critique-ensure-arc-dest.test.ts.\n3. Update content/skills/deft-directive-design-critique/SKILL.md and content/contracts/design-critique.md MUST language; CHANGELOG.md Unreleased records the product ship with Refs #6142.",
+      "Acceptance": "Bound remedy limbs are the acceptance set; product PR must satisfy each limb under declared file_scope."
     },
     "items": [
       {
         "id": "clause.1",
         "title": "Pin-bin design-critique ensure-arc-dest verb with guarded-prep default or explicit process-only",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Pin-bin design-critique ensure-arc-dest verb with guarded-prep default or explicit process-only.",
+          "Traces": "#6142",
+          "Description": "Primary acceptance limb for #6142: Pin-bin design-critique ensure-arc-dest verb with guarded-prep default or explicit process-only"
+        }
       },
       {
         "id": "clause.2",
         "title": "Fail closed when guarded-prep is selected and the runtime pin is still missing",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Fail closed when guarded-prep is selected and the runtime pin is still missing.",
+          "Traces": "#6142",
+          "Description": "Primary acceptance limb for #6142: Fail closed when guarded-prep is selected and the runtime pin is still missing"
+        }
       },
       {
         "id": "clause.3",
         "title": "Skill and contract MUST use the sanctioned path and never treat gitignored packages core dist as source of truth",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Skill and contract MUST use the sanctioned path and never treat gitignored packages core dist as source of truth.",
+          "Traces": "#6142",
+          "Description": "Primary acceptance limb for #6142: Skill and contract MUST use the sanctioned path and never treat gitignored packages core dist as source of truth"
+        }
       },
       {
         "id": "clause.4",
         "title": "CHANGELOG Unreleased Fixed note Refs 6142 never Closes",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG Unreleased Fixed note Refs 6142 never Closes.",
+          "Traces": "#6142",
+          "Description": "Primary acceptance limb for #6142: CHANGELOG Unreleased Fixed note Refs 6142 never Closes"
+        }
       }
     ],
     "tags": [
@@ -532,10 +553,11 @@
           "#6142",
           "Prefer-A Bound 6747054314"
         ],
-        "parallel_safe": true
+        "parallel_safe": true,
+        "acceptance_criteria_justification": "Prefer-A Bound ships one acceptance item per locked limb; clause count follows the Bound comment."
       }
     },
     "id": "github.issue.6290729933",
-    "updated": "2026-11-09T19:38:02Z"
+    "updated": "2026-11-09T20:19:52.216Z"
   }
 }

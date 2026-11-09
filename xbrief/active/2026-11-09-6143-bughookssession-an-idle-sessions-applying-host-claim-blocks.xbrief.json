@@ -2,44 +2,70 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6143",
-    "updated": "2026-11-09T19:54:48.612Z"
+    "updated": "2026-11-09T20:20:19.321Z"
   },
   "plan": {
     "title": "bug(hooks,session): an idle session's applying-host claim blocks other-provider lifecycle commands with no lease behind it, and the deny names the wrong id",
     "status": "running",
     "narratives": {
-      "Description": "bug(hooks,session): an idle session's applying-host claim blocks other-provider lifecycle commands with no lease behind it, and the deny names the wrong id",
+      "Description": "An idle SessionStart can leave a fresh applying-host claim with no occupancy lease, blocking other-provider lifecycle commands and printing the wrong recovery id. This activation records Prefer-A Bound so a later product PR can make no-lease claims advisory with takeover and clear them on end or release.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6143",
-      "Overview": "## Summary\n\nAn idle or read-only session claims `.deft/applying-host.json` just by starting or resuming, with no occupancy lease and no mutation intent. From then on, every bare lifecycle command from a different host provider in the same checkout is denied, and the deny text tells that caller to re-run with the recorded owner's session id, which is the cross-owner republish #6101 forbids. Nothing ever clears the record except an overwrite or the 8h stale window. Observed 2026-11-09 on this repo's primary: a Claude session resumed after compaction, published a claim at 16:13Z, did GitHub-only work, and a Grok session working the same checkout spent its PreToolUse budget on identity-conflict denies until the file was deleted by hand.\n\nThis is the no-lease case. #5913 is the dead-owner-with-live-lease case, #6101 is read-only overwrite of a live owner, #5917 is non-interactive primary claims. None of them covers a claim that is never backed by a lease.\n\n## Evidence\n\n1. `tryPublishApplyingHostFromSessionStart` (`packages/core/src/hooks/dispatcher.ts`) publishes on every SessionStart unless a foreign live lease exists. Resume after compaction counts. There is no intent check: a session that only reads or only talks to GitHub still claims.\n2. `evaluateApplyingHostLifecycleAdmission` (`packages/core/src/session/occupancy.ts`) returns `foreign-owner` for a bare command from another provider whenever the record is fresh, whether or not any lease exists. The message is \"Re-run with `--session-id=<applyingHostSessionId>`\", the recorded owner's id, not the caller's.\n3. No verb removes the record. `occupancy:release` and `session:end` leave it in place; grep finds no `rmSync` or `unlink` of `applyingHostPath`. Repair paths are republish-or-wait.\n4. The primary's `.deft/ritual-state.json` named a `host:grok` owner at the same time applying-host named `host:claude`. Two identity surfaces on one checkout disagreed and neither verb could reconcile them.\n5. The hook deny for the Grok session is returned quickly, so this produces deny volume rather than timeouts, but every deny is a wasted PreToolUse round and the recovery it names is the wrong one.\n\n## Expected\n\n- A fresh applying-host record with no occupancy lease behind it is advisory, not binding. A bare lifecycle command from another provider should take the record over (republish in its own name) when no live lease exists, instead of being denied.\n- The record is cleared by `session:end` and by `occupancy:release` when the caller owns it, and there is a supported `applying-host:release` (or `session:release-stale` from #5913) for the owner to drop a claim without a hand edit.\n- The deny text names the caller's own canonical id and the takeover or wait path, never the recorded owner's id. This is the same hint fix #5913 asks for.\n- SessionStart publish is reinforcement when a lease exists and a soft claim otherwise; a read-only session's SessionStart should not win over a different provider's existing fresh record on the same checkout.\n\n## Related\n\n- #5913 dead owner holds claim for the TTL; wrong repair hint\n- #6101 read-only recovery overwrote live owner (closed)\n- #5917 non-interactive primary claim\n- #5676 origin of applying-host\n- #3742 tracker (delivery and reporting rows)\n\n## Acceptance\n\n1. Two genuine host sessions A (Claude) and B (Grok) on one checkout. A resumes with no lease and no mutation. B runs a bare `session:start`: B's claim replaces A's and B is not denied.\n2. Same setup but A holds a live lease: B is denied, and the message names B's own id and the wait or release path, not A's id.\n3. `session:end` and `occupancy:release` by the owner remove `.deft/applying-host.json`.\n4. A test enumerates applying-host deny messages and fails if any one prints a session id other than the caller's.\n\nFiled for @MScottAdams\n\n",
+      "Overview": "An idle SessionStart can leave a fresh applying-host claim with no occupancy lease, blocking other-provider lifecycle commands and printing the wrong recovery id. This activation records Prefer-A Bound so a later product PR can make no-lease claims advisory with takeover and clear them on end or release.",
       "Labels": "bug, agent-experience, harness, design-critique:ingest-ready",
-      "UserStory": "As a multi-host operator, I want idle no-lease applying-host claims not to block other providers, and deny text to name my caller id.",
-      "ImplementationPlan": "Make no-lease applying-host advisory with takeover; fix deny text; clear on end/release; soften SessionStart without lease."
+      "UserStory": "As a multi-host operator, I want idle no-lease applying-host claims not to block other providers, so that deny text names my caller id and a takeover or wait path.",
+      "ImplementationPlan": "1. Edit packages/core/src/hooks/dispatcher.ts and packages/core/src/session/occupancy.ts so no-lease applying-host is advisory with other-provider takeover and deny text names the caller canonical id.\n2. Add packages/runtime/src/applying-host-release.ts registered from packages/runtime/src/dispatch.ts; clear applying-host on session:end and occupancy:release.\n3. Cover with packages/core/src/hooks/dispatcher.test.ts, packages/core/src/session/occupancy.test.ts, and packages/runtime/src/applying-host-release.test.ts; CHANGELOG.md Unreleased records the product ship with Refs #6143.",
+      "Acceptance": "Bound remedy limbs are the acceptance set; product PR must satisfy each limb under declared file_scope."
     },
     "items": [
       {
         "id": "clause.1",
         "title": "No-lease fresh applying-host is advisory so other-provider bare lifecycle can republish",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: No-lease fresh applying-host is advisory so other-provider bare lifecycle can republish.",
+          "Traces": "#6143",
+          "Description": "Primary acceptance limb for #6143: No-lease fresh applying-host is advisory so other-provider bare lifecycle can republish"
+        }
       },
       {
         "id": "clause.2",
         "title": "Foreign-owner deny names the caller canonical id and takeover or wait path",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Foreign-owner deny names the caller canonical id and takeover or wait path.",
+          "Traces": "#6143",
+          "Description": "Primary acceptance limb for #6143: Foreign-owner deny names the caller canonical id and takeover or wait path"
+        }
       },
       {
         "id": "clause.3",
         "title": "session end and occupancy release clear applying-host with supported applying-host release",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: session end and occupancy release clear applying-host with supported applying-host release.",
+          "Traces": "#6143",
+          "Description": "Primary acceptance limb for #6143: session end and occupancy release clear applying-host with supported applying-host release"
+        }
       },
       {
         "id": "clause.4",
         "title": "SessionStart soft claim without lease; read-only SessionStart must not displace a different-provider fresh record",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: SessionStart soft claim without lease; read-only SessionStart must not displace a different-provider fresh record.",
+          "Traces": "#6143",
+          "Description": "Primary acceptance limb for #6143: SessionStart soft claim without lease; read-only SessionStart must not displace a different-provider fresh record"
+        }
       },
       {
         "id": "clause.5",
         "title": "CHANGELOG Unreleased Fixed note Refs 6143 never Closes",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG Unreleased Fixed note Refs 6143 never Closes.",
+          "Traces": "#6143",
+          "Description": "Primary acceptance limb for #6143: CHANGELOG Unreleased Fixed note Refs 6143 never Closes"
+        }
       }
     ],
     "tags": [
@@ -310,10 +336,11 @@
           "#6143",
           "Prefer-A Bound 6747179883"
         ],
-        "parallel_safe": false
+        "parallel_safe": true,
+        "acceptance_criteria_justification": "Prefer-A Bound ships one acceptance item per locked limb; clause count follows the Bound comment."
       }
     },
     "id": "github.issue.6291209959",
-    "updated": "2026-11-09T19:38:06Z"
+    "updated": "2026-11-09T20:20:19.321Z"
   }
 }

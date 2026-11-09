@@ -2,39 +2,60 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6136",
-    "updated": "2026-11-09T19:54:48.606Z"
+    "updated": "2026-11-09T20:19:52.216Z"
   },
   "plan": {
     "title": "bug(hooks,authz): agents can self-serve .deft-directive-disable outside UAT (Write/Shell plant)",
     "status": "running",
     "narratives": {
-      "Description": "bug(hooks,authz): agents can self-serve .deft-directive-disable outside UAT (Write/Shell plant)",
+      "Description": "Agents can plant root .deft-directive-disable via Write or Shell outside UAT and silently bypass PreToolUse. This activation records Prefer-A Bound so a later product PR can make kill-switch plant deny always-on without a human-origin grant.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6136",
-      "Overview": "## Summary\n\nAgents (parent and dest leaves) can plant root `.deft-directive-disable` via Write / Shell during recovery, fully bypassing PreToolUse. Docs (#3039 / #3186) say operators plant outside a session or with a human-origin grant; UAT Shell plant is fail-closed as `settings`. Outside active UAT, and on the declarative Write/Edit path, that ban does not hold. Observed on dogfood through-merge for #6128 after SEC-WT / missing-runtime lockout (#5836 class): agents treated the kill-switch as a self-serve unblock.\n\n## Evidence\n\n1. Contract (`content/docs/deft-directive-disable.md` § Agent self-serve ban under UAT): plant/remove is operator-outside-session or human-origin grant; under **active UAT**, Shell writes creating `.deft-directive-disable` are `settings` and denied.\n2. Classifier (`packages/core/src/authz/classify.ts` `hasKillSwitchShellWrite` / `KILL_SWITCH_BASENAMES`) wires that ban for **Shell** under UAT settings evaluation.\n3. Declarative host Write/Edit of the basename is not the same always-on deny. Path-write-fence notes Edit/Write targets are declarative and gateable (`content/contracts/path-write-fence.md`), but kill-switch plant is not enforced there as always-on outside UAT.\n4. Dogfood / framework sessions often have **no active UAT lease** → Shell `Set-Content` / `touch .deft-directive-disable` admits.\n5. Once planted, hooks quietAllow → further mutations including re-plant. Leaves deleted the flag too early, re-hit SEC-WT, asked parent to re-plant → recovery thrash.\n\n## Expected\n\n- Always deny agent Write/Edit/Shell that creates or renames-to `.deft-directive-disable` (and `.no-deft-directive`) without a human-origin grant covering that settings plant — not only when UAT is active.\n- Recovery for #5836 / missing-runtime must not document or imply agent self-serve kill-switch; physical dest install / `ensureDestContainedRuntime` remains the path.\n- Optional: SessionStart / doctor warn when an agent-session just planted the flag (provenance).\n\n## Related\n\n- #3039 kill-switch\n- #3186 / closed #3191 UAT Shell settings plant\n- #5836 dest SEC-WT junction (trigger for this misuse)\n- #5809 disable unreachable when runtime missing (related chicken-egg)\n\n## Acceptance\n\n1. Under dogfood (no UAT), host Write of `.deft-directive-disable` is denied without human-origin grant.\n2. Shell `Set-Content` / `touch` / `echo >` of the same basename denied the same way.\n3. With human-origin grant (or operator outside session), plant still works.\n4. Docs state always-on agent self-serve ban, not UAT-only.\n\nFiled for @MScottAdams\r\n\n",
+      "Overview": "Agents can plant root .deft-directive-disable via Write or Shell outside UAT and silently bypass PreToolUse. This activation records Prefer-A Bound so a later product PR can make kill-switch plant deny always-on without a human-origin grant.",
       "Labels": "bug, design-critique:ingest-ready",
-      "UserStory": "As a Directive operator, I want agents unable to plant the kill-switch outside a human grant so PreToolUse cannot be silently bypassed.",
-      "ImplementationPlan": "Make kill-switch plant deny always-on for Write/Edit/Shell; check Shell basename before in-repo skip; update deft-directive-disable docs."
+      "UserStory": "As a Directive operator, I want agents unable to plant the kill-switch outside a human grant, so that PreToolUse cannot be silently bypassed.",
+      "ImplementationPlan": "1. Edit packages/core/src/authz/classify.ts and packages/core/src/hooks/shell-write-targets.ts so Write/Edit/Shell kill-switch plant denies without a human-origin grant even when UAT is inactive.\n2. Cover always-on deny and grant hatch with packages/core/src/authz/classify.test.ts, packages/core/src/hooks/shell-write-targets.test.ts, and packages/core/src/hooks/dispatcher.test.ts fixtures.\n3. Update content/docs/deft-directive-disable.md and content/contracts/path-write-fence.md; CHANGELOG.md Unreleased records the product ship with Refs #6136.",
+      "Acceptance": "Bound remedy limbs are the acceptance set; product PR must satisfy each limb under declared file_scope."
     },
     "items": [
       {
         "id": "clause.1",
         "title": "Always-on Write and Edit deny for kill-switch basenames without human-origin grant",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Always-on Write and Edit deny for kill-switch basenames without human-origin grant.",
+          "Traces": "#6136",
+          "Description": "Primary acceptance limb for #6136: Always-on Write and Edit deny for kill-switch basenames without human-origin grant"
+        }
       },
       {
         "id": "clause.2",
         "title": "Shell protected-basename check before in-repo write-path skip for kill-switch plant",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Shell protected-basename check before in-repo write-path skip for kill-switch plant.",
+          "Traces": "#6136",
+          "Description": "Primary acceptance limb for #6136: Shell protected-basename check before in-repo write-path skip for kill-switch plant"
+        }
       },
       {
         "id": "clause.3",
         "title": "Docs state agent self-serve kill-switch ban is always-on and grant-gated",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Docs state agent self-serve kill-switch ban is always-on and grant-gated.",
+          "Traces": "#6136",
+          "Description": "Primary acceptance limb for #6136: Docs state agent self-serve kill-switch ban is always-on and grant-gated"
+        }
       },
       {
         "id": "clause.4",
         "title": "CHANGELOG Unreleased Fixed or Security note Refs 6136 never Closes",
-        "status": "pending"
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG Unreleased Fixed or Security note Refs 6136 never Closes.",
+          "Traces": "#6136",
+          "Description": "Primary acceptance limb for #6136: CHANGELOG Unreleased Fixed or Security note Refs 6136 never Closes"
+        }
       }
     ],
     "tags": [
@@ -672,10 +693,11 @@
           "#6136",
           "Prefer-A Bound 6747053756"
         ],
-        "parallel_safe": true
+        "parallel_safe": true,
+        "acceptance_criteria_justification": "Prefer-A Bound ships one acceptance item per locked limb; clause count follows the Bound comment."
       }
     },
     "id": "github.issue.6288274715",
-    "updated": "2026-11-09T19:37:57Z"
+    "updated": "2026-11-09T20:19:52.216Z"
   }
 }
