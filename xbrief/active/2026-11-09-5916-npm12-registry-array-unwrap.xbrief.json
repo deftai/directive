@@ -1,0 +1,75 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8"
+  },
+  "plan": {
+    "id": "ovpr-w1-5916",
+    "title": "Unwrap npm 12 npm view --json single-element arrays in installer registry resolution",
+    "status": "running",
+    "updated": "2026-11-09T19:15:30Z",
+    "tags": [
+      "ovpr",
+      "wave1",
+      "swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5916",
+        "type": "x-xbrief/github-issue"
+      }
+    ],
+    "narratives": {
+      "Description": "On npm 12, `npm view --json` returns a single-element array for version and metadata queries. Directive's registry helpers reject that shape, so install and upgrade fail without an explicit target version.",
+      "ImplementationPlan": "1. Update packages/cli/src/registry.ts so resolveLatestStableVersion and related metadata parsers unwrap a single-element array while still rejecting true multi-value surprises.\n2. Extend focused installer/registry tests (install-bookend / upgrade-bookend coverage) to assert npm-12 array fixtures succeed and multi-value payloads still fail closed.",
+      "UserStory": "As a consumer on npm 12, I want directive install and upgrade to resolve the latest stable version from the registry, so that I can install without inventing a target version.",
+      "Traces": "#5916"
+    },
+    "items": [
+      {
+        "id": "5916-a1",
+        "title": "Unwrap single-element npm view arrays",
+        "status": "pending",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given npm view --json returns a one-element array for a version string, when resolveLatestStableVersion runs, then it returns that version string.",
+          "Traces": "#5916"
+        }
+      },
+      {
+        "id": "5916-a2",
+        "title": "Reject true multi-value npm view arrays",
+        "status": "pending",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given npm view --json returns a multi-element array, when registry resolution runs, then it fails closed with a clear parse error and does not pick an arbitrary element.",
+          "Traces": "#5916"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "allocation_plan_id": "ovpr-stable-wave1-2026-11-09",
+      "dispatch_kind": "swarm-cohort",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/src/registry.ts",
+          "packages/cli/src/install-bookend.test.ts",
+          "packages/cli/src/upgrade-bookend.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/cli/src/install-bookend.test.ts packages/cli/src/upgrade-bookend.test.ts"
+        ],
+        "expected_outputs": [
+          "Focused registry/bookend tests pass for npm-12 array unwrap and multi-value reject"
+        ],
+        "depends_on": [],
+        "conflict_group": "ovpr-w1-5916-registry",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
+    }
+  }
+}

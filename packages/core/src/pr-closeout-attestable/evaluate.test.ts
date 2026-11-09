@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import type { GitRunner } from "../session/git.js";
 import { ENV_TRIAGE_REPO } from "../triage/queue/constants.js";
@@ -429,7 +429,7 @@ describe("pr-closeout-attestable evaluate", () => {
         prHeadSha: prHead,
         resolveWorktreeAtSha: () => ({ status: "found", path: dest }),
         resolveLocalHeadSha: (root) => (root === dest ? prHead : "a".repeat(40)),
-        resolveLifecycleDirty: () => null,
+        classifyLifecycleDirty: () => ({ status: "clean" }),
       },
     });
     expect(result.code).toBe(1);
@@ -838,5 +838,111 @@ describe("pr-closeout-attestable PR-head assert (#3875)", () => {
     });
 
     expect(result.code).toBe(0);
+  });
+});
+
+describe("pr-closeout-attestable Prefer-A #6128", () => {
+  const temps: string[] = [];
+  afterEach(() => {
+    for (const t of temps.splice(0)) {
+      try {
+        rmSync(t, { recursive: true, force: true });
+      } catch {
+        /* ignore */
+      }
+    }
+  });
+
+  it("no-local dirty refuse carries lifecycle-dirty reason and remediation", () => {
+    const primary = mkdtempSync(join(tmpdir(), "deft-6128-eval-primary-"));
+    temps.push(primary);
+    const dest = makeRepo();
+    writeBrief(dest, "2026-08-26-3609-story.xbrief.json", {
+      title: "story",
+      status: "running",
+      references: [issueRef(3609)],
+      items: bareItems(1),
+    });
+    const prHead = "b".repeat(40);
+    const result = evaluate(primary, 3786, {
+      repo: REPO,
+      runner: { runGh: NEVER_CALLED, proxied: false },
+      fetchClosingIssues: closing(3609),
+      prHeadAssert: {
+        prHeadSha: prHead,
+        resolveWorktreeAtSha: () => ({ status: "found", path: dest }),
+        resolveLocalHeadSha: (root) => (root === dest ? prHead : "a".repeat(40)),
+        classifyLifecycleDirty: () => ({
+          status: "dirty",
+          entries: [{ x: "D", y: " ", path: "xbrief/active/story.xbrief.json" }],
+        }),
+      },
+    });
+    expect(result.code).toBe(2);
+    expect(result.reason).toBe("lifecycle-dirty");
+    expect(result.message).toContain("checkout HEAD --");
+    expect(result.message).not.toContain("git stash push -u");
+  });
+
+  it("brief-less selected over briefed sibling → brief-root-layout-missing", () => {
+    const primary = mkdtempSync(join(tmpdir(), "deft-6128-eval-briefless-"));
+    temps.push(primary);
+    const dest = mkdtempSync(join(tmpdir(), "deft-6128-eval-briefless-dest-"));
+    temps.push(dest);
+    const prHead = "b".repeat(40);
+    const result = evaluate(primary, 1, {
+      repo: REPO,
+      runner: { runGh: NEVER_CALLED, proxied: false },
+      fetchClosingIssues: closing(1),
+      prHeadAssert: {
+        prHeadSha: prHead,
+        resolveWorktreeAtSha: () => ({
+          status: "found",
+          path: dest,
+          anotherShaMatchHasXbrief: true,
+        }),
+        resolveLocalHeadSha: (root) => (root === dest ? prHead : "a".repeat(40)),
+        classifyLifecycleDirty: () => ({ status: "clean" }),
+      },
+    });
+    expect(result.code).toBe(2);
+    expect(result.reason).toBe("brief-root-layout-missing");
+    expect(result.message).toContain("another SHA-matching worktree");
+  });
+
+  it("caller-with-briefs redirect to layout-missing → brief-root-layout-missing", () => {
+    const primary = makeRepo();
+    writeBrief(primary, "2026-08-26-3609-story.xbrief.json", {
+      title: "story",
+      status: "running",
+      references: [issueRef(3609)],
+      items: bareItems(1),
+    });
+    const dest = mkdtempSync(join(tmpdir(), "deft-6128-eval-redirect-"));
+    temps.push(dest);
+    const sha = "a".repeat(40);
+    const result = evaluate(primary, 3786, {
+      repo: REPO,
+      runner: { runGh: NEVER_CALLED, proxied: false },
+      fetchClosingIssues: closing(3609),
+      prHeadAssert: {
+        localHeadSha: sha,
+        prHeadSha: sha,
+        checkLifecycleDirty: true,
+        classifyLifecycleDirty: (root) =>
+          root === primary
+            ? {
+                status: "dirty",
+                entries: [{ x: "D", y: " ", path: "xbrief/active/story.xbrief.json" }],
+              }
+            : { status: "clean" },
+        resolveWorktreeAtSha: () => ({ status: "found", path: dest }),
+        resolveLocalHeadSha: () => sha,
+      },
+    });
+    // Caller dirty → redirect to dest without xbrief → brief-root-layout-missing
+    expect(result.code).toBe(2);
+    expect(result.reason).toBe("brief-root-layout-missing");
+    expect(result.message).toMatch(/caller lifecycle root|selected brief root/);
   });
 });
