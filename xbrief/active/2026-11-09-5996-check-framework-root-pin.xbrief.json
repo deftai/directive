@@ -28,7 +28,7 @@
       {
         "id": "5996-a1",
         "title": "Pin package root candidate",
-        "status": "done",
+        "status": "pending",
         "effort": "S",
         "narrative": {
           "Acceptance": "Given node_modules/@deftai/directive-runtime is installed and looks like a runtime package root, when resolveCheckFrameworkRoot runs, then it returns that path.",
@@ -38,7 +38,7 @@
       {
         "id": "5996-a2",
         "title": "Keep legacy candidates and miss guidance",
-        "status": "done",
+        "status": "pending",
         "effort": "S",
         "narrative": {
           "Acceptance": "Given no pin package root and no .deft/core or source root, when check resolves framework root, then it still fails closed and FRAMEWORK_ROOT_MISS does not teach only directive init as the recovery.",
