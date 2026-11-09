@@ -84,36 +84,6 @@
       "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
       "specImpact": null,
       "completedAt": "2026-10-20T05:26:22Z"
-    },
-    {
-      "scopeId": "ovpr-w1-5916",
-      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
-      "specImpact": null,
-      "completedAt": "2026-11-09T22:35:48Z"
-    },
-    {
-      "scopeId": "ovpr-w1-5996",
-      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
-      "specImpact": null,
-      "completedAt": "2026-11-09T22:36:00Z"
-    },
-    {
-      "scopeId": "ovpr-w1-5997",
-      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
-      "specImpact": null,
-      "completedAt": "2026-11-09T22:36:03Z"
-    },
-    {
-      "scopeId": "ovpr-w1-5995",
-      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
-      "specImpact": null,
-      "completedAt": "2026-11-09T22:36:11Z"
-    },
-    {
-      "scopeId": "ovpr-w1-6013",
-      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
-      "specImpact": null,
-      "completedAt": "2026-11-09T22:36:19Z"
     }
   ],
   "coverage": [],
