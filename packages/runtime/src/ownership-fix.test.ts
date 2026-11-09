@@ -10,6 +10,7 @@ import {
   ensureManagedPathGitattributes,
   ensureSlashCommands,
   GITATTRIBUTES_STAGING_SKIPPED_DIRTY,
+  isDirectiveManagedGitattributes,
   isShellHookEntrypoint,
   normalizeEol,
   pathHasUnstagedChanges,
@@ -113,6 +114,22 @@ describe("ensureManagedPathGitattributes staging report (#5995 / #6151 P1)", () 
     execFileSync("git", ["config", "user.email", "attrs@example.com"], { cwd: root });
     execFileSync("git", ["config", "user.name", "Attrs"], { cwd: root });
   }
+
+  it("isDirectiveManagedGitattributes accepts only known markers and Deft comments", () => {
+    expect(isDirectiveManagedGitattributes("")).toBe(true);
+    expect(
+      isDirectiveManagedGitattributes(
+        "# Deft managed wiring: pin Directive-deposited host/command/hook/skill paths\n" +
+          "# to LF so Windows core.autocrlf checkouts stay ownership-comparable (#5995).\n" +
+          ".githooks/** text=auto eol=lf\n" +
+          "AGENTS.md text=auto eol=lf\n",
+      ),
+    ).toBe(true);
+    expect(isDirectiveManagedGitattributes("*.md text\n")).toBe(false);
+    expect(isDirectiveManagedGitattributes("# user note\n.githooks/** text=auto eol=lf\n")).toBe(
+      false,
+    );
+  });
 
   it("reports created when .gitattributes is newly written", () => {
     const root = mkdtempSync(join(tmpdir(), "attrs-created-"));
@@ -223,9 +240,63 @@ describe("ensureManagedPathGitattributes staging report (#5995 / #6151 P1)", () 
     expect(slash.created).not.toContain(".gitattributes");
     expect(slash.modified).not.toContain(".gitattributes");
     expect(slash.notices).toContain(GITATTRIBUTES_STAGING_SKIPPED_DIRTY);
+    expect(slash.notices).toHaveLength(1);
     const body = readFileSync(join(root, ".gitattributes"), "utf8");
     expect(body).toContain("*.json text");
     expect(body).toContain(".githooks/** text=auto eol=lf");
+  });
+
+  it("skips modified for untracked foreign .gitattributes (git diff misses untracked)", () => {
+    const root = mkdtempSync(join(tmpdir(), "attrs-untracked-foreign-"));
+    TEMPS.push(root);
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ name: "t" })}\n`);
+    initGitRepo(root);
+    execFileSync("git", ["add", "package.json"], { cwd: root });
+    execFileSync("git", ["commit", "-qm", "seed pkg"], { cwd: root });
+    writeFileSync(join(root, ".gitattributes"), "*.md text\n*.json text\n");
+    expect(pathHasUnstagedChanges(root, ".gitattributes")).toBe(false);
+    expect(isDirectiveManagedGitattributes("*.md text\n*.json text\n")).toBe(false);
+
+    const out = ensureManagedPathGitattributes(root);
+    expect(out.wrote).toBe(true);
+    expect(out.created).toBe(false);
+    expect(out.modified).toBe(false);
+    expect(out.stagingSkippedNotice).toBe(GITATTRIBUTES_STAGING_SKIPPED_DIRTY);
+    expect(readFileSync(join(root, ".gitattributes"), "utf8")).toContain(
+      ".githooks/** text=auto eol=lf",
+    );
+  });
+
+  it("ensureSlashCommands omits untracked foreign .gitattributes from modified", () => {
+    const root = mkdtempSync(join(tmpdir(), "attrs-untracked-slash-"));
+    TEMPS.push(root);
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ name: "t" })}\n`);
+    initGitRepo(root);
+    execFileSync("git", ["add", "package.json"], { cwd: root });
+    execFileSync("git", ["commit", "-qm", "seed pkg"], { cwd: root });
+    writeFileSync(join(root, ".gitattributes"), "*.md text\n*.json text\n");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+
+    const slash = ensureSlashCommands(root);
+    expect(slash.modified).not.toContain(".gitattributes");
+    expect(slash.created).not.toContain(".gitattributes");
+    expect(slash.notices).toContain(GITATTRIBUTES_STAGING_SKIPPED_DIRTY);
+  });
+
+  it("ensureSlashCommands stages clean tracked foreign .gitattributes after pin append", () => {
+    const root = mkdtempSync(join(tmpdir(), "attrs-clean-slash-"));
+    TEMPS.push(root);
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ name: "t" })}\n`);
+    writeFileSync(join(root, ".gitattributes"), "*.md text\n");
+    initGitRepo(root);
+    execFileSync("git", ["add", "-A"], { cwd: root });
+    execFileSync("git", ["commit", "-qm", "seed attrs"], { cwd: root });
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+
+    const slash = ensureSlashCommands(root);
+    expect(slash.created).not.toContain(".gitattributes");
+    expect(slash.modified).toContain(".gitattributes");
+    expect(slash.notices).toEqual([]);
   });
 });
 

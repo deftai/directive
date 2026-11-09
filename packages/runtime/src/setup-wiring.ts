@@ -30,7 +30,11 @@ import {
   isGrokWrapperCommand,
   isHostHookOuterCommand,
 } from "@deftai/directive-core/dist/init-deposit/agent-hooks.js";
-import { ensureGitattributes } from "@deftai/directive-core/dist/init-deposit/scaffold.js";
+import {
+  DESIRED_GITATTRIBUTES_LINES,
+  ensureGitattributes,
+  LEGACY_CORE_TEXT_EOL_LF,
+} from "@deftai/directive-core/dist/init-deposit/scaffold.js";
 import {
   INSTALLATION_RECOVERY_GUIDANCE,
   RUNTIME_PACKAGE_PATH_PREFIX,
@@ -409,12 +413,64 @@ export function pathHasUnstagedChanges(projectRoot: string, rel: string): boolea
 export const GITATTRIBUTES_STAGING_SKIPPED_DIRTY =
   ".gitattributes had unstaged local edits; LF pins were written but left unstaged so install/upgrade does not git add unrelated user changes (#6151 P1)";
 
+const DESIRED_GITATTRIBUTES_LINE_SET = new Set<string>([
+  ...(DESIRED_GITATTRIBUTES_LINES as readonly string[]),
+  LEGACY_CORE_TEXT_EOL_LF,
+]);
+
+/**
+ * True when every attribute line is a known Directive core/managed marker (or
+ * Deft deposit comment). Foreign rules mean the file is not pure Directive-owned
+ * (#6151 P1 dirty-skip heuristic).
+ */
+export function isDirectiveManagedGitattributes(content: string): boolean {
+  for (const raw of normalizeEol(content).split("\n")) {
+    const line = raw.trim();
+    if (line.length === 0) continue;
+    if (line.startsWith("#")) {
+      if (
+        line.startsWith("# Deft framework:") ||
+        line.startsWith("# Deft managed wiring:") ||
+        line.startsWith("# consumer source.") ||
+        line.startsWith("# byte identity") ||
+        line.startsWith("# to LF so Windows")
+      ) {
+        continue;
+      }
+      return false;
+    }
+    if (!DESIRED_GITATTRIBUTES_LINE_SET.has(line)) return false;
+  }
+  return true;
+}
+
+/** True when `rel` exists in the worktree but is not tracked (git repo only). */
+function pathIsUntrackedInRepo(projectRoot: string, rel: string): boolean {
+  try {
+    execFileSync("git", ["-C", projectRoot, "rev-parse", "--is-inside-work-tree"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    return false;
+  }
+  try {
+    execFileSync("git", ["-C", projectRoot, "ls-files", "--error-unmatch", "--", rel], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    return false;
+  } catch {
+    return existsSync(join(projectRoot, rel));
+  }
+}
+
 /**
  * Deposit narrow LF .gitattributes for managed wiring paths (#5995).
  * Reuses scaffold ensureGitattributes (core markers + managed wiring lines).
  * Reports created/modified so install/upgrade staging commits the pins (#6151 P1).
- * When the path already has unstaged user edits, still appends missing pins but
- * does not report modified (avoids staging foreign WIP with the pins).
+ * When the path already has unstaged user edits (or an untracked foreign file),
+ * still appends missing pins but does not report modified (avoids staging WIP).
  */
 export function ensureManagedPathGitattributes(projectRoot: string): {
   created: boolean;
@@ -424,11 +480,28 @@ export function ensureManagedPathGitattributes(projectRoot: string): {
 } {
   const attrsRel = ".gitattributes";
   const prior = readText(join(projectRoot, attrsRel));
+  // Compute dirty signal before write — post-write `git diff` is true for clean
+  // pin appends too, so it cannot alone decide staging (#6151 P1).
   const hadUnstagedEdits = prior !== null && pathHasUnstagedChanges(projectRoot, attrsRel);
+  const untrackedForeign =
+    prior !== null &&
+    !isDirectiveManagedGitattributes(prior) &&
+    pathIsUntrackedInRepo(projectRoot, attrsRel);
   const wrote = ensureGitattributes(projectRoot, { printf: () => undefined });
   if (!wrote) return { created: false, modified: false, wrote: false };
   if (prior === null) return { created: true, modified: false, wrote: true };
-  if (hadUnstagedEdits) {
+
+  const next = readText(join(projectRoot, attrsRel)) ?? "";
+  // After write: confirm unstaged still, or foreign prior that changed and was
+  // already dirty/untracked — never stage unfinished user WIP with the pins.
+  const stillUnstaged = pathHasUnstagedChanges(projectRoot, attrsRel);
+  const priorForeignChanged =
+    !isDirectiveManagedGitattributes(prior) && !contentsEqualIgnoringEol(prior, next);
+  const treatAsDirty =
+    hadUnstagedEdits ||
+    untrackedForeign ||
+    (stillUnstaged && priorForeignChanged && (hadUnstagedEdits || untrackedForeign));
+  if (treatAsDirty) {
     return {
       created: false,
       modified: false,
@@ -456,9 +529,14 @@ export function ensureSlashCommands(projectRoot: string): {
   const modified: string[] = [];
   const conflicts: string[] = [];
   const notices: string[] = [];
-  if (attrs.created) created.push(".gitattributes");
-  else if (attrs.modified) modified.push(".gitattributes");
-  if (attrs.stagingSkippedNotice) notices.push(attrs.stagingSkippedNotice);
+  if (attrs.created) {
+    created.push(".gitattributes");
+  } else if (attrs.stagingSkippedNotice) {
+    notices.push(attrs.stagingSkippedNotice);
+    // deliberately omit from modified — dirty user WIP must not be git-added
+  } else if (attrs.modified && attrs.wrote) {
+    modified.push(".gitattributes");
+  }
   const policy = loadHostSlashCommandsPolicyFromProject(projectRoot);
   for (const hostId of listSlashEmitterHosts()) {
     if (!isHostSlashCommandDepositEnabled(hostId, policy)) continue;
