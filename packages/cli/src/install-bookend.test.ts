@@ -21,7 +21,11 @@ import {
   lockfileRecordsExactPin,
   readDeclaredPackageManagerVersion,
 } from "./pm.js";
-import { validateTargetVersionSpec } from "./registry.js";
+import {
+  resolveLatestStableVersion,
+  unwrapNpmViewJson,
+  validateTargetVersionSpec,
+} from "./registry.js";
 
 const TEMPS: string[] = [];
 
@@ -1335,5 +1339,86 @@ describe("interactive approval + Repair/Cancel menu (UX-INT / AC5.2 / AC6.4 / AC
     expect(code).toBe(0);
     expect(pmCalled).toBe(true);
     expect(c.out() + c.err()).not.toContain("Cancelled. No project files were changed.");
+  });
+});
+
+describe("npm view --json unwrap (#5916)", () => {
+  // Captured with: npx -y npm@12.2.1 view @deftai/directive-runtime version --json
+  const NPM12_VERSION_STDOUT = '[\n  "0.129.5"\n]\n';
+  // Captured with npm 11.17.0 on the same package/field
+  const NPM11_VERSION_STDOUT = '"0.129.5"\n';
+
+  it("unwraps npm 12 single-element version arrays", () => {
+    expect(unwrapNpmViewJson(NPM12_VERSION_STDOUT)).toEqual({ ok: true, value: "0.129.5" });
+  });
+
+  it("keeps npm 11 quoted version strings", () => {
+    expect(unwrapNpmViewJson(NPM11_VERSION_STDOUT)).toEqual({ ok: true, value: "0.129.5" });
+  });
+
+  it("fails closed on multi-element version arrays", () => {
+    const result = unwrapNpmViewJson('["0.129.5","0.129.4"]');
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.message).toMatch(/2 values/);
+      expect(result.message).toMatch(/refusing to pick arbitrarily/);
+    }
+  });
+
+  it("fails closed on empty arrays", () => {
+    const result = unwrapNpmViewJson("[]");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.message).toMatch(/empty array/);
+  });
+
+  it("resolveLatestStableVersion returns the unwrapped npm 12 version", () => {
+    const result = resolveLatestStableVersion(process.env, undefined, () => ({
+      status: 0,
+      stdout: NPM12_VERSION_STDOUT,
+      stderr: "",
+    }));
+    expect(result).toEqual({ ok: true, version: "0.129.5" });
+  });
+
+  it("resolveLatestStableVersion still accepts npm 11 quoted strings", () => {
+    const result = resolveLatestStableVersion(process.env, undefined, () => ({
+      status: 0,
+      stdout: NPM11_VERSION_STDOUT,
+      stderr: "",
+    }));
+    expect(result).toEqual({ ok: true, version: "0.129.5" });
+  });
+
+  it("resolveLatestStableVersion rejects multi-value arrays without picking", () => {
+    const result = resolveLatestStableVersion(process.env, undefined, () => ({
+      status: 0,
+      stdout: '["1.0.0","1.0.1"]',
+      stderr: "",
+    }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.message).toMatch(/2 values/);
+      expect(result.message).not.toMatch(/^1\.0\./);
+    }
+  });
+
+  it("resolveLatestStableVersion still rejects non-SemVer after unwrap", () => {
+    const result = resolveLatestStableVersion(process.env, undefined, () => ({
+      status: 0,
+      stdout: '["latest"]',
+      stderr: "",
+    }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.message).toMatch(/not an exact SemVer/);
+  });
+
+  it("resolveLatestStableVersion still rejects prerelease latest", () => {
+    const result = resolveLatestStableVersion(process.env, undefined, () => ({
+      status: 0,
+      stdout: '["1.2.3-beta.1"]',
+      stderr: "",
+    }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.message).toMatch(/prerelease/);
   });
 });

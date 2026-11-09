@@ -106,6 +106,65 @@ export type ResolveLatestResult =
   | { readonly ok: true; readonly version: string }
   | { readonly ok: false; readonly message: string };
 
+/** Sync npm-view result shape used by registry resolvers (injectable for tests). */
+export type NpmViewSyncResult = {
+  readonly error?: Error | null;
+  readonly status: number | null;
+  readonly stdout?: string | null;
+  readonly stderr?: string | null;
+};
+
+export type NpmViewRunner = (
+  args: readonly string[],
+  opts: { readonly env?: NodeJS.ProcessEnv; readonly cwd?: string },
+) => NpmViewSyncResult;
+
+function defaultNpmView(
+  args: readonly string[],
+  opts: { readonly env?: NodeJS.ProcessEnv; readonly cwd?: string },
+): NpmViewSyncResult {
+  return spawnSync("npm", [...args], {
+    encoding: "utf8",
+    env: opts.env,
+    cwd: opts.cwd,
+    shell: process.platform === "win32",
+  });
+}
+
+/**
+ * Normalize `npm view … --json` stdout across npm 11 (bare value) and npm 12
+ * (single-element array wrapper). Multi-element arrays fail closed (#5916).
+ */
+export function unwrapNpmViewJson(
+  raw: string,
+):
+  | { readonly ok: true; readonly value: unknown }
+  | { readonly ok: false; readonly message: string } {
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) {
+    return { ok: false, message: "npm view --json returned empty output." };
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    return { ok: false, message: "Could not parse npm view --json output." };
+  }
+  if (Array.isArray(parsed)) {
+    if (parsed.length === 1) {
+      return { ok: true, value: parsed[0] };
+    }
+    if (parsed.length === 0) {
+      return { ok: false, message: "npm view --json returned an empty array." };
+    }
+    return {
+      ok: false,
+      message: `npm view --json returned ${parsed.length} values; expected a single result (refusing to pick arbitrarily).`,
+    };
+  }
+  return { ok: true, value: parsed };
+}
+
 /**
  * Resolve the registry "latest" tag to an exact version, then reject prereleases
  * unless the caller already passed --target-version (AC6.1).
@@ -114,12 +173,11 @@ export type ResolveLatestResult =
 export function resolveLatestStableVersion(
   env: NodeJS.ProcessEnv = process.env,
   projectRoot?: string,
+  runNpmView: NpmViewRunner = defaultNpmView,
 ): ResolveLatestResult {
-  const result = spawnSync("npm", ["view", RUNTIME_PACKAGE_NAME, "version", "--json"], {
-    encoding: "utf8",
+  const result = runNpmView(["view", RUNTIME_PACKAGE_NAME, "version", "--json"], {
     env,
     cwd: projectRoot,
-    shell: process.platform === "win32",
   });
   if (result.error) {
     return {
@@ -135,15 +193,17 @@ export function resolveLatestStableVersion(
         (result.stderr ? `: ${result.stderr.trim()}` : ""),
     };
   }
-  let version = (result.stdout ?? "").trim();
-  // --json may quote the string
-  if (version.startsWith('"') && version.endsWith('"')) {
-    try {
-      version = JSON.parse(version) as string;
-    } catch {
-      /* keep trimmed */
-    }
+  const unwrapped = unwrapNpmViewJson(result.stdout ?? "");
+  if (!unwrapped.ok) {
+    return { ok: false, message: unwrapped.message };
   }
+  if (typeof unwrapped.value !== "string") {
+    return {
+      ok: false,
+      message: `Registry latest is not an exact SemVer (${JSON.stringify(unwrapped.value)}).`,
+    };
+  }
+  const version = unwrapped.value.trim();
   if (!isExactSemver(version)) {
     return {
       ok: false,
@@ -171,17 +231,12 @@ export function resolvePublishedContract(
   version: string,
   env: NodeJS.ProcessEnv = process.env,
   projectRoot?: string,
+  runNpmView: NpmViewRunner = defaultNpmView,
 ): ResolveContractResult {
-  const result = spawnSync(
-    "npm",
-    ["view", `${RUNTIME_PACKAGE_NAME}@${version}`, "directive", "--json"],
-    {
-      encoding: "utf8",
-      env,
-      cwd: projectRoot,
-      shell: process.platform === "win32",
-    },
-  );
+  const result = runNpmView(["view", `${RUNTIME_PACKAGE_NAME}@${version}`, "directive", "--json"], {
+    env,
+    cwd: projectRoot,
+  });
   if (result.error) {
     return {
       ok: false,
@@ -203,17 +258,18 @@ export function resolvePublishedContract(
       message: `Published ${RUNTIME_PACKAGE_NAME}@${version} has no directive.contract metadata.`,
     };
   }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
+  const unwrapped = unwrapNpmViewJson(raw);
+  if (!unwrapped.ok) {
     return {
       ok: false,
-      message: `Could not parse directive metadata for ${RUNTIME_PACKAGE_NAME}@${version}.`,
+      message:
+        unwrapped.message === "Could not parse npm view --json output."
+          ? `Could not parse directive metadata for ${RUNTIME_PACKAGE_NAME}@${version}.`
+          : unwrapped.message,
     };
   }
-  // npm may return the object or nest under a version key for some queries
-  let directive = parsed;
+  // npm may return the object, a one-element array (npm 12), or nest under a version key
+  let directive = unwrapped.value;
   if (
     directive !== null &&
     typeof directive === "object" &&
