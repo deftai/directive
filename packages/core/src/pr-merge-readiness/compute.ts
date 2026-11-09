@@ -118,7 +118,12 @@ export type CloseoutAttestableGateFn = (
   projectRoot: string,
   prNumber: number,
   repo: string | null,
-) => { readonly code: 0 | 1 | 2; readonly message: string };
+) => {
+  readonly code: 0 | 1 | 2;
+  readonly message: string;
+  /** One-poll terminal discriminant for wait-mergeable (#6128). */
+  readonly reason?: string;
+};
 
 export interface ComputeGateOptions extends CiGateOptions, SlizardGateOptions {
   /** Override the GitHub-mergeability read (defaults to the REST reader). */
@@ -758,9 +763,13 @@ function defaultCloseoutAttestable(
   projectRoot: string,
   prNumber: number,
   repo: string | null,
-): { code: 0 | 1 | 2; message: string } {
+): { code: 0 | 1 | 2; message: string; reason?: string } {
   const result = evaluateCloseoutAttestable(projectRoot, prNumber, { repo });
-  return { code: result.code, message: result.message };
+  return {
+    code: result.code,
+    message: result.message,
+    ...(result.reason !== undefined ? { reason: result.reason } : {}),
+  };
 }
 
 /**
@@ -800,7 +809,11 @@ function applyCloseoutAttestableGate(result: GateResult, options: ComputeGateOpt
       error: message,
       partialData: {
         ...result.partialData,
-        closeout_attestable: { code: 2, message },
+        closeout_attestable: {
+          code: 2,
+          message,
+          ...(closeout.reason !== undefined ? { reason: closeout.reason } : {}),
+        },
       },
     };
   }

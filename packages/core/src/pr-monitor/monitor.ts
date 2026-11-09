@@ -150,6 +150,29 @@ export function formatPollStatus(
   return line;
 }
 
+/** Read closeout_attestable one-poll terminal reason (#6128 Prefer-A). */
+export function readCloseoutAttestableOnePoll(
+  payload: Record<string, unknown>,
+): { readonly reason: string; readonly message: string } | null {
+  const partialRaw = payload.partial_data;
+  const partial =
+    partialRaw !== null && typeof partialRaw === "object" && !Array.isArray(partialRaw)
+      ? (partialRaw as Record<string, unknown>)
+      : null;
+  if (partial === null) return null;
+  const closeoutRaw = partial.closeout_attestable;
+  const closeout =
+    closeoutRaw !== null && typeof closeoutRaw === "object" && !Array.isArray(closeoutRaw)
+      ? (closeoutRaw as Record<string, unknown>)
+      : null;
+  if (closeout === null) return null;
+  const reason = closeout.reason;
+  if (typeof reason !== "string") return null;
+  if (reason !== "lifecycle-dirty" && reason !== "brief-root-layout-missing") return null;
+  const message = typeof closeout.message === "string" ? closeout.message : "";
+  return { reason, message };
+}
+
 /** Detect merged / closed PR via fallback2 partial_data. */
 export function isTerminalPrState(payload: Record<string, unknown>): boolean {
   const partialRaw = payload.partial_data;
@@ -226,6 +249,17 @@ export function monitor(
 
     if (isTerminalPrState(lastPayload)) {
       return { exitCode: EXIT_PR_TERMINAL, payload: lastPayload, pollCount: pollIndex };
+    }
+
+    // One-poll terminal for lifecycle-dirty / brief-root-layout-missing (#6128).
+    const onePoll = readCloseoutAttestableOnePoll(lastPayload);
+    if (onePoll !== null) {
+      // Write closeout_attestable.message verbatim — no append/parse.
+      process.stderr.write(onePoll.message);
+      if (onePoll.message.length > 0 && !onePoll.message.endsWith("\n")) {
+        process.stderr.write("\n");
+      }
+      return { exitCode: EXIT_CONFIG_ERROR, payload: lastPayload, pollCount: pollIndex };
     }
 
     const absentContexts = readAbsentRequiredContexts(lastPayload);
