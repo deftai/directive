@@ -27,6 +27,9 @@ export const AUTHZ_AGENT_SHELL_ENV_MARKERS = [
   "CODEX_SANDBOX",
   "CODEX_CI",
   "OPENAI_CODEX",
+  // Grok Build shell markers (#5983 Prefer-A Recut-2): exact names only, both unconditional.
+  "GROK_AGENT",
+  "GROK_SESSION_ID",
   "OPENCLAW",
   "OPENCLAW_STATE_DIR",
   "DEFT_PROBE_OPENCLAW",
@@ -80,12 +83,21 @@ export interface HumanPresenceMintSeams {
   readonly readInteractiveConfirm?: () => string | null;
 }
 
-export function looksLikeAgentShell(environ: NodeJS.ProcessEnv): boolean {
+/**
+ * Matching agent/CI shell marker keys in AUTHZ_AGENT_SHELL_ENV_MARKERS order.
+ * Blank or whitespace-only values do not match (return []).
+ */
+export function detectedAgentShellMarkers(environ: NodeJS.ProcessEnv): string[] {
+  const matched: string[] = [];
   for (const key of AUTHZ_AGENT_SHELL_ENV_MARKERS) {
     const v = environ[key];
-    if (v !== undefined && String(v).trim().length > 0) return true;
+    if (v !== undefined && String(v).trim().length > 0) matched.push(key);
   }
-  return false;
+  return matched;
+}
+
+export function looksLikeAgentShell(environ: NodeJS.ProcessEnv): boolean {
+  return detectedAgentShellMarkers(environ).length > 0;
 }
 
 function defaultIsTty(): boolean {
@@ -201,11 +213,14 @@ export function refuseNonInteractiveMint(input: {
   readonly readInteractiveConfirm: () => string | null;
 }): number | null {
   const { verb, confirm } = input;
-  if (looksLikeAgentShell(input.environ)) {
+  const matchedMarkers = detectedAgentShellMarkers(input.environ);
+  if (matchedMarkers.length > 0) {
+    const named = matchedMarkers.join(", ");
     process.stderr.write(
       `${verb}: refusing operator-cli stamp from an agent/host/CI shell ` +
-        `(detected agent or CI env marker). Mint requires a human interactive ` +
-        "TTY without agent-shell markers, plus --confirm and typed phrase (#3110).\n",
+        `(matched agent-shell env markers: ${named}). Unset ${named} and retry ` +
+        "from a human interactive TTY without agent-shell markers, plus --confirm " +
+        "and typed phrase (#3110 / #5983).\n",
     );
     return 2;
   }

@@ -231,7 +231,13 @@ describe("scope-record-approved-scope CLI (#3205)", () => {
       })}\n`,
       "utf8",
     );
-    for (const key of ["CLAUDECODE", "CI", "GITHUB_ACTIONS"] as const) {
+    for (const key of [
+      "CLAUDECODE",
+      "CI",
+      "GITHUB_ACTIONS",
+      "GROK_AGENT",
+      "GROK_SESSION_ID",
+    ] as const) {
       expect(AUTHZ_AGENT_SHELL_ENV_MARKERS).toContain(key);
       expect(
         run(
