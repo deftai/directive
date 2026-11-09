@@ -1,0 +1,51 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "kind": "scope"
+  },
+  "plan": {
+    "id": "ovpr-w1-5997",
+    "title": "fix(windows): deft-hook bin + launcher ps1 cleanup (#5997 #5998)",
+    "status": "running",
+    "updated": "2026-11-09T17:34:38Z",
+    "items": [
+      {
+        "id": "1",
+        "title": "fix(windows): deft-hook bin + launcher ps1 cleanup (#5997 #5998)",
+        "status": "todo"
+      }
+    ],
+    "acceptance": [
+      {
+        "id": "ac1",
+        "text": "PR open Refs #5997 #5998"
+      }
+    ],
+    "references": [
+      "#5997",
+      "#5998"
+    ],
+    "metadata": {
+      "swarm": {
+        "file_scope": [
+          "packages/cli/package.json",
+          "packages/cli/bin/deft-hook",
+          "packages/cli/bin/deft-hook.cmd",
+          "packages/cli/bin/deft-hook.js",
+          "packages/runtime/package.json",
+          "packages/runtime/src/windows-bin-ps1.ts",
+          "packages/runtime/src/windows-bin-ps1.test.ts"
+        ]
+      },
+      "allocation_plan_id": "ovpr-stable-wave1-2026-11-09",
+      "dispatch_kind": "swarm-cohort"
+    }
+  },
+  "Tracking": {
+    "issue": 5997,
+    "issues": [
+      5997,
+      5998
+    ]
+  }
+}

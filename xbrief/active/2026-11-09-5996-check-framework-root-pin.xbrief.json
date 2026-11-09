@@ -1,0 +1,44 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "kind": "scope"
+  },
+  "plan": {
+    "id": "ovpr-w1-5996",
+    "title": "fix(check): resolveCheckFrameworkRoot considers pin package root (#5996)",
+    "status": "running",
+    "updated": "2026-11-09T17:34:38Z",
+    "items": [
+      {
+        "id": "1",
+        "title": "fix(check): resolveCheckFrameworkRoot considers pin package root (#5996)",
+        "status": "todo"
+      }
+    ],
+    "acceptance": [
+      {
+        "id": "ac1",
+        "text": "PR open Refs #5996"
+      }
+    ],
+    "references": [
+      "#5996"
+    ],
+    "metadata": {
+      "swarm": {
+        "file_scope": [
+          "packages/runtime/src/check.ts",
+          "packages/runtime/src/check.test.ts"
+        ]
+      },
+      "allocation_plan_id": "ovpr-stable-wave1-2026-11-09",
+      "dispatch_kind": "swarm-cohort"
+    }
+  },
+  "Tracking": {
+    "issue": 5996,
+    "issues": [
+      5996
+    ]
+  }
+}

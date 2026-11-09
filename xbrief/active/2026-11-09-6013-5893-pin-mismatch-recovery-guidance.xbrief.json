@@ -1,0 +1,49 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "kind": "scope"
+  },
+  "plan": {
+    "id": "ovpr-w1-6013",
+    "title": "fix(install-health): pin-mismatch recovery guidance (#6013 #5893)",
+    "status": "running",
+    "updated": "2026-11-09T17:34:38Z",
+    "items": [
+      {
+        "id": "1",
+        "title": "fix(install-health): pin-mismatch recovery guidance (#6013 #5893)",
+        "status": "todo"
+      }
+    ],
+    "acceptance": [
+      {
+        "id": "ac1",
+        "text": "PR open Refs #6013 #5893"
+      }
+    ],
+    "references": [
+      "#6013",
+      "#5893"
+    ],
+    "metadata": {
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/install-health/cheap.ts",
+          "packages/core/src/install-health/constants.ts",
+          "packages/core/src/install-health/cheap.test.ts",
+          "packages/runtime/src/hook-dispatch.ts",
+          "packages/runtime/src/hook-dispatch.test.ts"
+        ]
+      },
+      "allocation_plan_id": "ovpr-stable-wave1-2026-11-09",
+      "dispatch_kind": "swarm-cohort"
+    }
+  },
+  "Tracking": {
+    "issue": 6013,
+    "issues": [
+      6013,
+      5893
+    ]
+  }
+}
