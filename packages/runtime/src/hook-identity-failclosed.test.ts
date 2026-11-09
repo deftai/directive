@@ -11,6 +11,7 @@ import { join, resolve } from "node:path";
 import {
   HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE,
   INSTALLATION_RECOVERY_GUIDANCE,
+  PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE,
 } from "@deftai/directive-core/dist/install-health/constants.js";
 import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-health/types.js";
 import { afterEach, describe, expect, it } from "vitest";
@@ -56,7 +57,7 @@ function cheapFailClosed(): CheapInSyncResult {
     readinessValid: false,
     failClosed: true,
     allowSetup: false,
-    recoveryGuidance: INSTALLATION_RECOVERY_GUIDANCE,
+    recoveryGuidance: PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE,
   };
 }
 
@@ -183,7 +184,7 @@ describe("SEC-WT foreign worktree payload fail-closed (AC9.5 / AC14.26)", () => 
 });
 
 describe("HOOK-ID pin≠installed fail-closed (AC14.8 / AC14.65)", () => {
-  it("denies with AC9.7 and skips policy when cheap identity failClosed", () => {
+  it("denies with project PM guidance and skips policy when cheap identity failClosed", () => {
     const root = tempDir("hook-id");
     writeFileSync(join(root, "a.txt"), "x\n");
 
@@ -197,13 +198,14 @@ describe("HOOK-ID pin≠installed fail-closed (AC14.8 / AC14.65)", () => {
     expect(result.code).toBe(0);
     expect(result.body.permission ?? result.body.decision).toBe("deny");
     const msg = denyMessage(result.body);
-    expect(msg).toContain(INSTALLATION_RECOVERY_GUIDANCE);
+    expect(msg).toContain(PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE);
+    expect(msg).not.toContain(INSTALLATION_RECOVERY_GUIDANCE);
     expect(msg.toLowerCase()).not.toContain("ritual");
     expect(String(result.body.code ?? "")).not.toBe("ritual-not-ready");
     expect(existsSync(join(root, ".deft-cache"))).toBe(false);
   });
 
-  it("real pin≠installed fixture: no ritual policy, AC9.7 on the wire", () => {
+  it("real pin≠installed fixture: no ritual policy, project PM guidance on the wire", () => {
     const root = tempDir("hook-id-real");
     writeFileSync(
       join(root, "package.json"),
@@ -235,7 +237,8 @@ describe("HOOK-ID pin≠installed fail-closed (AC14.8 / AC14.65)", () => {
     expect(result.code).toBe(0);
     expect(result.body.permission ?? result.body.decision).toBe("deny");
     const msg = denyMessage(result.body);
-    expect(msg).toContain(INSTALLATION_RECOVERY_GUIDANCE);
+    expect(msg).toContain(PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE);
+    expect(msg).not.toContain(INSTALLATION_RECOVERY_GUIDANCE);
     expect(msg.toLowerCase()).not.toContain("ritual");
     expect(String(result.body.code ?? "")).not.toBe("ritual-not-ready");
   });
