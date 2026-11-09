@@ -1,0 +1,563 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6142",
+    "updated": "2026-11-09T20:19:52.216Z"
+  },
+  "plan": {
+    "title": "bug(design-critique): ensureArcDest via stale gitignored packages/core/dist skips guarded-prep, so arc dests launch without runtime",
+    "status": "running",
+    "narratives": {
+      "Description": "Calling ensureArcDest through a stale gitignored packages/core/dist can skip guarded-prep and leave arc dests without a runtime pin. This activation records Prefer-A Bound so a later product PR can ship a pin-bin ensure-arc-dest path that fails closed when the pin is still missing.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6142",
+      "Overview": "Calling ensureArcDest through a stale gitignored packages/core/dist can skip guarded-prep and leave arc dests without a runtime pin. This activation records Prefer-A Bound so a later product PR can ship a pin-bin ensure-arc-dest path that fails closed when the pin is still missing.",
+      "Labels": "bug, design-critique:ingest-ready",
+      "UserStory": "As a design-critique operator, I want ensureArcDest to run only through a pin-bin path, so that stale local dist cannot skip guarded-prep.",
+      "ImplementationPlan": "1. Add packages/runtime/src/design-critique-ensure-arc-dest.ts and register it from packages/runtime/src/dispatch.ts with guarded-prep default or explicit process-only.\n2. Fail closed in packages/core/src/design-critique/arc-dest.ts when guarded-prep leaves the runtime pin missing; cover with packages/core/src/design-critique/arc-dest.test.ts and packages/runtime/src/design-critique-ensure-arc-dest.test.ts.\n3. Update content/skills/deft-directive-design-critique/SKILL.md and content/contracts/design-critique.md MUST language; CHANGELOG.md Unreleased records the product ship with Refs #6142.",
+      "Acceptance": "Bound remedy limbs are the acceptance set; product PR must satisfy each limb under declared file_scope."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Pin-bin design-critique ensure-arc-dest verb with guarded-prep default or explicit process-only",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Pin-bin design-critique ensure-arc-dest verb with guarded-prep default or explicit process-only.",
+          "Traces": "#6142",
+          "Description": "Primary acceptance limb for #6142: Pin-bin design-critique ensure-arc-dest verb with guarded-prep default or explicit process-only"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Fail closed when guarded-prep is selected and the runtime pin is still missing",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Fail closed when guarded-prep is selected and the runtime pin is still missing.",
+          "Traces": "#6142",
+          "Description": "Primary acceptance limb for #6142: Fail closed when guarded-prep is selected and the runtime pin is still missing"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Skill and contract MUST use the sanctioned path and never treat gitignored packages core dist as source of truth",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Skill and contract MUST use the sanctioned path and never treat gitignored packages core dist as source of truth.",
+          "Traces": "#6142",
+          "Description": "Primary acceptance limb for #6142: Skill and contract MUST use the sanctioned path and never treat gitignored packages core dist as source of truth"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "CHANGELOG Unreleased Fixed note Refs 6142 never Closes",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG Unreleased Fixed note Refs 6142 never Closes.",
+          "Traces": "#6142",
+          "Description": "Primary acceptance limb for #6142: CHANGELOG Unreleased Fixed note Refs 6142 never Closes"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6142",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6142: bug(design-critique): ensureArcDest via stale gitignored packages/core/dist skips guarded-prep, so arc dests launch without runtime"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6100",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6100"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6136",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6136"
+      }
+    ],
+    "acceptance": {
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Pin-bin design-critique ensure-arc-dest verb with guarded-prep default or explicit process-only",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Fail closed when guarded-prep is selected and the runtime pin is still missing",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Skill and contract MUST use the sanctioned path and never treat gitignored packages core dist as source of truth",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "CHANGELOG Unreleased Fixed note Refs 6142 never Closes",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "commands": [],
+      "derived_reason": "derived 4 Prefer-A Bound limbs from comment 6747054314 before product edit (#4374/#3323)",
+      "source_rung": "derived",
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/design-critique/arc-dest.ts",
+          "packages/core/src/design-critique/arc-dest.test.ts",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "CHANGELOG.md",
+          "packages/runtime/src/dispatch.ts",
+          "packages/runtime/src/dispatch.test.ts",
+          "packages/runtime/src/design-critique-ensure-arc-dest.ts",
+          "packages/runtime/src/design-critique-ensure-arc-dest.test.ts"
+        ],
+        "module_boundary": "packages/core/src/design-critique/arc-dest.ts",
+        "cohesion_exemption": "CHANGELOG Unreleased + Bound product paths for thin activation write fence"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok\n```quarantined\nrole: triage\n```\n\n## Plain-language summary\nCalling ensureArcDest through a stale local dist can skip the install step, so arc worktrees look ready but cannot run hooks or gh. This arc designs one fail-closed sanctioned path so that cannot happen silently. No ingest; dest is arc-6142 (guarded-prep already produced a runtime pin on create).\n\ndesign-critique: warranted, because the bug asserts a fail-closed dest-prep gap with a named Prefer-A shape (sanctioned ensure-arc-dest verb or skill/contract MUST against stale gitignored dist), dogfooded on #6136.\n\nmechanism-shaped: true\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: Prefer-A already named (pin-bin verb or skill MUST + optional readiness probe). Solution space closed; panel permission not used.\ncharter: open critique\nrefutation-target: Requiring packages/core/dist ensureArcDest on framework-source is safe without a fresh build or pin-bin verb, because source defaults already guarantee guarded-prep at call time.\npain: P1, P2, P3\n- P1: Stale gitignored packages/core/dist ensureArcDest returns ok without guarded-prep\n- P2: Arc dests then lack runtime pin; hooks block gh / verbs mid-critic\n- P3: No sanctioned CLI/skill invocation names the rebuild-or-pin rule, so agents rediscover via dogfood hang\ndual-stop-reserved: 1\nverification-path: pin-read git show 164fe7adc7a37e33c64bf1de0088fbbbccc8f886:\nSHA at dispatch: 164fe7adc7a37e33c64bf1de0088fbbbccc8f886\ntarget-kind: issue\ntarget: https://github.com/deftai/directive/issues/6142\nceiling-kind: comment-id\nid-ceiling: pending-after-this-post\ndest: .deft-scratch/worktrees/arc-6142\npinKind: origin-default\n\n## Gate notes\n- Keep-outs: #5892 primary pin-drift; #5882 finalize-cohort skip-install; #5836 SEC-WT junction; closed #6100 Prefer-A source (this issue is invocation/stale-dist).\n- Dogfood proof: this Stop 1 dest was created with rebuilt dist guarded-prep and already has node_modules/@deftai/directive-runtime.\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6746250986,
+          "html_url": "https://github.com/deftai/directive/issues/6142#issuecomment-6746250986",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:04:55Z",
+          "updated_at": "2026-11-09T17:04:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## Plain-language summary\nSource `ensureArcDest` already defaults to guarded-prep, but agents that load a gitignored stale `packages/core/dist` copy get a silent ok without install. Prefer-A is one sanctioned pin-bin (or skill-MUST) path that cannot succeed with a missing runtime pin when guarded-prep was selected.\n\n## Findings\n\n### blocks-the-design: gitignored dist is not the source contract\n- Evidence: tip source `arc-dest.ts` defaults `installMode` to `guarded-prep` and calls `prepareLinkedWorktree`. `.gitignore` has `packages/*/dist/`. Dogfood #6136: stale dist returned ok after bare worktree add; dest lacked `@deftai/directive-runtime`; hooks blocked `gh`.\n- Failure mode: agents treat `require(packages/core/dist/...)` as current API; silent incomplete prep.\n- Disposition: Prefer-A must remove that silent path (verb and/or fail-closed readiness).\n\n### blocks-the-design: no pin-bin ensure-arc-dest verb\n- Evidence: Stop 1 Expected Prefer-A names `deft design-critique:ensure-arc-dest`; CLI registry/search on tip shows spend-resolve family but no ensure-arc-dest verb; skill points at library `ensureArcDest`.\n- Failure mode: every framework-source arc rediscovers `require(dist)` or ad-hoc `git worktree add`.\n- Disposition: Bound limb — ship pin-bin verb that always runs current guarded-prep (or explicit `process-only-no-install`).\n\n### sharpens-framing: readiness probe before critic spawn\n- Evidence: `worktreeHasRuntimePin` / outer-visible pin already exist in `worktree-pm-install.ts`; critic launch after ensure still posted with missing pin in #6136 dogfood.\n- Failure mode: ensure ok + missing pin → hung critic.\n- Disposition: optional Bound limb — fail-closed readiness before Round-1 spawn when mode is guarded-prep.\n\n### footnote: keep-outs stay out\n- #5892 primary pin-drift; #5882 finalize-cohort skip-install; #5836 SEC-WT junction; closed #6100 source Prefer-A already landed guarded-prep.\n\n## Bound remedy\n- Pin-bin `design-critique:ensure-arc-dest` (guarded-prep default; explicit `process-only-no-install`) — relieves: P1, P3\n- Fail closed when guarded-prep selected and runtime pin still missing after prep — relieves: P2\n- Skill/contract MUST: sanctioned verb (or rebuild+pin path); never treat gitignored dist as SoT — relieves: P3\n\nSpec-path: packages/core/src/design-critique/arc-dest.ts + packages/core/src/swarm/worktree-pm-install.ts + design-critique skill/contract + CLI registry\nKeep-outs: #5892, #5882, #5836, #6100\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6746960730,
+          "html_url": "https://github.com/deftai/directive/issues/6142#issuecomment-6746960730",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:35:12Z",
+          "updated_at": "2026-11-09T17:35:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\nLeaning Prefer-A Bound for the stale-dist ensureArcDest hole. Sanctioned pin-bin verb + fail-closed missing runtime pin + skill MUST. No ingest. Dogfood note: this dest was created with rebuilt dist guarded-prep and already had a runtime pin.\n\nlean: Prefer-A\nbound-source: Round-1 critic (parent seat; dest-rooted child exited mid-pass)\nSHA at lean: 164fe7adc7a37e33c64bf1de0088fbbbccc8f886\narc-mode: no-ingest\nyolo-standing: on\n\n## Bound remedy (leaned)\n1. Pin-bin `design-critique:ensure-arc-dest` with guarded-prep default (or explicit `process-only-no-install`) — relieves: P1, P3\n2. Fail closed if guarded-prep selected and runtime pin still missing after prep — relieves: P2\n3. Skill/contract MUST name the sanctioned invocation; never treat gitignored `packages/core/dist` as SoT — relieves: P3\n\nKeep-outs: #5892, #5882, #5836, closed #6100.\n\ndual-stop: N=1 Round-1 complete; successor lean posted. Next: pain-audit / bind (no-ingest).\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6746961275,
+          "html_url": "https://github.com/deftai/directive/issues/6142#issuecomment-6746961275",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:35:14Z",
+          "updated_at": "2026-11-09T17:35:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\nPain-audit of Prefer-A Bound lean 6746961275. Each Stop 1 pain has a Bound limb. No dual-stop raise.\n\npain-audit: after Prefer-A\nsuccessor lean: 6746961275\nSHA: 164fe7adc7a37e33c64bf1de0088fbbbccc8f886\n\n| Pain | Bound limb | Coverage |\n|---|---|---|\n| P1 stale dist skips guarded-prep | Pin-bin ensure-arc-dest (current guarded-prep) | covered |\n| P2 missing runtime pin / hooks block gh | Fail closed when guarded-prep leaves pin missing | covered |\n| P3 no sanctioned invocation | Verb + skill/contract MUST | covered |\n\ndual-stop-raise: none\nmaterial-findings: none beyond Bound\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6746978784,
+          "html_url": "https://github.com/deftai/directive/issues/6142#issuecomment-6746978784",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:35:58Z",
+          "updated_at": "2026-11-09T17:35:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\nBinding Prefer-A Bound for #6142 after pain-audit. Sanctioned ensure-arc-dest path; fail-closed missing pin; skill MUST. No ingest in this arc.\n\ndesign-critique: synthesis accepted, because Prefer-A Bound lean 6746961275 covers P1–P3 with keep-outs #5892/#5882/#5836/#6100; pain-audit found no dual-stop raise.\nsuccessor lean: 6746961275\narc-mode: no-ingest\nbind: Prefer-A Bound\nSHA: 164fe7adc7a37e33c64bf1de0088fbbbccc8f886\n\n## Bound (bound)\n1. Pin-bin `design-critique:ensure-arc-dest` (guarded-prep default or explicit process-only-no-install) — relieves: P1, P3\n2. Fail closed if guarded-prep selected and runtime pin still missing — relieves: P2\n3. Skill/contract MUST: sanctioned invocation; never treat gitignored packages/core/dist as SoT — relieves: P3\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6746979423,
+          "html_url": "https://github.com/deftai/directive/issues/6142#issuecomment-6746979423",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:36:00Z",
+          "updated_at": "2026-11-09T17:36:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\nPrefer-A Bound for sanctioned ensure-arc-dest path. Corrected successor-lean token (`Lean:`) after prior lowercase miss.\n\nLean: Prefer-A Bound — pin-bin ensure-arc-dest; fail-closed missing runtime pin; skill/contract MUST.\n\n## Bound remedy\n1. Pin-bin `design-critique:ensure-arc-dest` (guarded-prep default or explicit process-only-no-install) — relieves: P1, P3\n2. Fail closed if guarded-prep selected and runtime pin still missing — relieves: P2\n3. Skill/contract MUST: sanctioned invocation; never treat gitignored packages/core/dist as SoT — relieves: P3\n\nKeep-outs: #5892, #5882, #5836, #6100\nSHA: 164fe7adc7a37e33c64bf1de0088fbbbccc8f886\narc-mode: no-ingest\nSupersedes comment 6746961275\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747020431,
+          "html_url": "https://github.com/deftai/directive/issues/6142#issuecomment-6747020431",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:37:50Z",
+          "updated_at": "2026-11-09T17:37:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\nPain-audit of corrected Prefer-A Bound successor lean 6747020431. P1–P3 covered. No dual-stop raise.\n\npain-audit: after Prefer-A\nsuccessor lean: 6747020431\ndual-stop-raise: none\n\n| Pain | Coverage |\n|---|---|\n| P1 | Bound limb 1 |\n| P2 | Bound limb 2 |\n| P3 | Bound limb 3 |\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747021540,
+          "html_url": "https://github.com/deftai/directive/issues/6142#issuecomment-6747021540",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:37:53Z",
+          "updated_at": "2026-11-09T17:37:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\nSynthesis accepts Prefer-A Bound. No ingest.\n\ndesign-critique: synthesis accepted, because Prefer-A Bound covers P1–P3 with keep-outs #5892/#5882/#5836/#6100; pain-audit raised nothing.\nsuccessor lean: 6747020431\narc-mode: no-ingest\nbind: Prefer-A Bound\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747022608,
+          "html_url": "https://github.com/deftai/directive/issues/6142#issuecomment-6747022608",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:37:56Z",
+          "updated_at": "2026-11-09T17:37:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\n## Plain-language summary\nPain-audit of successor lean 6747020431. Bound limbs cover P1–P3. No blocking or sharpening findings. No harvest change.\n\nsuccessor lean: 6747020431\n\n| Pain | Verdict |\n|---|---|\n| P1 | relieved by Bound limb 1 (pin-bin ensure-arc-dest) |\n| P2 | relieved by Bound limb 2 (fail-closed missing runtime pin) |\n| P3 | relieved by Bound limb 3 (skill/contract MUST) |\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747034028,
+          "html_url": "https://github.com/deftai/directive/issues/6142#issuecomment-6747034028",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:38:25Z",
+          "updated_at": "2026-11-09T17:38:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\nSynthesis accepts Prefer-A Bound after critic pain-audit clear. No ingest.\n\ndesign-critique: synthesis accepted, because Prefer-A Bound covers P1–P3; critic pain-audit finding-classes none harvest-changed false.\nsuccessor lean: 6747020431\narc-mode: no-ingest\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747035055,
+          "html_url": "https://github.com/deftai/directive/issues/6142#issuecomment-6747035055",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:38:28Z",
+          "updated_at": "2026-11-09T17:38:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## In plain English\nCalling ensureArcDest through a stale local dist can skip install. Prefer-A is one sanctioned verb that always runs guarded-prep (or explicit process-only), fails closed if the runtime pin is still missing, and names that path in the skill.\n\nLean: Prefer-A Bound — pin-bin ensure-arc-dest; fail-closed missing pin; skill MUST.\n\n## Bound remedy\n1. Pin-bin `design-critique:ensure-arc-dest` (guarded-prep default or explicit process-only-no-install) — relieves: P1, P3\n2. Fail closed if guarded-prep selected and runtime pin still missing — relieves: P2\n3. Skill/contract MUST: sanctioned invocation; never treat gitignored packages/core/dist as SoT — relieves: P3\n\nKeep-outs: #5892, #5882, #5836, #6100\nSHA: 164fe7adc7a37e33c64bf1de0088fbbbccc8f886\narc-mode: no-ingest\nSupersedes comment 6747020431\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747054314,
+          "html_url": "https://github.com/deftai/directive/issues/6142#issuecomment-6747054314",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:39:21Z",
+          "updated_at": "2026-11-09T17:39:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\n## In plain English\nPain-audit of successor lean 6747054314. Bound covers P1–P3. No adverse findings.\n\nsuccessor lean: 6747054314\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747055175,
+          "html_url": "https://github.com/deftai/directive/issues/6142#issuecomment-6747055175",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:39:23Z",
+          "updated_at": "2026-11-09T17:39:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## In plain English\nSynthesis accepts Prefer-A Bound. Sanctioned ensure-arc-dest path. No ingest this arc.\n\ndesign-critique: synthesis accepted, because Prefer-A Bound covers P1–P3; critic pain-audit finding-classes none harvest-changed false.\nsuccessor lean: 6747054314\narc-mode: no-ingest\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747056100,
+          "html_url": "https://github.com/deftai/directive/issues/6142#issuecomment-6747056100",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:39:25Z",
+          "updated_at": "2026-11-09T17:39:25Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6290729933,
+        "origin": "deftai/directive#6142",
+        "id": "github.issue.6290729933"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "design-critique-ensure-arc-dest-stale-dist-guarded-prep",
+        "expected_outputs": [
+          "pin-bin design-critique ensure-arc-dest with guarded-prep default",
+          "fail-closed when guarded-prep selected and runtime pin missing",
+          "skill/contract MUST sanctioned invocation never stale gitignored dist SoT",
+          "CHANGELOG Unreleased Fixed Refs #6142"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/design-critique/arc-dest.test.ts packages/core/src/content-contracts/standards/design_critique_contract.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/design-critique/arc-dest.ts",
+          "packages/core/src/design-critique/arc-dest.test.ts",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "content/contracts/design-critique.md",
+          "content/skills/deft-directive-design-critique/SKILL.md",
+          "CHANGELOG.md",
+          "packages/runtime/src/dispatch.ts",
+          "packages/runtime/src/dispatch.test.ts",
+          "packages/runtime/src/design-critique-ensure-arc-dest.ts",
+          "packages/runtime/src/design-critique-ensure-arc-dest.test.ts"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#6142",
+          "Prefer-A Bound 6747054314"
+        ],
+        "parallel_safe": true,
+        "acceptance_criteria_justification": "Prefer-A Bound ships one acceptance item per locked limb; clause count follows the Bound comment."
+      }
+    },
+    "id": "github.issue.6290729933",
+    "updated": "2026-11-09T20:19:52.216Z"
+  }
+}

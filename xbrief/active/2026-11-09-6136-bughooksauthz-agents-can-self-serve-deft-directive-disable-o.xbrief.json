@@ -1,0 +1,703 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6136",
+    "updated": "2026-11-09T20:19:52.216Z"
+  },
+  "plan": {
+    "title": "bug(hooks,authz): agents can self-serve .deft-directive-disable outside UAT (Write/Shell plant)",
+    "status": "running",
+    "narratives": {
+      "Description": "Agents can plant root .deft-directive-disable via Write or Shell outside UAT and silently bypass PreToolUse. This activation records Prefer-A Bound so a later product PR can make kill-switch plant deny always-on without a human-origin grant.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6136",
+      "Overview": "Agents can plant root .deft-directive-disable via Write or Shell outside UAT and silently bypass PreToolUse. This activation records Prefer-A Bound so a later product PR can make kill-switch plant deny always-on without a human-origin grant.",
+      "Labels": "bug, design-critique:ingest-ready",
+      "UserStory": "As a Directive operator, I want agents unable to plant the kill-switch outside a human grant, so that PreToolUse cannot be silently bypassed.",
+      "ImplementationPlan": "1. Edit packages/core/src/authz/classify.ts and packages/core/src/hooks/shell-write-targets.ts so Write/Edit/Shell kill-switch plant denies without a human-origin grant even when UAT is inactive.\n2. Cover always-on deny and grant hatch with packages/core/src/authz/classify.test.ts, packages/core/src/hooks/shell-write-targets.test.ts, and packages/core/src/hooks/dispatcher.test.ts fixtures.\n3. Update content/docs/deft-directive-disable.md and content/contracts/path-write-fence.md; CHANGELOG.md Unreleased records the product ship with Refs #6136.",
+      "Acceptance": "Bound remedy limbs are the acceptance set; product PR must satisfy each limb under declared file_scope."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Always-on Write and Edit deny for kill-switch basenames without human-origin grant",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Always-on Write and Edit deny for kill-switch basenames without human-origin grant.",
+          "Traces": "#6136",
+          "Description": "Primary acceptance limb for #6136: Always-on Write and Edit deny for kill-switch basenames without human-origin grant"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Shell protected-basename check before in-repo write-path skip for kill-switch plant",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Shell protected-basename check before in-repo write-path skip for kill-switch plant.",
+          "Traces": "#6136",
+          "Description": "Primary acceptance limb for #6136: Shell protected-basename check before in-repo write-path skip for kill-switch plant"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Docs state agent self-serve kill-switch ban is always-on and grant-gated",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Docs state agent self-serve kill-switch ban is always-on and grant-gated.",
+          "Traces": "#6136",
+          "Description": "Primary acceptance limb for #6136: Docs state agent self-serve kill-switch ban is always-on and grant-gated"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "CHANGELOG Unreleased Fixed or Security note Refs 6136 never Closes",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG Unreleased Fixed or Security note Refs 6136 never Closes.",
+          "Traces": "#6136",
+          "Description": "Primary acceptance limb for #6136: CHANGELOG Unreleased Fixed or Security note Refs 6136 never Closes"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6136",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6136: bug(hooks,authz): agents can self-serve .deft-directive-disable outside UAT (Write/Shell plant)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3191",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3191"
+      }
+    ],
+    "acceptance": {
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Always-on Write and Edit deny for kill-switch basenames without human-origin grant",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Shell protected-basename check before in-repo write-path skip for kill-switch plant",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Docs state agent self-serve kill-switch ban is always-on and grant-gated",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "CHANGELOG Unreleased Fixed or Security note Refs 6136 never Closes",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "commands": [],
+      "derived_reason": "derived 4 Prefer-A Bound limbs from comment 6747053756 before product edit (#4374/#3323)",
+      "source_rung": "derived",
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/authz/classify.ts",
+          "packages/core/src/authz/classify.test.ts",
+          "packages/core/src/hooks/shell-write-targets.ts",
+          "packages/core/src/hooks/shell-write-targets.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/policy/deft-directive-disable.ts",
+          "content/docs/deft-directive-disable.md",
+          "content/contracts/path-write-fence.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/authz/classify.ts",
+        "cohesion_exemption": "CHANGELOG Unreleased + Bound product paths for thin activation write fence"
+      },
+      "issueCommentThread": [
+        {
+          "body": "Sequencing note: this lands first and narrow. The named location for the Shell half is `packages/core/src/hooks/shell-write-targets.ts`: `isInRepoShellWritePath` rejects out-of-tree dests before any basename check, so a kill-switch plant outside the tree fail-opens; the protected-basename predicate must run ahead of it. The general `protected` target class and the out-of-tree floor are #6138; the deny wording contract is #6139. The deny only holds while the hook runs, so #5836 recovery stays a physical dest install, as the body already says.\n\n",
+          "id": 6745045821,
+          "html_url": "https://github.com/deftai/directive/issues/6136#issuecomment-6745045821",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T16:15:51Z",
+          "updated_at": "2026-11-09T16:15:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: triage\n```\n\n## Plain-language summary\nAgents can plant the kill-switch file themselves when UAT is off. This arc designs an always-on deny for that plant unless a human grant covers it. No ingest this turn; work stays on the arc-6136 dest pin.\n\ndesign-critique: warranted, because the bug asserts a fail-closed authz/hooks gap with a named always-on Prefer-A shape (deny agent Write/Edit/Shell plant of `.deft-directive-disable` / `.no-deft-directive` without human-origin grant), sequenced ahead of #6138/#6139.\n\nmechanism-shaped: true\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: Solution space already narrowed by body Expected + sequencing note (Shell half in shell-write-targets.ts ahead of isInRepoShellWritePath; #6138/#6139 own adjacent classes). Panel permission not used.\ncharter: open critique\nrefutation-target: Active-UAT Shell settings classification alone is a sufficient agent self-serve ban for kill-switch / permanent opt-out plant.\npain: P1, P2, P3\n- P1: Host Write/Edit of `.deft-directive-disable` / `.no-deft-directive` admits without human-origin grant when UAT is inactive\n- P2: Shell create/rename-to those basenames admits the same way outside UAT (including ordering where out-of-tree path checks run before protected-basename)\n- P3: Docs describe the agent self-serve ban as UAT-only, so recovery guidance can read as agent-plantable\ndual-stop-reserved: 1\nverification-path: pin-read git show 164fe7adc7a37e33c64bf1de0088fbbbccc8f886:\nSHA at dispatch: 164fe7adc7a37e33c64bf1de0088fbbbccc8f886\ntarget-kind: issue\ntarget: https://github.com/deftai/directive/issues/6136\nceiling-kind: comment-id\nid-ceiling: pending-after-this-post\ndest: .deft-scratch/worktrees/arc-6136\npinKind: origin-default\n\n## Gate notes\n- Related keep-outs: #6138 general protected target class / out-of-tree floor; #6139 deny wording contract; #5836 recovery stays physical dest install / ensureDestContainedRuntime (not agent kill-switch).\n- Sequencing comment 6745045821 is in ceiling for Round-1.\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6745676213,
+          "html_url": "https://github.com/deftai/directive/issues/6136#issuecomment-6745676213",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T16:42:10Z",
+          "updated_at": "2026-11-09T16:42:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\nRound-1 critic native spawn was refused because primary still has multiple eligible active xBRIEFs. Switching to the sanctioned Grok critic recovery: dest-rooted grok --cwd --prompt-file on arc-6136.\n\nnative-spawn-deny: Multiple active xBRIEF artifacts eligible on primary (process-only Round-1 critic for #6136)\nrecovery: dest-rooted grok --cwd .deft-scratch/worktrees/arc-6136 --prompt-file\nid-ceiling: 6745676213\nSHA at dispatch: 164fe7adc7a37e33c64bf1de0088fbbbccc8f886\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6745783278,
+          "html_url": "https://github.com/deftai/directive/issues/6136#issuecomment-6745783278",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T16:46:22Z",
+          "updated_at": "2026-11-09T16:46:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\nKilled the hung Round-1 critic (operator authorized). Reconstituted arc-6136 with pnpm install so the runtime pin exists; `gh` works again in that dest. Root cause was invoking a stale gitignored `packages/core/dist` `ensureArcDest` that predated guarded-prep, so the dest was created without install.\n\nrecovery:\n- critic: Stop-Process on dest-rooted grok --cwd arc-6136 (authorized kill)\n- dest: `pnpm install --frozen-lockfile --prod=false` in `.deft-scratch/worktrees/arc-6136` → `node_modules/@deftai/directive-runtime` present\n- `reconstituteLinkedWorktreeDeposit` correctly skipped `.deft/core` on framework-source\n- rebuilt primary `packages/core` dist so `ensureArcDest` now includes default `installMode: guarded-prep`\n\nissue-judgment: warrants a new thin framework-gap (distinct from #5892 primary pin-drift and #5882 finalize-cohort skip-install): agents that `require(packages/core/dist/design-critique/arc-dest.js)` against gitignored stale dist get silent `ok` without guarded-prep. Draft held pending operator file confirm (bare-arc no auto-file).\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6746123701,
+          "html_url": "https://github.com/deftai/directive/issues/6136#issuecomment-6746123701",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T16:59:36Z",
+          "updated_at": "2026-11-09T16:59:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\nFiled the stale-dist ensureArcDest gap as #6142. Relaunching Round-1 critic on reconstituted arc-6136 (same id ceiling 6745676213).\n\nprevention-issue: https://github.com/deftai/directive/issues/6142\nid-ceiling: 6745676213\nSHA at dispatch: 164fe7adc7a37e33c64bf1de0088fbbbccc8f886\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6746202465,
+          "html_url": "https://github.com/deftai/directive/issues/6136#issuecomment-6746202465",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:02:42Z",
+          "updated_at": "2026-11-09T17:02:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\nRound-1 critic pid 66728 exited mid pin-read with no critic comment. Relaunching on reconstituted arc-6136 with the same id ceiling.\n\nid-ceiling: 6745676213\nSHA at dispatch: 164fe7adc7a37e33c64bf1de0088fbbbccc8f886\nrelaunch: grok --cwd arc-6136 --prompt-file (attempt 3)\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6746373976,
+          "html_url": "https://github.com/deftai/directive/issues/6136#issuecomment-6746373976",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:10:21Z",
+          "updated_at": "2026-11-09T17:10:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## Plain-language summary\nOutside UAT, agents can still plant the kill-switch with Write/Edit or Shell because the self-serve ban is UAT-gated and Shell can skip out-of-tree dests before a basename check. Prefer-A is an always-on deny for those plants without a human-origin grant, with Shell basename ahead of the in-repo skip.\n\n## Findings\n\n### blocks-the-design: UAT-only settings classification leaves non-UAT Shell plant open\n- Evidence: `hasKillSwitchShellWrite` feeds `classifyShellAuthzOps` as `settings` (classify.ts ~4638); docs `## Agent self-serve ban under UAT (#3186)` state the ban only under active UAT. Pin-read at 164fe7adc.\n- Failure mode: dogfood/no-UAT agent Shell `New-Item`/`Set-Content`/redirect to `.deft-directive-disable` is not that UAT settings deny.\n- Disposition: Prefer-A must make kill-switch plant deny always-on (grant-gated), not UAT-only.\n\n### blocks-the-design: Shell write reissue skips out-of-tree before basename\n- Evidence: `decideShellWriteReissue` (`dispatcher.ts` ~2732–2744) continues when `!isInRepoShellWritePath(...)` before injecting dest into `inspectMutationGates`. Sequencing note 6745045821 names basename-ahead-of-`isInRepoShellWritePath` in `shell-write-targets.ts`.\n- Failure mode: out-of-tree / alias plant of kill-switch basename can skip the Write-path reissue gate.\n- Disposition: protected-basename check must run before the in-repo continue; keep general out-of-tree floor on #6138.\n\n### sharpens-framing: Write/Edit plant is the other half of P1\n- Evidence: issue Expected names host Write/Edit; kill-switch docs and Shell classify cover Shell under UAT; declarative Write path is separate from `hasKillSwitchShellWrite`.\n- Failure mode: fixing Shell alone leaves Edit/Write plant.\n- Disposition: Bound limb for Write/Edit basename deny without human-origin grant.\n\n### footnote: #6139 deny wording and #5836 dest recovery stay keep-outs\n- Adjacent classes; do not widen this Bound into general protected-target wording or SEC-WT install recovery.\n\n## Bound remedy\n- Always-on Write/Edit deny for `.deft-directive-disable` / `.no-deft-directive` without human-origin grant — relieves: P1\n- Shell protected-basename check before `isInRepoShellWritePath` skip in write reissue / shell-write-targets — relieves: P2\n- Docs: agent self-serve ban is always-on (grant-gated), not UAT-only — relieves: P3\n\nSpec-path: packages/core/src/hooks/dispatcher.ts + packages/core/src/hooks/shell-write-targets.ts + packages/core/src/authz/classify.ts + content/docs/deft-directive-disable.md\nKeep-outs: #6138, #6139, #5836\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6746941882,
+          "html_url": "https://github.com/deftai/directive/issues/6136#issuecomment-6746941882",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:34:21Z",
+          "updated_at": "2026-11-09T17:34:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\nLeaning Prefer-A Bound from the Round-1 critic (parent-posted after dest-rooted critic children exited mid-pass). Always-on kill-switch plant deny; Shell basename before in-repo skip; docs always-on. No ingest this turn.\n\nlean: Prefer-A\nbound-source: Round-1 critic (parent seat after child exit)\nSHA at lean: 164fe7adc7a37e33c64bf1de0088fbbbccc8f886\narc-mode: no-ingest\nyolo-standing: on\n\n## Bound remedy (leaned)\n1. Always-on Write/Edit deny for `.deft-directive-disable` / `.no-deft-directive` without human-origin grant — relieves: P1\n2. Shell protected-basename check before `isInRepoShellWritePath` skip — relieves: P2\n3. Docs: agent self-serve ban always-on (grant-gated), not UAT-only — relieves: P3\n\nKeep-outs: #6138 general protected class / out-of-tree floor; #6139 deny wording; #5836 dest recovery install.\n\ndual-stop: N=1 Round-1 complete; successor lean posted. Next under YOLO: pain-audit / bind path (still no-ingest) unless dual-stop raises.\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6746942353,
+          "html_url": "https://github.com/deftai/directive/issues/6136#issuecomment-6746942353",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:34:22Z",
+          "updated_at": "2026-11-09T17:34:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\nPain-audit of Prefer-A Bound lean 6746942353. Each Stop 1 pain has a Bound limb. No dual-stop raise.\n\npain-audit: after Prefer-A\nsuccessor lean: 6746942353\nSHA: 164fe7adc7a37e33c64bf1de0088fbbbccc8f886\n\n| Pain | Bound limb | Coverage |\n|---|---|---|\n| P1 Write/Edit plant outside UAT | Always-on Write/Edit deny without human-origin grant | covered |\n| P2 Shell plant / basename before in-repo skip | Shell protected-basename before `isInRepoShellWritePath` skip | covered |\n| P3 Docs UAT-only wording | Docs always-on grant-gated ban | covered |\n\ndual-stop-raise: none\nmaterial-findings: none beyond Bound\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6746977783,
+          "html_url": "https://github.com/deftai/directive/issues/6136#issuecomment-6746977783",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:35:56Z",
+          "updated_at": "2026-11-09T17:35:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\nBinding Prefer-A Bound for #6136 after pain-audit. Always-on kill-switch plant deny; Shell basename-first; docs always-on. No ingest in this arc.\n\ndesign-critique: synthesis accepted, because Prefer-A Bound lean 6746942353 covers P1–P3 with keep-outs #6138/#6139/#5836; pain-audit found no dual-stop raise.\nsuccessor lean: 6746942353\narc-mode: no-ingest\nbind: Prefer-A Bound\nSHA: 164fe7adc7a37e33c64bf1de0088fbbbccc8f886\n\n## Bound (bound)\n1. Always-on Write/Edit deny for `.deft-directive-disable` / `.no-deft-directive` without human-origin grant — relieves: P1\n2. Shell protected-basename check before `isInRepoShellWritePath` skip — relieves: P2\n3. Docs: agent self-serve ban always-on (grant-gated), not UAT-only — relieves: P3\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6746978308,
+          "html_url": "https://github.com/deftai/directive/issues/6136#issuecomment-6746978308",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:35:57Z",
+          "updated_at": "2026-11-09T17:35:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\nPrefer-A Bound for always-on kill-switch plant deny. Corrected successor-lean token (`Lean:`) after prior lowercase miss.\n\nLean: Prefer-A Bound — always-on Write/Edit/Shell kill-switch plant deny without human-origin grant; Shell basename before in-repo skip; docs always-on.\n\n## Bound remedy\n1. Always-on Write/Edit deny for `.deft-directive-disable` / `.no-deft-directive` without human-origin grant — relieves: P1\n2. Shell protected-basename check before `isInRepoShellWritePath` skip — relieves: P2\n3. Docs: agent self-serve ban always-on (grant-gated), not UAT-only — relieves: P3\n\nKeep-outs: #6138, #6139, #5836\nSHA: 164fe7adc7a37e33c64bf1de0088fbbbccc8f886\narc-mode: no-ingest\nSupersedes comment 6746942353\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747019808,
+          "html_url": "https://github.com/deftai/directive/issues/6136#issuecomment-6747019808",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:37:49Z",
+          "updated_at": "2026-11-09T17:37:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\nPain-audit of corrected Prefer-A Bound successor lean 6747019808. P1–P3 covered. No dual-stop raise.\n\npain-audit: after Prefer-A\nsuccessor lean: 6747019808\ndual-stop-raise: none\n\n| Pain | Coverage |\n|---|---|\n| P1 | Bound limb 1 |\n| P2 | Bound limb 2 |\n| P3 | Bound limb 3 |\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747020929,
+          "html_url": "https://github.com/deftai/directive/issues/6136#issuecomment-6747020929",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:37:52Z",
+          "updated_at": "2026-11-09T17:37:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\nSynthesis accepts Prefer-A Bound. No ingest.\n\ndesign-critique: synthesis accepted, because Prefer-A Bound covers P1–P3 with keep-outs #6138/#6139/#5836; pain-audit raised nothing.\nsuccessor lean: 6747019808\narc-mode: no-ingest\nbind: Prefer-A Bound\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747022044,
+          "html_url": "https://github.com/deftai/directive/issues/6136#issuecomment-6747022044",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:37:55Z",
+          "updated_at": "2026-11-09T17:37:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\n## Plain-language summary\nPain-audit of successor lean 6747019808. Bound limbs cover P1–P3. No blocking or sharpening findings. No harvest change.\n\nsuccessor lean: 6747019808\n\n| Pain | Verdict |\n|---|---|\n| P1 | relieved by Bound limb 1 (always-on Write/Edit deny) |\n| P2 | relieved by Bound limb 2 (basename before in-repo skip) |\n| P3 | relieved by Bound limb 3 (docs always-on) |\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747033463,
+          "html_url": "https://github.com/deftai/directive/issues/6136#issuecomment-6747033463",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:38:24Z",
+          "updated_at": "2026-11-09T17:38:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Plain-language summary\nSynthesis accepts Prefer-A Bound after critic pain-audit clear. No ingest.\n\ndesign-critique: synthesis accepted, because Prefer-A Bound covers P1–P3; critic pain-audit finding-classes none harvest-changed false.\nsuccessor lean: 6747019808\narc-mode: no-ingest\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747034512,
+          "html_url": "https://github.com/deftai/directive/issues/6136#issuecomment-6747034512",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:38:27Z",
+          "updated_at": "2026-11-09T17:38:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## In plain English\nAgents can plant the kill-switch when UAT is off. Prefer-A makes that plant always denied unless a human grant covers it, and Shell checks the basename before skipping out-of-tree dests. Docs will say the ban is always-on.\n\nLean: Prefer-A Bound — always-on kill-switch plant deny; Shell basename-first; docs always-on.\n\n## Bound remedy\n1. Always-on Write/Edit deny for `.deft-directive-disable` / `.no-deft-directive` without human-origin grant — relieves: P1\n2. Shell protected-basename check before `isInRepoShellWritePath` skip — relieves: P2\n3. Docs: agent self-serve ban always-on (grant-gated), not UAT-only — relieves: P3\n\nKeep-outs: #6138, #6139, #5836\nSHA: 164fe7adc7a37e33c64bf1de0088fbbbccc8f886\narc-mode: no-ingest\nSupersedes comment 6747019808\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747053756,
+          "html_url": "https://github.com/deftai/directive/issues/6136#issuecomment-6747053756",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:39:19Z",
+          "updated_at": "2026-11-09T17:39:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\n## In plain English\nPain-audit of successor lean 6747053756. Bound covers P1–P3. No adverse findings.\n\nsuccessor lean: 6747053756\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747054728,
+          "html_url": "https://github.com/deftai/directive/issues/6136#issuecomment-6747054728",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:39:22Z",
+          "updated_at": "2026-11-09T17:39:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## In plain English\nSynthesis accepts Prefer-A Bound. Kill-switch plant becomes always-on deny. No ingest this arc.\n\ndesign-critique: synthesis accepted, because Prefer-A Bound covers P1–P3; critic pain-audit finding-classes none harvest-changed false.\nsuccessor lean: 6747053756\narc-mode: no-ingest\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747055653,
+          "html_url": "https://github.com/deftai/directive/issues/6136#issuecomment-6747055653",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:39:24Z",
+          "updated_at": "2026-11-09T17:39:24Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6288274715,
+        "origin": "deftai/directive#6136",
+        "id": "github.issue.6288274715"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "hooks-authz-always-on-kill-switch-plant-deny",
+        "expected_outputs": [
+          "always-on Write/Edit deny for kill-switch basenames without human-origin grant",
+          "Shell protected-basename check before isInRepoShellWritePath skip",
+          "docs agent self-serve ban always-on grant-gated",
+          "CHANGELOG Unreleased Fixed/Security Refs #6136"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/authz/classify.test.ts packages/core/src/hooks/shell-write-targets.test.ts packages/core/src/hooks/dispatcher.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/authz/classify.ts",
+          "packages/core/src/authz/classify.test.ts",
+          "packages/core/src/hooks/shell-write-targets.ts",
+          "packages/core/src/hooks/shell-write-targets.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/policy/deft-directive-disable.ts",
+          "content/docs/deft-directive-disable.md",
+          "content/contracts/path-write-fence.md",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#6136",
+          "Prefer-A Bound 6747053756"
+        ],
+        "parallel_safe": true,
+        "acceptance_criteria_justification": "Prefer-A Bound ships one acceptance item per locked limb; clause count follows the Bound comment."
+      }
+    },
+    "id": "github.issue.6288274715",
+    "updated": "2026-11-09T20:19:52.216Z"
+  }
+}
