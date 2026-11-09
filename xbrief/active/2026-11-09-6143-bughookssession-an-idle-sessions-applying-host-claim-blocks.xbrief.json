@@ -1,0 +1,311 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6143",
+    "updated": "2026-11-09T19:38:06Z"
+  },
+  "plan": {
+    "title": "bug(hooks,session): an idle session's applying-host claim blocks other-provider lifecycle commands with no lease behind it, and the deny names the wrong id",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(hooks,session): an idle session's applying-host claim blocks other-provider lifecycle commands with no lease behind it, and the deny names the wrong id",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6143",
+      "Overview": "## Summary\n\nAn idle or read-only session claims `.deft/applying-host.json` just by starting or resuming, with no occupancy lease and no mutation intent. From then on, every bare lifecycle command from a different host provider in the same checkout is denied, and the deny text tells that caller to re-run with the recorded owner's session id, which is the cross-owner republish #6101 forbids. Nothing ever clears the record except an overwrite or the 8h stale window. Observed 2026-11-09 on this repo's primary: a Claude session resumed after compaction, published a claim at 16:13Z, did GitHub-only work, and a Grok session working the same checkout spent its PreToolUse budget on identity-conflict denies until the file was deleted by hand.\n\nThis is the no-lease case. #5913 is the dead-owner-with-live-lease case, #6101 is read-only overwrite of a live owner, #5917 is non-interactive primary claims. None of them covers a claim that is never backed by a lease.\n\n## Evidence\n\n1. `tryPublishApplyingHostFromSessionStart` (`packages/core/src/hooks/dispatcher.ts`) publishes on every SessionStart unless a foreign live lease exists. Resume after compaction counts. There is no intent check: a session that only reads or only talks to GitHub still claims.\n2. `evaluateApplyingHostLifecycleAdmission` (`packages/core/src/session/occupancy.ts`) returns `foreign-owner` for a bare command from another provider whenever the record is fresh, whether or not any lease exists. The message is \"Re-run with `--session-id=<applyingHostSessionId>`\", the recorded owner's id, not the caller's.\n3. No verb removes the record. `occupancy:release` and `session:end` leave it in place; grep finds no `rmSync` or `unlink` of `applyingHostPath`. Repair paths are republish-or-wait.\n4. The primary's `.deft/ritual-state.json` named a `host:grok` owner at the same time applying-host named `host:claude`. Two identity surfaces on one checkout disagreed and neither verb could reconcile them.\n5. The hook deny for the Grok session is returned quickly, so this produces deny volume rather than timeouts, but every deny is a wasted PreToolUse round and the recovery it names is the wrong one.\n\n## Expected\n\n- A fresh applying-host record with no occupancy lease behind it is advisory, not binding. A bare lifecycle command from another provider should take the record over (republish in its own name) when no live lease exists, instead of being denied.\n- The record is cleared by `session:end` and by `occupancy:release` when the caller owns it, and there is a supported `applying-host:release` (or `session:release-stale` from #5913) for the owner to drop a claim without a hand edit.\n- The deny text names the caller's own canonical id and the takeover or wait path, never the recorded owner's id. This is the same hint fix #5913 asks for.\n- SessionStart publish is reinforcement when a lease exists and a soft claim otherwise; a read-only session's SessionStart should not win over a different provider's existing fresh record on the same checkout.\n\n## Related\n\n- #5913 dead owner holds claim for the TTL; wrong repair hint\n- #6101 read-only recovery overwrote live owner (closed)\n- #5917 non-interactive primary claim\n- #5676 origin of applying-host\n- #3742 tracker (delivery and reporting rows)\n\n## Acceptance\n\n1. Two genuine host sessions A (Claude) and B (Grok) on one checkout. A resumes with no lease and no mutation. B runs a bare `session:start`: B's claim replaces A's and B is not denied.\n2. Same setup but A holds a live lease: B is denied, and the message names B's own id and the wait or release path, not A's id.\n3. `session:end` and `occupancy:release` by the owner remove `.deft/applying-host.json`.\n4. A test enumerates applying-host deny messages and fails if any one prints a session id other than the caller's.\n\nFiled for @MScottAdams\n\n",
+      "Labels": "bug, agent-experience, harness, design-critique:ingest-ready",
+      "UserStory": "As a multi-host operator, I want idle no-lease applying-host claims not to block other providers, and deny text to name my caller id.",
+      "ImplementationPlan": "Make no-lease applying-host advisory with takeover; fix deny text; clear on end/release; soften SessionStart without lease."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "No-lease fresh applying-host is advisory so other-provider bare lifecycle can republish",
+        "status": "pending"
+      },
+      {
+        "id": "clause.2",
+        "title": "Foreign-owner deny names the caller canonical id and takeover or wait path",
+        "status": "pending"
+      },
+      {
+        "id": "clause.3",
+        "title": "session end and occupancy release clear applying-host with supported applying-host release",
+        "status": "pending"
+      },
+      {
+        "id": "clause.4",
+        "title": "SessionStart soft claim without lease; read-only SessionStart must not displace a different-provider fresh record",
+        "status": "pending"
+      },
+      {
+        "id": "clause.5",
+        "title": "CHANGELOG Unreleased Fixed note Refs 6143 never Closes",
+        "status": "pending"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "harness",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6143",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6143: bug(hooks,session): an idle session's applying-host claim blocks other-provider lifecycle commands with no lease behind it, and the deny names the wrong id"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5913",
+        "type": "x-xbrief/closes",
+        "title": "Issue #5913"
+      }
+    ],
+    "acceptance": {
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "No-lease fresh applying-host is advisory so other-provider bare lifecycle can republish",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Foreign-owner deny names the caller canonical id and takeover or wait path",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "session end and occupancy release clear applying-host with supported applying-host release",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "SessionStart soft claim without lease; read-only SessionStart must not displace a different-provider fresh record",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "CHANGELOG Unreleased Fixed note Refs 6143 never Closes",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "commands": [],
+      "derived_reason": "derived 5 Prefer-A Bound limbs from comment 6747179883 before product edit (#4374/#3323)",
+      "source_rung": "derived",
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/core/src/hooks/dispatcher.ts",
+        "cohesion_exemption": "CHANGELOG Unreleased + Bound product paths for thin activation write fence"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok\n```quarantined\nrole: triage\n```\n\n## In plain English\nAn idle session can claim applying-host with no lease. Other providers then get denied and told to use the wrong session id. This arc designs lease-backed claims, clear release, and deny text that names the caller.\n\ndesign-critique: warranted, because the bug asserts a fail-closed applying-host gap with a named Prefer-A shape (no-lease claim advisory/takeover; clear on end/release; deny names caller id), distinct from #5913/#6101/#5917.\n\nmechanism-shaped: true\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: Expected Prefer-A already names takeover / clear / deny-hint limbs; solution space closed; panel permission not used.\ncharter: open critique\nrefutation-target: A fresh applying-host record with no occupancy lease is binding against other providers, and the lawful recovery is to re-run with the recorded owner's session-id.\npain: P1, P2, P3, P4\n- P1: No-lease fresh applying-host still returns foreign-owner for bare other-provider lifecycle\n- P2: Deny text names the recorded owner's id (cross-owner republish #6101 forbids)\n- P3: No verb clears applying-host (session:end / occupancy:release leave it; no applying-host:release)\n- P4: SessionStart / read-only start publishes a claim with no lease and no mutation intent\ndual-stop-reserved: 1\nverification-path: pin-read git show 50115917c7afb7485a1780cfef3a831de62d7270:\nSHA at dispatch: 50115917c7afb7485a1780cfef3a831de62d7270\ntarget-kind: issue\ntarget: https://github.com/deftai/directive/issues/6143\nceiling-kind: comment-id\nid-ceiling: pending-after-this-post\ndest: .deft-scratch/worktrees/arc-6143\npinKind: origin-default\n\n## Gate notes\n- Keep-outs: #5913 dead-owner-with-live-lease; closed #6101 live-owner overwrite; #5917 non-interactive primary; #5676 origin.\n- Dogfood: this Grok session republished via dest read-only start after Claude compact claim on primary (same class as Evidence 1–5).\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747173026,
+          "html_url": "https://github.com/deftai/directive/issues/6143#issuecomment-6747173026",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:44:42Z",
+          "updated_at": "2026-11-09T17:44:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\nPin-read confirms SessionStart always publishes and foreign-owner fires without requiring a live lease, while deny text names the owner's id. Prefer-A matches the issue Expected: advisory no-lease takeover, clear on end/release, caller-named deny.\n\n## Findings\n\n### blocks-the-design: foreign-owner does not require a live lease\n- Evidence: `evaluateApplyingHostLifecycleAdmission` (occupancy.ts ~697+) returns `foreign-owner` when deposit host ≠ record.provider and named ≠ applyingHostSessionId, with no `liveOccupant` null check before that deny. Pin `50115917c7afb7485a1780cfef3a831de62d7270`.\n- Failure mode: idle Claude claim blocks bare Grok lifecycle with no lease behind it.\n- Disposition: Prefer-A — no-lease fresh record is advisory; other provider bare lifecycle republishes.\n\n### blocks-the-design: deny names owner's id\n- Evidence: foreign-owner message `Re-run with --session-id=` (same function). That is the cross-owner republish #6101 forbids.\n- Failure mode: recovery hint tells B to impersonate A.\n- Disposition: Prefer-A — deny names caller's canonical id and takeover/wait path.\n\n### blocks-the-design: no clear path\n- Evidence: issue Evidence 3; `publishApplyingHost` writes/replaces; SessionStart `tryPublishApplyingHostFromSessionStart` publishes; grep shows no owner clear of applying-host on session:end / occupancy:release.\n- Failure mode: hand-delete or 8h stale only.\n- Disposition: Prefer-A — clear on session:end / occupancy:release; supported applying-host:release.\n\n### sharpens-framing: SessionStart publish has no intent/lease gate\n- Evidence: `tryPublishApplyingHostFromSessionStart` publishes unless foreign live lease (dispatcher); compact resume counts.\n- Disposition: Bound limb P4 — soft claim without lease; RO SessionStart must not win over different provider's fresh record.\n\n### footnote: keep-outs\n- #5913 live-lease dead owner; #6101 closed; #5917; #5676.\n\n## Bound remedy\n- No-lease fresh applying-host is advisory; other-provider bare lifecycle takes over (republish) — relieves: P1\n- Deny names caller's canonical id and takeover/wait path, never owner's id — relieves: P2\n- `session:end` / `occupancy:release` clear applying-host; supported `applying-host:release` — relieves: P3\n- SessionStart soft claim without lease; RO SessionStart must not displace different-provider fresh record — relieves: P4\n\nSpec-path: packages/core/src/session/occupancy.ts + packages/core/src/hooks/dispatcher.ts\nKeep-outs: #5913, #6101, #5917, #5676\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747179323,
+          "html_url": "https://github.com/deftai/directive/issues/6143#issuecomment-6747179323",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:44:59Z",
+          "updated_at": "2026-11-09T17:44:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## In plain English\nPrefer-A Bound: idle applying-host without a lease must not block other providers; deny text must name the caller; end/release must clear the claim.\n\nLean: Prefer-A Bound — no-lease takeover; caller-named deny; clear on end/release; soft SessionStart without lease.\n\n## Bound remedy\n1. No-lease fresh applying-host is advisory; other-provider bare lifecycle takes over (republish) — relieves: P1\n2. Deny names caller's canonical id and takeover/wait path, never owner's id — relieves: P2\n3. `session:end` / `occupancy:release` clear applying-host; supported `applying-host:release` — relieves: P3\n4. SessionStart soft claim without lease; RO SessionStart must not displace different-provider fresh record — relieves: P4\n\nKeep-outs: #5913, #6101, #5917, #5676\nSHA at lean: 50115917c7afb7485a1780cfef3a831de62d7270\narc-mode: no-ingest\nyolo-standing: on\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747179883,
+          "html_url": "https://github.com/deftai/directive/issues/6143#issuecomment-6747179883",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:45:01Z",
+          "updated_at": "2026-11-09T17:45:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nfinding-classes: none\nharvest-changed: false\n\n## In plain English\nPain-audit of successor lean 6747179883. Bound limbs cover P1–P4. No adverse findings.\n\nsuccessor lean: 6747179883\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747180315,
+          "html_url": "https://github.com/deftai/directive/issues/6143#issuecomment-6747180315",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:45:02Z",
+          "updated_at": "2026-11-09T17:45:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## In plain English\nSynthesis accepts Prefer-A Bound. No-lease applying-host becomes advisory with clear release and caller-named denies. No ingest this arc.\n\ndesign-critique: synthesis accepted, because Prefer-A Bound covers P1–P4; critic pain-audit finding-classes none harvest-changed false.\nsuccessor lean: 6747179883\narc-mode: no-ingest\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6747180795,
+          "html_url": "https://github.com/deftai/directive/issues/6143#issuecomment-6747180795",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-09T17:45:03Z",
+          "updated_at": "2026-11-09T17:45:03Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6291209959,
+        "origin": "deftai/directive#6143",
+        "id": "github.issue.6291209959"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "hooks-session-no-lease-applying-host-takeover",
+        "expected_outputs": [
+          "no-lease applying-host advisory with other-provider takeover",
+          "deny names caller canonical id not owner id",
+          "session end and occupancy release clear applying-host",
+          "SessionStart soft claim without lease; RO must not displace different-provider record",
+          "CHANGELOG Unreleased Fixed Refs #6143"
+        ],
+        "depends_on": [
+          "github.issue.6288274715"
+        ],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/hooks/dispatcher.test.ts packages/core/src/session/occupancy.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "CHANGELOG.md"
+        ],
+        "size": "M",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#6143",
+          "Prefer-A Bound 6747179883"
+        ],
+        "parallel_safe": false
+      }
+    },
+    "id": "github.issue.6291209959",
+    "updated": "2026-11-09T19:38:06Z"
+  }
+}
