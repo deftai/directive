@@ -264,7 +264,7 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("git status")).toEqual([]);
   });
 
-  it("classifies direct Write of kill-switch basenames as settings (#6136)", () => {
+  it("keeps kill-switch Write/Edit as edit so protected-store realpath runs (#6136)", () => {
     const kill = "." + ["deft", "directive", "disable"].join("-");
     const opt = "." + ["no", "deft", "directive"].join("-");
     expect(
@@ -274,7 +274,7 @@ describe("classifyShellAuthzOps (#2944)", () => {
         isDirectWrite: true,
         writePath: kill,
       }),
-    ).toEqual(["settings"]);
+    ).toEqual(["edit"]);
     expect(
       classifyHookAuthzOps({
         toolName: "Edit",
@@ -282,7 +282,7 @@ describe("classifyShellAuthzOps (#2944)", () => {
         isDirectWrite: true,
         writePath: "C:/tmp/" + opt,
       }),
-    ).toEqual(["settings"]);
+    ).toEqual(["edit"]);
     expect(
       classifyHookAuthzOps({
         toolName: "Write",
