@@ -1,0 +1,82 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8"
+  },
+  "plan": {
+    "id": "ovpr-w1-5997",
+    "title": "Fix Windows deft-hook bin wiring and move ps1 cleanup to the launcher",
+    "status": "running",
+    "updated": "2026-11-09T19:15:31Z",
+    "tags": [
+      "ovpr",
+      "wave1",
+      "swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5997",
+        "type": "x-xbrief/github-issue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5998",
+        "type": "x-xbrief/github-issue"
+      }
+    ],
+    "narratives": {
+      "Description": "Global deft-hook still points at a POSIX /bin/sh shim, so Windows cmd/pwsh cannot run the registered hook and doctor reports spawn-failed. Separately, runtime postinstall still owns #4654 ps1 cleanup with a stale bin list, which breaks pnpm strict-dep-builds.",
+      "ImplementationPlan": "1. Point packages/cli package.json bin.deft-hook at a Node/dist entry (and packages/cli/bin/deft-hook[.cmd] as needed) so Windows cmd/pwsh starts Node rather than a POSIX /bin/sh shim, and align doctor live-probe with the registered host command.\n2. Move Windows .ps1 shim cleanup into the launcher postinstall with correct PACKAGE_BIN_NAMES in packages/runtime/src/windows-bin-ps1.ts, no-op or remove the runtime postinstall owner, and extend windows-bin-ps1.test.ts fixtures to assert cleanup and that pnpm strict-dep-builds no longer fail.",
+      "UserStory": "As a Windows OVPR consumer, I want deft-hook and doctor probe to work from cmd/pwsh after install, so that hooks activate without spawn-failed noise.",
+      "Traces": "#5997"
+    },
+    "items": [
+      {
+        "id": "5998-a1",
+        "title": "Windows-capable deft-hook bin",
+        "status": "pending",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given a Windows-like bin install of @deftai/directive, when deft-hook is invoked via the registered bin entry, then it starts Node rather than a POSIX /bin/sh shim.",
+          "Traces": "#5998"
+        }
+      },
+      {
+        "id": "5997-a1",
+        "title": "Launcher-owned ps1 cleanup",
+        "status": "pending",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given launcher postinstall runs with the correct PACKAGE_BIN_NAMES, when runtime is installed under pnpm strict-dep-builds, then runtime postinstall does not fail the install and stale .ps1 shims for Directive bins are cleaned from the launcher path.",
+          "Traces": "#5997"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "allocation_plan_id": "ovpr-stable-wave1-2026-11-09",
+      "dispatch_kind": "swarm-cohort",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/cli/package.json",
+          "packages/cli/bin/deft-hook",
+          "packages/cli/bin/deft-hook.cmd",
+          "packages/runtime/package.json",
+          "packages/runtime/src/windows-bin-ps1.ts",
+          "packages/runtime/src/windows-bin-ps1.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/runtime/src/windows-bin-ps1.test.ts"
+        ],
+        "expected_outputs": [
+          "windows-bin-ps1 tests pass; bin/package.json wiring reviewed for Windows entry"
+        ],
+        "depends_on": [],
+        "conflict_group": "ovpr-w1-5997-windows-bin",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
+    }
+  }
+}

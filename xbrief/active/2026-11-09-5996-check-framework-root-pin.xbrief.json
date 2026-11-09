@@ -1,0 +1,74 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8"
+  },
+  "plan": {
+    "id": "ovpr-w1-5996",
+    "title": "Let deft check resolve the OVPR pin package root under node_modules",
+    "status": "running",
+    "updated": "2026-11-09T19:15:31Z",
+    "tags": [
+      "ovpr",
+      "wave1",
+      "swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5996",
+        "type": "x-xbrief/github-issue"
+      }
+    ],
+    "narratives": {
+      "Description": "resolveCheckFrameworkRoot never considers node_modules/@deftai/directive-runtime. On a clean OVPR checkout without .deft/core, deft check fails closed with FRAMEWORK_ROOT_MISS even when the pin package is installed.",
+      "ImplementationPlan": "1. Extend packages/runtime/src/check.ts resolveCheckFrameworkRoot to accept the installed pin package root when it looks like a runtime package, keeping existing .deft/core, source, and DEFT_ROOT candidates.\n2. Update packages/runtime/src/check.test.ts and FRAMEWORK_ROOT_MISS guidance so OVPR pin-root success is covered and messaging no longer teaches only directive init.",
+      "UserStory": "As an OVPR consumer, I want deft check to find the pinned runtime under node_modules, so that ordinary check works after a normal package-manager install.",
+      "Traces": "#5996"
+    },
+    "items": [
+      {
+        "id": "5996-a1",
+        "title": "Pin package root candidate",
+        "status": "pending",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given node_modules/@deftai/directive-runtime is installed and looks like a runtime package root, when resolveCheckFrameworkRoot runs, then it returns that path.",
+          "Traces": "#5996"
+        }
+      },
+      {
+        "id": "5996-a2",
+        "title": "Keep legacy candidates and miss guidance",
+        "status": "pending",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given no pin package root and no .deft/core or source root, when check resolves framework root, then it still fails closed and FRAMEWORK_ROOT_MISS does not teach only directive init as the recovery.",
+          "Traces": "#5996"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "allocation_plan_id": "ovpr-stable-wave1-2026-11-09",
+      "dispatch_kind": "swarm-cohort",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/runtime/src/check.ts",
+          "packages/runtime/src/check.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/runtime/src/check.test.ts"
+        ],
+        "expected_outputs": [
+          "check.test.ts passes for pin-root resolution and updated miss guidance"
+        ],
+        "depends_on": [],
+        "conflict_group": "ovpr-w1-5996-check",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
+    }
+  }
+}

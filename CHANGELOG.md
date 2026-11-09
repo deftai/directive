@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 7 maintainer local checkout closeout via `task release:local-update -- <version> --checkout <primary>` after a release (fail-closed; no global npm i -g). Refs #5953.
 
 ### Changed
+- Activate OVPR Wave 1 stable-state running xBRIEFs for #5916 (npm12 registry array unwrap), #5996 (check pin-root), #6013/#5893 (pin-mismatch recovery guidance), #5997/#5998 (Windows deft-hook/ps1), and #5995 (Windows autocrlf ownership) so swarm:launch can bind merge-base file_scope.
 - Activate Prefer-A Bound running xBRIEFs for #6021 (pnpm packageManager security pin), #5983 (Grok human-presence mint markers), #5953 (release Phase 7 maintainer local checkout update), and #6122 (operator-disable eligibility lock) so product implement can proceed under the write fence.
 
 - Keep read-only session recovery from overwriting a live owner's applying-host identity, and report deferred publish honestly in CLI text/JSON (#6101).
