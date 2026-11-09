@@ -30,6 +30,7 @@
   },
   "dependencies": {},
   "scripts": {
-    "build": "tsc -b && node ./scripts/bundle.mjs"
+    "build": "tsc -b && node ./scripts/bundle.mjs",
+    "postinstall": "node ./bin/deft-hook --remove-windows-ps1-shims"
   }
 }

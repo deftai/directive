@@ -1,25 +1,19 @@
 /**
  * npm's Windows bin linker (cmd-shim) always writes a .ps1 beside the .cmd.
  * PowerShell selects that .ps1 and stops when script execution is refused, so
- * the bare name never reaches the .cmd. This runs from postinstall, after
+ * the bare name never reaches the .cmd. Launcher postinstall runs this after
  * that link, and removes only this package's generated .ps1 files.
  * A .ps1 is removed only when its sibling .cmd records a target inside this
  * install, so an ambient PNPM_HOME from another install is left alone.
  * It does not change npx.ps1, npm.ps1, or the operator's execution policy.
- * Codex deposits bare deft-hook (#4659); this postinstall is what makes Restricted
- * Get-Command select deft-hook.cmd without ExecutionPolicy Bypass.
+ * Codex deposits bare deft-hook (#4659). Launcher postinstall (#5997) runs this
+ * cleanup so Restricted Get-Command selects deft-hook.cmd without Bypass.
  */
 import { existsSync, readFileSync, realpathSync, unlinkSync } from "node:fs";
 import { basename, dirname, join, win32 } from "node:path";
 
-/** Fallback when package.json cannot be read. Keep aligned with the bin map. */
-export const PACKAGE_BIN_NAMES = [
-  "directive",
-  "deft",
-  "deft-ts",
-  "deft-hook",
-  "deft-verify-encoding",
-] as const;
+/** Fallback when package.json cannot be read. Keep aligned with launcher bin map (#5997). */
+export const PACKAGE_BIN_NAMES = ["directive", "deft", "deft-hook"] as const;
 
 /** Node owns these shims. This package must not delete them. */
 export const NODE_OWNED_SHIM_NAMES = ["npx", "npm"] as const;

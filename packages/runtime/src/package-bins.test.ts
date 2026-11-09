@@ -26,8 +26,9 @@ describe("OVPR published package bins", () => {
     expect(pkg.bin).toEqual({ "directive-runtime": "./dist/bin.js" });
     // Hosts call package-relative dist/hook-bin.js; not an npm bin.
     expect(pkg.bin["deft-hook"]).toBeUndefined();
-    expect(pkg.files).toContain("scripts/remove-windows-ps1-shims.mjs");
-    expect(pkg.scripts.postinstall).toBe("node ./scripts/remove-windows-ps1-shims.mjs");
+    // #5997: ps1 cleanup moved to launcher; runtime must not ship a build script.
+    expect(pkg.files).not.toContain("scripts/remove-windows-ps1-shims.mjs");
+    expect(pkg.scripts.postinstall).toBeUndefined();
   });
 
   it("launcher (@deftai/directive) maps directive/deft to dist/bin.js and deft-hook to PATH shim", () => {

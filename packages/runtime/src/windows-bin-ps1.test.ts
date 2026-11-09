@@ -4,13 +4,15 @@ import {
   lstatSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   symlinkSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   candidateBinDirs,
@@ -136,7 +138,7 @@ describe("windows bin .ps1 removal (#4654)", () => {
     ).toEqual([join("prefix", "node_modules", ".bin")]);
   });
 
-  it("removes the five generated .ps1 files and leaves npm, npx, and unpaired scripts", () => {
+  it("removes the launcher generated .ps1 files and leaves npm, npx, and unpaired scripts", () => {
     const binDir = tempDir();
     for (const name of PACKAGE_BIN_NAMES) writePair(binDir, name);
     writePair(binDir, "npm");
@@ -332,14 +334,45 @@ describe("windows bin .ps1 removal (#4654)", () => {
   });
 });
 
+describe("ps1 cleanup ownership (#5997)", () => {
+  it("runtime has no postinstall (pnpm strict-dep-builds)", () => {
+    const pkg = JSON.parse(
+      readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf8"),
+    ) as { scripts?: Record<string, string>; files?: string[]; bin?: Record<string, string> };
+    expect(pkg.scripts?.postinstall).toBeUndefined();
+    expect(pkg.files ?? []).not.toContain("scripts/remove-windows-ps1-shims.mjs");
+    expect(pkg.bin).toEqual({ "directive-runtime": "./dist/bin.js" });
+  });
+
+  it("launcher postinstall owns cleanup with Node deft-hook entry (#5997 / #5998)", () => {
+    const pkg = JSON.parse(
+      readFileSync(
+        join(dirname(fileURLToPath(import.meta.url)), "..", "..", "cli", "package.json"),
+        "utf8",
+      ),
+    ) as { scripts?: Record<string, string>; bin?: Record<string, string> };
+    expect(pkg.scripts?.postinstall).toBe("node ./bin/deft-hook --remove-windows-ps1-shims");
+    expect(pkg.bin).toEqual({
+      directive: "./dist/bin.js",
+      deft: "./dist/bin.js",
+      "deft-hook": "./bin/deft-hook",
+    });
+    const hook = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "..", "..", "cli", "bin", "deft-hook"),
+      "utf8",
+    );
+    expect(hook.startsWith("#!/usr/bin/env node")).toBe(true);
+    expect(hook).not.toMatch(/^#!\/bin\/sh/m);
+    expect(hook).toContain("--remove-windows-ps1-shims");
+  });
+});
+
 const itWin = it.skipIf(process.platform !== "win32");
 
 describe("windows Get-Command after install (#4654)", () => {
-  it("locks Codex deposit bare deft-hook to the #4654 package bin set (#4659)", () => {
+  it("locks Codex deposit bare deft-hook to the launcher bin set (#4659 / #5997)", () => {
     expect(PACKAGE_BIN_NAMES).toContain("deft-hook");
-    expect(PACKAGE_BIN_NAMES).toEqual(
-      expect.arrayContaining(["directive", "deft", "deft-ts", "deft-hook", "deft-verify-encoding"]),
-    );
+    expect([...PACKAGE_BIN_NAMES]).toEqual(["directive", "deft", "deft-hook"]);
   });
 
   itWin(
@@ -393,7 +426,7 @@ describe("windows Get-Command after install (#4654)", () => {
 
 function sourceCommand(): string {
   return [
-    "$names = @('directive','deft','deft-ts','deft-hook','deft-verify-encoding')",
+    "$names = @('directive','deft','deft-hook')",
     "foreach ($n in $names) {",
     "  $src = (Get-Command -Name $n).Source",
     "  Write-Output ('SRC|' + $n + '|' + $src)",
@@ -402,10 +435,9 @@ function sourceCommand(): string {
 }
 
 function runCommand(): string {
-  return [
-    "$names = @('directive','deft','deft-ts','deft-hook','deft-verify-encoding')",
-    "foreach ($n in $names) { & $n }",
-  ].join("\n");
+  return ["$names = @('directive','deft','deft-hook')", "foreach ($n in $names) { & $n }"].join(
+    "\n",
+  );
 }
 
 function lineSource(stdout: string, name: string): string {
