@@ -24,14 +24,14 @@
     ],
     "narratives": {
       "Description": "When package.json pin and installed node_modules disagree, hooks fail closed and print AC9.7 global install plus repair. Settled OVPR (#5798, AC9.12) says project package-manager install is the fix for that skew; repair is for deposits after the pin is installed.",
-      "ImplementationPlan": "1. Update install-health cheap/constants guidance and hook-dispatch printing so pin\u2260installed names project npm/pnpm install when only node_modules lags, and names repair only when deposits lag a good pin.\n2. Add focused tests proving the guidance cases and that ordinary shells stay fail-closed; do not revive #5956 allow-list mega-design.",
+      "ImplementationPlan": "1. Update install-health cheap/constants guidance and hook-dispatch printing so pin≠installed names project npm/pnpm install when only node_modules lags, and names repair only when deposits lag a good pin.\n2. Add focused tests proving the guidance cases and that ordinary shells stay fail-closed; do not revive #5956 allow-list mega-design.",
       "UserStory": "As an agent or human after a pin bump, I want the mismatch refusal to tell me to run a project package-manager install, so that I can sync node_modules without a useless global reinstall.",
       "Traces": "#6013"
     },
     "items": [
       {
         "id": "6013-a1",
-        "title": "Project PM install guidance on pin\u2260installed",
+        "title": "Project PM install guidance on pin≠installed",
         "status": "pending",
         "effort": "M",
         "narrative": {
@@ -76,7 +76,8 @@
         "size": "small",
         "file_scope_confidence": "high",
         "model_tier": "medium"
-      }
+      },
+      "productPullRequest": 6150
     }
   }
 }
