@@ -216,6 +216,39 @@ describe("ensureArcDest (#4296)", () => {
     expect(refused.message).toMatch(/stranger/);
   });
 
+  it("fails closed when guarded-prep leaves runtime pin missing (#6142)", () => {
+    const { root, dest } = repoWithOrigin();
+    const refused = ensureArcDest({
+      repoRoot: root,
+      destPath: dest,
+      prepare: () =>
+        ({
+          ok: true,
+          worktreePath: dest,
+          pm: null,
+          skippedInstall: true,
+          pinRel: "node_modules/@deftai/directive-runtime/dist/hook-bin.js",
+        }) as const,
+      runtimePinExists: () => false,
+    });
+    expect(refused.ok).toBe(false);
+    if (refused.ok) throw new Error("unreachable");
+    expect(refused.code).toBe("runtime-pin-missing");
+    expect(refused.message).toMatch(/runtime pin is still missing/);
+    expect(refused.message).toMatch(/design-critique:ensure-arc-dest/);
+  });
+
+  it("process-only-no-install does not require runtime pin (#6142)", () => {
+    const { root, dest } = repoWithOrigin();
+    const result = ensureArcDest({
+      installMode: "process-only-no-install",
+      repoRoot: root,
+      destPath: dest,
+      runtimePinExists: () => false,
+    });
+    expect(result.ok).toBe(true);
+  });
+
   it("resolveOriginDefaultTip never returns local HEAD when origin is behind", () => {
     const { root, originSha } = repoWithOrigin();
     writeFileSync(join(root, "LOCAL"), "stale\n", "utf8");

@@ -10,6 +10,9 @@ import { defaultGitRunner, type GitRunner, type GitRunResult } from "../session/
 import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import { liveOccupancyOnTree, occupancyAdmission, readOccupancy } from "../session/occupancy.js";
 import {
+  OUTER_VISIBLE_RUNTIME_PIN_REL,
+  outerVisibleRuntimePinExists,
+  type PrepareLinkedWorktreeResult,
   prepareLinkedWorktree,
   resolvePresenterSessionId,
   type WorktreePmRunner,
@@ -39,6 +42,13 @@ export interface EnsureArcDestInput {
   readonly installMode?: ArcDestInstallMode;
   readonly pmRunner?: WorktreePmRunner;
   readonly presenterSessionId?: string;
+  /** Test seam: override linked-worktree prep (#6142). */
+  readonly prepare?: (
+    worktreePath: string,
+    seams?: Parameters<typeof prepareLinkedWorktree>[1],
+  ) => PrepareLinkedWorktreeResult;
+  /** Test seam: override outer-visible runtime pin probe (#6142). */
+  readonly runtimePinExists?: (worktreePath: string) => boolean;
 }
 
 export interface EnsureArcDestResult {
@@ -184,13 +194,25 @@ function maybeGuardedPrep(
     // Deliberate verification-path pin-read mode — not Codex consumer handoff.
     return { ok: true };
   }
-  const prep = prepareLinkedWorktree(destPath, {
+  const prepare = input.prepare ?? prepareLinkedWorktree;
+  const prep = prepare(destPath, {
     repoRoot,
     runner: input.pmRunner,
     presenterSessionId: input.presenterSessionId,
   });
   if (!prep.ok) {
     return { ok: false, code: prep.code, message: prep.message };
+  }
+  // #6142: fail closed when guarded-prep was selected and runtime pin is still missing.
+  const pinExists = input.runtimePinExists ?? outerVisibleRuntimePinExists;
+  if (!pinExists(destPath)) {
+    return {
+      ok: false,
+      code: "runtime-pin-missing",
+      message:
+        `arc dest ${destPath} selected guarded-prep but runtime pin is still missing at ` +
+        `${OUTER_VISIBLE_RUNTIME_PIN_REL}; refuse success (use deft design-critique:ensure-arc-dest)`,
+    };
   }
   return { ok: true };
 }
