@@ -1,14 +1,251 @@
-#!/bin/sh
-# PATH shim for deft-hook (AC3.5). Sets DEFT_LAUNCHER_MODE and runs the single
-# dist/bin.js (D4.3). Resolve symlinks so npm's .bin/deft-hook link finds dist/.
-SOURCE=$0
-while [ -L "$SOURCE" ]; do
-  TARGET=$(readlink "$SOURCE")
-  case "$TARGET" in
-    /*) SOURCE=$TARGET ;;
-    *) SOURCE=$(dirname "$SOURCE")/$TARGET ;;
-  esac
-done
-DIR=$(CDPATH= cd -- "$(dirname "$SOURCE")" && pwd)
-export DEFT_LAUNCHER_MODE=hook
-exec node "$DIR/../dist/bin.js" "$@"
+#!/usr/bin/env node
+/**
+ * PATH entry for deft-hook (AC3.5 / #5998). Node shebang so npm's Windows
+ * cmd-shim starts Node, not /bin/sh. Sets DEFT_LAUNCHER_MODE and runs dist/bin.js.
+ *
+ * Also owns #4654 / #5997 Windows .ps1 shim cleanup via:
+ *   node ./bin/deft-hook --remove-windows-ps1-shims
+ * (launcher postinstall). Logic mirrors packages/runtime/src/windows-bin-ps1.ts.
+ */
+import { spawnSync } from "node:child_process";
+import {
+  existsSync,
+  readFileSync,
+  realpathSync,
+  unlinkSync,
+} from "node:fs";
+import { basename, dirname, join, win32 } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const REMOVE_FLAG = "--remove-windows-ps1-shims";
+
+const PACKAGE_BIN_NAMES = ["directive", "deft", "deft-hook"];
+const NODE_OWNED_SHIM_NAMES = ["npx", "npm"];
+
+const here = dirname(fileURLToPath(import.meta.url));
+const pkgDir = dirname(here);
+
+if (process.argv.includes(REMOVE_FLAG)) {
+  const result = removeInstalledWindowsPs1Shims({
+    pkgDir,
+    env: process.env,
+    platform: process.platform,
+  });
+  if (result.failed.length > 0) {
+    process.stderr.write(
+      `remove-windows-ps1-shims: could not remove ${result.failed.join(", ")}\n`,
+    );
+    process.exit(1);
+  }
+  process.exit(0);
+}
+
+process.env.DEFT_LAUNCHER_MODE = "hook";
+const binJs = join(pkgDir, "dist", "bin.js");
+if (!existsSync(binJs)) {
+  process.stderr.write(`deft-hook: missing ${binJs}\n`);
+  process.exit(1);
+}
+const args = process.argv.slice(2).filter((a) => a !== REMOVE_FLAG);
+const result = spawnSync(process.execPath, [binJs, ...args], {
+  cwd: process.cwd(),
+  env: process.env,
+  stdio: "inherit",
+});
+if (result.error) {
+  process.stderr.write(`deft-hook: failed to start: ${result.error.message}\n`);
+  process.exit(1);
+}
+if (result.status === null && result.signal) process.exit(130);
+process.exit(result.status ?? 1);
+
+function packageIsUnderNodeModules(dir) {
+  const parent = dirname(dir);
+  if (basename(parent) === "node_modules") return true;
+  return basename(dirname(parent)) === "node_modules";
+}
+
+function nodeModulesDir(dir) {
+  const scopeOrNm = dirname(dir);
+  if (basename(scopeOrNm) === "node_modules") return scopeOrNm;
+  return dirname(scopeOrNm);
+}
+
+function linkerBinDir(opts) {
+  const nm = nodeModulesDir(opts.pkgDir);
+  if (!opts.global) return join(nm, ".bin");
+  const prefix = dirname(nm);
+  if (opts.platform === "win32") return prefix;
+  return join(prefix, "bin");
+}
+
+function isGlobalInstall(env) {
+  return env.npm_config_global === "true";
+}
+
+function dirKey(dir, platform) {
+  const norm = dir.replace(/[\\/]+/g, "/");
+  if (platform === "win32") return norm.toLowerCase();
+  return norm;
+}
+
+function ancestorBinDirs(dir, stopDir, platform) {
+  const stop = dirKey(stopDir, platform);
+  const start = dirKey(dir, platform);
+  const stopPrefix = stop.endsWith("/") ? stop : `${stop}/`;
+  if (start !== stop && !start.startsWith(stopPrefix)) {
+    return [join(stopDir, "node_modules", ".bin")];
+  }
+  const out = [];
+  let cur = dir;
+  for (;;) {
+    out.push(join(cur, "node_modules", ".bin"));
+    if (dirKey(cur, platform) === stop) break;
+    const parent = dirname(cur);
+    if (parent === cur) break;
+    cur = parent;
+  }
+  return out;
+}
+
+function candidateBinDirs(opts) {
+  const global = isGlobalInstall(opts.env);
+  const dirs = [];
+  if (packageIsUnderNodeModules(opts.pkgDir)) {
+    dirs.push(linkerBinDir({ pkgDir: opts.pkgDir, global, platform: opts.platform }));
+  }
+  if (global) {
+    const prefix = opts.env.npm_config_prefix;
+    if (prefix !== undefined && prefix.length > 0) {
+      dirs.push(opts.platform === "win32" ? prefix : join(prefix, "bin"));
+    }
+    const pnpmHome = opts.env.PNPM_HOME;
+    if (pnpmHome !== undefined && pnpmHome.length > 0) dirs.push(pnpmHome);
+  } else {
+    const localPrefix = opts.env.npm_config_local_prefix;
+    if (localPrefix !== undefined && localPrefix.length > 0) {
+      dirs.push(...ancestorBinDirs(opts.pkgDir, localPrefix, opts.platform));
+    }
+  }
+  const seen = new Set();
+  const out = [];
+  for (const dir of dirs) {
+    const key = dirKey(dir, opts.platform);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(dir);
+  }
+  return out;
+}
+
+function isSafeBinName(name) {
+  if (name.length === 0) return false;
+  if (name.includes("/") || name.includes("\\") || name.includes("..")) return false;
+  return true;
+}
+
+function removeGeneratedPs1Shims(opts) {
+  if (opts.platform !== "win32") return { removed: [], failed: [] };
+  const protect = new Set(
+    (opts.protectedNames ?? NODE_OWNED_SHIM_NAMES).map((name) => name.toLowerCase()),
+  );
+  const removed = [];
+  const failed = [];
+  for (const name of opts.binNames) {
+    if (!isSafeBinName(name) || protect.has(name.toLowerCase())) continue;
+    const ps1 = join(opts.binDir, `${name}.ps1`);
+    const cmd = join(opts.binDir, `${name}.cmd`);
+    if (!existsSync(cmd) || !existsSync(ps1)) continue;
+    try {
+      unlinkSync(ps1);
+      removed.push(ps1);
+    } catch {
+      failed.push(ps1);
+    }
+  }
+  return { removed, failed };
+}
+
+function normalizedWinPath(p) {
+  const norm = win32.normalize(p).replace(/[\\/]+/g, "\\");
+  const trimmed = norm.length > 3 && norm.endsWith("\\") ? norm.slice(0, -1) : norm;
+  return trimmed.toLowerCase();
+}
+
+function pathIsInside(root, target) {
+  const rootKey = normalizedWinPath(root);
+  const targetKey = normalizedWinPath(target);
+  return targetKey === rootKey || targetKey.startsWith(`${rootKey}\\`);
+}
+
+function hostPath(p) {
+  return p.replace(/\\/g, "/");
+}
+
+function realpathIsInside(root, target) {
+  try {
+    return pathIsInside(realpathSync(hostPath(root)), realpathSync(hostPath(target)));
+  } catch {
+    return false;
+  }
+}
+
+function cmdShimTargetsPackage(cmdText, binDir, packageDir) {
+  const re = /%(?:dp0%|~dp0)(?:\\+|\/+)([^"\r\n\s]+)/gi;
+  for (const match of cmdText.matchAll(re)) {
+    const rel = match[1];
+    if (rel === undefined || rel.length === 0) continue;
+    const resolved = win32.normalize(win32.join(binDir, rel.replace(/\//g, "\\")));
+    if (pathIsInside(packageDir, resolved) || realpathIsInside(packageDir, resolved)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function cmdLinksCurrentInstall(binDir, name, packageDir) {
+  if (!isSafeBinName(name)) return false;
+  let text;
+  try {
+    text = readFileSync(join(binDir, `${name}.cmd`), "utf8");
+  } catch {
+    return false;
+  }
+  return cmdShimTargetsPackage(text, binDir, packageDir);
+}
+
+function readPackageBinNames(packageJsonText) {
+  let parsed;
+  try {
+    parsed = JSON.parse(packageJsonText);
+  } catch {
+    return [];
+  }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return [];
+  const bin = parsed.bin;
+  if (bin === null || typeof bin !== "object" || Array.isArray(bin)) return [];
+  return Object.keys(bin);
+}
+
+function removeInstalledWindowsPs1Shims(opts) {
+  if (opts.platform !== "win32") return { removed: [], failed: [] };
+  let names;
+  try {
+    names = readPackageBinNames(readFileSync(join(opts.pkgDir, "package.json"), "utf8"));
+  } catch {
+    names = PACKAGE_BIN_NAMES;
+  }
+  const removed = [];
+  const failed = [];
+  for (const binDir of candidateBinDirs(opts)) {
+    const linked = names.filter((name) => cmdLinksCurrentInstall(binDir, name, opts.pkgDir));
+    const result = removeGeneratedPs1Shims({
+      binDir,
+      binNames: linked,
+      platform: opts.platform,
+    });
+    removed.push(...result.removed);
+    failed.push(...result.failed);
+  }
+  return { removed, failed };
+}

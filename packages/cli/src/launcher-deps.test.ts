@@ -25,9 +25,9 @@ describe("launcher package collapse (AC3.1 / AC13.4)", () => {
     expect(
       pkg.devDependencies === undefined || Object.keys(pkg.devDependencies as object).length === 0,
     ).toBe(true);
-    // No install script (AC3.5)
+    // #5997: launcher owns Windows .ps1 cleanup postinstall; no preinstall.
     const scripts = (pkg.scripts ?? {}) as Record<string, string>;
-    expect(scripts.postinstall).toBeUndefined();
+    expect(scripts.postinstall).toBe("node ./bin/deft-hook --remove-windows-ps1-shims");
     expect(scripts.preinstall).toBeUndefined();
   });
 

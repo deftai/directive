@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Operator-disable (`.deft-directive-disable`) override is eligible only for a project-root non-symlink regular file after a successful untracked `git ls-files` listing; tracked, wrong-kind, and indeterminate Git/filesystem probes keep enforcement (or host fail-closed) and are never cached as untracked. Host outers use the same lstat + listing predicate. Refs #6034.
 
 ### Fixed
+- **Windows: deft-hook starts Node (not /bin/sh); launcher postinstall owns #4654 .ps1 cleanup (#5997 / #5998).** Runtime no longer ships a postinstall build script (pnpm strict-dep-builds). Tracking #5997. Related #5998.
 - When wait-mergeable hits a dirty xbrief/vbrief lifecycle tree (or a brief-less PR-head sibling while another SHA match has briefs), closeout fails once with a named reason and restorative remediation instead of polling until cap (#6128).
 - Record tracked completion for packageManager pnpm security pin raise (#6021).
 - Record tracked completion for Grok human-presence mint markers (#5983).
