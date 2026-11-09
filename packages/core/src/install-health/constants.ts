@@ -12,11 +12,21 @@ export const RUNTIME_PIN_PACKAGE = "@deftai/directive-runtime";
 export const RUNTIME_PACKAGE_PATH_PREFIX = "node_modules/@deftai/directive-runtime/";
 
 /**
- * Standard installation/wiring recovery guidance (AC9.7 / AC2.6).
- * Teach global launcher install, then repair of the existing exact pin.
+ * Standard installation/wiring recovery guidance (AC9.7).
+ * Global launcher install, then repair — for deposits/wiring after the pin
+ * packages already match. Not the pin≠installed project-skew message (#6013).
  */
 export const INSTALLATION_RECOVERY_GUIDANCE =
   "npm i -g @deftai/directive, then directive install --repair";
+
+/**
+ * Pin≠installed recovery when only project node_modules lags the pin (#6013 / #5893).
+ * Settled OVPR map (#5798 / AC9.12): project PM install first; do not lead with
+ * AC9.7 global+repair. Repair remains for deposits after packages match.
+ * Fail-closed still applies; this string does not open a #5956 allow-list.
+ */
+export const PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE =
+  "Run `npm install` or `pnpm install` in this project (use `--frozen-lockfile` when the lockfile already records the pin). Global `npm i -g @deftai/directive` / `directive install --repair` is not the fix when only node_modules lags the pin.";
 
 /**
  * Recovery when payload project root does not match launching checkout (SEC-WT / #6100).

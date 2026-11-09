@@ -315,6 +315,7 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   }
 
   // Wave 2k / AC9.4+AC14.8: pin≠installed → fail closed before policy.
+  // #6013/#5893: pin≠installed recovery names project PM install (not AC9.7).
   // #5910: overlay-present also fail-closes (even when versions match); recovery
   // names frozen-lockfile restore then overlay retirement.
   const cheap = (seams.cheapInSync ?? checkCheapInSync)(projectRoot);

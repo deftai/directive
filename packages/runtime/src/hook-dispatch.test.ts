@@ -1,3 +1,5 @@
+import { INSTALLATION_RECOVERY_GUIDANCE } from "@deftai/directive-core/dist/install-health/constants.js";
+import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-health/types.js";
 import {
   fixtureCaseById,
   fixtureCasesFor,
@@ -5,6 +7,7 @@ import {
   mergeHookDispatchEnviron,
 } from "@deftai/directive-core/hooks";
 import { describe, expect, it } from "vitest";
+import { PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE } from "../../core/src/install-health/constants.js";
 import { resolveCanonicalVerb } from "./dispatch.js";
 import {
   DEFAULT_STDIN_EMPTY_RETRY_MS,
@@ -707,5 +710,66 @@ describe("shared hooks fixture corpus (Phase B of #2950)", () => {
       permission: "deny",
       code: "stdin-empty",
     });
+  });
+});
+
+describe("hook-dispatch pin≠installed recovery (#6013 / #5893)", () => {
+  function cheapPinMismatch(): CheapInSyncResult {
+    return {
+      ok: false,
+      pinVersion: "0.129.1",
+      installedVersion: "0.127.0",
+      identityMatch: false,
+      readinessValid: false,
+      failClosed: true,
+      allowSetup: false,
+      recoveryGuidance: PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE,
+    };
+  }
+
+  it("denies ordinary shells with project PM guidance (not AC9.7 global+repair)", () => {
+    const out: string[] = [];
+    const code = run(["--host", "grok", "--event", "tool.before", "--project-root=/project"], {
+      readStdin: () =>
+        JSON.stringify({
+          tool_name: "run_terminal_command",
+          tool_input: { command: "echo hi" },
+        }),
+      writeOut: (t) => out.push(t),
+      writeErr: () => undefined,
+      cwd: () => "/project",
+      launchingCheckoutRoot: () => "/project",
+      cheapInSync: () => cheapPinMismatch(),
+    });
+    expect(code).toBe(0);
+    const wire = JSON.parse(out.join("")) as { decision?: string; reason?: string };
+    expect(wire.decision).toBe("deny");
+    const msg = wire.reason ?? "";
+    expect(msg).toContain("pin=0.129.1");
+    expect(msg).toContain("installed=0.127.0");
+    expect(msg).toContain(PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE);
+    expect(msg).toMatch(/npm install|pnpm install/);
+    expect(msg).not.toContain(INSTALLATION_RECOVERY_GUIDANCE);
+    expect(msg.startsWith("npm i -g")).toBe(false);
+  });
+
+  it("keeps fail-closed for package-manager install shells (no #5956 allow-list)", () => {
+    const out: string[] = [];
+    const code = run(["--host", "grok", "--event", "tool.before", "--project-root=/project"], {
+      readStdin: () =>
+        JSON.stringify({
+          tool_name: "run_terminal_command",
+          tool_input: { command: "pnpm install --frozen-lockfile" },
+        }),
+      writeOut: (t) => out.push(t),
+      writeErr: () => undefined,
+      cwd: () => "/project",
+      launchingCheckoutRoot: () => "/project",
+      cheapInSync: () => cheapPinMismatch(),
+    });
+    expect(code).toBe(0);
+    const wire = JSON.parse(out.join("")) as { decision?: string; reason?: string };
+    expect(wire.decision).toBe("deny");
+    expect(wire.reason ?? "").toContain(PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE);
   });
 });

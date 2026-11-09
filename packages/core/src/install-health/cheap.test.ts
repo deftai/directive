@@ -6,6 +6,7 @@ import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE } from "./constants.js";
 import {
   checkCheapInSync,
   INSTALLATION_RECOVERY_GUIDANCE,
@@ -92,7 +93,7 @@ describe("checkCheapInSync (AC2.4)", () => {
     expect(result.failClosed).toBe(false);
   });
 
-  it("fails closed on pin≠installed with recovery guidance and no setup (AC2.6)", () => {
+  it("fails closed on pin≠installed with project PM guidance and no setup (#6013 / AC2.6)", () => {
     const root = tempRoot();
     writeCheapOkFixture(root);
     writeFileSync(
@@ -104,7 +105,11 @@ describe("checkCheapInSync (AC2.4)", () => {
     expect(result.identityMatch).toBe(false);
     expect(result.failClosed).toBe(true);
     expect(result.allowSetup).toBe(false);
-    expect(result.recoveryGuidance).toBe(INSTALLATION_RECOVERY_GUIDANCE);
+    expect(result.recoveryGuidance).toBe(PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE);
+    expect(result.recoveryGuidance).toMatch(/npm install|pnpm install/);
+    expect(result.recoveryGuidance).toContain("--frozen-lockfile");
+    expect(result.recoveryGuidance).not.toBe(INSTALLATION_RECOVERY_GUIDANCE);
+    expect(result.recoveryGuidance?.startsWith("npm i -g")).toBe(false);
   });
 
   it("completes without sleeping on a warm fixture (AC2.4 budget)", () => {
