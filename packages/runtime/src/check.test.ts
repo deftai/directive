@@ -155,9 +155,44 @@ describe("check CLI", () => {
       process.stderr.write = prevErr;
     }
     const err = chunks.join("");
-    expect(err).toMatch(/directive init/);
+    expect(err).toMatch(/node_modules\/@deftai\/directive-runtime/);
+    expect(err).toMatch(/Install @deftai\/directive-runtime/);
+    expect(err).toMatch(/directive install/);
+    expect(err).not.toMatch(/directive init/);
     expect(err).not.toMatch(/are required/);
     expect(vi.mocked(dispatchTaskCheck)).not.toHaveBeenCalled();
+  });
+
+  it("resolves the OVPR pin package root when installed (#5996)", () => {
+    const project = freshProject();
+    const pinRoot = join(project, "node_modules", "@deftai", "directive-runtime");
+    mkdirSync(pinRoot, { recursive: true });
+    writeFileSync(join(pinRoot, "main.md"), "# Deft\n", "utf8");
+    vi.stubEnv("DEFT_ROOT", "");
+    expect(resolveCheckFrameworkRoot(project)).toBe(pinRoot);
+    expect(parseArgs(["--project-root", project]).frameworkRoot).toBe(pinRoot);
+    expect(run(["--project-root", project])).toBe(0);
+    expect(vi.mocked(dispatchTaskCheck)).toHaveBeenCalledWith(pinRoot, project, {
+      noCache: undefined,
+    });
+  });
+
+  it("ignores a pin directory that lacks main.md (#5996)", () => {
+    const project = freshProject();
+    mkdirSync(join(project, "node_modules", "@deftai", "directive-runtime"), { recursive: true });
+    vi.stubEnv("DEFT_ROOT", "");
+    expect(resolveCheckFrameworkRoot(project)).toBeNull();
+  });
+
+  it("prefers .deft/core over a co-located OVPR pin package (#5996)", () => {
+    const project = freshProject();
+    const deposit = join(project, ".deft", "core");
+    mkdirSync(deposit, { recursive: true });
+    const pinRoot = join(project, "node_modules", "@deftai", "directive-runtime");
+    mkdirSync(pinRoot, { recursive: true });
+    writeFileSync(join(pinRoot, "main.md"), "# Deft\n", "utf8");
+    vi.stubEnv("DEFT_ROOT", "");
+    expect(resolveCheckFrameworkRoot(project)).toBe(deposit);
   });
 
   it("dispatches when a consumer deposit exists without --framework-root", () => {

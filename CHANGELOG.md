@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Unwrap single-element `npm view --json` arrays in install/upgrade registry resolution so npm 12 can resolve latest stable and read published `directive.contract`; multi-value arrays still fail closed. Refs #5916.
 - **Windows: deft-hook starts Node (not /bin/sh); launcher postinstall owns #4654 .ps1 cleanup (#5997 / #5998).** Runtime no longer ships a postinstall build script (pnpm strict-dep-builds). Tracking #5997. Related #5998.
+- Let `deft check` find the installed `@deftai/directive-runtime` pin as framework-root when legacy deposits are absent, and recover via project pin install (not only `directive init`). Refs #5996.
 - When wait-mergeable hits a dirty xbrief/vbrief lifecycle tree (or a brief-less PR-head sibling while another SHA match has briefs), closeout fails once with a named reason and restorative remediation instead of polling until cap (#6128).
 - Record tracked completion for packageManager pnpm security pin raise (#6021).
 - Record tracked completion for Grok human-presence mint markers (#5983).
