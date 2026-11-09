@@ -390,20 +390,53 @@ function isManagedSlashWrapper(raw: string, file: HostEmittedFile, next: string)
 }
 
 /**
+ * True when `rel` has unstaged worktree edits vs the index (#6151 P1).
+ * No repo / no git / clean path → false (safe to report modified for staging).
+ */
+export function pathHasUnstagedChanges(projectRoot: string, rel: string): boolean {
+  try {
+    const out = execFileSync("git", ["-C", projectRoot, "diff", "--name-only", "--", rel], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    return out.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/** Left-unstaged disclosure when LF pins land on a dirty `.gitattributes` (#6151 P1). */
+export const GITATTRIBUTES_STAGING_SKIPPED_DIRTY =
+  ".gitattributes had unstaged local edits; LF pins were written but left unstaged so install/upgrade does not git add unrelated user changes (#6151 P1)";
+
+/**
  * Deposit narrow LF .gitattributes for managed wiring paths (#5995).
  * Reuses scaffold ensureGitattributes (core markers + managed wiring lines).
  * Reports created/modified so install/upgrade staging commits the pins (#6151 P1).
+ * When the path already has unstaged user edits, still appends missing pins but
+ * does not report modified (avoids staging foreign WIP with the pins).
  */
 export function ensureManagedPathGitattributes(projectRoot: string): {
   created: boolean;
   modified: boolean;
   wrote: boolean;
+  stagingSkippedNotice?: string;
 } {
   const attrsRel = ".gitattributes";
   const prior = readText(join(projectRoot, attrsRel));
+  const hadUnstagedEdits = prior !== null && pathHasUnstagedChanges(projectRoot, attrsRel);
   const wrote = ensureGitattributes(projectRoot, { printf: () => undefined });
   if (!wrote) return { created: false, modified: false, wrote: false };
-  return { created: prior === null, modified: prior !== null, wrote: true };
+  if (prior === null) return { created: true, modified: false, wrote: true };
+  if (hadUnstagedEdits) {
+    return {
+      created: false,
+      modified: false,
+      wrote: true,
+      stagingSkippedNotice: GITATTRIBUTES_STAGING_SKIPPED_DIRTY,
+    };
+  }
+  return { created: false, modified: true, wrote: true };
 }
 
 /**
@@ -415,14 +448,17 @@ export function ensureSlashCommands(projectRoot: string): {
   created: string[];
   modified: string[];
   conflicts: string[];
+  notices: string[];
 } {
   // Pin managed wiring paths to LF before compare/deposit (#5995).
   const attrs = ensureManagedPathGitattributes(projectRoot);
   const created: string[] = [];
   const modified: string[] = [];
   const conflicts: string[] = [];
+  const notices: string[] = [];
   if (attrs.created) created.push(".gitattributes");
   else if (attrs.modified) modified.push(".gitattributes");
+  if (attrs.stagingSkippedNotice) notices.push(attrs.stagingSkippedNotice);
   const policy = loadHostSlashCommandsPolicyFromProject(projectRoot);
   for (const hostId of listSlashEmitterHosts()) {
     if (!isHostSlashCommandDepositEnabled(hostId, policy)) continue;
@@ -445,7 +481,7 @@ export function ensureSlashCommands(projectRoot: string): {
       else if (change.modified) modified.push(file.relativePath);
     }
   }
-  return { created, modified, conflicts };
+  return { created, modified, conflicts, notices };
 }
 
 /**

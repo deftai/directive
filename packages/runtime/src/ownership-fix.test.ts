@@ -9,8 +9,10 @@ import {
   ensureGitHooks,
   ensureManagedPathGitattributes,
   ensureSlashCommands,
+  GITATTRIBUTES_STAGING_SKIPPED_DIRTY,
   isShellHookEntrypoint,
   normalizeEol,
+  pathHasUnstagedChanges,
 } from "./setup-wiring.js";
 
 const TEMPS: string[] = [];
@@ -106,6 +108,12 @@ describe("EOL-normalized ownership/wrapper compare (#5995)", () => {
 });
 
 describe("ensureManagedPathGitattributes staging report (#5995 / #6151 P1)", () => {
+  function initGitRepo(root: string): void {
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    execFileSync("git", ["config", "user.email", "attrs@example.com"], { cwd: root });
+    execFileSync("git", ["config", "user.name", "Attrs"], { cwd: root });
+  }
+
   it("reports created when .gitattributes is newly written", () => {
     const root = mkdtempSync(join(tmpdir(), "attrs-created-"));
     TEMPS.push(root);
@@ -114,6 +122,7 @@ describe("ensureManagedPathGitattributes staging report (#5995 / #6151 P1)", () 
     expect(out.wrote).toBe(true);
     expect(out.created).toBe(true);
     expect(out.modified).toBe(false);
+    expect(out.stagingSkippedNotice).toBeUndefined();
     expect(readFileSync(join(root, ".gitattributes"), "utf8")).toContain(
       ".githooks/** text=auto eol=lf",
     );
@@ -128,6 +137,7 @@ describe("ensureManagedPathGitattributes staging report (#5995 / #6151 P1)", () 
     expect(out.wrote).toBe(true);
     expect(out.created).toBe(false);
     expect(out.modified).toBe(true);
+    expect(out.stagingSkippedNotice).toBeUndefined();
   });
 
   it("reports neither when attributes already complete", () => {
@@ -149,9 +159,73 @@ describe("ensureManagedPathGitattributes staging report (#5995 / #6151 P1)", () 
     const first = ensureSlashCommands(root);
     expect(first.created).toContain(".gitattributes");
     expect(first.modified).not.toContain(".gitattributes");
+    expect(first.notices).toEqual([]);
     const second = ensureSlashCommands(root);
     expect(second.created).not.toContain(".gitattributes");
     expect(second.modified).not.toContain(".gitattributes");
+    expect(second.notices).toEqual([]);
+  });
+
+  it("reports modified for a clean tracked .gitattributes missing LF pins", () => {
+    const root = mkdtempSync(join(tmpdir(), "attrs-clean-tracked-"));
+    TEMPS.push(root);
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ name: "t" })}\n`);
+    writeFileSync(join(root, ".gitattributes"), "*.md text\n");
+    initGitRepo(root);
+    execFileSync("git", ["add", "-A"], { cwd: root });
+    execFileSync("git", ["commit", "-qm", "seed attrs"], { cwd: root });
+    expect(pathHasUnstagedChanges(root, ".gitattributes")).toBe(false);
+
+    const out = ensureManagedPathGitattributes(root);
+    expect(out.wrote).toBe(true);
+    expect(out.created).toBe(false);
+    expect(out.modified).toBe(true);
+    expect(out.stagingSkippedNotice).toBeUndefined();
+    expect(readFileSync(join(root, ".gitattributes"), "utf8")).toContain(
+      ".githooks/** text=auto eol=lf",
+    );
+  });
+
+  it("writes LF pins but skips modified when .gitattributes already has unstaged edits", () => {
+    const root = mkdtempSync(join(tmpdir(), "attrs-dirty-tracked-"));
+    TEMPS.push(root);
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ name: "t" })}\n`);
+    writeFileSync(join(root, ".gitattributes"), "*.md text\n");
+    initGitRepo(root);
+    execFileSync("git", ["add", "-A"], { cwd: root });
+    execFileSync("git", ["commit", "-qm", "seed attrs"], { cwd: root });
+    // Unfinished user WIP on the tracked file, still missing LF pins.
+    writeFileSync(join(root, ".gitattributes"), "*.md text\n*.json text\n");
+    expect(pathHasUnstagedChanges(root, ".gitattributes")).toBe(true);
+
+    const out = ensureManagedPathGitattributes(root);
+    expect(out.wrote).toBe(true);
+    expect(out.created).toBe(false);
+    expect(out.modified).toBe(false);
+    expect(out.stagingSkippedNotice).toBe(GITATTRIBUTES_STAGING_SKIPPED_DIRTY);
+    const body = readFileSync(join(root, ".gitattributes"), "utf8");
+    expect(body).toContain("*.json text");
+    expect(body).toContain(".githooks/** text=auto eol=lf");
+  });
+
+  it("ensureSlashCommands omits dirty .gitattributes from modified and surfaces notice", () => {
+    const root = mkdtempSync(join(tmpdir(), "attrs-dirty-slash-"));
+    TEMPS.push(root);
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ name: "t" })}\n`);
+    writeFileSync(join(root, ".gitattributes"), "*.md text\n");
+    initGitRepo(root);
+    execFileSync("git", ["add", "-A"], { cwd: root });
+    execFileSync("git", ["commit", "-qm", "seed attrs"], { cwd: root });
+    writeFileSync(join(root, ".gitattributes"), "*.md text\n*.json text\n");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+
+    const slash = ensureSlashCommands(root);
+    expect(slash.created).not.toContain(".gitattributes");
+    expect(slash.modified).not.toContain(".gitattributes");
+    expect(slash.notices).toContain(GITATTRIBUTES_STAGING_SKIPPED_DIRTY);
+    const body = readFileSync(join(root, ".gitattributes"), "utf8");
+    expect(body).toContain("*.json text");
+    expect(body).toContain(".githooks/** text=auto eol=lf");
   });
 });
 
