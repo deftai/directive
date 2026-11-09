@@ -6,7 +6,7 @@
     "id": "ovpr-w1-5997",
     "title": "Fix Windows deft-hook bin wiring and move ps1 cleanup to the launcher",
     "status": "running",
-    "updated": "2026-11-09T17:52:09Z",
+    "updated": "2026-11-09T19:15:31Z",
     "tags": [
       "ovpr",
       "wave1",
@@ -15,11 +15,11 @@
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/5997",
-        "type": "x-vbrief/github-issue"
+        "type": "x-xbrief/github-issue"
       },
       {
         "uri": "https://github.com/deftai/directive/issues/5998",
-        "type": "x-vbrief/github-issue"
+        "type": "x-xbrief/github-issue"
       }
     ],
     "narratives": {

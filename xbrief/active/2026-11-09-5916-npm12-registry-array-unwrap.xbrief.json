@@ -6,7 +6,7 @@
     "id": "ovpr-w1-5916",
     "title": "Unwrap npm 12 npm view --json single-element arrays in installer registry resolution",
     "status": "running",
-    "updated": "2026-11-09T17:49:56Z",
+    "updated": "2026-11-09T19:15:30Z",
     "tags": [
       "ovpr",
       "wave1",
@@ -15,7 +15,7 @@
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/5916",
-        "type": "x-vbrief/github-issue"
+        "type": "x-xbrief/github-issue"
       }
     ],
     "narratives": {

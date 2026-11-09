@@ -6,7 +6,7 @@
     "id": "ovpr-w1-5996",
     "title": "Let deft check resolve the OVPR pin package root under node_modules",
     "status": "running",
-    "updated": "2026-11-09T17:49:56Z",
+    "updated": "2026-11-09T19:15:31Z",
     "tags": [
       "ovpr",
       "wave1",
@@ -15,7 +15,7 @@
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/5996",
-        "type": "x-vbrief/github-issue"
+        "type": "x-xbrief/github-issue"
       }
     ],
     "narratives": {
