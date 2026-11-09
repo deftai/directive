@@ -1,12 +1,13 @@
 {
   "xBRIEFInfo": {
-    "version": "0.8"
+    "version": "0.8",
+    "updated": "2026-11-09T22:36:12Z"
   },
   "plan": {
     "id": "ovpr-w1-6013",
     "title": "Pin-mismatch recovery guidance follows the settled failure-shaped map",
-    "status": "running",
-    "updated": "2026-11-09T22:21:51Z",
+    "status": "completed",
+    "updated": "2026-11-09T22:36:12Z",
     "tags": [
       "ovpr",
       "wave1",
@@ -32,21 +33,33 @@
       {
         "id": "6013-a1",
         "title": "Project PM install guidance on pin≠installed",
-        "status": "pending",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "Acceptance": "Given pin says W and node_modules still has V, when a hooked shell is refused, then recovery text names project npm/pnpm install (frozen-lockfile when appropriate) and does not lead with global AC9.7 reinstall.",
           "Traces": "#6013 #5893 #5798"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc68ebbaa6a5ed7f810a64dbc395ff75921527e9",
+          "recorded_at": "2026-11-09T22:35:25Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "6013-a2",
         "title": "Fail closed without #5956 allow-list reopen",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "Given the same mismatch, when an ordinary non-recovery shell runs under the hook, then it remains fail-closed and no #5956-style install/repair allow-list mega-design is introduced.",
           "Traces": "#6013 #5956"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc68ebbaa6a5ed7f810a64dbc395ff75921527e9",
+          "recorded_at": "2026-11-09T22:35:25Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -77,7 +90,32 @@
         "file_scope_confidence": "high",
         "model_tier": "medium"
       },
-      "productPullRequest": 6150
+      "productPullRequest": 6150,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "bc374e444ab6ec3e003d435dc4dc6dd66165b8a6",
+        "prNumber": 6150,
+        "prBase": "master",
+        "mergeCommit": "dc68ebbaa6a5ed7f810a64dbc395ff75921527e9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "dc68ebbaa6a5ed7f810a64dbc395ff75921527e9",
+        "verifiedAt": "2026-11-09T22:36:12Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMWIxYjEtNzkzMS03NzgwLWI2N2QtYjQyY2JlMzI4OWQz"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-09T22:36:12Z",
+      "completedSessionId": "host:grok:v1:MDFhMWIxYjEtNzkzMS03NzgwLWI2N2QtYjQyY2JlMzI4OWQz",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-09T22:36:12Z"
+      }
     }
   }
 }

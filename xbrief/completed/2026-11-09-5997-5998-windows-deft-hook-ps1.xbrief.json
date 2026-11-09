@@ -1,12 +1,13 @@
 {
   "xBRIEFInfo": {
-    "version": "0.8"
+    "version": "0.8",
+    "updated": "2026-11-09T22:36:01Z"
   },
   "plan": {
     "id": "ovpr-w1-5997",
     "title": "Fix Windows deft-hook bin wiring and move ps1 cleanup to the launcher",
-    "status": "running",
-    "updated": "2026-11-09T19:15:31Z",
+    "status": "completed",
+    "updated": "2026-11-09T22:36:01Z",
     "tags": [
       "ovpr",
       "wave1",
@@ -32,21 +33,33 @@
       {
         "id": "5998-a1",
         "title": "Windows-capable deft-hook bin",
-        "status": "pending",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "Acceptance": "Given a Windows-like bin install of @deftai/directive, when deft-hook is invoked via the registered bin entry, then it starts Node rather than a POSIX /bin/sh shim.",
           "Traces": "#5998"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "81f397f4eab645a6a5b203813fe507c46971be37",
+          "recorded_at": "2026-11-09T22:35:25Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "5997-a1",
         "title": "Launcher-owned ps1 cleanup",
-        "status": "pending",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "Acceptance": "Given launcher postinstall runs with the correct PACKAGE_BIN_NAMES, when runtime is installed under pnpm strict-dep-builds, then runtime postinstall does not fail the install and stale .ps1 shims for Directive bins are cleaned from the launcher path.",
           "Traces": "#5997"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "81f397f4eab645a6a5b203813fe507c46971be37",
+          "recorded_at": "2026-11-09T22:35:25Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -76,6 +89,32 @@
         "size": "small",
         "file_scope_confidence": "high",
         "model_tier": "medium"
+      },
+      "productPullRequest": 6147,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "4a03992f28bf4405c1c68e19c1820eca727b4f2a",
+        "prNumber": 6147,
+        "prBase": "master",
+        "mergeCommit": "81f397f4eab645a6a5b203813fe507c46971be37",
+        "deliveryBranch": "master",
+        "deliveryCommit": "dc68ebbaa6a5ed7f810a64dbc395ff75921527e9",
+        "verifiedAt": "2026-11-09T22:36:01Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMWIxYjEtNzkzMS03NzgwLWI2N2QtYjQyY2JlMzI4OWQz"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-09T22:36:01Z",
+      "completedSessionId": "host:grok:v1:MDFhMWIxYjEtNzkzMS03NzgwLWI2N2QtYjQyY2JlMzI4OWQz",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-09T22:36:01Z"
       }
     }
   }

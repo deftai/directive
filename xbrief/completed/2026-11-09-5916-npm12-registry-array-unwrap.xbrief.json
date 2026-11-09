@@ -1,12 +1,13 @@
 {
   "xBRIEFInfo": {
-    "version": "0.8"
+    "version": "0.8",
+    "updated": "2026-11-09T22:35:44Z"
   },
   "plan": {
     "id": "ovpr-w1-5916",
     "title": "Unwrap npm 12 npm view --json single-element arrays in installer registry resolution",
-    "status": "running",
-    "updated": "2026-11-09T19:50:53Z",
+    "status": "completed",
+    "updated": "2026-11-09T22:35:44Z",
     "tags": [
       "ovpr",
       "wave1",
@@ -28,21 +29,33 @@
       {
         "id": "5916-a1",
         "title": "Unwrap single-element npm view arrays",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "Given npm view --json returns a one-element array for a version string, when resolveLatestStableVersion runs, then it returns that version string.",
           "Traces": "#5916"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fbdbd5f48ed5c3dbab5a93911902693c5b9025c0",
+          "recorded_at": "2026-11-09T22:35:25Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "5916-a2",
         "title": "Reject true multi-value npm view arrays",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "Given npm view --json returns a multi-element array, when registry resolution runs, then it fails closed with a clear parse error and does not pick an arbitrary element.",
           "Traces": "#5916"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fbdbd5f48ed5c3dbab5a93911902693c5b9025c0",
+          "recorded_at": "2026-11-09T22:35:25Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -70,7 +83,32 @@
         "file_scope_confidence": "high",
         "model_tier": "medium"
       },
-      "productPullRequest": 6149
+      "productPullRequest": 6149,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "357b406354331efdbe24665086db8867533fa5c3",
+        "prNumber": 6149,
+        "prBase": "master",
+        "mergeCommit": "fbdbd5f48ed5c3dbab5a93911902693c5b9025c0",
+        "deliveryBranch": "master",
+        "deliveryCommit": "dc68ebbaa6a5ed7f810a64dbc395ff75921527e9",
+        "verifiedAt": "2026-11-09T22:35:44Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMWIxYjEtNzkzMS03NzgwLWI2N2QtYjQyY2JlMzI4OWQz"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-09T22:35:44Z",
+      "completedSessionId": "host:grok:v1:MDFhMWIxYjEtNzkzMS03NzgwLWI2N2QtYjQyY2JlMzI4OWQz",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-09T22:35:44Z"
+      }
     }
   }
 }
