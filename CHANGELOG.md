@@ -36,6 +36,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Operator-disable (`.deft-directive-disable`) override is eligible only for a project-root non-symlink regular file after a successful untracked `git ls-files` listing; tracked, wrong-kind, and indeterminate Git/filesystem probes keep enforcement (or host fail-closed) and are never cached as untracked. Host outers use the same lstat + listing predicate. Refs #6034.
 
 ### Fixed
+- Record tracked completion for npm12 registry array unwrap (#5916).
+- Record tracked completion for check pin-root resolution (#5996).
+- Record tracked completion for Windows deft-hook/ps1 (#5997 / #5998).
+- Record tracked completion for Windows autocrlf ownership (#5995).
+- Record tracked completion for pin≠installed recovery guidance (#6013 / #5893).
 - Pin-bin `deft design-critique:ensure-arc-dest` creates arc dests with guarded-prep by default (or explicit process-only), fails closed when the runtime pin is still missing after guarded-prep, and the skill/contract forbid treating gitignored `packages/core/dist` as SoT. Refs #6142.
 - Unwrap single-element `npm view --json` arrays in install/upgrade registry resolution so npm 12 can resolve latest stable and read published `directive.contract`; multi-value arrays still fail closed. Refs #5916.
 - Pin≠installed hook recovery names project `npm`/`pnpm` install (frozen-lockfile when appropriate) instead of leading with AC9.7 global+repair; ordinary shells stay fail-closed with no #5956 allow-list. Refs #6013 #5893.
