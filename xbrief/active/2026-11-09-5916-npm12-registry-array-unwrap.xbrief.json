@@ -6,7 +6,7 @@
     "id": "ovpr-w1-5916",
     "title": "Unwrap npm 12 npm view --json single-element arrays in installer registry resolution",
     "status": "running",
-    "updated": "2026-11-09T19:15:30Z",
+    "updated": "2026-11-09T19:50:53Z",
     "tags": [
       "ovpr",
       "wave1",
@@ -69,7 +69,8 @@
         "size": "small",
         "file_scope_confidence": "high",
         "model_tier": "medium"
-      }
+      },
+      "productPullRequest": 6149
     }
   }
 }
