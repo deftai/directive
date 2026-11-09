@@ -1475,11 +1475,25 @@ function recordAuthzAudit(
 }
 
 /**
+ * Resolve as far as the filesystem allows: realpath existing prefixes even when
+ * the leaf is missing (dangling multi-hop symlink parents).
+ */
+function realpathExistingParents(absPath: string): string {
+  try {
+    return realpathSync(absPath);
+  } catch {
+    const parent = dirname(absPath);
+    if (parent === absPath) return absPath;
+    return join(realpathExistingParents(parent), basename(absPath));
+  }
+}
+
+/**
  * True when a kill-switch plant path realpath-resolves under `.deft/authz/` or
  * `.deft/approved-scope/` (symlink alias). Does not treat the flag basename
  * itself as an inventoried-store hit (#6136 Greptile).
- * Dangling symlinks: realpathSync throws; resolve link text lexically so a
- * missing store target still denies (#6157 Greptile P1).
+ * Dangling symlinks: resolve link text, then realpath existing parent dirs so a
+ * directory alias into the store is not missed (#6158 Greptile P1).
  */
 function killSwitchPlantResolvesToInventoriedAuthzStore(
   projectRoot: string,
@@ -1489,7 +1503,7 @@ function killSwitchPlantResolvesToInventoriedAuthzStore(
   const target = isAbsolute(relOrAbsPath)
     ? resolve(relOrAbsPath)
     : resolve(root, relOrAbsPath.replace(/\\/g, "/"));
-  let resolved = target;
+  let resolved: string;
   try {
     resolved = realpathSync(target);
   } catch {
@@ -1497,12 +1511,13 @@ function killSwitchPlantResolvesToInventoriedAuthzStore(
       const st = lstatSync(target);
       if (!st.isSymbolicLink()) return false;
       const link = readlinkSync(target);
-      resolved = isAbsolute(link) ? resolve(link) : resolve(dirname(target), link);
+      const candidate = isAbsolute(link) ? resolve(link) : resolve(dirname(target), link);
+      resolved = realpathExistingParents(candidate);
     } catch {
       return false;
     }
   }
-  let rootReal = root;
+  let rootReal: string;
   try {
     rootReal = realpathSync(root);
   } catch {

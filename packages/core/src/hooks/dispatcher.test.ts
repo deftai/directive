@@ -8169,4 +8169,31 @@ describe("always-on kill-switch plant deny (#6136)", () => {
     expect(decision.verdict).toBe("deny");
     expect(decision.message).toMatch(/inventoried authz|approved-scope/i);
   });
+
+  itSymlink(
+    "denies kill-switch Write via directory-alias dangling multi-hop into inventoried store (#6158)",
+    () => {
+      const root = ownerRoot();
+      mkdirSync(join(root, ".deft", "authz", "grants"), { recursive: true });
+      const alias = join(root, "alias");
+      symlinkSync(join(root, ".deft", "authz"), alias);
+      // Flag -> alias/grants/new.json (leaf missing); must still resolve through alias.
+      symlinkSync(join("alias", "grants", "new.json"), join(root, kill));
+      const decision = decideHook(
+        {
+          host: "grok",
+          event: "tool.before",
+          projectRoot: root,
+          payload: {
+            tool_name: "Write",
+            tool_input: { file_path: join(root, kill), contents: "x" },
+          },
+          environ: { DEFT_SESSION_ID: "owner" },
+        },
+        inactiveAuthzSeams(),
+      );
+      expect(decision.verdict).toBe("deny");
+      expect(decision.message).toMatch(/inventoried authz|approved-scope/i);
+    },
+  );
 });
