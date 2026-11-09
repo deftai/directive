@@ -29,6 +29,7 @@ import {
   ensureTaskfile,
   extractCoreGuardCheckoutUsesLine,
   gitattributesDepositComment,
+  MANAGED_WIRING_GITATTRIBUTES_LINES,
   mergeCoreGuardWorkflowRefresh,
   PIN_DEPENDENCY_NAME,
   pruneFrameworkSelfTests,
@@ -194,9 +195,9 @@ describe("init-deposit scaffold", () => {
 
     await depositNeutralization(project, io);
 
-    expect(readFileSync(join(project, ".gitattributes"), "utf8")).toContain(
-      ".deft/core/** text=auto eol=lf",
-    );
+    const attrsNeutral = readFileSync(join(project, ".gitattributes"), "utf8");
+    expect(attrsNeutral).toContain(".deft/core/** text=auto eol=lf");
+    expect(attrsNeutral).toContain(".claude/commands/** text=auto eol=lf");
     expect(readFileSync(join(project, ".gitattributes"), "utf8")).not.toContain(
       ".deft/core/** text eol=lf",
     );
@@ -436,7 +437,8 @@ describe("init-deposit scaffold", () => {
     const attrs = readFileSync(join(project, ".gitattributes"), "utf8");
     expect(attrs).toContain(".deft/core/** text=auto eol=lf");
     expect((attrs.match(/\.deft\/core\/\*\* text eol=lf/g) ?? []).length).toBe(0);
-    expect((attrs.match(/text=auto eol=lf/g) ?? []).length).toBe(1);
+    expect(attrs).toContain(".claude/commands/** text=auto eol=lf");
+    expect((attrs.match(/\.deft\/core\/\*\* text=auto eol=lf/g) ?? []).length).toBe(1);
     expect(attrs.match(/linguist-generated=true/g) ?? []).toHaveLength(1);
     expect(attrs.match(/linguist-vendored=true/g) ?? []).toHaveLength(1);
     expect(attrs).toContain("*.md text");
@@ -459,7 +461,8 @@ describe("init-deposit scaffold", () => {
     expect(ensureGitattributes(project, io)).toBe(true);
     const attrs = readFileSync(join(project, ".gitattributes"), "utf8");
     expect((attrs.match(/\.deft\/core\/\*\* text eol=lf/g) ?? []).length).toBe(0);
-    expect((attrs.match(/text=auto eol=lf/g) ?? []).length).toBe(1);
+    expect((attrs.match(/\.deft\/core\/\*\* text=auto eol=lf/g) ?? []).length).toBe(1);
+    expect(attrs).toContain(".claude/commands/** text=auto eol=lf");
     expect(lines.join("")).not.toMatch(/skipping/);
   });
 
@@ -486,6 +489,30 @@ describe("init-deposit scaffold", () => {
     expect(ensureGitattributes(project, io)).toBe(true);
     const attrs = readFileSync(join(project, ".gitattributes"), "utf8");
     expect(attrs.startsWith(pre)).toBe(true);
+  });
+
+  it("deposits narrow managed wiring LF pins (#5995)", () => {
+    const project = freshRoot("scaffold-gitattributes-managed-");
+    const { io } = captureIo();
+    // Pre-seed core markers so this write is managed-wiring-only (comment path).
+    writeFileSync(
+      join(project, ".gitattributes"),
+      [
+        ".deft/core/** text=auto eol=lf",
+        ".deft/core/** linguist-generated=true",
+        ".deft/core/** linguist-vendored=true",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    expect(ensureGitattributes(project, io)).toBe(true);
+    const attrs = readFileSync(join(project, ".gitattributes"), "utf8");
+    for (const line of MANAGED_WIRING_GITATTRIBUTES_LINES) {
+      expect(attrs).toContain(line);
+    }
+    expect(attrs).toContain("#5995");
+    // Idempotent: second call skips.
+    expect(ensureGitattributes(project, io)).toBe(false);
   });
 
   it("full greenfield write claims generated+vendored with linguist markers (#5463)", () => {

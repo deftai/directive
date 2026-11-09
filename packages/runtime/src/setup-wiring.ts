@@ -30,6 +30,7 @@ import {
   isGrokWrapperCommand,
   isHostHookOuterCommand,
 } from "@deftai/directive-core/dist/init-deposit/agent-hooks.js";
+import { ensureGitattributes } from "@deftai/directive-core/dist/init-deposit/scaffold.js";
 import {
   INSTALLATION_RECOVERY_GUIDANCE,
   RUNTIME_PACKAGE_PATH_PREFIX,
@@ -78,6 +79,16 @@ function readText(path: string): string | null {
   }
 }
 
+/** Normalize CRLF/CR to LF for ownership/wrapper equality (#5995). */
+export function normalizeEol(text: string): string {
+  return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+}
+
+/** True when two texts differ only by end-of-line convention (#5995). */
+export function contentsEqualIgnoringEol(a: string, b: string): boolean {
+  return normalizeEol(a) === normalizeEol(b);
+}
+
 function writeContained(projectRoot: string, relPath: string, body: string): void {
   containedWrite({
     root: projectRoot,
@@ -95,6 +106,10 @@ function relPosix(...parts: string[]): string {
 function trackChange(projectRoot: string, rel: string, next: string): TrackResult {
   const prior = readText(join(projectRoot, rel));
   if (prior === next) return { created: false, modified: false };
+  // CRLF-vs-LF-only diffs are still Directive-managed; do not rewrite (#5995).
+  if (prior !== null && contentsEqualIgnoringEol(prior, next)) {
+    return { created: false, modified: false };
+  }
   writeContained(projectRoot, rel, next);
   return { created: prior === null, modified: prior !== null };
 }
@@ -348,16 +363,26 @@ function ovprSlashWrapperContents(file: HostEmittedFile): string {
  * (legacy .deft/core teaching or package-relative OVPR form).
  */
 function isManagedSlashWrapper(raw: string, file: HostEmittedFile, next: string): boolean {
-  if (raw === next) return true;
-  if (isThinWrapperMarkdown(raw, file.dispatchPath)) return true;
+  const rawN = normalizeEol(raw);
+  const nextN = normalizeEol(next);
+  if (rawN === nextN) return true;
+  if (isThinWrapperMarkdown(rawN, file.dispatchPath)) return true;
   // Already-rewritten OVPR wrapper: still thin + points at this dispatch path.
   return (
-    raw.startsWith("---\n") &&
-    raw.includes(file.dispatchPath) &&
-    (raw.includes(RUNTIME_PREFIX) || raw.includes(".deft/core/")) &&
-    raw.includes("Read and follow") &&
-    raw.includes("Do not inline")
+    rawN.startsWith("---\n") &&
+    rawN.includes(file.dispatchPath) &&
+    (rawN.includes(RUNTIME_PREFIX) || rawN.includes(".deft/core/")) &&
+    rawN.includes("Read and follow") &&
+    rawN.includes("Do not inline")
   );
+}
+
+/**
+ * Deposit narrow LF .gitattributes for managed wiring paths (#5995).
+ * Reuses scaffold ensureGitattributes (core markers + managed wiring lines).
+ */
+export function ensureManagedPathGitattributes(projectRoot: string): boolean {
+  return ensureGitattributes(projectRoot, { printf: () => undefined });
 }
 
 /**
@@ -370,6 +395,8 @@ export function ensureSlashCommands(projectRoot: string): {
   modified: string[];
   conflicts: string[];
 } {
+  // Pin managed wiring paths to LF before compare/deposit (#5995).
+  ensureManagedPathGitattributes(projectRoot);
   const created: string[] = [];
   const modified: string[] = [];
   const conflicts: string[] = [];
@@ -380,7 +407,11 @@ export function ensureSlashCommands(projectRoot: string): {
       const body = ovprSlashWrapperContents(file);
       const next = body.endsWith("\n") ? body : `${body}\n`;
       const prior = readText(join(projectRoot, file.relativePath));
-      if (prior !== null && prior !== next && !isManagedSlashWrapper(prior, file, next)) {
+      if (
+        prior !== null &&
+        !contentsEqualIgnoringEol(prior, next) &&
+        !isManagedSlashWrapper(prior, file, next)
+      ) {
         conflicts.push(
           `${file.relativePath}: existing command is not a Directive-managed wrapper; refusing to overwrite`,
         );
@@ -853,7 +884,7 @@ export function ensureHostHooks(
       if (prior === null) continue;
       const stripped = spec.strip(readJsonObject(abs));
       const next = `${JSON.stringify(stripped, null, 2)}\n`;
-      if (prior === next) continue;
+      if (prior === next || contentsEqualIgnoringEol(prior, next)) continue;
       writeContained(projectRoot, spec.rel, next);
       modified.push(spec.rel);
       continue;
@@ -861,7 +892,7 @@ export function ensureHostHooks(
     const base = prior === null ? {} : readJsonObject(abs);
     const merged = spec.merge(base);
     const next = `${JSON.stringify(merged, null, 2)}\n`;
-    if (prior === next) continue;
+    if (prior === next || (prior !== null && contentsEqualIgnoringEol(prior, next))) continue;
     writeContained(projectRoot, spec.rel, next);
     if (prior === null) created.push(spec.rel);
     else modified.push(spec.rel);
@@ -875,7 +906,7 @@ export function ensureHostHooks(
     const enabled = isHostHookDepositEnabled(host, hostHooksPolicy);
     if (enabled) {
       const prior = readText(join(projectRoot, rel));
-      if (prior !== outerSource) {
+      if (prior === null || !contentsEqualIgnoringEol(prior, outerSource)) {
         writeContained(projectRoot, rel, outerSource);
         if (prior === null) created.push(rel);
         else modified.push(rel);
@@ -1046,7 +1077,11 @@ export function ensureGitHooks(
     const rawNext = override ?? file.body;
     const next = rawNext.endsWith("\n") ? rawNext : `${rawNext}\n`;
     const prior = readText(join(projectRoot, file.rel));
-    if (prior !== null && prior !== next && !isOurGitHookBody(file.rel, prior)) {
+    if (
+      prior !== null &&
+      !contentsEqualIgnoringEol(prior, next) &&
+      !isOurGitHookBody(file.rel, prior)
+    ) {
       conflicts.push(
         `${file.rel}: existing hook is not Directive-managed; refusing to overwrite (chain or remove manually)`,
       );
@@ -1054,7 +1089,12 @@ export function ensureGitHooks(
     }
     // Tracked divergent preserve (#5837): never overwrite a committed hook body,
     // even a Directive-managed one, unless the operator forced the replace.
-    if (prior !== null && prior !== next && !force && isGitTrackedPath(projectRoot, file.rel)) {
+    if (
+      prior !== null &&
+      !contentsEqualIgnoringEol(prior, next) &&
+      !force &&
+      isGitTrackedPath(projectRoot, file.rel)
+    ) {
       preserved.push(formatTrackedHookPreserved(file.rel));
       continue;
     }

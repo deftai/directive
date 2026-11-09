@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseArgs, run } from "./ownership-fix.js";
+import { contentsEqualIgnoringEol, normalizeEol } from "./setup-wiring.js";
 
 describe("ownership:fix CLI (#1617)", () => {
   afterEach(() => {
@@ -47,5 +48,18 @@ describe("ownership:fix CLI (#1617)", () => {
     }) as typeof process.stderr.write);
     expect(run(["--wat"])).toBe(2);
     expect(err.join("")).toMatch(/unrecognized argument/);
+  });
+});
+
+describe("EOL-normalized ownership/wrapper compare (#5995)", () => {
+  it("normalizeEol collapses CRLF and CR to LF", () => {
+    expect(normalizeEol("a\r\nb\rc\n")).toBe("a\nb\nc\n");
+  });
+
+  it("contentsEqualIgnoringEol treats CRLF-only diffs as equal", () => {
+    const lf = "---\ndescription: x\n---\nRead and follow `path`\n";
+    const crlf = lf.replace(/\n/g, "\r\n");
+    expect(contentsEqualIgnoringEol(lf, crlf)).toBe(true);
+    expect(contentsEqualIgnoringEol(lf, lf.replace("path", "other"))).toBe(false);
   });
 });
