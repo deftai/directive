@@ -1350,6 +1350,8 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(stop1).toContain("\u2297 Front-door mode `ingest`");
     expect(stop1).toContain("\u2297 Treat `arc-mode:` as ingest clearance");
     expect(stop1).toContain("ensureArcDest");
+    expect(stop1).toContain("design-critique:ensure-arc-dest");
+    expect(stop1).toContain("packages/core/dist");
     expect(stop1).toContain("cwd-without-occupy");
     expect(stop1).toContain("process_only");
     expect(stop1).toContain("process-only skip class, not an implementation-gate bypass");
@@ -1370,6 +1372,8 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(template).toContain("Run posture `arc-mode:`");
     const skill = readText(SKILL_REL);
     expect(skill).toContain("missing defaults to no-ingest via resolveArcRunPostureForHost");
+    expect(skill).toContain("design-critique:ensure-arc-dest");
+    expect(skill).toContain("packages/core/dist");
     expect(skill).toContain("ingest is a separate operator verb");
     expect(skill).toContain(
       "After an admitted completed-arc record: Next: run `task issue:ingest`",

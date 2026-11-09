@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Operator-disable (`.deft-directive-disable`) override is eligible only for a project-root non-symlink regular file after a successful untracked `git ls-files` listing; tracked, wrong-kind, and indeterminate Git/filesystem probes keep enforcement (or host fail-closed) and are never cached as untracked. Host outers use the same lstat + listing predicate. Refs #6034.
 
 ### Fixed
+- Pin-bin `deft design-critique:ensure-arc-dest` creates arc dests with guarded-prep by default (or explicit process-only), fails closed when the runtime pin is still missing after guarded-prep, and the skill/contract forbid treating gitignored `packages/core/dist` as SoT. Refs #6142.
 - Unwrap single-element `npm view --json` arrays in install/upgrade registry resolution so npm 12 can resolve latest stable and read published `directive.contract`; multi-value arrays still fail closed. Refs #5916.
 - **Windows: deft-hook starts Node (not /bin/sh); launcher postinstall owns #4654 .ps1 cleanup (#5997 / #5998).** Runtime no longer ships a postinstall build script (pnpm strict-dep-builds). Tracking #5997. Related #5998.
 - Let `deft check` find the installed `@deftai/directive-runtime` pin as framework-root when legacy deposits are absent, and recover via project pin install (not only `directive init`). Refs #5996.
