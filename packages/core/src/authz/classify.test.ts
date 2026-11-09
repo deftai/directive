@@ -8,8 +8,10 @@ import {
   classifyShellAuthzOps,
   harvestDestsOfWriteForRealpath,
   hasAuthzDirShellWrite,
+  hasKillSwitchShellWrite,
   hasProtectedDestOfWriteUnknown,
   inactiveShellTargetsProtectedStore,
+  isKillSwitchPlantPath,
   matchProtectedStoreShellDest,
 } from "./classify.js";
 
@@ -260,6 +262,38 @@ describe("classifyShellAuthzOps (#2944)", () => {
     expect(classifyShellAuthzOps("deft policy:show --field wipCap")).toEqual([]);
     // Non-mutator policy subcommands / unrelated shell stay empty.
     expect(classifyShellAuthzOps("git status")).toEqual([]);
+  });
+
+  it("classifies direct Write of kill-switch basenames as settings (#6136)", () => {
+    const kill = "." + ["deft", "directive", "disable"].join("-");
+    const opt = "." + ["no", "deft", "directive"].join("-");
+    expect(
+      classifyHookAuthzOps({
+        toolName: "Write",
+        shellCommand: null,
+        isDirectWrite: true,
+        writePath: kill,
+      }),
+    ).toEqual(["settings"]);
+    expect(
+      classifyHookAuthzOps({
+        toolName: "Edit",
+        shellCommand: null,
+        isDirectWrite: true,
+        writePath: "C:/tmp/" + opt,
+      }),
+    ).toEqual(["settings"]);
+    expect(
+      classifyHookAuthzOps({
+        toolName: "Write",
+        shellCommand: null,
+        isDirectWrite: true,
+        writePath: "src/app.ts",
+      }),
+    ).toEqual(["edit"]);
+    expect(isKillSwitchPlantPath(kill)).toBe(true);
+    expect(hasKillSwitchShellWrite("touch " + kill)).toBe(true);
+    expect(hasKillSwitchShellWrite("Set-Content -Path /tmp/" + kill + " -Value x")).toBe(true);
   });
 
   it("classifies downloader/decoder plants of authz grants and kill-switch as settings (#3206)", () => {

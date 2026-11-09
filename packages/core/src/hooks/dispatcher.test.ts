@@ -8003,3 +8003,88 @@ describe("applying-host live-owner cleanup + deferred publish (#6101)", () => {
     });
   });
 });
+
+describe("always-on kill-switch plant deny (#6136)", () => {
+  const kill = "." + ["deft", "directive", "disable"].join("-");
+
+  function inactiveAuthzSeams(): HookPolicySeams {
+    return readySeams({
+      verifyRitual: () => ({ ...READY_RITUAL, boundSessionId: "owner" }),
+      loadAuthzState: () => ({
+        schemaVersion: 1,
+        uat: null,
+        activeGrantIds: [],
+      }),
+      loadAuthzGrants: () => [],
+      authzAudit: false,
+      loadStoryWriteFence: () => ({ fileScope: ["**"], denyPaths: [] }),
+    });
+  }
+
+  function ownerRoot(): string {
+    const root = mkdtempSync(join(tmpdir(), "hook-6136-"));
+    hookTemps.push(root);
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    mkdirSync(join(root, "src"), { recursive: true });
+    applyWorktreeOccupancy(root, { sessionId: "owner", intent: "mutation" });
+    return root;
+  }
+
+  it("denies Shell touch of kill-switch outside UAT without grant", () => {
+    const root = ownerRoot();
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: { command: "touch " + kill },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      inactiveAuthzSeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.message).toMatch(/kill-switch|opt-out|human-origin|settings grant/i);
+  });
+
+  it("denies out-of-tree Set-Content of kill-switch basename before in-repo skip", () => {
+    const root = ownerRoot();
+    const outside = join(tmpdir(), kill);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: { command: "Set-Content -Path " + outside + " -Value x" },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      inactiveAuthzSeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.message).toMatch(/kill-switch|opt-out|human-origin|settings grant|protected/i);
+  });
+
+  it("denies Write of kill-switch basename outside UAT without grant", () => {
+    const root = ownerRoot();
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: join(root, kill), contents: "x" },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      inactiveAuthzSeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.message).toMatch(/kill-switch|opt-out|human-origin|settings grant|protected/i);
+  });
+});

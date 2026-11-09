@@ -8,7 +8,9 @@ import {
   classifyHookAuthzOps,
   evaluateAuthzMutation,
   evidenceSatisfiesImplementationApproval,
+  hasKillSwitchShellWrite,
   type HumanOriginGrant,
+  isKillSwitchPlantPath,
   listActiveHumanGrants,
   loadAuthzStateResult,
   markGrantUsed,
@@ -197,7 +199,11 @@ import {
   inspectActiveScope,
   POSITIVE_GOVERNING_ALLOW_REQUIRED,
 } from "./scope.js";
-import { classifyShellWriteTargets, isInRepoShellWritePath } from "./shell-write-targets.js";
+import {
+  classifyShellWriteTargets,
+  isInRepoShellWritePath,
+  isKillSwitchShellWriteBasename,
+} from "./shell-write-targets.js";
 import {
   effectiveHookArgumentView,
   effectiveHookToolName,
@@ -1512,6 +1518,7 @@ function authzForMutation(
     shellCommand,
     isDirectWrite: options.isDirectWrite,
     mcpArgsText: options.isDirectWrite ? null : hookMcpArgsText(input.payload),
+    writePath: options.isDirectWrite ? options.relPath : null,
   });
   // #4188: realpath recovered dest-of-write against payload root. Lexical
   // classify stays I/O-free; a non-shell symlink dest is grant-immune unknown.
@@ -1550,9 +1557,16 @@ function authzForMutation(
   }
   const repo = (process.env.DEFT_AUTHZ_REPO ?? process.env.GITHUB_REPOSITORY ?? "").trim() || null;
 
+  // #6136: kill-switch / permanent opt-out plant is always-on grant-gated (not UAT-only).
+  const killSwitchPlant =
+    (shellCommand !== null && hasKillSwitchShellWrite(shellCommand)) ||
+    (options.isDirectWrite &&
+      options.relPath !== null &&
+      isKillSwitchPlantPath(options.relPath));
+
   // Evaluate each op; first deny wins (compound shell must not short-circuit).
   for (const op of ops) {
-    const decision = evaluateAuthzMutation({
+    let decision = evaluateAuthzMutation({
       state,
       grants,
       op,
@@ -1561,6 +1575,51 @@ function authzForMutation(
       repo,
       worktree: projectRoot,
     });
+    // Outside UAT, settings (and kill-switch Write classified as settings) would
+    // authz-inactive allow. Re-evaluate under a synthetic human-origin UAT so the
+    // existing grant gate applies without widening evaluate.ts (#6136).
+    if (
+      killSwitchPlant &&
+      decision.allowed &&
+      decision.code === "authz-inactive" &&
+      (op === "settings" || op === "edit")
+    ) {
+      decision = evaluateAuthzMutation({
+        state: {
+          ...state,
+          uat: {
+            active: true,
+            campaignId: "always-on-kill-switch-plant",
+            startedAt: "1970-01-01T00:00:00.000Z",
+            startedBy: {
+              kind: "operator-cli",
+              actor: "directive-always-on-kill-switch",
+              mintedAt: "1970-01-01T00:00:00.000Z",
+              mintedVia: "cli",
+              eventRef: null,
+            },
+            suspendedAt: null,
+            note: "synthetic lease for always-on kill-switch plant grant gate (#6136)",
+          },
+        },
+        grants,
+        op: "settings",
+        path: options.relPath,
+        branch,
+        repo,
+        worktree: projectRoot,
+      });
+      if (!decision.allowed) {
+        decision = {
+          ...decision,
+          reason:
+            "Directive denied kill-switch / permanent opt-out plant without a human-origin " +
+            "settings grant (#6136). Agents must not self-serve `.deft-directive-disable` or " +
+            "`.no-deft-directive`. Human action required: plant outside an agent session, or " +
+            "run `deft authz:grant` covering settings for this cohort.",
+        };
+      }
+    }
     recordAuthzAudit(projectRoot, decision, state, seams);
     if (!decision.allowed) {
       return deny(
@@ -2719,6 +2778,8 @@ function decideGitDestructive(input: HookDispatchInput, toolName: string): HookD
 /**
  * Authorize recognized in-repo Shell file-write dests through inspectMutationGates (#3983 / #3987).
  * Deny is returned; allow falls through so dest-forms and push/merge still run.
+ * Kill-switch basenames are checked before the in-repo skip so out-of-tree plants
+ * cannot fail-open (#6136 Prefer-A Bound limb 2).
  */
 function decideShellWriteReissue(
   input: HookDispatchInput,
@@ -2730,8 +2791,9 @@ function decideShellWriteReissue(
   if (command === null) return null;
   const projectRoot = resolve(input.projectRoot);
   for (const dest of classifyShellWriteTargets(command)) {
+    const killSwitchDest = isKillSwitchShellWriteBasename(dest.path);
     if (dest.unprovable === true) {
-      if (!isInRepoShellWritePath(projectRoot, dest.path)) continue;
+      if (!killSwitchDest && !isInRepoShellWritePath(projectRoot, dest.path)) continue;
       return deny(
         input,
         "scope-not-ready",
@@ -2741,7 +2803,8 @@ function decideShellWriteReissue(
           ": Shell write dest is not reconstructable (compound command). Use one simple command or Edit/Write.",
       );
     }
-    if (!isInRepoShellWritePath(projectRoot, dest.path)) continue;
+    // #6136: protected basename before isInRepoShellWritePath skip.
+    if (!killSwitchDest && !isInRepoShellWritePath(projectRoot, dest.path)) continue;
     const destInput: HookDispatchInput = {
       ...input,
       payload: payloadWithInjectedWriteTarget(input.payload, dest.path),
