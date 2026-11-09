@@ -203,8 +203,19 @@ const POLICY_AUTHORITY_MUTATORS = new Set([
   "enable-directive",
 ]);
 
-/** Kill-switch / permanent opt-out basenames agents must not plant under UAT (#3186 / #3039). */
-const KILL_SWITCH_BASENAMES = [".deft-directive-disable", ".no-deft-directive"] as const;
+/** Kill-switch / permanent opt-out basenames agents must not plant (#3186 / #3039 / #6136). */
+export const KILL_SWITCH_BASENAMES = [".deft-directive-disable", ".no-deft-directive"] as const;
+
+/** True when a path basename is a kill-switch / permanent opt-out plant target (#6136). */
+export function isKillSwitchPlantPath(pathish: string): boolean {
+  // Lowercase so Windows / case-insensitive plants (`.DEFT-DIRECTIVE-DISABLE`) match.
+  const p = canonicalizePathish(pathish).toLowerCase();
+  if (p.length === 0) return false;
+  for (const name of KILL_SWITCH_BASENAMES) {
+    if (p === name || p.endsWith(`/${name}`)) return true;
+  }
+  return false;
+}
 
 /**
  * Dest-form writers #3529 harvest missed (#3545). Shared across downloader,
@@ -3568,7 +3579,7 @@ function sqlite3MetaDest(
 }
 
 function pathishMentionsKillSwitch(pathish: string): boolean {
-  const p = canonicalizePathish(pathish);
+  const p = canonicalizePathish(pathish).toLowerCase();
   for (const name of KILL_SWITCH_BASENAMES) {
     if (p === name || p.endsWith(`/${name}`) || p.includes(name)) {
       return true;
@@ -3578,11 +3589,18 @@ function pathishMentionsKillSwitch(pathish: string): boolean {
 }
 
 /**
- * Shell write targeting `.deft-directive-disable` / `.no-deft-directive` (#3186 / #3039 / #3213).
- * Planting the kill-switch under UAT would full-bypass subsequent gates without operator recovery.
- * Includes symlink plant bins (`ln`/`link`/`mklink`) and quote-split-resistant basename checks.
+ * Shell write targeting `.deft-directive-disable` / `.no-deft-directive` (#3186 / #3039 / #3213 / #6136).
+ * Always-on grant-gated plant deny (not UAT-only). Includes symlink plant bins
+ * (`ln`/`link`/`mklink`) and quote-split-resistant basename checks.
  */
-function hasKillSwitchShellWrite(command: string, tokens: readonly string[]): boolean {
+export function hasKillSwitchShellWrite(command: string, tokens?: readonly string[]): boolean {
+  const cmd = command.trim();
+  if (cmd.length === 0) return false;
+  const resolvedTokens = tokens ?? shellTokens(cmd);
+  return hasKillSwitchShellWriteInner(cmd, resolvedTokens);
+}
+
+function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]): boolean {
   const lower = command.toLowerCase().replace(/\\/g, "/");
   // Quote-stripped form so `'.deft'-directive-disable`-class splits still match (#3213).
   const stripped = lower.replace(/['"]/g, "");
@@ -3621,6 +3639,8 @@ function hasKillSwitchShellWrite(command: string, tokens: readonly string[]): bo
 
   // Write/destructive + symlink plant + archive/alt-write bins with a kill-switch path
   // argument (#3213 ln/link/mklink; #3245 tar/axel/rclone/socat residual).
+  // echo/printf/type are stdout-only without a redirect; redirect dests are handled
+  // above so bare `echo .deft-directive-disable` stays non-plant (#6136 Greptile P2).
   const killWriteBins = new Set([
     ...INDIRECT_WRITE_BINS,
     ...SYMLINK_PLANT_BINS,
@@ -3628,9 +3648,6 @@ function hasKillSwitchShellWrite(command: string, tokens: readonly string[]): bo
     "touch",
     "new-item",
     "ni",
-    "echo",
-    "printf",
-    "type",
   ]);
   for (let ti = 0; ti < tokens.length; ti++) {
     const binTok = normalizeToken(tokens[ti] as string);
@@ -4634,7 +4651,8 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   // #3110: authz authority CLI + store **writes** (literal / split / $VAR / rm) → settings.
   if (hasAuthzMutatingCli(tokens)) found.add("settings");
   if (commandHasAuthzDirShellWrite(cmd, tokens)) found.add("settings");
-  // #3186: kill-switch plant + policy authority mutators → settings (UAT fail-closed).
+  // #3186 / #6136: kill-switch plant + policy authority mutators → settings
+  // (always-on grant-gated via dispatcher; not UAT-only).
   if (hasKillSwitchShellWrite(cmd, tokens)) found.add("settings");
   if (hasPolicyAuthorityMutator(tokens)) found.add("settings");
   // Split path write: `cd .deft && echo x > authz/state.json` OR `cd .deft/authz && echo x > state.json`
@@ -4953,9 +4971,20 @@ export function classifyHookAuthzOps(input: {
   readonly mcpArgsText?: string | null;
   /** Payload root for #4188 harvest realpath. Blank/omitted skips harvest. */
   readonly projectRoot?: string | null;
+  /** Direct Write/Edit target path for always-on kill-switch plant classify (#6136). */
+  readonly writePath?: string | null;
 }): AuthzClassifiedOp[] {
   const { toolName, shellCommand, isDirectWrite } = input;
-  if (isDirectWrite) return ["edit"];
+  if (isDirectWrite) {
+    // Prefer-A Bound #6136: kill-switch Write/Edit is `settings` (always-on grant
+    // gate). Keep off bare `edit` — isProtectedStoreEditDest treats the flag
+    // basenames themselves as protected and would deny before the grant check.
+    // Symlink plants into `.deft/authz/` are denied in dispatcher via realpath
+    // (not this op class alone).
+    const writePath = (input.writePath ?? "").trim();
+    if (writePath.length > 0 && isKillSwitchPlantPath(writePath)) return ["settings"];
+    return ["edit"];
+  }
 
   const lower = toolName.toLowerCase();
   // Shared catalog (#4041 / #3987). A second name list missed Grok monitor.
