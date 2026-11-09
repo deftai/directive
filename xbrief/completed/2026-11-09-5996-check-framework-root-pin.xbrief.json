@@ -1,12 +1,13 @@
 {
   "xBRIEFInfo": {
-    "version": "0.8"
+    "version": "0.8",
+    "updated": "2026-11-09T22:35:55Z"
   },
   "plan": {
     "id": "ovpr-w1-5996",
     "title": "Let deft check resolve the OVPR pin package root under node_modules",
-    "status": "running",
-    "updated": "2026-11-09T19:44:13Z",
+    "status": "completed",
+    "updated": "2026-11-09T22:35:55Z",
     "tags": [
       "ovpr",
       "wave1",
@@ -28,21 +29,33 @@
       {
         "id": "5996-a1",
         "title": "Pin package root candidate",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "Given node_modules/@deftai/directive-runtime is installed and looks like a runtime package root, when resolveCheckFrameworkRoot runs, then it returns that path.",
           "Traces": "#5996"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5853f5b86cb8e4ccbd39378b64f07db980608c92",
+          "recorded_at": "2026-11-09T22:35:25Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "5996-a2",
         "title": "Keep legacy candidates and miss guidance",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "Given no pin package root and no .deft/core or source root, when check resolves framework root, then it still fails closed and FRAMEWORK_ROOT_MISS does not teach only directive init as the recovery.",
           "Traces": "#5996"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5853f5b86cb8e4ccbd39378b64f07db980608c92",
+          "recorded_at": "2026-11-09T22:35:25Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -69,6 +82,31 @@
         "size": "small",
         "file_scope_confidence": "high",
         "model_tier": "medium"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "8cd53d655c778d2c13d36f0a279c89c06806bafe",
+        "prNumber": 6146,
+        "prBase": "master",
+        "mergeCommit": "5853f5b86cb8e4ccbd39378b64f07db980608c92",
+        "deliveryBranch": "master",
+        "deliveryCommit": "dc68ebbaa6a5ed7f810a64dbc395ff75921527e9",
+        "verifiedAt": "2026-11-09T22:35:55Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMWIxYjEtNzkzMS03NzgwLWI2N2QtYjQyY2JlMzI4OWQz"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-09T22:35:55Z",
+      "completedSessionId": "host:grok:v1:MDFhMWIxYjEtNzkzMS03NzgwLWI2N2QtYjQyY2JlMzI4OWQz",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-09T22:35:55Z"
       }
     }
   }

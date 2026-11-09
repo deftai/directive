@@ -1,12 +1,13 @@
 {
   "xBRIEFInfo": {
-    "version": "0.8"
+    "version": "0.8",
+    "updated": "2026-11-09T22:36:05Z"
   },
   "plan": {
     "id": "ovpr-w1-5995",
     "title": "EOL-normalize ownership detection and restore narrow LF gitattributes for managed paths",
-    "status": "running",
-    "updated": "2026-11-09T19:15:31Z",
+    "status": "completed",
+    "updated": "2026-11-09T22:36:05Z",
     "tags": [
       "ovpr",
       "wave1",
@@ -28,21 +29,33 @@
       {
         "id": "5995-a1",
         "title": "EOL-normalized ownership compare",
-        "status": "pending",
+        "status": "completed",
         "effort": "M",
         "narrative": {
           "Acceptance": "Given a managed file differs from the expected bytes only by CRLF versus LF, when ownership/wrapper detection runs, then it treats the file as Directive-managed rather than user content.",
           "Traces": "#5995"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "756af2442a9dbca147d829e4fe91dc9a56faff07",
+          "recorded_at": "2026-11-09T22:35:25Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "5995-a2",
         "title": "Narrow LF gitattributes deposit",
-        "status": "pending",
+        "status": "completed",
         "effort": "S",
         "narrative": {
           "Acceptance": "Given setup/repair deposits managed-path attributes, when .gitattributes is written, then managed paths are pinned to LF without a broad repo-wide eol rewrite.",
           "Traces": "#5995"
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "756af2442a9dbca147d829e4fe91dc9a56faff07",
+          "recorded_at": "2026-11-09T22:35:25Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -72,7 +85,32 @@
         "file_scope_confidence": "high",
         "model_tier": "medium"
       },
-      "productPullRequest": 6151
+      "productPullRequest": 6151,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ebb51207455ca017d47486879f2fd286cff42acb",
+        "prNumber": 6151,
+        "prBase": "master",
+        "mergeCommit": "756af2442a9dbca147d829e4fe91dc9a56faff07",
+        "deliveryBranch": "master",
+        "deliveryCommit": "dc68ebbaa6a5ed7f810a64dbc395ff75921527e9",
+        "verifiedAt": "2026-11-09T22:36:05Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMWIxYjEtNzkzMS03NzgwLWI2N2QtYjQyY2JlMzI4OWQz"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-09T22:36:05Z",
+      "completedSessionId": "host:grok:v1:MDFhMWIxYjEtNzkzMS03NzgwLWI2N2QtYjQyY2JlMzI4OWQz",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-09T22:36:05Z"
+      }
     }
   }
 }
