@@ -119,11 +119,7 @@ function trackChange(projectRoot: string, rel: string, next: string): TrackResul
   if (prior === next) return { created: false, modified: false };
   // CRLF-vs-LF-only diffs are still Directive-managed; skip rewrite for non-shell
   // paths (#5995). Shell hooks still need LF bytes so `sh` can exec them (#6151 P1).
-  if (
-    prior !== null &&
-    contentsEqualIgnoringEol(prior, next) &&
-    !isShellHookEntrypoint(rel)
-  ) {
+  if (prior !== null && contentsEqualIgnoringEol(prior, next) && !isShellHookEntrypoint(rel)) {
     return { created: false, modified: false };
   }
   writeContained(projectRoot, rel, next);
