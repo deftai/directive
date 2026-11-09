@@ -11,7 +11,7 @@ import {
   runUpgrade,
 } from "./bookends.js";
 import { type ProjectInstallState, readProjectInstallState } from "./pin.js";
-import { compareExactVersions } from "./registry.js";
+import { compareExactVersions, resolvePublishedContract, unwrapNpmViewJson } from "./registry.js";
 
 const TEMPS: string[] = [];
 
@@ -821,5 +821,89 @@ describe("version-change upgrade (AC7.2 / AC7.4 / AC7.5 / AC7.9)", () => {
     );
     expect(code).toBe(2);
     expect(c.err() + c.out()).toMatch(/--yes/);
+  });
+});
+
+describe("npm view directive --json unwrap (#5916)", () => {
+  // Captured with: npx -y npm@12.2.1 view @deftai/directive-runtime@0.129.0 directive --json
+  const NPM12_DIRECTIVE_STDOUT = '[\n  {\n    "contract": 1\n  }\n]\n';
+  // Captured with npm 11.17.0 on the same package/field
+  const NPM11_DIRECTIVE_STDOUT = '{\n  "contract": 1\n}\n';
+
+  it("unwraps npm 12 single-element directive arrays", () => {
+    expect(unwrapNpmViewJson(NPM12_DIRECTIVE_STDOUT)).toEqual({
+      ok: true,
+      value: { contract: 1 },
+    });
+  });
+
+  it("keeps npm 11 bare directive objects", () => {
+    expect(unwrapNpmViewJson(NPM11_DIRECTIVE_STDOUT)).toEqual({
+      ok: true,
+      value: { contract: 1 },
+    });
+  });
+
+  it("fails closed on multi-element directive arrays", () => {
+    const result = unwrapNpmViewJson('[{"contract":1},{"contract":2}]');
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.message).toMatch(/refusing to pick arbitrarily/);
+  });
+
+  it("resolvePublishedContract accepts npm 12 array fixtures", () => {
+    const result = resolvePublishedContract("0.129.0", process.env, undefined, () => ({
+      status: 0,
+      stdout: NPM12_DIRECTIVE_STDOUT,
+      stderr: "",
+    }));
+    expect(result).toEqual({ ok: true, contract: 1 });
+  });
+
+  it("resolvePublishedContract accepts npm 11 object fixtures", () => {
+    const result = resolvePublishedContract("0.129.0", process.env, undefined, () => ({
+      status: 0,
+      stdout: NPM11_DIRECTIVE_STDOUT,
+      stderr: "",
+    }));
+    expect(result).toEqual({ ok: true, contract: 1 });
+  });
+
+  it("resolvePublishedContract still accepts single-key nested objects", () => {
+    const result = resolvePublishedContract("0.129.0", process.env, undefined, () => ({
+      status: 0,
+      stdout: '{"0.129.0":{"contract":1}}',
+      stderr: "",
+    }));
+    expect(result).toEqual({ ok: true, contract: 1 });
+  });
+
+  it("resolvePublishedContract fails closed on empty arrays", () => {
+    const result = resolvePublishedContract("0.129.0", process.env, undefined, () => ({
+      status: 0,
+      stdout: "[]",
+      stderr: "",
+    }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.message).toMatch(/empty array/);
+  });
+
+  it("resolvePublishedContract fails closed on non-object array elements", () => {
+    const result = resolvePublishedContract("0.129.0", process.env, undefined, () => ({
+      status: 0,
+      stdout: '["not-an-object"]',
+      stderr: "",
+    }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.message).toMatch(/not an object/);
+  });
+
+  it("resolvePublishedContract still rejects invalid contract values", () => {
+    const result = resolvePublishedContract("0.129.0", process.env, undefined, () => ({
+      status: 0,
+      stdout: '[{"contract":0}]',
+      stderr: "",
+    }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.message).toMatch(/invalid directive\.contract/);
   });
 });
