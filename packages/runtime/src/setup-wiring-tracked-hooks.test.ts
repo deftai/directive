@@ -127,3 +127,44 @@ describe("ensureGitHooks tracked divergent preserve (#5837)", () => {
     expect(isGitTrackedPath(root, ".githooks/pre-push")).toBe(false);
   });
 });
+
+describe("ensureGitHooks CRLF shell entrypoint repair (#5995 / #6151 P1)", () => {
+  it("rewrites CRLF-only managed hooks to LF even when EOL-normalized equal", () => {
+    const root = tempRepo();
+    // Seed desired OVPR bodies first, then convert on-disk bytes to CRLF (autocrlf checkout).
+    ensureGitHooks(root);
+    for (const rel of [
+      ".githooks/_directive-run.sh",
+      ".githooks/pre-commit",
+      ".githooks/pre-push",
+    ] as const) {
+      const lf = readFileSync(join(root, rel), "utf8");
+      expect(lf.includes("\r")).toBe(false);
+      writeHook(root, rel, lf.replace(/\n/g, "\r\n"));
+      expect(readFileSync(join(root, rel), "utf8").includes("\r\n")).toBe(true);
+    }
+
+    const out = ensureGitHooks(root);
+    expect(out.conflicts).toEqual([]);
+    expect(out.preserved).toEqual([]);
+    for (const rel of [
+      ".githooks/_directive-run.sh",
+      ".githooks/pre-commit",
+      ".githooks/pre-push",
+    ] as const) {
+      const body = readFileSync(join(root, rel), "utf8");
+      expect(body.includes("\r"), `${rel} must be LF after repair`).toBe(false);
+      expect(out.modified).toContain(rel);
+    }
+  });
+
+  it("still preserves tracked content-divergent hooks (not CRLF-only)", () => {
+    const root = tempRepo();
+    writeHook(root, ".githooks/pre-push", CUSTOM_PRE_PUSH.replace(/\n/g, "\r\n"));
+    track(root, ".githooks/pre-push");
+    const out = ensureGitHooks(root);
+    expect(out.preserved.join("\n")).toContain(".githooks/pre-push");
+    expect(out.modified).not.toContain(".githooks/pre-push");
+    expect(readFileSync(join(root, ".githooks/pre-push"), "utf8")).toContain("\r\n");
+  });
+});

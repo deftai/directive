@@ -1,6 +1,24 @@
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseArgs, run } from "./ownership-fix.js";
-import { contentsEqualIgnoringEol, normalizeEol } from "./setup-wiring.js";
+import {
+  contentsEqualIgnoringEol,
+  ensureManagedPathGitattributes,
+  ensureSlashCommands,
+  isShellHookEntrypoint,
+  normalizeEol,
+} from "./setup-wiring.js";
+
+const TEMPS: string[] = [];
+
+afterEach(() => {
+  while (TEMPS.length > 0) {
+    const p = TEMPS.pop();
+    if (p) rmSync(p, { recursive: true, force: true });
+  }
+});
 
 describe("ownership:fix CLI (#1617)", () => {
   afterEach(() => {
@@ -61,5 +79,64 @@ describe("EOL-normalized ownership/wrapper compare (#5995)", () => {
     const crlf = lf.replace(/\n/g, "\r\n");
     expect(contentsEqualIgnoringEol(lf, crlf)).toBe(true);
     expect(contentsEqualIgnoringEol(lf, lf.replace("path", "other"))).toBe(false);
+  });
+
+  it("isShellHookEntrypoint covers .githooks shell scripts and bare hook names", () => {
+    expect(isShellHookEntrypoint(".githooks/pre-commit")).toBe(true);
+    expect(isShellHookEntrypoint(".githooks/pre-push")).toBe(true);
+    expect(isShellHookEntrypoint(".githooks/_directive-run.sh")).toBe(true);
+    expect(isShellHookEntrypoint(".githooks/_deft-run.sh")).toBe(true);
+    expect(isShellHookEntrypoint(".agents/skills/deft/SKILL.md")).toBe(false);
+    expect(isShellHookEntrypoint(".claude/commands/foo.md")).toBe(false);
+  });
+});
+
+describe("ensureManagedPathGitattributes staging report (#5995 / #6151 P1)", () => {
+  it("reports created when .gitattributes is newly written", () => {
+    const root = mkdtempSync(join(tmpdir(), "attrs-created-"));
+    TEMPS.push(root);
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ name: "t" })}\n`);
+    const out = ensureManagedPathGitattributes(root);
+    expect(out.wrote).toBe(true);
+    expect(out.created).toBe(true);
+    expect(out.modified).toBe(false);
+    expect(readFileSync(join(root, ".gitattributes"), "utf8")).toContain(
+      ".githooks/** text=auto eol=lf",
+    );
+  });
+
+  it("reports modified when extending an existing .gitattributes", () => {
+    const root = mkdtempSync(join(tmpdir(), "attrs-modified-"));
+    TEMPS.push(root);
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ name: "t" })}\n`);
+    writeFileSync(join(root, ".gitattributes"), "*.md text\n");
+    const out = ensureManagedPathGitattributes(root);
+    expect(out.wrote).toBe(true);
+    expect(out.created).toBe(false);
+    expect(out.modified).toBe(true);
+  });
+
+  it("reports neither when attributes already complete", () => {
+    const root = mkdtempSync(join(tmpdir(), "attrs-skip-"));
+    TEMPS.push(root);
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ name: "t" })}\n`);
+    expect(ensureManagedPathGitattributes(root).wrote).toBe(true);
+    const second = ensureManagedPathGitattributes(root);
+    expect(second.wrote).toBe(false);
+    expect(second.created).toBe(false);
+    expect(second.modified).toBe(false);
+  });
+
+  it("ensureSlashCommands surfaces .gitattributes on created/modified lists", () => {
+    const root = mkdtempSync(join(tmpdir(), "attrs-slash-"));
+    TEMPS.push(root);
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ name: "t" })}\n`);
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    const first = ensureSlashCommands(root);
+    expect(first.created).toContain(".gitattributes");
+    expect(first.modified).not.toContain(".gitattributes");
+    const second = ensureSlashCommands(root);
+    expect(second.created).not.toContain(".gitattributes");
+    expect(second.modified).not.toContain(".gitattributes");
   });
 });

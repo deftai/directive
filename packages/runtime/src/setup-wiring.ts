@@ -89,6 +89,17 @@ export function contentsEqualIgnoringEol(a: string, b: string): boolean {
   return normalizeEol(a) === normalizeEol(b);
 }
 
+/**
+ * `.githooks` shell entrypoints must be LF on disk for `sh` (#5995 / PR #6151 P1).
+ * Ownership stays EOL-insensitive; these paths still rewrite CRLF-only drift.
+ */
+export function isShellHookEntrypoint(rel: string): boolean {
+  const posix = rel.replace(/\\/g, "/");
+  if (!posix.startsWith(".githooks/")) return false;
+  const base = posix.slice(posix.lastIndexOf("/") + 1);
+  return base.endsWith(".sh") || !base.includes(".");
+}
+
 function writeContained(projectRoot: string, relPath: string, body: string): void {
   containedWrite({
     root: projectRoot,
@@ -106,8 +117,13 @@ function relPosix(...parts: string[]): string {
 function trackChange(projectRoot: string, rel: string, next: string): TrackResult {
   const prior = readText(join(projectRoot, rel));
   if (prior === next) return { created: false, modified: false };
-  // CRLF-vs-LF-only diffs are still Directive-managed; do not rewrite (#5995).
-  if (prior !== null && contentsEqualIgnoringEol(prior, next)) {
+  // CRLF-vs-LF-only diffs are still Directive-managed; skip rewrite for non-shell
+  // paths (#5995). Shell hooks still need LF bytes so `sh` can exec them (#6151 P1).
+  if (
+    prior !== null &&
+    contentsEqualIgnoringEol(prior, next) &&
+    !isShellHookEntrypoint(rel)
+  ) {
     return { created: false, modified: false };
   }
   writeContained(projectRoot, rel, next);
@@ -380,9 +396,18 @@ function isManagedSlashWrapper(raw: string, file: HostEmittedFile, next: string)
 /**
  * Deposit narrow LF .gitattributes for managed wiring paths (#5995).
  * Reuses scaffold ensureGitattributes (core markers + managed wiring lines).
+ * Reports created/modified so install/upgrade staging commits the pins (#6151 P1).
  */
-export function ensureManagedPathGitattributes(projectRoot: string): boolean {
-  return ensureGitattributes(projectRoot, { printf: () => undefined });
+export function ensureManagedPathGitattributes(projectRoot: string): {
+  created: boolean;
+  modified: boolean;
+  wrote: boolean;
+} {
+  const attrsRel = ".gitattributes";
+  const prior = readText(join(projectRoot, attrsRel));
+  const wrote = ensureGitattributes(projectRoot, { printf: () => undefined });
+  if (!wrote) return { created: false, modified: false, wrote: false };
+  return { created: prior === null, modified: prior !== null, wrote: true };
 }
 
 /**
@@ -396,10 +421,12 @@ export function ensureSlashCommands(projectRoot: string): {
   conflicts: string[];
 } {
   // Pin managed wiring paths to LF before compare/deposit (#5995).
-  ensureManagedPathGitattributes(projectRoot);
+  const attrs = ensureManagedPathGitattributes(projectRoot);
   const created: string[] = [];
   const modified: string[] = [];
   const conflicts: string[] = [];
+  if (attrs.created) created.push(".gitattributes");
+  else if (attrs.modified) modified.push(".gitattributes");
   const policy = loadHostSlashCommandsPolicyFromProject(projectRoot);
   for (const hostId of listSlashEmitterHosts()) {
     if (!isHostSlashCommandDepositEnabled(hostId, policy)) continue;
