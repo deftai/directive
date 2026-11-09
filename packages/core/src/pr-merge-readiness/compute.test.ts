@@ -595,34 +595,7 @@ describe("pr:merge-ready closeout invoker (#3875)", () => {
       },
     );
     expect(result.via).toBe("error");
-  });
-
-  it("carries lifecycle-dirty reason into partial_data.closeout_attestable (#6128)", () => {
-    const result = computeGateResult(
-      3875,
-      "deftai/directive",
-      fakeRunGh({
-        commentBody: cleanGreptileBody(HEAD),
-        mergeableState: "clean",
-        mergeable: true,
-      }),
-      {
-        skipCi: true,
-        skipSlizard: true,
-        skipNamedMergeGate: true,
-        closeoutAttestableFn: () => ({
-          code: 2,
-          message: "verify:pr-closeout-attestable: lifecycle tree dirty",
-          reason: "lifecycle-dirty",
-        }),
-      },
-    );
-    expect(result.via).toBe("error");
-    expect((result.partialData as Record<string, unknown>).closeout_attestable).toEqual({
-      code: 2,
-      message: "verify:pr-closeout-attestable: lifecycle tree dirty",
-      reason: "lifecycle-dirty",
-    });
+    expect(result.error).toContain("not PR head");
   });
 
   it("keeps Greptile-clean when closeout is clean", () => {

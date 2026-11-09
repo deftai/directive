@@ -6,7 +6,6 @@ import {
   EXIT_ABSENT_REQUIRED,
   EXIT_CAP_REACHED,
   EXIT_CLEAN,
-  EXIT_CONFIG_ERROR,
   EXIT_PR_TERMINAL,
 } from "./constants.js";
 import {
@@ -14,7 +13,6 @@ import {
   isTerminalPrState,
   mergeStateFromPayload,
   monitor,
-  readCloseoutAttestableOnePoll,
   sleepWithCadenceHeartbeats,
   truncateBlockedOn,
 } from "./monitor.js";
@@ -742,123 +740,5 @@ describe("monitor loop", () => {
     expect(result.pollCount).toBe(2);
     expect(result.payload.monitor_absent_required).toEqual(["Greptile Review"]);
     expect(emitted).toContain("ABSENT-REQUIRED: Greptile Review");
-  });
-});
-
-describe("monitor Prefer-A #6128 one-poll terminal", () => {
-  it("readCloseoutAttestableOnePoll matches named reasons only", () => {
-    expect(
-      readCloseoutAttestableOnePoll({
-        partial_data: {
-          closeout_attestable: {
-            code: 2,
-            message: "verify:pr-closeout-attestable: dirty",
-            reason: "lifecycle-dirty",
-          },
-        },
-      }),
-    ).toEqual({
-      reason: "lifecycle-dirty",
-      message: "verify:pr-closeout-attestable: dirty",
-    });
-    expect(
-      readCloseoutAttestableOnePoll({
-        partial_data: {
-          closeout_attestable: { code: 2, message: "other", reason: "something-else" },
-        },
-      }),
-    ).toBeNull();
-    expect(
-      readCloseoutAttestableOnePoll({
-        partial_data: { closeout_attestable: { code: 2, message: "no reason" } },
-      }),
-    ).toBeNull();
-  });
-
-  it("one-poll EXIT_CONFIG_ERROR for lifecycle-dirty and writes message verbatim", () => {
-    const clock = new FakeClock();
-    const sleep = vi.fn();
-    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    const msg =
-      'verify:pr-closeout-attestable: lifecycle tree under /tmp has uncommitted xbrief/vbrief changes (D  xbrief/active/story.xbrief.json). Closeout reads the committed PR-head brief. Deletions-only lifecycle dirt (Approach1 sole-pin un-pin). Restore with:\n  git -C "/tmp" checkout HEAD -- xbrief/active/story.xbrief.json\nThen retry closeout / wait-mergeable.';
-    try {
-      const result = monitor(42, "deftai/directive", {
-        capMinutes: 10,
-        clockFn: clock,
-        sleepFn: sleep,
-        callReadinessFn: makeCallLog({
-          via: "error",
-          merge_ready: false,
-          failures: [msg],
-          partial_data: {
-            closeout_attestable: { code: 2, message: msg, reason: "lifecycle-dirty" },
-          },
-        }),
-      });
-      expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
-      expect(result.pollCount).toBe(1);
-      const writes = stderrSpy.mock.calls.map((c) => String(c[0] ?? "")).join("");
-      expect(writes).toContain(msg);
-    } finally {
-      stderrSpy.mockRestore();
-    }
-  });
-
-  it("transient closeout code 2 without named reason still retries", () => {
-    const clock = new FakeClock();
-    const sleep = vi.fn((sec: number) => {
-      clock.value += sec;
-    });
-    const result = monitor(42, "deftai/directive", {
-      capMinutes: 10,
-      clockFn: clock,
-      sleepFn: sleep,
-      callReadinessFn: makeCallLog(
-        {
-          via: "error",
-          merge_ready: false,
-          failures: ["verify:pr-closeout-attestable: cannot read PR head SHA"],
-          partial_data: {
-            closeout_attestable: {
-              code: 2,
-              message: "verify:pr-closeout-attestable: cannot read PR head SHA",
-            },
-          },
-        },
-        {
-          via: "primary",
-          merge_ready: true,
-          head_sha: HEAD_SHA,
-          failures: [],
-          partial_data: { mergeability: { mergeable_state: "clean", mergeable: true } },
-        },
-      ),
-    });
-    expect(result.exitCode).toBe(EXIT_CLEAN);
-    expect(result.pollCount).toBe(2);
-    expect(sleep).toHaveBeenCalled();
-  });
-
-  it("brief-root-layout-missing is one-poll terminal", () => {
-    const clock = new FakeClock();
-    const result = monitor(42, "deftai/directive", {
-      capMinutes: 10,
-      clockFn: clock,
-      sleepFn: vi.fn(),
-      callReadinessFn: makeCallLog({
-        via: "error",
-        merge_ready: false,
-        failures: ["layout missing"],
-        partial_data: {
-          closeout_attestable: {
-            code: 2,
-            message: "selected PR-head worktree has no xbrief layout",
-            reason: "brief-root-layout-missing",
-          },
-        },
-      }),
-    });
-    expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
-    expect(result.pollCount).toBe(1);
   });
 });
