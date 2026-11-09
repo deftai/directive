@@ -92,10 +92,35 @@ const CORE_GITATTRIBUTES_LINES = [
   `${CORE_GLOB} linguist-vendored=true`,
 ];
 
+/**
+ * Narrow LF pins for OVPR managed wiring paths (#5995).
+ * Not a repo-wide `*` rewrite — only Directive-deposited host/command/hook/skill surfaces.
+ */
+export const MANAGED_WIRING_GITATTRIBUTES_LINES = [
+  ".claude/commands/** text=auto eol=lf",
+  ".cursor/commands/** text=auto eol=lf",
+  ".grok/commands/** text=auto eol=lf",
+  ".codex/prompts/** text=auto eol=lf",
+  ".agents/skills/** text=auto eol=lf",
+  ".claude/skills/** text=auto eol=lf",
+  ".cursor/skills/** text=auto eol=lf",
+  ".codex/skills/** text=auto eol=lf",
+  ".github/skills/** text=auto eol=lf",
+  ".githooks/** text=auto eol=lf",
+  ".grok/hooks/** text=auto eol=lf",
+  "AGENTS.md text=auto eol=lf",
+] as const;
+
+/** All attribute lines ensureGitattributes deposits (core markers + #5995 managed wiring). */
+export const DESIRED_GITATTRIBUTES_LINES = [
+  ...CORE_GITATTRIBUTES_LINES,
+  ...MANAGED_WIRING_GITATTRIBUTES_LINES,
+] as const;
+
 /** Exact legacy forced-text line removed on refresh (#5245 / #1430). */
 export const LEGACY_CORE_TEXT_EOL_LF = `${CORE_GLOB} text eol=lf` as const;
 
-/** Comment for the lines being appended in this write (#5463). */
+/** Comment for the lines being appended in this write (#5463 / #5995). */
 export function gitattributesDepositComment(additions: readonly string[]): string {
   const hasGenerated = additions.some((line) => line.includes("linguist-generated"));
   const hasVendored = additions.some((line) => line.includes("linguist-vendored"));
@@ -104,6 +129,25 @@ export function gitattributesDepositComment(additions: readonly string[]): strin
       "# Deft framework: the vendored payload is packaged framework code, not\n" +
       "# consumer source. text=auto + eol=lf normalizes text only; binaries keep\n" +
       "# byte identity. Mark generated + vendored (#1430, #2118, #5245).\n"
+    );
+  }
+  const hasCoreLine = additions.some((line) =>
+    (CORE_GITATTRIBUTES_LINES as readonly string[]).includes(line),
+  );
+  if (hasCoreLine) {
+    return (
+      "# Deft framework: the vendored payload is packaged framework code, not\n" +
+      "# consumer source. text=auto + eol=lf normalizes text only; binaries keep\n" +
+      "# byte identity (#5245).\n"
+    );
+  }
+  const hasManagedWiring = additions.some((line) =>
+    (MANAGED_WIRING_GITATTRIBUTES_LINES as readonly string[]).includes(line),
+  );
+  if (hasManagedWiring) {
+    return (
+      "# Deft managed wiring: pin Directive-deposited host/command/hook/skill paths\n" +
+      "# to LF so Windows core.autocrlf checkouts stay ownership-comparable (#5995).\n"
     );
   }
   return (
@@ -913,11 +957,9 @@ export function ensureGitattributes(projectDir: string, io: InitDepositIo): bool
   const present = new Set(
     withoutLegacy.map((line) => line.trim()).filter((line) => line.length > 0),
   );
-  const additions = CORE_GITATTRIBUTES_LINES.filter((line) => !present.has(line));
+  const additions = DESIRED_GITATTRIBUTES_LINES.filter((line) => !present.has(line));
   if (additions.length === 0 && !removedLegacy) {
-    io.printf(
-      `.gitattributes already marks ${CORE_GLOB} as text=auto/generated/vendored — skipping.\n`,
-    );
+    io.printf(`.gitattributes already marks ${CORE_GLOB} and managed wiring paths — skipping.\n`);
     return false;
   }
   let body = withoutLegacy.join("\n");
@@ -935,7 +977,7 @@ export function ensureGitattributes(projectDir: string, io: InitDepositIo): bool
   const parts: string[] = [];
   if (removedLegacy) parts.push(`removed ${LEGACY_CORE_TEXT_EOL_LF}`);
   if (additions.length > 0) parts.push(`added ${additions.join(", ")}`);
-  io.printf(`.gitattributes updated with Deft core markers: ${parts.join("; ")}\n`);
+  io.printf(`.gitattributes updated with Deft markers: ${parts.join("; ")}\n`);
   return true;
 }
 

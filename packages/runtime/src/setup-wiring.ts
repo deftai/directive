@@ -31,6 +31,11 @@ import {
   isHostHookOuterCommand,
 } from "@deftai/directive-core/dist/init-deposit/agent-hooks.js";
 import {
+  DESIRED_GITATTRIBUTES_LINES,
+  ensureGitattributes,
+  LEGACY_CORE_TEXT_EOL_LF,
+} from "@deftai/directive-core/dist/init-deposit/scaffold.js";
+import {
   INSTALLATION_RECOVERY_GUIDANCE,
   RUNTIME_PACKAGE_PATH_PREFIX,
 } from "@deftai/directive-core/dist/install-health/constants.js";
@@ -78,6 +83,27 @@ function readText(path: string): string | null {
   }
 }
 
+/** Normalize CRLF/CR to LF for ownership/wrapper equality (#5995). */
+export function normalizeEol(text: string): string {
+  return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+}
+
+/** True when two texts differ only by end-of-line convention (#5995). */
+export function contentsEqualIgnoringEol(a: string, b: string): boolean {
+  return normalizeEol(a) === normalizeEol(b);
+}
+
+/**
+ * `.githooks` shell entrypoints must be LF on disk for `sh` (#5995 / PR #6151 P1).
+ * Ownership stays EOL-insensitive; these paths still rewrite CRLF-only drift.
+ */
+export function isShellHookEntrypoint(rel: string): boolean {
+  const posix = rel.replace(/\\/g, "/");
+  if (!posix.startsWith(".githooks/")) return false;
+  const base = posix.slice(posix.lastIndexOf("/") + 1);
+  return base.endsWith(".sh") || !base.includes(".");
+}
+
 function writeContained(projectRoot: string, relPath: string, body: string): void {
   containedWrite({
     root: projectRoot,
@@ -95,6 +121,11 @@ function relPosix(...parts: string[]): string {
 function trackChange(projectRoot: string, rel: string, next: string): TrackResult {
   const prior = readText(join(projectRoot, rel));
   if (prior === next) return { created: false, modified: false };
+  // CRLF-vs-LF-only diffs are still Directive-managed; skip rewrite for non-shell
+  // paths (#5995). Shell hooks still need LF bytes so `sh` can exec them (#6151 P1).
+  if (prior !== null && contentsEqualIgnoringEol(prior, next) && !isShellHookEntrypoint(rel)) {
+    return { created: false, modified: false };
+  }
   writeContained(projectRoot, rel, next);
   return { created: prior === null, modified: prior !== null };
 }
@@ -348,16 +379,137 @@ function ovprSlashWrapperContents(file: HostEmittedFile): string {
  * (legacy .deft/core teaching or package-relative OVPR form).
  */
 function isManagedSlashWrapper(raw: string, file: HostEmittedFile, next: string): boolean {
-  if (raw === next) return true;
-  if (isThinWrapperMarkdown(raw, file.dispatchPath)) return true;
+  const rawN = normalizeEol(raw);
+  const nextN = normalizeEol(next);
+  if (rawN === nextN) return true;
+  if (isThinWrapperMarkdown(rawN, file.dispatchPath)) return true;
   // Already-rewritten OVPR wrapper: still thin + points at this dispatch path.
   return (
-    raw.startsWith("---\n") &&
-    raw.includes(file.dispatchPath) &&
-    (raw.includes(RUNTIME_PREFIX) || raw.includes(".deft/core/")) &&
-    raw.includes("Read and follow") &&
-    raw.includes("Do not inline")
+    rawN.startsWith("---\n") &&
+    rawN.includes(file.dispatchPath) &&
+    (rawN.includes(RUNTIME_PREFIX) || rawN.includes(".deft/core/")) &&
+    rawN.includes("Read and follow") &&
+    rawN.includes("Do not inline")
   );
+}
+
+/**
+ * True when `rel` has unstaged worktree edits vs the index (#6151 P1).
+ * No repo / no git / clean path → false (safe to report modified for staging).
+ */
+export function pathHasUnstagedChanges(projectRoot: string, rel: string): boolean {
+  try {
+    const out = execFileSync("git", ["-C", projectRoot, "diff", "--name-only", "--", rel], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    return out.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/** Left-unstaged disclosure when LF pins land on a dirty `.gitattributes` (#6151 P1). */
+export const GITATTRIBUTES_STAGING_SKIPPED_DIRTY =
+  ".gitattributes had unstaged local edits; LF pins were written but left unstaged so install/upgrade does not git add unrelated user changes (#6151 P1)";
+
+const DESIRED_GITATTRIBUTES_LINE_SET = new Set<string>([
+  ...(DESIRED_GITATTRIBUTES_LINES as readonly string[]),
+  LEGACY_CORE_TEXT_EOL_LF,
+]);
+
+/**
+ * True when every attribute line is a known Directive core/managed marker (or
+ * Deft deposit comment). Foreign rules mean the file is not pure Directive-owned
+ * (#6151 P1 dirty-skip heuristic).
+ */
+export function isDirectiveManagedGitattributes(content: string): boolean {
+  for (const raw of normalizeEol(content).split("\n")) {
+    const line = raw.trim();
+    if (line.length === 0) continue;
+    if (line.startsWith("#")) {
+      if (
+        line.startsWith("# Deft framework:") ||
+        line.startsWith("# Deft managed wiring:") ||
+        line.startsWith("# consumer source.") ||
+        line.startsWith("# byte identity") ||
+        line.startsWith("# to LF so Windows")
+      ) {
+        continue;
+      }
+      return false;
+    }
+    if (!DESIRED_GITATTRIBUTES_LINE_SET.has(line)) return false;
+  }
+  return true;
+}
+
+/** True when `rel` exists in the worktree but is not tracked (git repo only). */
+function pathIsUntrackedInRepo(projectRoot: string, rel: string): boolean {
+  try {
+    execFileSync("git", ["-C", projectRoot, "rev-parse", "--is-inside-work-tree"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    return false;
+  }
+  try {
+    execFileSync("git", ["-C", projectRoot, "ls-files", "--error-unmatch", "--", rel], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    return false;
+  } catch {
+    return existsSync(join(projectRoot, rel));
+  }
+}
+
+/**
+ * Deposit narrow LF .gitattributes for managed wiring paths (#5995).
+ * Reuses scaffold ensureGitattributes (core markers + managed wiring lines).
+ * Reports created/modified so install/upgrade staging commits the pins (#6151 P1).
+ * When the path already has unstaged user edits (or an untracked foreign file),
+ * still appends missing pins but does not report modified (avoids staging WIP).
+ */
+export function ensureManagedPathGitattributes(projectRoot: string): {
+  created: boolean;
+  modified: boolean;
+  wrote: boolean;
+  stagingSkippedNotice?: string;
+} {
+  const attrsRel = ".gitattributes";
+  const prior = readText(join(projectRoot, attrsRel));
+  // Compute dirty signal before write — post-write `git diff` is true for clean
+  // pin appends too, so it cannot alone decide staging (#6151 P1).
+  const hadUnstagedEdits = prior !== null && pathHasUnstagedChanges(projectRoot, attrsRel);
+  const untrackedForeign =
+    prior !== null &&
+    !isDirectiveManagedGitattributes(prior) &&
+    pathIsUntrackedInRepo(projectRoot, attrsRel);
+  const wrote = ensureGitattributes(projectRoot, { printf: () => undefined });
+  if (!wrote) return { created: false, modified: false, wrote: false };
+  if (prior === null) return { created: true, modified: false, wrote: true };
+
+  const next = readText(join(projectRoot, attrsRel)) ?? "";
+  // After write: confirm unstaged still, or foreign prior that changed and was
+  // already dirty/untracked — never stage unfinished user WIP with the pins.
+  const stillUnstaged = pathHasUnstagedChanges(projectRoot, attrsRel);
+  const priorForeignChanged =
+    !isDirectiveManagedGitattributes(prior) && !contentsEqualIgnoringEol(prior, next);
+  const treatAsDirty =
+    hadUnstagedEdits ||
+    untrackedForeign ||
+    (stillUnstaged && priorForeignChanged && (hadUnstagedEdits || untrackedForeign));
+  if (treatAsDirty) {
+    return {
+      created: false,
+      modified: false,
+      wrote: true,
+      stagingSkippedNotice: GITATTRIBUTES_STAGING_SKIPPED_DIRTY,
+    };
+  }
+  return { created: false, modified: true, wrote: true };
 }
 
 /**
@@ -369,10 +521,22 @@ export function ensureSlashCommands(projectRoot: string): {
   created: string[];
   modified: string[];
   conflicts: string[];
+  notices: string[];
 } {
+  // Pin managed wiring paths to LF before compare/deposit (#5995).
+  const attrs = ensureManagedPathGitattributes(projectRoot);
   const created: string[] = [];
   const modified: string[] = [];
   const conflicts: string[] = [];
+  const notices: string[] = [];
+  if (attrs.created) {
+    created.push(".gitattributes");
+  } else if (attrs.stagingSkippedNotice) {
+    notices.push(attrs.stagingSkippedNotice);
+    // deliberately omit from modified — dirty user WIP must not be git-added
+  } else if (attrs.modified && attrs.wrote) {
+    modified.push(".gitattributes");
+  }
   const policy = loadHostSlashCommandsPolicyFromProject(projectRoot);
   for (const hostId of listSlashEmitterHosts()) {
     if (!isHostSlashCommandDepositEnabled(hostId, policy)) continue;
@@ -380,7 +544,11 @@ export function ensureSlashCommands(projectRoot: string): {
       const body = ovprSlashWrapperContents(file);
       const next = body.endsWith("\n") ? body : `${body}\n`;
       const prior = readText(join(projectRoot, file.relativePath));
-      if (prior !== null && prior !== next && !isManagedSlashWrapper(prior, file, next)) {
+      if (
+        prior !== null &&
+        !contentsEqualIgnoringEol(prior, next) &&
+        !isManagedSlashWrapper(prior, file, next)
+      ) {
         conflicts.push(
           `${file.relativePath}: existing command is not a Directive-managed wrapper; refusing to overwrite`,
         );
@@ -391,7 +559,7 @@ export function ensureSlashCommands(projectRoot: string): {
       else if (change.modified) modified.push(file.relativePath);
     }
   }
-  return { created, modified, conflicts };
+  return { created, modified, conflicts, notices };
 }
 
 /**
@@ -853,7 +1021,7 @@ export function ensureHostHooks(
       if (prior === null) continue;
       const stripped = spec.strip(readJsonObject(abs));
       const next = `${JSON.stringify(stripped, null, 2)}\n`;
-      if (prior === next) continue;
+      if (prior === next || contentsEqualIgnoringEol(prior, next)) continue;
       writeContained(projectRoot, spec.rel, next);
       modified.push(spec.rel);
       continue;
@@ -861,7 +1029,7 @@ export function ensureHostHooks(
     const base = prior === null ? {} : readJsonObject(abs);
     const merged = spec.merge(base);
     const next = `${JSON.stringify(merged, null, 2)}\n`;
-    if (prior === next) continue;
+    if (prior === next || (prior !== null && contentsEqualIgnoringEol(prior, next))) continue;
     writeContained(projectRoot, spec.rel, next);
     if (prior === null) created.push(spec.rel);
     else modified.push(spec.rel);
@@ -875,7 +1043,7 @@ export function ensureHostHooks(
     const enabled = isHostHookDepositEnabled(host, hostHooksPolicy);
     if (enabled) {
       const prior = readText(join(projectRoot, rel));
-      if (prior !== outerSource) {
+      if (prior === null || !contentsEqualIgnoringEol(prior, outerSource)) {
         writeContained(projectRoot, rel, outerSource);
         if (prior === null) created.push(rel);
         else modified.push(rel);
@@ -1046,7 +1214,11 @@ export function ensureGitHooks(
     const rawNext = override ?? file.body;
     const next = rawNext.endsWith("\n") ? rawNext : `${rawNext}\n`;
     const prior = readText(join(projectRoot, file.rel));
-    if (prior !== null && prior !== next && !isOurGitHookBody(file.rel, prior)) {
+    if (
+      prior !== null &&
+      !contentsEqualIgnoringEol(prior, next) &&
+      !isOurGitHookBody(file.rel, prior)
+    ) {
       conflicts.push(
         `${file.rel}: existing hook is not Directive-managed; refusing to overwrite (chain or remove manually)`,
       );
@@ -1054,7 +1226,12 @@ export function ensureGitHooks(
     }
     // Tracked divergent preserve (#5837): never overwrite a committed hook body,
     // even a Directive-managed one, unless the operator forced the replace.
-    if (prior !== null && prior !== next && !force && isGitTrackedPath(projectRoot, file.rel)) {
+    if (
+      prior !== null &&
+      !contentsEqualIgnoringEol(prior, next) &&
+      !force &&
+      isGitTrackedPath(projectRoot, file.rel)
+    ) {
       preserved.push(formatTrackedHookPreserved(file.rel));
       continue;
     }
