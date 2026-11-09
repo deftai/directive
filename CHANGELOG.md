@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 7 maintainer local checkout closeout via `task release:local-update -- <version> --checkout <primary>` after a release (fail-closed; no global npm i -g). Refs #5953.
 
 ### Changed
+- Activate OVPR Wave 1 stable-state running xBRIEFs for #5916 (npm12 registry array unwrap), #5996 (check pin-root), #6013/#5893 (pin-mismatch recovery guidance), #5997/#5998 (Windows deft-hook/ps1), and #5995 (Windows autocrlf ownership) so swarm:launch can bind merge-base file_scope.
 - Activate Prefer-A Bound running xBRIEFs for #6021 (pnpm packageManager security pin), #5983 (Grok human-presence mint markers), #5953 (release Phase 7 maintainer local checkout update), and #6122 (operator-disable eligibility lock) so product implement can proceed under the write fence.
 
 - Keep read-only session recovery from overwriting a live owner's applying-host identity, and report deferred publish honestly in CLI text/JSON (#6101).
@@ -28,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Operator-disable (`.deft-directive-disable`) override is eligible only for a project-root non-symlink regular file after a successful untracked `git ls-files` listing; tracked, wrong-kind, and indeterminate Git/filesystem probes keep enforcement (or host fail-closed) and are never cached as untracked. Host outers use the same lstat + listing predicate. Refs #6034.
 
 ### Fixed
+- When wait-mergeable hits a dirty xbrief/vbrief lifecycle tree (or a brief-less PR-head sibling while another SHA match has briefs), closeout fails once with a named reason and restorative remediation instead of polling until cap (#6128).
 - Record tracked completion for packageManager pnpm security pin raise (#6021).
 - Record tracked completion for Grok human-presence mint markers (#5983).
 - Record tracked completion for release Phase 7 maintainer local-update (#5953).
