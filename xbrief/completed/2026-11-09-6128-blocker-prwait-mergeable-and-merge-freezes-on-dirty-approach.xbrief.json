@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "BLOCKER: pr:wait-mergeable-and-merge freezes on dirty Approach1 babysit xbrief/active parking",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "BLOCKER: pr:wait-mergeable-and-merge freezes on dirty Approach1 babysit xbrief/active parking",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6128",
@@ -18,77 +18,77 @@
     "items": [
       {
         "title": "relieves: P1 — Prefer-clean ranking with threaded classifier — Sort SHA-matching linked worktrees by path first from one porcelain list read inside findWorktreeAtSha; wire both call sites so the default path invokes findWorktreeAtSha(root, sha, classify) while ResolveWorktreeAtShaFn stays two-argument for injectors; return the first lifecycle-clean match; exclude prunable/gone candidates using the parsed prunable attribute from that same list read so all-dirty never returns a gone path without reason.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1"
       },
       {
         "title": "relieves: P1 — Real-git ranking locks named — Name dirty-first/clean-second, dirty caller at tip selecting clean sibling, all-dirty ranked-found, and brief-less-selected-over-briefed as real-git on-disk locks exercising findWorktreeAtSha with checkLifecycleDirty true, not injected resolveWorktreeAtSha doubles.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2"
       },
       {
         "title": "relieves: P1 — Caller-at-tip dirty still enumerates siblings — When the caller root already matches the PR head but is lifecycle-dirty, treat that root as candidate zero ahead of path order among non-clean candidates, dedupe after resolve() on both sides, and still enumerate sibling SHA matches.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3"
       },
       {
         "title": "relieves: P1 — Candidate-zero dirty lookup degrades to dirty refuse — When candidate zero is already known non-clean and the ranked lookup returns error, refuse with that candidate-zero dirty or unverifiable state and reason rather than the lookup-unverified message.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4"
       },
       {
         "title": "relieves: P1 — All-dirty returns ranked non-clean found path — When every SHA match is dirty or unverifiable, return status found with the ranked-first existing non-clean path and never signal absent on that case.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5"
       },
       {
         "title": "relieves: P1 — Caller-with-briefs redirect never nothingToCheck — When the caller already has a lifecycle root and selected briefRoot hits either evaluate no-xbrief-layout catch or !existsSync(lifecycleRoot), return configError naming both roots with reason brief-root-layout-missing matched at the one-poll arm.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6"
       },
       {
         "title": "relieves: P1 — Brief-less selected over briefed sibling — While ranking, record whether another SHA match has an xbrief layout; carry that boolean on found with documented false default for two-arg injectors; on the no-local-lifecycle entry when selected briefRoot has no layout and that boolean is true, return configError with reason brief-root-layout-missing rather than nothingToCheck code 0; when no SHA match has briefs, keep nothingToCheck.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7"
       },
       {
         "title": "relieves: P1 — Selection probe advisory refuse authoritative — Keep the post-selection three-state probe on the chosen root so a race after the ranking probe still fails closed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8"
       },
       {
         "title": "relieves: P2 — Classifier carries full porcelain entries — The new exported three-state classifier returns status plus parsed entries {x,y,path} with porcelain C-quoting undone; the three-line display sample is derived at the refuse site only; classification and pathspec derivation read entries[]; replace PrHeadAssertOptions.resolveLifecycleDirty with the classifier seam at both in-scope call sites; keep exported resolveLifecycleDirty behaviour-identical as a thin wrapper — null for clean, three-entry join for dirty, unverifiable sentinel string for unverifiable — for semantic-green; stamp reason lifecycle-dirty only for dirty; leave unverifiable on poll-until-cap without a discard remediation line; lock real resolveLifecycleDirty against unreadable status returns non-null.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9"
       },
       {
         "title": "relieves: P2 — Dual-site reason birthplace — Stamp reason lifecycle-dirty at refuseDirtyLifecycle and the inline no-local-lifecycle refuse; carry on PrHeadAssertFail and PrCloseoutAttestableResult through CloseoutAttestableGateFn and defaultCloseoutAttestable into partial_data.closeout_attestable.reason.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10"
       },
       {
         "title": "relieves: P2 — Classifier seam arms checkDirty — Include the classifier seam in the checkDirty predicate; negative locks assert classifier call count ≥ 1.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11"
       },
       {
         "title": "relieves: P2 — One-poll terminal insertion point — In monitor, after isTerminalPrState and before the absent-required arm, return EXIT_CONFIG_ERROR on the same poll when reason is lifecycle-dirty or brief-root-layout-missing.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12"
       },
       {
         "title": "relieves: P3 — Deletion-restorative remediation inside refuse — At refuseDirtyLifecycle and the evaluate inline twin, classify tracked codes only: deletions-only → append git -C \"<dirty-root>\" checkout HEAD -- <deleted-paths> noting Approach1 un-pin, regardless of untracked entries; any tracked M/A/R → no bare checkout (scope to deleted paths naming excluded modified entries, or no checkout plus commit-and-push/discard prose without unqualified stash); no tracked dirt → no checkout command with commit-and-push/discard prose; never emit git stash push -u.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13"
       },
       {
         "title": "relieves: P3 — Monitor arm writes message verbatim — On the one-poll arm write process.stderr.write of closeout_attestable.message untruncated with no append/parse; lock that write in packages/core/src/pr-monitor/monitor.test.ts and lock remediation text in packages/core/src/pr-closeout-attestable/pr-head-assert.test.ts / packages/core/src/pr-closeout-attestable/evaluate.test.ts.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14"
       },
       {
         "title": "relieves: P1, P2, P3 — Regression locks — Cover the named real-git ranking locks including brief-less-selected-over-briefed, dirty caller at tip with worktree-list error still one-poll lifecycle-dirty, dirty-only one-poll with refuse containing birthplace remediation including no-local-lifecycle, all-dirty ranked-found asserting reason and one-poll on an existing path, brief-root-layout-missing one-poll on caller-with-briefs and briefed-sibling cases, deletions-only/modify/untracked remediation branches, unreadable status never clean never one-poll-terminal never printing discard with classifier call count ≥ 1 and resolveLifecycleDirty unverifiable non-null, transient external closeout code 2 without those reasons still retrying, and existing semantic-green suite stays green under behaviour-identical resolveLifecycleDirty.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15"
       }
     ],
@@ -1947,7 +1947,25 @@
       "productPullRequest": 6137,
       "mergeCommit": "50115917c7afb7485a1780cfef3a831de62d7270",
       "completedAt": "2026-11-09T17:30:56.081Z",
-      "status": "completed"
+      "status": "completed",
+      "x-directive/productPullRequest": 6137,
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": "completed",
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6137,
+        "pullRequestNumber": 6137,
+        "mergeCommit": "50115917c7afb7485a1780cfef3a831de62d7270",
+        "deliveryCommit": "50115917c7afb7485a1780cfef3a831de62d7270",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-09T17:48:38.332Z",
+        "verifiedAt": "2026-11-09T17:48:38.332Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "parent-through-merge",
+        "repository": "deftai/directive"
+      }
     },
     "id": "github.issue.6278206738",
     "updated": "2026-11-09T14:55:29Z"
