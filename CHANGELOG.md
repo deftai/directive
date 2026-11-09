@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phase 7 maintainer local checkout closeout via `task release:local-update -- <version> --checkout <primary>` after a release (fail-closed; no global npm i -g). Refs #5953.
 
 ### Changed
+- Widen #6013/#5893 running xBRIEF file_scope to include hook-identity-failclosed.test.ts (remint ovpr-w1-6013) so pin≠installed fixture can update with product guidance.
 - Prepare kill-switch plant deny so agents cannot self-serve `.deft-directive-disable` outside a human grant (Refs #6136).
 - Prepare a pin-bin ensure-arc-dest path so stale local dist cannot skip guarded-prep for design-critique arcs (Refs #6142).
 - Prepare no-lease applying-host takeover so idle SessionStart claims do not block other-provider lifecycle commands (Refs #6143).
