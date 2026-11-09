@@ -71,7 +71,8 @@
         "size": "small",
         "file_scope_confidence": "high",
         "model_tier": "medium"
-      }
+      },
+      "productPullRequest": 6151
     }
   }
 }
