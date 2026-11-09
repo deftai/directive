@@ -368,13 +368,20 @@ function isUntrackedEntry(entry: LifecyclePorcelainEntry): boolean {
   return entry.x === "?" || entry.y === "?";
 }
 
-function isTrackedDeletion(entry: LifecyclePorcelainEntry): boolean {
-  return !isUntrackedEntry(entry) && (entry.x === "D" || entry.y === "D");
-}
-
 function isTrackedModifyAddRename(entry: LifecyclePorcelainEntry): boolean {
   if (isUntrackedEntry(entry)) return false;
   return /[MAR]/.test(entry.x) || /[MAR]/.test(entry.y);
+}
+
+/** Pure tracked deletion (D) with no M/A/R on either side — excludes MD/DM (#6137 Greptile P1). */
+function isRestorableDeletion(entry: LifecyclePorcelainEntry): boolean {
+  if (isUntrackedEntry(entry)) return false;
+  if (!(entry.x === "D" || entry.y === "D")) return false;
+  return !isTrackedModifyAddRename(entry);
+}
+
+function shellSingleQuote(arg: string): string {
+  return "'" + arg.replace(/'/g, "'\''") + "'";
 }
 
 /**
@@ -388,7 +395,7 @@ export function formatLifecycleDirtyRemediation(
   entries: readonly LifecyclePorcelainEntry[],
 ): string {
   const tracked = entries.filter((e) => !isUntrackedEntry(e));
-  const deletions = tracked.filter(isTrackedDeletion);
+  const deletions = tracked.filter(isRestorableDeletion);
   const modifies = tracked.filter(isTrackedModifyAddRename);
 
   if (tracked.length === 0) {
@@ -400,21 +407,21 @@ export function formatLifecycleDirtyRemediation(
   }
 
   if (modifies.length === 0 && deletions.length > 0) {
-    const paths = deletions.map((e) => e.path).join(" ");
+    const paths = deletions.map((e) => shellSingleQuote(e.path)).join(" ");
     return (
       `Deletions-only lifecycle dirt (Approach1 sole-pin un-pin). Restore with:\n` +
-      `  git -C "${dirtyRoot}" checkout HEAD -- ${paths}\n` +
+      `  git -C ${shellSingleQuote(dirtyRoot)} checkout HEAD -- ${paths}\n` +
       "Then retry closeout / wait-mergeable."
     );
   }
 
   if (deletions.length > 0 && modifies.length > 0) {
-    const deletedPaths = deletions.map((e) => e.path).join(" ");
+    const deletedPaths = deletions.map((e) => shellSingleQuote(e.path)).join(" ");
     const modifiedPaths = modifies.map((e) => e.path).join(", ");
     return (
       `Tracked modify/add/rename present (${modifiedPaths}); do not bare-checkout over those. ` +
       `Optional restore for deleted paths only:\n` +
-      `  git -C "${dirtyRoot}" checkout HEAD -- ${deletedPaths}\n` +
+      `  git -C ${shellSingleQuote(dirtyRoot)} checkout HEAD -- ${deletedPaths}\n` +
       `(excludes modified entries). Otherwise commit and push, or discard local lifecycle edits. ` +
       "Do not use unqualified stash."
     );

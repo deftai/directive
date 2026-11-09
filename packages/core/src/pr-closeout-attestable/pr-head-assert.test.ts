@@ -215,7 +215,7 @@ describe("pr-head-assert Prefer-A #6128", () => {
     expect(refused.ok).toBe(false);
     expect(refused.reason).toBe("lifecycle-dirty");
     expect(refused.message).toContain(
-      'git -C "/tmp/dirty-root" checkout HEAD -- xbrief/active/story.xbrief.json',
+      "git -C '/tmp/dirty-root' checkout HEAD -- 'xbrief/active/story.xbrief.json'",
     );
     expect(refused.message).not.toContain("git stash push -u");
   });
@@ -233,6 +233,15 @@ describe("pr-head-assert Prefer-A #6128", () => {
         { x: "M", y: " ", path: "xbrief/active/m.json" },
       ]),
     ).toMatch(/excludes modified entries/);
+    // MD (index modify + worktree delete): must not appear in restore path list (Greptile P1).
+    const md = formatLifecycleDirtyRemediation("/r", [
+      { x: "M", y: "D", path: "xbrief/active/md.json" },
+      { x: "D", y: " ", path: "xbrief/active/pure-d.json" },
+    ]);
+    expect(md).toMatch(/excludes modified entries/);
+    expect(md).toContain("'xbrief/active/pure-d.json'");
+    expect(md).not.toContain("'xbrief/active/md.json'");
+    expect(md).not.toMatch(/checkout HEAD --[^\n]*md\.json/);
   });
 
   it("candidate-zero dirty + worktree-list error → lifecycle-dirty one-poll reason", () => {
