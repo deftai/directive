@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -21,6 +22,7 @@ afterEach(() => {
 function tempRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "session-disable-"));
   temps.push(root);
+  execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
   return root;
 }
 

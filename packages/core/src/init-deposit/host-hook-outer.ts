@@ -4,6 +4,11 @@
  * Registered host command is `node <deposit>/deft-hook-<sha8>.mjs …`.
  * Outer uses Node built-ins only until entry guards pass, then spawns pin
  * `hook-bin.js`. No timeout logic in the outer (#5920 / #5988 out of scope).
+ *
+ * F1 operator-disable eligibility (#6122): quietAllow only for positively
+ * validated eligible (lstat regular-file + successful untracked `git ls-files`
+ * listing with usable captured output). Tracked / wrong kind / indeterminate
+ * never select the override.
  */
 
 import { createHash } from "node:crypto";
@@ -64,8 +69,9 @@ export function hostHookOuterSource(): string {
   const pinRel = HOST_HOOK_OUTER_PIN_HOOK_BIN_REL;
   return `#!/usr/bin/env node
 /**
- * Directive host-hook outer (v261027 / #5994). Node built-ins only until guards pass.
- * F1 order: disable → missing pin (project PM) → spawn pin hook-bin.js.
+ * Directive host-hook outer (v261027 / #5994 / #6122). Node built-ins only until guards pass.
+ * F1 order: eligible disable → missing pin (project PM) → spawn pin hook-bin.js.
+ * Eligible = lstat regular-file + successful untracked git ls-files listing.
  */
 import { existsSync, lstatSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -97,19 +103,26 @@ function parseHost(argv) {
   return "";
 }
 
-function isSymlink(path) {
+function isRegularFile(path) {
   try {
-    return lstatSync(path).isSymbolicLink();
+    const lst = lstatSync(path);
+    if (lst.isSymbolicLink()) return false;
+    return lst.isFile();
   } catch {
     return false;
   }
 }
 
-function isGitTracked(root, rel) {
-  const r = spawnSync("git", ["-C", root, "ls-files", "--error-unmatch", "--", rel], {
-    stdio: ["ignore", "ignore", "ignore"],
+/** tracked | untracked | indeterminate — only untracked selects quietAllow. */
+function gitTrackListing(root, rel) {
+  const r = spawnSync("git", ["-C", root, "ls-files", "--", rel], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
   });
-  return r.status === 0;
+  if (r.error || r.status === null || r.status !== 0 || typeof r.stdout !== "string") {
+    return "indeterminate";
+  }
+  return r.stdout.trim().length > 0 ? "tracked" : "untracked";
 }
 
 function quietAllow() {
@@ -133,7 +146,7 @@ const argv = process.argv.slice(2);
 const host = parseHost(argv);
 
 const killPath = join(root, FLAG);
-if (existsSync(killPath) && !isSymlink(killPath) && !isGitTracked(root, FLAG)) {
+if (isRegularFile(killPath) && gitTrackListing(root, FLAG) === "untracked") {
   quietAllow();
 }
 

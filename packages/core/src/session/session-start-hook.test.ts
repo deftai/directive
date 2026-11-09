@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -70,6 +71,7 @@ describe("session start hook", () => {
 
   it("skips sentinel write when .deft-directive-disable is present (#3039)", () => {
     const root = mkdtempSync(join(tmpdir(), "hook-kill-switch-"));
+    execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
     writeFileSync(join(root, ".deft-directive-disable"), "", "utf8");
     mkdirSync(join(root, ".deft", "core"), { recursive: true });
     const writeSentinelFn = vi.fn(() => {

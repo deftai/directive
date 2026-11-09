@@ -17,7 +17,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     if (arg === "--project-root" || arg === "--pack-root") {
       const value = argv[i + 1];
       if (value === undefined) {
-        return { ...parsed, error: "argument " + arg + ": expected one argument" };
+        return { ...parsed, error: `argument ${arg}: expected one argument` };
       }
       parsed.projectRoot = value;
       parsed.packRootExplicit = arg === "--pack-root";
@@ -28,7 +28,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.projectRoot = arg.slice("--pack-root=".length);
       parsed.packRootExplicit = true;
     } else {
-      return { ...parsed, error: "unrecognized argument: " + String(arg) };
+      return { ...parsed, error: `unrecognized argument: ${String(arg)}` };
     }
   }
   return parsed;
@@ -38,15 +38,15 @@ export function parseArgs(argv: string[]): ParsedArgs {
 export function run(argv: string[]): number {
   const args = parseArgs(argv);
   if (args.error !== undefined) {
-    process.stderr.write("verify_deposit_closure: " + args.error + "\n");
+    process.stderr.write(`verify_deposit_closure: ${args.error}\n`);
     return 2;
   }
   const root = resolve(args.projectRoot);
   const result = evaluateDepositClosureAtRoot(root, args.packRootExplicit);
   if (result.stream === "stdout") {
-    process.stdout.write(result.message + "\n");
+    process.stdout.write(`${result.message}\n`);
   } else {
-    process.stderr.write(result.message + "\n");
+    process.stderr.write(`${result.message}\n`);
   }
   return result.code;
 }
