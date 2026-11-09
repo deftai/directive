@@ -2799,6 +2799,7 @@ function decideShellWriteReissue(
   toolName: string,
   seams: HookPolicySeams,
   observation: DispatchObservation,
+  pendingConsumeOut?: string[],
 ): HookDecision | null {
   const command = hookShellCommand(input.payload);
   if (command === null) return null;
@@ -2822,12 +2823,13 @@ function decideShellWriteReissue(
       ...input,
       payload: payloadWithInjectedWriteTarget(input.payload, dest.path),
     };
-    // Defer single-use spend: allow falls through to decideShellOrMcpRuntimeAuthority,
-    // which must see the same grant (#6136 Greptile P1 double-spend).
+    // Defer single-use spend into pendingConsumeOut; caller spends after the whole
+    // shell call allows so ordinary edit grants are not reusable (#6136 Greptile).
     const destDecision = inspectMutationGates(destInput, toolName, seams, {
       proposedLifecycleExempt: true,
       observation,
       deferGrantConsume: true,
+      pendingConsumeOut,
     });
     if (destDecision.verdict === "deny") return destDecision;
   }
@@ -4424,7 +4426,14 @@ function routeHookDecision(
         attachLifecycleIdentityRewrite(shellInput, shellToolName, prospective, seams),
       );
     }
-    const writeReissue = decideShellWriteReissue(shellInput, shellToolName, seams, observation);
+    const pendingShellGrantConsume: string[] = [];
+    const writeReissue = decideShellWriteReissue(
+      shellInput,
+      shellToolName,
+      seams,
+      observation,
+      pendingShellGrantConsume,
+    );
     if (writeReissue !== null) {
       return remapProxyShellUpdatedInput(
         input.payload,
@@ -4439,6 +4448,9 @@ function routeHookDecision(
       seams,
       observation,
     );
+    if (decision.verdict === "allow") {
+      consumePendingSingleUseGrants(resolve(shellInput.projectRoot), pendingShellGrantConsume);
+    }
     return remapProxyShellUpdatedInput(
       input.payload,
       toolName,
