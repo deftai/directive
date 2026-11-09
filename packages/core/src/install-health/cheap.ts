@@ -5,14 +5,15 @@
  * Designed to be fast on a warm filesystem; unit-testable without sleeping.
  * Full setup is not repeated on this path when readiness is valid.
  *
- * Pin≠installed fails closed with AC9.7 recovery guidance; no setup (AC2.6).
+ * Pin≠installed fails closed with project PM install guidance (#6013 / #5893);
+ * no setup (AC2.6). AC9.7 global+repair is for deposits after packages match.
  * Materialize overlay present fails closed even when versions match (#5910);
  * recovery names frozen-lockfile restore then overlay retirement.
  */
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { INSTALLATION_RECOVERY_GUIDANCE } from "./constants.js";
+import { PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE } from "./constants.js";
 import {
   type FsSeams,
   readInstalledRuntimeVersion,
@@ -79,7 +80,7 @@ export function checkCheapInSync(projectRoot: string, seams: FsSeams = {}): Chea
   if (failClosed) {
     recoveryGuidance = hasOverlay
       ? OVERLAY_RESTORE_RECOVERY_GUIDANCE
-      : INSTALLATION_RECOVERY_GUIDANCE;
+      : PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE;
   }
 
   return {
