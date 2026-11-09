@@ -9,6 +9,8 @@ import {
   evaluateAuthzMutation,
   evidenceSatisfiesImplementationApproval,
   type HumanOriginGrant,
+  hasKillSwitchShellWrite,
+  isKillSwitchPlantPath,
   listActiveHumanGrants,
   loadAuthzStateResult,
   markGrantUsed,
@@ -197,7 +199,11 @@ import {
   inspectActiveScope,
   POSITIVE_GOVERNING_ALLOW_REQUIRED,
 } from "./scope.js";
-import { classifyShellWriteTargets, isInRepoShellWritePath } from "./shell-write-targets.js";
+import {
+  classifyShellWriteTargets,
+  isInRepoShellWritePath,
+  isKillSwitchShellWriteBasename,
+} from "./shell-write-targets.js";
 import {
   effectiveHookArgumentView,
   effectiveHookToolName,
@@ -1469,6 +1475,41 @@ function recordAuthzAudit(
 }
 
 /**
+ * True when a kill-switch plant path realpath-resolves under `.deft/authz/` or
+ * `.deft/approved-scope/` (symlink alias). Does not treat the flag basename
+ * itself as an inventoried-store hit (#6136 Greptile).
+ */
+function killSwitchPlantResolvesToInventoriedAuthzStore(
+  projectRoot: string,
+  relOrAbsPath: string,
+): boolean {
+  const root = resolve(projectRoot);
+  const target = isAbsolute(relOrAbsPath)
+    ? resolve(relOrAbsPath)
+    : resolve(root, relOrAbsPath.replace(/\\/g, "/"));
+  let resolved = target;
+  try {
+    resolved = realpathSync(target);
+  } catch {
+    return false;
+  }
+  let rootReal = root;
+  try {
+    rootReal = realpathSync(root);
+  } catch {
+    return false;
+  }
+  const rel = relative(rootReal, resolved).split(sep).join("/").replace(/\\/g, "/").toLowerCase();
+  if (rel.length === 0 || rel.startsWith("..")) return false;
+  return (
+    rel === ".deft/authz" ||
+    rel.startsWith(".deft/authz/") ||
+    rel === ".deft/approved-scope" ||
+    rel.startsWith(".deft/approved-scope/")
+  );
+}
+
+/**
  * UAT lease + human-origin grant gate (#2944). Returns deny decision or null when allowed.
  * Composes before runtimeAuthority path/scope checks for direct writes and shell/MCP.
  */
@@ -1512,6 +1553,7 @@ function authzForMutation(
     shellCommand,
     isDirectWrite: options.isDirectWrite,
     mcpArgsText: options.isDirectWrite ? null : hookMcpArgsText(input.payload),
+    writePath: options.isDirectWrite ? options.relPath : null,
   });
   // #4188: realpath recovered dest-of-write against payload root. Lexical
   // classify stays I/O-free; a non-shell symlink dest is grant-immune unknown.
@@ -1550,9 +1592,35 @@ function authzForMutation(
   }
   const repo = (process.env.DEFT_AUTHZ_REPO ?? process.env.GITHUB_REPOSITORY ?? "").trim() || null;
 
+  // #6136: kill-switch / permanent opt-out plant is always-on grant-gated (not UAT-only).
+  const killSwitchPlant =
+    (shellCommand !== null && hasKillSwitchShellWrite(shellCommand)) ||
+    (options.isDirectWrite && options.relPath !== null && isKillSwitchPlantPath(options.relPath));
+
+  // Symlink plant of a kill-switch basename into `.deft/authz/` / approved-scope
+  // must not ride a settings grant (settings op skips isProtectedStoreEditDest).
+  // Plain flag basenames are themselves "protected" in relIsProtectedDirectiveDest;
+  // only deny when realpath lands under the inventoried store dirs (#6136 Greptile).
+  if (
+    killSwitchPlant &&
+    options.isDirectWrite &&
+    options.relPath !== null &&
+    killSwitchPlantResolvesToInventoriedAuthzStore(projectRoot, options.relPath)
+  ) {
+    return deny(
+      input,
+      "authz-uat-deny",
+      toolName,
+      "Directive denied kill-switch plant: path resolves into the inventoried authz " +
+        "store (`.deft/authz/` or `.deft/approved-scope/`). A settings grant does not " +
+        "authorize rewriting approval state through a flag symlink (#6136).",
+      options.scopePath,
+    );
+  }
+
   // Evaluate each op; first deny wins (compound shell must not short-circuit).
   for (const op of ops) {
-    const decision = evaluateAuthzMutation({
+    let decision = evaluateAuthzMutation({
       state,
       grants,
       op,
@@ -1561,6 +1629,51 @@ function authzForMutation(
       repo,
       worktree: projectRoot,
     });
+    // Outside UAT, settings (and kill-switch Write classified as settings) would
+    // authz-inactive allow. Re-evaluate under a synthetic human-origin UAT so the
+    // existing grant gate applies without widening evaluate.ts (#6136).
+    if (
+      killSwitchPlant &&
+      decision.allowed &&
+      decision.code === "authz-inactive" &&
+      (op === "settings" || op === "edit")
+    ) {
+      decision = evaluateAuthzMutation({
+        state: {
+          ...state,
+          uat: {
+            active: true,
+            campaignId: "always-on-kill-switch-plant",
+            startedAt: "1970-01-01T00:00:00.000Z",
+            startedBy: {
+              kind: "operator-cli",
+              actor: "directive-always-on-kill-switch",
+              mintedAt: "1970-01-01T00:00:00.000Z",
+              mintedVia: "cli",
+              eventRef: null,
+            },
+            suspendedAt: null,
+            note: "synthetic lease for always-on kill-switch plant grant gate (#6136)",
+          },
+        },
+        grants,
+        op: "settings",
+        path: options.relPath,
+        branch,
+        repo,
+        worktree: projectRoot,
+      });
+      if (!decision.allowed) {
+        decision = {
+          ...decision,
+          reason:
+            "Directive denied kill-switch / permanent opt-out plant without a human-origin " +
+            "settings grant (#6136). Agents must not self-serve `.deft-directive-disable` or " +
+            "`.no-deft-directive`. Human action required: plant outside an agent session, or " +
+            "run `deft authz:grant` covering settings for this cohort.",
+        };
+      }
+    }
     recordAuthzAudit(projectRoot, decision, state, seams);
     if (!decision.allowed) {
       return deny(
@@ -1710,7 +1823,13 @@ function inspectMutationGates(
   input: HookDispatchInput,
   toolName: string,
   seams: HookPolicySeams,
-  options: { proposedLifecycleExempt: boolean; observation?: DispatchObservation },
+  options: {
+    proposedLifecycleExempt: boolean;
+    observation?: DispatchObservation;
+    /** When true, authz permission checks run but single-use grants are not spent (#6136). */
+    deferGrantConsume?: boolean;
+    pendingConsumeOut?: string[];
+  },
 ): HookDecision {
   // payloadRoot stays authoritative for authz grant scoping, the authz audit
   // trail, the kill-switch, the #2885 outside-root carve-out, and
@@ -1789,6 +1908,8 @@ function inspectMutationGates(
         scopePath: null,
         runGit: dispatchGit,
         projectRoot,
+        deferGrantConsume: options.deferGrantConsume === true,
+        pendingConsumeOut: options.pendingConsumeOut,
       });
       if (authzDeny !== null) return authzDeny;
       const runtimeDeny = runtimeAuthorityForDirectWrite(
@@ -1946,6 +2067,8 @@ function inspectMutationGates(
         scopePath: null,
         runGit: dispatchGit,
         projectRoot,
+        deferGrantConsume: options.deferGrantConsume === true,
+        pendingConsumeOut: options.pendingConsumeOut,
       });
       if (authzDeny !== null) return authzDeny;
       const runtimeDeny = runtimeAuthorityForDirectWrite(
@@ -2406,7 +2529,7 @@ function inspectMutationGates(
   };
   if (!isSpawnTool(toolName)) {
     // Wave 1 authz (UAT lease + human-origin grant) before runtimeAuthority (#2944 / #2948 L1–L2).
-    const pendingGrantConsume: string[] = [];
+    const pendingGrantConsume: string[] = options.pendingConsumeOut ?? [];
     const authzDeny = authzForMutationTargets(input, toolName, seams, {
       isDirectWrite: true,
       scopePath: scope.path,
@@ -2426,7 +2549,12 @@ function inspectMutationGates(
       effectiveRoot,
     );
     if (runtimeDeny !== null) return runtimeDeny;
-    consumePendingSingleUseGrants(projectRoot, pendingGrantConsume);
+    // Shell write-reissue may defer spend so decideShellOrMcpRuntimeAuthority can
+    // reuse the same single-use grant (#6136 Greptile P1). When pendingConsumeOut
+    // is the same bag, authz already recorded refs — do not push twice.
+    if (options.deferGrantConsume !== true) {
+      consumePendingSingleUseGrants(projectRoot, pendingGrantConsume);
+    }
     // Intentional product-write allow: Prefer-A durable marker (#5176 / #4544).
     const occupancyDeny = recheckOccupancyBeforeWriteAllow(true);
     if (occupancyDeny !== null) return occupancyDeny;
@@ -2719,19 +2847,23 @@ function decideGitDestructive(input: HookDispatchInput, toolName: string): HookD
 /**
  * Authorize recognized in-repo Shell file-write dests through inspectMutationGates (#3983 / #3987).
  * Deny is returned; allow falls through so dest-forms and push/merge still run.
+ * Kill-switch basenames are checked before the in-repo skip so out-of-tree plants
+ * cannot fail-open (#6136 Prefer-A Bound limb 2).
  */
 function decideShellWriteReissue(
   input: HookDispatchInput,
   toolName: string,
   seams: HookPolicySeams,
   observation: DispatchObservation,
+  pendingConsumeOut?: string[],
 ): HookDecision | null {
   const command = hookShellCommand(input.payload);
   if (command === null) return null;
   const projectRoot = resolve(input.projectRoot);
   for (const dest of classifyShellWriteTargets(command)) {
+    const killSwitchDest = isKillSwitchShellWriteBasename(dest.path);
     if (dest.unprovable === true) {
-      if (!isInRepoShellWritePath(projectRoot, dest.path)) continue;
+      if (!killSwitchDest && !isInRepoShellWritePath(projectRoot, dest.path)) continue;
       return deny(
         input,
         "scope-not-ready",
@@ -2741,14 +2873,19 @@ function decideShellWriteReissue(
           ": Shell write dest is not reconstructable (compound command). Use one simple command or Edit/Write.",
       );
     }
-    if (!isInRepoShellWritePath(projectRoot, dest.path)) continue;
+    // #6136: protected basename before isInRepoShellWritePath skip.
+    if (!killSwitchDest && !isInRepoShellWritePath(projectRoot, dest.path)) continue;
     const destInput: HookDispatchInput = {
       ...input,
       payload: payloadWithInjectedWriteTarget(input.payload, dest.path),
     };
+    // Defer single-use spend into pendingConsumeOut; caller spends after the whole
+    // shell call allows so ordinary edit grants are not reusable (#6136 Greptile).
     const destDecision = inspectMutationGates(destInput, toolName, seams, {
       proposedLifecycleExempt: true,
       observation,
+      deferGrantConsume: true,
+      pendingConsumeOut,
     });
     if (destDecision.verdict === "deny") return destDecision;
   }
@@ -4345,7 +4482,14 @@ function routeHookDecision(
         attachLifecycleIdentityRewrite(shellInput, shellToolName, prospective, seams),
       );
     }
-    const writeReissue = decideShellWriteReissue(shellInput, shellToolName, seams, observation);
+    const pendingShellGrantConsume: string[] = [];
+    const writeReissue = decideShellWriteReissue(
+      shellInput,
+      shellToolName,
+      seams,
+      observation,
+      pendingShellGrantConsume,
+    );
     if (writeReissue !== null) {
       return remapProxyShellUpdatedInput(
         input.payload,
@@ -4360,6 +4504,9 @@ function routeHookDecision(
       seams,
       observation,
     );
+    if (decision.verdict === "allow") {
+      consumePendingSingleUseGrants(resolve(shellInput.projectRoot), pendingShellGrantConsume);
+    }
     return remapProxyShellUpdatedInput(
       input.payload,
       toolName,

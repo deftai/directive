@@ -195,6 +195,12 @@ OS-temp dests and commands with no recognized dest (`git status`,
   remains **escape** polarity (in-tree dest whose realpath leaves the tree) and is
   not this check. The hook still runs before the shell, so a link created between
   check and write is TOCTOU.
+- **Kill-switch / permanent opt-out plant (#6136):** Shell write reissue checks
+  `.deft-directive-disable` / `.no-deft-directive` basenames **before** the
+  `isInRepoShellWritePath` skip, so an out-of-tree plant cannot fail-open. Agent
+  Write/Edit/Shell of those basenames is always-on deny without a human-origin
+  settings grant (docs: `deft-directive-disable.md`). General protected-target /
+  out-of-tree floor work stays on #6138; deny wording on #6139.
 
 Fail-open at this predicate is the bound posture (#3997). Inverting it to
 fail-closed on dests the parser cannot prove external is that issue's refuted
