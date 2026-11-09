@@ -3,14 +3,7 @@
   "kind": "disclosure",
   "surfaces": [
     "Taskfile.yml",
-    "packages/core/src/check/gate-lists.ts",
-    "xbrief/evaluator-surface-disposition.json",
-    "packages/core/src/check/orchestrator.ts",
-    "packages/core/src/check/cached-orchestrator.ts",
-    "packages/core/src/check/context.ts",
-    "packages/core/src/check/index.ts",
-    "packages/core/src/pr-merge-readiness/compute.ts",
-    "packages/core/src/pr-wait-mergeable/compute.ts"
+    "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for #6071/#6088 always-on named Merge gate + cited-skip scanner surfaces. Disclosure only; not #3164 authorization."
+  "note": "Renew disclosure for #5953 release:local-update Taskfile cmds (Prefer-A Bound 6430511888). Disclosure only; not #3164 authorization."
 }
