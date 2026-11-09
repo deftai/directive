@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   classifyShellWriteTargets,
   isInRepoShellWritePath,
+  isKillSwitchShellWriteBasename,
   SHELL_WRITE_KINDS,
 } from "./shell-write-targets.js";
 
@@ -62,6 +63,19 @@ describe("classifyShellWriteTargets", () => {
     expect(isInRepoShellWritePath("/repo", "/tmp/body.md")).toBe(false);
     expect(isInRepoShellWritePath("/repo", "/tmp/../repo/src/app.ts")).toBe(true);
     expect(isInRepoShellWritePath("/x/repo", "../repo/src/app.ts")).toBe(true);
+  });
+  it("detects kill-switch basenames before in-repo skip (#6136)", () => {
+    const kill = "." + ["deft", "directive", "disable"].join("-");
+    const opt = "." + ["no", "deft", "directive"].join("-");
+    expect(isKillSwitchShellWriteBasename(kill)).toBe(true);
+    expect(isKillSwitchShellWriteBasename("/tmp/" + kill)).toBe(true);
+    expect(isKillSwitchShellWriteBasename("C:/tmp/" + opt)).toBe(true);
+    expect(isKillSwitchShellWriteBasename("src/app.ts")).toBe(false);
+    // Out-of-tree kill-switch remains a write target classify can see.
+    expect(classifyShellWriteTargets("Set-Content -Path /tmp/" + kill + " -Value x")).toEqual([
+      { kind: "set-content", path: "/tmp/" + kill },
+    ]);
+    expect(isInRepoShellWritePath("/repo", "/tmp/" + kill)).toBe(false);
   });
   it("does not classify echo of a Set-Content spelling", () => {
     expect(classifyShellWriteTargets("echo Set-Content -Path src/app.ts")).toEqual([]);

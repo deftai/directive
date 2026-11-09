@@ -82,11 +82,11 @@ rm .deft-directive-disable
 # Start a NEW agent session
 ```
 
-## Agent self-serve ban under UAT (#3186)
+## Agent self-serve ban (always-on, grant-gated) (#3186 / #6136)
 
-Operators plant and remove this flag **outside** an agent session (or with a prior human-origin grant). Under **active UAT**, PreToolUse classifies Shell writes that create `.deft-directive-disable` (and permanent opt-out `.no-deft-directive`) as **settings** and **denies** them without a human grant — same posture as `authz:grant` (#3110). Agents must not self-serve the kill-switch to bypass Write / push / PR / merge gates.
+Operators plant and remove this flag **outside** an agent session (or with a prior human-origin grant covering **settings**). PreToolUse **always** denies agent Write / Edit / Shell that creates or renames-to `.deft-directive-disable` (and permanent opt-out `.no-deft-directive`) without that grant — not only under active UAT. Shell write reissue checks the protected basename **before** skipping out-of-tree dests, so a plant outside the repo tree cannot fail-open. Agents must not self-serve the kill-switch to bypass Write / push / PR / merge gates.
 
-Related: `policy:allow-bot-merge`, `policy:allow-direct-commits`, and `policy:disable-directive` (peers) are also settings under UAT and require a human grant.
+Related: `policy:allow-bot-merge`, `policy:allow-direct-commits`, and `policy:disable-directive` (peers) are settings under UAT and require a human grant.
 
 ## Non-goals (v1)
 

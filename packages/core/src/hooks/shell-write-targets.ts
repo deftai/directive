@@ -1,6 +1,9 @@
 /** Recognized in-repo Shell file-write dests (#3983 / #3987). */
-import { isAbsolute, relative, resolve } from "node:path";
+import { basename, isAbsolute, relative, resolve } from "node:path";
 import { isOutsideProjectRootWrite } from "./outside-project-root.js";
+
+/** Keep local — do not import classify (hooks↔authz cycle risk). Mirrors KILL_SWITCH_BASENAMES (#6136). */
+const KILL_SWITCH_WRITE_BASENAMES = [".deft-directive-disable", ".no-deft-directive"] as const;
 
 export const SHELL_WRITE_KINDS = [
   "set-content",
@@ -237,6 +240,20 @@ export function classifyShellWriteTargets(command: string): ShellWriteTarget[] {
   for (const seg of segments) found.push(...classifySimpleWrite(seg));
   if (found.length === 0) return [];
   return found.map((d) => ({ ...d, unprovable: true as const }));
+}
+
+/**
+ * Kill-switch / permanent opt-out basename on a Shell write dest (#6136).
+ * Must run before `isInRepoShellWritePath` skip so out-of-tree plants stay gated.
+ */
+export function isKillSwitchShellWriteBasename(dest: string): boolean {
+  const path = dest.trim().replace(/\\/g, "/");
+  if (path.length === 0) return false;
+  const base = basename(path).toLowerCase();
+  for (const name of KILL_SWITCH_WRITE_BASENAMES) {
+    if (base === name) return true;
+  }
+  return false;
 }
 
 /** Unrecoverable dests stay fail-open. Re-entry through a junction reuses the Write-path check (#3997). */

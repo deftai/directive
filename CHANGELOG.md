@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 - Classify kill-switch basenames as settings so Write/Edit plant deny can be always-on and grant-gated. Refs #6136.
+- Always-on grant-gated deny for agent Write/Edit/Shell plant of `.deft-directive-disable` / `.no-deft-directive` (not UAT-only); Shell write reissue checks the protected basename before skipping out-of-tree dests. Dangling symlink aliases into the inventoried approval store are denied via lexical link resolve. Refs #6136.
 - Operator-disable (`.deft-directive-disable`) override is eligible only for a project-root non-symlink regular file after a successful untracked `git ls-files` listing; tracked, wrong-kind, and indeterminate Git/filesystem probes keep enforcement (or host fail-closed) and are never cached as untracked. Host outers use the same lstat + listing predicate. Refs #6034.
 
 ### Fixed

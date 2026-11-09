@@ -8003,3 +8003,197 @@ describe("applying-host live-owner cleanup + deferred publish (#6101)", () => {
     });
   });
 });
+
+describe("always-on kill-switch plant deny (#6136)", () => {
+  const kill = "." + ["deft", "directive", "disable"].join("-");
+
+  function inactiveAuthzSeams(): HookPolicySeams {
+    return readySeams({
+      verifyRitual: () => ({ ...READY_RITUAL, boundSessionId: "owner" }),
+      loadAuthzState: () => ({
+        schemaVersion: 1,
+        uat: null,
+        activeGrantIds: [],
+      }),
+      loadAuthzGrants: () => [],
+      authzAudit: false,
+      loadStoryWriteFence: () => ({ fileScope: ["**"], denyPaths: [] }),
+    });
+  }
+
+  function ownerRoot(): string {
+    const root = mkdtempSync(join(tmpdir(), "hook-6136-"));
+    hookTemps.push(root);
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    mkdirSync(join(root, "src"), { recursive: true });
+    applyWorktreeOccupancy(root, { sessionId: "owner", intent: "mutation" });
+    return root;
+  }
+
+  it("denies Shell touch of kill-switch outside UAT without grant", () => {
+    const root = ownerRoot();
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: { command: "touch " + kill },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      inactiveAuthzSeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.message).toMatch(/kill-switch|opt-out|human-origin|settings grant/i);
+  });
+
+  it("denies out-of-tree Set-Content of kill-switch basename before in-repo skip", () => {
+    const root = ownerRoot();
+    const outside = join(tmpdir(), kill);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: { command: "Set-Content -Path " + outside + " -Value x" },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      inactiveAuthzSeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.message).toMatch(/kill-switch|opt-out|human-origin|settings grant|protected/i);
+  });
+
+  it("denies Write of kill-switch basename outside UAT without grant", () => {
+    const root = ownerRoot();
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: join(root, kill), contents: "x" },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      inactiveAuthzSeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.message).toMatch(/kill-switch|opt-out|human-origin|settings grant|protected/i);
+  });
+
+  it("denies mixed-case Write of kill-switch basename outside UAT without grant", () => {
+    const root = ownerRoot();
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: join(root, ".DEFT-DIRECTIVE-DISABLE"), contents: "x" },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      inactiveAuthzSeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.message).toMatch(/kill-switch|opt-out|human-origin|settings grant|protected/i);
+  });
+
+  it("allows bare echo of kill-switch basename outside UAT (stdout only)", () => {
+    const root = ownerRoot();
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: { command: "echo " + kill },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      inactiveAuthzSeams(),
+    );
+    expect(decision.verdict).toBe("allow");
+  });
+
+  itSymlink("denies kill-switch Write that realpaths into .deft/authz (#6136)", () => {
+    const root = ownerRoot();
+    const authzState = join(root, ".deft", "authz", "state.json");
+    mkdirSync(join(root, ".deft", "authz"), { recursive: true });
+    writeFileSync(authzState, "{}\n");
+    symlinkSync(authzState, join(root, kill));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: join(root, kill), contents: "x" },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      inactiveAuthzSeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.message).toMatch(/inventoried authz|approved-scope/i);
+  });
+
+  itSymlink("denies kill-switch Write via dangling symlink into inventoried store (#6157)", () => {
+    const root = ownerRoot();
+    mkdirSync(join(root, ".deft", "authz", "grants"), { recursive: true });
+    const missingGrant = join(root, ".deft", "authz", "grants", "new.json");
+    symlinkSync(missingGrant, join(root, kill));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: join(root, kill), contents: "x" },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      inactiveAuthzSeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.message).toMatch(/inventoried authz|approved-scope/i);
+  });
+
+  itSymlink(
+    "denies kill-switch Write via directory-alias dangling multi-hop into inventoried store (#6158)",
+    () => {
+      const root = ownerRoot();
+      mkdirSync(join(root, ".deft", "authz", "grants"), { recursive: true });
+      const alias = join(root, "alias");
+      symlinkSync(join(root, ".deft", "authz"), alias);
+      // Flag -> alias/grants/new.json (leaf missing); must still resolve through alias.
+      symlinkSync(join("alias", "grants", "new.json"), join(root, kill));
+      const decision = decideHook(
+        {
+          host: "grok",
+          event: "tool.before",
+          projectRoot: root,
+          payload: {
+            tool_name: "Write",
+            tool_input: { file_path: join(root, kill), contents: "x" },
+          },
+          environ: { DEFT_SESSION_ID: "owner" },
+        },
+        inactiveAuthzSeams(),
+      );
+      expect(decision.verdict).toBe("deny");
+      expect(decision.message).toMatch(/inventoried authz|approved-scope/i);
+    },
+  );
+});
