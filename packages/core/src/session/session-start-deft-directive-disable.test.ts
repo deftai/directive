@@ -1,7 +1,7 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execFileSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 import { CANONICAL_INSTALL_ROOT } from "../init-deposit/constants.js";
 import {
@@ -22,7 +22,7 @@ afterEach(() => {
 function tempRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "session-disable-"));
   temps.push(root);
-  execFileSync('git', ['init'], { cwd: root, stdio: 'ignore' });
+  execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
   return root;
 }
 

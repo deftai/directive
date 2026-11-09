@@ -1,7 +1,7 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execFileSync } from "node:child_process";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { inspectAgentHookDeposit, writeAgentHookDeposit } from "../init-deposit/agent-hooks.js";
 import { CANONICAL_INSTALL_ROOT } from "../init-deposit/constants.js";
@@ -24,7 +24,7 @@ afterEach(() => {
 function tempRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "doctor-disable-"));
   temps.push(root);
-  execFileSync('git', ['init'], { cwd: root, stdio: 'ignore' });
+  execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
   return root;
 }
 
