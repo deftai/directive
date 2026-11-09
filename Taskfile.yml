@@ -857,71 +857,85 @@ tasks:
     cmds:
       - |
         set -e
-        # Parse argv with node so paths with spaces stay one token (Greptile P2).
-        PARSE_OUT="$(node -e '
-          const raw = process.argv[1] || "";
-          const tokens = [];
-          let cur = "";
-          let q = null;
-          for (let i = 0; i < raw.length; i++) {
-            const ch = raw[i];
-            if (q) {
-              if (ch === q) { q = null; continue; }
-              cur += ch;
-              continue;
-            }
-            if (ch === "\"" || ch === "\'") { q = ch; continue; }
-            if (/\s/.test(ch)) {
-              if (cur.length) { tokens.push(cur); cur = ""; }
-              continue;
-            }
+        # Heredoc JS avoids shell quote breakage inside node -e (Greptile P1).
+        PARSE_OUT="$(CLI_ARGS_RAW='{{.CLI_ARGS}}' node <<'NODE'
+        const raw = process.env.CLI_ARGS_RAW || "";
+        const tokens = [];
+        let cur = "";
+        let q = null;
+        for (let i = 0; i < raw.length; i++) {
+          const ch = raw[i];
+          if (q) {
+            if (ch === q) { q = null; continue; }
             cur += ch;
+            continue;
           }
-          if (q) { console.error("release:local-update: unmatched quote in args"); process.exit(2); }
-          if (cur.length) tokens.push(cur);
-          let version = "";
-          let checkout = "";
-          for (let i = 0; i < tokens.length; i++) {
-            const t = tokens[i];
-            if (t === "--checkout") {
-              const v = tokens[++i];
-              if (!v) { console.error("release:local-update: --checkout requires a path"); process.exit(2); }
-              checkout = v;
-              continue;
-            }
-            if (t.startsWith("--")) {
-              console.error("release:local-update: unknown flag " + t);
-              console.error("Usage: task release:local-update -- <version> --checkout <maintainer-primary-occupancy-root>");
-              process.exit(2);
-            }
-            if (!version) { version = t; continue; }
-            console.error("release:local-update: unexpected arg " + t);
-            process.exit(2);
+          if (ch === '"' || ch === "'") { q = ch; continue; }
+          if (/\s/.test(ch)) {
+            if (cur.length) { tokens.push(cur); cur = ""; }
+            continue;
           }
-          if (!version) {
-            console.error("release:local-update: missing <version>");
+          cur += ch;
+        }
+        if (q) { console.error("release:local-update: unmatched quote in args"); process.exit(2); }
+        if (cur.length) tokens.push(cur);
+        let version = "";
+        let checkout = "";
+        for (let i = 0; i < tokens.length; i++) {
+          const t = tokens[i];
+          if (t === "--checkout") {
+            const v = tokens[++i];
+            if (!v) { console.error("release:local-update: --checkout requires a path"); process.exit(2); }
+            checkout = v;
+            continue;
+          }
+          if (t.startsWith("--")) {
+            console.error("release:local-update: unknown flag " + t);
             console.error("Usage: task release:local-update -- <version> --checkout <maintainer-primary-occupancy-root>");
             process.exit(2);
           }
-          if (!checkout) {
-            console.error("release:local-update: refuse ambient release-worktree-only success — require --checkout naming the maintainer primary occupancy root (#5953)");
-            process.exit(1);
-          }
-          process.stdout.write(JSON.stringify({ version, checkout }));
-        ' "{{.CLI_ARGS}}")"
-        VERSION="$(node -e 'const j=JSON.parse(process.argv[1]); process.stdout.write(j.version)' "$PARSE_OUT")"
-        CHECKOUT="$(node -e 'const j=JSON.parse(process.argv[1]); process.stdout.write(j.checkout)' "$PARSE_OUT")"
+          if (!version) { version = t; continue; }
+          console.error("release:local-update: unexpected arg " + t);
+          process.exit(2);
+        }
+        if (!version) {
+          console.error("release:local-update: missing <version>");
+          console.error("Usage: task release:local-update -- <version> --checkout <maintainer-primary-occupancy-root>");
+          process.exit(2);
+        }
+        if (!checkout) {
+          console.error("release:local-update: refuse ambient release-worktree-only success — require --checkout naming the maintainer primary occupancy root (#5953)");
+          process.exit(1);
+        }
+        process.stdout.write(JSON.stringify({ version, checkout }));
+NODE
+        )"
+        VERSION="$(PARSE_JSON="$PARSE_OUT" node <<'NODE'
+        const j = JSON.parse(process.env.PARSE_JSON || "{}");
+        process.stdout.write(String(j.version || ""));
+NODE
+        )"
+        CHECKOUT="$(PARSE_JSON="$PARSE_OUT" node <<'NODE'
+        const j = JSON.parse(process.env.PARSE_JSON || "{}");
+        process.stdout.write(String(j.checkout || ""));
+NODE
+        )"
         case "$CHECKOUT" in
           /*|[A-Za-z]:*) ;;
           *) CHECKOUT="$(pwd)/$CHECKOUT" ;;
         esac
-        # Resolve real path when possible so symlink escape cannot fake primary.
-        CHECKOUT="$(node -e 'const fs=require("fs"); const p=require("path"); const inPath=process.argv[1]; try { process.stdout.write(fs.realpathSync(inPath)); } catch { process.stdout.write(p.resolve(inPath)); }' "$CHECKOUT")"
+        CHECKOUT="$(IN_PATH="$CHECKOUT" node <<'NODE'
+        const fs = require("fs");
+        const path = require("path");
+        const inPath = process.env.IN_PATH || "";
+        try { process.stdout.write(fs.realpathSync(inPath)); }
+        catch { process.stdout.write(path.resolve(inPath)); }
+NODE
+        )"
         if [ ! -d "$CHECKOUT/.git" ] && [ ! -f "$CHECKOUT/.git" ]; then
           echo "release:local-update: --checkout is not a git checkout: $CHECKOUT" >&2
           exit 1
         fi
-        # Primary occupancy root = dirname(git-common-dir); refuse linked/release worktrees.
         COMMON_DIR="$(git -C "$CHECKOUT" rev-parse --git-common-dir 2>/dev/null || true)"
         if [ -z "$COMMON_DIR" ]; then
           echo "release:local-update: cannot resolve git-common-dir for $CHECKOUT" >&2
@@ -931,13 +945,26 @@ tasks:
           /*|[A-Za-z]:*) ;;
           *) COMMON_DIR="$CHECKOUT/$COMMON_DIR" ;;
         esac
-        MAIN_ROOT="$(node -e 'const path=require("path"); process.stdout.write(path.resolve(path.dirname(process.argv[1])))' "$COMMON_DIR")"
-        SAME_MAIN="$(node -e 'const a=process.argv[1]; const b=process.argv[2]; const norm=s=>process.platform==="win32"?s.replace(/\\/g,"/").toLowerCase():s.replace(/\\/g,"/"); process.stdout.write(norm(a)===norm(b)?"1":"0")' "$CHECKOUT" "$MAIN_ROOT")"
+        MAIN_ROOT="$(COMMON_DIR="$COMMON_DIR" node <<'NODE'
+        const path = require("path");
+        process.stdout.write(path.resolve(path.dirname(process.env.COMMON_DIR || "")));
+NODE
+        )"
+        SAME_MAIN="$(LEFT="$CHECKOUT" RIGHT="$MAIN_ROOT" node <<'NODE'
+        const a = process.env.LEFT || "";
+        const b = process.env.RIGHT || "";
+        const norm = (s) => (process.platform === "win32" ? s.replace(/\\/g, "/").toLowerCase() : s.replace(/\\/g, "/"));
+        process.stdout.write(norm(a) === norm(b) ? "1" : "0");
+NODE
+        )"
         if [ "$SAME_MAIN" != "1" ]; then
           echo "release:local-update: refuse ambient release-worktree-only success — --checkout must name the maintainer primary occupancy root (dirname git-common-dir=$MAIN_ROOT), not $CHECKOUT (#5953)" >&2
           exit 1
         fi
-        CHECKOUT_NORM="$(node -e "process.stdout.write(process.argv[1].replace(/\\/g,'/'))" "$CHECKOUT")"
+        CHECKOUT_NORM="$(IN_PATH="$CHECKOUT" node <<'NODE'
+        process.stdout.write(String(process.env.IN_PATH || "").replace(/\\/g, "/"));
+NODE
+        )"
         case "$CHECKOUT_NORM" in
           */.deft-scratch/worktrees/*)
             echo "release:local-update: refuse ambient release-worktree-only success — --checkout must name the maintainer primary occupancy root, not $CHECKOUT (#5953)" >&2
@@ -953,63 +980,57 @@ tasks:
         }
         OCC_FILE="$CHECKOUT/.deft/occupancy.json"
         if [ -f "$OCC_FILE" ]; then
-          node -e '
-            const fs = require("fs");
-            const path = process.argv[1];
-            const checkout = process.argv[2];
-            const raw = fs.readFileSync(path, "utf8");
-            let rec;
-            try { rec = JSON.parse(raw); } catch { process.exit(0); }
-            const sid = String(rec.session_id || rec.sessionId || "");
-            const hb = Date.parse(rec.heartbeat_at || rec.heartbeatAt || "");
-            const claimed = Date.parse(rec.claimed_at || rec.claimedAt || "");
-            const now = Date.now();
-            // Match packages/core occupancy: TTL 20m, absolute cap 24h (OCCUPANCY_MAX_LEASE_MS).
-            const TTL = 20 * 60 * 1000;
-            const MAX = 24 * 60 * 60 * 1000;
-            if (!Number.isFinite(hb) || !Number.isFinite(claimed)) process.exit(0);
-            if (now - claimed > MAX || now - hb > TTL) process.exit(0);
-            const providers = ["grok", "claude", "cursor", "codex", "openclaw"];
-            const rawPresenters = [
-              process.env.DEFT_SESSION_ID,
-              process.env.GROK_SESSION_ID,
-              process.env.CLAUDE_SESSION_ID,
-              process.env.CURSOR_SESSION_ID,
-              process.env.CODEX_SESSION_ID,
-            ].filter((v) => typeof v === "string" && v.trim().length > 0).map((v) => v.trim());
-            const presenters = new Set(rawPresenters);
-            for (const p of rawPresenters) {
-              if (p.startsWith("host:")) continue;
-              for (const provider of providers) {
-                presenters.add("host:" + provider + ":v1:" + Buffer.from(p, "utf8").toString("base64url"));
-              }
+          OCC_PATH="$OCC_FILE" OCC_CHECKOUT="$CHECKOUT" node <<'NODE'
+          const fs = require("fs");
+          const path = process.env.OCC_PATH;
+          const checkout = process.env.OCC_CHECKOUT;
+          const raw = fs.readFileSync(path, "utf8");
+          let rec;
+          try { rec = JSON.parse(raw); } catch { process.exit(0); }
+          const sid = String(rec.session_id || rec.sessionId || "");
+          const hb = Date.parse(rec.heartbeat_at || rec.heartbeatAt || "");
+          const claimed = Date.parse(rec.claimed_at || rec.claimedAt || "");
+          const now = Date.now();
+          const TTL = 20 * 60 * 1000;
+          const MAX = 24 * 60 * 60 * 1000;
+          if (!Number.isFinite(hb) || !Number.isFinite(claimed)) process.exit(0);
+          if (now - claimed > MAX || now - hb > TTL) process.exit(0);
+          const providers = ["grok", "claude", "cursor", "codex", "openclaw"];
+          const rawPresenters = [
+            process.env.DEFT_SESSION_ID,
+            process.env.GROK_SESSION_ID,
+            process.env.CLAUDE_SESSION_ID,
+            process.env.CURSOR_SESSION_ID,
+            process.env.CODEX_SESSION_ID,
+          ].filter((v) => typeof v === "string" && v.trim().length > 0).map((v) => v.trim());
+          const presenters = new Set(rawPresenters);
+          for (const p of rawPresenters) {
+            if (p.startsWith("host:")) continue;
+            for (const provider of providers) {
+              presenters.add("host:" + provider + ":v1:" + Buffer.from(p, "utf8").toString("base64url"));
             }
-            // Also admit when lease stores host: form and env has matching raw id.
-            let sidRaw = null;
-            const m = /^host:([a-z]+):v1:([A-Za-z0-9_-]+)$/.exec(sid);
-            if (m) {
-              try { sidRaw = Buffer.from(m[2], "base64url").toString("utf8"); } catch { sidRaw = null; }
-            }
-            const grants = Array.isArray(rec.grants) ? rec.grants : [];
-            const grantIds = grants
-              .filter((g) => Date.parse(g.expires_at || g.expiresAt || 0) > now)
-              .map((g) => g.session_id || g.sessionId || g.child_session_id || g.childSessionId)
-              .filter(Boolean)
-              .map(String);
-            const admitted = [...presenters].some((p) => {
-              if (p === sid || grantIds.includes(p)) return true;
-              if (sidRaw && p === sidRaw) return true;
-              return false;
-            });
-            if (!admitted && presenters.size > 0) {
-              console.error("release:local-update: refuse live foreign occupancy lease on " + checkout + " (occupant=" + sid + ") before any write (#5953)");
-              process.exit(1);
-            }
-            if (!admitted && presenters.size === 0 && sid) {
-              console.error("release:local-update: refuse live occupancy lease on " + checkout + " (occupant=" + sid + "); no presenter session id in env (#5953)");
-              process.exit(1);
-            }
-          ' "$OCC_FILE" "$CHECKOUT"
+          }
+          let sidRaw = null;
+          const m = /^host:([a-z]+):v1:([A-Za-z0-9_-]+)$/.exec(sid);
+          if (m) {
+            try { sidRaw = Buffer.from(m[2], "base64url").toString("utf8"); } catch { sidRaw = null; }
+          }
+          const grants = Array.isArray(rec.grants) ? rec.grants : [];
+          const grantIds = grants
+            .filter((g) => Date.parse(g.expires_at || g.expiresAt || 0) > now)
+            .map((g) => g.session_id || g.sessionId || g.child_session_id || g.childSessionId)
+            .filter(Boolean)
+            .map(String);
+          const admitted = [...presenters].some((p) => p === sid || grantIds.includes(p) || (sidRaw && p === sidRaw));
+          if (!admitted && presenters.size > 0) {
+            console.error("release:local-update: refuse live foreign occupancy lease on " + checkout + " (occupant=" + sid + ") before any write (#5953)");
+            process.exit(1);
+          }
+          if (!admitted && presenters.size === 0 && sid) {
+            console.error("release:local-update: refuse live occupancy lease on " + checkout + " (occupant=" + sid + "); no presenter session id in env (#5953)");
+            process.exit(1);
+          }
+NODE
         fi
         cd "$CHECKOUT"
         if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -1040,8 +1061,19 @@ tasks:
         fi
         echo "release:local-update: pnpm install --frozen-lockfile"
         pnpm install --frozen-lockfile
-        PIN_PKG="$(node -e 'const fs=require("fs"); const p=JSON.parse(fs.readFileSync("package.json","utf8")); const v=(p.dependencies||{})["@deftai/directive-runtime"]||(p.devDependencies||{})["@deftai/directive-runtime"]||""; console.log(String(v).replace(/^[^0-9]*/,""))')"
-        INST_PKG="$(node -e 'const fs=require("fs"); const p=JSON.parse(fs.readFileSync("node_modules/@deftai/directive-runtime/package.json","utf8")); console.log(p.version)')"
+        PIN_PKG="$(node <<'NODE'
+        const fs = require("fs");
+        const p = JSON.parse(fs.readFileSync("package.json", "utf8"));
+        const v = (p.dependencies || {})["@deftai/directive-runtime"] || (p.devDependencies || {})["@deftai/directive-runtime"] || "";
+        console.log(String(v).replace(/^[^0-9]*/, ""));
+NODE
+        )"
+        INST_PKG="$(node <<'NODE'
+        const fs = require("fs");
+        const p = JSON.parse(fs.readFileSync("node_modules/@deftai/directive-runtime/package.json", "utf8"));
+        console.log(p.version);
+NODE
+        )"
         if [ "$PIN_PKG" != "$VERSION" ] || [ "$INST_PKG" != "$VERSION" ]; then
           echo "release:local-update: tip-pin-equals-released FAILED — want $VERSION; package.json pin=$PIN_PKG installed=$INST_PKG" >&2
           exit 1
@@ -1053,7 +1085,6 @@ tasks:
           exit 1
         fi
         echo "release:local-update: require version-matched agent-hook deposit already on tip"
-        # Suppress maybeSelfCompleteSetup repair so the deposit check cannot create managed files.
         if ! DEFT_DOCTOR_HOOK_DIAGNOSTIC=1 node "$RUNTIME_BIN" verify:hooks-installed --project-root "$CHECKOUT" --scope=agent; then
           print_deposit_recovery
           exit 1
@@ -1079,7 +1110,12 @@ tasks:
         fi
         echo "release:local-update: verify:hooks-installed --project-root --scope=all"
         DEFT_DOCTOR_HOOK_DIAGNOSTIC=1 node "$RUNTIME_BIN" verify:hooks-installed --project-root "$CHECKOUT" --scope=all
-        INST_PKG2="$(node -e 'const fs=require("fs"); const p=JSON.parse(fs.readFileSync("node_modules/@deftai/directive-runtime/package.json","utf8")); console.log(p.version)')"
+        INST_PKG2="$(node <<'NODE'
+        const fs = require("fs");
+        const p = JSON.parse(fs.readFileSync("node_modules/@deftai/directive-runtime/package.json", "utf8"));
+        console.log(p.version);
+NODE
+        )"
         if [ "$INST_PKG2" != "$VERSION" ]; then
           echo "release:local-update: post-upgrade runtime $INST_PKG2 != $VERSION" >&2
           exit 1
