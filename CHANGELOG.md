@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Operator-disable (`.deft-directive-disable`) override is eligible only for a project-root non-symlink regular file after a successful untracked `git ls-files` listing; tracked, wrong-kind, and indeterminate Git/filesystem probes keep enforcement (or host fail-closed) and are never cached as untracked. Host outers use the same lstat + listing predicate. Refs #6034.
 
 ### Fixed
+- Record tracked completion for packageManager pnpm security pin raise (#6021).
+- Record tracked completion for Grok human-presence mint markers (#5983).
+- Record tracked completion for release Phase 7 maintainer local-update (#5953).
+- Record tracked completion for operator-disable eligibility lock (#6122).
 - Human-presence mint refuses Grok agent shells: `GROK_AGENT` and `GROK_SESSION_ID` join the denylist after `OPENAI_CODEX`, `detectedAgentShellMarkers` names every matched key with an unset hint (never prints values), and blank/whitespace marker values stay clear (#5983).
 - Raise root packageManager pin from pnpm@11.8.0 to pnpm@11.28.9 so Corepack and CI packageManager readers install a release at or above the upstream pnpm advisory floor 11.11.0 (#6021).
 - Record tracked completion for guarded linked-worktree Codex prep (#6100).
