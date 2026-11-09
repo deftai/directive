@@ -72,9 +72,9 @@ describe("classifyShellWriteTargets", () => {
     expect(isKillSwitchShellWriteBasename("C:/tmp/" + opt)).toBe(true);
     expect(isKillSwitchShellWriteBasename("src/app.ts")).toBe(false);
     // Out-of-tree kill-switch remains a write target classify can see.
-    expect(
-      classifyShellWriteTargets("Set-Content -Path /tmp/" + kill + " -Value x"),
-    ).toEqual([{ kind: "set-content", path: "/tmp/" + kill }]);
+    expect(classifyShellWriteTargets("Set-Content -Path /tmp/" + kill + " -Value x")).toEqual([
+      { kind: "set-content", path: "/tmp/" + kill },
+    ]);
     expect(isInRepoShellWritePath("/repo", "/tmp/" + kill)).toBe(false);
   });
   it("does not classify echo of a Set-Content spelling", () => {

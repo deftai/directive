@@ -8,8 +8,8 @@ import {
   classifyHookAuthzOps,
   evaluateAuthzMutation,
   evidenceSatisfiesImplementationApproval,
-  hasKillSwitchShellWrite,
   type HumanOriginGrant,
+  hasKillSwitchShellWrite,
   isKillSwitchPlantPath,
   listActiveHumanGrants,
   loadAuthzStateResult,
@@ -1560,9 +1560,7 @@ function authzForMutation(
   // #6136: kill-switch / permanent opt-out plant is always-on grant-gated (not UAT-only).
   const killSwitchPlant =
     (shellCommand !== null && hasKillSwitchShellWrite(shellCommand)) ||
-    (options.isDirectWrite &&
-      options.relPath !== null &&
-      isKillSwitchPlantPath(options.relPath));
+    (options.isDirectWrite && options.relPath !== null && isKillSwitchPlantPath(options.relPath));
 
   // Evaluate each op; first deny wins (compound shell must not short-circuit).
   for (const op of ops) {
