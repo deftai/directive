@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -5,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseArgs, run } from "./ownership-fix.js";
 import {
   contentsEqualIgnoringEol,
+  ensureGitHooks,
   ensureManagedPathGitattributes,
   ensureSlashCommands,
   isShellHookEntrypoint,
@@ -19,6 +21,18 @@ afterEach(() => {
     if (p) rmSync(p, { recursive: true, force: true });
   }
 });
+
+function tempGitRepo(): string {
+  const root = mkdtempSync(join(tmpdir(), "ownership-fix-hooks-"));
+  TEMPS.push(root);
+  execFileSync("git", ["init", "-q"], { cwd: root });
+  return root;
+}
+
+function writeHook(root: string, rel: string, body: string): void {
+  mkdirSync(join(root, ".githooks"), { recursive: true });
+  writeFileSync(join(root, rel), body, "utf8");
+}
 
 describe("ownership:fix CLI (#1617)", () => {
   afterEach(() => {
@@ -138,5 +152,52 @@ describe("ensureManagedPathGitattributes staging report (#5995 / #6151 P1)", () 
     const second = ensureSlashCommands(root);
     expect(second.created).not.toContain(".gitattributes");
     expect(second.modified).not.toContain(".gitattributes");
+  });
+});
+
+describe("ensureGitHooks CRLF shell entrypoint repair (#5995 / #6151 P1)", () => {
+  const customPrePush = `#!/usr/bin/env sh
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 1
+. "$REPO_ROOT/.githooks/_directive-run.sh"
+run_directive preflight-gh --pre-push-stdin --project-root "$REPO_ROOT" || exit $?
+`;
+
+  it("rewrites CRLF-only managed hooks to LF even when EOL-normalized equal", () => {
+    const root = tempGitRepo();
+    // Seed desired OVPR bodies first, then convert on-disk bytes to CRLF (autocrlf checkout).
+    ensureGitHooks(root);
+    for (const rel of [
+      ".githooks/_directive-run.sh",
+      ".githooks/pre-commit",
+      ".githooks/pre-push",
+    ] as const) {
+      const lf = readFileSync(join(root, rel), "utf8");
+      expect(lf.includes("\r")).toBe(false);
+      writeHook(root, rel, lf.replace(/\n/g, "\r\n"));
+      expect(readFileSync(join(root, rel), "utf8").includes("\r\n")).toBe(true);
+    }
+
+    const out = ensureGitHooks(root);
+    expect(out.conflicts).toEqual([]);
+    expect(out.preserved).toEqual([]);
+    for (const rel of [
+      ".githooks/_directive-run.sh",
+      ".githooks/pre-commit",
+      ".githooks/pre-push",
+    ] as const) {
+      const body = readFileSync(join(root, rel), "utf8");
+      expect(body.includes("\r"), `${rel} must be LF after repair`).toBe(false);
+      expect(out.modified).toContain(rel);
+    }
+  });
+
+  it("still preserves tracked content-divergent hooks (not CRLF-only)", () => {
+    const root = tempGitRepo();
+    writeHook(root, ".githooks/pre-push", customPrePush.replace(/\n/g, "\r\n"));
+    execFileSync("git", ["add", "--", ".githooks/pre-push"], { cwd: root });
+    const out = ensureGitHooks(root);
+    expect(out.preserved.join("\n")).toContain(".githooks/pre-push");
+    expect(out.modified).not.toContain(".githooks/pre-push");
+    expect(readFileSync(join(root, ".githooks/pre-push"), "utf8")).toContain("\r\n");
   });
 });
