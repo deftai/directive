@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { execFileSync } from "node:child_process";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { inspectAgentHookDeposit, writeAgentHookDeposit } from "../init-deposit/agent-hooks.js";
 import { CANONICAL_INSTALL_ROOT } from "../init-deposit/constants.js";
@@ -23,6 +24,7 @@ afterEach(() => {
 function tempRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "doctor-disable-"));
   temps.push(root);
+  execFileSync('git', ['init'], { cwd: root, stdio: 'ignore' });
   return root;
 }
 
@@ -30,7 +32,7 @@ describe("cmdDoctor — .deft-directive-disable short-circuit (#3039)", () => {
   it("exits 0 with recovery message when an untracked kill-switch is present", () => {
     const root = tempRoot();
     writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "", "utf8");
-    // Temp dirs are not a git worktree → ls-files empty → active kill-switch.
+    // Temp root is git-init'd so successful empty ls-files → untracked → eligible (#6122).
     const stdout: string[] = [];
     const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(((
       chunk: string | Uint8Array,
