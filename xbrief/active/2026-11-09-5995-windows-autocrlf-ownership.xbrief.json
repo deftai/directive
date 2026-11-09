@@ -1,46 +1,77 @@
 {
   "xBRIEFInfo": {
-    "version": "0.8",
-    "kind": "scope"
+    "version": "0.8"
   },
   "plan": {
     "id": "ovpr-w1-5995",
-    "title": "fix(windows): EOL-normalize ownership + LF gitattributes (#5995)",
+    "title": "EOL-normalize ownership detection and restore narrow LF gitattributes for managed paths",
     "status": "running",
-    "updated": "2026-11-09T17:34:38Z",
-    "items": [
-      {
-        "id": "1",
-        "title": "fix(windows): EOL-normalize ownership + LF gitattributes (#5995)",
-        "status": "todo"
-      }
-    ],
-    "acceptance": [
-      {
-        "id": "ac1",
-        "text": "PR open Refs #5995"
-      }
+    "updated": "2026-11-09T17:52:01Z",
+    "tags": [
+      "ovpr",
+      "wave1",
+      "swarm"
     ],
     "references": [
-      "#5995"
+      {
+        "uri": "https://github.com/deftai/directive/issues/5995",
+        "type": "x-vbrief/github-issue"
+      }
+    ],
+    "narratives": {
+      "Description": "On Windows with core.autocrlf=true, checkout CRLF makes Directive-managed files look user-owned. Setup refuses overwrite, drops ownership entries, and never writes wiring-ready, so clone-and-go fails AC14.10/AC8.6.",
+      "ImplementationPlan": "1. Update packages/runtime/src/ownership-fix.ts so ownership/wrapper fingerprint comparison EOL-normalizes before equality, treating CRLF-versus-LF-only diffs as Directive-managed rather than user content.\n2. Restore narrow LF .gitattributes deposit for managed paths in packages/core/src/init-deposit/scaffold.ts and packages/runtime/src/setup-wiring.ts (prior 0.126 behavior), and extend ownership-fix.test.ts plus scaffold.test.ts fixtures to assert EOL-normalized compare and LF attribute deposit.",
+      "UserStory": "As a Windows consumer cloning an OVPR repo with default autocrlf, I want first eligible command to finish local wiring, so that doctor can go in sync without false user-content conflicts.",
+      "Traces": "#5995"
+    },
+    "items": [
+      {
+        "id": "5995-a1",
+        "title": "EOL-normalized ownership compare",
+        "status": "pending",
+        "effort": "M",
+        "narrative": {
+          "Acceptance": "Given a managed file differs from the expected bytes only by CRLF versus LF, when ownership/wrapper detection runs, then it treats the file as Directive-managed rather than user content.",
+          "Traces": "#5995"
+        }
+      },
+      {
+        "id": "5995-a2",
+        "title": "Narrow LF gitattributes deposit",
+        "status": "pending",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given setup/repair deposits managed-path attributes, when .gitattributes is written, then managed paths are pinned to LF without a broad repo-wide eol rewrite.",
+          "Traces": "#5995"
+        }
+      }
     ],
     "metadata": {
-      "swarm": {
-        "file_scope": [
-          "packages/runtime/src/setup-wiring.ts",
-          "packages/runtime/src/setup-wiring.test.ts",
-          "packages/core/src/init-deposit/ownership.ts",
-          "packages/core/src/init-deposit/gitattributes.ts"
-        ]
-      },
+      "kind": "story",
       "allocation_plan_id": "ovpr-stable-wave1-2026-11-09",
-      "dispatch_kind": "swarm-cohort"
+      "dispatch_kind": "swarm-cohort",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/runtime/src/ownership-fix.ts",
+          "packages/core/src/init-deposit/scaffold.ts",
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/runtime/src/ownership-fix.test.ts",
+          "packages/core/src/init-deposit/scaffold.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/runtime/src/ownership-fix.test.ts packages/core/src/init-deposit/scaffold.test.ts"
+        ],
+        "expected_outputs": [
+          "ownership-fix and scaffold tests pass for EOL-normalized compare and LF attributes"
+        ],
+        "depends_on": [],
+        "conflict_group": "ovpr-w1-5995-eol",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
     }
-  },
-  "Tracking": {
-    "issue": 5995,
-    "issues": [
-      5995
-    ]
   }
 }
