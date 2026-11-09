@@ -6,7 +6,7 @@
     "id": "ovpr-w1-6013",
     "title": "Pin-mismatch recovery guidance follows the settled failure-shaped map",
     "status": "running",
-    "updated": "2026-11-09T19:15:31Z",
+    "updated": "2026-11-09T21:30:19Z",
     "tags": [
       "ovpr",
       "wave1",
@@ -62,10 +62,11 @@
           "packages/core/src/install-health/constants.ts",
           "packages/runtime/src/hook-dispatch.ts",
           "packages/core/src/install-health/cheap.test.ts",
-          "packages/runtime/src/hook-dispatch.test.ts"
+          "packages/runtime/src/hook-dispatch.test.ts",
+          "packages/runtime/src/hook-identity-failclosed.test.ts"
         ],
         "verify_commands": [
-          "pnpm exec vitest run packages/core/src/install-health/cheap.test.ts packages/runtime/src/hook-dispatch.test.ts"
+          "pnpm exec vitest run packages/core/src/install-health/cheap.test.ts packages/runtime/src/hook-dispatch.test.ts packages/runtime/src/hook-identity-failclosed.test.ts"
         ],
         "expected_outputs": [
           "cheap and hook-dispatch tests pass for failure-shaped pin-mismatch guidance"

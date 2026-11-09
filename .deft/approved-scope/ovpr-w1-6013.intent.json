@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "id": "ovpr-w1-6013",
+    "title": "Pin-mismatch recovery guidance follows the settled failure-shaped map",
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6013",
+        "type": "x-xbrief/github-issue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5893",
+        "type": "x-xbrief/github-issue"
+      }
+    ],
+    "narratives": {
+      "Description": "When package.json pin and installed node_modules disagree, hooks fail closed and print AC9.7 global install plus repair. Settled OVPR (#5798, AC9.12) says project package-manager install is the fix for that skew; repair is for deposits after the pin is installed.",
+      "ImplementationPlan": "1. Update install-health cheap/constants guidance and hook-dispatch printing so pin≠installed names project npm/pnpm install when only node_modules lags, and names repair only when deposits lag a good pin.\n2. Add focused tests proving the guidance cases and that ordinary shells stay fail-closed; do not revive #5956 allow-list mega-design.",
+      "UserStory": "As an agent or human after a pin bump, I want the mismatch refusal to tell me to run a project package-manager install, so that I can sync node_modules without a useless global reinstall.",
+      "Traces": "#6013"
+    },
+    "items": [
+      {
+        "id": "6013-a1",
+        "title": "Project PM install guidance on pin≠installed",
+        "narrative": {
+          "Acceptance": "Given pin says W and node_modules still has V, when a hooked shell is refused, then recovery text names project npm/pnpm install (frozen-lockfile when appropriate) and does not lead with global AC9.7 reinstall.",
+          "Traces": "#6013 #5893 #5798"
+        }
+      },
+      {
+        "id": "6013-a2",
+        "title": "Fail closed without #5956 allow-list reopen",
+        "narrative": {
+          "Acceptance": "Given the same mismatch, when an ordinary non-recovery shell runs under the hook, then it remains fail-closed and no #5956-style install/repair allow-list mega-design is introduced.",
+          "Traces": "#6013 #5956"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "allocation_plan_id": "ovpr-stable-wave1-2026-11-09",
+      "dispatch_kind": "swarm-cohort",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/install-health/cheap.ts",
+          "packages/core/src/install-health/constants.ts",
+          "packages/runtime/src/hook-dispatch.ts",
+          "packages/core/src/install-health/cheap.test.ts",
+          "packages/runtime/src/hook-dispatch.test.ts",
+          "packages/runtime/src/hook-identity-failclosed.test.ts"
+        ]
+      },
+      "productPullRequest": 6150
+    }
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "metadata.allocation_plan_id",
+    "metadata.dispatch_kind",
+    "metadata.kind",
+    "metadata.productPullRequest"
+  ]
+}
