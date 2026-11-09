@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6143",
-    "updated": "2026-11-09T19:38:06Z"
+    "updated": "2026-11-09T19:54:48.612Z"
   },
   "plan": {
     "title": "bug(hooks,session): an idle session's applying-host claim blocks other-provider lifecycle commands with no lease behind it, and the deny names the wrong id",
@@ -56,7 +56,7 @@
       },
       {
         "uri": "https://github.com/deftai/directive/issues/5913",
-        "type": "x-xbrief/closes",
+        "type": "x-xbrief/refs",
         "title": "Issue #5913"
       }
     ],
@@ -112,7 +112,11 @@
           "packages/core/src/hooks/dispatcher.test.ts",
           "packages/core/src/session/occupancy.ts",
           "packages/core/src/session/occupancy.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/runtime/src/dispatch.ts",
+          "packages/runtime/src/dispatch.test.ts",
+          "packages/runtime/src/applying-host-release.ts",
+          "packages/runtime/src/applying-host-release.test.ts"
         ],
         "module_boundary": "packages/core/src/hooks/dispatcher.ts",
         "cohesion_exemption": "CHANGELOG Unreleased + Bound product paths for thin activation write fence"
@@ -294,7 +298,11 @@
           "packages/core/src/hooks/dispatcher.test.ts",
           "packages/core/src/session/occupancy.ts",
           "packages/core/src/session/occupancy.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/runtime/src/dispatch.ts",
+          "packages/runtime/src/dispatch.test.ts",
+          "packages/runtime/src/applying-host-release.ts",
+          "packages/runtime/src/applying-host-release.test.ts"
         ],
         "size": "M",
         "file_scope_confidence": "high",

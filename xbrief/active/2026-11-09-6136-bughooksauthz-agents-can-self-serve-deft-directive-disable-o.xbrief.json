@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6136",
-    "updated": "2026-11-09T19:37:57Z"
+    "updated": "2026-11-09T19:54:48.606Z"
   },
   "plan": {
     "title": "bug(hooks,authz): agents can self-serve .deft-directive-disable outside UAT (Write/Shell plant)",
@@ -49,7 +49,7 @@
       },
       {
         "uri": "https://github.com/deftai/directive/issues/3191",
-        "type": "x-xbrief/closes",
+        "type": "x-xbrief/refs",
         "title": "Issue #3191"
       }
     ],

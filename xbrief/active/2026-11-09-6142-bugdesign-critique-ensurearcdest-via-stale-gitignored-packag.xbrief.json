@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6142",
-    "updated": "2026-11-09T19:38:02Z"
+    "updated": "2026-11-09T19:54:48.611Z"
   },
   "plan": {
     "title": "bug(design-critique): ensureArcDest via stale gitignored packages/core/dist skips guarded-prep, so arc dests launch without runtime",
@@ -49,7 +49,7 @@
       },
       {
         "uri": "https://github.com/deftai/directive/issues/6100",
-        "type": "x-xbrief/closes",
+        "type": "x-xbrief/refs",
         "title": "Issue #6100"
       },
       {
@@ -104,7 +104,11 @@
           "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
           "content/contracts/design-critique.md",
           "content/skills/deft-directive-design-critique/SKILL.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/runtime/src/dispatch.ts",
+          "packages/runtime/src/dispatch.test.ts",
+          "packages/runtime/src/design-critique-ensure-arc-dest.ts",
+          "packages/runtime/src/design-critique-ensure-arc-dest.test.ts"
         ],
         "module_boundary": "packages/core/src/design-critique/arc-dest.ts",
         "cohesion_exemption": "CHANGELOG Unreleased + Bound product paths for thin activation write fence"
@@ -516,7 +520,11 @@
           "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
           "content/contracts/design-critique.md",
           "content/skills/deft-directive-design-critique/SKILL.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/runtime/src/dispatch.ts",
+          "packages/runtime/src/dispatch.test.ts",
+          "packages/runtime/src/design-critique-ensure-arc-dest.ts",
+          "packages/runtime/src/design-critique-ensure-arc-dest.test.ts"
         ],
         "size": "M",
         "file_scope_confidence": "high",
