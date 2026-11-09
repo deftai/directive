@@ -8147,4 +8147,26 @@ describe("always-on kill-switch plant deny (#6136)", () => {
     expect(decision.verdict).toBe("deny");
     expect(decision.message).toMatch(/inventoried authz|approved-scope/i);
   });
+
+  itSymlink("denies kill-switch Write via dangling symlink into inventoried store (#6157)", () => {
+    const root = ownerRoot();
+    mkdirSync(join(root, ".deft", "authz", "grants"), { recursive: true });
+    const missingGrant = join(root, ".deft", "authz", "grants", "new.json");
+    symlinkSync(missingGrant, join(root, kill));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: join(root, kill), contents: "x" },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      inactiveAuthzSeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.message).toMatch(/inventoried authz|approved-scope/i);
+  });
 });
