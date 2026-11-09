@@ -6,7 +6,7 @@
     "id": "ovpr-w1-5996",
     "title": "Let deft check resolve the OVPR pin package root under node_modules",
     "status": "running",
-    "updated": "2026-11-09T19:34:33Z",
+    "updated": "2026-11-09T19:44:13Z",
     "tags": [
       "ovpr",
       "wave1",
@@ -48,6 +48,7 @@
     ],
     "metadata": {
       "kind": "story",
+      "productPullRequest": 6146,
       "allocation_plan_id": "ovpr-stable-wave1-2026-11-09",
       "dispatch_kind": "swarm-cohort",
       "swarm": {
