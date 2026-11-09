@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, realpathSync } from "node:fs";
-import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { existsSync, lstatSync, readdirSync, readlinkSync, realpathSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
   type AuthzDecision,
   type AuthzState,
@@ -1478,6 +1478,8 @@ function recordAuthzAudit(
  * True when a kill-switch plant path realpath-resolves under `.deft/authz/` or
  * `.deft/approved-scope/` (symlink alias). Does not treat the flag basename
  * itself as an inventoried-store hit (#6136 Greptile).
+ * Dangling symlinks: realpathSync throws; resolve link text lexically so a
+ * missing store target still denies (#6157 Greptile P1).
  */
 function killSwitchPlantResolvesToInventoriedAuthzStore(
   projectRoot: string,
@@ -1491,7 +1493,14 @@ function killSwitchPlantResolvesToInventoriedAuthzStore(
   try {
     resolved = realpathSync(target);
   } catch {
-    return false;
+    try {
+      const st = lstatSync(target);
+      if (!st.isSymbolicLink()) return false;
+      const link = readlinkSync(target);
+      resolved = isAbsolute(link) ? resolve(link) : resolve(dirname(target), link);
+    } catch {
+      return false;
+    }
   }
   let rootReal = root;
   try {
