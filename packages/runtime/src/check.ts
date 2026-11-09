@@ -5,15 +5,19 @@
  * Usage: deft-ts check [--framework-root <path>] [--project-root <path>] [--no-cache]
  *
  * Omitted --project-root defaults to cwd. Omitted --framework-root walks
- * explicit / DEFT_ROOT / source checkout / .deft/core / legacy deft/ and
- * fail-closes instead of resolveDefaultFrameworkRoot (#4722).
+ * explicit / DEFT_ROOT / source checkout / .deft/core / legacy deft/ /
+ * node_modules/@deftai/directive-runtime and fail-closes instead of
+ * resolveDefaultFrameworkRoot (#4722 / #5996).
  */
-import { statSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dispatchTaskCheck } from "@deftai/directive-core/check";
 import { DEFT_REPO_POSITIVE_MARKERS } from "@deftai/directive-core/doctor";
 import { refuseIfWslOwnershipBlocked } from "./wsl-ownership-guard.js";
+
+/** OVPR pin package path under a consumer project root (#5996). */
+const OVPR_RUNTIME_PACKAGE_REL = join("node_modules", "@deftai", "directive-runtime");
 
 export interface ParsedArgs {
   frameworkRoot?: string;
@@ -40,8 +44,24 @@ function isFrameworkSourceCheckoutAt(projectRoot: string): boolean {
 }
 
 /**
+ * True when `candidate` is an installed `@deftai/directive-runtime` package
+ * root (directory + main.md), matching resolveFrameworkRootForProject (#5490).
+ */
+function looksLikeRuntimePackageRoot(candidate: string): boolean {
+  try {
+    if (!statSync(candidate).isDirectory()) {
+      return false;
+    }
+  } catch {
+    return false;
+  }
+  return existsSync(join(candidate, "main.md"));
+}
+
+/**
  * Resolve check's framework-root from `projectRoot` without last-resort
  * `resolveDefaultFrameworkRoot` (#4722). Returns null on miss (fail-closed).
+ * OVPR pin under node_modules/@deftai/directive-runtime is a candidate (#5996).
  */
 export function resolveCheckFrameworkRoot(
   projectRoot: string,
@@ -68,6 +88,10 @@ export function resolveCheckFrameworkRoot(
     } catch {
       // try next candidate
     }
+  }
+  const ovprRuntime = join(root, OVPR_RUNTIME_PACKAGE_REL);
+  if (looksLikeRuntimePackageRoot(ovprRuntime)) {
+    return ovprRuntime;
   }
   return null;
 }
@@ -139,7 +163,7 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
 }
 
 const FRAMEWORK_ROOT_MISS =
-  "check: no framework-root at this project (source checkout, .deft/core, or legacy deft/). Run directive init.\n";
+  "check: no framework-root at this project (source checkout, .deft/core, legacy deft/, or node_modules/@deftai/directive-runtime). Install @deftai/directive-runtime (project package manager) or run directive install.\n";
 
 export function run(argv: readonly string[]): number {
   const args = parseArgs(argv);
