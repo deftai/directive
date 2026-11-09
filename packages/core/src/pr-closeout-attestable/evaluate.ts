@@ -47,10 +47,12 @@ import {
 import { resolveRepo } from "../triage/queue/repo.js";
 import {
   assertWorkingTreeIsPrHead,
+  type CloseoutRefuseReason,
+  classifyLifecycleDirty,
   fetchPrHeadShaViaApi,
   findWorktreeAtSha,
   type PrHeadAssertOptions,
-  resolveLifecycleDirty,
+  refuseDirtyLifecycle,
   resolveLocalHeadSha,
   shasMatch,
 } from "./pr-head-assert.js";
@@ -93,6 +95,11 @@ export interface PrCloseoutAttestableResult {
   readonly findings: readonly CloseoutFinding[];
   /** True when the closing-reference read resolved through `ghx`, a cached GET proxy. */
   readonly proxied: boolean;
+  /**
+   * One-poll terminal discriminant for wait-mergeable (#6128).
+   * Set only for lifecycle-dirty / brief-root-layout-missing refuses.
+   */
+  readonly reason?: CloseoutRefuseReason;
 }
 
 /** Reads the PR's structured closing-issue references; `null` on lookup failure. */
@@ -280,6 +287,7 @@ function configError(
   prNumber: number,
   message: string,
   proxied = false,
+  reason?: CloseoutRefuseReason,
 ): PrCloseoutAttestableResult {
   return {
     code: 2,
@@ -289,6 +297,7 @@ function configError(
     closingIssues: [],
     findings: [],
     proxied,
+    ...(reason !== undefined ? { reason } : {}),
   };
 }
 
@@ -376,9 +385,11 @@ export function evaluate(
     // (outside-diff residual on #5258). Fail closed on an unverified lookup.
     const assertOpts = options.prHeadAssert ?? {};
     const fetchPrHead = assertOpts.fetchPrHeadSha ?? fetchPrHeadShaViaApi;
-    const resolveWorktree = assertOpts.resolveWorktreeAtSha ?? findWorktreeAtSha;
+    const classify = assertOpts.classifyLifecycleDirty ?? classifyLifecycleDirty;
+    const resolveWorktree =
+      assertOpts.resolveWorktreeAtSha ??
+      ((r: string, sha: string) => findWorktreeAtSha(r, sha, classify));
     const resolveLocal = assertOpts.resolveLocalHeadSha ?? resolveLocalHeadSha;
-    const resolveDirty = assertOpts.resolveLifecycleDirty ?? resolveLifecycleDirty;
     const prHead =
       assertOpts.prHeadSha !== undefined
         ? assertOpts.prHeadSha
@@ -434,16 +445,29 @@ export function evaluate(
       }
     }
     if (altLifecycle === null) {
+      if (lookup.anotherShaMatchHasXbrief === true) {
+        return configError(
+          prNumber,
+          `selected PR-head worktree ${alt} has no xbrief layout while another SHA-matching worktree does. ` +
+            `Caller root ${root} also lacks layout. Prefer a briefed PR-head worktree.`,
+          runner.proxied,
+          "brief-root-layout-missing",
+        );
+      }
       return nothingToCheck();
     }
     if (assertOpts.checkLifecycleDirty !== false) {
-      const dirty = resolveDirty(alt);
-      if (dirty !== null) {
+      const classified = classify(alt);
+      if (classified.status === "dirty") {
+        const refused = refuseDirtyLifecycle(alt, classified);
+        return configError(prNumber, refused.message, runner.proxied, refused.reason);
+      }
+      if (classified.status === "unverifiable") {
         return configError(
           prNumber,
-          `lifecycle tree under ${alt} has uncommitted xbrief/vbrief changes ` +
-            `(${dirty}). Closeout reads the committed PR-head brief — commit, ` +
-            "stash, or discard local lifecycle edits and retry.",
+          `lifecycle tree under ${alt} status is unverifiable (${classified.diagnostic}). ` +
+            "Closeout cannot certify briefs without a readable git status — fix git and retry. " +
+            "No discard remediation is printed for unverifiable status reads.",
           runner.proxied,
         );
       }
@@ -467,7 +491,7 @@ export function evaluate(
       ...options.prHeadAssert,
     });
     if (!headAssert.ok) {
-      return configError(prNumber, headAssert.message, runner.proxied);
+      return configError(prNumber, headAssert.message, runner.proxied, headAssert.reason);
     }
     briefRoot =
       headAssert.resolvedProjectRoot !== undefined ? resolve(headAssert.resolvedProjectRoot) : root;
@@ -478,12 +502,24 @@ export function evaluate(
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
         if (message.includes("No xbrief/ layout found")) {
-          return nothingToCheck();
+          return configError(
+            prNumber,
+            `caller lifecycle root ${root} has briefs but selected brief root ${briefRoot} has no xbrief layout. ` +
+              "Pass --project-root to a PR-head worktree that carries the lifecycle briefs.",
+            runner.proxied,
+            "brief-root-layout-missing",
+          );
         }
         return configError(prNumber, message, runner.proxied);
       }
       if (!existsSync(lifecycleRoot)) {
-        return nothingToCheck();
+        return configError(
+          prNumber,
+          `caller lifecycle root ${root} has briefs but selected brief root ${briefRoot} lifecycle path is missing. ` +
+            "Pass --project-root to a PR-head worktree that carries the lifecycle briefs.",
+          runner.proxied,
+          "brief-root-layout-missing",
+        );
       }
     }
   }
