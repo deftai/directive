@@ -4976,10 +4976,13 @@ export function classifyHookAuthzOps(input: {
 }): AuthzClassifiedOp[] {
   const { toolName, shellCommand, isDirectWrite } = input;
   if (isDirectWrite) {
-    // Prefer-A Bound #6136: kill-switch Write/Edit stays `edit` so evaluate's
-    // isProtectedStoreEditDest realpath-checks symlink plants into `.deft/authz/`.
-    // Always-on settings grant gate runs in dispatcher via killSwitchPlant
-    // (synthetic UAT on writePath). Returning `settings` alone skipped that check.
+    // Prefer-A Bound #6136: kill-switch Write/Edit is `settings` (always-on grant
+    // gate). Keep off bare `edit` — isProtectedStoreEditDest treats the flag
+    // basenames themselves as protected and would deny before the grant check.
+    // Symlink plants into `.deft/authz/` are denied in dispatcher via realpath
+    // (not this op class alone).
+    const writePath = (input.writePath ?? "").trim();
+    if (writePath.length > 0 && isKillSwitchPlantPath(writePath)) return ["settings"];
     return ["edit"];
   }
 

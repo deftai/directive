@@ -1475,6 +1475,41 @@ function recordAuthzAudit(
 }
 
 /**
+ * True when a kill-switch plant path realpath-resolves under `.deft/authz/` or
+ * `.deft/approved-scope/` (symlink alias). Does not treat the flag basename
+ * itself as an inventoried-store hit (#6136 Greptile).
+ */
+function killSwitchPlantResolvesToInventoriedAuthzStore(
+  projectRoot: string,
+  relOrAbsPath: string,
+): boolean {
+  const root = resolve(projectRoot);
+  const target = isAbsolute(relOrAbsPath)
+    ? resolve(relOrAbsPath)
+    : resolve(root, relOrAbsPath.replace(/\\/g, "/"));
+  let resolved = target;
+  try {
+    resolved = realpathSync(target);
+  } catch {
+    return false;
+  }
+  let rootReal = root;
+  try {
+    rootReal = realpathSync(root);
+  } catch {
+    return false;
+  }
+  const rel = relative(rootReal, resolved).split(sep).join("/").replace(/\\/g, "/").toLowerCase();
+  if (rel.length === 0 || rel.startsWith("..")) return false;
+  return (
+    rel === ".deft/authz" ||
+    rel.startsWith(".deft/authz/") ||
+    rel === ".deft/approved-scope" ||
+    rel.startsWith(".deft/approved-scope/")
+  );
+}
+
+/**
  * UAT lease + human-origin grant gate (#2944). Returns deny decision or null when allowed.
  * Composes before runtimeAuthority path/scope checks for direct writes and shell/MCP.
  */
@@ -1561,6 +1596,27 @@ function authzForMutation(
   const killSwitchPlant =
     (shellCommand !== null && hasKillSwitchShellWrite(shellCommand)) ||
     (options.isDirectWrite && options.relPath !== null && isKillSwitchPlantPath(options.relPath));
+
+  // Symlink plant of a kill-switch basename into `.deft/authz/` / approved-scope
+  // must not ride a settings grant (settings op skips isProtectedStoreEditDest).
+  // Plain flag basenames are themselves "protected" in relIsProtectedDirectiveDest;
+  // only deny when realpath lands under the inventoried store dirs (#6136 Greptile).
+  if (
+    killSwitchPlant &&
+    options.isDirectWrite &&
+    options.relPath !== null &&
+    killSwitchPlantResolvesToInventoriedAuthzStore(projectRoot, options.relPath)
+  ) {
+    return deny(
+      input,
+      "authz-uat-deny",
+      toolName,
+      "Directive denied kill-switch plant: path resolves into the inventoried authz " +
+        "store (`.deft/authz/` or `.deft/approved-scope/`). A settings grant does not " +
+        "authorize rewriting approval state through a flag symlink (#6136).",
+      options.scopePath,
+    );
+  }
 
   // Evaluate each op; first deny wins (compound shell must not short-circuit).
   for (const op of ops) {

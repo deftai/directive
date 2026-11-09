@@ -8124,4 +8124,27 @@ describe("always-on kill-switch plant deny (#6136)", () => {
     );
     expect(decision.verdict).toBe("allow");
   });
+
+  itSymlink("denies kill-switch Write that realpaths into .deft/authz (#6136)", () => {
+    const root = ownerRoot();
+    const authzState = join(root, ".deft", "authz", "state.json");
+    mkdirSync(join(root, ".deft", "authz"), { recursive: true });
+    writeFileSync(authzState, "{}\n");
+    symlinkSync(authzState, join(root, kill));
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: join(root, kill), contents: "x" },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      inactiveAuthzSeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.message).toMatch(/inventoried authz|approved-scope/i);
+  });
 });
