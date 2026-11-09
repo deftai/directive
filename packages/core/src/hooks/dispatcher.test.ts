@@ -8087,4 +8087,41 @@ describe("always-on kill-switch plant deny (#6136)", () => {
     expect(decision.verdict).toBe("deny");
     expect(decision.message).toMatch(/kill-switch|opt-out|human-origin|settings grant|protected/i);
   });
+
+  it("denies mixed-case Write of kill-switch basename outside UAT without grant", () => {
+    const root = ownerRoot();
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "Write",
+          tool_input: { file_path: join(root, ".DEFT-DIRECTIVE-DISABLE"), contents: "x" },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      inactiveAuthzSeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.message).toMatch(/kill-switch|opt-out|human-origin|settings grant|protected/i);
+  });
+
+  it("allows bare echo of kill-switch basename outside UAT (stdout only)", () => {
+    const root = ownerRoot();
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: { command: "echo " + kill },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      inactiveAuthzSeams(),
+    );
+    expect(decision.verdict).toBe("allow");
+  });
 });

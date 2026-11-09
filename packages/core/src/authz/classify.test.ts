@@ -292,8 +292,13 @@ describe("classifyShellAuthzOps (#2944)", () => {
       }),
     ).toEqual(["edit"]);
     expect(isKillSwitchPlantPath(kill)).toBe(true);
+    expect(isKillSwitchPlantPath(".DEFT-DIRECTIVE-DISABLE")).toBe(true);
+    expect(isKillSwitchPlantPath("C:/tmp/.No-Deft-Directive")).toBe(true);
     expect(hasKillSwitchShellWrite("touch " + kill)).toBe(true);
     expect(hasKillSwitchShellWrite("Set-Content -Path /tmp/" + kill + " -Value x")).toBe(true);
+    expect(hasKillSwitchShellWrite("echo " + kill)).toBe(false);
+    expect(hasKillSwitchShellWrite("printf '%s\\n' " + kill)).toBe(false);
+    expect(hasKillSwitchShellWrite("echo > " + kill)).toBe(true);
   });
 
   it("classifies downloader/decoder plants of authz grants and kill-switch as settings (#3206)", () => {

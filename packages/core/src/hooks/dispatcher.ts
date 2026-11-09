@@ -1767,7 +1767,13 @@ function inspectMutationGates(
   input: HookDispatchInput,
   toolName: string,
   seams: HookPolicySeams,
-  options: { proposedLifecycleExempt: boolean; observation?: DispatchObservation },
+  options: {
+    proposedLifecycleExempt: boolean;
+    observation?: DispatchObservation;
+    /** When true, authz permission checks run but single-use grants are not spent (#6136). */
+    deferGrantConsume?: boolean;
+    pendingConsumeOut?: string[];
+  },
 ): HookDecision {
   // payloadRoot stays authoritative for authz grant scoping, the authz audit
   // trail, the kill-switch, the #2885 outside-root carve-out, and
@@ -1846,6 +1852,8 @@ function inspectMutationGates(
         scopePath: null,
         runGit: dispatchGit,
         projectRoot,
+        deferGrantConsume: options.deferGrantConsume === true,
+        pendingConsumeOut: options.pendingConsumeOut,
       });
       if (authzDeny !== null) return authzDeny;
       const runtimeDeny = runtimeAuthorityForDirectWrite(
@@ -2003,6 +2011,8 @@ function inspectMutationGates(
         scopePath: null,
         runGit: dispatchGit,
         projectRoot,
+        deferGrantConsume: options.deferGrantConsume === true,
+        pendingConsumeOut: options.pendingConsumeOut,
       });
       if (authzDeny !== null) return authzDeny;
       const runtimeDeny = runtimeAuthorityForDirectWrite(
@@ -2463,7 +2473,7 @@ function inspectMutationGates(
   };
   if (!isSpawnTool(toolName)) {
     // Wave 1 authz (UAT lease + human-origin grant) before runtimeAuthority (#2944 / #2948 L1–L2).
-    const pendingGrantConsume: string[] = [];
+    const pendingGrantConsume: string[] = options.pendingConsumeOut ?? [];
     const authzDeny = authzForMutationTargets(input, toolName, seams, {
       isDirectWrite: true,
       scopePath: scope.path,
@@ -2483,7 +2493,12 @@ function inspectMutationGates(
       effectiveRoot,
     );
     if (runtimeDeny !== null) return runtimeDeny;
-    consumePendingSingleUseGrants(projectRoot, pendingGrantConsume);
+    // Shell write-reissue may defer spend so decideShellOrMcpRuntimeAuthority can
+    // reuse the same single-use grant (#6136 Greptile P1). When pendingConsumeOut
+    // is the same bag, authz already recorded refs — do not push twice.
+    if (options.deferGrantConsume !== true) {
+      consumePendingSingleUseGrants(projectRoot, pendingGrantConsume);
+    }
     // Intentional product-write allow: Prefer-A durable marker (#5176 / #4544).
     const occupancyDeny = recheckOccupancyBeforeWriteAllow(true);
     if (occupancyDeny !== null) return occupancyDeny;
@@ -2807,9 +2822,12 @@ function decideShellWriteReissue(
       ...input,
       payload: payloadWithInjectedWriteTarget(input.payload, dest.path),
     };
+    // Defer single-use spend: allow falls through to decideShellOrMcpRuntimeAuthority,
+    // which must see the same grant (#6136 Greptile P1 double-spend).
     const destDecision = inspectMutationGates(destInput, toolName, seams, {
       proposedLifecycleExempt: true,
       observation,
+      deferGrantConsume: true,
     });
     if (destDecision.verdict === "deny") return destDecision;
   }

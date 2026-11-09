@@ -208,7 +208,8 @@ export const KILL_SWITCH_BASENAMES = [".deft-directive-disable", ".no-deft-direc
 
 /** True when a path basename is a kill-switch / permanent opt-out plant target (#6136). */
 export function isKillSwitchPlantPath(pathish: string): boolean {
-  const p = canonicalizePathish(pathish);
+  // Lowercase so Windows / case-insensitive plants (`.DEFT-DIRECTIVE-DISABLE`) match.
+  const p = canonicalizePathish(pathish).toLowerCase();
   if (p.length === 0) return false;
   for (const name of KILL_SWITCH_BASENAMES) {
     if (p === name || p.endsWith(`/${name}`)) return true;
@@ -3578,7 +3579,7 @@ function sqlite3MetaDest(
 }
 
 function pathishMentionsKillSwitch(pathish: string): boolean {
-  const p = canonicalizePathish(pathish);
+  const p = canonicalizePathish(pathish).toLowerCase();
   for (const name of KILL_SWITCH_BASENAMES) {
     if (p === name || p.endsWith(`/${name}`) || p.includes(name)) {
       return true;
@@ -3638,6 +3639,8 @@ function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]
 
   // Write/destructive + symlink plant + archive/alt-write bins with a kill-switch path
   // argument (#3213 ln/link/mklink; #3245 tar/axel/rclone/socat residual).
+  // echo/printf/type are stdout-only without a redirect; redirect dests are handled
+  // above so bare `echo .deft-directive-disable` stays non-plant (#6136 Greptile P2).
   const killWriteBins = new Set([
     ...INDIRECT_WRITE_BINS,
     ...SYMLINK_PLANT_BINS,
@@ -3645,9 +3648,6 @@ function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]
     "touch",
     "new-item",
     "ni",
-    "echo",
-    "printf",
-    "type",
   ]);
   for (let ti = 0; ti < tokens.length; ti++) {
     const binTok = normalizeToken(tokens[ti] as string);
