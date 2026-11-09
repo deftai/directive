@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5983",
-    "updated": "2026-11-08T19:42:33Z"
+    "updated": "2026-11-09T02:06:24.941Z"
   },
   "plan": {
     "title": "[framework-gap] Human-presence mint: agent-shell marker list has no Grok entry",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] Human-presence mint: agent-shell marker list has no Grok entry",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5983",
@@ -19,32 +19,74 @@
       {
         "id": "clause.1",
         "title": "Add exact GROK_AGENT then GROK_SESSION_ID to AUTHZ_AGENT_SHELL_ENV_MARKERS after OPENAI_CODEX with non-empty-after-trim matching and both markers unconditional",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "022e2a965e85bed5b4053dfc86f04edb80921e11",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.2",
         "title": "Export detectedAgentShellMarkers returning matching keys in list order; looksLikeAgentShell is length > 0; blank or whitespace-only values yield empty list",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "022e2a965e85bed5b4053dfc86f04edb80921e11",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.3",
         "title": "Shared refuseNonInteractiveMint message names every matched key with unset hint and never prints values",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "022e2a965e85bed5b4053dfc86f04edb80921e11",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.4",
         "title": "Keep GROK_AGENT on the denylist so dual-use false refuses stay diagnosable via the named-unset message",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "022e2a965e85bed5b4053dfc86f04edb80921e11",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.5",
         "title": "Extend human-presence mint and approved-scope tests for Grok markers including blank-value empty-list behavior",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "022e2a965e85bed5b4053dfc86f04edb80921e11",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.6",
         "title": "CHANGELOG Unreleased Fixed for Grok agent-shell mint markers",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "022e2a965e85bed5b4053dfc86f04edb80921e11",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -174,6 +216,30 @@
           "Plan amendment T5 6453463532"
         ],
         "parallel_safe": true
+      },
+      "productPullRequest": 6125,
+      "x-directive/productPullRequest": 6125,
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-09T02:06:24.941Z",
+        "actor": "Scott",
+        "via": "prefer-a-leftover-hand-stamp"
+      },
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6125,
+        "pullRequestNumber": 6125,
+        "mergeCommit": "022e2a965e85bed5b4053dfc86f04edb80921e11",
+        "deliveryCommit": "022e2a965e85bed5b4053dfc86f04edb80921e11",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-09T02:06:24.941Z",
+        "verifiedAt": "2026-11-09T02:06:24.941Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "parent-through-merge",
+        "repository": "deftai/directive"
       }
     },
     "id": "github.issue.6065251499",

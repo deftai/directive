@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6122",
-    "updated": "2026-11-08T19:42:33Z"
+    "updated": "2026-11-09T02:06:24.941Z"
   },
   "plan": {
     "title": "hardening(hooks): lock operator-override eligibility across host entry points",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "hardening(hooks): lock operator-override eligibility across host entry points",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6122",
@@ -19,37 +19,86 @@
       {
         "id": "clause.1",
         "title": "Introduce three-way eligibility distinguishing positively validated eligible from ineligible and indeterminate; only eligible selects operator override",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0c6efa275664481e0d5026023daa5f5376c5fd0a",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.2",
         "title": "Require successfully completed git ls-files listing with usable captured output; launch failure nonzero or unavailable output is indeterminate",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0c6efa275664481e0d5026023daa5f5376c5fd0a",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.3",
         "title": "Do not cache indeterminate probe results as untracked success; later successful tracked probe must re-probe and remain inactive",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0c6efa275664481e0d5026023daa5f5376c5fd0a",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.4",
         "title": "Outer uses lstat regular-file parity with policy; table-driven tests cover adapters and generated host fixtures for four hosts",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0c6efa275664481e0d5026023daa5f5376c5fd0a",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.5",
         "title": "Positively validated eligible override remains usable before project runtime is installed Node-built-ins-only",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0c6efa275664481e0d5026023daa5f5376c5fd0a",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.6",
         "title": "Extend policy and host-hook-outer tests for eligibility matrix cache transitions and host refusal survival",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0c6efa275664481e0d5026023daa5f5376c5fd0a",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.7",
         "title": "CHANGELOG Unreleased Security or Fixed for operator-disable eligibility lock Refs 6034 never Closes",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0c6efa275664481e0d5026023daa5f5376c5fd0a",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -183,6 +232,30 @@
           "Refs #6034"
         ],
         "parallel_safe": true
+      },
+      "productPullRequest": 6126,
+      "x-directive/productPullRequest": 6126,
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-09T02:06:24.941Z",
+        "actor": "Scott",
+        "via": "prefer-a-leftover-hand-stamp"
+      },
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6126,
+        "pullRequestNumber": 6126,
+        "mergeCommit": "0c6efa275664481e0d5026023daa5f5376c5fd0a",
+        "deliveryCommit": "0c6efa275664481e0d5026023daa5f5376c5fd0a",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-09T02:06:24.941Z",
+        "verifiedAt": "2026-11-09T02:06:24.941Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "parent-through-merge",
+        "repository": "deftai/directive"
       }
     },
     "id": "github.issue.6274375450",

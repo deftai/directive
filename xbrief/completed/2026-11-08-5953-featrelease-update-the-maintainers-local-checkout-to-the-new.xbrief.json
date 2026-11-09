@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5953",
-    "updated": "2026-11-08T19:42:33Z"
+    "updated": "2026-11-09T02:06:24.941Z"
   },
   "plan": {
     "title": "feat(release): update the maintainer's local checkout to the new pin after every release",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(release): update the maintainer's local checkout to the new pin after every release",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5953",
@@ -19,57 +19,134 @@
       {
         "id": "clause.1",
         "title": "Require --checkout naming the maintainer primary occupancy root; refuse ambient release-worktree-only success",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ecf5bdcc1591ab3ab2380d4b651ff9bca30372d9",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.2",
         "title": "Refuse when the target checkout holds a live foreign occupancy lease before any write",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ecf5bdcc1591ab3ab2380d4b651ff9bca30372d9",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.3",
         "title": "Define release:local-update as inline Taskfile cmds without engine:invoke or ts:build deps; re-resolve upgrade binary after frozen install",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ecf5bdcc1591ab3ab2380d4b651ff9bca30372d9",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.4",
         "title": "Require version-matched agent-hook deposit already merged on tip before upgrade; keep Phase 7 local closeout incomplete until that evidence exists",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ecf5bdcc1591ab3ab2380d4b651ff9bca30372d9",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.5",
         "title": "Run directive upgrade with explicit --target-version against the checkout never registry-latest",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ecf5bdcc1591ab3ab2380d4b651ff9bca30372d9",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.6",
         "title": "After upgrade any tracked-file diff keeps closeout non-zero and incomplete with deposit-merge recovery paths",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ecf5bdcc1591ab3ab2380d4b651ff9bca30372d9",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.7",
         "title": "After upgrade run deft verify:hooks-installed with --project-root and --scope=all from checkout post-install runtime and re-assert installed runtime equals version",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ecf5bdcc1591ab3ab2380d4b651ff9bca30372d9",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.8",
         "title": "Keep ff-only pull frozen-lockfile install and pin assert; never reset force-push commit or global npm i -g",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ecf5bdcc1591ab3ab2380d4b651ff9bca30372d9",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.9",
         "title": "Keep local-update required for maintainer non-latest cuts where npm latest will not advance the checkout by accident",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ecf5bdcc1591ab3ab2380d4b651ff9bca30372d9",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.10",
         "title": "Anchor Phase 7 step on tip-pin-equals-released observable rather than a phantom pin-PR step",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ecf5bdcc1591ab3ab2380d4b651ff9bca30372d9",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.11",
         "title": "CHANGELOG Unreleased note for maintainer local checkout update after release",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ecf5bdcc1591ab3ab2380d4b651ff9bca30372d9",
+          "recorded_at": "2026-11-09T02:06:24.941Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -158,7 +235,31 @@
         "algorithm": "sha256",
         "sha256": "27aa98ac615521c221eb9cd0491229047669e35cc09aec0ad19432fc8058a0d2"
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 6127,
+      "x-directive/productPullRequest": 6127,
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-09T02:06:24.941Z",
+        "actor": "Scott",
+        "via": "prefer-a-leftover-hand-stamp"
+      },
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6127,
+        "pullRequestNumber": 6127,
+        "mergeCommit": "ecf5bdcc1591ab3ab2380d4b651ff9bca30372d9",
+        "deliveryCommit": "ecf5bdcc1591ab3ab2380d4b651ff9bca30372d9",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-09T02:06:24.941Z",
+        "verifiedAt": "2026-11-09T02:06:24.941Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "parent-through-merge",
+        "repository": "deftai/directive"
+      }
     },
     "acceptance": {
       "none_stated": true,
