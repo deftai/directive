@@ -9,8 +9,12 @@
  * validated eligible (lstat regular-file + successful untracked `git ls-files`
  * listing with usable captured output). Tracked / wrong kind / indeterminate
  * never select the override.
+ *
+ * #6163 Prefer-A Bound 6772886751: tip-required Cursor deposit paths + stage-only
+ * force-add + committed/index association bookend (Cursor-at-minimum).
  */
 
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import type { HookHost } from "../hooks/dispatcher.js";
 
@@ -21,6 +25,9 @@ export const HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE =
 
 export const HOST_HOOK_OUTER_PIN_HOOK_BIN_REL =
   "node_modules/@deftai/directive-runtime/dist/hook-bin.js";
+
+/** Tip-tracked Cursor hooks registration (#6163). */
+export const CURSOR_HOOKS_JSON_REL = ".cursor/hooks.json";
 
 /** Filename stem + content-hash suffix (AC9.1). */
 export function hostHookOuterFileName(sha8: string): string {
@@ -58,6 +65,155 @@ export function hostHookOuterSha8(source: string = hostHookOuterSource()): strin
 /** True when a registered command string is the v261027 `.mjs` outer form. */
 export function isHostHookOuterCommand(commandText: string): boolean {
   return /(?:^|[\s/])deft-hook-[a-f0-9]{8}\.mjs(?:\s|$)/.test(commandText);
+}
+
+/**
+ * Exact tip-required Cursor paths for the installed outer hash (#6163).
+ * New-hash shim path is enumerated explicitly — "already tracked" under
+ * `.cursor/` is not exact-path membership for the new hash.
+ */
+export function tipRequiredCursorDepositPaths(
+  sha8: string = hostHookOuterSha8(),
+): readonly [typeof CURSOR_HOOKS_JSON_REL, string] {
+  return [CURSOR_HOOKS_JSON_REL, hostHookOuterRelPath("cursor", sha8)];
+}
+
+/** Tree source for Cursor deposit association (#6163). */
+export type CursorDepositTreeSource = "HEAD" | "index";
+
+export interface CursorDepositAssociationResult {
+  readonly ok: boolean;
+  readonly sha8: string;
+  readonly paths: readonly string[];
+  readonly detail: string;
+}
+
+export interface StageTipRequiredCursorDepositResult {
+  readonly staged: readonly string[];
+  readonly sha8: string;
+  readonly paths: readonly string[];
+}
+
+export type CursorDepositTreeFileReader = (
+  projectRoot: string,
+  relPath: string,
+  source: CursorDepositTreeSource,
+) => string | null;
+
+export type CursorDepositGitAdd = (projectRoot: string, paths: readonly string[]) => void;
+
+function defaultReadTreeFile(
+  projectRoot: string,
+  relPath: string,
+  source: CursorDepositTreeSource,
+): string | null {
+  try {
+    const spec = source === "HEAD" ? `HEAD:${relPath}` : `:${relPath}`;
+    return execFileSync("git", ["show", spec], {
+      cwd: projectRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      windowsHide: true,
+    });
+  } catch {
+    return null;
+  }
+}
+
+function defaultGitAddForce(projectRoot: string, paths: readonly string[]): void {
+  // Bounded path list only — never `git add -f .cursor/` (#6163).
+  execFileSync("git", ["add", "-f", "--", ...paths], {
+    cwd: projectRoot,
+    stdio: ["ignore", "pipe", "pipe"],
+    windowsHide: true,
+  });
+}
+
+/**
+ * Stage-only force-add of tip-required Cursor paths despite local exclude
+ * `.cursor/` (#6163 Prefer-A Bound 6772886751). Never commits.
+ */
+export function stageTipRequiredCursorDeposit(
+  projectRoot: string,
+  options: {
+    readonly sha8?: string;
+    readonly gitAdd?: CursorDepositGitAdd;
+  } = {},
+): StageTipRequiredCursorDepositResult {
+  const sha8 = options.sha8 ?? hostHookOuterSha8();
+  const paths = tipRequiredCursorDepositPaths(sha8);
+  const gitAdd = options.gitAdd ?? defaultGitAddForce;
+  gitAdd(projectRoot, paths);
+  return { staged: [...paths], sha8, paths };
+}
+
+/**
+ * Committed-byte / index association bookend for installed outer hash (#6163).
+ * Working-tree inspectAgentHookDeposit green alone is not sufficient.
+ */
+export function validateCursorDepositAssociation(
+  projectRoot: string,
+  options: {
+    readonly source?: CursorDepositTreeSource;
+    readonly outerSource?: string;
+    readonly readTreeFile?: CursorDepositTreeFileReader;
+  } = {},
+): CursorDepositAssociationResult {
+  const outerSource = options.outerSource ?? hostHookOuterSource();
+  const sha8 = hostHookOuterSha8(outerSource);
+  const paths = tipRequiredCursorDepositPaths(sha8);
+  const source = options.source ?? "HEAD";
+  const read = options.readTreeFile ?? defaultReadTreeFile;
+  const hooksJson = read(projectRoot, paths[0], source);
+  if (hooksJson === null) {
+    return {
+      ok: false,
+      sha8,
+      paths,
+      detail: `missing ${paths[0]} in ${source} tree (#6163)`,
+    };
+  }
+  const expectedCmd = hostHookOuterCommand("cursor", sha8);
+  const shimToken = hostHookOuterFileName(sha8);
+  if (!hooksJson.includes(expectedCmd) && !hooksJson.includes(shimToken)) {
+    return {
+      ok: false,
+      sha8,
+      paths,
+      detail: `${paths[0]} in ${source} does not reference ${expectedCmd} (#6163)`,
+    };
+  }
+  const shim = read(projectRoot, paths[1], source);
+  if (shim === null) {
+    return {
+      ok: false,
+      sha8,
+      paths,
+      detail: `missing ${paths[1]} in ${source} tree (#6163)`,
+    };
+  }
+  if (shim !== outerSource) {
+    return {
+      ok: false,
+      sha8,
+      paths,
+      detail: `${paths[1]} bytes do not match installed hostHookOuterSource (#6163)`,
+    };
+  }
+  if (hostHookOuterSha8(shim) !== sha8) {
+    return {
+      ok: false,
+      sha8,
+      paths,
+      detail: `shim content hash mismatch for ${paths[1]} (#6163)`,
+    };
+  }
+  return {
+    ok: true,
+    sha8,
+    paths,
+    detail: `Cursor deposit associated in ${source} for ${shimToken}`,
+  };
 }
 
 /**

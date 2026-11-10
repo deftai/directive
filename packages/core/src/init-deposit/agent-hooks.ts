@@ -1,12 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
-import {
-  containedChmod,
-  containedRemove,
-  containedRename,
-  containedWrite,
-} from "../fs/contained-write.js";
+import { containedRemove, containedRename, containedWrite } from "../fs/contained-write.js";
 import type { HookEvent, HookHost } from "../hooks/dispatcher.js";
 import {
   DIRECT_WRITE_HOOK_MATCHER,
@@ -26,12 +21,13 @@ import {
 import type { InitDepositIo } from "./constants.js";
 import { type HookRuntimeTravelSeams, inspectHookRuntimeTravel } from "./hook-runtime-travel.js";
 import {
-  HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
   hostHookOuterCommand,
   hostHookOuterRelPath,
   hostHookOuterSha8,
   hostHookOuterSource,
   isHostHookOuterCommand,
+  stageTipRequiredCursorDeposit,
+  validateCursorDepositAssociation,
 } from "./host-hook-outer.js";
 
 export {
@@ -41,6 +37,11 @@ export {
   SPAWN_HOOK_MATCHER,
 } from "../hooks/tools.js";
 export {
+  CURSOR_HOOKS_JSON_REL,
+  type CursorDepositAssociationResult,
+  type CursorDepositGitAdd,
+  type CursorDepositTreeFileReader,
+  type CursorDepositTreeSource,
   HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
   HOST_HOOK_OUTER_PIN_HOOK_BIN_REL,
   hostHookOuterCommand,
@@ -49,6 +50,10 @@ export {
   hostHookOuterSha8,
   hostHookOuterSource,
   isHostHookOuterCommand,
+  type StageTipRequiredCursorDepositResult,
+  stageTipRequiredCursorDeposit,
+  tipRequiredCursorDepositPaths,
+  validateCursorDepositAssociation,
 } from "./host-hook-outer.js";
 /** Legacy bare PATH marker — rewritten to PACKAGE_RELATIVE_HOOK_BIN on deposit (AC9.2). */
 export const DEFT_HOOK_COMMAND_MARKER = "deft-hook";
@@ -607,6 +612,27 @@ function writeJsonIfChanged(
     throw err;
   }
   return true;
+}
+
+/**
+ * Pin-candidate prep (#6163 Prefer-A Bound 6772886751): repair/write deposit,
+ * force-add tip-required Cursor paths, validate index association before pin land.
+ * Stage-only — never commits. Phase 7 uses validateCursorDepositAssociation(HEAD).
+ */
+export function preparePinCandidateCursorDeposit(
+  projectRoot: string,
+  io: InitDepositIo = { printf: () => undefined },
+  hostHooksPolicy: HostHooksPolicy = loadHostHooksPolicyFromProject(projectRoot),
+  travelSeams: HookRuntimeTravelSeams = {},
+): {
+  readonly written: AgentHookDepositResult;
+  readonly staged: ReturnType<typeof stageTipRequiredCursorDeposit>;
+  readonly association: ReturnType<typeof validateCursorDepositAssociation>;
+} {
+  const written = writeAgentHookDeposit(projectRoot, io, hostHooksPolicy, travelSeams);
+  const staged = stageTipRequiredCursorDeposit(projectRoot);
+  const association = validateCursorDepositAssociation(projectRoot, { source: "index" });
+  return { written, staged, association };
 }
 
 /**

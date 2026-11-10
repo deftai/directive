@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -5,7 +6,6 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
-  statSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -43,7 +43,7 @@ import {
   MCP_HOOK_MATCHER,
   NESTED_HOOK_TIMEOUT_SECONDS,
   NESTED_TOOL_BEFORE_TIMEOUT_SECONDS,
-  PACKAGE_RELATIVE_HOOK_BIN,
+  preparePinCandidateCursorDeposit,
   SHELL_HOOK_MATCHER,
   SPAWN_HOOK_MATCHER,
   writeAgentHookDeposit,
@@ -51,7 +51,7 @@ import {
 import {
   hostHookOuterCommand,
   hostHookOuterSha8,
-  isHostHookOuterCommand,
+  tipRequiredCursorDepositPaths,
 } from "./host-hook-outer.js";
 
 const temps: string[] = [];
@@ -1292,5 +1292,48 @@ describe("evaluateGrokPretooluseWrapperOutcome (#5656)", () => {
         childStdout: denyBody,
       }),
     ).toEqual({ kind: "passthrough", stdout: denyBody });
+  });
+});
+
+describe("preparePinCandidateCursorDeposit (#6163)", () => {
+  it("writes deposit, force-adds tip-required Cursor paths, validates index association", () => {
+    const root = project();
+    execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["config", "user.email", "t@t.dev"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["config", "user.name", "t"], { cwd: root, stdio: "ignore" });
+    mkdirSync(join(root, ".git", "info"), { recursive: true });
+    writeFileSync(join(root, ".git", "info", "exclude"), ".cursor/\n", "utf8");
+    writeFileSync(join(root, "README"), "seed\n", "utf8");
+    execFileSync("git", ["add", "README"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-qm", "seed"], {
+      cwd: root,
+      stdio: "ignore",
+    });
+
+    const result = preparePinCandidateCursorDeposit(root, { printf: () => undefined });
+    const sha8 = hostHookOuterSha8();
+    const paths = tipRequiredCursorDepositPaths(sha8);
+    expect(result.staged.sha8).toBe(sha8);
+    expect(result.staged.staged).toEqual([...paths]);
+    expect(result.association.ok).toBe(true);
+    expect(result.association.sha8).toBe(sha8);
+    expect(existsSync(join(root, paths[0]))).toBe(true);
+    expect(existsSync(join(root, paths[1]))).toBe(true);
+    const staged = execFileSync("git", ["diff", "--cached", "--name-only"], {
+      cwd: root,
+      encoding: "utf8",
+    })
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .sort();
+    expect(staged).toEqual([...paths].sort());
+    // Stage-only: HEAD still lacks the Cursor deposit.
+    expect(() =>
+      execFileSync("git", ["show", `HEAD:${paths[1]}`], {
+        cwd: root,
+        stdio: ["ignore", "pipe", "ignore"],
+      }),
+    ).toThrow();
   });
 });

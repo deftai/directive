@@ -10,6 +10,9 @@ import {
   hostHookOuterSha8,
   hostHookOuterSource,
   isHostHookOuterCommand,
+  stageTipRequiredCursorDeposit,
+  tipRequiredCursorDepositPaths,
+  validateCursorDepositAssociation,
 } from "./host-hook-outer.js";
 
 type Host = "grok" | "claude" | "cursor" | "codex";
@@ -278,6 +281,152 @@ describe("host-hook-outer eligibility conformance (#6122)", () => {
       }
       const r = runOuter(root, "grok");
       expectHostFailClosed(r, "grok");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("tip-required Cursor deposit co-travel (#6163 Prefer-A Bound 6772886751)", () => {
+  function git(root: string, args: string[]): ReturnType<typeof spawnSync> {
+    return spawnSync("git", args, { cwd: root, encoding: "utf8" });
+  }
+
+  function seedRepo(root: string): string {
+    writeFileSync(join(root, "package.json"), "{}\n");
+    gitInit(root);
+    expect(git(root, ["config", "user.email", "t@t.dev"]).status).toBe(0);
+    expect(git(root, ["config", "user.name", "t"]).status).toBe(0);
+    mkdirSync(join(root, ".git", "info"), { recursive: true });
+    writeFileSync(join(root, ".git", "info", "exclude"), ".cursor/\n", "utf8");
+    const source = hostHookOuterSource();
+    const sha8 = hostHookOuterSha8(source);
+    const shimRel = hostHookOuterRelPath("cursor", sha8);
+    mkdirSync(join(root, ".cursor", "hooks"), { recursive: true });
+    writeFileSync(
+      join(root, ".cursor", "hooks.json"),
+      `${JSON.stringify(
+        {
+          version: 1,
+          hooks: {
+            sessionStart: [{ command: hostHookOuterCommand("cursor", sha8), timeout: 5 }],
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    writeFileSync(join(root, shimRel), source, "utf8");
+    return sha8;
+  }
+
+  it("enumerates exact tip-required Cursor paths for the new hash", () => {
+    const sha8 = hostHookOuterSha8();
+    expect(tipRequiredCursorDepositPaths(sha8)).toEqual([
+      ".cursor/hooks.json",
+      `.cursor/hooks/deft-hook-${sha8}.mjs`,
+    ]);
+  });
+
+  it("ordinary add misses excluded Cursor shim; force-add stages the bounded set", () => {
+    const root = mkdtempSync(join(tmpdir(), "cursor-force-add-"));
+    try {
+      const sha8 = seedRepo(root);
+      const paths = tipRequiredCursorDepositPaths(sha8);
+      // Ignored paths may make plain `git add` exit non-zero; either way they must not stage.
+      git(root, ["add", "--", ...paths]);
+      const stagedOrdinary = git(root, ["diff", "--cached", "--name-only"]).stdout ?? "";
+      expect(stagedOrdinary.trim()).toBe("");
+      const staged = stageTipRequiredCursorDeposit(root, { sha8 });
+      expect(staged.staged).toEqual([...paths]);
+      const stagedForce = (git(root, ["diff", "--cached", "--name-only"]).stdout ?? "")
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .sort();
+      expect(stagedForce).toEqual([...paths].sort());
+      const indexAssoc = validateCursorDepositAssociation(root, { source: "index" });
+      expect(indexAssoc.ok).toBe(true);
+      expect(indexAssoc.sha8).toBe(sha8);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("committed pair passes HEAD association; omitted shim and staging-only fail HEAD", () => {
+    const root = mkdtempSync(join(tmpdir(), "cursor-assoc-"));
+    try {
+      const sha8 = seedRepo(root);
+      const paths = tipRequiredCursorDepositPaths(sha8);
+      stageTipRequiredCursorDeposit(root, { sha8 });
+      expect(
+        git(root, ["-c", "commit.gpgsign=false", "commit", "-qm", "cursor-deposit"]).status,
+      ).toBe(0);
+      const goodHead = (git(root, ["rev-parse", "HEAD"]).stdout ?? "").trim();
+      const headOk = validateCursorDepositAssociation(root, { source: "HEAD" });
+      expect(headOk.ok).toBe(true);
+      expect(headOk.sha8).toBe(sha8);
+
+      // Staging-only new hash without commit: HEAD stays associated; index for fake fails.
+      const fakeSha = "deadbeef";
+      const fakeRel = hostHookOuterRelPath("cursor", fakeSha);
+      writeFileSync(join(root, fakeRel), "not-outer\n", "utf8");
+      writeFileSync(
+        join(root, ".cursor", "hooks.json"),
+        `${JSON.stringify(
+          {
+            version: 1,
+            hooks: {
+              sessionStart: [{ command: hostHookOuterCommand("cursor", fakeSha), timeout: 5 }],
+            },
+          },
+          null,
+          2,
+        )}\n`,
+        "utf8",
+      );
+      stageTipRequiredCursorDeposit(root, { sha8: fakeSha });
+      const headStillOld = validateCursorDepositAssociation(root, {
+        source: "HEAD",
+        outerSource: hostHookOuterSource(),
+      });
+      expect(headStillOld.ok).toBe(true);
+      expect(headStillOld.sha8).toBe(sha8);
+      const indexFake = validateCursorDepositAssociation(root, {
+        source: "index",
+        outerSource: "not-outer\n",
+      });
+      expect(indexFake.ok).toBe(false);
+
+      // Omitted shim on HEAD fails (reset to good tip first so hooks.json still names sha8).
+      expect(git(root, ["reset", "--hard", goodHead]).status).toBe(0);
+      expect(git(root, ["rm", "-f", "--", paths[1]]).status).toBe(0);
+      expect(git(root, ["-c", "commit.gpgsign=false", "commit", "-qm", "omit-shim"]).status).toBe(
+        0,
+      );
+      const omitted = validateCursorDepositAssociation(root, { source: "HEAD" });
+      expect(omitted.ok).toBe(false);
+      expect(omitted.detail).toMatch(/missing .cursor\/hooks\/deft-hook-/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("stageTipRequiredCursorDeposit never commits", () => {
+    const root = mkdtempSync(join(tmpdir(), "cursor-stage-only-"));
+    try {
+      const sha8 = seedRepo(root);
+      const before = (git(root, ["rev-parse", "HEAD"]).stdout ?? "").trim();
+      // Unborn HEAD is fine — ensure no commit object is created by stage helper.
+      stageTipRequiredCursorDeposit(root, { sha8 });
+      const log = git(root, ["log", "--oneline"]);
+      expect(log.status === 0 || log.status === 128).toBe(true);
+      if (before.length > 0 && !before.includes("fatal")) {
+        expect((git(root, ["rev-parse", "HEAD"]).stdout ?? "").trim()).toBe(before);
+      } else {
+        expect(log.status).not.toBe(0);
+      }
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
