@@ -11,11 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - session:start success human stdout defaults to one `[deft session] ready=…` go-signal; routine ceremony is behind `--verbose` / `DEFT_SESSION_VERBOSE`. Tip `--compact` / `DEFT_SESSION_COMPACT` are deprecated as volume controls (no-op for human stdout). Actionable zero-exit exceptions, non-default policy/finalize-owed/lifecycle notices stay on the quiet path (#4966).
+- Document Dependabot pin-only bumps: after PM install, first eligible command (or CI `directive install --repair --yes`) completes AC8.6 wiring; doctor dirty beforehand is expected (Refs #5947, #5948).
 - Refresh Cursor agent-hook deposit to deft-hook-a598056e for runtime 0.129.6.
 - chore(dogfood): pin Directive to 0.129.6.
 
 ### Fixed
 - Record tracked completion for session:start quiet-default (#4966); product PR #6169.
+- Strengthen AC14.10 / HT-17 self-complete regression: pin+installed at W with GENERATION/wiring still at V refreshes wiring/GENERATION/readiness at W without changing the pin or migrating xbrief (Refs #5947, #5948).
 
 ### Removed
 
