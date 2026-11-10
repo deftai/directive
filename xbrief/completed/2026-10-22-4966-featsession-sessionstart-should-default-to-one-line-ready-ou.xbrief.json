@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4966",
-    "updated": "2026-11-10T16:17:17Z"
+    "updated": "2026-11-10T17:42:03Z"
   },
   "plan": {
     "title": "feat(session): session:start should default to one-line ready output; put ceremony behind --verbose",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "session:start success human output defaults to one trusted ready line. Routine ceremony moves behind --verbose / DEFT_SESSION_VERBOSE. Actionable zero-exit exceptions and policy/finalize-owed notices stay on the quiet success path.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4966",
@@ -19,56 +19,98 @@
       {
         "id": "clause.1",
         "title": "relieves: P1 — Primary go-signal quiet-default: one trusted-state line ready+branch/HEAD+occupancy with stable [deft session] ready=… prefix; routine dial/host-surface/effort/orientation prose verbose-only via --verbose and DEFT_SESSION_VERBOSE=1",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Primary go-signal quiet-default: one trusted-state line ready+branch/HEAD+occupancy with stable [deft session] ready=… prefix; routine dial/host-surface/effort/orientation prose verbose-only via --verbose and DEFT_SESSION_VERBOSE=1",
           "Traces": "#4966"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d821b34a7fe3cfa89fda853e435d7c1ace404400",
+          "recorded_at": "2026-11-10T17:40:52.423Z",
+          "recorded_by": "operator@deft.ai"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.2",
         "title": "relieves: P2 — Separate whole-stdout volume gate: deprecate tip #3286 --compact/DEFT_SESSION_COMPACT as no-ops (or remint whole-stdout with CHANGELOG); --verbose/DEFT_SESSION_VERBOSE is the ceremony dump escape",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Separate whole-stdout volume gate: deprecate tip #3286 --compact/DEFT_SESSION_COMPACT as no-ops (or remint whole-stdout with CHANGELOG); --verbose/DEFT_SESSION_VERBOSE is the ceremony dump escape",
           "Traces": "#4966"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d821b34a7fe3cfa89fda853e435d7c1ace404400",
+          "recorded_at": "2026-11-10T17:40:52.423Z",
+          "recorded_by": "operator@deft.ai"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.3",
         "title": "relieves: P3 — Non-exhaustive always-on allowlist at one final human-output selection point: primary go-signal; actionable zero-exit exceptions; non-default policy/bypass and human-merge disclosures; finalize-owed unknown/deferred; actionable lifecycle-visible and work-claim notices; clean inventories and routine ceremony verbose-only; fail/deny/steal/non-zero stay loud",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Non-exhaustive always-on allowlist at one final human-output selection point: primary go-signal; actionable zero-exit exceptions; non-default policy/bypass and human-merge disclosures; finalize-owed unknown/deferred; actionable lifecycle-visible and work-claim notices; clean inventories and routine ceremony verbose-only; fail/deny/steal/non-zero stay loud",
           "Traces": "#4966"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d821b34a7fe3cfa89fda853e435d7c1ace404400",
+          "recorded_at": "2026-11-10T17:40:52.423Z",
+          "recorded_by": "operator@deft.ai"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.4",
         "title": "relieves: P4 — Print-less execute-still keep-outs: dial/orientation/occupancy/ritual still run; render from structured state; ceremonyDial is not volume; keep out #3813, ritual gate semantics, --json/run-summary shape, AGENTS managed-section rewrite",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — Print-less execute-still keep-outs: dial/orientation/occupancy/ritual still run; render from structured state; ceremonyDial is not volume; keep out #3813, ritual gate semantics, --json/run-summary shape, AGENTS managed-section rewrite",
           "Traces": "#4966"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d821b34a7fe3cfa89fda853e435d7c1ace404400",
+          "recorded_at": "2026-11-10T17:40:52.423Z",
+          "recorded_by": "operator@deft.ai"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.5",
         "title": "CHANGELOG.md Unreleased for #4966",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG.md Unreleased for #4966",
           "Traces": "#4966"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d821b34a7fe3cfa89fda853e435d7c1ace404400",
+          "recorded_at": "2026-11-10T17:40:52.423Z",
+          "recorded_by": "operator@deft.ai"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.6",
         "title": "Update content/commands.md session:start help for quiet-default and --verbose",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Update content/commands.md session:start help for quiet-default and --verbose",
           "Traces": "#4966"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d821b34a7fe3cfa89fda853e435d7c1ace404400",
+          "recorded_at": "2026-11-10T17:40:52.423Z",
+          "recorded_by": "operator@deft.ai"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -200,6 +242,28 @@
           "Prefer-A Recut-1 6255757053"
         ],
         "parallel_safe": true
+      },
+      "productPullRequest": 6169,
+      "activationPullRequest": 6168,
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6169,
+        "pullRequestNumber": 6169,
+        "mergeCommit": "d821b34a7fe3cfa89fda853e435d7c1ace404400",
+        "deliveryCommit": "d821b34a7fe3cfa89fda853e435d7c1ace404400",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-10T17:46:41.718Z",
+        "verifiedAt": "2026-11-10T17:46:41.718Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "parent-through-merge",
+        "repository": "deftai/directive"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-10T17:46:41.718Z",
+        "actor": "Scott",
+        "via": "prefer-a-leftover-hand-stamp"
       }
     },
     "id": "github.issue.5555959315",
