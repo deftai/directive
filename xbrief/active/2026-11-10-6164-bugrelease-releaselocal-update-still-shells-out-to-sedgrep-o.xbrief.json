@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6164",
-    "updated": "2026-11-10T20:41:00Z"
+    "updated": "2026-11-10T20:55:58Z"
   },
   "plan": {
     "title": "bug(release): release:local-update still shells out to sed/grep on Windows",
@@ -22,7 +22,8 @@
         "title": "Default-branch strip captures origin HEAD then strips the remotes prefix with shell parameter expansion; zero sed awk cut grep on that path.",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "Default-branch strip captures origin HEAD then strips the remotes prefix with shell parameter expansion; zero sed awk cut grep on that path."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Default-branch strip captures origin HEAD then strips the remotes prefix with shell parameter expansion; zero sed awk cut grep on that path.",
+          "Traces": "#6164"
         }
       },
       {
@@ -30,7 +31,8 @@
         "title": "Default-branch verify uses git rev-parse after strip and exits non-zero with recovery guidance when the ref is missing.",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "Default-branch verify uses git rev-parse after strip and exits non-zero with recovery guidance when the ref is missing."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Default-branch verify uses git rev-parse after strip and exits non-zero with recovery guidance when the ref is missing.",
+          "Traces": "#6164"
         }
       },
       {
@@ -38,7 +40,8 @@
         "title": "AgeExclude gate runs one dependency-free node probe that reads the workspace yaml before frozen install and fails closed on tool or read errors.",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "AgeExclude gate runs one dependency-free node probe that reads the workspace yaml before frozen install and fails closed on tool or read errors."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: AgeExclude gate runs one dependency-free node probe that reads the workspace yaml before frozen install and fails closed on tool or read errors.",
+          "Traces": "#6164"
         }
       },
       {
@@ -46,7 +49,8 @@
         "title": "AgeExclude outcomes continue when the exclude key is absent and otherwise require exact list-item string equality with the runtime version row inside that block only.",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "AgeExclude outcomes continue when the exclude key is absent and otherwise require exact list-item string equality with the runtime version row inside that block only."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: AgeExclude outcomes continue when the exclude key is absent and otherwise require exact list-item string equality with the runtime version row inside that block only.",
+          "Traces": "#6164"
         }
       },
       {
@@ -54,7 +58,8 @@
         "title": "Fail-closed wiring keeps the AgeExclude node invocation unconditional in recipe control flow without soft-skip or blanket or-true.",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "Fail-closed wiring keeps the AgeExclude node invocation unconditional in recipe control flow without soft-skip or blanket or-true."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Fail-closed wiring keeps the AgeExclude node invocation unconditional in recipe control flow without soft-skip or blanket or-true.",
+          "Traces": "#6164"
         }
       },
       {
@@ -62,7 +67,8 @@
         "title": "Scope stays on Taskfile.yml release local-update measured call sites without a standalone helper or broad Taskfile rewrite.",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "Scope stays on Taskfile.yml release local-update measured call sites without a standalone helper or broad Taskfile rewrite."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Scope stays on Taskfile.yml release local-update measured call sites without a standalone helper or broad Taskfile rewrite.",
+          "Traces": "#6164"
         }
       },
       {
@@ -70,7 +76,8 @@
         "title": "Proof fixtures cover exact-row pass and refuse cases and a control-flow harness asserts frozen install is not reached on probe failure.",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "Proof fixtures cover exact-row pass and refuse cases and a control-flow harness asserts frozen install is not reached on probe failure."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Proof fixtures cover exact-row pass and refuse cases and a control-flow harness asserts frozen install is not reached on probe failure.",
+          "Traces": "#6164"
         }
       },
       {
@@ -78,7 +85,8 @@
         "title": "CHANGELOG Unreleased notes the portability and fail-closed AgeExclude fix with Refs for this issue.",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "CHANGELOG Unreleased notes the portability and fail-closed AgeExclude fix with Refs for this issue."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG Unreleased notes the portability and fail-closed AgeExclude fix with Refs for this issue.",
+          "Traces": "#6164"
         }
       }
     ],

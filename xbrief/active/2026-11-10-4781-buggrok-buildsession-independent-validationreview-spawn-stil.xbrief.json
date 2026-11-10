@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4781",
-    "updated": "2026-11-10T20:39:48Z"
+    "updated": "2026-11-10T20:55:58Z"
   },
   "plan": {
     "title": "bug(grok-build,session): independent validation/review spawn still requires inventing an active product xBRIEF",
@@ -22,7 +22,8 @@
         "status": "proposed",
         "id": "clause.1",
         "narrative": {
-          "Acceptance": "Emit process_only plus dest cwd — Approach 1 babysit and independent validation/review Grok spawn_subagent envelopes pass advertised process_only with dest cwd; implement-class never sets it; dest-path stays out of skip class."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Emit process_only plus dest cwd — Approach 1 babysit and independent validation/review Grok spawn_subagent envelopes pass advertised process_only with dest cwd; implement-class never sets it; dest-path stays out of skip class.",
+          "Traces": "#4781"
         }
       },
       {
@@ -30,7 +31,8 @@
         "status": "proposed",
         "id": "clause.2",
         "narrative": {
-          "Acceptance": "Name the spawn shape on the card — approach1BabysitterCommands, formatApproach1CheapestAdmissionCard, and review-cycle Approach 1 recipe name that process_only+cwd spawn before register/pr:watch."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Name the spawn shape on the card — approach1BabysitterCommands, formatApproach1CheapestAdmissionCard, and review-cycle Approach 1 recipe name that process_only+cwd spawn before register/pr:watch.",
+          "Traces": "#4781"
         }
       },
       {
@@ -38,7 +40,8 @@
         "status": "proposed",
         "id": "clause.3",
         "narrative": {
-          "Acceptance": "Bind monitor-only seat shape — emit for stop-at: pr-open + worker_role: review-monitor watch/report seats only; do not blanket-flag the fix-capable greptile poller; hand fixes to an authorized implement owner."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Bind monitor-only seat shape — emit for stop-at: pr-open + worker_role: review-monitor watch/report seats only; do not blanket-flag the fix-capable greptile poller; hand fixes to an authorized implement owner.",
+          "Traces": "#4781"
         }
       },
       {
@@ -46,7 +49,8 @@
         "status": "proposed",
         "id": "clause.4",
         "narrative": {
-          "Acceptance": "Name suppressors in deny — when process_only is present but hasImplementConflictSignal wins (for example drive_to merge-ready), deny naming the suppressing field rather than bare #2885."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Name suppressors in deny — when process_only is present but hasImplementConflictSignal wins (for example drive_to merge-ready), deny naming the suppressing field rather than bare #2885.",
+          "Traces": "#4781"
         }
       },
       {
@@ -54,7 +58,8 @@
         "status": "proposed",
         "id": "clause.5",
         "narrative": {
-          "Acceptance": "Relabel recovery option (4) — capability wording for critic, review-monitor, and validation seats (not critic-only)."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Relabel recovery option (4) — capability wording for critic, review-monitor, and validation seats (not critic-only).",
+          "Traces": "#4781"
         }
       },
       {
@@ -62,7 +67,8 @@
         "status": "proposed",
         "id": "clause.6",
         "narrative": {
-          "Acceptance": "Split dest convention by write need — shared cwd-without-occupy for non-writing monitor/critic seats; one dest per validation seat that writes a report root."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Split dest convention by write need — shared cwd-without-occupy for non-writing monitor/critic seats; one dest per validation seat that writes a report root.",
+          "Traces": "#4781"
         }
       },
       {
@@ -70,7 +76,8 @@
         "status": "proposed",
         "id": "clause.7",
         "narrative": {
-          "Acceptance": "Keep write gates separate — specs/report writes stay inventory on requirements posture (#4444); do not fold report roots into the spawn skip class."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Keep write gates separate — specs/report writes stay inventory on requirements posture (#4444); do not fold report roots into the spawn skip class.",
+          "Traces": "#4781"
         }
       },
       {
@@ -78,7 +85,8 @@
         "status": "proposed",
         "id": "clause.8",
         "narrative": {
-          "Acceptance": "Leave unmarked zero-eligible on #2885 — unmarked dest-cwd general-purpose at zero eligible keeps No active xBRIEF."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Leave unmarked zero-eligible on #2885 — unmarked dest-cwd general-purpose at zero eligible keeps No active xBRIEF.",
+          "Traces": "#4781"
         }
       },
       {
@@ -86,7 +94,8 @@
         "status": "proposed",
         "id": "clause.9",
         "narrative": {
-          "Acceptance": "Do not mint Approach B — no second advertised spawn class for this gap."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Do not mint Approach B — no second advertised spawn class for this gap.",
+          "Traces": "#4781"
         }
       },
       {
@@ -94,7 +103,8 @@
         "status": "proposed",
         "id": "clause.10",
         "narrative": {
-          "Acceptance": "Do not claim exclusive-lawful-wait recut — P3 clears when Approach 1 spawn admits; no parent-shell bare pr:watch carve-out as durable fix."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Do not claim exclusive-lawful-wait recut — P3 clears when Approach 1 spawn admits; no parent-shell bare pr:watch carve-out as durable fix.",
+          "Traces": "#4781"
         }
       }
     ],

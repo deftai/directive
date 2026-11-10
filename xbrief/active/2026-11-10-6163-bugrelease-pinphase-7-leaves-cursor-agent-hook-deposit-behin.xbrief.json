@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6163",
-    "updated": "2026-11-10T20:41:04Z"
+    "updated": "2026-11-10T20:55:58Z"
   },
   "plan": {
     "title": "bug(release): pin/Phase 7 leaves Cursor agent-hook deposit behind runtime hash",
@@ -22,7 +22,8 @@
         "title": "Force-add exact tip-required Cursor deposit paths derived from hostHookOuter helpers; stage-only bounded set; never broad-directory force-add.",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "Force-add exact tip-required Cursor deposit paths derived from hostHookOuter helpers; stage-only bounded set; never broad-directory force-add."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Force-add exact tip-required Cursor deposit paths derived from hostHookOuter helpers; stage-only bounded set; never broad-directory force-add.",
+          "Traces": "#6163"
         }
       },
       {
@@ -30,7 +31,8 @@
         "title": "Pin-candidate prep repairs then force-adds and validates candidate index association before pin land.",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "Pin-candidate prep repairs then force-adds and validates candidate index association before pin land."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Pin-candidate prep repairs then force-adds and validates candidate index association before pin land.",
+          "Traces": "#6163"
         }
       },
       {
@@ -38,7 +40,8 @@
         "title": "Phase 7 keeps occupancy dirty ff frozen-install then validates committed HEAD without repair or staging so local-update does not invent a second deposit PR.",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "Phase 7 keeps occupancy dirty ff frozen-install then validates committed HEAD without repair or staging so local-update does not invent a second deposit PR."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Phase 7 keeps occupancy dirty ff frozen-install then validates committed HEAD without repair or staging so local-update does not invent a second deposit PR.",
+          "Traces": "#6163"
         }
       },
       {
@@ -46,7 +49,8 @@
         "title": "Committed-byte association bookend requires the candidate or HEAD tree to contain the expected shim bytes and configuration association for the installed target version.",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "Committed-byte association bookend requires the candidate or HEAD tree to contain the expected shim bytes and configuration association for the installed target version."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Committed-byte association bookend requires the candidate or HEAD tree to contain the expected shim bytes and configuration association for the installed target version.",
+          "Traces": "#6163"
         }
       },
       {
@@ -54,7 +58,8 @@
         "title": "Single remediation print names the force-add plus pin co-travel prep step and re-run local-update guidance.",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "Single remediation print names the force-add plus pin co-travel prep step and re-run local-update guidance."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Single remediation print names the force-add plus pin co-travel prep step and re-run local-update guidance.",
+          "Traces": "#6163"
         }
       },
       {
@@ -62,7 +67,8 @@
         "title": "Do not auto-commit deposit bytes inside release local-update and do not run global npm install as recovery.",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "Do not auto-commit deposit bytes inside release local-update and do not run global npm install as recovery."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Do not auto-commit deposit bytes inside release local-update and do not run global npm install as recovery.",
+          "Traces": "#6163"
         }
       },
       {
@@ -70,7 +76,8 @@
         "title": "Do not treat already-tracked as exact-path membership for the new outer hash.",
         "status": "proposed",
         "narrative": {
-          "Acceptance": "Do not treat already-tracked as exact-path membership for the new outer hash."
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Do not treat already-tracked as exact-path membership for the new outer hash.",
+          "Traces": "#6163"
         }
       }
     ],

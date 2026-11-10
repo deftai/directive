@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5102",
-    "updated": "2026-11-10T20:40:00Z"
+    "updated": "2026-11-10T20:55:58Z"
   },
   "plan": {
     "title": "process(review-cycle): SLizard babysit re-polls instead of resolving carried fingerprints",
@@ -13,7 +13,7 @@
       "Overview": "Prefer-A Bound lean 5872632888 / synthesis 5872759241: merge-ready tip-body MUST, #3167 vs #4387 rewrite, compose existing falsify HOW, residual fixture.",
       "Labels": "bug, agent-experience, review-cycle, process, source-of-truth, area:cli, design-critique:ingest-ready, framework-gap, core-capabilities",
       "UserStory": "As a review-cycle babysitter, I want merge-ready SLizard blocks to force tip-body fingerprint work before re-arming wait, so that Previously mentioned P1s cannot idle-poll forever under a Greptile-clean #3167 ignore license.",
-      "ImplementationPlan": "1. Edit content/skills/deft-directive-review-cycle/SKILL.md for merge-ready/wait-mergeable SLizard tip-body MUST and #3167 weather vs residual split; recut matching anti-pattern catalog bullet.\n2. Add one-liner cross-link in packages/core/src/slizard/slizard-gate.ts and/or scm docs if needed.\n3. Compose existing head-blob falsify HOW; add regression/fixture that carried-open fingerprint is unfinished residual.\n4. Mirror consumer-relevant always-pin text via content/templates/agents-entry.md + task agents:refresh; CHANGELOG.md Unreleased.",
+      "ImplementationPlan": "1. Edit content/skills/deft-directive-review-cycle/SKILL.md for merge-ready/wait-mergeable SLizard tip-body MUST and #3167 weather vs residual split; recut matching anti-pattern catalog bullet.\n2. Add one-liner cross-link in packages/core/src/pr-merge-readiness/slizard-gate.ts and/or scm docs if needed.\n3. Compose existing head-blob falsify HOW; add regression/fixture that carried-open fingerprint is unfinished residual.\n4. Mirror consumer-relevant always-pin text via content/templates/agents-entry.md + task agents:refresh; CHANGELOG.md Unreleased.",
       "Acceptance": "1. relieves: P1 — On pr:merge-ready / wait-mergeable SLizard-blocked (parseable request_changes or merge_impact=blocking), before re-arming wait the owner MUST read tip SLizard review body, enumerate new and Previously mentioned fingerprints, falsify with git show <head>:<path> or fix in one residual batch; keep pr:watch Greptile ownership unchanged\n2. relieves: P2 — Compose existing head-blob check (slizard#2694), same-fingerprint stop, and --skip-slizard override; do not invent a third poller\n3. relieves: P3 — Rewrite #3167 advisory so weather is only timeout/cancelled/unparseable/zero-finding/missing-check; parseable blocking findings with open tip fingerprints are unfinished residual under #2189/#4387; recut matching always-pin anti-pattern catalog bullet with that rewrite\n4. Regression/fixture proves carried-open fingerprint is unfinished residual, not weather\n5. CHANGELOG Unreleased for #5102; non-goals: no global non-blocking flip; no default --skip-slizard; no silent merge of P1+request_changes"
     },
     "items": [
