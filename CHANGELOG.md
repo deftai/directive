@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cursor deposit association resolves nested-project tree paths, parses hooks.json commands (not bare filename text), and skips force-add/closeout when Cursor hostHooks are opted out (Refs #6163).
 - Bound pre-PR push outgoing paths use the delivery merge-base for every live feature tip, so rebase or merge from master no longer invents other PRs' files as unreviewed (#6172).
 - release:local-update strips the default branch with shell parameter expansion and checks the exact runtime AgeExclude row in Node before frozen install, so Windows closeout no longer depends on sed/grep (Refs #6164, #5953).
+- Keep evaluator worktree cleanup from deleting a case-distinct sibling admin entry on the second prune pass (#5735).
 - Fix authentication errors when maintainers promote an already-published stable release to npm latest (#5852).
 - Windows update lockfile refresh: `containedDestExec` now spawns with `shell: true` on win32 so standalone `pnpm.CMD` no longer hits EINVAL under Node CVE-2024-27980 hardening (Refs #6173, #5383).
 - Record tracked completion for session:start quiet-default (#4966); product PR #6169.

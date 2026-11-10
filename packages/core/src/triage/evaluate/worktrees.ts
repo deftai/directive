@@ -39,13 +39,6 @@ export function addEvaluatorWorktree(
   return worktreePath;
 }
 
-function forceDeleteWorktreeDir(worktreePath: string): void {
-  if (!existsSync(worktreePath)) {
-    return;
-  }
-  rmSync(worktreePath, { recursive: true, force: true });
-}
-
 const caseInsensitiveDirCache = new Map<string, boolean>();
 /** Test-only: force probe result (undefined = live probe / cache). */
 let caseInsensitiveDirOverride: boolean | undefined;
@@ -176,39 +169,30 @@ function canonicalizeWorktreePath(path: string): string {
   return `${parentCanon}/${leaf}`;
 }
 
-/**
- * Unregister one missing worktree by deleting only its `$GIT_DIR/worktrees/<id>`
- * admin directory. Containment root is that worktrees dir (the git common dir
- * may sit outside a linked-worktree projectRoot). `git worktree prune` has no
- * path argument and operates on every registration, including concurrent
- * agents' reflogs.
- *
- * Path identity uses on-disk realpath when the worktree exists, and otherwise
- * folds case only when the parent directory is case-insensitive. A case-sensitive
- * Windows directory can host two worktrees that differ only by case; those
- * must not share an admin entry.
- */
-function pruneEvaluatorWorktreeAdmin(
-  git: SwarmGitRunner,
-  projectRoot: string,
-  worktreePath: string,
-): void {
-  const common = git(["rev-parse", "--git-common-dir"], projectRoot);
-  const trimmed = common.stdout.trim();
-  if (common.returncode !== 0 || trimmed.length === 0) {
-    return;
-  }
-  const commonDir = isAbsolute(trimmed) ? resolve(trimmed) : resolve(projectRoot, trimmed);
-  const worktreesDir = join(commonDir, "worktrees");
-  if (!existsSync(worktreesDir)) {
-    return;
-  }
+type WorktreeAdminRegistration = {
+  readonly adminName: string;
+  readonly recordedWorktree: string;
+  readonly recordedBase: string;
+};
+
+type SelectedWorktreeAdmin = {
+  readonly worktreesDir: string;
+  readonly adminName: string;
+  readonly recordedWorktree: string;
+};
+
+function worktreeLeafBasename(path: string): string {
+  return basename(path.replace(/\\/g, "/").replace(/\/\.git$/u, ""));
+}
+
+function listEvaluatorWorktreeAdmins(worktreesDir: string): WorktreeAdminRegistration[] {
   let names: string[] = [];
   try {
     names = readdirSync(worktreesDir);
   } catch {
-    return;
+    return [];
   }
+  const out: WorktreeAdminRegistration[] = [];
   for (const name of names) {
     if (name === "." || name === ".." || name.includes("/") || name.includes("\\")) {
       continue;
@@ -224,24 +208,185 @@ function pruneEvaluatorWorktreeAdmin(
       continue;
     }
     const recordedWorktree = recorded.replace(/\\/g, "/").replace(/\/\.git$/u, "");
-    const recordedBase = basename(recordedWorktree);
-    const targetBase = basename(worktreePath.replace(/\\/g, "/").replace(/\/\.git$/u, ""));
-    // Case-only basename difference ⇒ distinct worktree identity on a
-    // case-sensitive directory. Do not require existsSync: force-delete of the
-    // target must not let a fold unregister a sibling admin entry (#5519).
-    if (recordedBase !== targetBase && recordedBase.toLowerCase() === targetBase.toLowerCase()) {
-      continue;
+    out.push({
+      adminName: name,
+      recordedWorktree,
+      recordedBase: basename(recordedWorktree),
+    });
+  }
+  return out;
+}
+
+function resolveWorktreesAdminDir(git: SwarmGitRunner, projectRoot: string): string | null {
+  const common = git(["rev-parse", "--git-common-dir"], projectRoot);
+  const trimmed = common.stdout.trim();
+  if (common.returncode !== 0 || trimmed.length === 0) {
+    return null;
+  }
+  const commonDir = isAbsolute(trimmed) ? resolve(trimmed) : resolve(projectRoot, trimmed);
+  const worktreesDir = join(commonDir, "worktrees");
+  if (!existsSync(worktreesDir)) {
+    return null;
+  }
+  return worktreesDir;
+}
+
+/**
+ * Select the intended admin registration once from the initial inventory.
+ * Exact-basename among case-only peers wins; sole casing-drift on an
+ * insensitive volume may fold-match. Ambiguous identity returns null
+ * (fail closed). Selection is retained across both remove fallback passes
+ * so a previously excluded sibling is never promoted (#5735).
+ */
+function selectEvaluatorWorktreeAdmin(
+  git: SwarmGitRunner,
+  projectRoot: string,
+  worktreePath: string,
+): SelectedWorktreeAdmin | null {
+  const worktreesDir = resolveWorktreesAdminDir(git, projectRoot);
+  if (worktreesDir === null) {
+    return null;
+  }
+  const admins = listEvaluatorWorktreeAdmins(worktreesDir);
+  if (admins.length === 0) {
+    return null;
+  }
+  const targetBase = worktreeLeafBasename(worktreePath);
+  const exact = admins.filter((entry) => entry.recordedBase === targetBase);
+  if (exact.length === 1) {
+    return {
+      worktreesDir,
+      adminName: exact[0].adminName,
+      recordedWorktree: exact[0].recordedWorktree,
+    };
+  }
+  if (exact.length > 1) {
+    const matched = exact.filter((entry) =>
+      worktreePathsReferToSame(entry.recordedWorktree, worktreePath),
+    );
+    if (matched.length === 1) {
+      return {
+        worktreesDir,
+        adminName: matched[0].adminName,
+        recordedWorktree: matched[0].recordedWorktree,
+      };
     }
-    if (worktreePathsReferToSame(recordedWorktree, worktreePath)) {
-      containedRemove({
-        root: resolve(worktreesDir),
-        target: join(worktreesDir, name),
-        recursive: true,
-        mutation: false,
-      });
+    return null;
+  }
+  const caseOnly = admins.filter(
+    (entry) =>
+      entry.recordedBase !== targetBase &&
+      entry.recordedBase.toLowerCase() === targetBase.toLowerCase(),
+  );
+  if (caseOnly.length === 1 && directoryIgnoresCase(worktreesDir, { bypassCache: true })) {
+    return {
+      worktreesDir,
+      adminName: caseOnly[0].adminName,
+      recordedWorktree: caseOnly[0].recordedWorktree,
+    };
+  }
+  if (caseOnly.length > 0) {
+    // Case-only peers without a sole insensitive alias: never promote.
+    return null;
+  }
+  const pathMatched = admins.filter((entry) =>
+    worktreePathsReferToSame(entry.recordedWorktree, worktreePath),
+  );
+  if (pathMatched.length === 1) {
+    return {
+      worktreesDir,
+      adminName: pathMatched[0].adminName,
+      recordedWorktree: pathMatched[0].recordedWorktree,
+    };
+  }
+  return null;
+}
+
+/**
+ * Delete only the previously selected `$GIT_DIR/worktrees/<id>` admin
+ * directory. Once that registration is gone, further cleanup is a no-op —
+ * never re-decide from the remaining set (#5735). Containment root is the
+ * worktrees admin dir (git common dir may sit outside a linked projectRoot).
+ */
+function pruneSelectedEvaluatorWorktreeAdmin(selected: SelectedWorktreeAdmin | null): void {
+  if (selected === null) {
+    return;
+  }
+  const target = join(selected.worktreesDir, selected.adminName);
+  if (!existsSync(target)) {
+    return;
+  }
+  containedRemove({
+    root: resolve(selected.worktreesDir),
+    target,
+    recursive: true,
+    mutation: false,
+  });
+}
+
+function forceDeleteSelectedWorktreeDir(
+  worktreePath: string,
+  selected: SelectedWorktreeAdmin | null,
+): void {
+  if (!existsSync(worktreePath)) {
+    return;
+  }
+  const parent = dirname(resolve(worktreePath));
+  const targetBase = worktreeLeafBasename(worktreePath);
+  let names: string[] = [];
+  try {
+    names = readdirSync(parent);
+  } catch {
+    return;
+  }
+  // Exact spelling must appear in parent readdir. If only a case-variant is
+  // present, rmSync would hit a non-selected sibling under fold (#5735).
+  if (!names.includes(targetBase)) {
+    return;
+  }
+  if (selected !== null) {
+    const selectedBase = worktreeLeafBasename(selected.recordedWorktree);
+    if (targetBase !== selectedBase && targetBase.toLowerCase() === selectedBase.toLowerCase()) {
       return;
     }
   }
+  rmSync(worktreePath, { recursive: true, force: true });
+}
+
+/** Issue git worktree remove only while the argv still names the selected registration. */
+function gitRemoveNamesSelectedRegistration(
+  worktreePath: string,
+  selected: SelectedWorktreeAdmin | null,
+): boolean {
+  if (selected === null) {
+    // No admin ownership established — still allow Git to attempt the exact path
+    // when the leaf spelling exists; refuse when only a case-variant remains.
+    if (!existsSync(worktreePath)) {
+      const parent = dirname(resolve(worktreePath));
+      const targetBase = worktreeLeafBasename(worktreePath);
+      let names: string[] = [];
+      try {
+        names = readdirSync(parent);
+      } catch {
+        return false;
+      }
+      const caseVariants = names.filter(
+        (name) => name !== targetBase && name.toLowerCase() === targetBase.toLowerCase(),
+      );
+      return caseVariants.length === 0;
+    }
+    return true;
+  }
+  const argvBase = worktreeLeafBasename(worktreePath);
+  const selectedBase = worktreeLeafBasename(selected.recordedWorktree);
+  if (argvBase === selectedBase) {
+    return true;
+  }
+  // Target spelling missing and only a case-variant sibling remains → do not remove.
+  if (!existsSync(worktreePath) && argvBase.toLowerCase() === selectedBase.toLowerCase()) {
+    return false;
+  }
+  return worktreePathsReferToSame(worktreePath, selected.recordedWorktree);
 }
 
 function worktreeStillRegistered(
@@ -273,23 +418,40 @@ export function removeEvaluatorWorktree(
   git: GitRunner = swarmGitRunner,
 ): void {
   const runner = toSwarm(git);
-  const proc = runner(["worktree", "remove", "--force", worktreePath], projectRoot);
-  if (proc.returncode === 0) {
-    return;
+  // Operation-scoped ownership: select once before any destructive work (#5735).
+  const selected = selectEvaluatorWorktreeAdmin(runner, projectRoot, worktreePath);
+
+  let firstError = "<no stderr>";
+  if (gitRemoveNamesSelectedRegistration(worktreePath, selected)) {
+    const proc = runner(["worktree", "remove", "--force", worktreePath], projectRoot);
+    if (proc.returncode === 0) {
+      return;
+    }
+    firstError = proc.stderr.trim() || "<no stderr>";
   }
-  const firstError = proc.stderr.trim() || "<no stderr>";
-  forceDeleteWorktreeDir(worktreePath);
-  pruneEvaluatorWorktreeAdmin(runner, projectRoot, worktreePath);
-  const retry = runner(["worktree", "remove", "--force", worktreePath], projectRoot);
-  if (retry.returncode === 0) {
-    return;
+
+  forceDeleteSelectedWorktreeDir(worktreePath, selected);
+  pruneSelectedEvaluatorWorktreeAdmin(selected);
+
+  let retryError = "<no stderr>";
+  let retryAttempted = false;
+  if (gitRemoveNamesSelectedRegistration(worktreePath, selected)) {
+    retryAttempted = true;
+    const retry = runner(["worktree", "remove", "--force", worktreePath], projectRoot);
+    if (retry.returncode === 0) {
+      return;
+    }
+    retryError = retry.stderr.trim() || "<no stderr>";
   }
-  forceDeleteWorktreeDir(worktreePath);
-  pruneEvaluatorWorktreeAdmin(runner, projectRoot, worktreePath);
+
+  forceDeleteSelectedWorktreeDir(worktreePath, selected);
+  pruneSelectedEvaluatorWorktreeAdmin(selected);
   if (!worktreeStillRegistered(runner, projectRoot, worktreePath) && !existsSync(worktreePath)) {
     return;
   }
   throw new EvaluatorWorktreeError(
-    `git worktree remove failed for ${worktreePath}: ${firstError}; fallback: ${retry.stderr.trim() || "<no stderr>"}`,
+    `git worktree remove failed for ${worktreePath}: ${firstError}; fallback: ${
+      retryAttempted ? retryError : "skipped (selected registration absent or ambiguous)"
+    }`,
   );
 }

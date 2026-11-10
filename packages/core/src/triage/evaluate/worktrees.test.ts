@@ -2,11 +2,12 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { defaultGitRunner as swarmGitRunner } from "../../swarm/worktrees.js";
 import type { GitRunner } from "./types.js";
 import {
   __testOnly_clearCaseInsensitiveDirCache,
+  __testOnly_setDirectoryIgnoresCaseOverride,
   addEvaluatorWorktree,
   EvaluatorWorktreeError,
   removeEvaluatorWorktree,
@@ -60,6 +61,9 @@ function hostsCaseDistinctNames(dir: string): boolean {
 }
 
 const temps: string[] = [];
+beforeEach(() => {
+  __testOnly_clearCaseInsensitiveDirCache();
+});
 afterEach(() => {
   __testOnly_clearCaseInsensitiveDirCache();
   for (const root of temps.splice(0)) {
@@ -243,6 +247,41 @@ describe("evaluator worktrees", () => {
     expect(existsSync(join(worktreesDir, "aaa"))).toBe(true);
     expect(existsSync(join(worktreesDir, "zzz"))).toBe(false);
     expect(existsSync(wtSibling)).toBe(true);
+  });
+
+  it("does not promote a case-only sibling after exact-target first prune", () => {
+    // Dual-to-single: after zzz is removed, second fallback must leave aaa (#5735).
+    const root = mkdtempSync(join(tmpdir(), "wt-promote-"));
+    temps.push(root);
+    initTempRepo(root);
+    const wtTarget = join(root, "Wt-Eval");
+    const wtSibling = join(root, "wt-eval");
+    __testOnly_setDirectoryIgnoresCaseOverride(true);
+    const worktreesDir = join(root, ".git", "worktrees");
+    mkdirSync(join(worktreesDir, "aaa"), { recursive: true });
+    mkdirSync(join(worktreesDir, "zzz"), { recursive: true });
+    writeFileSync(join(worktreesDir, "aaa", "gitdir"), `${wtSibling.replace(/\\/g, "/")}/.git\n`);
+    writeFileSync(join(worktreesDir, "zzz", "gitdir"), `${wtTarget.replace(/\\/g, "/")}/.git\n`);
+    writeFileSync(join(worktreesDir, "aaa", "marker"), "keep\n");
+    let removeCalls = 0;
+    const git: GitRunner = (args, cwd) => {
+      if (args[0] === "worktree" && args[1] === "prune") {
+        throw new Error("unscoped git worktree prune must not run");
+      }
+      if (args[0] === "worktree" && args[1] === "remove") {
+        removeCalls += 1;
+        return { returncode: 1, stdout: "", stderr: "locked" };
+      }
+      if (args[0] === "worktree" && args[1] === "list") {
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
+      return swarmGitRunner(args, cwd);
+    };
+    removeEvaluatorWorktree(root, wtTarget, git);
+    expect(existsSync(join(worktreesDir, "aaa"))).toBe(true);
+    expect(existsSync(join(worktreesDir, "zzz"))).toBe(false);
+    expect(existsSync(join(worktreesDir, "aaa", "marker"))).toBe(true);
+    expect(removeCalls).toBeGreaterThanOrEqual(1);
   });
 
   it("raises when fallback prune still leaves a registered worktree", () => {
