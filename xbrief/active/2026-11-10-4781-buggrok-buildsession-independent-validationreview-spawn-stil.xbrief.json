@@ -13,58 +13,89 @@
       "Overview": "\n\n- Emit process_only plus dest cwd — Approach 1 babysit and independent validation/review Grok spawn_subagent envelopes pass advertised process_only with dest cwd; implement-class never sets it; dest-path stays out of skip class.\n- Name the spawn shape on the card — approach1BabysitterCommands, formatApproach1CheapestAdmissionCard, and review-cycle Approach 1 recipe name that process_only+cwd spawn before register/pr:watch.\n- Bind monitor-only seat shape — emit for stop-at: pr-open + worker_role: review-monitor watch/report seats only; do not blanket-flag the fix-capable greptile poller; hand fixes to an authorized implement owner.\n- Name suppressors in deny — when process_only is present but hasImplementConflictSignal wins (for example drive_to merge-ready), deny naming the suppressing field rather than bare #2885.\n- Relabel recovery option (4) — capability wording for critic, review-monitor, and validation seats (not critic-only).\n- Split dest convention by write need — shared cwd-without-occupy for non-writing monitor/critic seats; one dest per validation seat that writes a report root.\n- Keep write gates separate — specs/report writes stay inventory on requirements posture (#4444); do not fold report roots into the spawn skip class.\n- Leave unmarked zero-eligible on #2885 — unmarked dest-cwd general-purpose at zero eligible keeps No active xBRIEF.\n- Do not mint Approach B — no second advertised spawn class for this gap.\n- Do not claim exclusive-lawful-wait recut — P3 clears when Approach 1 spawn admits; no parent-shell bare pr:watch carve-out as durable fix.",
       "Labels": "bug, agent-experience, process, grok-build, harness, design-critique:ingest-ready",
       "UserStory": "As a Grok through-merge parent, I can spawn Approach 1 babysit and independent validation seats with process_only+dest cwd without inventing an active product xBRIEF.",
-      "ImplementationPlan": "Wire Approach 1 babysitter helpers and review-cycle recipe to advertise process_only+dest for watch/report seats; keep implement-class unmarked; name suppressors on deny."
+      "ImplementationPlan": "Wire Approach 1 babysitter helpers and review-cycle recipe to advertise process_only+dest for watch/report seats; keep implement-class unmarked; name suppressors on deny.",
+      "Acceptance": "1. Emit process_only plus dest cwd — Approach 1 babysit and independent validation/review Grok spawn_subagent envelopes pass advertised process_only with dest cwd; implement-class never sets it; dest-path stays out of skip class.\n2. Name the spawn shape on the card — approach1BabysitterCommands, formatApproach1CheapestAdmissionCard, and review-cycle Approach 1 recipe name that process_only+cwd spawn before register/pr:watch.\n3. Bind monitor-only seat shape — emit for stop-at: pr-open + worker_role: review-monitor watch/report seats only; do not blanket-flag the fix-capable greptile poller; hand fixes to an authorized implement owner.\n4. Name suppressors in deny — when process_only is present but hasImplementConflictSignal wins (for example drive_to merge-ready), deny naming the suppressing field rather than bare #2885.\n5. Relabel recovery option (4) — capability wording for critic, review-monitor, and validation seats (not critic-only).\n6. Split dest convention by write need — shared cwd-without-occupy for non-writing monitor/critic seats; one dest per validation seat that writes a report root.\n7. Keep write gates separate — specs/report writes stay inventory on requirements posture (#4444); do not fold report roots into the spawn skip class.\n8. Leave unmarked zero-eligible on #2885 — unmarked dest-cwd general-purpose at zero eligible keeps No active xBRIEF.\n9. Do not mint Approach B — no second advertised spawn class for this gap.\n10. Do not claim exclusive-lawful-wait recut — P3 clears when Approach 1 spawn admits; no parent-shell bare pr:watch carve-out as durable fix."
     },
     "items": [
       {
         "title": "Emit process_only plus dest cwd — Approach 1 babysit and independent validation/review Grok spawn_subagent envelopes pass advertised process_only with dest cwd; implement-class never sets it; dest-path stays out of skip class.",
         "status": "proposed",
-        "id": "clause.1"
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Emit process_only plus dest cwd — Approach 1 babysit and independent validation/review Grok spawn_subagent envelopes pass advertised process_only with dest cwd; implement-class never sets it; dest-path stays out of skip class."
+        }
       },
       {
         "title": "Name the spawn shape on the card — approach1BabysitterCommands, formatApproach1CheapestAdmissionCard, and review-cycle Approach 1 recipe name that process_only+cwd spawn before register/pr:watch.",
         "status": "proposed",
-        "id": "clause.2"
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Name the spawn shape on the card — approach1BabysitterCommands, formatApproach1CheapestAdmissionCard, and review-cycle Approach 1 recipe name that process_only+cwd spawn before register/pr:watch."
+        }
       },
       {
         "title": "Bind monitor-only seat shape — emit for stop-at: pr-open + worker_role: review-monitor watch/report seats only; do not blanket-flag the fix-capable greptile poller; hand fixes to an authorized implement owner.",
         "status": "proposed",
-        "id": "clause.3"
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Bind monitor-only seat shape — emit for stop-at: pr-open + worker_role: review-monitor watch/report seats only; do not blanket-flag the fix-capable greptile poller; hand fixes to an authorized implement owner."
+        }
       },
       {
         "title": "Name suppressors in deny — when process_only is present but hasImplementConflictSignal wins (for example drive_to merge-ready), deny naming the suppressing field rather than bare #2885.",
         "status": "proposed",
-        "id": "clause.4"
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Name suppressors in deny — when process_only is present but hasImplementConflictSignal wins (for example drive_to merge-ready), deny naming the suppressing field rather than bare #2885."
+        }
       },
       {
         "title": "Relabel recovery option (4) — capability wording for critic, review-monitor, and validation seats (not critic-only).",
         "status": "proposed",
-        "id": "clause.5"
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Relabel recovery option (4) — capability wording for critic, review-monitor, and validation seats (not critic-only)."
+        }
       },
       {
         "title": "Split dest convention by write need — shared cwd-without-occupy for non-writing monitor/critic seats; one dest per validation seat that writes a report root.",
         "status": "proposed",
-        "id": "clause.6"
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Split dest convention by write need — shared cwd-without-occupy for non-writing monitor/critic seats; one dest per validation seat that writes a report root."
+        }
       },
       {
         "title": "Keep write gates separate — specs/report writes stay inventory on requirements posture (#4444); do not fold report roots into the spawn skip class.",
         "status": "proposed",
-        "id": "clause.7"
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Keep write gates separate — specs/report writes stay inventory on requirements posture (#4444); do not fold report roots into the spawn skip class."
+        }
       },
       {
         "title": "Leave unmarked zero-eligible on #2885 — unmarked dest-cwd general-purpose at zero eligible keeps No active xBRIEF.",
         "status": "proposed",
-        "id": "clause.8"
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Leave unmarked zero-eligible on #2885 — unmarked dest-cwd general-purpose at zero eligible keeps No active xBRIEF."
+        }
       },
       {
         "title": "Do not mint Approach B — no second advertised spawn class for this gap.",
         "status": "proposed",
-        "id": "clause.9"
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Do not mint Approach B — no second advertised spawn class for this gap."
+        }
       },
       {
         "title": "Do not claim exclusive-lawful-wait recut — P3 clears when Approach 1 spawn admits; no parent-shell bare pr:watch carve-out as durable fix.",
         "status": "proposed",
-        "id": "clause.10"
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Do not claim exclusive-lawful-wait recut — P3 clears when Approach 1 spawn admits; no parent-shell bare pr:watch carve-out as durable fix."
+        }
       }
     ],
     "tags": [
@@ -204,7 +235,9 @@
           "packages/core/src/swarm/approach1-babysitter.ts",
           "packages/core/src/hooks/dispatcher.ts",
           "content/skills/deft-directive-review-cycle/SKILL.md",
-          "content/skills/deft-directive-swarm/references/host-grok-build.md"
+          "content/skills/deft-directive-swarm/references/host-grok-build.md",
+          "packages/core/src/swarm/approach1-babysitter.test.ts",
+          "packages/core/src/hooks/dispatcher.test.ts"
         ],
         "module_boundary": "packages/core/src/swarm"
       },
@@ -990,7 +1023,9 @@
           "packages/core/src/hooks/dispatcher.ts",
           "content/skills/deft-directive-review-cycle/SKILL.md",
           "content/skills/deft-directive-swarm/references/host-grok-build.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/core/src/swarm/approach1-babysitter.test.ts",
+          "packages/core/src/hooks/dispatcher.test.ts"
         ],
         "verify_commands": [
           "pnpm exec vitest run packages/core/src/swarm --reporter=dot",
@@ -999,7 +1034,8 @@
         "expected_outputs": [
           "Approach 1 babysit spawn admits with process_only+dest cwd",
           "Implement-class spawn never sets process_only"
-        ]
+        ],
+        "missing_traces_justification": "Prefer-A Bound design-critique arc closed ingest-ready; product traces land with the implement PR under Tracking/Refs."
       },
       "kind": "story"
     },

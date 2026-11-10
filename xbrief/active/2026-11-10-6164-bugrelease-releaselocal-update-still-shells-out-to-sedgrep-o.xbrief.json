@@ -13,48 +13,73 @@
       "Overview": "\n- Default-branch strip — capture git symbolic-ref refs/remotes/origin/HEAD (stderr quiet) then DEFAULT_BRANCH=; zero sed/awk/cut/grep on that path.\n- Default-branch verify — after strip, git rev-parse --verify --quiet refs/remotes/origin/ or exit 1 with recovery to run git remote set-head origin -a; empty/unset after a successful tool path may still fall to master only when the verify limb then succeeds.\n- AgeExclude gate — one dependency-free node -e (no yaml package; pre-frozen-install) that reads pnpm-workspace.yaml; tool/read/absent-file failure exits non-zero before pnpm.\n- AgeExclude outcomes — minimumReleaseAgeExclude key absent → continue; key present → require exact list-item string equality with @deftai/directive-runtime@ inside that block only (strip quotes/whitespace; no whole-file substring; no prefix match such as 0.129.1 vs 0.129.10); missing/wrong/comment-only/out-of-block match exits non-zero.\n- Fail-closed wiring — AgeExclude node invocation is unconditional in the recipe control flow (not nested behind a soft if whose failure skips); do not wrap the node probes in blanket || true; pass VERSION as argv, not interpolated JS.\n- Scope — Taskfile.yml release:local-update only (measured three call sites); no standalone helper; no engine:invoke move; no broad Taskfile rewrite.\n- Proof — Windows PATH without sed/grep emits no executable-not-found for these sites; fixture(s) cover exact-row pass, wrong-version/prefix false-pass refuse, comment/out-of-block refuse, absent key continue, absent-file/read fail; one extracted control-flow harness asserts pnpm install is not reached on probe failure (mocked side effects).\n- CHANGELOG — Unreleased notes the portability + fail-closed AgeExclude fix; Refs #6164 / #5953.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n\n",
       "Labels": "bug, agent-experience, process, runtime-portability, dogfood, platform:windows, design-critique:ingest-ready, release",
       "UserStory": "As a Windows maintainer, release:local-update runs without sed/grep and fail-closes AgeExclude before frozen install.",
-      "ImplementationPlan": "Replace sed/grep in Taskfile release:local-update with shell parameter expansion plus dependency-free node AgeExclude gate using exact runtime@version row."
+      "ImplementationPlan": "Replace sed/grep in Taskfile release:local-update with shell parameter expansion plus dependency-free node AgeExclude gate using exact runtime@version row.",
+      "Acceptance": "1. Default-branch strip captures origin HEAD then strips the remotes prefix with shell parameter expansion; zero sed awk cut grep on that path.\n2. Default-branch verify uses git rev-parse after strip and exits non-zero with recovery guidance when the ref is missing.\n3. AgeExclude gate runs one dependency-free node probe that reads the workspace yaml before frozen install and fails closed on tool or read errors.\n4. AgeExclude outcomes continue when the exclude key is absent and otherwise require exact list-item string equality with the runtime version row inside that block only.\n5. Fail-closed wiring keeps the AgeExclude node invocation unconditional in recipe control flow without soft-skip or blanket or-true.\n6. Scope stays on Taskfile.yml release local-update measured call sites without a standalone helper or broad Taskfile rewrite.\n7. Proof fixtures cover exact-row pass and refuse cases and a control-flow harness asserts frozen install is not reached on probe failure.\n8. CHANGELOG Unreleased notes the portability and fail-closed AgeExclude fix with Refs for this issue."
     },
     "items": [
       {
         "id": "clause.1",
         "title": "Default-branch strip captures origin HEAD then strips the remotes prefix with shell parameter expansion; zero sed awk cut grep on that path.",
-        "status": "proposed"
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Default-branch strip captures origin HEAD then strips the remotes prefix with shell parameter expansion; zero sed awk cut grep on that path."
+        }
       },
       {
         "id": "clause.2",
         "title": "Default-branch verify uses git rev-parse after strip and exits non-zero with recovery guidance when the ref is missing.",
-        "status": "proposed"
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Default-branch verify uses git rev-parse after strip and exits non-zero with recovery guidance when the ref is missing."
+        }
       },
       {
         "id": "clause.3",
         "title": "AgeExclude gate runs one dependency-free node probe that reads the workspace yaml before frozen install and fails closed on tool or read errors.",
-        "status": "proposed"
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "AgeExclude gate runs one dependency-free node probe that reads the workspace yaml before frozen install and fails closed on tool or read errors."
+        }
       },
       {
         "id": "clause.4",
         "title": "AgeExclude outcomes continue when the exclude key is absent and otherwise require exact list-item string equality with the runtime version row inside that block only.",
-        "status": "proposed"
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "AgeExclude outcomes continue when the exclude key is absent and otherwise require exact list-item string equality with the runtime version row inside that block only."
+        }
       },
       {
         "id": "clause.5",
         "title": "Fail-closed wiring keeps the AgeExclude node invocation unconditional in recipe control flow without soft-skip or blanket or-true.",
-        "status": "proposed"
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Fail-closed wiring keeps the AgeExclude node invocation unconditional in recipe control flow without soft-skip or blanket or-true."
+        }
       },
       {
         "id": "clause.6",
         "title": "Scope stays on Taskfile.yml release local-update measured call sites without a standalone helper or broad Taskfile rewrite.",
-        "status": "proposed"
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Scope stays on Taskfile.yml release local-update measured call sites without a standalone helper or broad Taskfile rewrite."
+        }
       },
       {
         "id": "clause.7",
         "title": "Proof fixtures cover exact-row pass and refuse cases and a control-flow harness asserts frozen install is not reached on probe failure.",
-        "status": "proposed"
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Proof fixtures cover exact-row pass and refuse cases and a control-flow harness asserts frozen install is not reached on probe failure."
+        }
       },
       {
         "id": "clause.8",
         "title": "CHANGELOG Unreleased notes the portability and fail-closed AgeExclude fix with Refs for this issue.",
-        "status": "proposed"
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "CHANGELOG Unreleased notes the portability and fail-closed AgeExclude fix with Refs for this issue."
+        }
       }
     ],
     "tags": [
@@ -584,7 +609,8 @@
         "expected_outputs": [
           "release:local-update has zero sed/grep on default-branch and AgeExclude paths",
           "AgeExclude exact-row gate fails closed before pnpm install"
-        ]
+        ],
+        "missing_traces_justification": "Prefer-A Bound design-critique arc closed ingest-ready; product traces land with the implement PR under Tracking/Refs."
       },
       "kind": "story"
     },

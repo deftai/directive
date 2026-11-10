@@ -13,43 +13,65 @@
       "Overview": "\n\n- relieves: P2 — Force-add exact tip-required Cursor paths: derive enabled Cursor hooks.json plus expected .cursor/hooks/deft-hook-<sha8>.mjs from the installed runtime hostHookOuter* helpers; git add -f only that bounded set despite local exclude .cursor/; do not treat “already tracked” as exact-path membership for the new hash; never broad-directory force-add; stage-only (never commit).\n- relieves: P1, P3 — Pin-candidate prep vs Phase 7 landed-tip check: on the pin branch, repair/write then force-add and validate the candidate index association before pin land; Phase 7 keeps occupancy/dirty/ff/frozen-install then validates committed HEAD without repair or staging; land the prepared deposit with the pin so local-update does not invent a second deposit PR.\n- relieves: P4 — Committed-byte association bookend: require the chosen candidate/HEAD tree contain the expected shim bytes and configuration association for the installed target version (not inspectAgentHookDeposit working-tree green alone); fixture: exclude .cursor/ + new shim → ordinary add misses; force-add stages candidate; committed pair passes; repaired-local/omitted-shim and staging-only shapes fail the Phase 7 HEAD check.\n- relieves: P3 — Single remediation print: rewrite print_deposit_recovery / release-skill Phase 7 recovery to name the force-add + pin co-travel prep step and re-run local-update; keep “Do not auto-commit deposit bytes inside the release flow; do not npm i -g.”\n\n\n",
       "Labels": "bug, agent-experience, process, dogfood, design-critique:ingest-ready, release",
       "UserStory": "As a maintainer cutting a pin, Phase 7 does not invent a second Cursor deposit PR because tip-required Cursor paths co-travel with the pin.",
-      "ImplementationPlan": "Force-add exact tip-required Cursor hooks paths on the pin candidate; Phase 7 stays a committed-byte HEAD check; recovery names the prep+pin co-travel step."
+      "ImplementationPlan": "Force-add exact tip-required Cursor hooks paths on the pin candidate; Phase 7 stays a committed-byte HEAD check; recovery names the prep+pin co-travel step.",
+      "Acceptance": "1. Force-add exact tip-required Cursor deposit paths derived from hostHookOuter helpers; stage-only bounded set; never broad-directory force-add.\n2. Pin-candidate prep repairs then force-adds and validates candidate index association before pin land.\n3. Phase 7 keeps occupancy dirty ff frozen-install then validates committed HEAD without repair or staging so local-update does not invent a second deposit PR.\n4. Committed-byte association bookend requires the candidate or HEAD tree to contain the expected shim bytes and configuration association for the installed target version.\n5. Single remediation print names the force-add plus pin co-travel prep step and re-run local-update guidance.\n6. Do not auto-commit deposit bytes inside release local-update and do not run global npm install as recovery.\n7. Do not treat already-tracked as exact-path membership for the new outer hash."
     },
     "items": [
       {
         "id": "clause.1",
         "title": "Force-add exact tip-required Cursor deposit paths derived from hostHookOuter helpers; stage-only bounded set; never broad-directory force-add.",
-        "status": "proposed"
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Force-add exact tip-required Cursor deposit paths derived from hostHookOuter helpers; stage-only bounded set; never broad-directory force-add."
+        }
       },
       {
         "id": "clause.2",
         "title": "Pin-candidate prep repairs then force-adds and validates candidate index association before pin land.",
-        "status": "proposed"
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Pin-candidate prep repairs then force-adds and validates candidate index association before pin land."
+        }
       },
       {
         "id": "clause.3",
         "title": "Phase 7 keeps occupancy dirty ff frozen-install then validates committed HEAD without repair or staging so local-update does not invent a second deposit PR.",
-        "status": "proposed"
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Phase 7 keeps occupancy dirty ff frozen-install then validates committed HEAD without repair or staging so local-update does not invent a second deposit PR."
+        }
       },
       {
         "id": "clause.4",
         "title": "Committed-byte association bookend requires the candidate or HEAD tree to contain the expected shim bytes and configuration association for the installed target version.",
-        "status": "proposed"
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Committed-byte association bookend requires the candidate or HEAD tree to contain the expected shim bytes and configuration association for the installed target version."
+        }
       },
       {
         "id": "clause.5",
         "title": "Single remediation print names the force-add plus pin co-travel prep step and re-run local-update guidance.",
-        "status": "proposed"
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Single remediation print names the force-add plus pin co-travel prep step and re-run local-update guidance."
+        }
       },
       {
         "id": "clause.6",
         "title": "Do not auto-commit deposit bytes inside release local-update and do not run global npm install as recovery.",
-        "status": "proposed"
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Do not auto-commit deposit bytes inside release local-update and do not run global npm install as recovery."
+        }
       },
       {
         "id": "clause.7",
         "title": "Do not treat already-tracked as exact-path membership for the new outer hash.",
-        "status": "proposed"
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Do not treat already-tracked as exact-path membership for the new outer hash."
+        }
       }
     ],
     "tags": [
@@ -574,7 +596,8 @@
         "expected_outputs": [
           "Pin candidate force-adds tip-required Cursor deposit paths",
           "Phase 7 committed-byte check fails closed without inventing a second deposit PR"
-        ]
+        ],
+        "missing_traces_justification": "Prefer-A Bound design-critique arc closed ingest-ready; product traces land with the implement PR under Tracking/Refs."
       },
       "kind": "story"
     },
