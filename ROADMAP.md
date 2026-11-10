@@ -5,19 +5,6 @@
 
 # Roadmap
 
-## Active
-
-- **#4966** -- feat(session): session:start should default to one-line ready output; put ceremony behind --verbose -- `[running]`
-- **#5102** -- process(review-cycle): SLizard babysit re-polls instead of resolving carried fingerprints -- `[running]`
-- **#5732** -- leftover(#5727): host/deft-hook admission must refuse undeclared forge-poll before execution (#5229 residual) -- `[running]`
-- **#5735** -- fix(triage): worktrees-probe case-distinct sibling flake recurred a third time (post-#5519) -- `[running]`
-- **#5810** -- [framework-gap] Grok Bot cannot attach to and steer an already-open Grok Build session over ACP -- `[running]`
-- **#5812** -- recurrence(#5278): query-before Class A push/PR-open while stop-at:pr-open leaf still live -- `[running]`
-- **#5852** -- feat(release): let the release skill choose the npm dist-tag (latest / maintainer / beta) for both packages -- `[running]`
-- **#5853** -- verify:pack-drift compares against the installed runtime package's rewritten copies instead of repo content/ (still in 0.128.0) -- `[running]`
-- **#5854** -- directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release) -- `[running]`
-- **#5994** -- feat(hooks): v261027 thin host .mjs outer; kill .sh; unify entry guards -- `[running]`
-
 ## Proposed
 
 _Scopes not yet promoted to pending. Orientation only — not a substitute for `task triage:queue`._
@@ -43,34 +30,43 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 - **#1299** -- When to use CRUD tool vs direct vBRIEF authoring (contributor doc) -- `[proposed]`
 - **#2651** -- ADR-002: Forge-provider Azure DevOps adoption gate (proposed) -- `[proposed]`
 - **#3014** -- research(deposit): opt-in minimal consumer AGENTS profile for app-bank / greenfield -- `[proposed]`
+- **#4966** -- feat(session): session:start should default to one-line ready output; put ceremony behind --verbose -- `[proposed]`
+- **#5102** -- process(review-cycle): SLizard babysit re-polls instead of resolving carried fingerprints -- `[proposed]`
+- **#5732** -- leftover(#5727): host/deft-hook admission must refuse undeclared forge-poll before execution (#5229 residual) -- `[proposed]`
+- **#5735** -- fix(triage): worktrees-probe case-distinct sibling flake recurred a third time (post-#5519) -- `[proposed]`
+- **#5810** -- [framework-gap] Grok Bot cannot attach to and steer an already-open Grok Build session over ACP -- `[proposed]`
+- **#5812** -- recurrence(#5278): query-before Class A push/PR-open while stop-at:pr-open leaf still live -- `[proposed]`
+- **#5853** -- verify:pack-drift compares against the installed runtime package's rewritten copies instead of repo content/ (still in 0.128.0) -- `[proposed]`
+- **#5854** -- directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release) -- `[proposed]`
+- **#5994** -- feat(hooks): v261027 thin host .mjs outer; kill .sh; unify entry guards -- `[proposed]`
 
 ## Completed
 
-_Showing 25 of 1886 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1907 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#6143** -- bug(hooks,session): an idle session's applying-host claim blocks other-provider lifecycle commands with no lease behind it, and the deny names the wrong id -- `[completed]`
+- **#6142** -- bug(design-critique): ensureArcDest via stale gitignored packages/core/dist skips guarded-prep, so arc dests launch without runtime -- `[completed]`
+- **#6136** -- bug(hooks,authz): agents can self-serve .deft-directive-disable outside UAT (Write/Shell plant) -- `[completed]`
+- **#6013** -- Pin-mismatch recovery guidance follows the settled failure-shaped map -- `[completed]`
+- **#5995** -- EOL-normalize ownership detection and restore narrow LF gitattributes for managed paths -- `[completed]`
+- **#5997** -- Fix Windows deft-hook bin wiring and move ps1 cleanup to the launcher -- `[completed]`
+- **#5996** -- Let deft check resolve the OVPR pin package root under node_modules -- `[completed]`
+- **#5916** -- Unwrap npm 12 npm view --json single-element arrays in installer registry resolution -- `[completed]`
+- **#6128** -- BLOCKER: pr:wait-mergeable-and-merge freezes on dirty Approach1 babysit xbrief/active parking -- `[completed]`
+- **#6122** -- hardening(hooks): lock operator-override eligibility across host entry points -- `[completed]`
+- **#6021** -- chore(deps): raise `packageManager` pnpm to >= 11.11.0 (upstream pnpm security advisories) -- `[completed]`
+- **#5983** -- [framework-gap] Human-presence mint: agent-shell marker list has no Grok entry -- `[completed]`
+- **#5953** -- feat(release): update the maintainer's local checkout to the new pin after every release -- `[completed]`
+- **#6100** -- [framework-gap] Codex hook root binding blocks linked-worktree reads and dependency bootstrap -- `[completed]`
+- **#6008** -- [framework-gap] finalize-owed probes each claim ref with its own unbounded ls-remote -- `[completed]`
+- **#6099** -- perf(cache): reuse open-issue list payload in drift probe instead of refetching up to 25 issues -- `[completed]`
+- **#6101** -- [framework-gap] Read-only session recovery overwrites live-owner identity and blocks bare cleanup -- `[completed]`
+- **#6032** -- fix(gh): release, release-publish and release-rollback gh reads still inherit the color env (#6023 follow-up) -- `[completed]`
+- **#5852** -- feat(release): let the release skill choose the npm dist-tag (latest / maintainer / beta) for both packages -- `[completed]`
+- **#1037** -- Codify edit_files search-substring truncation hazard as a meta/lessons.md entry (recurrence on PR #1034) -- `[completed]`
+- **#1092** -- chore(docs): remove or rewrite misleading docs/gitcrawl-fallback.md -- `[completed]`
 - **#6092** -- scope:complete cannot complete a shipped brief whose issue was linked after merge -- `[completed]`
 - **#6071** -- fix(merge,release,pre-pr): block ordinary merges while master's Merge gate is red; hotfix-only until green, with a cited skip fallback -- `[completed]`
 - **#6072** -- enhancement(check): baseline ratchet for sanctioned test-skip count -- `[completed]`
 - **#5925** -- bug(hooks,cli): lifecycle verbs still deny normal agent shells as not inspectable (regression class of #4577/#4780) -- `[completed]`
-- **#5890** -- Edit guard has no legitimate scope for brief-retirement or restamp changes -- `[completed]`
-- **#5792** -- [framework-gap] BLOCKER Scope activation requires future tests before merge-base write authority exists -- `[completed]`
-- **#5855** -- bug(pre-pr,check): with multiple active briefs, verify:ac refuses (no story selected), so no maintainer can pass the #5804 push gate -- `[completed]`
-- **#6011** -- Commit gate reads a story's file_scope from the merge-base with origin/main, not the repo's delivery branch -- `[completed]`
-- **#5970** -- bug(hooks,authz): read-only orientation shells false-denied as inventoried authz dest-of-write (Approach1 babysit) -- `[completed]`
-- **#5910** -- release: `task materialize:runtime` in a fresh worktree replaces the pinned runtime with master's 0.0.0 and the pin hook blocks the release -- `[completed]`
-- **#6040** -- bug(pre-pr): pre-PR is the Read-Write-Lint-Diff-Loop plus verify:ac on the active xBrief; drop the post-loop full task check and the coverage run -- `[completed]`
-- **#6041** -- ci(coverage): take the coverage run off the merge path; run it at release Step 5 ("release for now or on demand") -- `[completed]`
-- **#5992** -- docs(ovpr): v261027 entry-guard / host-outer requirements + problem ledger decision record -- `[completed]`
-- **#5984** -- fix(hooks): #5956-A generator emit pin-local hook-bin.js for Grok PreToolUse (stop .sh rewrite) -- `[completed]`
-- **#5798** -- bug(installer,doctor): failure-shaped remedy map for doctor recovery -- `[completed]`
-- **#5797** -- bug(installer,upgrade): stop placeholder allowBuilds for directive-runtime -- `[completed]`
-- **#5795** -- bug(installer,migrate): hybrid vBRIEFInfo@0.8 equal-version migrate-clean -- `[completed]`
-- **#5885** -- Self-repair never discloses preserved managed git hooks (follow-up to #5837) -- `[completed]`
-- **#5807** -- fix(hooks,ovpr): dual PreToolUse + brief/refspec gates + disable-before-bin + project PM hatch -- `[completed]`
-- **#5837** -- [framework-gap] Self-repair overwrites a committed managed git hook during check, then class-checks blame the story PR -- `[completed]`
-- **#5799** -- chore(xbrief,taskfile,ci): OVPR corpus hygiene + doctor wiring comment + allowBuilds -- `[completed]`
-- **#4666** -- fix(install): OVPR greenfield seed PROJECT-DEFINITION + lifecycle + stage (no schemas copy) -- `[completed]`
-- **#5796** -- fix(installer,doctor): Taskfile wiring probe uses YAML AST for includes.deft only -- `[completed]`
-- **#5804** -- bug(process,pre-pr): no hard refuse when always-pin pre-PR / RWDL is skipped before push -- `[completed]`
-- **#5805** -- bug(dogfood,ovpr): maintainer must run pinned runtime — close task auto-compile tip bypass -- `[completed]`
 

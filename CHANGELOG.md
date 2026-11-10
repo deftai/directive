@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.129.6] - 2026-11-10
+
+> Always-on kill-switch plant deny (#6136), applying-host advisory takeover (#6143), pin-bin ensure-arc-dest (#6142), npm12 registry unwrap (#5916), Windows deft-hook/autocrlf (#5997/#5995), pin≠installed recovery (#6013), release Phase 7 local-update (#5953), promote-latest/maintainer dist-tag (#5852).
 
 ### Added
 - Phase 7 maintainer local checkout closeout via `task release:local-update -- <version> --checkout <primary>` after a release (fail-closed; no global npm i -g). Refs #5953.
@@ -7907,7 +7918,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.129.5...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.129.6...HEAD
+[0.129.6]: https://github.com/deftai/directive/compare/v0.129.5...v0.129.6
 [0.129.5]: https://github.com/deftai/directive/compare/v0.129.4...v0.129.5
 [0.129.4]: https://github.com/deftai/directive/compare/v0.129.3...v0.129.4
 [0.129.3]: https://github.com/deftai/directive/compare/v0.129.2...v0.129.3
