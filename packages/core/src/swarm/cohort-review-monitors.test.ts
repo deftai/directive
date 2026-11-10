@@ -501,10 +501,13 @@ describe("CLI argv + remediation", () => {
     expect(err.join("")).toMatch(/empty|--prs|Error/i);
   });
 
-  it("approach1 remediation lists register+watch+verify per PR", () => {
+  it("approach1 remediation lists process_only spawn+register+watch+verify per PR (#4781)", () => {
     const cmds = approach1RemediationForUnarmedPrs([11, 12]);
-    expect(cmds.length).toBe(6);
-    expect(cmds[0]).toContain("review-monitor:register");
-    expect(cmds[2]).toContain("verify:review-monitor");
+    expect(cmds.length).toBe(8);
+    expect(cmds[0]).toContain("process_only+cwd");
+    expect(cmds[1]).toContain("review-monitor:register");
+    expect(cmds[3]).toContain("verify:review-monitor");
+    expect(cmds[4]).toContain("process_only+cwd");
+    expect(cmds[5]).toContain("--pr 12");
   });
 });

@@ -9,6 +9,8 @@ import {
   ensureHostCapabilityStampForBabysit,
   formatApproach1BabysitterCard,
   formatApproach1BabysitterOneLiner,
+  formatApproach1ProcessOnlySpawnShape,
+  isApproach1MonitorOnlySeat,
 } from "./approach1-babysitter.js";
 
 describe("approach1 babysitter one-liner (#5219)", () => {
@@ -23,14 +25,18 @@ describe("approach1 babysitter one-liner (#5219)", () => {
 
   it("lists the same commands for swarm card dispatch", () => {
     const cmds = approach1BabysitterCommands(12, "monitor-12");
-    expect(cmds).toHaveLength(3);
-    expect(cmds[0]).toContain("review-monitor:register");
-    expect(cmds[1]).toContain("DEFT_MONITOR_AGENT_ID=monitor-12");
-    expect(cmds[1]).toContain("pr:watch -- 12");
-    expect(cmds[2]).toContain("verify:review-monitor");
+    expect(cmds).toHaveLength(4);
+    expect(cmds[0]).toContain("process_only+cwd");
+    expect(cmds[0]).toContain('worker_role: "review-monitor"');
+    expect(cmds[1]).toContain("review-monitor:register");
+    expect(cmds[2]).toContain("DEFT_MONITOR_AGENT_ID=monitor-12");
+    expect(cmds[2]).toContain("pr:watch -- 12");
+    expect(cmds[3]).toContain("verify:review-monitor");
     const card = formatApproach1BabysitterCard(12, "monitor-12");
     expect(card).toContain("exclusive lawful waits");
     expect(card).toContain("cheapest admitted path");
+    expect(card).toContain("process_only+cwd");
+    expect(card).toContain("Monitor-only seat (#4781)");
     expect(card).toContain("writeHostCapabilityStamp");
     expect(card).toContain("forge-poll");
     expect(card).toContain("%TEMP%");
@@ -38,11 +44,27 @@ describe("approach1 babysitter one-liner (#5219)", () => {
     expect(card).toContain("admitClaimedBabysitPath");
   });
 
+  it("names process_only+cwd spawn shape for monitor-only seats (#4781)", () => {
+    expect(formatApproach1ProcessOnlySpawnShape("/wt/babysit-12")).toContain("process_only: true");
+    expect(formatApproach1ProcessOnlySpawnShape("/wt/babysit-12")).toContain("/wt/babysit-12");
+    expect(isApproach1MonitorOnlySeat({ stopAt: "pr-open", workerRole: "review-monitor" })).toBe(
+      true,
+    );
+    expect(
+      isApproach1MonitorOnlySeat({ stopAt: "pr-open", workerRole: "leaf-implementation" }),
+    ).toBe(false);
+    expect(
+      isApproach1MonitorOnlySeat({ stopAt: "merge-ready", workerRole: "review-monitor" }),
+    ).toBe(false);
+  });
+
   it("cohort remediation emits Approach 1 commands per unarmed PR (#5318)", () => {
     const cmds = approach1RemediationForUnarmedPrs([7, 8]);
-    expect(cmds).toHaveLength(6);
-    expect(cmds[0]).toContain("--pr 7");
-    expect(cmds[3]).toContain("--pr 8");
+    expect(cmds).toHaveLength(8);
+    expect(cmds[1]).toContain("--pr 7");
+    expect(cmds[5]).toContain("--pr 8");
+    expect(cmds[0]).toContain("process_only+cwd");
+    expect(cmds[4]).toContain("process_only+cwd");
   });
 });
 

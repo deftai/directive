@@ -156,6 +156,7 @@ import {
   rewriteExactLifecycleCommand,
   toolInputRecord,
 } from "./classify/index.js";
+import { GROK_SPAWN_WRITING_SKIP_CLASS_FIELD, PROCESS_ONLY_FLAG_KEYS } from "./classify/payload.js";
 import {
   type CursorPlanChoiceDeps,
   defaultCursorPlanChoiceDeps,
@@ -328,7 +329,7 @@ export type HookDecisionCode =
   | "spawn-explore-ready"
   /** Non-lifecycle assist/docs spawn allowed without active xBRIEF (#3080). */
   | "spawn-ephemeral-ready"
-  /** Process-only critic spawn (`subagent_type` plan or `process_only`) skips dest occupancy. */
+  /** Process-only critic/review-monitor/validation spawn (`plan` or `process_only`) skips dest occupancy. */
   | "spawn-process-only-ready"
   | "spawn-ready"
   | "spawn-not-ready"
@@ -461,11 +462,133 @@ function isLauncherFamilySpawnNotReady(input: HookDispatchInput, toolName: strin
   return launcher.kind === "launcher" || launcher.kind === "compound";
 }
 
+function recordPayload4781(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function fieldString4781(input: Record<string, unknown>, key: string): string | null {
+  const value = input[key];
+  if (typeof value === "string" && value.trim().length > 0) return value.trim();
+  return null;
+}
+
+function toolInput4781(payload: Record<string, unknown>): Record<string, unknown> {
+  return (
+    recordPayload4781(payload.tool_input) ??
+    recordPayload4781(payload.toolInput) ??
+    recordPayload4781(payload.input) ??
+    recordPayload4781(payload.arguments) ??
+    payload
+  );
+}
+
+function fieldTruthy4781(input: Record<string, unknown>, key: string): boolean {
+  const value = input[key];
+  if (value === true) return true;
+  if (typeof value === "number") return value === 1;
+  if (typeof value === "string") {
+    const t = value.trim().toLowerCase();
+    return t === "1" || t === "true" || t === "yes" || t === "on";
+  }
+  return false;
+}
+
+/** Prefer-A #4781: process_only/plan marker present before implement-conflict gate. */
+function hasProcessOnlySkipMarker4781(payload: unknown): boolean {
+  const input = recordPayload4781(payload);
+  if (input === null) return false;
+  const toolInput = toolInput4781(input);
+  const subagentType =
+    fieldString4781(toolInput, "subagent_type") ??
+    fieldString4781(toolInput, "subagentType") ??
+    fieldString4781(input, "subagent_type") ??
+    fieldString4781(input, "subagentType");
+  if (subagentType?.toLowerCase() === "plan") return true;
+  if (GROK_SPAWN_WRITING_SKIP_CLASS_FIELD !== "process_only") return false;
+  return PROCESS_ONLY_FLAG_KEYS.some(
+    (key) => fieldTruthy4781(toolInput, key) || fieldTruthy4781(input, key),
+  );
+}
+
+/** Prefer-A #4781: name suppressing implement field when present. */
+function namedImplementConflictSuppressor4781(payload: unknown): string | null {
+  const input = recordPayload4781(payload);
+  if (input === null) return null;
+  const toolInput = toolInput4781(input);
+  const driveTo =
+    fieldString4781(toolInput, "drive_to") ??
+    fieldString4781(toolInput, "driveTo") ??
+    fieldString4781(toolInput, "drive-to") ??
+    fieldString4781(input, "drive_to") ??
+    fieldString4781(input, "driveTo") ??
+    fieldString4781(input, "drive-to");
+  if (driveTo !== null) {
+    const normalized = driveTo.toLowerCase().replace(/[_\s]/g, "-");
+    if (
+      normalized === "merge-ready" ||
+      normalized === "merge" ||
+      normalized.startsWith("merge-") ||
+      normalized.includes("implement")
+    ) {
+      return "drive_to";
+    }
+  }
+  const workerRole =
+    fieldString4781(toolInput, "worker_role") ??
+    fieldString4781(toolInput, "workerRole") ??
+    fieldString4781(input, "worker_role") ??
+    fieldString4781(input, "workerRole");
+  if (workerRole !== null) {
+    const role = workerRole.toLowerCase().replace(/[_\s]/g, "-");
+    if (
+      role === "leaf-implementation" ||
+      role === "implementation" ||
+      role === "implement" ||
+      role.includes("implement")
+    ) {
+      return "worker_role";
+    }
+  }
+  const dispatchKind =
+    fieldString4781(toolInput, "dispatch_kind") ??
+    fieldString4781(toolInput, "dispatchKind") ??
+    fieldString4781(input, "dispatch_kind") ??
+    fieldString4781(input, "dispatchKind");
+  if (dispatchKind !== null) {
+    const kind = dispatchKind.toLowerCase().replace(/[_\s]/g, "-");
+    if (kind === "swarm-cohort" || kind === "swarm-leaf" || kind.includes("implement")) {
+      return "dispatch_kind";
+    }
+  }
+  return null;
+}
+
+function processOnlyImplementConflictSuppressor4781(payload: unknown): string | null {
+  if (!hasProcessOnlySkipMarker4781(payload)) return null;
+  return namedImplementConflictSuppressor4781(payload);
+}
+
+/** Prefer-A #4781: name implement-conflict suppressor when process_only is present but blocked. */
+function overlayProcessOnlyImplementConflictSuppressor(
+  input: HookDispatchInput,
+  decision: HookDecision,
+): HookDecision {
+  if (decision.verdict !== "deny") return decision;
+  const field = processOnlyImplementConflictSuppressor4781(input.payload);
+  if (field === null) return decision;
+  const note = `process_only was suppressed by ${field} (implement conflict wins; not bare #2885).`;
+  if (decision.message.includes(note)) return decision;
+  return { ...decision, message: `${note} ${decision.message}` };
+}
+
 function overlayGrokCriticSpawnNotReadyRecovery(
   input: HookDispatchInput,
   toolName: string,
   decision: HookDecision,
 ): HookDecision {
+  decision = overlayProcessOnlyImplementConflictSuppressor(input, decision);
   if (decision.verdict !== "deny" || decision.code !== "spawn-not-ready") return decision;
   if (
     !appliesGrokSpawnDestContract({
@@ -2454,10 +2577,11 @@ function inspectMutationGates(
           "`worker_role`/`subagent_type` ∈ {ephemeral, docs, assist} (hosts that support them), " +
           "or set session assist (`DEFT_SESSION_POSTURE=assist` or `DEFT_HOOK_ASSIST=1`), " +
           "or run local-dev Shell (`docker compose` / `pnpm dev`) in the parent without a " +
-          "lifecycle story. (4) Process-only critic — spawn with structural `subagent_type` " +
-          "plan or `process_only` (Grok PreToolUse stdin). Dest-path is not that class. " +
-          "Free-text markers such as `[worker_role: ephemeral]` or naming critic in the prompt " +
-          "are NOT sufficient. Do not invent a fake scope only to satisfy this gate.";
+          "lifecycle story. (4) Process-only critic / review-monitor / validation seat — spawn with " +
+          "structural `subagent_type` plan or `process_only` (Grok PreToolUse stdin) plus dest cwd " +
+          "for watch/report seats. Dest-path is not that class. Free-text markers such as " +
+          "`[worker_role: ephemeral]` or naming critic in the prompt are NOT sufficient. Do not " +
+          "invent a fake scope only to satisfy this gate.";
       } else if (
         options.proposedLifecycleExempt &&
         relTarget !== null &&
