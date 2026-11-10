@@ -1,0 +1,148 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF for #6173: containedDestExec win32 shell for pnpm.CMD lockfile refresh",
+    "updated": "2026-11-10T19:15:33Z"
+  },
+  "plan": {
+    "id": "6173-contained-dest-exec-win32-shell",
+    "title": "bug(win32,update): containedDestExec still execFileSync pnpm.CMD without shell \u2014 #5383 residual lockfile refresh EINVAL",
+    "status": "running",
+    "updated": "2026-11-10T19:15:33Z",
+    "tags": [
+      "bug",
+      "win32",
+      "update"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6173",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6173: containedDestExec still execFileSync pnpm.CMD without shell"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5383",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5383: parent Windows pnpm.CMD shell spawn"
+      }
+    ],
+    "narratives": {
+      "Description": "Windows update/lockfile refresh still launches pnpm.CMD via bare execFileSync inside containedDestExec. Node refuses .CMD without a shell (CVE-2024-27980) \u2192 EINVAL \u2192 pin rollback. Launcher PM helpers already use shell:true on win32 (#5383).",
+      "UserStory": "As a Windows consumer with standalone pnpm.CMD on PATH, I want directive update lockfile refresh to succeed, so that pin rollback does not fire from EINVAL.",
+      "ImplementationPlan": "1. Fix containedDestExec to pass shell: process.platform === \"win32\" (same #5383 portable pattern as launcher PM helpers).\n2. Add unit/regression coverage that win32 + .CMD path gets shell:true and non-win32 stays shell-less.\n3. CHANGELOG [Unreleased] Fixed note with Refs #6173 #5383 (never Closes/Fixes).",
+      "Acceptance": "win32 containedDestExec spawn options include shell:true; non-win32 unchanged; tests prove it; CHANGELOG notes Refs #6173 #5383.",
+      "Traces": "#6173 #5383"
+    },
+    "items": [
+      {
+        "id": "6173-a1",
+        "title": "containedDestExec win32 shell:true",
+        "status": "pending",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given containedDestExec runs on win32, when it execFileSyncs a resolved PM path (including .CMD), then spawn options include shell:true matching the #5383 portable pattern.",
+          "Traces": "#6173"
+        }
+      },
+      {
+        "id": "6173-a2",
+        "title": "Regression: win32 .CMD gets shell; non-win32 unchanged",
+        "status": "pending",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given mocked execFileSync, when containedDestExec is invoked under win32 with a .CMD file and under non-win32, then win32 options include shell:true and non-win32 does not enable shell.",
+          "Traces": "#6173"
+        }
+      },
+      {
+        "id": "6173-a3",
+        "title": "CHANGELOG Unreleased Fixed Refs #6173 #5383",
+        "status": "pending",
+        "effort": "S",
+        "narrative": {
+          "Acceptance": "Given the fix lands, when CHANGELOG [Unreleased] Fixed is updated, then it cites Refs #6173 and #5383 and does not use Fixes/Closes.",
+          "Traces": "#6173 #5383"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "capacityBucket": "defect-fix",
+      "x-directive/specImpact": "none",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/fs/contained-write.ts",
+          "packages/core/src/fs/contained-write.test.ts",
+          "CHANGELOG.md",
+          "xbrief/active/2026-11-10-6173-contained-dest-exec-win32-shell.xbrief.json"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/fs/contained-write.test.ts"
+        ],
+        "expected_outputs": [
+          "containedDestExec uses shell:true on win32; regression tests pass"
+        ],
+        "depends_on": [],
+        "conflict_group": "6173-contained-dest-exec-win32",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      },
+      "files": [
+        "packages/core/src/fs/contained-write.ts",
+        "packages/core/src/fs/contained-write.test.ts",
+        "CHANGELOG.md",
+        "xbrief/active/2026-11-10-6173-contained-dest-exec-win32-shell.xbrief.json"
+      ],
+      "intended_placement": "active"
+    },
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/core/src/fs/contained-write.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given containedDestExec runs on win32, when it execFileSyncs a resolved PM path (including .CMD), then spawn options include shell:true matching the #5383 portable pattern.",
+          "artifact_path": "packages/core/src/fs/contained-write.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given mocked execFileSync, when containedDestExec is invoked under win32 with a .CMD file and under non-win32, then win32 options include shell:true and non-win32 does not enable shell.",
+          "artifact_path": "packages/core/src/fs/contained-write.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Given the fix lands, when CHANGELOG [Unreleased] Fixed is updated, then it cites Refs #6173 and #5383 and does not use Fixes/Closes.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(win32,update): containedDestExec still execFileSync pnpm.CMD without shell \u2014 #5383 residual lockfile refresh EINVAL",
+        "Windows update/lockfile refresh still launches pnpm.CMD via bare execFileSync inside containedDestExec.",
+        "Node refuses .CMD without a shell (CVE-2024-27980) \u2192 EINVAL \u2192 pin rollback.",
+        "Launcher PM helpers already use shell:true on win32 (#5383).",
+        "win32 containedDestExec spawn options include shell:true; non-win32 unchanged; tests prove it; CHANGELOG notes Refs #6173 #5383."
+      ],
+      "sentences": [
+        "bug(win32,update): containedDestExec still execFileSync pnpm.CMD without shell \u2014 #5383 residual lockfile refresh EINVAL",
+        "Windows update/lockfile refresh still launches pnpm.CMD via bare execFileSync inside containedDestExec.",
+        "Node refuses .CMD without a shell (CVE-2024-27980) \u2192 EINVAL \u2192 pin rollback.",
+        "Launcher PM helpers already use shell:true on win32 (#5383).",
+        "win32 containedDestExec spawn options include shell:true; non-win32 unchanged; tests prove it; CHANGELOG notes Refs #6173 #5383."
+      ]
+    }
+  }
+}
