@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.0",
-    "@deftai/directive-runtime": "0.129.5",
+    "@deftai/directive-runtime": "0.129.6",
     "@types/node": "^24",
     "@vitest/coverage-v8": "^4",
     "esbuild": "^0.28.1",
