@@ -96,7 +96,8 @@
         "CHANGELOG.md",
         "xbrief/active/2026-11-10-6173-contained-dest-exec-win32-shell.xbrief.json"
       ],
-      "intended_placement": "active"
+      "intended_placement": "active",
+      "productPullRequest": 6176
     },
     "acceptance": {
       "commands": [

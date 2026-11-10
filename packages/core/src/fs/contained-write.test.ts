@@ -2,6 +2,14 @@
  * Unit tests for containedWrite (#2951 Phase 1).
  * Escape + symlink-outside-root must fail closed; happy paths write under root.
  */
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("node:child_process", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:child_process")>();
+  return { ...actual, execFileSync: vi.fn(actual.execFileSync) };
+});
+
+import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -13,7 +21,6 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
 import {
   ContainedWriteError,
   ContainedWriteErrorCode,
@@ -30,6 +37,8 @@ import {
   runWithMutationLedger,
   snapshotMutationSummary,
 } from "./mutation-ledger.js";
+
+const mockExecFileSync = vi.mocked(execFileSync);
 
 // Symlinks require elevated privileges on Windows (SeCreateSymbolicLink); skip there.
 const itSymlink = it.skipIf(process.platform === "win32");
@@ -631,5 +640,138 @@ describe("port record mode (ADR-004)", () => {
     writeFileSync(path, "#!/bin/sh\n", "utf8");
     containedChmod({ root, target: "hook.sh", mode: 0o644 });
     expect(existsSync(path)).toBe(true);
+  });
+});
+
+describe("containedDestExec win32 shell (#6173 / #5383)", () => {
+  const WINDOWS_SEPARATOR = String.fromCharCode(92);
+
+  beforeEach(() => {
+    mockExecFileSync.mockReset();
+    mockExecFileSync.mockReturnValue("ok\n");
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("passes shell:true on win32 for a .CMD PM path via quoted cmdline", () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+    const root = freshDir("cw-exec-win32-");
+    const pnpmCmd = ["C:", "Users", "deft-test", "tools", "node", "pnpm.CMD"].join(
+      WINDOWS_SEPARATOR,
+    );
+
+    const result = runWithMutationLedger(root, () =>
+      containedDestExec({
+        root,
+        destTarget: "pnpm-lock.yaml",
+        file: pnpmCmd,
+        args: ["install", "--lockfile-only"],
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, stdout: "ok\n" });
+    expect(mockExecFileSync).toHaveBeenCalledWith(
+      `${pnpmCmd} install --lockfile-only`,
+      [],
+      expect.objectContaining({
+        encoding: "utf8",
+        cwd: root,
+        shell: true,
+      }),
+    );
+  });
+
+  it("quotes spaced .CMD path and spaced args on win32 shell spawn", () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+    const root = freshDir("cw-exec-win32-spaced-");
+    const pnpmCmd = ["C:", "Program Files", "nodejs", "pnpm.CMD"].join(WINDOWS_SEPARATOR);
+    const projectArg = ["C:", "My Projects", "app"].join(WINDOWS_SEPARATOR);
+
+    const result = runWithMutationLedger(root, () =>
+      containedDestExec({
+        root,
+        destTarget: "pnpm-lock.yaml",
+        file: pnpmCmd,
+        args: ["install", "--dir", projectArg],
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, stdout: "ok\n" });
+    expect(mockExecFileSync).toHaveBeenCalledWith(
+      `"${pnpmCmd}" install --dir "${projectArg}"`,
+      [],
+      expect.objectContaining({ shell: true, cwd: root }),
+    );
+  });
+
+  it("quotes ampersand in .CMD path on win32 shell spawn", () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+    const root = freshDir("cw-exec-win32-amp-");
+    const pnpmCmd = ["C:", "tools", "node&co", "pnpm.CMD"].join(WINDOWS_SEPARATOR);
+
+    const result = runWithMutationLedger(root, () =>
+      containedDestExec({
+        root,
+        destTarget: "pnpm-lock.yaml",
+        file: pnpmCmd,
+        args: ["install", "--lockfile-only"],
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, stdout: "ok\n" });
+    expect(mockExecFileSync).toHaveBeenCalledWith(
+      `"${pnpmCmd}" install --lockfile-only`,
+      [],
+      expect.objectContaining({ shell: true, cwd: root }),
+    );
+  });
+
+  it("keeps native .exe shell-free on win32", () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+    const root = freshDir("cw-exec-win32-exe-");
+    const gitExe = ["C:", "Program Files", "Git", "cmd", "git.exe"].join(WINDOWS_SEPARATOR);
+
+    const result = runWithMutationLedger(root, () =>
+      containedDestExec({
+        root,
+        destTarget: join(".git", "config"),
+        file: gitExe,
+        args: ["config", "core.hooksPath", ".githooks"],
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, stdout: "ok\n" });
+    expect(mockExecFileSync).toHaveBeenCalledWith(
+      gitExe,
+      ["config", "core.hooksPath", ".githooks"],
+      expect.objectContaining({ shell: false, cwd: root }),
+    );
+  });
+
+  it("does not enable shell on non-win32", () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("linux");
+    const root = freshDir("cw-exec-posix-");
+
+    const result = runWithMutationLedger(root, () =>
+      containedDestExec({
+        root,
+        destTarget: "pnpm-lock.yaml",
+        file: "/usr/local/bin/pnpm",
+        args: ["install", "--lockfile-only"],
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, stdout: "ok\n" });
+    expect(mockExecFileSync).toHaveBeenCalledWith(
+      "/usr/local/bin/pnpm",
+      ["install", "--lockfile-only"],
+      expect.objectContaining({
+        encoding: "utf8",
+        cwd: root,
+        shell: false,
+      }),
+    );
   });
 });
