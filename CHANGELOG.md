@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-- Prepare session:start quiet-default so success can ship as one ready line with ceremony behind --verbose (#4966).
+- session:start success human stdout defaults to one `[deft session] ready=…` go-signal; routine ceremony is behind `--verbose` / `DEFT_SESSION_VERBOSE`. Tip `--compact` / `DEFT_SESSION_COMPACT` are deprecated as volume controls (no-op for human stdout). Actionable zero-exit exceptions, non-default policy/finalize-owed/lifecycle notices stay on the quiet path (#4966).
 - Refresh Cursor agent-hook deposit to deft-hook-a598056e for runtime 0.129.6.
 - chore(dogfood): pin Directive to 0.129.6.
 

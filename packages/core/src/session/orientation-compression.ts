@@ -40,8 +40,16 @@ import {
   toolchainPreflightToDict,
 } from "./toolchain-preflight.js";
 
-/** Env opt-in for compact orientation output (#3286). Verbose remains default. */
+/**
+ * Env opt-in for compact orientation *section* formatting (#3286).
+ * #4966: not the whole-stdout volume gate — that is `--verbose` /
+ * `DEFT_SESSION_VERBOSE`. Tip `--compact` / this env are deprecated as
+ * volume controls (no-op for human stdout selection).
+ */
 export const ENV_SESSION_COMPACT = "DEFT_SESSION_COMPACT";
+
+/** Env opt-in restoring full session:start ceremony dump (#4966). */
+export const ENV_SESSION_VERBOSE = "DEFT_SESSION_VERBOSE";
 
 /** Dual-path Later graduation status — Now ships without closing Later (#2899). */
 export const ORIENTATION_LATER_STATUS = "open" as const;
@@ -125,7 +133,11 @@ function truthyEnv(raw: string | undefined): boolean {
   return new Set(["1", "true", "yes", "on"]).has((raw ?? "").trim().toLowerCase());
 }
 
-/** Resolve compact flag: explicit option wins, else DEFT_SESSION_COMPACT. */
+/**
+ * Resolve orientation compact formatting (#3286).
+ * Explicit option wins, else DEFT_SESSION_COMPACT. Does not control whole-stdout
+ * volume (#4966); use resolveSessionVerbose / DEFT_SESSION_VERBOSE for that.
+ */
 export function resolveSessionCompact(
   options: Pick<RunOrientationOptions, "compact" | "env"> = {},
 ): boolean {
@@ -133,6 +145,16 @@ export function resolveSessionCompact(
   if (options.compact === false) return false;
   const env = options.env ?? process.env;
   return truthyEnv(env[ENV_SESSION_COMPACT]);
+}
+
+/** Resolve whole-stdout ceremony dump: explicit option wins, else DEFT_SESSION_VERBOSE. */
+export function resolveSessionVerbose(
+  options: { readonly verbose?: boolean; readonly env?: NodeJS.ProcessEnv } = {},
+): boolean {
+  if (options.verbose === true) return true;
+  if (options.verbose === false) return false;
+  const env = options.env ?? process.env;
+  return truthyEnv(env[ENV_SESSION_VERBOSE]);
 }
 
 function statusLine(name: OrientationSectionName, status: OrientationSectionStatus): string {
@@ -143,10 +165,25 @@ function statusLine(name: OrientationSectionName, status: OrientationSectionStat
 export function formatOrientationCompactLines(
   sections: readonly OrientationSectionResult[],
 ): string[] {
-  return sections.map((s) => {
+  const out: string[] = [];
+  for (const s of sections) {
     const tag = s.shaMatch ? "sha_match" : s.status;
-    return `${s.name}=${tag}`;
-  });
+    out.push(`${s.name}=${tag}`);
+    // #4966 P3: compact must still emit actionable repair detail so quiet
+    // always-on can keep MISSING cause/remedy and dirty cache_fresh lines.
+    if (s.status === "degraded" || s.status === "error" || s.status === "dirty") {
+      for (const line of s.lines) {
+        if (
+          (line.startsWith("[deft preflight]") && /\bMISSING\b/.test(line)) ||
+          line.startsWith("❌ deft cache-fresh:") ||
+          line.startsWith("⚠ deft cache-fresh:")
+        ) {
+          out.push(line);
+        }
+      }
+    }
+  }
+  return out;
 }
 
 export function formatOrientationVerboseLines(

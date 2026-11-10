@@ -5,10 +5,12 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   DEPOSIT_SHA_MATCH_NOOP,
   ENV_SESSION_COMPACT,
+  ENV_SESSION_VERBOSE,
   formatOrientationCompactLines,
   ORIENTATION_LATER_STATUS,
   type OrientationSectionResult,
   resolveSessionCompact,
+  resolveSessionVerbose,
   runCacheFreshOrientationSection,
   runOrientationCompression,
 } from "./orientation-compression.js";
@@ -146,6 +148,16 @@ describe("orientation compression (#3286)", () => {
     expect(first.depositSha).toBe(second.depositSha);
   });
 
+  it("resolves DEFT_SESSION_VERBOSE for whole-stdout ceremony dump (#4966)", () => {
+    expect(resolveSessionVerbose({ verbose: true })).toBe(true);
+    expect(resolveSessionVerbose({ verbose: false })).toBe(false);
+    expect(resolveSessionVerbose({ env: { [ENV_SESSION_VERBOSE]: "1" } })).toBe(true);
+    expect(resolveSessionVerbose({ env: { [ENV_SESSION_VERBOSE]: "0" } })).toBe(false);
+    expect(resolveSessionVerbose({ verbose: false, env: { [ENV_SESSION_VERBOSE]: "1" } })).toBe(
+      false,
+    );
+  });
+
   it("--compact / DEFT_SESSION_COMPACT emits terse machine format", () => {
     const sections = [
       section("doctor", "ok"),
@@ -159,6 +171,25 @@ describe("orientation compression (#3286)", () => {
       "preflight=ok",
       "agents_refresh=sha_match",
       "cache_fresh=sha_match",
+    ]);
+
+    const degraded = formatOrientationCompactLines([
+      section("preflight", "degraded", {
+        lines: [
+          "[deft orientation] preflight: degraded",
+          "[deft preflight] task: MISSING — cause: not on PATH; remedy: install go-task",
+          "[deft preflight] node: ok",
+        ],
+      }),
+      section("cache_fresh", "dirty", {
+        lines: ["❌ deft cache-fresh: cache is 32.2h old (max-age=24h); oldest x."],
+      }),
+    ]);
+    expect(degraded).toEqual([
+      "preflight=degraded",
+      "[deft preflight] task: MISSING — cause: not on PATH; remedy: install go-task",
+      "cache_fresh=dirty",
+      "❌ deft cache-fresh: cache is 32.2h old (max-age=24h); oldest x.",
     ]);
 
     expect(resolveSessionCompact({ compact: true })).toBe(true);

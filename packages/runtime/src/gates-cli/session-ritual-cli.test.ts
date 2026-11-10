@@ -105,8 +105,8 @@ describe("deft-ts session:start dispatcher smoke", async () => {
       { env },
     );
     expect(exitCode).toBe(0);
-    expect(stdout).toContain("Deft Directive active");
-    expect(stdout).toContain("[deft] session ritual recorded at");
+    // Quiet-default (#4966): primary go-signal replaces ceremony alignment dump.
+    expect(stdout).toContain("[deft session] ready=");
     expect(stderr).toBe("");
     const statePath = join(root, ".deft", "ritual-state.json");
     expect(existsSync(statePath)).toBe(true);

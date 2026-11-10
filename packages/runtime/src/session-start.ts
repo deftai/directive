@@ -21,11 +21,13 @@ import {
   REARM_CEREMONY_TIER,
   REQUIREMENTS_POSTURE,
   resolveProductionHostEffortDescriptor,
+  resolveSessionVerbose,
   ritualStatePath,
   runSessionStart,
   SESSION_CEREMONY_TIERS,
   type SessionCeremonyTier,
   type SessionPosture,
+  selectSessionStartHumanLines,
 } from "@deftai/directive-core/session";
 
 export interface ParsedSessionStartArgs {
@@ -57,10 +59,16 @@ export interface ParsedSessionStartArgs {
     hardBudget?: boolean;
   };
   /**
-   * #3286: compact orientation output (terse machine format). Verbose remains
-   * the default; also settable via DEFT_SESSION_COMPACT=1.
+   * #3286 / #4966: tip `--compact` retained for argv compatibility; deprecated
+   * as whole-stdout volume gate (no-op for human stdout selection). Orientation
+   * section formatting may still honor it inside core.
    */
   compact: boolean;
+  /**
+   * #4966: restore full ceremony human stdout. Quiet success is the default.
+   * Also settable via DEFT_SESSION_VERBOSE=1.
+   */
+  verbose: boolean;
   /** #3433: steal the worktree occupancy lease. */
   steal: boolean;
   confirm: boolean;
@@ -118,6 +126,7 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
     ceremonyDepthOverride: null,
     effortBudgetHost: {},
     compact: false,
+    verbose: false,
     steal: false,
     confirm: false,
     occupant: null,
@@ -370,8 +379,12 @@ export function parseArgs(argv: readonly string[]): ParsedSessionStartArgs {
     } else if (arg === "--hard-budget") {
       parsed.effortBudgetHost.hardBudget = true;
     } else if (arg === "--compact") {
-      // #3286: terse machine orientation output (opt-in; verbose remains default)
+      // #3286 / #4966: deprecated as whole-stdout volume gate (parsed; no-op for
+      // human stdout selection). Prefer --verbose / DEFT_SESSION_VERBOSE.
       parsed.compact = true;
+    } else if (arg === "--verbose") {
+      // #4966: restore full ceremony dump (quiet success is the default).
+      parsed.verbose = true;
     } else if (arg === "--steal") {
       parsed.steal = true;
     } else if (arg === "--primary-claim-exception") {
@@ -555,8 +568,10 @@ export function run(argv: readonly string[]): number {
       ceremonyTier: args.ceremonyTier,
       ceremonyDialInputs: args.ceremonyDialInputs,
       effortBudgetSeams: { hostDescriptor, environ: process.env },
-      // #3286: --compact flag; DEFT_SESSION_COMPACT still resolved inside core.
+      // #3286 / #4966: --compact retained for orientation formatting; not volume.
       compact: args.compact ? true : undefined,
+      // #4966: --verbose / DEFT_SESSION_VERBOSE restores ceremony dump.
+      verbose: args.verbose ? true : undefined,
       steal: args.steal ? true : undefined,
       confirm: args.confirm ? true : undefined,
       occupant: args.occupant ?? undefined,
@@ -660,28 +675,43 @@ export function run(argv: readonly string[]): number {
     return result.code;
   }
 
-  const sink = result.code === 0 ? process.stdout : process.stderr;
-  for (const line of lines) {
-    sink.write(`${line}\n`);
-  }
+  // #4966: one final human-output selection point (core lines + stray + trailer).
+  const trailer: string[] = [];
   if (result.code === 0) {
     const posture = result.payload.posture;
     if (posture === READ_ONLY_POSTURE || posture === REQUIREMENTS_POSTURE) {
-      process.stdout.write(`[deft] ${String(result.payload.message)}\n`);
+      trailer.push(`[deft] ${String(result.payload.message)}`);
     } else {
-      process.stdout.write(
-        `[deft] session ritual recorded at ${ritualStatePath(projectRoot)} (diagnostic-only; not posture authority)\n`,
+      trailer.push(
+        `[deft] session ritual recorded at ${ritualStatePath(projectRoot)} (diagnostic-only; not posture authority)`,
       );
     }
     if (applyingHostPublish.status === "deferred") {
-      process.stdout.write(
+      trailer.push(
         `[deft] applying-host publish deferred: live occupant ${applyingHostPublish.liveSessionId} ` +
           `still holds this worktree (attempted ${applyingHostPublish.attemptedSessionId}); ` +
-          "not a conflict recovery — that owner must release/end or wait for lease TTL.\n",
+          "not a conflict recovery — that owner must release/end or wait for lease TTL.",
       );
     } else if (applyingHostPublish.status === "failed") {
-      process.stdout.write(`[deft] applying-host publish failed: ${applyingHostPublish.message}\n`);
+      trailer.push(`[deft] applying-host publish failed: ${applyingHostPublish.message}`);
     }
+  }
+
+  const verbose = resolveSessionVerbose({
+    verbose: args.verbose ? true : undefined,
+    env: process.env,
+  });
+  const humanLines = selectSessionStartHumanLines({
+    code: result.code,
+    payload: payloadWithPublish as Record<string, unknown>,
+    lines: [...lines, ...trailer],
+    verbose,
+    env: process.env,
+  });
+
+  const sink = result.code === 0 ? process.stdout : process.stderr;
+  for (const line of humanLines) {
+    sink.write(`${line}\n`);
   }
   return result.code;
 }

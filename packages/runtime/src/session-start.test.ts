@@ -24,6 +24,7 @@ describe("session-start parseArgs", () => {
     ceremonyDepthOverride: null,
     effortBudgetHost: {},
     compact: false,
+    verbose: false,
     steal: false,
     confirm: false,
     occupant: null,
@@ -155,7 +156,7 @@ describe("session-start parseArgs", () => {
     );
   });
 
-  it("parses --compact (#3286)", () => {
+  it("parses --compact (#3286) and --verbose (#4966)", () => {
     expect(parseArgs(["--compact", "--project-root", "/x"])).toEqual({
       projectRoot: "/x",
       deferValues: [],
@@ -166,6 +167,17 @@ describe("session-start parseArgs", () => {
       ceremonyTier: "cold",
       ...emptyDial,
       compact: true,
+    });
+    expect(parseArgs(["--verbose", "--project-root", "/x"])).toEqual({
+      projectRoot: "/x",
+      deferValues: [],
+      emitJson: false,
+      noHistory: false,
+      readOnly: false,
+      withNetwork: false,
+      ceremonyTier: "cold",
+      ...emptyDial,
+      verbose: true,
     });
   });
 
@@ -283,7 +295,7 @@ describe("session-start run", () => {
     }
   });
 
-  it("writes read-only footer without ritual-state on --read-only", () => {
+  it("writes quiet read-only go-signal by default; ceremony behind --verbose (#4966)", () => {
     const root = mkdtempSync(join(tmpdir(), "deft-session-start-ro-"));
     temps.push(root);
     mkdirSync(join(root, "xbrief"), { recursive: true });
@@ -303,9 +315,15 @@ describe("session-start run", () => {
     try {
       const code = run(["--project-root", root, "--read-only", "--no-history"]);
       expect(code).toBe(0);
-      expect(out).toContain("read-only session posture");
-      expect(out).toContain("[deft environment] os=");
+      expect(out).toContain("[deft session] ready=true posture=read-only");
+      expect(out).not.toContain("[deft environment] os=");
       expect(out).not.toContain("session ritual recorded");
+
+      out = "";
+      const verboseCode = run(["--project-root", root, "--read-only", "--no-history", "--verbose"]);
+      expect(verboseCode).toBe(0);
+      expect(out).toContain("[deft environment] os=");
+      expect(out).toContain("read-only session posture");
     } finally {
       process.stdout.write = prevStdout;
       process.stderr.write = prevStderr;
