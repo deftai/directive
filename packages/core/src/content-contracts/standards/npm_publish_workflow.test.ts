@@ -104,6 +104,18 @@ describe("npm_publish_workflow (#5365 Prefer-A Bound)", () => {
     expect(code).not.toMatch(/inputs\.dist_tag/);
   });
 
+  it("pins promote-latest OIDC dist-tag auth prerequisites (#5852)", () => {
+    // npm OIDC dist-tag needs CLI >= 11.21.0; Node 24 runners have shipped 11.19.x.
+    expect(promote).toMatch(/npm install -g npm@11\.21\.0/);
+    // setup-node registry-url injects empty NODE_AUTH_TOKEN that breaks OIDC.
+    expect(promote).toContain("unset NODE_AUTH_TOKEN");
+    expect(promote).toMatch(/sed -i '\/_authToken\/d'/);
+    const distTagIdx = promote.indexOf("npm dist-tag add");
+    expect(distTagIdx).toBeGreaterThan(-1);
+    expect(promote.indexOf("npm install -g npm@11.21.0")).toBeLessThan(distTagIdx);
+    expect(promote.indexOf("unset NODE_AUTH_TOKEN")).toBeLessThan(distTagIdx);
+  });
+
   it("keeps explicit latest as a separate promote job inside environment npm (#5852)", () => {
     expect(promote).toMatch(/^\s*environment:\s*npm\s*$/m);
     expect(promote).toContain("inputs.action == 'promote-latest'");
