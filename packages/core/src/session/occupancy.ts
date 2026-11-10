@@ -471,6 +471,15 @@ export type ApplyingHostLifecycleAdmission =
       readonly record: ApplyingHostRecord;
     }
   | {
+      /**
+       * No-lease fresh applying-host is advisory (#6143). Other-provider bare
+       * lifecycle may proceed and republish; never bind as foreign-owner.
+       */
+      readonly kind: "advisory-takeover";
+      readonly record: ApplyingHostRecord;
+      readonly callerSessionId: string | null;
+    }
+  | {
       readonly kind: "foreign-owner";
       readonly record: ApplyingHostRecord;
       readonly namedSessionId: string | null;
@@ -483,15 +492,20 @@ export type ApplyingHostLifecycleAdmission =
     }
   | { readonly kind: "absent"; readonly record: null };
 
-/** Discriminated publish outcome (#6101 Prefer-A Recut-2); distinct from non-canonical null. */
+/** Discriminated publish outcome (#6101 Prefer-A Recut-2 / #6143); distinct from non-canonical null. */
 export type PublishApplyingHostResult =
   | { readonly status: "published"; readonly record: ApplyingHostRecord }
   | {
       readonly status: "deferred";
-      readonly reason: "live-foreign-occupant";
+      readonly reason: "live-foreign-occupant" | "foreign-fresh-claim";
       readonly liveSessionId: string;
       readonly attemptedSessionId: string;
     };
+
+export type ClearApplyingHostResult =
+  | { readonly status: "cleared"; readonly previousSessionId: string }
+  | { readonly status: "missing" }
+  | { readonly status: "denied"; readonly message: string; readonly record: ApplyingHostRecord };
 
 function isHookHostIdentityProvider(value: string): value is HookHostIdentityProvider {
   return (HOST_IDENTITY_PROVIDERS as readonly string[]).includes(value);
@@ -610,13 +624,21 @@ export interface PublishApplyingHostInput {
   readonly rawSessionId: string;
   readonly claimedAt?: Date;
   readonly transport?: ApplyingHostTransport;
+  /**
+   * SessionStart soft-claim / lease-backed takeover may replace a different
+   * provider's fresh no-lease record (#6143). Read-only bootstrap must omit this
+   * so it cannot displace that soft claim.
+   */
+  readonly allowForeignTakeover?: boolean;
 }
 
 /**
- * Write/replace the worktree applying-host record (#5676 / #6101).
+ * Write/replace the worktree applying-host record (#5676 / #6101 / #6143).
  *
  * Under the occupancy writer lock, skip when a live foreign occupant holds the
- * lease — keyed to the canonical session id being written. No unlocked write
+ * lease — keyed to the canonical session id being written. Without
+ * `allowForeignTakeover`, also skip replacing a different provider's fresh
+ * no-lease claim (RO SessionStart must not displace). No unlocked write
  * fallback. Deferred is distinct from non-canonical null on the FromCanonical path.
  */
 export function publishApplyingHost(
@@ -646,6 +668,20 @@ export function publishApplyingHost(
         attemptedSessionId: record.applyingHostSessionId,
       };
     }
+    const existing = readApplyingHost(root, claimedAt);
+    if (
+      existing.status === "ok" &&
+      existing.record.provider !== record.provider &&
+      live?.sessionId !== record.applyingHostSessionId &&
+      input.allowForeignTakeover !== true
+    ) {
+      return {
+        status: "deferred" as const,
+        reason: "foreign-fresh-claim" as const,
+        liveSessionId: existing.record.applyingHostSessionId,
+        attemptedSessionId: record.applyingHostSessionId,
+      };
+    }
     fence();
     const target = applyingHostPath(root);
     assertWriteTargetSafe(root, target);
@@ -667,14 +703,18 @@ export function publishApplyingHost(
 }
 
 /**
- * Publish from a canonical `host:<provider>:v1:<base64url>` owner (#5676 / #6101).
+ * Publish from a canonical `host:<provider>:v1:<base64url>` owner (#5676 / #6101 / #6143).
  * Returns null when the id is not canonical (opaque UUID leftovers stay #5544).
- * Deferred live-foreign skip is a discriminated result, never collapsed into null.
+ * Deferred live-foreign / foreign-fresh skip is a discriminated result, never collapsed into null.
  */
 export function publishApplyingHostFromCanonicalSessionId(
   projectRoot: string,
   sessionId: string,
-  opts: { readonly claimedAt?: Date; readonly transport?: ApplyingHostTransport } = {},
+  opts: {
+    readonly claimedAt?: Date;
+    readonly transport?: ApplyingHostTransport;
+    readonly allowForeignTakeover?: boolean;
+  } = {},
 ): PublishApplyingHostResult | null {
   const parsed = parseCanonicalHostSessionId(sessionId.trim());
   if (parsed === null) return null;
@@ -683,7 +723,102 @@ export function publishApplyingHostFromCanonicalSessionId(
     rawSessionId: parsed.rawSessionId,
     claimedAt: opts.claimedAt,
     transport: opts.transport,
+    allowForeignTakeover: opts.allowForeignTakeover,
   });
+}
+
+/**
+ * Clear the worktree applying-host record (#6143).
+ *
+ * Owner match always clears. With no live foreign occupant, any presented caller
+ * may clear an abandoned no-lease soft claim. Live foreign lease keeps the
+ * record (#5913 / #6101 keep-outs).
+ */
+export function clearApplyingHost(
+  projectRoot: string,
+  input: {
+    readonly sessionId?: string | null;
+    readonly now?: Date;
+    readonly lockDeps?: LockDeps;
+  } = {},
+): ClearApplyingHostResult {
+  const root = resolve(projectRoot);
+  const now = input.now ?? new Date();
+  const caller = input.sessionId?.trim() || null;
+  return withOccupancyLock(
+    root,
+    (fence) => {
+      const read = readApplyingHost(root, now);
+      if (read.status === "missing" || read.record === null) {
+        return { status: "missing" as const };
+      }
+      if (read.status === "invalid") {
+        fence();
+        containedRemove({ root, target: applyingHostPath(root) });
+        return { status: "cleared" as const, previousSessionId: "<invalid>" };
+      }
+      const record = read.record;
+      const live = liveOccupant(root, now);
+      const liveId = live?.sessionId ?? null;
+      const owns = caller !== null && caller === record.applyingHostSessionId;
+      if (!owns && liveId !== null && liveId !== caller) {
+        return {
+          status: "denied" as const,
+          record,
+          message:
+            `Directive refused applying-host:release for caller ${caller ?? "<missing>"}. ` +
+            `Live occupant ${liveId} still holds this worktree. Wait for that owner to ` +
+            "run occupancy:release / session:end, or occupancy:steal --confirm.",
+        };
+      }
+      if (!owns && liveId !== null && liveId === caller) {
+        // Live lease holder may clear a replaced applying-host soft claim.
+      } else if (!owns && liveId === null) {
+        // Abandoned no-lease soft claim — clearable without impersonating owner.
+      } else if (!owns) {
+        return {
+          status: "denied" as const,
+          record,
+          message:
+            `Directive refused applying-host:release for caller ${caller ?? "<missing>"}. ` +
+            `Recorded applying-host is ${record.applyingHostSessionId}. Re-run as that owner, ` +
+            "or clear after the lease is gone.",
+        };
+      }
+      fence();
+      containedRemove({ root, target: applyingHostPath(root) });
+      return {
+        status: "cleared" as const,
+        previousSessionId: record.applyingHostSessionId,
+      };
+    },
+    input.lockDeps,
+  );
+}
+
+/** Foreign-owner deny names the caller and takeover/wait path — never the owner's id (#6143 P2). */
+export function formatApplyingHostForeignOwnerDeny(input: {
+  readonly callerSessionId: string | null;
+  readonly liveSessionId: string | null;
+  readonly namedSessionId?: string | null;
+}): string {
+  const caller = input.callerSessionId?.trim() || null;
+  const live = input.liveSessionId?.trim() || null;
+  const callerLabel = caller ?? "<unresolved-caller>";
+  if (live !== null) {
+    return (
+      `Directive refused foreign lifecycle for caller ${callerLabel}. ` +
+      `Live occupant ${live} still holds this worktree. Take over with ` +
+      "`occupancy:steal --confirm`, wait for occupancy:release / session:end, or " +
+      "`applying-host:release` from the owner. Do not re-run with another owner's --session-id."
+    );
+  }
+  return (
+    `Directive refused foreign lifecycle for caller ${callerLabel}. ` +
+    "Applying-host soft claim has no live lease for this caller path; use " +
+    "`applying-host:release`, wait for SessionStart soft-claim takeover, or " +
+    "retry bare lifecycle after the claim is cleared. Do not re-run with another owner's --session-id."
+  );
 }
 
 /**
@@ -797,29 +932,39 @@ export function evaluateApplyingHostLifecycleAdmission(input: {
         reason: "non-matching-deposit-names-applying-host",
       };
     }
+    // #6143 P1: no-lease fresh claim is advisory — other-provider bare lifecycle
+    // may take over (republish). Keep-outs #5913/#6101 still bind when a live
+    // lease exists.
+    if (liveId === null) {
+      return {
+        kind: "advisory-takeover",
+        record,
+        callerSessionId: deposit,
+      };
+    }
     return {
       kind: "foreign-owner",
       record,
       namedSessionId: named,
-      message:
-        named === null
-          ? `Directive refused bare lifecycle command; applying-host is ` +
-            `${record.applyingHostSessionId}. Re-run with ` +
-            `--session-id=${record.applyingHostSessionId}.`
-          : `Directive refused foreign owner ${named}; applying-host is ` +
-            `${record.applyingHostSessionId}. Re-run with ` +
-            `--session-id=${record.applyingHostSessionId}.`,
+      message: formatApplyingHostForeignOwnerDeny({
+        callerSessionId: deposit,
+        liveSessionId: liveId,
+        namedSessionId: named,
+      }),
     };
   }
   if (named !== null && named !== record.applyingHostSessionId) {
+    // Same-provider wrong named id: still foreign, but deny names the caller
+    // (#6143 P2) and never tells the caller to impersonate applying-host.
     return {
       kind: "foreign-owner",
       record,
       namedSessionId: named,
-      message:
-        `Directive refused foreign owner ${named}; applying-host is ` +
-        `${record.applyingHostSessionId}. Re-run with ` +
-        `--session-id=${record.applyingHostSessionId}.`,
+      message: formatApplyingHostForeignOwnerDeny({
+        callerSessionId: deposit,
+        liveSessionId: liveId,
+        namedSessionId: named,
+      }),
     };
   }
   return {
@@ -2408,6 +2553,13 @@ export function releaseOccupancy(
     (fence) => {
       const existing = readOccupancy(root);
       if (existing === null) {
+        // #6143: release with no lease still clears an abandoned applying-host soft claim.
+        try {
+          fence();
+          containedRemove({ root, target: applyingHostPath(root) });
+        } catch {
+          /* best-effort */
+        }
         return {
           action: "released" as const,
           sessionId: caller,
@@ -2478,6 +2630,12 @@ export function releaseOccupancy(
         };
       }
       removeOccupancyFile(root, fence);
+      // #6143 P3: session:end / occupancy:release clear applying-host with the lease.
+      try {
+        containedRemove({ root, target: applyingHostPath(root) });
+      } catch {
+        /* best-effort; lease release already succeeded */
+      }
       return {
         action: "released" as const,
         sessionId: still.sessionId,

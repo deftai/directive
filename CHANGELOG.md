@@ -15,7 +15,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Widen #6013/#5893 running xBRIEF file_scope to include hook-identity-failclosed.test.ts (remint ovpr-w1-6013) so pin≠installed fixture can update with product guidance.
 - Prepare kill-switch plant deny so agents cannot self-serve `.deft-directive-disable` outside a human grant (Refs #6136).
 - Prepare a pin-bin ensure-arc-dest path so stale local dist cannot skip guarded-prep for design-critique arcs (Refs #6142).
-- Prepare no-lease applying-host takeover so idle SessionStart claims do not block other-provider lifecycle commands (Refs #6143).
 - Class A: stamp swarm-ready narratives and item Acceptance on Prefer-A Bound activation briefs for #6136 #6142 #6143 so swarm:launch can admit workers (Refs #6136, #6142, #6143).
 - Activate OVPR Wave 1 stable-state running xBRIEFs for #5916 (npm12 registry array unwrap), #5996 (check pin-root), #6013/#5893 (pin-mismatch recovery guidance), #5997/#5998 (Windows deft-hook/ps1), and #5995 (Windows autocrlf ownership) so swarm:launch can bind merge-base file_scope.
 - Activate Prefer-A Bound running xBRIEFs for #6021 (pnpm packageManager security pin), #5983 (Grok human-presence mint markers), #5953 (release Phase 7 maintainer local checkout update), and #6122 (operator-disable eligibility lock) so product implement can proceed under the write fence.
@@ -36,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Operator-disable (`.deft-directive-disable`) override is eligible only for a project-root non-symlink regular file after a successful untracked `git ls-files` listing; tracked, wrong-kind, and indeterminate Git/filesystem probes keep enforcement (or host fail-closed) and are never cached as untracked. Host outers use the same lstat + listing predicate. Refs #6034.
 
 ### Fixed
+- No-lease applying-host soft claims are advisory: other-provider bare lifecycle can take over, foreign-owner denies name the caller plus takeover/wait (never the owner's id), `session:end` / `occupancy:release` clear applying-host, and `applying-host:release` clears abandoned claims; RO SessionStart does not displace a different-provider fresh record. Refs #6143.
 - Record tracked completion for npm12 registry array unwrap (#5916).
 - Record tracked completion for check pin-root resolution (#5996).
 - Record tracked completion for Windows deft-hook/ps1 (#5997 / #5998).

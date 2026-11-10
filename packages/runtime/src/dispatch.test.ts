@@ -80,6 +80,13 @@ describe("registeredVerbs", () => {
     expect(VERB_ALIASES["migrate:confidence"]).toBe("migrate-confidence");
   });
 
+  it("registers applying-host:release (#6143)", () => {
+    expect(CLI_MODULE_VERBS).toContain("applying-host-release");
+    expect(resolveCanonicalVerb("applying-host:release")).toBe("applying-host-release");
+    expect(VERB_ALIASES["applying-host:release"]).toBe("applying-host-release");
+    expect(registeredVerbs()).toContain("applying-host:release");
+  });
+
   it("registers migrate:clause-ids (#5011)", async () => {
     expect(CORE_MODULE_VERBS).toContain("migrate-clause-ids");
     expect(resolveCanonicalVerb("migrate:clause-ids")).toBe("migrate-clause-ids");
