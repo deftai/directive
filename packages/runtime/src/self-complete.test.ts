@@ -281,4 +281,51 @@ describe("maybeSelfCompleteSetup (AC8.6)", () => {
     expect(existsSync(readyRel)).toBe(true);
     expect(readFileSync(join(root, hookRel), "utf8")).toBe(CUSTOM_PRE_PUSH);
   });
+
+  it("AC14.10 / HT-17: pin+installed at W, GENERATION/wiring still V → eligible refreshes at W; pin+xbrief unchanged", () => {
+    const root = tempRoot();
+    const installed = runSetup({ operation: "install", from: "none", root });
+    const W = installed.runtimeVersion;
+    const V = "0.129.0";
+    expect(W).not.toBe(V);
+    pinRuntime(root, W);
+
+    const genPath = join(root, ".deft", "GENERATION.json");
+    const gen = JSON.parse(readFileSync(genPath, "utf8")) as Record<string, unknown>;
+    expect(gen.runtimeVersion).toBe(W);
+    writeFileSync(genPath, `${JSON.stringify({ ...gen, runtimeVersion: V }, null, 2)}\n`);
+
+    const readyW = join(root, ".deft", "directive", `wiring-ready.${W}.json`);
+    const readyV = join(root, ".deft", "directive", `wiring-ready.${V}.json`);
+    rmSync(readyW, { force: true });
+    mkdirSync(join(root, ".deft", "directive"), { recursive: true });
+    writeFileSync(readyV, `${JSON.stringify({ runtimeVersion: V }, null, 2)}\n`);
+
+    const xbriefPath = join(root, "xbrief", "proposed", "stay-put.xbrief.json");
+    mkdirSync(join(root, "xbrief", "proposed"), { recursive: true });
+    const xbriefBody = `${JSON.stringify(
+      {
+        xBRIEFInfo: { version: "0.8", description: "AC14.10 must not migrate" },
+        plan: { id: "stay-put", title: "stay", status: "proposed" },
+      },
+      null,
+      2,
+    )}\n`;
+    writeFileSync(xbriefPath, xbriefBody);
+    const pinBefore = readFileSync(join(root, "package.json"), "utf8");
+
+    const result = maybeSelfCompleteSetup(root, { argv: ["verify:branch"] });
+    expect(result.ran).toBe(true);
+    expect(result.skipReason).toBeNull();
+    expect(result.setup?.conflicts ?? []).toEqual([]);
+    expect(result.setup?.runtimeVersion).toBe(W);
+
+    const genAfter = JSON.parse(readFileSync(genPath, "utf8")) as { runtimeVersion: string };
+    expect(genAfter.runtimeVersion).toBe(W);
+    expect(existsSync(readyW)).toBe(true);
+    expect(JSON.parse(readFileSync(readyW, "utf8")).runtimeVersion).toBe(W);
+    expect(existsSync(readyV)).toBe(false);
+    expect(readFileSync(join(root, "package.json"), "utf8")).toBe(pinBefore);
+    expect(readFileSync(xbriefPath, "utf8")).toBe(xbriefBody);
+  });
 });

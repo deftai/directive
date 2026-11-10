@@ -862,6 +862,8 @@ Copy this shape into each test’s result fence. Agent/operator updates **only**
 - Automatic setup authority only (wiring/generation/readiness); no data migration.
 - If no second tip version exists, **SKIP** and note — do not force a fake W.
 
+**Operator / CI note (sealed #5947 / #5948):** pin-only Dependabot PRs are legal under AC14.10. Doctor dirty before the first eligible auto-setup invocation is expected (doctor is read-only, AC9.10). CI may self-complete via an eligible command after PM install, or call `directive install --repair --yes` explicitly — deposit bytes are not required in the same pin PR. Unit regression: `packages/runtime/src/self-complete.test.ts` (AC14.10 / HT-17).
+
 **ACs covered:** AC8.6, AC14.10, AC1.5 (auto path does not write pin)
 
 **Cumul. %:** ~80%+

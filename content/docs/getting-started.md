@@ -58,6 +58,8 @@ directive doctor
 
 After clone or a new worktree: run the project package manager (`npm install` / `pnpm install`), then the first eligible runtime command or registered hook completes local activation.
 
+**Dependabot / pin-only bumps (AC14.10):** a PR that changes only the `@deftai/directive-runtime` pin + lockfile is valid. After `pnpm install` / `npm install` brings `node_modules` to the new pin, the first eligible skill, hook, or ordinary runtime command runs local automatic setup (wiring / `GENERATION` / readiness). `directive doctor` stays read-only — dirty doctor output before that eligible invocation is expected. CI may either rely on that first eligible command or run explicit `directive install --repair --yes`. Do not treat "deposit bytes must land in the same pin PR" as product law. Human-test mirror: HT-17 in `docs/installer-refactor-ovpr/install-ovpr-human-test-plan.md`. Schema/data behind the new pin still needs `directive upgrade` (AC14.11), not repair alone.
+
 **Repair (pin unchanged):** `npm i -g @deftai/directive`, then `directive install --repair`.
 
 **Upgrade version or migrate data:** `directive upgrade` (alias: `update`).
