@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Activate Prefer-A Bound running xBRIEFs for #4781 (process_only Approach 1 / validation spawn), #5735 (worktrees-probe ownership), #6164 (release:local-update Windows portability), #6163 (pin/Phase 7 Cursor deposit co-travel), and #5102 (SLizard babysit residual).
+
+
 ### Added
 - Activate #6173 Path B scope brief with concrete file_scope for win32 containedDestExec follow-on (Refs #6173).
 

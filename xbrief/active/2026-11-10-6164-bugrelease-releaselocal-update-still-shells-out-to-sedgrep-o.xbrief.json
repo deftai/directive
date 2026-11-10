@@ -1,0 +1,594 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6164",
+    "updated": "2026-11-10T20:41:00Z"
+  },
+  "plan": {
+    "title": "bug(release): release:local-update still shells out to sed/grep on Windows",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(release): release:local-update still shells out to sed/grep on Windows",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6164",
+      "Overview": "\n- Default-branch strip — capture git symbolic-ref refs/remotes/origin/HEAD (stderr quiet) then DEFAULT_BRANCH=; zero sed/awk/cut/grep on that path.\n- Default-branch verify — after strip, git rev-parse --verify --quiet refs/remotes/origin/ or exit 1 with recovery to run git remote set-head origin -a; empty/unset after a successful tool path may still fall to master only when the verify limb then succeeds.\n- AgeExclude gate — one dependency-free node -e (no yaml package; pre-frozen-install) that reads pnpm-workspace.yaml; tool/read/absent-file failure exits non-zero before pnpm.\n- AgeExclude outcomes — minimumReleaseAgeExclude key absent → continue; key present → require exact list-item string equality with @deftai/directive-runtime@ inside that block only (strip quotes/whitespace; no whole-file substring; no prefix match such as 0.129.1 vs 0.129.10); missing/wrong/comment-only/out-of-block match exits non-zero.\n- Fail-closed wiring — AgeExclude node invocation is unconditional in the recipe control flow (not nested behind a soft if whose failure skips); do not wrap the node probes in blanket || true; pass VERSION as argv, not interpolated JS.\n- Scope — Taskfile.yml release:local-update only (measured three call sites); no standalone helper; no engine:invoke move; no broad Taskfile rewrite.\n- Proof — Windows PATH without sed/grep emits no executable-not-found for these sites; fixture(s) cover exact-row pass, wrong-version/prefix false-pass refuse, comment/out-of-block refuse, absent key continue, absent-file/read fail; one extracted control-flow harness asserts pnpm install is not reached on probe failure (mocked side effects).\n- CHANGELOG — Unreleased notes the portability + fail-closed AgeExclude fix; Refs #6164 / #5953.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n\n",
+      "Labels": "bug, agent-experience, process, runtime-portability, dogfood, platform:windows, design-critique:ingest-ready, release",
+      "UserStory": "As a Windows maintainer, release:local-update runs without sed/grep and fail-closes AgeExclude before frozen install.",
+      "ImplementationPlan": "Replace sed/grep in Taskfile release:local-update with shell parameter expansion plus dependency-free node AgeExclude gate using exact runtime@version row."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Default-branch strip captures origin HEAD then strips the remotes prefix with shell parameter expansion; zero sed awk cut grep on that path.",
+        "status": "proposed"
+      },
+      {
+        "id": "clause.2",
+        "title": "Default-branch verify uses git rev-parse after strip and exits non-zero with recovery guidance when the ref is missing.",
+        "status": "proposed"
+      },
+      {
+        "id": "clause.3",
+        "title": "AgeExclude gate runs one dependency-free node probe that reads the workspace yaml before frozen install and fails closed on tool or read errors.",
+        "status": "proposed"
+      },
+      {
+        "id": "clause.4",
+        "title": "AgeExclude outcomes continue when the exclude key is absent and otherwise require exact list-item string equality with the runtime version row inside that block only.",
+        "status": "proposed"
+      },
+      {
+        "id": "clause.5",
+        "title": "Fail-closed wiring keeps the AgeExclude node invocation unconditional in recipe control flow without soft-skip or blanket or-true.",
+        "status": "proposed"
+      },
+      {
+        "id": "clause.6",
+        "title": "Scope stays on Taskfile.yml release local-update measured call sites without a standalone helper or broad Taskfile rewrite.",
+        "status": "proposed"
+      },
+      {
+        "id": "clause.7",
+        "title": "Proof fixtures cover exact-row pass and refuse cases and a control-flow harness asserts frozen install is not reached on probe failure.",
+        "status": "proposed"
+      },
+      {
+        "id": "clause.8",
+        "title": "CHANGELOG Unreleased notes the portability and fail-closed AgeExclude fix with Refs for this issue.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "runtime-portability",
+      "dogfood",
+      "platform:windows",
+      "design-critique:ingest-ready",
+      "release"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6164",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6164: bug(release): release:local-update still shells out to sed/grep on Windows"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 8 independently testable clauses from the Prefer-A Bound remedy before product edit (#3323)",
+      "sentences": [
+        "bug(release): release:local-update still shells out to sed/grep on Windows",
+        "Default-branch strip captures origin HEAD then strips the remotes prefix with shell parameter expansion; zero sed awk cut grep on that path.",
+        "Default-branch verify uses git rev-parse after strip and exits non-zero with recovery guidance when the ref is missing.",
+        "AgeExclude gate runs one dependency-free node probe that reads the workspace yaml before frozen install and fails closed on tool or read errors.",
+        "AgeExclude outcomes continue when the exclude key is absent and otherwise require exact list-item string equality with the runtime version row inside that block only.",
+        "Fail-closed wiring keeps the AgeExclude node invocation unconditional in recipe control flow without soft-skip or blanket or-true.",
+        "Scope stays on Taskfile.yml release local-update measured call sites without a standalone helper or broad Taskfile rewrite.",
+        "Proof fixtures cover exact-row pass and refuse cases and a control-flow harness asserts frozen install is not reached on probe failure.",
+        "CHANGELOG Unreleased notes the portability and fail-closed AgeExclude fix with Refs for this issue."
+      ],
+      "admitted_source_sentences": [
+        "Default-branch strip captures origin HEAD then strips the remotes prefix with shell parameter expansion; zero sed awk cut grep on that path.",
+        "Default-branch verify uses git rev-parse after strip and exits non-zero with recovery guidance when the ref is missing.",
+        "AgeExclude gate runs one dependency-free node probe that reads the workspace yaml before frozen install and fails closed on tool or read errors.",
+        "AgeExclude outcomes continue when the exclude key is absent and otherwise require exact list-item string equality with the runtime version row inside that block only.",
+        "Fail-closed wiring keeps the AgeExclude node invocation unconditional in recipe control flow without soft-skip or blanket or-true.",
+        "Scope stays on Taskfile.yml release local-update measured call sites without a standalone helper or broad Taskfile rewrite.",
+        "Proof fixtures cover exact-row pass and refuse cases and a control-flow harness asserts frozen install is not reached on probe failure.",
+        "CHANGELOG Unreleased notes the portability and fail-closed AgeExclude fix with Refs for this issue."
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Default-branch strip captures origin HEAD then strips the remotes prefix with shell parameter expansion; zero sed awk cut grep on that path.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Default-branch verify uses git rev-parse after strip and exits non-zero with recovery guidance when the ref is missing.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "AgeExclude gate runs one dependency-free node probe that reads the workspace yaml before frozen install and fails closed on tool or read errors.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "AgeExclude outcomes continue when the exclude key is absent and otherwise require exact list-item string equality with the runtime version row inside that block only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Fail-closed wiring keeps the AgeExclude node invocation unconditional in recipe control flow without soft-skip or blanket or-true.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Scope stays on Taskfile.yml release local-update measured call sites without a standalone helper or broad Taskfile rewrite.",
+          "artifact_path": "Taskfile.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Proof fixtures cover exact-row pass and refuse cases and a control-flow harness asserts frozen install is not reached on probe failure.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "CHANGELOG Unreleased notes the portability and fail-closed AgeExclude fix with Refs for this issue.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "Taskfile.yml",
+          "packages/cli/src/age-exclude.ts",
+          "packages/cli/src/age-exclude.test.ts",
+          "pnpm-workspace.yaml"
+        ],
+        "module_boundary": "Taskfile.yml"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-build\n```quarantined\nrole: parent\n```\n\nPrefer-A draft (not Bound) — conflict_group release-local-update-sed-grep-win32-portability\n\n## In plain English\nPhase 7 release:local-update still shells sed/grep. On Windows without Git usr/bin that prints false errors and can skip the AgeExclude check. Replace those probes with node so closeout stays quiet and fail-closed.\n\n## Approach A (draft limbs)\n- Default-branch name: parse origin/HEAD symbolic-ref with node (strip refs/remotes/origin/), keep master fallback only when the ref is empty.\n- AgeExclude gate: one node probe over pnpm-workspace.yaml that (1) detects minimumReleaseAgeExclude presence and (2) requires @deftai/directive-runtime@ inside that file; missing tool/read fails closed before frozen install.\n- Scope: Taskfile.yml release:local-update only (measured three call sites); leave other release steps alone unless a sibling text probe appears in the same path.\n- Proof: Windows PATH without sed/grep prints no executable-not-found for these probes; fixture or node-level assert that missing AgeExclude row for VERSION exits non-zero.\n- CHANGELOG Unreleased notes the portability fix; Refs #6164 / #5953.\n\n## Reject\n- Document add Git usr/bin to PATH as the only fix\n- Keep grep/sed and ignore stderr\n- Soft-skip AgeExclude when the probe cannot run\n- Broad Taskfile rewrite beyond release:local-update text probes\n\ndispatch-sha: 633ff476f3fdd9f302d81627daa6ddeea32f4baf\narc-mode: no-ingest\nspend-recommend: N≥3\nspend: N≥3\nFiled for @MScottAdams",
+          "id": 6772524805,
+          "html_url": "https://github.com/deftai/directive/issues/6164#issuecomment-6772524805",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:11:59Z",
+          "updated_at": "2026-11-10T16:11:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-build\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because Phase 7 release:local-update still shells sed/grep on a Windows maintainer PATH without Git usr/bin, producing false executable-not-found noise and a fail-open AgeExclude skip before frozen install (#5953 closeout class).\n\ncharter: open critique\narc-mode: no-ingest\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nmateriality-bar: open\ndual-stop-reserved: first post-lean pain-audit in-cap\nverification-path: pin-read git show 633ff476f3fdd9f302d81627daa6ddeea32f4baf: Taskfile.yml release:local-update; dest cwd-without-occupy .deft-scratch/worktrees/arc-6164\nclosed-findings: none\ndispatch-sha: 633ff476f3fdd9f302d81627daa6ddeea32f4baf\nPrefer-A draft cite: #issuecomment-6772524805\n\npain: P1, P2, P3\n- P1: sed strips origin/HEAD symbolic-ref for DEFAULT_BRANCH; missing sed prints noise and soft-falls empty→master.\n- P2: outer grep -q minimumReleaseAgeExclude; missing grep skips the whole AgeExclude gate (fail-open before frozen install).\n- P3: inner grep -q @deftai/directive-runtime@VERSION stays a Unix text probe; Windows closeout remains non-portable and noisy even when the exit path happens to fail closed.\n\nStop 2 panel permission: N≥3 (fail-closed release closeout + AgeExclude association).\nFiled for @MScottAdams",
+          "id": 6772531859,
+          "html_url": "https://github.com/deftai/directive/issues/6164#issuecomment-6772531859",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:12:16Z",
+          "updated_at": "2026-11-10T16:12:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-build\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\nseat-families: claude, codex, grok\ninput-ceiling: 6772550810\nlaunch-probe: claude=pong rc0; codex=pong rc0; grok=pong rc0 (critic argv class)\nverification-path: pin-read git show 633ff476f3fdd9f302d81627daa6ddeea32f4baf: Taskfile.yml; dest .deft-scratch/worktrees/arc-6164\ndispatch-sha: 633ff476f3fdd9f302d81627daa6ddeea32f4baf\nPrefer-A draft: #issuecomment-6772524805\nStop 1: #issuecomment-6772531859\nFiled for @MScottAdams",
+          "id": 6772550810,
+          "html_url": "https://github.com/deftai/directive/issues/6164#issuecomment-6772550810",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:13:05Z",
+          "updated_at": "2026-11-10T16:13:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6-astra\n```quarantined\nrole: critic\n```\n\naudit-targets: none\nseat-family: codex\nround: 1\n\nPrefer A with the corrections below; it cannot bind as presently worded.\n\n## Verification and existing mechanisms\n\nRead only issue body plus the named draft, Stop 1 and panel-deposit comments (ceiling 6772550810); no sibling critic posts. Pin-read `git show 633ff476f3fdd9f302d81627daa6ddeea32f4baf:Taskfile.yml` confirms P1 at line 1018 and P2/P3 at 1028-1029: symbolic-ref pipes through sed with `|| true`; nested grep conditionals precede frozen install. The task already uses standalone Node commands under `set -e`, changes to CHECKOUT before probing, and deliberately avoids engine invocation/build dependencies so the N-1 runtime can be replaced. This is source verification, not an executed Windows closeout.\n\nAlso pin-read `pnpm-workspace.yaml` (active quoted runtime exclusion for 0.129.6) and `packages/cli/src/age-exclude.ts`: the existing updater scopes runtime entries to the exclusion block and parses item values. Its replace-not-append/no-create policy is an updater contract, not evidence that a release validator should accept missing exclusions. Reuse its matching conventions and fixtures where appropriate; do not invoke its mutating updater as the gate.\n\n## C1 — blocks-the-design: bind an exact, active VERSION exclusion\n\nEvidence: the draft requires only `@deftai/directive-runtime@` “inside that file,” whereas its proof and issue acceptance require the target VERSION. Even appending VERSION to a whole-file substring check admits a commented row, an unrelated key, or a version-prefix match. The pinned grep already has whole-file and regex weaknesses; translating those literally to Node preserves a false pass.\n\nFailure: a stale runtime exclusion can satisfy the new check and let frozen install start without the intended exemption. Consequence: replace the draft predicate before binding. Require an exact active list value `@deftai/directive-runtime@${VERSION}` under `minimumReleaseAgeExclude`; comments, unrelated keys and longer versions are not matches. Explicitly refuse missing file/key/entry and unsupported or ambiguous structure, rather than inheriting either outer conditional's skip. This is a narrow release-task rule, not a change to the updater's no-create policy.\n\n## C2 — sharpens-framing: preserve failure status across the shell boundary\n\nEvidence: P1's current pipeline ends in `|| true`, while P2 is an `if` condition whose failure skips enforcement. The draft says tool/read failures close the gate but does not bind the shell wiring that makes that true.\n\nFailure: replacing executable names while retaining these contexts still turns Node failure into fallback or skipped enforcement. Consequence: state that the AgeExclude Node command is unconditional, with failure terminating the task before pnpm; default-branch extraction must not place Node failure behind blanket `|| true`. Keep master fallback only for the explicitly supported absent-ref case, distinguishing it from a failed parser/tool or malformed nonempty result. Pass VERSION/ref values as arguments, not interpolated JavaScript. This sharpens A's existing fail-closed promise rather than expanding its scope.\n\n## C3 — sharpens-framing: test the caller's refusal, not only the predicate\n\nEvidence: the draft allows a “fixture or node-level assert,” but P2 is specifically a caller-control-flow defect. A correct predicate can be ignored by the Taskfile.\n\nFailure: unit assertions pass while install still runs on probe failure. Consequence: retain focused predicate fixtures, and add one extracted-task/control-flow harness with mocked side effects that asserts pnpm is not reached on check/read/launch failure. Exercise the actual task shell on Windows without sed/grep; use stubs so verification does not pull or install into the maintainer checkout. Cover valid exact row, wrong version, comment-only/out-of-block match, and absent file/key. No claim that this proof has already run.\n\n## Remedies and roads not taken\n\n**A — preferred, thin inline repair:** Node resolves the branch with explicit fallback/error semantics; one unconditional Node AgeExclude gate validates the exact active VERSION item; failures stop before frozen install with one recovery instruction: restore the target exclusion in checkout pnpm-workspace.yaml and rerun local-update. Keep the measured release:local-update scope.\n\n**B — strongest alternative:** a small standalone Node helper owns the same probes and exits; Taskfile calls it without build/runtime dependencies. Better direct testability and less shell quoting, but an added bootstrap artifact for three call sites. I would prefer B if the inline block scanner cannot remain short and independently testable, or an existing standalone helper can be reused without N-1 coupling.\n\n**C — runtime/YAML-service reuse:** full parsing through an installed runtime can provide richer YAML support, but introduces bootstrap availability/version coupling before frozen install. Not selected for this first ship. Unsupported inline/alias YAML can fail closed with the same remediation instead of funding a general parser here.\n\nSteelman of literal grep-to-Node parity: smallest diff, preserves optional-file/key behavior, and removes Windows executable noise. It would be enough for a portability-only contract. It does not meet this draft's target-version fail-closed promise; retain the small surface, tighten the predicate and caller together. PATH documentation, suppressed stderr, automatic YAML repair, and a broad release rewrite remain roads not taken.\n\nEXIT — Round-1 critique complete; no ingest or product changes.\r\n\n",
+          "id": 6772612271,
+          "html_url": "https://github.com/deftai/directive/issues/6164#issuecomment-6772612271",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:15:38Z",
+          "updated_at": "2026-11-10T16:15:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4\n```quarantined\nrole: critic\n```\n\naudit-targets: none\nseat-family: grok\nid-ceiling: 6772550810\ndispatch-sha: 633ff476f3fdd9f302d81627daa6ddeea32f4baf\ntarget: issue 6164\nPrefer-A draft cite: #issuecomment-6772524805\nStop 1 cite: #issuecomment-6772531859\n\n## Verification (pin-read)\nPin `git show 633ff476f3fdd9f302d81627daa6ddeea32f4baf:Taskfile.yml` on release:local-update confirms the three measured sites:\n1. `DEFAULT_BRANCH=\"$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed \"s@^refs/remotes/origin/@@\" || true)\"` then empty→master.\n2. Outer `if grep -q \"minimumReleaseAgeExclude\" pnpm-workspace.yaml; then`.\n3. Inner `if ! grep -q \"@deftai/directive-runtime@$VERSION\" pnpm-workspace.yaml; then … exit 1`.\n\nMissing outer grep makes the `if` false and skips the inner gate → fail-open before frozen install (P2). Sed/grep absence also prints executable-not-found noise (P1/P3).\n\n## Inventory\nTaskfile already uses inline `node -e` for parse/occupancy/path norm in the same task. packages/cli has AgeExclude row tests (`upgrade-age-exclude.test.ts` / #5854) with string-row semantics — Prefer-A should reuse substring/row intent, not invent a YAML parser for this gate.\n\n## Finding F1 — AgeExclude VERSION binding\nclassification: blocks-the-design\nevidence: Prefer-A Approach A limb 2 says require `@deftai/directive-runtime@` inside the file; pin-read and Stop 1 P3 require `@deftai/directive-runtime@$VERSION`. Proof limb mentions VERSION, but the mechanism limb omits it.\nfailure mode: Bound that ships the bare substring accepts a stale exclude row for another version and still proceeds into frozen install.\ndisposition: remint Prefer-A Bound limb so the probe requires the VERSION-bound row (same string the inner grep uses today).\n\n## Finding F2 — AgeExclude three-way outcomes\nclassification: sharpens-framing\nevidence: Current shell is (key absent → skip), (key present + VERSION missing → exit 1), (grep missing → skip = fail-open). Prefer-A correctly fails closed on missing tool/read, and names detect-presence + require-row, but does not lock the absent-key continue path in the mechanism limb.\nfailure mode: Implementer collapses to \"always require the runtime row\" (false fail when AgeExclude unused) or keeps a nested probe that can fail-open again.\ndisposition: Bound short limb must state the three outcomes: tool/read fail → non-zero; key absent → continue; key present without VERSION row → non-zero. That is Thin Fail-Closed (#3265) association text, not a docs footnote.\n\n## Finding F3 — DEFAULT_BRANCH without sed\nclassification: sharpens-framing\nevidence: Prefer-A says parse symbolic-ref with node and keep empty→master. Pin still pipes through `sed`. Empty→master soft-fall is intentional when origin/HEAD is unset; the pain is sed noise + empty fall from missing sed, not the fallback itself.\nfailure mode: A half-fix keeps `| sed` (or another Unix text filter) beside node and leaves P1 live on Windows PATH without Git usr/bin.\ndisposition: Bound limb names the concrete strip: capture `git symbolic-ref` stdout into node (or equivalent node strip of the refs/remotes/origin/ prefix) with zero sed/awk/cut in that path; retain empty→master only after a successful tool path with empty/unset ref.\n\n## Approaches (Thin Fail-Closed short limbs)\n**Approach A (Prefer-A, refined — recommend):** Keep work inside Taskfile.yml `release:local-update` only.\n- P1: node strips `git symbolic-ref refs/remotes/origin/HEAD` → default branch; empty→master; no sed.\n- P2/P3: one node probe over pnpm-workspace.yaml with the three-way outcomes above; VERSION-bound row; tool/read fail closed; no grep.\n- Proof: PATH without sed/grep is quiet for these probes; node/fixture assert missing VERSION row exits non-zero when the key is present.\n- Footnote: CHANGELOG Unreleased + Refs #6164 / #5953.\n\n**Approach B:** Extract `scripts/release-local-update-probes.cjs` (or a tiny packages helper) called once from the task. Better unit surface; extra file + wiring for three call sites. Reject for this ticket unless proof cannot land inline.\n\n**Approach C:** Replace the whole Phase 7 shell body with one node driver. Relieves P1–P3 but violates Prefer-A Reject (broad Taskfile rewrite) and #3265 Bound size. Leftover only if more Unix probes appear on the same path later.\n\n## Roads not taken\n- Document Git usr/bin on PATH as the fix — rejected; leaves fail-open P2 intact whenever PATH is thin.\n- Keep grep/sed and ignore stderr — rejected; silence ≠ fail-closed.\n- Soft-skip AgeExclude when the probe cannot run — rejected; re-encodes P2.\n- win32 PowerShell probes / unix grep dual path — portable in theory, doubles mechanism and drifts.\n- Full YAML parse (js-yaml) for AgeExclude — heavier than needed; string/row match matching #5854 tests is enough.\n- `git rev-parse --abbrev-ref origin/HEAD` alone — may diverge from symbolic-ref strip when origin/HEAD is unset or packed differently; stick to symbolic-ref + node strip unless measured equivalent.\n\n## Steelman\nStrongest reject of Approach A: Taskfile already runs under a Unix-like shell on maintainer cuts, and Git for Windows often puts sed/grep on that PATH, so the bug is environmental and docs/PATH is cheaper than node probes. Flip condition: a single measured Windows closeout without Git usr/bin that (a) prints sed/grep not-found and (b) skips AgeExclude while `minimumReleaseAgeExclude` is present. Stop 1 + pin-read already show the fail-open shape; Prefer-A node probes stay the thinner durable control.\n\n## Injection / swarm lens\nN/A — local maintainer Taskfile text probes; no authority, envelope, identity, or shared-state change.\n\n## Verdict\nPrefer-A Approach A is the right Thin Fail-Closed shape once F1 is absorbed (VERSION-bound row) and F2/F3 land as short Bound limbs. Do not bind Approach B/C for this conflict_group. Reject list stands.",
+          "id": 6772613176,
+          "html_url": "https://github.com/deftai/directive/issues/6164#issuecomment-6772613176",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:15:40Z",
+          "updated_at": "2026-11-10T16:15:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\nRound 1 critic (fresh seat, family claude). charter: open critique. arc-mode: no-ingest. materiality-bar: open.\naudit-targets: none\ndispatch-sha: 633ff476f3fdd9f302d81627daa6ddeea32f4baf\nceiling: 6772550810 (read: Stop 1 #issuecomment-6772531859, Prefer-A #issuecomment-6772524805; no sibling critic posts read)\nverification: pin-read git show 633ff476f3:Taskfile.yml plus :pnpm-workspace.yaml and :package.json; dest cwd-without-occupy.\n\n## Steelman of Prefer-A\n\nPrefer-A is right on the three things easiest to get wrong. It keeps scope to one recipe; it names fail-closed as the property under repair rather than \"remove sed/grep\"; and it reaches for node, already the house idiom in this block (the recipe runs ~8 node -e probes under the documented single-quote-shell / double-quote-JS rule). I measured the scope claim and it holds: sed|grep|awk|cut|tr|xargs appears in Taskfile.yml at exactly lines 1018, 1028, 1029 -- the three call sites named. No sibling text probe exists elsewhere in the release path. Prefer-A \"leave other release steps alone\" is not a guess; it is correct.\n\nWorth stating plainly because it reframes the fix: the recipe body is already POSIX shell interpreted by Task's embedded interpreter, which supplies case, [, $(...), command -v, pwd. The portability gap is **external binaries on PATH**, not shell syntax. That shrinks the remedy surface more than the draft assumes.\n\n## Where Prefer-A is under- or over-built\n\n**(1) P1 is over-built.** The draft proposes a node probe to strip refs/remotes/origin/. The shell already has that operator, with no process and no binary:\n\n```sh\nREF=\"$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)\"\nDEFAULT_BRANCH=\"${REF#refs/remotes/origin/}\"\n```\n\nThin Fail-Closed (#3265) prefers the limb that adds no mechanism. A node -e here buys nothing a parameter expansion does not, and costs a process plus another entry in the quoting-rule minefield this block already carries. Note that symbolic-ref --short does **not** remove the need to strip -- it yields origin/master, not master.\n\n**(2) P1 has a fail-open limb Stop 1 does not name.** `if [ -z \"$DEFAULT_BRANCH\" ]; then DEFAULT_BRANCH=master; fi` guesses when origin/HEAD is unset -- the common state in a fresh clone that never ran `git remote set-head`. On this repo the guess happens to be right, so it is benign today and silently wrong the day it is not. Cheap fail-closed limb, pure git, no text tools:\n\n```sh\ngit rev-parse --verify --quiet \"refs/remotes/origin/$DEFAULT_BRANCH\" >/dev/null \\\n  || { echo \"release:local-update: cannot resolve default branch; run: git remote set-head origin -a\" >&2; exit 1; }\n```\n\n**(3) P2 is correctly diagnosed and the predicate is still wrong.** Missing grep gives exit 127, the `if` takes the absent else-branch, and `set -e` does not fire because the command sits in condition position -- the whole gate skips. Confirmed at pin. But the deeper defect is independent of Windows: the gate conditions on the presence of `minimumReleaseAgeExclude`, which is the **remedy**, not the hazard. At pin, pnpm-workspace.yaml carries the exclude list and there is no .npmrc -- the release-age delay itself lives outside this file. So deleting or renaming the exclude block leaves the hazard live and turns the gate off, exactly when it is needed. Same shape one line up: `if [ -f pnpm-workspace.yaml ]` skips the gate when the file is missing, and a missing pnpm-workspace.yaml in this repo means wrong cwd or a broken checkout, not \"nothing to check.\" Both should be exit 1, not skip.\n\n**(4) The P3 framing in Stop 1 is off, and the correct framing changes the remedy.** The inner probe is `if ! grep -q ...` -- a missing grep exits 127, the `!` inverts it, the branch fires, and it prints a false \"AgeExclude missing\" and exits 1. That is a false alarm, not fail-open; and it is unreachable anyway, because if grep is absent the outer probe has already skipped. The real P3 defect is a **substring false-pass**: `grep -q \"@deftai/directive-runtime@$VERSION\"` matches a prefix. Cutting 0.129.1 passes against a file that lists only `@deftai/directive-runtime@0.129.10`. It also matches a hit anywhere in the file, including a comment or an unrelated key. Portability is the smaller half of P3; exact membership is the larger half.\n\n**(5) The Prefer-A node probe carries an unstated sequencing constraint.** The gate runs *before* `pnpm install --frozen-lockfile`, so node_modules may be stale or absent. There is no yaml dependency in package.json at pin, and adding one would not help -- it would not be installed yet. **The probe must be dependency-free.** The draft \"one node probe over pnpm-workspace.yaml\" does not say this, and it is the constraint most likely to be discovered at implementation time and then resolved the wrong way.\n\n## Refined remedies\n\n**Approach A (recommended) -- thin, two limbs, no new mechanism.**\n- *A1 default branch:* parameter expansion as in (1); rev-parse --verify the result as in (2). Zero external binaries, zero node.\n- *A2 AgeExclude:* one dependency-free node -e replacing both greps. Limbs: read pnpm-workspace.yaml -- read failure or absent file exits 1. Locate the `minimumReleaseAgeExclude:` block -- absent exits 1, not skip. Collect that block list items only, strip surrounding quotes and whitespace, and require **exact string equality** with `@deftai/directive-runtime@<VERSION>` -- not substring, not file-wide. Any throw exits non-zero. Scan the block by indentation rather than importing a parser; the shape at pin is a flat list of quoted/unquoted scalars and does not need YAML semantics.\n- *Proof obligations:* (a) on a PATH without sed/grep the recipe emits no executable-not-found for these sites; (b) a fixture where the exclude row is `...@0.129.10` and VERSION is 0.129.1 exits non-zero -- this is the regression the current code passes; (c) a fixture with the `minimumReleaseAgeExclude:` key removed exits non-zero.\n- CHANGELOG Unreleased; Refs #6164 / #5953.\n\n**Approach B -- A1 only, delete the pre-install AgeExclude gate entirely.** Lean on the existing tip-pin-equals-released assertion (PIN_PKG/INST_PKG vs VERSION) that already runs after install and already exits non-zero. Thinnest possible: removes two probes instead of rewriting them. Reject, but for a stated reason rather than reflex -- it trades a legible pre-install message for a confusing post-install one and burns a frozen install first. Keep B on the table if A2 grows past roughly 15 lines; at that point the gate costs more than the error message is worth.\n\n**Approach C -- repo guard banning external text binaries in Taskfile recipes.** Measured: after A lands there are **zero** remaining call sites, so C protects only against regression. Worth filing, not worth coupling to this fix. Defer to a follow-up; do not let it widen #6164.\n\n## Roads not taken\n\n- **Move the recipe into engine:invoke.** Rejected by the recipe own header comment: inline cmds only, no deps:[ts:build], because the post-install payload has to replace the N-1 runtime the cut was using. The engine *is* that N-1 runtime at that moment.\n- **Add a yaml devDependency and parse properly.** Rejected by sequencing -- the probe runs pre-install, see (5).\n- **Ship sed/grep shims, or document the Git usr/bin PATH addition.** Already rejected in the issue; restated only to confirm the measured basis: the fix is 3 call sites, cheaper than an environment prerequisite every maintainer must re-satisfy on every machine.\n- **Semver-equal rather than string-equal version comparison.** Not taken: VERSION is the cut tag and the exclude row is written by the cut, so string equality is the invariant under test. Semver parsing would add a dependency the probe cannot have.\n\n## Calibration note\n\nOne honest uncertainty, flagged because it bears on how much mechanism P2 deserves: under --frozen-lockfile pnpm installs from the lock rather than re-resolving, so it is not fully settled that the release-age delay bites at that point at all. If it does not, the P2 blast radius is legibility plus a wasted install, not a wrong release -- the downstream INST_PKG != VERSION check is the real fail-closed carrier. That argues for A2 staying small and for keeping B live as the fallback. It does not argue for softening the fail-closed limbs: those cost about 8 lines either way.\n\nFiled for @MScottAdams\n\n",
+          "id": 6772659272,
+          "html_url": "https://github.com/deftai/directive/issues/6164#issuecomment-6772659272",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:17:36Z",
+          "updated_at": "2026-11-10T16:17:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-build\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound — conflict_group release-local-update-sed-grep-win32-portability\nSpec-path: Prefer-A Bound #6164\nTarget-digest: sha256:24d0866889e99ce77284eff7296848542734c8b64962f5d29b90f5f23f6460f2\ndispatch-sha: 633ff476f3fdd9f302d81627daa6ddeea32f4baf\narc-mode: no-ingest\nRound-1 cites: Codex #issuecomment-6772612271; Grok #issuecomment-6772613176; Claude #issuecomment-6772659272\nPrefer-A draft superseded: #issuecomment-6772524805\n\n## In plain English\nPhase 7 release:local-update must stop shelling sed/grep. Strip the default-branch name with shell parameter expansion, verify the ref with git, and run one dependency-free node AgeExclude check that demands the exact runtime@version row before frozen install. Missing tools or a wrong row fail closed; no PATH docs workaround.\n\n## Bound remedy\n- Default-branch strip — capture git symbolic-ref refs/remotes/origin/HEAD (stderr quiet) then DEFAULT_BRANCH=; zero sed/awk/cut/grep on that path.\n- Default-branch verify — after strip, git rev-parse --verify --quiet refs/remotes/origin/ or exit 1 with recovery to run git remote set-head origin -a; empty/unset after a successful tool path may still fall to master only when the verify limb then succeeds.\n- AgeExclude gate — one dependency-free node -e (no yaml package; pre-frozen-install) that reads pnpm-workspace.yaml; tool/read/absent-file failure exits non-zero before pnpm.\n- AgeExclude outcomes — minimumReleaseAgeExclude key absent → continue; key present → require exact list-item string equality with @deftai/directive-runtime@ inside that block only (strip quotes/whitespace; no whole-file substring; no prefix match such as 0.129.1 vs 0.129.10); missing/wrong/comment-only/out-of-block match exits non-zero.\n- Fail-closed wiring — AgeExclude node invocation is unconditional in the recipe control flow (not nested behind a soft if whose failure skips); do not wrap the node probes in blanket || true; pass VERSION as argv, not interpolated JS.\n- Scope — Taskfile.yml release:local-update only (measured three call sites); no standalone helper; no engine:invoke move; no broad Taskfile rewrite.\n- Proof — Windows PATH without sed/grep emits no executable-not-found for these sites; fixture(s) cover exact-row pass, wrong-version/prefix false-pass refuse, comment/out-of-block refuse, absent key continue, absent-file/read fail; one extracted control-flow harness asserts pnpm install is not reached on probe failure (mocked side effects).\n- CHANGELOG — Unreleased notes the portability + fail-closed AgeExclude fix; Refs #6164 / #5953.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Reject\n- Document add Git usr/bin to PATH as the only fix\n- Keep grep/sed and ignore stderr\n- Soft-skip AgeExclude when the probe cannot run\n- Bare @deftai/directive-runtime@ substring without VERSION\n- Whole-file substring / version-prefix false-pass\n- yaml/devDependency parser for this pre-install gate\n- Standalone helper / full Phase-7 node driver / Taskfile lint ban as co-equal ship for this ticket\n- Approach B delete pre-install gate (tip-pin-only) as first ship\n\n## Footnotes (non-mechanism)\n- Reuse #5854 AgeExclude row-matching intent from packages/cli tests; do not call the mutating updater from this gate.\n- Claude Approach C (repo guard banning external text binaries) is deferred leftover, not Bound.\n- Calibration: frozen-lockfile may already limit age-delay blast; keep A2 small; do not soften fail-closed limbs.\n\nFiled for @MScottAdams",
+          "id": 6772692079,
+          "html_url": "https://github.com/deftai/directive/issues/6164#issuecomment-6772692079",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:18:55Z",
+          "updated_at": "2026-11-10T16:25:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-build\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: pain-audit-1\nsiblings: 3\nseat-families: claude, codex, grok\ninput-ceiling: 6772698993\naudit-targets: pain-P1, pain-P2, pain-P3\nPrefer-A Bound cite: #issuecomment-6772692079\ndual-stop-reserved: this seat\ndispatch-sha: 633ff476f3fdd9f302d81627daa6ddeea32f4baf\nFiled for @MScottAdams",
+          "id": 6772698993,
+          "html_url": "https://github.com/deftai/directive/issues/6164#issuecomment-6772698993",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:19:11Z",
+          "updated_at": "2026-11-10T16:19:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: footnote\nharvest-changed: false\n\nPain-audit verdict: the Prefer-A Bound honestly relieves P1/P2/P3 if implemented with its stated fail-closed limbs. No mechanism change is needed.\n\nRead: [Bound](https://github.com/deftai/directive/issues/6164#issuecomment-6772692079), [Stop 1](https://github.com/deftai/directive/issues/6164#issuecomment-6772531859), and `Taskfile.yml` `release:local-update` at `633ff476f3fdd9f302d81627daa6ddeea32f4baf`. Evidence ceiling: 6772698993. No ingest.\n\n- P1 relieved: the pinned symbolic-ref pipeline invokes sed and masks failure with `|| true`, then selects master. Shell parameter expansion removes that missing-executable path. The Bound additionally requires verification of the selected remote ref and limits fallback to an otherwise successful probe path; failed tooling cannot silently become master. Retaining master as a verified empty-result fallback does not retain the missing-sed pain.\n- P2 relieved: the pinned outer grep sits inside an if, so missing grep skips the gate and reaches frozen install. An unconditional Node check under the recipe's `set -e`, with nonzero tool/read/absent-file failures and no blanket suppression, removes that route. Absent key is an explicit allowed result, distinct from an unreadable or absent file. The required control-flow harness checks that probe failure cannot reach pnpm.\n- P3 relieved: replacing the inner grep with the same dependency-free Node check removes the remaining Unix text-tool dependency. Exact target-version list-item equality inside the AgeExclude block rejects prefix, comment-only, and unrelated matches. Passing VERSION as argv preserves the target association without interpolating it into JavaScript. This path is reachable before dependency installation because the recipe already relies on Node.\n\nFootnote (#3368): several Bound examples lost their variable-bearing text: `DEFAULT_BRANCH=`, `refs/remotes/origin/`, and `@deftai/directive-runtime@`. Restore the shell expansion, selected branch, and VERSION in those examples so a literal copy cannot contradict the surrounding contract. The plain-English exact runtime@version requirement, verified selected-ref limb, argv instruction, and wrong-version fixtures already state the intended mechanism; this is a wording correction, not a changed harvest.\n\nThis is a design reachability judgment, not a claim that the future implementation or Windows proof has passed.",
+          "id": 6772725210,
+          "html_url": "https://github.com/deftai/directive/issues/6164#issuecomment-6772725210",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:20:17Z",
+          "updated_at": "2026-11-10T16:20:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-build\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\nPin-read: git show 633ff476f3fdd9f302d81627daa6ddeea32f4baf:Taskfile.yml release:local-update.\nBound: #issuecomment-6772692079. Stop 1: #issuecomment-6772531859. Id ceiling honored.\n\n## Reachability after Prefer-A ships\n\nP1 — relieved. Tip still pipes symbolic-ref through sed with `|| true` then empty→master. Bound replaces that with shell parameter expansion (no sed/awk/cut/grep) plus `git rev-parse --verify` on `refs/remotes/origin/$DEFAULT_BRANCH` before use. Missing sed noise and blind master soft-fall both leave the recipe.\n\nP2 — relieved. Tip nests AgeExclude behind `grep -q minimumReleaseAgeExclude`; missing grep skips the gate and reaches frozen install. Bound makes one dependency-free `node -e` AgeExclude probe unconditional in control flow, forbids blanket `|| true`, and fails closed on tool/read/absent-file before pnpm. Fail-open skip association is gone.\n\nP3 — relieved. Tip keeps inner `grep -q @deftai/directive-runtime@$VERSION` as a whole-file Unix text probe. Bound replaces it with exact list-item equality for `@deftai/directive-runtime@$VERSION` inside the AgeExclude block only (VERSION via argv; no prefix/substring false-pass). Windows PATH without grep no longer hits that executable-not-found path.\n\nScope match: three measured sites in this recipe only; Reject list keeps PATH-docs-only, soft-skip, and tip-pin-only Approach B out of Bound. Proof limbs (PATH without sed/grep; exact-row / wrong-version / comment-out-of-block / absent-key / absent-file; harness that pnpm is not reached on probe failure) are necessary for ship, not new pain.\n\nFootnote only (non-mechanism): deferred Claude Approach C repo-guard and #5854 reuse intent stay footnotes as Bound already states.",
+          "id": 6772726683,
+          "html_url": "https://github.com/deftai/directive/issues/6164#issuecomment-6772726683",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:20:21Z",
+          "updated_at": "2026-11-10T16:20:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: footnote\nharvest-changed: false\n\nVerdict: the Bound remedy limbs **honestly relieve P1, P2 and P3**. No blocking or sharpening finding. Three footnotes below, none of which touch a mechanism limb or the fail-closed association.\n\nPin-read `Taskfile.yml` `release:local-update` at dispatch-sha `633ff47` (recipe spans 852-1082; relevant limbs at 1018, 1028-1029).\n\n## Reproduction (not inference)\n\nThe recipe opens with `set -e` (line 858), so I tested the fail-open claim rather than reasoning about it. Minimal Taskfile under the same go-task 3.50.0 / mvdan-sh interpreter, run twice — once with full PATH, once with a Windows-only PATH carrying no Git `usr/bin`:\n\n```\n--- P1 strip ---            \"sed\": executable file not found in $PATH\n                            sed-result=[]            <- soft-falls to master\n                            paramexp-result=[master] <- ${REF#refs/remotes/origin/}\n--- P2 outer grep ---       \"grep\": executable file not found in $PATH\n                            GATE-SKIPPED (fail-open)\n--- bare non-zero node ---  task: Failed to run task \"probe\": exit status 1\n                            REACHED-INSTALL  <- never printed\n```\n\nThree things this settles:\n\n1. **P1 and P2 are real and currently live.** Both confirmed, verbatim.\n2. **P2's precise mechanism is sharper than \"missing grep skips the gate.\"** `set -e` is *already* in force, and it still fails open — because the 127 lands in an `if` condition, where POSIX suspends `set -e`. This makes the Bound's `not nested behind a soft if whose failure skips` the single load-bearing clause of the whole AgeExclude limb. It is correctly targeted.\n3. **The Bound's fail-closed wiring is sufficient as written.** A bare unconditional `node -e` exiting non-zero aborts the recipe under the existing `set -e`; `pnpm install` is provably not reached. `unconditional` + `no blanket || true` is enough — no extra `|| exit 1` is required.\n\n## Per-pain\n\n**P1 — relieved.** Parameter expansion yields `master` with zero external binaries (verified above). The verify limb converts the remaining empty->master soft-fall into a gated fallback, and `git remote set-head origin -a` is the correct recovery for the only state that still produces an empty strip (origin/HEAD unset).\n\n**P2 — relieved.** Moving the gate out of `if`-condition context is exactly the fix the reproduction demands.\n\n**P3 — relieved, and the matching limbs are load-bearing, not decorative.** Checked against the real file: the live row is `  - '@deftai/directive-runtime@0.129.6'` — **single-quoted**, so a raw-equality rule would have rejected the actual workspace file; `strip quotes/whitespace` is required. And `allowBuilds` carries a `'@deftai/directive-runtime': true` key (with versioned `'...@0.127.0': true` form in the #5854 fixtures), so a whole-file substring could match an out-of-block `allowBuilds` key — `inside that block only` is a real hazard, not a hypothetical. Prefix false-pass (`0.129.1` matching `0.129.10`) is likewise a genuine grep property.\n\n**Scope claim verified.** Exactly three external text-binary call sites in the recipe (1018 sed, 1028/1029 grep). The `dirname` at 937 is a word inside an echo string; the occupancy block at 955-1007 is `node`, not `awk`. No fourth site is left noisy, so the Proof limb's \"no executable-not-found for these sites\" is equivalent to \"none in this recipe.\"\n\n## Footnotes (non-mechanism; harvest-neutral)\n\n- **Verify proves existence, not defaultness.** `git rev-parse --verify refs/remotes/origin/<DB>` confirms the ref exists; it does not confirm it is the default. In a `main`-default repo retaining a stale `origin/master`, the fallback would verify clean and then refuse the checkout for being on `main`. That is a confusing-but-fail-closed refusal, not a fail-open, and it is outside the measured pain. No limb change recommended.\n- **The Bound's calibration footnote is understated — in its own favour.** `minimumReleaseAge` is not set anywhere in the repo: not in `pnpm-workspace.yaml`, not in `.npmrc`. It appears only as `minimumReleaseAge: 1440` in the `packages/cli/src/age-exclude.test.ts:35` fixture. So the Exclude list is presently inert, and the gate asserts release-pin hygiene (the pin commit updated the row) rather than preventing an install stall. This upgrades `frozen-lockfile may already limit age-delay blast` from conjecture to measurement. The Bound explicitly declined to soften the fail-closed limbs on this basis; that call still reads correct, since the gate's hygiene value survives `minimumReleaseAge` being unset.\n- **Block-termination rule is unspecified.** `inside that block only` does not say where the block ends (next column-0 key vs blank line vs comment). `minimumReleaseAgeExclude` is currently the final key in the file, so this is latent. Every ambiguous reading terminates the scan early and therefore refuses — fail-closed in all directions. Not worth a limb.\n\nWriting-bar #3368 applied: all three findings are non-mechanism and leave the Bound's fail-closed association unchanged, so `harvest-changed: false`.\n\nFiled for @MScottAdams\n\n",
+          "id": 6772806003,
+          "html_url": "https://github.com/deftai/directive/issues/6164#issuecomment-6772806003",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:23:39Z",
+          "updated_at": "2026-11-10T16:23:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-build\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Round-1 panel seated N≥3 (claude, codex, grok) | panel 6772550810; critics 6772659272 / 6772612271 / 6772613176 | verified |\n| Prefer-A Bound absorbs VERSION-exact AgeExclude + shell strip + fail-closed wiring | Bound 6772692079; Round-1 blocking F1/C1 absorbed | verified |\n| Pain-audit of relieves P1–P3 clear | PA panel 6772698993; Codex 6772725210 footnote; Grok 6772726683 none; Claude 6772806003 footnote; all harvest-changed:false | verified |\n| reduced-panel: not used | launch-probe pong all three; all seats posted | verified |\n| Target-digest matches issue body | sha256:ad1097b4e5c9a5af28dd409f58611b7980e2c02eee5661143f7623dbec39a6fe | verified |\n| arc-mode: no-ingest held | no issue:ingest this arc | verified |\n\nBound contract: #issuecomment-6772692079\nFiled for @MScottAdams",
+          "id": 6772819173,
+          "html_url": "https://github.com/deftai/directive/issues/6164#issuecomment-6772819173",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:24:12Z",
+          "updated_at": "2026-11-10T16:24:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-build\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Round-1 N≥3 agreed Prefer-A with VERSION-exact AgeExclude + shell default-branch strip + fail-closed wiring; Prefer-A Bound 6772692079 absorbs blocking findings; pain-audit of relieves P1–P3 returned harvest-changed:false (footnote/none only).\nsuccessor lean: #issuecomment-6772692079\nverified-claims table: #issuecomment-6772819173\nStop 1: #issuecomment-6772531859\nPrefer-A draft: #issuecomment-6772524805\nRound-1: Codex #issuecomment-6772612271; Grok #issuecomment-6772613176; Claude #issuecomment-6772659272\nPain-audit: Codex #issuecomment-6772725210; Grok #issuecomment-6772726683; Claude #issuecomment-6772806003\ndispatch-sha: 633ff476f3fdd9f302d81627daa6ddeea32f4baf\nBound target digest (non-operative cite): sha256:ad1097b4e5c9a5af28dd409f58611b7980e2c02eee5661143f7623dbec39a6fe\nconflict_group: release-local-update-sed-grep-win32-portability\nspend: N≥3\narc-mode: no-ingest\nreduced-panel: not used\n\n## In plain English\nArc complete for #6164. Prefer-A Bound replaces sed/grep in release:local-update with shell strip + dependency-free node AgeExclude exact-version checks that fail closed before frozen install. Pain-audit clear with footnotes only. Ingest remains a separate operator verb.\n\nFiled for @MScottAdams",
+          "id": 6772819531,
+          "html_url": "https://github.com/deftai/directive/issues/6164#issuecomment-6772819531",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:24:13Z",
+          "updated_at": "2026-11-10T16:25:11Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nOn Windows, `task release:local-update` prints:\n\n```text\n\"sed\": executable file not found in $PATH\n...\n\"grep\": executable file not found in $PATH\n```\n\nField: Phase 7 closeout for **0.129.6** on `C:\\Repos\\deft\\directive` (PowerShell 7). The run still completed after deposit matched, but AgeExclude / branch-name probes that shell out to `grep` / `sed` are not portable on a PATH without Git `usr/bin`.\n\n## Why this is wrong\n\nThe rest of `release:local-update` already uses `node -e` for parsing and path norms. Leaving `sed`/`grep` means:\n\n1. Noisy false errors on every Windows maintainer closeout\n2. Risk that the AgeExclude presence check **no-ops** when `grep` is missing (fail-open vs fail-closed)\n\n## Expected\n\n- No dependency on `sed` or `grep` in `release:local-update` (and any sibling release Taskfile steps that only need text probes).\n- AgeExclude / default-branch probes use `node` (or another always-available tool on win32) and fail closed when the check cannot run.\n\n## Actual\n\n- Messages printed; install + tip-pin + hooks path continued.\n- AgeExclude gate did not clearly fail when `grep` was absent.\n\n## Acceptance\n\n- [ ] Replace `sed`/`grep` usages in the `release:local-update` Taskfile path with `node -e` (or equivalent).\n- [ ] Windows run without Git usr/bin on PATH prints no `\"sed\"`/`\"grep\"` executable-not-found noise for those probes.\n- [ ] Missing AgeExclude for the target version still fails closed.\n\n## Field refs\n\n- v0.129.6 Phase 7 local-update on Windows host\n- Related: #5953\n\n## Rejected\n\n- Document \"add Git usr/bin to PATH\" as the only fix\n- Keep grep and ignore stderr",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6310767559,
+        "origin": "deftai/directive#6164",
+        "id": "github.issue.6310767559"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "24d0866889e99ce77284eff7296848542734c8b64962f5d29b90f5f23f6460f2"
+      },
+      "swarm": {
+        "conflict_group": "release-local-update-sed-grep-win32-portability",
+        "size": "S",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "depends_on": [],
+        "file_scope": [
+          "Taskfile.yml",
+          "packages/cli/src/age-exclude.ts",
+          "packages/cli/src/age-exclude.test.ts",
+          "CHANGELOG.md",
+          "pnpm-workspace.yaml"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/cli/src/age-exclude.test.ts --reporter=dot"
+        ],
+        "expected_outputs": [
+          "release:local-update has zero sed/grep on default-branch and AgeExclude paths",
+          "AgeExclude exact-row gate fails closed before pnpm install"
+        ]
+      },
+      "kind": "story"
+    },
+    "id": "github.issue.6310767559",
+    "updated": "2026-11-10T20:41:00Z"
+  }
+}
