@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- Refresh Cursor agent-hook deposit to deft-hook-a598056e for runtime 0.129.6.
 - chore(dogfood): pin Directive to 0.129.6.
 
 ### Fixed
