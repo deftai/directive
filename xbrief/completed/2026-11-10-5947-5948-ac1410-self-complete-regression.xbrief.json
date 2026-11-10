@@ -7,7 +7,7 @@
   "plan": {
     "id": "github.issue.6047176043",
     "title": "test+docs(ovpr): AC14.10 Dependabot pin-bump self-complete regression (#5947 #5948)",
-    "status": "running",
+    "status": "completed",
     "updated": "2026-11-10T17:15:00Z",
     "tags": [
       "test",
@@ -182,12 +182,27 @@
         "allocation_plan_id": null,
         "batching_rationale": null,
         "operator_approval_evidence": "operator directive 2026-11-10 ALL done: fix 5947+5948 today aligned with OVPR; parallel Windows track"
+      },
+      "productPullRequest": 6170,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-10T19:23:20Z"
+      },
+      "completedAt": "2026-11-10T19:23:20Z",
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6170,
+        "pullRequestNumber": 6170,
+        "mergeCommit": "382e33c7fa6811d07dc7d8db5b1ed21090c92b33",
+        "deliveryCommit": "382e33c7fa6811d07dc7d8db5b1ed21090c92b33",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-10T19:23:20Z",
+        "verifiedAt": "2026-11-10T19:23:20Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "scope:complete-lifecycle-leftover",
+        "repository": "deftai/directive"
       }
     }
-  },
-  "x-directive": {
-    "completedAt": "2026-11-10T19:18:26Z",
-    "completionPr": 6170,
-    "completionMergeCommit": "382e33c7fa6811d07dc7d8db5b1ed21090c92b33"
   }
 }
