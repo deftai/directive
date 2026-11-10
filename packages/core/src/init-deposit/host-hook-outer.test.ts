@@ -437,7 +437,10 @@ describe("tip-required Cursor deposit co-travel (#6163 Prefer-A Bound 6772886751
             version: 1,
             hooks: {
               sessionStart: [
-                { command: `node ../other/.cursor/hooks/${hostHookOuterFileName(sha8)}`, timeout: 5 },
+                {
+                  command: `node ../other/.cursor/hooks/${hostHookOuterFileName(sha8)}`,
+                  timeout: 5,
+                },
               ],
             },
           },
