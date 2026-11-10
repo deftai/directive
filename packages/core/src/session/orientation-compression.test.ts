@@ -173,6 +173,25 @@ describe("orientation compression (#3286)", () => {
       "cache_fresh=sha_match",
     ]);
 
+    const degraded = formatOrientationCompactLines([
+      section("preflight", "degraded", {
+        lines: [
+          "[deft orientation] preflight: degraded",
+          "[deft preflight] task: MISSING — cause: not on PATH; remedy: install go-task",
+          "[deft preflight] node: ok",
+        ],
+      }),
+      section("cache_fresh", "dirty", {
+        lines: ["❌ deft cache-fresh: cache is 32.2h old (max-age=24h); oldest x."],
+      }),
+    ]);
+    expect(degraded).toEqual([
+      "preflight=degraded",
+      "[deft preflight] task: MISSING — cause: not on PATH; remedy: install go-task",
+      "cache_fresh=dirty",
+      "❌ deft cache-fresh: cache is 32.2h old (max-age=24h); oldest x.",
+    ]);
+
     expect(resolveSessionCompact({ compact: true })).toBe(true);
     expect(resolveSessionCompact({ compact: false })).toBe(false);
     expect(resolveSessionCompact({ env: { [ENV_SESSION_COMPACT]: "1" } })).toBe(true);

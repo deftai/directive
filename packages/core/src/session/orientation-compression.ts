@@ -165,10 +165,25 @@ function statusLine(name: OrientationSectionName, status: OrientationSectionStat
 export function formatOrientationCompactLines(
   sections: readonly OrientationSectionResult[],
 ): string[] {
-  return sections.map((s) => {
+  const out: string[] = [];
+  for (const s of sections) {
     const tag = s.shaMatch ? "sha_match" : s.status;
-    return `${s.name}=${tag}`;
-  });
+    out.push(`${s.name}=${tag}`);
+    // #4966 P3: compact must still emit actionable repair detail so quiet
+    // always-on can keep MISSING cause/remedy and dirty cache_fresh lines.
+    if (s.status === "degraded" || s.status === "error" || s.status === "dirty") {
+      for (const line of s.lines) {
+        if (
+          (line.startsWith("[deft preflight]") && /\bMISSING\b/.test(line)) ||
+          line.startsWith("❌ deft cache-fresh:") ||
+          line.startsWith("⚠ deft cache-fresh:")
+        ) {
+          out.push(line);
+        }
+      }
+    }
+  }
+  return out;
 }
 
 export function formatOrientationVerboseLines(
