@@ -5,9 +5,12 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   addWithRuntimeAgeExcludeHeal,
+  evaluatePreInstallAgeExcludeFile,
+  evaluatePreInstallAgeExcludeText,
   formatAgeExcludeHealLine,
   healRuntimeAgeExclude,
   previewRuntimeAgeExcludeHeal,
+  runReleaseLocalUpdatePreInstallGate,
   upsertRuntimeAgeExcludeText,
 } from "./age-exclude.js";
 
@@ -170,5 +173,87 @@ describe("add/repair heal seams (#5854 P2/P3)", () => {
     expect(healRuntimeAgeExclude(root, "0.128.0")).toBe(true);
     expect(healRuntimeAgeExclude(root, "0.128.0")).toBe(false);
     expect(previewRuntimeAgeExcludeHeal(tempRoot(), "0.128.0")).toBeNull();
+  });
+});
+
+describe("evaluatePreInstallAgeExcludeText (#6164)", () => {
+  it("exact-row pass", () => {
+    const r = evaluatePreInstallAgeExcludeText(
+      BASE("  - '@deftai/directive-runtime@0.128.0'\n"),
+      "0.128.0",
+    );
+    expect(r).toEqual({ ok: true, reason: "exact-row-present" });
+  });
+
+  it("wrong-version refuse", () => {
+    const r = evaluatePreInstallAgeExcludeText(
+      BASE("  - '@deftai/directive-runtime@0.127.0'\n"),
+      "0.128.0",
+    );
+    expect(r.ok).toBe(false);
+    if (r.ok) throw new Error("expected refuse");
+    expect(r.reason).toBe("missing-exact-row");
+  });
+
+  it("version-prefix false-pass refuse (0.129.1 vs 0.129.10)", () => {
+    const r = evaluatePreInstallAgeExcludeText(
+      BASE("  - '@deftai/directive-runtime@0.129.10'\n"),
+      "0.129.1",
+    );
+    expect(r.ok).toBe(false);
+  });
+
+  it("comment-only and out-of-block matches refuse", () => {
+    const commented = BASE("  # - '@deftai/directive-runtime@0.128.0'\n");
+    expect(evaluatePreInstallAgeExcludeText(commented, "0.128.0").ok).toBe(false);
+    const outOfBlock =
+      "packages:\n  - packages/*\nminimumReleaseAgeExclude:\n  - left-pad\nallowBuilds:\n  '@deftai/directive-runtime@0.128.0': true\n";
+    expect(evaluatePreInstallAgeExcludeText(outOfBlock, "0.128.0").ok).toBe(false);
+  });
+
+  it("absent key continues", () => {
+    const y = "packages:\n  - packages/*\nallowBuilds:\n  esbuild: true\n";
+    expect(evaluatePreInstallAgeExcludeText(y, "0.128.0")).toEqual({
+      ok: true,
+      reason: "key-absent",
+    });
+  });
+});
+
+describe("evaluatePreInstallAgeExcludeFile + control-flow (#6164)", () => {
+  it("absent-file/read fail closed", () => {
+    const root = tempRoot();
+    const r = evaluatePreInstallAgeExcludeFile(root, "0.128.0");
+    expect(r.ok).toBe(false);
+    if (r.ok) throw new Error("expected read-error");
+    expect(r.reason).toBe("read-error");
+  });
+
+  it("control-flow harness: install not reached on probe failure", () => {
+    const root = tempRoot(BASE("  - '@deftai/directive-runtime@0.127.0'\n"));
+    let installed = false;
+    const r = runReleaseLocalUpdatePreInstallGate({
+      projectRoot: root,
+      version: "0.128.0",
+      install: () => {
+        installed = true;
+      },
+    });
+    expect(r.ok).toBe(false);
+    expect(installed).toBe(false);
+  });
+
+  it("control-flow harness: install runs after exact-row pass", () => {
+    const root = tempRoot(BASE("  - '@deftai/directive-runtime@0.128.0'\n"));
+    let installed = false;
+    const r = runReleaseLocalUpdatePreInstallGate({
+      projectRoot: root,
+      version: "0.128.0",
+      install: () => {
+        installed = true;
+      },
+    });
+    expect(r).toEqual({ ok: true, reason: "exact-row-present" });
+    expect(installed).toBe(true);
   });
 });

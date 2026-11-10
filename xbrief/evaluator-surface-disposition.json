@@ -5,5 +5,5 @@
     "Taskfile.yml",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for #5953 release:local-update Taskfile cmds (Prefer-A Bound 6430511888). Disclosure only; not #3164 authorization."
+  "note": "Renew disclosure for #6164 release:local-update sed/grep portability + AgeExclude gate (Prefer-A Bound 6772692079). Disclosure only; not #3164 authorization."
 }
