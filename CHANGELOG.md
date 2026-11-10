@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- chore(dogfood): pin Directive to 0.129.6.
+
 ### Added
 
 ### Changed
