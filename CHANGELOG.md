@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.6.
 
 ### Fixed
-- Make promote-latest OIDC dist-tag work: require npm >= 11.21.0 and clear setup-node empty NODE_AUTH_TOKEN (#5852).
+- Fix authentication errors when maintainers promote an already-published stable release to npm latest (#5852).
 - Record tracked completion for session:start quiet-default (#4966); product PR #6169.
 - Strengthen AC14.10 / HT-17 self-complete regression: pin+installed at W with GENERATION/wiring still at V refreshes wiring/GENERATION/readiness at W without changing the pin or migrating xbrief (Refs #5947, #5948).
 
