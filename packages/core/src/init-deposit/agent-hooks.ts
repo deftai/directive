@@ -27,6 +27,7 @@ import {
   hostHookOuterSource,
   isHostHookOuterCommand,
   stageTipRequiredCursorDeposit,
+  tipRequiredCursorDepositPaths,
   validateCursorDepositAssociation,
 } from "./host-hook-outer.js";
 
@@ -630,9 +631,50 @@ export function preparePinCandidateCursorDeposit(
   readonly association: ReturnType<typeof validateCursorDepositAssociation>;
 } {
   const written = writeAgentHookDeposit(projectRoot, io, hostHooksPolicy, travelSeams);
+  // Opted-out Cursor hostHooks must not force-add or fail association (#6163 Greptile P1).
+  if (!isHostHookDepositEnabled("cursor", hostHooksPolicy)) {
+    const sha8 = hostHookOuterSha8();
+    const paths = tipRequiredCursorDepositPaths(sha8);
+    return {
+      written,
+      staged: { staged: [], sha8, paths },
+      association: {
+        ok: true,
+        sha8,
+        paths,
+        detail: "cursor hostHooks opted out; Cursor deposit not required (#6163)",
+      },
+    };
+  }
   const staged = stageTipRequiredCursorDeposit(projectRoot);
   const association = validateCursorDepositAssociation(projectRoot, { source: "index" });
   return { written, staged, association };
+}
+
+/**
+ * Phase 7 / closeout association: honor Cursor hostHooks opt-out (#6163 Greptile P1).
+ */
+export function resolveCursorDepositAssociationForCloseout(
+  projectRoot: string,
+  options: {
+    readonly source?: "HEAD" | "index";
+    readonly hostHooksPolicy?: HostHooksPolicy;
+  } = {},
+): ReturnType<typeof validateCursorDepositAssociation> {
+  const policy = options.hostHooksPolicy ?? loadHostHooksPolicyFromProject(projectRoot);
+  if (!isHostHookDepositEnabled("cursor", policy)) {
+    const sha8 = hostHookOuterSha8();
+    const paths = tipRequiredCursorDepositPaths(sha8);
+    return {
+      ok: true,
+      sha8,
+      paths,
+      detail: "cursor hostHooks opted out; Cursor deposit association not required (#6163)",
+    };
+  }
+  return validateCursorDepositAssociation(projectRoot, {
+    source: options.source ?? "HEAD",
+  });
 }
 
 /**

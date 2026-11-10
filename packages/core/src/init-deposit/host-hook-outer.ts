@@ -108,7 +108,10 @@ function defaultReadTreeFile(
   source: CursorDepositTreeSource,
 ): string | null {
   try {
-    const spec = source === "HEAD" ? `HEAD:${relPath}` : `:${relPath}`;
+    // `HEAD:./<path>` / `:./<path>` resolve relative to projectRoot so a
+    // nested project reads its own deposit, not the repository parent's
+    // (same pattern as defaultReadCommittedFile — #6163 Greptile P1).
+    const spec = source === "HEAD" ? `HEAD:./${relPath}` : `:./${relPath}`;
     return execFileSync("git", ["show", spec], {
       cwd: projectRoot,
       encoding: "utf8",
@@ -118,6 +121,38 @@ function defaultReadTreeFile(
   } catch {
     return null;
   }
+}
+
+/** True when hooks.json registers the expected outer via a command field. */
+function hooksJsonRegistersOuter(
+  hooksJson: string,
+  expectedCmd: string,
+  shimRelPath: string,
+): boolean {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(hooksJson);
+  } catch {
+    return false;
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return false;
+  const hooks = (parsed as Record<string, unknown>).hooks;
+  if (typeof hooks !== "object" || hooks === null || Array.isArray(hooks)) return false;
+  for (const value of Object.values(hooks as Record<string, unknown>)) {
+    if (!Array.isArray(value)) continue;
+    for (const entry of value) {
+      if (typeof entry !== "object" || entry === null || Array.isArray(entry)) continue;
+      const command = (entry as Record<string, unknown>).command;
+      if (typeof command !== "string") continue;
+      // Exact deposit command only — substring/filename matches are not association.
+      if (command === expectedCmd) return true;
+      const m = command.trim().match(/^(?:node(?:\.exe)?)\s+(\S+)/i);
+      if (!m) continue;
+      const invoked = m[1].replace(/\\/g, "/");
+      if (invoked === shimRelPath || invoked === `./${shimRelPath}`) return true;
+    }
+  }
+  return false;
 }
 
 function defaultGitAddForce(projectRoot: string, paths: readonly string[]): void {
@@ -175,12 +210,12 @@ export function validateCursorDepositAssociation(
   }
   const expectedCmd = hostHookOuterCommand("cursor", sha8);
   const shimToken = hostHookOuterFileName(sha8);
-  if (!hooksJson.includes(expectedCmd) && !hooksJson.includes(shimToken)) {
+  if (!hooksJsonRegistersOuter(hooksJson, expectedCmd, paths[1])) {
     return {
       ok: false,
       sha8,
       paths,
-      detail: `${paths[0]} in ${source} does not reference ${expectedCmd} (#6163)`,
+      detail: `${paths[0]} in ${source} does not register command for ${expectedCmd} (#6163)`,
     };
   }
   const shim = read(projectRoot, paths[1], source);

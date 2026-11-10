@@ -1111,14 +1111,18 @@ tasks:
           );
           let validate;
           try {
-            ({ validateCursorDepositAssociation: validate } = await import(pathToFileURL(resolve(vendor)).href));
+            const mod = await import(pathToFileURL(resolve(vendor)).href);
+            validate =
+              typeof mod.resolveCursorDepositAssociationForCloseout === "function"
+                ? mod.resolveCursorDepositAssociationForCloseout
+                : mod.validateCursorDepositAssociation;
           } catch (err) {
             const detail = err && err.message ? err.message : String(err);
-            console.error("release:local-update: cannot load validateCursorDepositAssociation from installed runtime (#6163): " + detail);
+            console.error("release:local-update: cannot load Cursor deposit association helper from installed runtime (#6163): " + detail);
             process.exit(1);
           }
           if (typeof validate !== "function") {
-            console.error("release:local-update: installed runtime lacks validateCursorDepositAssociation (#6163); pin must co-travel the Bound helper");
+            console.error("release:local-update: installed runtime lacks Cursor deposit association helper (#6163); pin must co-travel the Bound helper");
             process.exit(1);
           }
           const result = validate(checkout, { source: "HEAD" });

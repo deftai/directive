@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Pin candidates force-add tip-required Cursor hooks paths for the installed outer hash, and Phase 7 checks that association on committed HEAD so local-update does not invent a second deposit PR (Refs #6163, Prefer-A Bound 6772886751).
+- Cursor deposit association resolves nested-project tree paths, parses hooks.json commands (not bare filename text), and skips force-add/closeout when Cursor hostHooks are opted out (Refs #6163).
 - Bound pre-PR push outgoing paths use the delivery merge-base for every live feature tip, so rebase or merge from master no longer invents other PRs' files as unreviewed (#6172).
 - release:local-update strips the default branch with shell parameter expansion and checks the exact runtime AgeExclude row in Node before frozen install, so Windows closeout no longer depends on sed/grep (Refs #6164, #5953).
 - Fix authentication errors when maintainers promote an already-published stable release to npm latest (#5852).

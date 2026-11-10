@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
   hostHookOuterCommand,
+  hostHookOuterFileName,
   hostHookOuterRelPath,
   hostHookOuterSha8,
   hostHookOuterSource,
@@ -408,6 +409,64 @@ describe("tip-required Cursor deposit co-travel (#6163 Prefer-A Bound 6772886751
       const omitted = validateCursorDepositAssociation(root, { source: "HEAD" });
       expect(omitted.ok).toBe(false);
       expect(omitted.detail).toMatch(/missing .cursor\/hooks\/deft-hook-/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects unrelated filename text and wrong-path commands in hooks.json", () => {
+    const root = mkdtempSync(join(tmpdir(), "cursor-assoc-json-"));
+    try {
+      const sha8 = seedRepo(root);
+      const paths = tipRequiredCursorDepositPaths(sha8);
+      const source = hostHookOuterSource();
+      // Unrelated string containing the shim token must not pass.
+      writeFileSync(
+        join(root, paths[0]),
+        JSON.stringify({ note: hostHookOuterFileName(sha8), hooks: {} }, null, 2) + "\n",
+        "utf8",
+      );
+      stageTipRequiredCursorDeposit(root, { sha8 });
+      expect(validateCursorDepositAssociation(root, { source: "index" }).ok).toBe(false);
+
+      // Wrong directory command must not pass.
+      writeFileSync(
+        join(root, paths[0]),
+        JSON.stringify(
+          {
+            version: 1,
+            hooks: {
+              sessionStart: [
+                { command: `node ../other/.cursor/hooks/${hostHookOuterFileName(sha8)}`, timeout: 5 },
+              ],
+            },
+          },
+          null,
+          2,
+        ) + "\n",
+        "utf8",
+      );
+      stageTipRequiredCursorDeposit(root, { sha8 });
+      expect(validateCursorDepositAssociation(root, { source: "index" }).ok).toBe(false);
+
+      // Exact expected command still passes.
+      writeFileSync(
+        join(root, paths[0]),
+        JSON.stringify(
+          {
+            version: 1,
+            hooks: {
+              sessionStart: [{ command: hostHookOuterCommand("cursor", sha8), timeout: 5 }],
+            },
+          },
+          null,
+          2,
+        ) + "\n",
+        "utf8",
+      );
+      writeFileSync(join(root, paths[1]), source, "utf8");
+      stageTipRequiredCursorDeposit(root, { sha8 });
+      expect(validateCursorDepositAssociation(root, { source: "index" }).ok).toBe(true);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

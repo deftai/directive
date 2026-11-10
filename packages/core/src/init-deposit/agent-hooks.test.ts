@@ -1336,4 +1336,27 @@ describe("preparePinCandidateCursorDeposit (#6163)", () => {
       }),
     ).toThrow();
   });
+
+  it("skips force-add and association when Cursor hostHooks are opted out", () => {
+    const root = project();
+    execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["config", "user.email", "t@t.dev"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["config", "user.name", "t"], { cwd: root, stdio: "ignore" });
+    writeFileSync(join(root, "README"), "seed\n", "utf8");
+    execFileSync("git", ["add", "README"], { cwd: root, stdio: "ignore" });
+    execFileSync("git", ["-c", "commit.gpgsign=false", "commit", "-qm", "seed"], {
+      cwd: root,
+      stdio: "ignore",
+    });
+    const policy = { claude: true, grok: true, cursor: false, codex: true };
+    const result = preparePinCandidateCursorDeposit(root, { printf: () => undefined }, policy);
+    expect(result.staged.staged).toEqual([]);
+    expect(result.association.ok).toBe(true);
+    expect(result.association.detail).toMatch(/opted out/i);
+    const staged = execFileSync("git", ["diff", "--cached", "--name-only"], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim();
+    expect(staged).toBe("");
+  });
 });
