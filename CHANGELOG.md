@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Added
+- Complete #6173 scope xBRIEF after Windows re-UAT (PR #6176; Refs #6173).
 - Activate #6173 Path B scope brief with concrete file_scope for win32 containedDestExec follow-on (Refs #6173).
 
 ### Changed
