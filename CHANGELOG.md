@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fix authentication errors when maintainers promote an already-published stable release to npm latest (#5852).
+- Windows update lockfile refresh: `containedDestExec` now spawns with `shell: true` on win32 so standalone `pnpm.CMD` no longer hits EINVAL under Node CVE-2024-27980 hardening (Refs #6173, #5383).
 - Record tracked completion for session:start quiet-default (#4966); product PR #6169.
 - Strengthen AC14.10 / HT-17 self-complete regression: pin+installed at W with GENERATION/wiring still at V refreshes wiring/GENERATION/readiness at W without changing the pin or migrating xbrief (Refs #5947, #5948).
 

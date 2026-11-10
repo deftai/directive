@@ -881,8 +881,11 @@ export function containedRename(input: ContainedRenameInput): { from: string; to
 }
 
 /**
- * Dest-mutating exec (git config, git add, …). Record mode records `exec` on
- * `destTarget` and skips the child process. Allowlisted as the port impl.
+ * Dest-mutating exec (git config, git add, lockfile refresh, …). Record mode
+ * records `exec` on `destTarget` and skips the child process. Allowlisted as
+ * the port impl. Win32 uses shell:true so `.CMD`/`.bat` PM shims spawn under
+ * Node CVE-2024-27980 hardening (#6173 / #5383; same portable pattern as
+ * launcher PM helpers).
  */
 export function containedDestExec(input: ContainedDestExecInput): ContainedDestExecResult {
   const targetAbs = resolveContainedTarget(input.root, input.destTarget);
@@ -894,6 +897,7 @@ export function containedDestExec(input: ContainedDestExecInput): ContainedDestE
     const stdout = execFileSync(input.file, [...input.args], {
       encoding: "utf8",
       cwd: resolve(input.root),
+      shell: process.platform === "win32",
     });
     return { ok: true, stdout };
   } catch {
