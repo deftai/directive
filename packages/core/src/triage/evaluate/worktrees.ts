@@ -253,22 +253,29 @@ function selectEvaluatorWorktreeAdmin(
   }
   const targetBase = worktreeLeafBasename(worktreePath);
   const exact = admins.filter((entry) => entry.recordedBase === targetBase);
-  if (exact.length === 1) {
-    return {
-      worktreesDir,
-      adminName: exact[0].adminName,
-      recordedWorktree: exact[0].recordedWorktree,
-    };
+  const soleExact = exact.length === 1 ? exact[0] : undefined;
+  if (soleExact !== undefined) {
+    // Unique basename is not enough: another checkout can share the leaf name.
+    // Require full-path identity before retaining (#5735 Greptile P1).
+    if (worktreePathsReferToSame(soleExact.recordedWorktree, worktreePath)) {
+      return {
+        worktreesDir,
+        adminName: soleExact.adminName,
+        recordedWorktree: soleExact.recordedWorktree,
+      };
+    }
+    return null;
   }
   if (exact.length > 1) {
     const matched = exact.filter((entry) =>
       worktreePathsReferToSame(entry.recordedWorktree, worktreePath),
     );
-    if (matched.length === 1) {
+    const soleMatched = matched.length === 1 ? matched[0] : undefined;
+    if (soleMatched !== undefined) {
       return {
         worktreesDir,
-        adminName: matched[0].adminName,
-        recordedWorktree: matched[0].recordedWorktree,
+        adminName: soleMatched.adminName,
+        recordedWorktree: soleMatched.recordedWorktree,
       };
     }
     return null;
@@ -278,11 +285,18 @@ function selectEvaluatorWorktreeAdmin(
       entry.recordedBase !== targetBase &&
       entry.recordedBase.toLowerCase() === targetBase.toLowerCase(),
   );
-  if (caseOnly.length === 1 && directoryIgnoresCase(worktreesDir, { bypassCache: true })) {
+  const soleCaseOnly = caseOnly.length === 1 ? caseOnly[0] : undefined;
+  if (
+    soleCaseOnly !== undefined &&
+    directoryIgnoresCase(dirname(resolve(worktreePath)), { bypassCache: true }) &&
+    worktreePathsReferToSame(soleCaseOnly.recordedWorktree, worktreePath)
+  ) {
+    // Probe the checkout parent (not the admin worktreesDir) and require
+    // full-path identity before folding a sole case-only registration.
     return {
       worktreesDir,
-      adminName: caseOnly[0].adminName,
-      recordedWorktree: caseOnly[0].recordedWorktree,
+      adminName: soleCaseOnly.adminName,
+      recordedWorktree: soleCaseOnly.recordedWorktree,
     };
   }
   if (caseOnly.length > 0) {
@@ -292,11 +306,12 @@ function selectEvaluatorWorktreeAdmin(
   const pathMatched = admins.filter((entry) =>
     worktreePathsReferToSame(entry.recordedWorktree, worktreePath),
   );
-  if (pathMatched.length === 1) {
+  const solePathMatched = pathMatched.length === 1 ? pathMatched[0] : undefined;
+  if (solePathMatched !== undefined) {
     return {
       worktreesDir,
-      adminName: pathMatched[0].adminName,
-      recordedWorktree: pathMatched[0].recordedWorktree,
+      adminName: solePathMatched.adminName,
+      recordedWorktree: solePathMatched.recordedWorktree,
     };
   }
   return null;
@@ -339,18 +354,38 @@ function forceDeleteSelectedWorktreeDir(
   } catch {
     return;
   }
-  // Exact spelling must appear in parent readdir. If only a case-variant is
-  // present, rmSync would hit a non-selected sibling under fold (#5735).
-  if (!names.includes(targetBase)) {
+  let deleteBase: string | null = null;
+  if (names.includes(targetBase)) {
+    deleteBase = targetBase;
+  } else {
+    // On a case-insensitive volume the live dir may be stored under the
+    // selected spelling while argv used another case. Only fold when
+    // full-path identity proves this is the selected worktree (#5735).
+    const caseVariants = names.filter(
+      (name) => name !== targetBase && name.toLowerCase() === targetBase.toLowerCase(),
+    );
+    const soleVariant = caseVariants.length === 1 ? caseVariants[0] : undefined;
+    if (
+      soleVariant !== undefined &&
+      selected !== null &&
+      worktreePathsReferToSame(worktreePath, selected.recordedWorktree)
+    ) {
+      deleteBase = soleVariant;
+    }
+  }
+  if (deleteBase === null) {
     return;
   }
   if (selected !== null) {
     const selectedBase = worktreeLeafBasename(selected.recordedWorktree);
-    if (targetBase !== selectedBase && targetBase.toLowerCase() === selectedBase.toLowerCase()) {
-      return;
+    if (deleteBase !== selectedBase && deleteBase.toLowerCase() === selectedBase.toLowerCase()) {
+      // Distinct case-only siblings must not be force-deleted.
+      if (!worktreePathsReferToSame(worktreePath, selected.recordedWorktree)) {
+        return;
+      }
     }
   }
-  rmSync(worktreePath, { recursive: true, force: true });
+  rmSync(join(parent, deleteBase), { recursive: true, force: true });
 }
 
 /** Issue git worktree remove only while the argv still names the selected registration. */
