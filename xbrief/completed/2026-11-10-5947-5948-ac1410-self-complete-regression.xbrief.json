@@ -1,0 +1,208 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Residual L6 for sealed #5947+#5948 \u2014 AC14.10 self-complete regression + process/CI note aligned with OVPR (pin-only OK; doctor dirty before eligible AC8.6 expected)",
+    "updated": "2026-11-10T17:15:00Z"
+  },
+  "plan": {
+    "id": "github.issue.6047176043",
+    "title": "test+docs(ovpr): AC14.10 Dependabot pin-bump self-complete regression (#5947 #5948)",
+    "status": "completed",
+    "updated": "2026-11-10T17:15:00Z",
+    "tags": [
+      "test",
+      "docs",
+      "adoption-blocker",
+      "core-capabilities",
+      "promise:lifecycle",
+      "promise:gates"
+    ],
+    "narratives": {
+      "Description": "Close residual L6 for sealed #5947+#5948 under Locked OVPR law: pin-only Dependabot bumps are legal (AC14.10); health via PM install + first eligible AC8.6 auto-setup (or explicit CI `directive install --repair --yes`); doctor stays read-only (AC9.10) and dirty beforehand is expected. Strengthen self-complete regression mirroring HT-17; add short operator/CI process note. Do not invent deposit-in-same-PR law; do not reopen Prefer-A/#5956/#5929; stop-at:pr-open.",
+      "Origin": "https://github.com/deftai/directive/issues/5947; https://github.com/deftai/directive/issues/5948; Locked disposition 2026-11-09; operator directive 2026-11-10 TrackA; docs/installer-refactor-ovpr/install-ovpr-requirements.md AC8.6 AC9.10 AC14.10 AC14.11",
+      "Overview": "Product residual only. Normative SoT already sealed. Work: (1) AC14.10 regression under packages/runtime self-complete tests; (2) fix AC8.6 path only if the regression proves defective; (3) short process note (getting-started and/or HT-17); (4) CHANGELOG [Unreleased]. Refs only \u2014 parent closes issues after merge.",
+      "Labels": "adoption-blocker, core-capabilities, promise:lifecycle, promise:gates",
+      "UserStory": "As a maintainer or CI operator after a pin-only Dependabot bump, I want the first eligible runtime command to refresh wiring/GENERATION/readiness at W without requiring deposit bytes in the same PR, and I want docs to say doctor dirty beforehand is expected, so that pin bumps are not misread as illegal and CI does not invent deposit-in-same-PR law.",
+      "ImplementationPlan": "1) Extend self-complete.test.ts: pin+lock+node_modules at W, GENERATION/wiring-ready still V \u2192 eligible command refreshes at W; pin unchanged; no xbrief migration (HT-17). 2) If auto-setup fails that case, fix only self-complete/setup AC8.6 path. 3) Process note in getting-started (+ HT-17 pointer). 4) CHANGELOG brief Unreleased. 5) Focused vitest + pre-pr + PR stop-at:pr-open."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "AC14.10 self-complete regression (HT-17)",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "packages/runtime self-complete tests cover Dependabot-style: pin+installed at W, GENERATION/wiring-ready still describe V \u2192 eligible command refreshes wiring/GENERATION/readiness at W; package.json pin unchanged; existing xbrief bytes unchanged",
+          "Traces": "#5947 #5948 AC14.10 AC8.6 HT-17"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "AC8.6 product fix only if regression red",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "If the AC14.10 case fails on tip, fix only the AC8.6 self-complete/setup path; never invent deposit-in-same-PR product law; doctor remains read-only",
+          "Traces": "#5947 #5948 AC8.6 AC9.10"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Operator/CI process note",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Short note: pin-only OK; after pnpm/npm install, first eligible command or explicit `directive install --repair --yes` in CI; doctor dirty beforehand expected; point HT-17",
+          "Traces": "#5947 #5948 AC14.10 AC9.10"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "CHANGELOG Unreleased + PR stop-at:pr-open",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "CHANGELOG [Unreleased] brief release-notes style with Refs #5947 #5948 only (no Fixes/Closes); focused tests green; pre-pr then open PR; stop-at:pr-open",
+          "Traces": "#5947 #5948"
+        }
+      }
+    ],
+    "acceptance": {
+      "commands": [
+        "pnpm exec vitest run packages/runtime/src/self-complete.test.ts"
+      ],
+      "none_stated": false,
+      "source_rung": "derived",
+      "derived_reason": "derived from sealed #5947/#5948 Locked Done-when + operator TrackA envelope 2026-11-10 + OVPR AC14.10/AC8.6/AC9.10",
+      "sentences": [],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "packages/runtime self-complete tests cover Dependabot-style: pin+installed at W, GENERATION/wiring-ready still describe V \u2192 eligible command refreshes wiring/GENERATION/readiness at W; package.json pin unchanged; existing xbrief bytes unchanged",
+          "artifact_path": "packages/runtime/src/self-complete.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "If the AC14.10 case fails on tip, fix only the AC8.6 self-complete/setup path; never invent deposit-in-same-PR product law; doctor remains read-only",
+          "artifact_path": "packages/runtime/src/self-complete.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Short note: pin-only OK; after pnpm/npm install, first eligible command or explicit directive install --repair --yes in CI; doctor dirty beforehand expected; point HT-17",
+          "artifact_path": "content/docs/getting-started.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "CHANGELOG [Unreleased] brief release-notes style with Refs #5947 #5948 only (no Fixes/Closes); focused tests green; pre-pr then open PR; stop-at:pr-open",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5947",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5947"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5948",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5948"
+      },
+      {
+        "uri": "docs/installer-refactor-ovpr/install-ovpr-requirements.md",
+        "type": "x-xbrief/doc",
+        "title": "OVPR AC8.6 AC9.10 AC14.10 AC14.11"
+      },
+      {
+        "uri": "docs/installer-refactor-ovpr/install-ovpr-human-test-plan.md",
+        "type": "x-xbrief/doc",
+        "title": "HT-17 Dependabot-style pin bump rewire"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/runtime/src/self-complete.test.ts",
+          "packages/runtime/src/self-complete.ts",
+          "content/docs/getting-started.md",
+          "docs/installer-refactor-ovpr/install-ovpr-human-test-plan.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/runtime/src/self-complete.ts + docs",
+        "cohesion_exemption": "HT-17 process note + CHANGELOG ride with AC14.10 regression"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6047176043,
+        "origin": "deftai/directive#5947",
+        "id": "github.issue.6047176043",
+        "companion_issues": [
+          5948
+        ]
+      },
+      "x-directive/specImpact": "none",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "5947-5948-ac1410-close",
+        "expected_outputs": [
+          "AC14.10 self-complete regression (HT-17)",
+          "AC8.6 fix only if red",
+          "operator/CI process note",
+          "CHANGELOG Refs #5947 #5948",
+          "PR stop-at:pr-open"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "pnpm exec vitest run packages/runtime/src/self-complete.test.ts"
+        ],
+        "file_scope": [
+          "packages/runtime/src/self-complete.test.ts",
+          "packages/runtime/src/self-complete.ts",
+          "content/docs/getting-started.md",
+          "docs/installer-refactor-ovpr/install-ovpr-human-test-plan.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "effort": "S"
+      },
+      "capacityBucket": "agentic-debt",
+      "one_pr_unit_id": "trackA-5947-5948-ac1410",
+      "allocation_context": {
+        "dispatch_kind": "solo",
+        "allocation_plan_id": null,
+        "batching_rationale": null,
+        "operator_approval_evidence": "operator directive 2026-11-10 ALL done: fix 5947+5948 today aligned with OVPR; parallel Windows track"
+      },
+      "productPullRequest": 6170,
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-10T19:23:20Z"
+      },
+      "completedAt": "2026-11-10T19:23:20Z",
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6170,
+        "pullRequestNumber": 6170,
+        "mergeCommit": "382e33c7fa6811d07dc7d8db5b1ed21090c92b33",
+        "deliveryCommit": "382e33c7fa6811d07dc7d8db5b1ed21090c92b33",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-10T19:23:20Z",
+        "verifiedAt": "2026-11-10T19:23:20Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "scope:complete-lifecycle-leftover",
+        "repository": "deftai/directive"
+      }
+    }
+  }
+}
