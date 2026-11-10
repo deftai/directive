@@ -75,7 +75,8 @@
         "file_scope": [
           "packages/core/src/fs/contained-write.ts",
           "packages/core/src/fs/contained-write.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "xbrief/active/2026-11-10-6173-contained-dest-exec-win32-shell.xbrief.json"
         ],
         "verify_commands": [
           "pnpm exec vitest run packages/core/src/fs/contained-write.test.ts"
@@ -142,12 +143,6 @@
         "Launcher PM helpers already use shell:true on win32 (#5383).",
         "win32 containedDestExec spawn options include shell:true; non-win32 unchanged; tests prove it; CHANGELOG notes Refs #6173 #5383."
       ]
-    },
-    "file_scope": [
-      "packages/core/src/fs/contained-write.ts",
-      "packages/core/src/fs/contained-write.test.ts",
-      "CHANGELOG.md",
-      "xbrief/active/2026-11-10-6173-contained-dest-exec-win32-shell.xbrief.json"
-    ]
+    }
   }
 }
