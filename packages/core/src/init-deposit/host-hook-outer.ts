@@ -147,8 +147,9 @@ function hooksJsonRegistersOuter(
       // Exact deposit command only — substring/filename matches are not association.
       if (command === expectedCmd) return true;
       const m = command.trim().match(/^(?:node(?:\.exe)?)\s+(\S+)/i);
-      if (!m) continue;
-      const invoked = m[1].replace(/\\/g, "/");
+      const invokedPath = m?.[1];
+      if (!invokedPath) continue;
+      const invoked = invokedPath.replace(/\\/g, "/");
       if (invoked === shimRelPath || invoked === `./${shimRelPath}`) return true;
     }
   }
