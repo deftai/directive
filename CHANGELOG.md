@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Activate #6173 Path B scope brief with concrete file_scope for win32 containedDestExec follow-on (Refs #6173).
 
 ### Changed
 - session:start success human stdout defaults to one `[deft session] ready=…` go-signal; routine ceremony is behind `--verbose` / `DEFT_SESSION_VERBOSE`. Tip `--compact` / `DEFT_SESSION_COMPACT` are deprecated as volume controls (no-op for human stdout). Actionable zero-exit exceptions, non-default policy/finalize-owed/lifecycle notices stay on the quiet path (#4966).
