@@ -128,3 +128,78 @@ export function addWithRuntimeAgeExcludeHeal(
   if (result.ok) healRuntimeAgeExclude(projectRoot, targetVersion);
   return result;
 }
+
+/**
+ * Pre-install AgeExclude gate for release:local-update (#6164).
+ * Exact list-item equality under minimumReleaseAgeExclude only; no mutate.
+ */
+export type PreInstallAgeExcludeGate =
+  | { readonly ok: true; readonly reason: "key-absent" | "exact-row-present" }
+  | {
+      readonly ok: false;
+      readonly reason: "missing-exact-row" | "read-error";
+      readonly message: string;
+    };
+
+/** Pure text gate: key absent → continue; key present → exact runtime@version item. */
+export function evaluatePreInstallAgeExcludeText(
+  text: string,
+  targetVersion: string,
+): PreInstallAgeExcludeGate {
+  const want = `${RUNTIME_AGE_EXCLUDE_PACKAGE}@${targetVersion}`;
+  const eol = text.includes("\r\n") ? "\r\n" : "\n";
+  const lines = text.split(eol);
+  const keyIdx = lines.findIndex((l) => KEY_RE.test(l));
+  if (keyIdx < 0) return { ok: true, reason: "key-absent" };
+  const keyIndent = indentOf(lines[keyIdx] as string);
+  for (let i = keyIdx + 1; i < lines.length; i++) {
+    const line = lines[i] as string;
+    const trimmed = line.trim();
+    if (trimmed === "" || trimmed.startsWith("#")) continue;
+    const m = ITEM_RE.exec(line);
+    if (m === null || indentOf(line) < keyIndent) break;
+    if (itemValue(m[2] as string) === want) {
+      return { ok: true, reason: "exact-row-present" };
+    }
+  }
+  return {
+    ok: false,
+    reason: "missing-exact-row",
+    message: `AgeExclude missing ${want} before frozen install (#5953 footnote / #6164)`,
+  };
+}
+
+/** File gate: absent/unreadable workspace yaml fails closed before install. */
+export function evaluatePreInstallAgeExcludeFile(
+  projectRoot: string,
+  targetVersion: string,
+): PreInstallAgeExcludeGate {
+  const abs = join(projectRoot, PNPM_WORKSPACE_FILE);
+  let text: string;
+  try {
+    text = readFileSync(abs, "utf8");
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return {
+      ok: false,
+      reason: "read-error",
+      message: `AgeExclude cannot read ${PNPM_WORKSPACE_FILE} before frozen install (#6164): ${detail}`,
+    };
+  }
+  return evaluatePreInstallAgeExcludeText(text, targetVersion);
+}
+
+/**
+ * Extracted release:local-update pre-install control flow (#6164 proof).
+ * Gate failure must not reach install (mocked side effects in tests).
+ */
+export function runReleaseLocalUpdatePreInstallGate(args: {
+  readonly projectRoot: string;
+  readonly version: string;
+  readonly install: () => void;
+}): PreInstallAgeExcludeGate {
+  const gate = evaluatePreInstallAgeExcludeFile(args.projectRoot, args.version);
+  if (!gate.ok) return gate;
+  args.install();
+  return gate;
+}

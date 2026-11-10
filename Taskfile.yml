@@ -1015,8 +1015,16 @@ tasks:
           git status --short >&2
           exit 1
         fi
-        DEFAULT_BRANCH="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed "s@^refs/remotes/origin/@@" || true)"
-        if [ -z "$DEFAULT_BRANCH" ]; then DEFAULT_BRANCH=master; fi
+        # #6164: shell parameter expansion strip (zero sed/awk/cut/grep); then git verify.
+        ORIGIN_HEAD="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)"
+        DEFAULT_BRANCH="${ORIGIN_HEAD#refs/remotes/origin/}"
+        if [ -z "$DEFAULT_BRANCH" ] || [ "$DEFAULT_BRANCH" = "$ORIGIN_HEAD" ]; then
+          DEFAULT_BRANCH=master
+        fi
+        if ! git rev-parse --verify --quiet "refs/remotes/origin/$DEFAULT_BRANCH" >/dev/null; then
+          echo "release:local-update: refuse; cannot verify refs/remotes/origin/$DEFAULT_BRANCH; run: git remote set-head origin -a" >&2
+          exit 1
+        fi
         CURRENT="$(git rev-parse --abbrev-ref HEAD)"
         if [ "$CURRENT" != "$DEFAULT_BRANCH" ]; then
           echo "release:local-update: refuse; checkout must be on default branch $DEFAULT_BRANCH (on $CURRENT)" >&2
@@ -1024,14 +1032,54 @@ tasks:
         fi
         echo "release:local-update: ff-only pull on $DEFAULT_BRANCH at $CHECKOUT"
         git pull --ff-only
-        if [ -f pnpm-workspace.yaml ]; then
-          if grep -q "minimumReleaseAgeExclude" pnpm-workspace.yaml; then
-            if ! grep -q "@deftai/directive-runtime@$VERSION" pnpm-workspace.yaml; then
-              echo "release:local-update: AgeExclude missing @deftai/directive-runtime@$VERSION before frozen install (#5953 footnote)" >&2
-              exit 1
-            fi
-          fi
-        fi
+        # #6164: unconditional dependency-free AgeExclude gate (exact list-item; fail closed; no soft-skip).
+        node -e '
+          const fs = require("fs");
+          const version = process.argv[1] || "";
+          const want = "@deftai/directive-runtime@" + version;
+          let text;
+          try {
+            text = fs.readFileSync("pnpm-workspace.yaml", "utf8");
+          } catch (err) {
+            const detail = err && err.message ? err.message : String(err);
+            console.error("release:local-update: AgeExclude cannot read pnpm-workspace.yaml before frozen install (#6164): " + detail);
+            process.exit(1);
+          }
+          const lines = text.split(/\r?\n/);
+          const KEY_RE = /^(\s*)minimumReleaseAgeExclude:\s*(#.*)?$/;
+          const ITEM_RE = /^(\s*)-\s+(.*)$/;
+          const keyIdx = lines.findIndex((l) => KEY_RE.test(l));
+          if (keyIdx < 0) process.exit(0);
+          const keyLine = lines[keyIdx];
+          const keyIndent = keyLine.length - keyLine.trimStart().length;
+          const itemValue = (raw) => {
+            let v = String(raw || "").trim();
+            const SQ = String.fromCharCode(39);
+            const DQ = String.fromCharCode(34);
+            if (v.startsWith(SQ) || v.startsWith(DQ)) {
+              const q = v[0];
+              const end = v.indexOf(q, 1);
+              return end > 0 ? v.slice(1, end) : v;
+            }
+            const hash = v.search(/\s#/);
+            if (hash >= 0) v = v.slice(0, hash);
+            return v.trim();
+          };
+          let found = false;
+          for (let i = keyIdx + 1; i < lines.length; i++) {
+            const line = lines[i];
+            const trimmed = line.trim();
+            if (trimmed === "" || trimmed.startsWith("#")) continue;
+            const m = ITEM_RE.exec(line);
+            const indent = line.length - line.trimStart().length;
+            if (m === null || indent < keyIndent) break;
+            if (itemValue(m[2]) === want) { found = true; break; }
+          }
+          if (!found) {
+            console.error("release:local-update: AgeExclude missing " + want + " before frozen install (#5953 footnote / #6164)");
+            process.exit(1);
+          }
+        ' "$VERSION"
         echo "release:local-update: pnpm install --frozen-lockfile"
         pnpm install --frozen-lockfile
         PIN_PKG="$(node -e 'const fs=require("fs"); const p=JSON.parse(fs.readFileSync("package.json","utf8")); const v=(p.dependencies||{})["@deftai/directive-runtime"]||(p.devDependencies||{})["@deftai/directive-runtime"]||""; console.log(String(v).replace(/^[^0-9]*/, ""));')"
