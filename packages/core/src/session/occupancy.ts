@@ -502,6 +502,21 @@ export type PublishApplyingHostResult =
       readonly attemptedSessionId: string;
     };
 
+/**
+ * Canonical-id publish surface for session:start (#6143).
+ * Collapses foreign-fresh-claim into live-foreign-occupant so callers that only
+ * model lease deferral still typecheck; direct publishApplyingHost keeps the
+ * foreign-fresh discriminator.
+ */
+export type PublishApplyingHostFromCanonicalResult =
+  | { readonly status: "published"; readonly record: ApplyingHostRecord }
+  | {
+      readonly status: "deferred";
+      readonly reason: "live-foreign-occupant";
+      readonly liveSessionId: string;
+      readonly attemptedSessionId: string;
+    };
+
 export type ClearApplyingHostResult =
   | { readonly status: "cleared"; readonly previousSessionId: string }
   | { readonly status: "missing" }
@@ -715,16 +730,25 @@ export function publishApplyingHostFromCanonicalSessionId(
     readonly transport?: ApplyingHostTransport;
     readonly allowForeignTakeover?: boolean;
   } = {},
-): PublishApplyingHostResult | null {
+): PublishApplyingHostFromCanonicalResult | null {
   const parsed = parseCanonicalHostSessionId(sessionId.trim());
   if (parsed === null) return null;
-  return publishApplyingHost(projectRoot, {
+  const result = publishApplyingHost(projectRoot, {
     provider: parsed.provider,
     rawSessionId: parsed.rawSessionId,
     claimedAt: opts.claimedAt,
     transport: opts.transport,
     allowForeignTakeover: opts.allowForeignTakeover,
   });
+  if (result.status === "deferred" && result.reason === "foreign-fresh-claim") {
+    return {
+      status: "deferred",
+      reason: "live-foreign-occupant",
+      liveSessionId: result.liveSessionId,
+      attemptedSessionId: result.attemptedSessionId,
+    };
+  }
+  return result;
 }
 
 /**
@@ -749,10 +773,10 @@ export function clearApplyingHost(
     root,
     (fence) => {
       const read = readApplyingHost(root, now);
-      if (read.status === "missing" || read.record === null) {
+      if (read.status === "missing") {
         return { status: "missing" as const };
       }
-      if (read.status === "invalid") {
+      if (read.status === "invalid" || read.record === null) {
         fence();
         containedRemove({ root, target: applyingHostPath(root) });
         return { status: "cleared" as const, previousSessionId: "<invalid>" };
