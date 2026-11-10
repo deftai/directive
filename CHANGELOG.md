@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Class A residual on PR #6179: stamp item-level narrative.Acceptance and Traces on active briefs for #4781 #6163 #6164 so readinessReport can launch workers.
+- Add acceptance details and issue links to the active briefs for #4781, #6163, and #6164 to support worker-readiness checks. Refs #6179.
 - Activate Prefer-A Bound running xBRIEFs for #4781 (process_only Approach 1 / validation spawn), #5735 (worktrees-probe ownership), #6164 (release:local-update Windows portability), #6163 (pin/Phase 7 Cursor deposit co-travel), #5102 (SLizard babysit residual), and #6172 (bound pre-PR push outgoing via delivery merge-base).
 
 
