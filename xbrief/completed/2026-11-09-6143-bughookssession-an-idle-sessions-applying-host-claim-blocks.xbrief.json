@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6143",
-    "updated": "2026-11-09T20:20:19.321Z"
+    "updated": "2026-11-10T01:37:54.975Z"
   },
   "plan": {
     "title": "bug(hooks,session): an idle session's applying-host claim blocks other-provider lifecycle commands with no lease behind it, and the deny names the wrong id",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "An idle SessionStart can leave a fresh applying-host claim with no occupancy lease, blocking other-provider lifecycle commands and printing the wrong recovery id. This activation records Prefer-A Bound so a later product PR can make no-lease claims advisory with takeover and clear them on end or release.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6143",
@@ -25,7 +25,14 @@
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: No-lease fresh applying-host is advisory so other-provider bare lifecycle can republish.",
           "Traces": "#6143",
           "Description": "Primary acceptance limb for #6143: No-lease fresh applying-host is advisory so other-provider bare lifecycle can republish"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0519938640fc7adf0b3fcebcaeca0db65ca993bb",
+          "recorded_at": "2026-11-10T00:58:51.136Z",
+          "recorded_by": "operator@deft.ai"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.2",
@@ -35,7 +42,14 @@
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Foreign-owner deny names the caller canonical id and takeover or wait path.",
           "Traces": "#6143",
           "Description": "Primary acceptance limb for #6143: Foreign-owner deny names the caller canonical id and takeover or wait path"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0519938640fc7adf0b3fcebcaeca0db65ca993bb",
+          "recorded_at": "2026-11-10T00:58:51.136Z",
+          "recorded_by": "operator@deft.ai"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.3",
@@ -45,7 +59,14 @@
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: session end and occupancy release clear applying-host with supported applying-host release.",
           "Traces": "#6143",
           "Description": "Primary acceptance limb for #6143: session end and occupancy release clear applying-host with supported applying-host release"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0519938640fc7adf0b3fcebcaeca0db65ca993bb",
+          "recorded_at": "2026-11-10T00:58:51.136Z",
+          "recorded_by": "operator@deft.ai"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.4",
@@ -55,7 +76,14 @@
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: SessionStart soft claim without lease; read-only SessionStart must not displace a different-provider fresh record.",
           "Traces": "#6143",
           "Description": "Primary acceptance limb for #6143: SessionStart soft claim without lease; read-only SessionStart must not displace a different-provider fresh record"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0519938640fc7adf0b3fcebcaeca0db65ca993bb",
+          "recorded_at": "2026-11-10T00:58:51.136Z",
+          "recorded_by": "operator@deft.ai"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.5",
@@ -65,7 +93,14 @@
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG Unreleased Fixed note Refs 6143 never Closes.",
           "Traces": "#6143",
           "Description": "Primary acceptance limb for #6143: CHANGELOG Unreleased Fixed note Refs 6143 never Closes"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0519938640fc7adf0b3fcebcaeca0db65ca993bb",
+          "recorded_at": "2026-11-10T00:58:51.136Z",
+          "recorded_by": "operator@deft.ai"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -338,6 +373,14 @@
         ],
         "parallel_safe": true,
         "acceptance_criteria_justification": "Prefer-A Bound ships one acceptance item per locked limb; clause count follows the Bound comment."
+      },
+      "productPullRequest": 6159,
+      "completionProvenance": {
+        "disposition": "shipped",
+        "completed_at": "2026-11-10T01:37:54.974Z",
+        "completed_by": "operator@deft.ai",
+        "identityBasis": "operator-lifecycle-leftover",
+        "note": "Tracking-only product PR; forge closer absent; leftover via lifecycle PR after product merge"
       }
     },
     "id": "github.issue.6291209959",

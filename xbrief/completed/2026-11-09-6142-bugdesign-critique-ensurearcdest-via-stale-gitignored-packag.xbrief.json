@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6142",
-    "updated": "2026-11-09T20:19:52.216Z"
+    "updated": "2026-11-10T01:37:54.905Z"
   },
   "plan": {
     "title": "bug(design-critique): ensureArcDest via stale gitignored packages/core/dist skips guarded-prep, so arc dests launch without runtime",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Calling ensureArcDest through a stale gitignored packages/core/dist can skip guarded-prep and leave arc dests without a runtime pin. This activation records Prefer-A Bound so a later product PR can ship a pin-bin ensure-arc-dest path that fails closed when the pin is still missing.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6142",
@@ -25,7 +25,14 @@
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Pin-bin design-critique ensure-arc-dest verb with guarded-prep default or explicit process-only.",
           "Traces": "#6142",
           "Description": "Primary acceptance limb for #6142: Pin-bin design-critique ensure-arc-dest verb with guarded-prep default or explicit process-only"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "547d08794cc4cbb4825ccc7896b2fef3d2c56ff8",
+          "recorded_at": "2026-11-10T00:58:51.055Z",
+          "recorded_by": "operator@deft.ai"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.2",
@@ -35,7 +42,14 @@
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Fail closed when guarded-prep is selected and the runtime pin is still missing.",
           "Traces": "#6142",
           "Description": "Primary acceptance limb for #6142: Fail closed when guarded-prep is selected and the runtime pin is still missing"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "547d08794cc4cbb4825ccc7896b2fef3d2c56ff8",
+          "recorded_at": "2026-11-10T00:58:51.055Z",
+          "recorded_by": "operator@deft.ai"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.3",
@@ -45,7 +59,14 @@
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Skill and contract MUST use the sanctioned path and never treat gitignored packages core dist as source of truth.",
           "Traces": "#6142",
           "Description": "Primary acceptance limb for #6142: Skill and contract MUST use the sanctioned path and never treat gitignored packages core dist as source of truth"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "547d08794cc4cbb4825ccc7896b2fef3d2c56ff8",
+          "recorded_at": "2026-11-10T00:58:51.055Z",
+          "recorded_by": "operator@deft.ai"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.4",
@@ -55,7 +76,14 @@
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG Unreleased Fixed note Refs 6142 never Closes.",
           "Traces": "#6142",
           "Description": "Primary acceptance limb for #6142: CHANGELOG Unreleased Fixed note Refs 6142 never Closes"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "547d08794cc4cbb4825ccc7896b2fef3d2c56ff8",
+          "recorded_at": "2026-11-10T00:58:51.055Z",
+          "recorded_by": "operator@deft.ai"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -555,6 +583,14 @@
         ],
         "parallel_safe": true,
         "acceptance_criteria_justification": "Prefer-A Bound ships one acceptance item per locked limb; clause count follows the Bound comment."
+      },
+      "productPullRequest": 6152,
+      "completionProvenance": {
+        "disposition": "shipped",
+        "completed_at": "2026-11-10T01:37:54.905Z",
+        "completed_by": "operator@deft.ai",
+        "identityBasis": "operator-lifecycle-leftover",
+        "note": "Tracking-only product PR; forge closer absent; leftover via lifecycle PR after product merge"
       }
     },
     "id": "github.issue.6290729933",
