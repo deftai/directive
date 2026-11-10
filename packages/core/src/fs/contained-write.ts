@@ -51,6 +51,7 @@ import {
   writeSync,
 } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { buildWin32CmdLine, scmSpawnNeedsShell } from "../scm/binary.js";
 import {
   isAtomicWriteTemp,
   isPortRecordMode,
@@ -883,9 +884,12 @@ export function containedRename(input: ContainedRenameInput): { from: string; to
 /**
  * Dest-mutating exec (git config, git add, lockfile refresh, …). Record mode
  * records `exec` on `destTarget` and skips the child process. Allowlisted as
- * the port impl. Win32 uses shell:true so `.CMD`/`.bat` PM shims spawn under
- * Node CVE-2024-27980 hardening (#6173 / #5383; same portable pattern as
- * launcher PM helpers).
+ * the port impl.
+ *
+ * Win32 `.CMD`/`.bat` PM shims need `shell: true` under Node CVE-2024-27980
+ * (#6173 / #5383). Native `.exe` stays shell-free. When shell is required,
+ * build a quoted cmd.exe line so spaced paths (`Program Files`, project dirs)
+ * are not split (#2555 / Greptile on #6176).
  */
 export function containedDestExec(input: ContainedDestExecInput): ContainedDestExecResult {
   const targetAbs = resolveContainedTarget(input.root, input.destTarget);
@@ -894,11 +898,19 @@ export function containedDestExec(input: ContainedDestExecInput): ContainedDestE
     return { ok: true, stdout: "" };
   }
   try {
-    const stdout = execFileSync(input.file, [...input.args], {
-      encoding: "utf8",
-      cwd: resolve(input.root),
-      shell: process.platform === "win32",
-    });
+    const shell = scmSpawnNeedsShell(input.file);
+    const cwd = resolve(input.root);
+    const stdout = shell
+      ? execFileSync(buildWin32CmdLine(input.file, input.args), [], {
+          encoding: "utf8",
+          cwd,
+          shell: true,
+        })
+      : execFileSync(input.file, [...input.args], {
+          encoding: "utf8",
+          cwd,
+          shell: false,
+        });
     return { ok: true, stdout };
   } catch {
     return { ok: false, stdout: "" };

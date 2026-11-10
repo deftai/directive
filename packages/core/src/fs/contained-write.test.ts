@@ -655,7 +655,7 @@ describe("containedDestExec win32 shell (#6173 / #5383)", () => {
     vi.restoreAllMocks();
   });
 
-  it("passes shell:true on win32 for a .CMD PM path", () => {
+  it("passes shell:true on win32 for a .CMD PM path via quoted cmdline", () => {
     vi.spyOn(process, "platform", "get").mockReturnValue("win32");
     const root = freshDir("cw-exec-win32-");
     const pnpmCmd = ["C:", "Users", "deft-test", "tools", "node", "pnpm.CMD"].join(
@@ -673,13 +673,58 @@ describe("containedDestExec win32 shell (#6173 / #5383)", () => {
 
     expect(result).toEqual({ ok: true, stdout: "ok\n" });
     expect(mockExecFileSync).toHaveBeenCalledWith(
-      pnpmCmd,
-      ["install", "--lockfile-only"],
+      `${pnpmCmd} install --lockfile-only`,
+      [],
       expect.objectContaining({
         encoding: "utf8",
         cwd: root,
         shell: true,
       }),
+    );
+  });
+
+  it("quotes spaced .CMD path and spaced args on win32 shell spawn", () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+    const root = freshDir("cw-exec-win32-spaced-");
+    const pnpmCmd = ["C:", "Program Files", "nodejs", "pnpm.CMD"].join(WINDOWS_SEPARATOR);
+    const projectArg = ["C:", "My Projects", "app"].join(WINDOWS_SEPARATOR);
+
+    const result = runWithMutationLedger(root, () =>
+      containedDestExec({
+        root,
+        destTarget: "pnpm-lock.yaml",
+        file: pnpmCmd,
+        args: ["install", "--dir", projectArg],
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, stdout: "ok\n" });
+    expect(mockExecFileSync).toHaveBeenCalledWith(
+      `"${pnpmCmd}" install --dir "${projectArg}"`,
+      [],
+      expect.objectContaining({ shell: true, cwd: root }),
+    );
+  });
+
+  it("keeps native .exe shell-free on win32", () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+    const root = freshDir("cw-exec-win32-exe-");
+    const gitExe = ["C:", "Program Files", "Git", "cmd", "git.exe"].join(WINDOWS_SEPARATOR);
+
+    const result = runWithMutationLedger(root, () =>
+      containedDestExec({
+        root,
+        destTarget: join(".git", "config"),
+        file: gitExe,
+        args: ["config", "core.hooksPath", ".githooks"],
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, stdout: "ok\n" });
+    expect(mockExecFileSync).toHaveBeenCalledWith(
+      gitExe,
+      ["config", "core.hooksPath", ".githooks"],
+      expect.objectContaining({ shell: false, cwd: root }),
     );
   });
 
