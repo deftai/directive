@@ -595,7 +595,9 @@
           "packages/core/src/init-deposit/host-hook-outer.test.ts",
           "Taskfile.yml",
           "content/skills/deft-directive-release/SKILL.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "docs/RULE-MAP.md",
+          "content/packs/skills/skills-pack-0.1.json"
         ],
         "verify_commands": [
           "pnpm exec vitest run packages/core/src/init-deposit/agent-hooks.test.ts packages/core/src/init-deposit/host-hook-outer.test.ts --reporter=dot"
