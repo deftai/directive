@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4966",
-    "updated": "2026-10-22T15:39:28Z"
+    "updated": "2026-11-10T16:17:17Z"
   },
   "plan": {
     "title": "feat(session): session:start should default to one-line ready output; put ceremony behind --verbose",
-    "status": "proposed",
+    "status": "running",
     "narratives": {
       "Description": "session:start success human output defaults to one trusted ready line. Routine ceremony moves behind --verbose / DEFT_SESSION_VERBOSE. Actionable zero-exit exceptions and policy/finalize-owed notices stay on the quiet success path.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4966",
@@ -200,10 +200,9 @@
           "Prefer-A Recut-1 6255757053"
         ],
         "parallel_safe": true
-      },
-      "activationPullRequest": 5834
+      }
     },
     "id": "github.issue.5555959315",
-    "updated": "2026-10-22T15:39:28Z"
+    "updated": "2026-11-10T16:16:20Z"
   }
 }
