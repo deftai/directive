@@ -248,9 +248,22 @@
       "completionProvenance": {
         "schema": "deft.scope.completion-provenance.v1",
         "productPullRequest": 6169,
+        "pullRequestNumber": 6169,
         "mergeCommit": "d821b34a7fe3cfa89fda853e435d7c1ace404400",
-        "completedAt": "2026-11-10T17:42:03.657Z",
-        "completedBy": "operator@deft.ai"
+        "deliveryCommit": "d821b34a7fe3cfa89fda853e435d7c1ace404400",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-10T17:46:41.718Z",
+        "verifiedAt": "2026-11-10T17:46:41.718Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "parent-through-merge",
+        "repository": "deftai/directive"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-10T17:46:41.718Z",
+        "actor": "Scott",
+        "via": "prefer-a-leftover-hand-stamp"
       }
     },
     "id": "github.issue.5555959315",
