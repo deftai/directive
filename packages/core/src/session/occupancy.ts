@@ -740,15 +740,16 @@ export function publishApplyingHostFromCanonicalSessionId(
     transport: opts.transport,
     allowForeignTakeover: opts.allowForeignTakeover,
   });
-  if (result.status === "deferred" && result.reason === "foreign-fresh-claim") {
-    return {
-      status: "deferred",
-      reason: "live-foreign-occupant",
-      liveSessionId: result.liveSessionId,
-      attemptedSessionId: result.attemptedSessionId,
-    };
+  if (result.status === "published") {
+    return result;
   }
-  return result;
+  // Collapse foreign-fresh-claim for session:start's narrower deferred report.
+  return {
+    status: "deferred",
+    reason: "live-foreign-occupant",
+    liveSessionId: result.liveSessionId,
+    attemptedSessionId: result.attemptedSessionId,
+  };
 }
 
 /**
