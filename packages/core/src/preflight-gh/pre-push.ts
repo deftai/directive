@@ -197,36 +197,37 @@ function gitRevParse(projectRoot: string, args: readonly string[]): GitRevResult
 
 /**
  * Outgoing in-scope changed paths for one update (path containment set).
- * New-branch (zero remote OID) diffs against merge-base with delivery tip.
+ * Every live feature push diffs merge-base(localOid, origin/<deliveryBranch>)..localOid
+ * so rebase/merge from delivery does not invent delivery-only paths (#6172 / #5804).
  * Git failures are distinct from a successful empty path list.
  */
 export function outgoingChangedPaths(
   projectRoot: string,
-  remoteOid: string,
+  _remoteOid: string,
   localOid: string,
 ): GitPathsResult {
   if (ZERO_OID_RE.test(localOid)) return { ok: true, paths: [] };
-  if (!ZERO_OID_RE.test(remoteOid)) {
-    return gitNameOnlyZ(projectRoot, ["diff", "-z", "--name-only", `${remoteOid}..${localOid}`]);
-  }
 
   const delivery = resolveDeliveryBranch(projectRoot);
-  const candidates: string[] = [];
-  if (delivery.error === null && delivery.branch.trim().length > 0) {
-    candidates.push(`refs/remotes/origin/${delivery.branch}`, delivery.branch);
-  }
-  candidates.push("refs/remotes/origin/master", "refs/remotes/origin/main", "master", "main");
-
-  for (const tip of candidates) {
-    const mb = gitRevParse(projectRoot, ["merge-base", localOid, tip]);
-    if (!mb.ok) continue;
-    return gitNameOnlyZ(projectRoot, ["diff", "-z", "--name-only", `${mb.sha}..${localOid}`]);
+  // Terminal empty branch (hostile typed) fails closed; soft PD-missing err with a
+  // resolved name still uses origin/<branch>. No unrelated-ref fallback (#6172).
+  if (delivery.branch.trim().length === 0) {
+    const detail = delivery.error ?? "empty delivery branch";
+    return {
+      ok: false,
+      error: `cannot resolve delivery branch for push ${localOid.slice(0, 12)}: ${detail}`,
+    };
   }
 
-  return {
-    ok: false,
-    error: `cannot resolve merge-base for new-branch push ${localOid.slice(0, 12)}`,
-  };
+  const tip = `refs/remotes/origin/${delivery.branch}`;
+  const mb = gitRevParse(projectRoot, ["merge-base", localOid, tip]);
+  if (!mb.ok) {
+    return {
+      ok: false,
+      error: `cannot resolve merge-base for push ${localOid.slice(0, 12)} against ${tip}: ${mb.error}`,
+    };
+  }
+  return gitNameOnlyZ(projectRoot, ["diff", "-z", "--name-only", `${mb.sha}..${localOid}`]);
 }
 
 export function isDocsOnlyPath(path: string): boolean {

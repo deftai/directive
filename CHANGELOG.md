@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.6.
 
 ### Fixed
+- Bound pre-PR push outgoing paths use the delivery merge-base for every live feature tip, so rebase or merge from master no longer invents other PRs' files as unreviewed (#6172).
 - Fix authentication errors when maintainers promote an already-published stable release to npm latest (#5852).
 - Windows update lockfile refresh: `containedDestExec` now spawns with `shell: true` on win32 so standalone `pnpm.CMD` no longer hits EINVAL under Node CVE-2024-27980 hardening (Refs #6173, #5383).
 - Record tracked completion for session:start quiet-default (#4966); product PR #6169.
