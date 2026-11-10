@@ -8199,3 +8199,17 @@ describe("always-on kill-switch plant deny (#6136)", () => {
     },
   );
 });
+
+describe("process_only implement-conflict suppressor (#4781)", () => {
+  it("locks recovery option (4) capability wording and suppressor note", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    const src = readFileSync(join(here, "dispatcher.ts"), "utf8");
+    expect(src).toContain("Process-only critic / review-monitor / validation seat");
+    expect(src).toContain("process_only was suppressed by");
+    expect(src).toContain("not bare #2885");
+    expect(src).toContain("plus dest cwd");
+  });
+});

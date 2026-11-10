@@ -1,5 +1,5 @@
 /**
- * Approach 1 babysitter one-liner for Grok / Tier-1 spawn_subagent (#5219 / #5229 / #5727).
+ * Approach 1 babysitter one-liner for Grok / Tier-1 spawn_subagent (#5219 / #5229 / #5727 / #4781).
  * Prefer this dispatch over a parent-owned shell `pr:watch`, host `monitor`, or forge-poll.
  */
 import {
@@ -23,14 +23,45 @@ export {
   writeHostCapabilityStamp,
 };
 
-/** Child register + watch; parent verify after heartbeat is live (#5219 P3). */
+/**
+ * Approach 1 / independent validation monitor-only spawn shape (#4781 Prefer-A Bound).
+ * Emit process_only + dest cwd for stop-at:pr-open + worker_role:review-monitor watch/report
+ * seats only. Implement-class never sets process_only. Dest-path is not the skip class.
+ * Do not blanket-flag the fix-capable greptile poller — hand fixes to an authorized implement owner.
+ */
+export const APPROACH1_PROCESS_ONLY_SPAWN_SHAPE =
+  "spawn_subagent process_only=true cwd=<linked-dest> worker_role=review-monitor stop-at=pr-open " +
+  "(watch/report seats only; implement-class never sets process_only; dest-path is not skip class)";
+
+/** True when the envelope is a monitor-only watch/report seat (#4781). */
+export function isApproach1MonitorOnlySeat(input: {
+  readonly stopAt?: string | null;
+  readonly workerRole?: string | null;
+}): boolean {
+  const stop = (input.stopAt ?? "").toLowerCase().replace(/[_\s]/g, "-");
+  const role = (input.workerRole ?? "").toLowerCase().replace(/[_\s]/g, "-");
+  return stop === "pr-open" && role === "review-monitor";
+}
+
+/** Named spawn shape string for cards / recipes before register/pr:watch (#4781). */
+export function formatApproach1ProcessOnlySpawnShape(destCwd: string = "<linked-dest>"): string {
+  return (
+    `Approach 1 spawn shape (#4781): process_only+cwd before register/pr:watch — ` +
+    `spawn_subagent({ process_only: true, cwd: "${destCwd}", worker_role: "review-monitor", ` +
+    `/* stop-at: pr-open watch/report only */ })`
+  );
+}
+
+/** process_only+cwd spawn shape, then child register + watch; parent verify after heartbeat (#5219 / #4781). */
 export function approach1BabysitterCommands(
   pr: number,
   monitorAgentId: string,
   platformPrimitive: PlatformPrimitive = "spawn_subagent",
+  destCwd: string = "<linked-dest>",
 ): readonly string[] {
   const id = monitorAgentId.trim().length > 0 ? monitorAgentId.trim() : "<id>";
   return [
+    formatApproach1ProcessOnlySpawnShape(destCwd),
     `task review-monitor:register -- --pr ${pr} --monitor-agent-id ${id} --platform-primitive ${platformPrimitive}`,
     `DEFT_MONITOR_AGENT_ID=${id} task pr:watch -- ${pr} --monitor-agent-id ${id}`,
     `task verify:review-monitor -- --pr ${pr} --merge-path-arm --live-wait`,
@@ -39,7 +70,7 @@ export function approach1BabysitterCommands(
 
 /**
  * Exclusive lawful waits + cheapest admitted babysit when Tier-1 spawn exists
- * (#5229 Prefer-A / #5727 Prefer-A Recut-2 P3).
+ * (#5229 Prefer-A / #5727 Prefer-A Recut-2 P3 / #4781 process_only+cwd spawn shape).
  * Admission cost: Approach 1 spawn < child-bound Directive pr:watch << bare
  * shell watch / host monitor / forge-poll / bespoke %TEMP% pollers.
  */
@@ -65,6 +96,9 @@ export function formatApproach1CheapestAdmissionCard(
     `< forge-poll=${babysitPathAdmissionCost("forge-poll")} ` +
     `(cheaperThanShell=${vsShell}, cheaperThanHostMonitor=${vsHost}, cheaperThanForgePoll=${vsForge})\n` +
     `${formatApproach1BabysitterOneLiner(pr, monitorAgentId, platformPrimitive)}\n` +
+    `${formatApproach1ProcessOnlySpawnShape()}\n` +
+    "Monitor-only seat (#4781): emit process_only+cwd for stop-at:pr-open + worker_role:review-monitor " +
+    "watch/report seats only; do not blanket-flag the fix-capable greptile poller.\n" +
     "Before CLI verify/subprocess: writeHostCapabilityStamp(projectRoot) so Tier probe stays spawn_subagent.\n" +
     "Bounded deny: Directive pr:watch / task deft:pr:watch without --monitor-agent-id when Tier 1 is provable.\n" +
     "Claimed-wait deny: admitClaimedBabysitPath / evaluateClaimedBabysitPathDeny (#5727).\n" +
