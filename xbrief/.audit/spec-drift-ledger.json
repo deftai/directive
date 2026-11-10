@@ -84,6 +84,12 @@
       "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
       "specImpact": null,
       "completedAt": "2026-10-20T05:26:22Z"
+    },
+    {
+      "scopeId": "6173-contained-dest-exec-win32-shell",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-10T21:04:12Z"
     }
   ],
   "coverage": [],
