@@ -51,7 +51,7 @@ import {
   writeSync,
 } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { buildWin32CmdLine, scmSpawnNeedsShell } from "../scm/binary.js";
+import { escapeWin32CmdArg, scmSpawnNeedsShell } from "../scm/binary.js";
 import {
   isAtomicWriteTemp,
   isPortRecordMode,
@@ -888,7 +888,7 @@ export function containedRename(input: ContainedRenameInput): { from: string; to
  *
  * Win32 `.CMD`/`.bat` PM shims need `shell: true` under Node CVE-2024-27980
  * (#6173 / #5383). Native `.exe` stays shell-free. When shell is required,
- * build a quoted cmd.exe line so spaced paths (`Program Files`, project dirs)
+ * build a quoted cmd.exe line so spaced paths and cmd metacharacters (`&` etc.)
  * are not split (#2555 / Greptile on #6176).
  */
 export function containedDestExec(input: ContainedDestExecInput): ContainedDestExecResult {
@@ -901,11 +901,15 @@ export function containedDestExec(input: ContainedDestExecInput): ContainedDestE
     const shell = scmSpawnNeedsShell(input.file);
     const cwd = resolve(input.root);
     const stdout = shell
-      ? execFileSync(buildWin32CmdLine(input.file, input.args), [], {
-          encoding: "utf8",
-          cwd,
-          shell: true,
-        })
+      ? execFileSync(
+          [escapeWin32CmdArg(input.file), ...input.args.map(escapeWin32CmdArg)].join(" "),
+          [],
+          {
+            encoding: "utf8",
+            cwd,
+            shell: true,
+          },
+        )
       : execFileSync(input.file, [...input.args], {
           encoding: "utf8",
           cwd,

@@ -706,6 +706,28 @@ describe("containedDestExec win32 shell (#6173 / #5383)", () => {
     );
   });
 
+  it("quotes ampersand in .CMD path on win32 shell spawn", () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+    const root = freshDir("cw-exec-win32-amp-");
+    const pnpmCmd = ["C:", "tools", "node&co", "pnpm.CMD"].join(WINDOWS_SEPARATOR);
+
+    const result = runWithMutationLedger(root, () =>
+      containedDestExec({
+        root,
+        destTarget: "pnpm-lock.yaml",
+        file: pnpmCmd,
+        args: ["install", "--lockfile-only"],
+      }),
+    );
+
+    expect(result).toEqual({ ok: true, stdout: "ok\n" });
+    expect(mockExecFileSync).toHaveBeenCalledWith(
+      `"${pnpmCmd}" install --lockfile-only`,
+      [],
+      expect.objectContaining({ shell: true, cwd: root }),
+    );
+  });
+
   it("keeps native .exe shell-free on win32", () => {
     vi.spyOn(process, "platform", "get").mockReturnValue("win32");
     const root = freshDir("cw-exec-win32-exe-");
