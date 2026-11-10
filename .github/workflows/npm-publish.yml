@@ -372,8 +372,10 @@ jobs:
   # Explicit-latest act (#5852 P2/P3): a distinct workflow_dispatch verb inside
   # environment npm. Moves latest for BOTH packages to an already-published stable
   # version, then marks the GitHub release Latest (make_latest follows this act).
-  # Prerequisite (footnote): the trusted publisher / npm CLI on the runner must
-  # allow OIDC dist-tag changes; otherwise this job fails closed, no fallback token.
+  # Prerequisite: trusted publisher Allow npm dist-tag + npm CLI >= 11.21.0 (or
+  # >= 12.2.0) for OIDC dist-tag. setup-node registry-url injects an empty
+  # NODE_AUTH_TOKEN that breaks OIDC exchange — clear it before dist-tag.
+  # Fail closed with no NPM_TOKEN fallback.
   promote-latest:
     name: Promote a published stable version to npm latest (#5852)
     if: github.event_name == 'workflow_dispatch' && inputs.action == 'promote-latest'
@@ -400,6 +402,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # OIDC dist-tag needs npm >= 11.21.0; Node 24 runners have shipped 11.19.x.
+          npm install -g npm@11.21.0
+          npm --version
+          # setup-node registry-url writes _authToken=${NODE_AUTH_TOKEN}; an empty
+          # token yields E401 and blocks trusted-publisher OIDC exchange.
+          unset NODE_AUTH_TOKEN
+          if [ -n "${NPM_CONFIG_USERCONFIG:-}" ] && [ -f "${NPM_CONFIG_USERCONFIG}" ]; then
+            sed -i '/_authToken/d' "${NPM_CONFIG_USERCONFIG}" || true
+          fi
           if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
             echo "::error::promote-latest must run from refs/heads/master (got ${GITHUB_REF})"
             exit 1
