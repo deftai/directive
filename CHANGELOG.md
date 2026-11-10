@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.6.
 
 ### Fixed
+- Record tracked completion for session:start quiet-default (#4966); product PR #6169.
 
 ### Removed
 
