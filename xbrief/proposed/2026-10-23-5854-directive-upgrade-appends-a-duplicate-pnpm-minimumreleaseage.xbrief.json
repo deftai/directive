@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release)",
-    "status": "running",
+    "status": "proposed",
     "narratives": {
       "Description": "directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5854",

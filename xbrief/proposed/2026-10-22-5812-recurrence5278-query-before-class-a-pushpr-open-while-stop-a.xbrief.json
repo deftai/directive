@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "recurrence(#5278): query-before Class A push/PR-open while stop-at:pr-open leaf still live",
-    "status": "running",
+    "status": "proposed",
     "narratives": {
       "Description": "Parent Class A push/PR-open goes through runParentClassAPublication after green subagent:pre-class-a tip-schema admit while a stop-at:pr-open leaf is live. Probe-only routing is not enough.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5812",

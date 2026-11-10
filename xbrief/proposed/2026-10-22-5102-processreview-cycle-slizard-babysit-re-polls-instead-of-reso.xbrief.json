@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "process(review-cycle): SLizard babysit re-polls instead of resolving carried fingerprints",
-    "status": "running",
+    "status": "proposed",
     "narratives": {
       "Description": "On SLizard merge-blocking findings, babysit must read the tip review body and resolve Previously mentioned fingerprints before re-arming wait-mergeable. #3167 weather carve-out must not over-license ignoring parseable blocking findings when Greptile is clean.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5102",

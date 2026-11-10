@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "fix(triage): worktrees-probe case-distinct sibling flake recurred a third time (post-#5519)",
-    "status": "running",
+    "status": "proposed",
     "narratives": {
       "Description": "removeEvaluatorWorktree keeps operation-scoped registration ownership across both prune passes. A previously excluded case-distinct sibling is never promoted into the target after the first pass deletes the selected registration.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5735",

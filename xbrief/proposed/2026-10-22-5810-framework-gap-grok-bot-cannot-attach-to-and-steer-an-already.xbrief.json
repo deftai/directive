@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "[framework-gap] Grok Bot cannot attach to and steer an already-open Grok Build session over ACP",
-    "status": "running",
+    "status": "proposed",
     "narratives": {
       "Description": "Grok Bot attaches to a live Grok Build session over machine-local ACP with leader-first enrollment, permission ownership, and doctor attach-readiness. Launch-only propose/launch/status from #4201/#4202 stays unchanged.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5810",

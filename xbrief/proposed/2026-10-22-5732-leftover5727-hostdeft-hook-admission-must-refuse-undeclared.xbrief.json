@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "leftover(#5727): host/deft-hook admission must refuse undeclared forge-poll before execution (#5229 residual)",
-    "status": "running",
+    "status": "proposed",
     "narratives": {
       "Description": "Host/deft-hook PreToolUse refuse-before-execution covers the closed Observed undeclared-babysit class, including path-only TEMP launches, when Tier-1 spawn_subagent is available. Novel spellings outside that corpus stay a named residual.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5732",

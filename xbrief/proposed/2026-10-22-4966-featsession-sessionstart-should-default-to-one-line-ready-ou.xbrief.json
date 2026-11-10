@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "feat(session): session:start should default to one-line ready output; put ceremony behind --verbose",
-    "status": "running",
+    "status": "proposed",
     "narratives": {
       "Description": "session:start success human output defaults to one trusted ready line. Routine ceremony moves behind --verbose / DEFT_SESSION_VERBOSE. Actionable zero-exit exceptions and policy/finalize-owed notices stay on the quiet success path.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4966",

@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "verify:pack-drift compares against the installed runtime package's rewritten copies instead of repo content/ (still in 0.128.0)",
-    "status": "running",
+    "status": "proposed",
     "narratives": {
       "Description": "verify:pack-drift compares against the installed runtime package's rewritten copies instead of repo content/ (still in 0.128.0)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5853",
