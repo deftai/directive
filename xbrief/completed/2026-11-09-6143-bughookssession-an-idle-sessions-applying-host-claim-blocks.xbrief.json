@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6143",
-    "updated": "2026-11-10T01:37:54.975Z"
+    "updated": "2026-11-10T01:55:14.239Z"
   },
   "plan": {
     "title": "bug(hooks,session): an idle session's applying-host claim blocks other-provider lifecycle commands with no lease behind it, and the deny names the wrong id",
@@ -20,7 +20,7 @@
       {
         "id": "clause.1",
         "title": "No-lease fresh applying-host is advisory so other-provider bare lifecycle can republish",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: No-lease fresh applying-host is advisory so other-provider bare lifecycle can republish.",
           "Traces": "#6143",
@@ -29,7 +29,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "0519938640fc7adf0b3fcebcaeca0db65ca993bb",
-          "recorded_at": "2026-11-10T00:58:51.136Z",
+          "recorded_at": "2026-11-10T01:55:14.239Z",
           "recorded_by": "operator@deft.ai"
         },
         "x-directive/requires": "merge"
@@ -37,7 +37,7 @@
       {
         "id": "clause.2",
         "title": "Foreign-owner deny names the caller canonical id and takeover or wait path",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Foreign-owner deny names the caller canonical id and takeover or wait path.",
           "Traces": "#6143",
@@ -46,7 +46,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "0519938640fc7adf0b3fcebcaeca0db65ca993bb",
-          "recorded_at": "2026-11-10T00:58:51.136Z",
+          "recorded_at": "2026-11-10T01:55:14.239Z",
           "recorded_by": "operator@deft.ai"
         },
         "x-directive/requires": "merge"
@@ -54,7 +54,7 @@
       {
         "id": "clause.3",
         "title": "session end and occupancy release clear applying-host with supported applying-host release",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: session end and occupancy release clear applying-host with supported applying-host release.",
           "Traces": "#6143",
@@ -63,7 +63,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "0519938640fc7adf0b3fcebcaeca0db65ca993bb",
-          "recorded_at": "2026-11-10T00:58:51.136Z",
+          "recorded_at": "2026-11-10T01:55:14.239Z",
           "recorded_by": "operator@deft.ai"
         },
         "x-directive/requires": "merge"
@@ -71,7 +71,7 @@
       {
         "id": "clause.4",
         "title": "SessionStart soft claim without lease; read-only SessionStart must not displace a different-provider fresh record",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: SessionStart soft claim without lease; read-only SessionStart must not displace a different-provider fresh record.",
           "Traces": "#6143",
@@ -80,7 +80,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "0519938640fc7adf0b3fcebcaeca0db65ca993bb",
-          "recorded_at": "2026-11-10T00:58:51.136Z",
+          "recorded_at": "2026-11-10T01:55:14.239Z",
           "recorded_by": "operator@deft.ai"
         },
         "x-directive/requires": "merge"
@@ -88,7 +88,7 @@
       {
         "id": "clause.5",
         "title": "CHANGELOG Unreleased Fixed note Refs 6143 never Closes",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG Unreleased Fixed note Refs 6143 never Closes.",
           "Traces": "#6143",
@@ -97,7 +97,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "0519938640fc7adf0b3fcebcaeca0db65ca993bb",
-          "recorded_at": "2026-11-10T00:58:51.136Z",
+          "recorded_at": "2026-11-10T01:55:14.239Z",
           "recorded_by": "operator@deft.ai"
         },
         "x-directive/requires": "merge"
@@ -376,11 +376,23 @@
       },
       "productPullRequest": 6159,
       "completionProvenance": {
-        "disposition": "shipped",
-        "completed_at": "2026-11-10T01:37:54.974Z",
-        "completed_by": "operator@deft.ai",
-        "identityBasis": "operator-lifecycle-leftover",
-        "note": "Tracking-only product PR; forge closer absent; leftover via lifecycle PR after product merge"
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6159,
+        "pullRequestNumber": 6159,
+        "mergeCommit": "0519938640fc7adf0b3fcebcaeca0db65ca993bb",
+        "deliveryCommit": "0519938640fc7adf0b3fcebcaeca0db65ca993bb",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-10T01:55:14.239Z",
+        "verifiedAt": "2026-11-10T01:55:14.239Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "parent-through-merge",
+        "repository": "deftai/directive"
+      },
+      "completedAt": "2026-11-10T01:55:14.239Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-10T01:55:14.239Z"
       }
     },
     "id": "github.issue.6291209959",

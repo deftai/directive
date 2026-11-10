@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6142",
-    "updated": "2026-11-10T01:37:54.905Z"
+    "updated": "2026-11-10T01:55:14.239Z"
   },
   "plan": {
     "title": "bug(design-critique): ensureArcDest via stale gitignored packages/core/dist skips guarded-prep, so arc dests launch without runtime",
@@ -20,7 +20,7 @@
       {
         "id": "clause.1",
         "title": "Pin-bin design-critique ensure-arc-dest verb with guarded-prep default or explicit process-only",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Pin-bin design-critique ensure-arc-dest verb with guarded-prep default or explicit process-only.",
           "Traces": "#6142",
@@ -29,7 +29,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "547d08794cc4cbb4825ccc7896b2fef3d2c56ff8",
-          "recorded_at": "2026-11-10T00:58:51.055Z",
+          "recorded_at": "2026-11-10T01:55:14.239Z",
           "recorded_by": "operator@deft.ai"
         },
         "x-directive/requires": "merge"
@@ -37,7 +37,7 @@
       {
         "id": "clause.2",
         "title": "Fail closed when guarded-prep is selected and the runtime pin is still missing",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Fail closed when guarded-prep is selected and the runtime pin is still missing.",
           "Traces": "#6142",
@@ -46,7 +46,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "547d08794cc4cbb4825ccc7896b2fef3d2c56ff8",
-          "recorded_at": "2026-11-10T00:58:51.055Z",
+          "recorded_at": "2026-11-10T01:55:14.239Z",
           "recorded_by": "operator@deft.ai"
         },
         "x-directive/requires": "merge"
@@ -54,7 +54,7 @@
       {
         "id": "clause.3",
         "title": "Skill and contract MUST use the sanctioned path and never treat gitignored packages core dist as source of truth",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Skill and contract MUST use the sanctioned path and never treat gitignored packages core dist as source of truth.",
           "Traces": "#6142",
@@ -63,7 +63,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "547d08794cc4cbb4825ccc7896b2fef3d2c56ff8",
-          "recorded_at": "2026-11-10T00:58:51.055Z",
+          "recorded_at": "2026-11-10T01:55:14.239Z",
           "recorded_by": "operator@deft.ai"
         },
         "x-directive/requires": "merge"
@@ -71,7 +71,7 @@
       {
         "id": "clause.4",
         "title": "CHANGELOG Unreleased Fixed note Refs 6142 never Closes",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG Unreleased Fixed note Refs 6142 never Closes.",
           "Traces": "#6142",
@@ -80,7 +80,7 @@
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "547d08794cc4cbb4825ccc7896b2fef3d2c56ff8",
-          "recorded_at": "2026-11-10T00:58:51.055Z",
+          "recorded_at": "2026-11-10T01:55:14.239Z",
           "recorded_by": "operator@deft.ai"
         },
         "x-directive/requires": "merge"
@@ -586,11 +586,23 @@
       },
       "productPullRequest": 6152,
       "completionProvenance": {
-        "disposition": "shipped",
-        "completed_at": "2026-11-10T01:37:54.905Z",
-        "completed_by": "operator@deft.ai",
-        "identityBasis": "operator-lifecycle-leftover",
-        "note": "Tracking-only product PR; forge closer absent; leftover via lifecycle PR after product merge"
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6152,
+        "pullRequestNumber": 6152,
+        "mergeCommit": "547d08794cc4cbb4825ccc7896b2fef3d2c56ff8",
+        "deliveryCommit": "547d08794cc4cbb4825ccc7896b2fef3d2c56ff8",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-10T01:55:14.239Z",
+        "verifiedAt": "2026-11-10T01:55:14.239Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "parent-through-merge",
+        "repository": "deftai/directive"
+      },
+      "completedAt": "2026-11-10T01:55:14.239Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-10T01:55:14.239Z"
       }
     },
     "id": "github.issue.6290729933",
