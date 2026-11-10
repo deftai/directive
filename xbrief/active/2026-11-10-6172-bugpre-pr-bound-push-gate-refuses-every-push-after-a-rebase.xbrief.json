@@ -1,0 +1,528 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6172",
+    "updated": "2026-11-10T21:02:04Z"
+  },
+  "plan": {
+    "title": "bug(pre-pr): bound push gate refuses every push after a rebase or merge from the delivery branch (outgoing = remoteOid..localOid)",
+    "status": "running",
+    "narratives": {
+      "Description": "After a feature branch rebases or merges from the delivery branch, the bound pre-PR push gate was measuring outgoing paths from the remote tip of the feature branch. That invented previously reviewed delivery-only paths as unreviewed and refused every push. This brief activates Prefer-A Bound work to derive outgoing from the authoritative delivery merge-base and fail closed when that tip cannot be resolved.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6172",
+      "Overview": "\n- relieves: P1 — Derive every live feature push outgoing path set from merge-base(localOid, refs/remotes/origin/<resolved deliveryBranch>)..localOid in outgoingChangedPaths, unifying away the remoteOid..localOid early return (disposes critic 6778202242, 6778533493).\n- relieves: P1 — Refuse when delivery-branch resolution fails or that merge-base/diff fails; no unrelated-ref fallback to origin/master|main or local names (disposes critic 6778202242).\n- relieves: P2 — Leave evaluateEnrolledBoundPrePrPush ⊆ reviewedFileManifest / reviewedDeletedPaths / controllerObservedHash / push-stage marker unchanged once outgoing is correct (disposes critic 6778533493).\n- relieves: P2 — Record that each HEAD pushBinding must cover the full PR-vs-delivery path set (same obligation as new-branch); fixture rebase/merge omits delivery-only paths while feature edits/deletions stay covered (disposes critic 6778202242, 6778533493).\n\n\n",
+      "Labels": "bug, adoption-blocker, agent-experience, process, scm, urgent, area:cli, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:tickets, promise:gates",
+      "UserStory": "As an agent after rebase or merge from the delivery branch, I want the bound pre-PR push gate to measure outgoing files from the delivery merge-base to HEAD, so that previously reviewed delivery paths are not refused as unreviewed.",
+      "ImplementationPlan": "Update outgoingChangedPaths in packages/core/src/preflight-gh/pre-push.ts to use merge-base(localOid, origin/<deliveryBranch>)..localOid. Add/adjust packages/core/src/preflight-gh/pre-push.test.ts fixtures for rebase/merge from delivery. Verify with pnpm exec vitest run packages/core/src/preflight-gh/pre-push.test.ts.",
+      "Acceptance": "1. Given a feature tip rebased onto origin deliveryBranch, when outgoingChangedPaths runs, then it returns paths from merge-base(localOid, origin/deliveryBranch)..localOid and rejects the remoteOid..localOid early return.\n2. Given delivery-branch resolution or merge-base diff fails, when bound push evaluates outgoing, then the gate fails closed and rejects unrelated origin/master|main fallbacks.\n3. Given outgoing is already correct, when evaluateEnrolledBoundPrePrPush runs, then reviewedFileManifest reviewedDeletedPaths controllerObservedHash and push-stage marker returns unchanged.\n4. Given a rebase or merge fixture that omits delivery-only paths, when HEAD pushBinding is checked, then feature edits and deletions stay covered and the gate rejects inventing delivery-only paths as unreviewed."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Derive every live feature push outgoing path set from merge-base of localOid and refs remotes origin deliveryBranch to localOid in outgoingChangedPaths, unifying away the remoteOid to localOid early return.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a feature branch after rebase from delivery, Derive every live feature push outgoing path set from merge-base of localOid and refs remotes origin deliveryBranch to localOid in outgoingChangedPaths, unifying away the remoteOid to localOid early return; verify with pre-push fixtures that delivery-only paths are not refused and missing delivery tip fails closed.",
+          "Traces": "#6172"
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Refuse when delivery-branch resolution fails or that merge-base or diff fails; no unrelated-ref fallback to origin master or main or local names.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given delivery-branch resolution or merge-base diff fails, when bound push evaluates outgoing, then the gate fails closed and rejects unrelated origin/master|main fallbacks.",
+          "Traces": "#6172"
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "Leave evaluateEnrolledBoundPrePrPush reviewedFileManifest reviewedDeletedPaths controllerObservedHash and push-stage marker unchanged once outgoing is correct.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a feature branch after rebase from delivery, Leave evaluateEnrolledBoundPrePrPush reviewedFileManifest reviewedDeletedPaths controllerObservedHash and push-stage marker unchanged once outgoing is correct; verify with pre-push fixtures that delivery-only paths are not refused and missing delivery tip fails closed.",
+          "Traces": "#6172"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Record that each HEAD pushBinding must cover the full PR-versus-delivery path set with the same obligation as new-branch; fixture rebase or merge omits delivery-only paths while feature edits and deletions stay covered.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a rebase or merge fixture that omits delivery-only paths, when HEAD pushBinding is checked, then feature edits and deletions stay covered and the gate rejects inventing delivery-only paths as unreviewed.",
+          "Traces": "#6172"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "scm",
+      "urgent",
+      "area:cli",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:tickets",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6172",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6172: bug(pre-pr): bound push gate refuses every push after a rebase or merge from the delivery branch (outgoing = remoteOid..localOid)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 Prefer-A Bound remedy limbs (#3323)",
+      "sentences": [
+        "bug(pre-pr): bound push gate refuses every push after a rebase or merge from the delivery branch (outgoing = remoteOid..localOid)",
+        "Derive every live feature push outgoing path set from merge-base of localOid and refs remotes origin deliveryBranch to localOid in outgoingChangedPaths, unifying away the remoteOid to localOid early return.",
+        "Refuse when delivery-branch resolution fails or that merge-base or diff fails; no unrelated-ref fallback to origin master or main or local names.",
+        "Leave evaluateEnrolledBoundPrePrPush reviewedFileManifest reviewedDeletedPaths controllerObservedHash and push-stage marker unchanged once outgoing is correct.",
+        "Record that each HEAD pushBinding must cover the full PR-versus-delivery path set with the same obligation as new-branch; fixture rebase or merge omits delivery-only paths while feature edits and deletions stay covered."
+      ],
+      "admitted_source_sentences": [
+        "Derive every live feature push outgoing path set from merge-base of localOid and refs remotes origin deliveryBranch to localOid in outgoingChangedPaths, unifying away the remoteOid to localOid early return.",
+        "Refuse when delivery-branch resolution fails or that merge-base or diff fails; no unrelated-ref fallback to origin master or main or local names.",
+        "Leave evaluateEnrolledBoundPrePrPush reviewedFileManifest reviewedDeletedPaths controllerObservedHash and push-stage marker unchanged once outgoing is correct.",
+        "Record that each HEAD pushBinding must cover the full PR-versus-delivery path set with the same obligation as new-branch; fixture rebase or merge omits delivery-only paths while feature edits and deletions stay covered."
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Derive every live feature push outgoing path set from merge-base of localOid and refs remotes origin deliveryBranch to localOid in outgoingChangedPaths, unifying away the remoteOid to localOid early return.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Refuse when delivery-branch resolution fails or that merge-base or diff fails; no unrelated-ref fallback to origin master or main or local names.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Leave evaluateEnrolledBoundPrePrPush reviewedFileManifest reviewedDeletedPaths controllerObservedHash and push-stage marker unchanged once outgoing is correct.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Record that each HEAD pushBinding must cover the full PR-versus-delivery path set with the same obligation as new-branch; fixture rebase or merge omits delivery-only paths while feature edits and deletions stay covered.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/preflight-gh/pre-push.ts",
+          "packages/core/src/preflight-gh/pre-push.test.ts"
+        ],
+        "module_boundary": "packages/core/src/preflight-gh"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A (draft)\nTarget-digest: sha256:7d4a7344bda7fa456e6c7c569455491412ac8c6ebb660733075b402cf6ed670b\nconflict_group: bound-prepr-push-outgoing-remote-tip-vs-merge-base\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndest: .deft-scratch/worktrees/arc-6172\ndispatch-sha: 55f7b0e57da34980c5744c44fbb080c9a87097dd\nKISS ceiling: #5783 Prefer-A Bound (Thin Fail-Closed #3265 / writing-bar #3368)\nField: bound pre-PR push gate #5804; related #6019 pin-only classification, #4888 behind-rebase\n\n## Intent\nMake enrolled bound pre-PR push outgoing paths reflect the PR's own changes after rebase/merge from delivery, so routine behind-rebase pushes are not refused for master's files.\n\n## Observed pains (candidate)\n- P1: outgoingChangedPaths for non-zero remoteOid uses remoteOid..localOid, so after rebase/merge from delivery the set includes every file master changed since the old remote tip.\n- P2: suggested recovery (re-run pre-pr:run on PR files) cannot clear those delivery-only paths from the outgoing set; operators are pushed to fake --reviewed-file, bypass, or delete remote branch.\n\n## Prefer-A sketch\n1. For existing remote branches, derive outgoing via merge-base(localOid, origin/<deliveryBranch>)..localOid — the same base the new-branch (zero remote OID) path already uses in outgoingChangedPaths.\n2. If that merge-base cannot be resolved, keep failing closed as today.\n3. Leave enrolled ⊆ reviewedFileManifest check unchanged once the outgoing set is correct.\n4. Do not require re-review of files that reached the tip only through delivery.\n\n## Reject (draft)\n- B: auto-admit any path present on origin/delivery tip without merge-base (widens beyond PR own changes).\n- C: keep remoteOid..localOid and teach operators to list master's files as --reviewed-file (false review record).\n- Bypass-hook or delete-remote-branch as the supported recovery.\n\nFiled for @MScottAdams",
+          "id": 6778128180,
+          "html_url": "https://github.com/deftai/directive/issues/6172#issuecomment-6778128180",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T20:13:08Z",
+          "updated_at": "2026-11-10T20:13:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because the bound pre-PR push gate derives outgoing from remote tip for existing branches, so rebase/merge from delivery invents unreviewed paths that are not the PR's; mechanism lives in outgoingChangedPaths, not prose triage.\nmechanism-shaped: true\narc-mode: no-ingest\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nyolo-standing: on\nmateriality-bar: open\nverification-path: pin-read dest=.deft-scratch/worktrees/arc-6172 sha=55f7b0e57da34980c5744c44fbb080c9a87097dd\ndual-stop-reserved: yes (N≥3 + non-vacuous pain; first post-lean pain-audit in-cap)\n\npain: P1, P2\n- P1: remoteOid..localOid outgoing includes delivery-only files after rebase/merge\n- P2: pre-pr:run recovery cannot clear those paths; forces fake review / bypass / delete remote\n\ncharter: open critique\ndispatch-sha: 55f7b0e57da34980c5744c44fbb080c9a87097dd\nseat-families: claude, codex, grok\nprefer-a-draft-digest: sha256:7d4a7344bda7fa456e6c7c569455491412ac8c6ebb660733075b402cf6ed670b",
+          "id": 6778128595,
+          "html_url": "https://github.com/deftai/directive/issues/6172#issuecomment-6778128595",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T20:13:10Z",
+          "updated_at": "2026-11-10T20:13:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nissue: 6172\ncharter: open critique\nspend: N≥3\nspend-ask: resolved\nconsent: Prefer-A Bound #5466 spend-recommend N≥3 recorded; bare-arc YOLO defaults\nround: 1 critic\nseat-families: claude, codex, grok\nid-ceiling: 6778144011\ninput-ceiling: 6778144011\nSHA at dispatch: 55f7b0e57da34980c5744c44fbb080c9a87097dd\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nTarget-kind: issue\nCeiling-kind: comment-id\ndest: .deft-scratch/worktrees/arc-6172\nverification-path: pin-read git show 55f7b0e57da34980c5744c44fbb080c9a87097dd: (dest cwd-without-occupy)\nprefer-a-draft: 6778128180\nstop-1: 6778128595\naudit-targets: none\n\nFiled for @MScottAdams",
+          "id": 6778144011,
+          "html_url": "https://github.com/deftai/directive/issues/6172#issuecomment-6778144011",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T20:13:52Z",
+          "updated_at": "2026-11-10T20:13:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: codex\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRound 1; open critique; input ceiling 6778144011; pin-read at 55f7b0e57da34980c5744c44fbb080c9a87097dd. No tests executed or repository files changed.\n\nVerdict: Prefer-A is the right direction, but cannot bind as written until its delivery-ref failure behavior is explicit. The draft's promise to fail closed and its instruction to reuse the new-branch path describe different behavior.\n\nMechanism inventory and verification: pinned `packages/core/src/preflight-gh/pre-push.ts` confirms that existing refs use `remoteOid..localOid`, while new refs try delivery merge bases. `evaluateEnrolledBoundPrePrPush` then performs an early docs/empty-set skip, exact-HEAD record lookup, present-path and deleted-path containment, story disposition checks, committed-content hashing, and push-stage validation. `packages/core/src/policy/delivery-branch.ts` already resolves typed delivery policy and reports configuration errors. Reuse these mechanisms; no new policy switch or bypass is needed. This pin-read supports the reported rebase/merge failure, but is not an executed reproduction.\n\n### F1 — Preserve delivery authority when selecting the base [blocks-the-design]\n\nEvidence: `outgoingChangedPaths` skips the configured candidates when `delivery.error` is non-null, then always tries origin/master, origin/main, master, and main. Even for valid configuration, missing origin/<delivery> falls through to a local branch and unrelated defaults. Thus “same base the new-branch path already uses” does not mean “fail if that delivery merge-base cannot be resolved.”\n\nConcrete failure: configure delivery `release`, remove its tracking ref, and let local `release` or fallback `master` point at the feature tip. The reused loop gets merge-base=localOid and returns an empty set; the docs-only early return admits without any pushBinding. This is a local/shared-ref authority problem, not merely a misleading error message.\n\nConsequence: bind only after choosing the authoritative ref explicitly. Prefer the draft's `refs/remotes/origin/<resolved deliveryBranch>`; propagate resolution errors and missing/unrelated-history failures instead of switching branches. Keep the hook read-only and direct recovery to fixing policy or fetching that ref. Apply the same rule to new and existing feature refs. A different fallback contract would need its own safety argument.\n\n### F2 — State that coverage becomes whole-PR coverage [sharpens-framing]\n\nEvidence: the proposed merge-base diff replaces the existing update delta, and the docs-only shortcut consumes that set before binding lookup. Example: an already-pushed feature changes code; its next commit changes only README. Previously that update could take the docs skip; under A the earlier feature code remains in scope and requires a current-HEAD pass covering the full PR.\n\nConsequence: A can bind with this intentional semantic change stated. Include ordinary follow-up pushes in regression coverage, alongside rebase and merge-from-delivery cases. For both histories, assert delivery-only paths disappear while feature edits, feature deletions, and conflict-resolution edits relative to delivery still require the existing binding checks. Do not implement path-name subtraction: a file touched by both delivery and the feature must remain covered.\n\n### F3 — Panel metadata [footnote]\n\nThe ceiling's panel-deposit records three seat families but omits the contract's explicit `siblings:` field. Parent should repair its bookkeeping before synthesis; this critic makes no claim about panel completeness.\n\nRoad not taken: retaining remote-tip delta best preserves incremental docs-only behavior, but does not solve the reported false refusals. Subtracting delivery paths is unsafe when the feature also edits those paths. I would reconsider A only if incremental-update coverage, rather than PR-scope coverage, is an explicit requirement.\n\n## Bound remedy\n\nProposed one-line limbs after F1 is accepted:\n1. Derive every live feature push's path set from the authoritative delivery merge-base to localOid.\n2. Refuse delivery-resolution, merge-base, or diff failures with policy/fetch recovery and no unrelated-ref fallback.\n3. Preserve existing binding checks and verify whole-PR coverage across ordinary updates, rebases, merges, and deletions.",
+          "id": 6778202242,
+          "html_url": "https://github.com/deftai/directive/issues/6172#issuecomment-6778202242",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T20:16:30Z",
+          "updated_at": "2026-11-10T20:16:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nVerdict: Prefer-A can bind.\nCite: Prefer-A draft 6778128180; Stop 1 6778128595; panel-deposit 6778144011; pin-read `packages/core/src/preflight-gh/pre-push.ts` at 55f7b0e57da34980c5744c44fbb080c9a87097dd.\n\n## Re-verify\nAt dispatch SHA, `outgoingChangedPaths` early-returns non-zero `remoteOid` as `git diff --name-only ${remoteOid}..${localOid}` (pre-push.ts ~209–210). Zero-`remoteOid` already walks `resolveDeliveryBranch` tip candidates, `merge-base(localOid, tip)`, then `${mb}..${localOid}` (~214–224), fail-closed if none resolve. `evaluateEnrolledBoundPrePrPush` unions that outgoing set and requires present paths ⊆ `pushBinding.reviewedFileManifest` (and deletions ⊆ `reviewedDeletedPaths`, plus `controllerObservedHash` / push-stage marker). Issue repro (remote tip A, rebase/merge from delivery → A', manifest only PR paths) matches this code path: delivery-only files appear in `remoteOid..localOid` and refuse. P1/P2 hold.\n\n## Inventory (existing mechanisms)\n- `outgoingChangedPaths` dual arm (remote-tip vs merge-base) in `pre-push.ts`\n- Delivery tip candidates via `resolveDeliveryBranch` + origin/master|main fallbacks (zero-OID arm)\n- `evaluateEnrolledBoundPrePrPush` enrolled ⊆ reviewed containment (#5804)\n- `pushBinding.reviewedFileManifest` / `reviewedDeletedPaths` / `controllerObservedHash` / `PRE_PR_PUSH_STAGE_MARKER`\n- Docs-only skip `isDocsOnlyOutgoing`\n- Controller `listDeletedPathsBetween(baseSha, headSha)` for deleted manifest (pre-pr-controller; separate from push outgoing derivation)\n- Adjacent: #6019 pin-only classification (do not widen Prefer-A into auto-admit)\n\nNo new gate primitive required: Prefer-A is unify onto the existing merge-base arm.\n\n## Findings\n\n### sharpens-framing: unify as one arm, not a second merge-base fork\nEvidence: Prefer-A sketch item 1 says “for existing remote branches, derive via merge-base…” while the zero-OID arm already owns that loop. Failure mode: implementer keeps the early return and duplicates candidate/fail-closed logic. Disposition: Bound states delete/bypass the non-zero early return so both arms share one merge-base candidate loop (Thin Fail-Closed #3265).\n\n### sharpens-framing: name full PR-vs-delivery coverage on every HEAD\nEvidence: today’s non-zero arm scopes outgoing to `remoteOid..localOid` (incremental delta since last remote tip). Prefer-A switches that to `merge-base..localOid` (full PR vs delivery), which shrinks the rebase/merge false-positive set and widens incremental non-rebase pushes. Draft does not name the widen. Failure mode: operators keep a one-file `--reviewed-file` habit that worked under remote-tip delta and hit refuse after Prefer-A. Disposition: Bound records that each HEAD’s `pushBinding.reviewedFileManifest` must cover the full PR-vs-delivery path set (same obligation the first/new-branch push already has under headSha binding). Not `blocks-the-design`: containment check stays unchanged; only the outgoing denominator unifies.\n\n### footnote: retitle merge-base fail string\nCurrent error says “cannot resolve merge-base for new-branch push …”. After unify it covers updates too. Cosmetic in the same limb.\n\n### footnote: #6019 stays adjacent\nPrefer-A Reject B (auto-admit delivery-tip paths) correctly keeps pin-only out of this Bound.\n\n## Injection / swarm lens\nTarget changes the path-containment denominator for enrolled push admission (gate authority). Safety case stays deterministic: unresolved merge-base fails closed; ⊆ reviewed / hash / marker unchanged; Reject B refused. No envelope/identity/worktree mesh change.\n\n## Road-not-taken\nKeep `remoteOid..localOid` and subtract paths whose blob at `localOid` equals delivery tip (preserves narrow incremental delta). Steelmans “outgoing = what this push transfers.” Flip: headSha-bound `pushBinding` already means “was this tip reviewed,” so PR-vs-delivery containment is the right denominator; a second subtract path violates Thin Fail-Closed for little gain. Prefer-A unify wins.\n\n## Bound remedy (one-line limbs)\n1. Unify non-zero `remoteOid` onto the existing `merge-base(localOid, delivery-tip candidates)..localOid` arm in `outgoingChangedPaths`.\n2. Fail closed when merge-base cannot resolve; retitle the error beyond new-branch-only wording.\n3. Leave `evaluateEnrolledBoundPrePrPush` ⊆ reviewed / deleted / `controllerObservedHash` / push-stage marker unchanged.\n4. Fixture: rebase/merge-from-delivery outgoing omits delivery-only paths; incremental HEAD still requires full PR-vs-delivery paths in that HEAD’s `pushBinding`.",
+          "id": 6778533493,
+          "html_url": "https://github.com/deftai/directive/issues/6172#issuecomment-6778533493",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T20:31:53Z",
+          "updated_at": "2026-11-10T20:31:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nspend-amend: N=2\nspend-ask: resolved\nreason: Claude Round-1 hung with 0-byte stdout/stderr after launch-probe pong-ok (classic #5478 post-pointer hang). Claude processes left alive pending operator kill confirm. Bind Prefer-A from Codex + Grok.\nseat-families: codex, grok\nPrefer-A draft cite: 6778128180\nStop 1 cite: 6778128595\npanel-deposit cite: 6778144011\nRound-1 posted: Codex 6778202242; Grok 6778533493\nClaude: dispatch-fail / hung (no comment)\n\nFiled for @MScottAdams",
+          "id": 6778553368,
+          "html_url": "https://github.com/deftai/directive/issues/6172#issuecomment-6778553368",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T20:32:48Z",
+          "updated_at": "2026-11-10T20:32:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound\nconflict_group: bound-prepr-push-outgoing-remote-tip-vs-merge-base\nSpec-path: Prefer-A Bound — bound pre-PR push outgoing via authoritative delivery merge-base\nTarget-digest: sha256:254764469bc8424ea9d60e032866d9651db7a613570c4b938d21de20af58193e\ndispatch-sha: 55f7b0e57da34980c5744c44fbb080c9a87097dd\ndest: .deft-scratch/worktrees/arc-6172\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=2 (amended from N≥3 after Claude #5478 zero-byte hang)\nspend-ask: resolved\nprefer-a-draft: 6778128180\nstop-1: 6778128595\npanel-deposit: 6778144011\nround-1: Codex 6778202242; Grok 6778533493\nKISS ceiling: #5783 / Thin Fail-Closed #3265\n\n## In plain English\n\nFor an existing feature branch, measure outgoing push paths from the authoritative delivery merge-base to HEAD so rebase or merge from master does not invent unreviewed files, and fail closed if that delivery tip cannot be resolved.\n## Bound remedy\n- relieves: P1 — Derive every live feature push outgoing path set from merge-base(localOid, refs/remotes/origin/<resolved deliveryBranch>)..localOid in outgoingChangedPaths, unifying away the remoteOid..localOid early return (disposes critic 6778202242, 6778533493).\n- relieves: P1 — Refuse when delivery-branch resolution fails or that merge-base/diff fails; no unrelated-ref fallback to origin/master|main or local names (disposes critic 6778202242).\n- relieves: P2 — Leave evaluateEnrolledBoundPrePrPush ⊆ reviewedFileManifest / reviewedDeletedPaths / controllerObservedHash / push-stage marker unchanged once outgoing is correct (disposes critic 6778533493).\n- relieves: P2 — Record that each HEAD pushBinding must cover the full PR-vs-delivery path set (same obligation as new-branch); fixture rebase/merge omits delivery-only paths while feature edits/deletions stay covered (disposes critic 6778202242, 6778533493).\n\n## Reject\n- B: auto-admit any path present on origin/delivery tip without merge-base (#6019 adjacent).\n- C: keep remoteOid..localOid and teach fake --reviewed-file / bypass / delete-remote as recovery.\n- Unrelated-ref fallback when origin/<delivery> is missing (Codex F1 blocks-the-design).\n- Path-name subtraction of delivery tip blobs as a second algorithm.\n\n## Footnotes (non-remint)\n- Retitle merge-base fail string beyond new-branch-only wording.\n- Panel-deposit siblings: bookkeeping; reduced panel N=2 recorded here.\n\nFiled for @MScottAdams",
+          "id": 6778553785,
+          "html_url": "https://github.com/deftai/directive/issues/6172#issuecomment-6778553785",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T20:32:49Z",
+          "updated_at": "2026-11-10T20:37:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2\nfinding-classes: none\nharvest-changed: false\n\nPA-1 verdict: Prefer-A Bound honestly relieves P1 and P2 at the design level. No material change to the harvest is needed.\n\nAudit target: [Bound 6778553785](https://github.com/deftai/directive/issues/6172#issuecomment-6778553785), inclusive input ceiling 6778553785; target digest sha256:a10e37c828fcca071ad151e478c5ebf461e7536b40a78faa55e654d24bb980d6. Pin-read: `packages/core/src/preflight-gh/pre-push.ts` at `55f7b0e57da34980c5744c44fbb080c9a87097dd`. Pain definitions: Stop 1 comment 6778128595.\n\n- P1: The pinned existing-branch arm diffs remoteOid..localOid, which mixes delivery changes into the feature's outgoing set after rebase/merge. Bound replaces that arm for every live feature push with the authoritative delivery merge-base diff. Delivery-only changes incorporated through that base disappear; feature edits, deletions, and conflict-resolution differences remain subject to coverage. Refusing resolution/merge-base/diff failures without local or unrelated-ref fallback closes the earlier empty-set admission concern.\n- P2: The pinned evaluator refuses uncovered present/deleted paths before checking committed-content hash and push-stage marker. Correcting the input set removes the impossible obligation to claim review of delivery-only files. A current-HEAD pre-PR pass covering the full PR's applicable present/deleted paths can therefore satisfy the existing checks without fake review, hook bypass, or remote deletion. Bound explicitly names the full-PR obligation, so ordinary follow-up pushes do not silently retain the former incremental-delta expectation.\n\nThe existing docs/inert skip remains an exception to binding requirements; “each HEAD” should be read within the enrolled binding-required flow. That wording qualification does not change the fail-closed association or require reminting. The relief claim concerns this outgoing-path failure, not a guarantee that unrelated story/hash/marker checks pass.\n\nVerification limit: source audit only; no tests executed and no product files changed. Implementation still needs the Bound's rebase/merge and feature-deletion fixtures. Audit complete; return to parent synthesis.",
+          "id": 6778575816,
+          "html_url": "https://github.com/deftai/directive/issues/6172#issuecomment-6778575816",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T20:33:47Z",
+          "updated_at": "2026-11-10T20:33:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2\n\nPain-audit Pass-4 of Prefer-A Bound 6778553785 (id ceiling inclusive). Pin-read `packages/core/src/preflight-gh/pre-push.ts` at 55f7b0e57da34980c5744c44fbb080c9a87097dd from dest `.deft-scratch/worktrees/arc-6172`. No product edits. Cite Stop 1 6778128595; Round-1 Codex 6778202242 / Grok 6778533493.\n\n## Verdict\n\nPrefer-A Bound honestly relieves Stop 1 P1 and P2. Clear for this seat.\n\n## Re-verify (pin-read)\n\nAt dispatch SHA, `outgoingChangedPaths` early-returns non-zero `remoteOid` as `git diff --name-only ${remoteOid}..${localOid}` (pre-push.ts ~209–210). Zero-OID arm walks `resolveDeliveryBranch` then `origin/master|main` / local name fallbacks before merge-base (~213–224). `evaluateEnrolledBoundPrePrPush` unions that outgoing set and requires present paths ⊆ `pushBinding.reviewedFileManifest` (~313–389). Stop 1 P1/P2 match this path: after rebase/merge from delivery, delivery-only files enter the remote-tip delta and refuse; re-run `pre-pr:run` on PR files cannot clear them.\n\n## Relief map\n\n- **P1** — Bound limb 1 deletes the remote-tip early return and derives every live feature push from `merge-base(localOid, refs/remotes/origin/<resolved deliveryBranch>)..localOid`. After rebase or merge-from-delivery, that denominator is PR-own changes; delivery-only files drop out. Limb 2 absorbs Codex F1: refuse on delivery-resolution / merge-base / diff failure with no unrelated-ref fallback to `origin/master|main` or local names (today’s zero-OID candidate loop).\n- **P2** — Once outgoing omits delivery-only paths, a HEAD-bound `pre-pr:run` covering the PR can admit. Limb 3 leaves ⊆ reviewed / deleted / `controllerObservedHash` / push-stage marker unchanged. Limb 4 names the intentional full PR-vs-delivery coverage on every HEAD and requires fixtures that omit delivery-only paths while keeping feature edits/deletions covered. Fake `--reviewed-file`, hook bypass, and delete-remote are no longer forced recoveries.\n\n## Reachability\n\nLive admit path after Prefer-A ships: enrolled push → `outgoingChangedPaths` merge-base arm only → `evaluateEnrolledBoundPrePrPush` containment on that set. Unresolved authoritative delivery tip fails closed (limb 2). Reject B/C, unrelated-ref fallback, and path-name subtraction stay out. No false-relief via recovery prose alone.\n\n## Findings\n\nfinding-classes: none\nharvest-changed: false\n\nNo blocking, sharpening, or footnote that changes fail-closed association. Bound footnotes already cover merge-base fail-string retitle and reduced-panel bookkeeping (#5783 KISS).",
+          "id": 6778592452,
+          "html_url": "https://github.com/deftai/directive/issues/6172#issuecomment-6778592452",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T20:34:35Z",
+          "updated_at": "2026-11-10T20:34:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ntakes:\n- critic 6778575816: accept-into-contract (finding-classes: none; harvest-changed: false).\n- critic 6778592452: accept-into-contract (finding-classes: none; harvest-changed: false).\n\nyolo-standing: on (confirm conjunct for all-accept map)\nPrefer-A Bound cite: 6778553785\n\nFiled for @MScottAdams",
+          "id": 6778608326,
+          "html_url": "https://github.com/deftai/directive/issues/6172#issuecomment-6778608326",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T20:35:20Z",
+          "updated_at": "2026-11-10T20:35:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| P1 remoteOid..localOid false refusals relieved by authoritative delivery merge-base outgoing | Bound 6778553785 limbs 1–2; PA Codex 6778575816; PA Grok 6778592452 | verified |\n| No unrelated-ref fallback (Codex Round-1 F1 absorbed) | Bound limb 2; PA agreement | verified |\n| P2 recovery path restored: HEAD pre-pr covering PR admits after outgoing fix | Bound limbs 3–4; PA agreement | verified |\n| Whole-PR-vs-delivery coverage on every HEAD; fixtures required | Bound limb 4; Round-1 + PA | verified |\n| Reject auto-admit / fake reviewed-file / path subtraction | Bound Reject | verified |\n\nsuccessor lean: 6778553785\ndisagreement set: empty\n\nFiled for @MScottAdams",
+          "id": 6778608774,
+          "html_url": "https://github.com/deftai/directive/issues/6172#issuecomment-6778608774",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T20:35:21Z",
+          "updated_at": "2026-11-10T20:35:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set) citing Prefer-A Bound successor lean 6778553785 and verified-claims table 6778608774\n\n## In plain English\n\nArc 6172 is ingest-ready on Prefer-A Bound: after rebase or merge from delivery, the bound push gate measures the PR's own files via authoritative origin/<delivery> merge-base, fails closed without unrelated-ref fallback, and keeps the existing reviewed/hash/marker checks. Ingest remains a separate operator verb.\n\n## Completed-arc record\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=2 (amended from N≥3 after Claude #5478 zero-byte hang)\ndest: .deft-scratch/worktrees/arc-6172\ndispatch-sha: 55f7b0e57da34980c5744c44fbb080c9a87097dd\nbound contract: successor lean 6778553785, confirmed by operator (yolo-standing), verified-claims table 6778608774\nconflict_group: bound-prepr-push-outgoing-remote-tip-vs-merge-base\nStop 1: 6778128595\nPrefer-A draft: 6778128180\npanel-deposit: 6778144011\nRound-1: Codex 6778202242; Grok 6778533493 (Claude dispatch-fail/hung)\nspend-amend: 6778553368\nPrefer-A Bound: 6778553785\nPA-1: Codex 6778575816 (clear); Grok 6778592452 (clear)\nparent takes: 6778608326\nverified-claims table: 6778608774\nKISS ceiling: #5783 / Thin Fail-Closed #3265\n\ndisagree: (empty)\n\nFiled for @MScottAdams",
+          "id": 6778609142,
+          "html_url": "https://github.com/deftai/directive/issues/6172#issuecomment-6778609142",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T20:35:22Z",
+          "updated_at": "2026-11-10T20:36:21Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## What happens\n\nOn a branch that already exists on the remote, the bound pre-PR push gate (#5804) builds its outgoing path set with a two-dot tree diff from the remote tip. In `outgoingChangedPaths` (`packages/core/src/preflight-gh/pre-push.ts`, `vendor/directive-core/dist/preflight-gh/pre-push.js` in 0.129.6):\n\n```js\nif (!ZERO_OID_RE.test(remoteOid)) {\n    return gitNameOnlyZ(projectRoot, [\"diff\", \"-z\", \"--name-only\", `${remoteOid}..${localOid}`]);\n}\n```\n\nAfter the branch is updated from the delivery branch, by a rebase onto `origin/master` or by merging `origin/master` into it, that diff also contains every file master changed since the old base. Those files are not part of the PR. `evaluateEnrolledBoundPrePrPush` then requires each present outgoing path to be in `pushBinding.reviewedFileManifest`, and refuses:\n\n```\n❌ deft bound pre-PR push gate: outgoing paths not covered by reviewed pushBinding.\n  Unreviewed: <files merged to master by other PRs>\n  Recovery: deft pre-pr:run (review those paths) then retry push (#5804).\n```\n\nThe suggested recovery does not fix this. A new `pre-pr:run` that reviews the PR's own files still leaves master's files outside the manifest. The ways through today are:\n\n- list other PRs' files as `--reviewed-file`, which records a review that never happened\n- bypass the hook\n- delete the remote branch and push it as new, which picks up the merge-base path but closes an open PR on GitHub\n\n## Why it matters\n\nUpdating a PR branch from the delivery branch is routine: when another PR merges first, and on every behind-rebase that merge-gate and three-axis validation (#4888) ask for. With the gate on, each of those pushes is refused.\n\n## Repro (from the code path; not yet run end to end)\n\n1. Branch `feat/a` changes `src/a.ts`. Complete `deft pre-pr:run` and push. The gate admits it, and the remote has `feat/a` at commit A.\n2. Another PR changing `src/b.ts` merges to `master`.\n3. `git fetch && git rebase origin/master` on `feat/a` gives commit A'. Or use `git merge origin/master`.\n4. Complete `deft pre-pr:run` for A' with `--reviewed-file src/a.ts`.\n5. `git push --force-with-lease`. Outgoing is `git diff A..A'`, which includes `src/b.ts`, so the push is refused with `Unreviewed: src/b.ts`.\n\n## Expected\n\nThe outgoing set for an existing remote branch reflects the PR's own changes: the paths in `merge-base(localOid, origin/<deliveryBranch>)..localOid`, the same base the new-branch path already uses. Files that reached the branch only through the delivery branch were reviewed in their own PRs and should not need a second review. If that merge-base cannot be resolved, keep failing closed as today.\n\n## Related\n\n- #5804 (the gate), #6019 (pin-only classification for the same gate), #4888 (behind-rebase candidate validation)\n\n## Environment\n\n- `@deftai/directive-runtime` 0.129.6, consumer repo using the deposited `.githooks/pre-push` (`pre-pr:run --push-admit`), `requireBoundPrePrPush` unset\n\n## Adoption-blocker evidence (0.129.6)\n\n- **Affected consumer flow / version:** bound pre-PR push (pre-pr:run --push-admit / enrolled gate) after rebase or merge from the delivery branch on `@deftai/directive-runtime` 0.129.6.\n- **Documented alternatives are not reasonable workarounds:** (1) listing other PRs' files as `--reviewed-file` records a review that never happened; (2) bypassing the hook disables the gate; (3) deleting the remote branch and pushing as new closes an open GitHub PR. Suggested `pre-pr:run` recovery does not clear master's files from the outgoing set.\n- **Observed recovery cost:** every routine behind-rebase / merge-from-master push is refused; ship path stalls until one of the unsafe escapes above.\n- **Triage owner / date:** Scott (MScottAdams), 2026-11-10.\r\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6313578272,
+        "origin": "deftai/directive#6172",
+        "id": "github.issue.6313578272"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "254764469bc8424ea9d60e032866d9651db7a613570c4b938d21de20af58193e"
+      },
+      "kind": "story",
+      "swarm": {
+        "conflict_group": "bound-prepr-push-outgoing-remote-tip-vs-merge-base",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "depends_on": [],
+        "file_scope": [
+          "packages/core/src/preflight-gh/pre-push.ts",
+          "packages/core/src/preflight-gh/pre-push.test.ts",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/preflight-gh/pre-push.test.ts --reporter=dot"
+        ],
+        "expected_outputs": [
+          "Feature-branch push after rebase from delivery uses merge-base outgoing and does not refuse delivery-only paths as unreviewed",
+          "Missing delivery tip fails closed without unrelated-ref fallback"
+        ],
+        "missing_traces_justification": "Prefer-A Bound design-critique arc closed ingest-ready; product traces land with the implement PR under Tracking/Refs."
+      }
+    },
+    "id": "github.issue.6313578272",
+    "updated": "2026-11-10T20:53:20Z"
+  }
+}

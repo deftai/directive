@@ -1,0 +1,1055 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4781",
+    "updated": "2026-11-10T20:55:58Z"
+  },
+  "plan": {
+    "title": "bug(grok-build,session): independent validation/review spawn still requires inventing an active product xBRIEF",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(grok-build,session): independent validation/review spawn still requires inventing an active product xBRIEF",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4781",
+      "Overview": "\n\n- Emit process_only plus dest cwd — Approach 1 babysit and independent validation/review Grok spawn_subagent envelopes pass advertised process_only with dest cwd; implement-class never sets it; dest-path stays out of skip class.\n- Name the spawn shape on the card — approach1BabysitterCommands, formatApproach1CheapestAdmissionCard, and review-cycle Approach 1 recipe name that process_only+cwd spawn before register/pr:watch.\n- Bind monitor-only seat shape — emit for stop-at: pr-open + worker_role: review-monitor watch/report seats only; do not blanket-flag the fix-capable greptile poller; hand fixes to an authorized implement owner.\n- Name suppressors in deny — when process_only is present but hasImplementConflictSignal wins (for example drive_to merge-ready), deny naming the suppressing field rather than bare #2885.\n- Relabel recovery option (4) — capability wording for critic, review-monitor, and validation seats (not critic-only).\n- Split dest convention by write need — shared cwd-without-occupy for non-writing monitor/critic seats; one dest per validation seat that writes a report root.\n- Keep write gates separate — specs/report writes stay inventory on requirements posture (#4444); do not fold report roots into the spawn skip class.\n- Leave unmarked zero-eligible on #2885 — unmarked dest-cwd general-purpose at zero eligible keeps No active xBRIEF.\n- Do not mint Approach B — no second advertised spawn class for this gap.\n- Do not claim exclusive-lawful-wait recut — P3 clears when Approach 1 spawn admits; no parent-shell bare pr:watch carve-out as durable fix.",
+      "Labels": "bug, agent-experience, process, grok-build, harness, design-critique:ingest-ready",
+      "UserStory": "As a Grok through-merge parent, I can spawn Approach 1 babysit and independent validation seats with process_only+dest cwd without inventing an active product xBRIEF.",
+      "ImplementationPlan": "Wire Approach 1 babysitter helpers and review-cycle recipe to advertise process_only+dest for watch/report seats; keep implement-class unmarked; name suppressors on deny.",
+      "Acceptance": "1. Emit process_only plus dest cwd — Approach 1 babysit and independent validation/review Grok spawn_subagent envelopes pass advertised process_only with dest cwd; implement-class never sets it; dest-path stays out of skip class.\n2. Name the spawn shape on the card — approach1BabysitterCommands, formatApproach1CheapestAdmissionCard, and review-cycle Approach 1 recipe name that process_only+cwd spawn before register/pr:watch.\n3. Bind monitor-only seat shape — emit for stop-at: pr-open + worker_role: review-monitor watch/report seats only; do not blanket-flag the fix-capable greptile poller; hand fixes to an authorized implement owner.\n4. Name suppressors in deny — when process_only is present but hasImplementConflictSignal wins (for example drive_to merge-ready), deny naming the suppressing field rather than bare #2885.\n5. Relabel recovery option (4) — capability wording for critic, review-monitor, and validation seats (not critic-only).\n6. Split dest convention by write need — shared cwd-without-occupy for non-writing monitor/critic seats; one dest per validation seat that writes a report root.\n7. Keep write gates separate — specs/report writes stay inventory on requirements posture (#4444); do not fold report roots into the spawn skip class.\n8. Leave unmarked zero-eligible on #2885 — unmarked dest-cwd general-purpose at zero eligible keeps No active xBRIEF.\n9. Do not mint Approach B — no second advertised spawn class for this gap.\n10. Do not claim exclusive-lawful-wait recut — P3 clears when Approach 1 spawn admits; no parent-shell bare pr:watch carve-out as durable fix."
+    },
+    "items": [
+      {
+        "title": "Emit process_only plus dest cwd — Approach 1 babysit and independent validation/review Grok spawn_subagent envelopes pass advertised process_only with dest cwd; implement-class never sets it; dest-path stays out of skip class.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Emit process_only plus dest cwd — Approach 1 babysit and independent validation/review Grok spawn_subagent envelopes pass advertised process_only with dest cwd; implement-class never sets it; dest-path stays out of skip class.",
+          "Traces": "#4781"
+        }
+      },
+      {
+        "title": "Name the spawn shape on the card — approach1BabysitterCommands, formatApproach1CheapestAdmissionCard, and review-cycle Approach 1 recipe name that process_only+cwd spawn before register/pr:watch.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Name the spawn shape on the card — approach1BabysitterCommands, formatApproach1CheapestAdmissionCard, and review-cycle Approach 1 recipe name that process_only+cwd spawn before register/pr:watch.",
+          "Traces": "#4781"
+        }
+      },
+      {
+        "title": "Bind monitor-only seat shape — emit for stop-at: pr-open + worker_role: review-monitor watch/report seats only; do not blanket-flag the fix-capable greptile poller; hand fixes to an authorized implement owner.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Bind monitor-only seat shape — emit for stop-at: pr-open + worker_role: review-monitor watch/report seats only; do not blanket-flag the fix-capable greptile poller; hand fixes to an authorized implement owner.",
+          "Traces": "#4781"
+        }
+      },
+      {
+        "title": "Name suppressors in deny — when process_only is present but hasImplementConflictSignal wins (for example drive_to merge-ready), deny naming the suppressing field rather than bare #2885.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Name suppressors in deny — when process_only is present but hasImplementConflictSignal wins (for example drive_to merge-ready), deny naming the suppressing field rather than bare #2885.",
+          "Traces": "#4781"
+        }
+      },
+      {
+        "title": "Relabel recovery option (4) — capability wording for critic, review-monitor, and validation seats (not critic-only).",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Relabel recovery option (4) — capability wording for critic, review-monitor, and validation seats (not critic-only).",
+          "Traces": "#4781"
+        }
+      },
+      {
+        "title": "Split dest convention by write need — shared cwd-without-occupy for non-writing monitor/critic seats; one dest per validation seat that writes a report root.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Split dest convention by write need — shared cwd-without-occupy for non-writing monitor/critic seats; one dest per validation seat that writes a report root.",
+          "Traces": "#4781"
+        }
+      },
+      {
+        "title": "Keep write gates separate — specs/report writes stay inventory on requirements posture (#4444); do not fold report roots into the spawn skip class.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Keep write gates separate — specs/report writes stay inventory on requirements posture (#4444); do not fold report roots into the spawn skip class.",
+          "Traces": "#4781"
+        }
+      },
+      {
+        "title": "Leave unmarked zero-eligible on #2885 — unmarked dest-cwd general-purpose at zero eligible keeps No active xBRIEF.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Leave unmarked zero-eligible on #2885 — unmarked dest-cwd general-purpose at zero eligible keeps No active xBRIEF.",
+          "Traces": "#4781"
+        }
+      },
+      {
+        "title": "Do not mint Approach B — no second advertised spawn class for this gap.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Do not mint Approach B — no second advertised spawn class for this gap.",
+          "Traces": "#4781"
+        }
+      },
+      {
+        "title": "Do not claim exclusive-lawful-wait recut — P3 clears when Approach 1 spawn admits; no parent-shell bare pr:watch carve-out as durable fix.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Do not claim exclusive-lawful-wait recut — P3 clears when Approach 1 spawn admits; no parent-shell bare pr:watch carve-out as durable fix.",
+          "Traces": "#4781"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "grok-build",
+      "harness",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4781",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4781: bug(grok-build,session): independent validation/review spawn still requires inventing an active product xBRIEF"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3080",
+        "type": "x-xbrief/closes",
+        "title": "Issue #3080"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4421",
+        "type": "x-xbrief/closes",
+        "title": "Issue #4421"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 10 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(grok-build,session): independent validation/review spawn still requires inventing an active product xBRIEF",
+        "Emit process_only plus dest cwd — Approach 1 babysit and independent validation/review Grok spawn_subagent envelopes pass advertised process_only with dest cwd; implement-class never sets it; dest-path stays out of skip class.",
+        "Name the spawn shape on the card — approach1BabysitterCommands, formatApproach1CheapestAdmissionCard, and review-cycle Approach 1 recipe name that process_only+cwd spawn before register/pr:watch.",
+        "Bind monitor-only seat shape — emit for stop-at: pr-open + worker_role: review-monitor watch/report seats only; do not blanket-flag the fix-capable greptile poller; hand fixes to an authorized implement owner.",
+        "Name suppressors in deny — when process_only is present but hasImplementConflictSignal wins (for example drive_to merge-ready), deny naming the suppressing field rather than bare #2885.",
+        "Relabel recovery option (4) — capability wording for critic, review-monitor, and validation seats (not critic-only).",
+        "Split dest convention by write need — shared cwd-without-occupy for non-writing monitor/critic seats; one dest per validation seat that writes a report root.",
+        "Keep write gates separate — specs/report writes stay inventory on requirements posture (#4444); do not fold report roots into the spawn skip class.",
+        "Leave unmarked zero-eligible on #2885 — unmarked dest-cwd general-purpose at zero eligible keeps No active xBRIEF.",
+        "Do not mint Approach B — no second advertised spawn class for this gap.",
+        "Do not claim exclusive-lawful-wait recut — P3 clears when Approach 1 spawn admits; no parent-shell bare pr:watch carve-out as durable fix."
+      ],
+      "admitted_source_sentences": [
+        "Emit process_only plus dest cwd — Approach 1 babysit and independent validation/review Grok spawn_subagent envelopes pass advertised process_only with dest cwd; implement-class never sets it; dest-path stays out of skip class.",
+        "Name the spawn shape on the card — approach1BabysitterCommands, formatApproach1CheapestAdmissionCard, and review-cycle Approach 1 recipe name that process_only+cwd spawn before register/pr:watch.",
+        "Bind monitor-only seat shape — emit for stop-at: pr-open + worker_role: review-monitor watch/report seats only; do not blanket-flag the fix-capable greptile poller; hand fixes to an authorized implement owner.",
+        "Name suppressors in deny — when process_only is present but hasImplementConflictSignal wins (for example drive_to merge-ready), deny naming the suppressing field rather than bare #2885.",
+        "Relabel recovery option (4) — capability wording for critic, review-monitor, and validation seats (not critic-only).",
+        "Split dest convention by write need — shared cwd-without-occupy for non-writing monitor/critic seats; one dest per validation seat that writes a report root.",
+        "Keep write gates separate — specs/report writes stay inventory on requirements posture (#4444); do not fold report roots into the spawn skip class.",
+        "Leave unmarked zero-eligible on #2885 — unmarked dest-cwd general-purpose at zero eligible keeps No active xBRIEF.",
+        "Do not mint Approach B — no second advertised spawn class for this gap.",
+        "Do not claim exclusive-lawful-wait recut — P3 clears when Approach 1 spawn admits; no parent-shell bare pr:watch carve-out as durable fix."
+      ],
+      "admitted_source_digest": "95ec91377d50d85cc75b1cc69fc0bc4df784ee53bdf88b18ef0ad396d841dc9b",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Emit process_only plus dest cwd — Approach 1 babysit and independent validation/review Grok spawn_subagent envelopes pass advertised process_only with dest cwd; implement-class never sets it; dest-path stays out of skip class.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Name the spawn shape on the card — approach1BabysitterCommands, formatApproach1CheapestAdmissionCard, and review-cycle Approach 1 recipe name that process_only+cwd spawn before register/pr:watch.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Bind monitor-only seat shape — emit for stop-at: pr-open + worker_role: review-monitor watch/report seats only; do not blanket-flag the fix-capable greptile poller; hand fixes to an authorized implement owner.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Name suppressors in deny — when process_only is present but hasImplementConflictSignal wins (for example drive_to merge-ready), deny naming the suppressing field rather than bare #2885.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Relabel recovery option (4) — capability wording for critic, review-monitor, and validation seats (not critic-only).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Split dest convention by write need — shared cwd-without-occupy for non-writing monitor/critic seats; one dest per validation seat that writes a report root.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Keep write gates separate — specs/report writes stay inventory on requirements posture (#4444); do not fold report roots into the spawn skip class.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Leave unmarked zero-eligible on #2885 — unmarked dest-cwd general-purpose at zero eligible keeps No active xBRIEF.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Do not mint Approach B — no second advertised spawn class for this gap.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Do not claim exclusive-lawful-wait recut — P3 clears when Approach 1 spawn admits; no parent-shell bare pr:watch carve-out as durable fix.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/swarm/approach1-babysitter.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/skills/deft-directive-swarm/references/host-grok-build.md",
+          "packages/core/src/swarm/approach1-babysitter.test.ts",
+          "packages/core/src/hooks/dispatcher.test.ts"
+        ],
+        "module_boundary": "packages/core/src/swarm"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because unmarked Grok spawn_subagent with dest cwd and zero eligible active briefs still fail-closes #2885 (No active xBRIEF), so independent validation/review cannot launch without inventing and activating a product-shaped story brief.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\Mini-Slayer\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4781-dc\norigin-ref: origin/master\ndispatch-sha: f33b8b8e24c9746d02f66532bd1815271771e969\n\ncharter: refutation\nspend: N=1\nspend-ask: asked\nspend-why: operator answered 1 after the missing-token ask; yolo standing for all five single-issue arcs, now parallelized.\n\nrefutation-target: independent validation/review spawn on Grok still requires an active product xBRIEF because unmarked dest-cwd general-purpose with zero eligible briefs is #2885.\n\ntarget: #4781\ntarget-shape: single-issue (default)\naudit-targets: none\n\npain: P1\n\n## Gate stamp\n\nP1 is the NoteTechnic /phase-validate path on 0.119.2: operators had to xbrief:create, promote, activate, and preflight a fake product brief before any validator could spawn; then could not scope:complete without a merge commit. Deny text: No active xBRIEF artifact was found under xbrief/active/.\n\nPin-read at dispatch-sha f33b8b8e24c9746d02f66532bd1815271771e969:\n\n- packages/core/src/hooks/dispatcher.ts spawn with no write target still requires scope (#2885 comment at 1925). 0 eligible is the missing-active message in hooks/scope.ts:190-191. 1 eligible + dest cwd is implement-class dest-lock; 2+ is Deny 1.\n- process_only skip (spawn-process-only-ready) admits dest cwd at zero, one, or many leftover eligible briefs and does not require an active story. Advertised spawn_subagent JSON omits that field (upstream schema ask; #4315). Unmarked dest-cwd general-purpose is never that skip class.\n- Closed #3080 / #3259 / #4444 are other hosts/postures. #4421 is complete-vs-merge after the invented brief.\n- CHANGELOG Unreleased at this SHA has no validation-spawn posture recut.\n\nInventory: explore/plan seats, session:start --read-only, requirements posture #4444. Do not treat process_only critic skip as the validation-write allowlist under specs/**-validation-pass*. No implement and no ingest from this parent.\n\n",
+          "id": 5735398070,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-5735398070",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T19:52:12Z",
+          "updated_at": "2026-09-18T19:52:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRefutation-target: independent validation/review spawn on Grok still requires an active product xBRIEF because unmarked dest-cwd general-purpose with zero eligible briefs is #2885.\n\n## Verdict\n\nThe mechanism half stands. Unmarked dest-cwd `general-purpose` at 0 eligible still fail-closes spawn with the missing-active text. I could not refute that for native `spawn_subagent`. The consequence half overstates \"product xBRIEF\" and folds a write problem into a spawn problem.\n\n## 1. Dest-cwd cannot be the skip class\n\nblocks-the-design\n\nEvidence: `isProcessOnlyCriticSpawn` requires `plan` or `process_only`; dest-path is not a class (`packages/core/src/hooks/readonly.ts`). Fixture `does not skip on dest-path cwd without process_only` passed. Dispatcher recovery names dest-path as not that class. Pin at dispatch-sha f33b8b8e: do not skip #2885 on destProven.\n\nFailure mode: binding issue Expected \"spawn_subagent with dest worktrees\" without a host-visible marker would skip #2885 on destProven and treat every dest-cwd general-purpose as validation.\n\nDisposition: a bindable map must keep dest-path out of skip class. The marker stays host-visible (`process_only` or a new advertised field). Implement-class never sets it.\n\n## 2. Spawn without xBRIEF and specs writes are different gates\n\nsharpens-framing\n\nEvidence: requirements posture (#4444) is `!isSpawnTool` then `write-requirements-ready`. Allow paths already include `specs/**`; deny includes `packages/**`, `src/**`, `cmd/**` (`packages/core/src/session/posture.ts`). Tests passed: allows docs/REQUIREMENTS.md after occupancy without ritual or scope; denies packages writes. Spawn tools never take that branch.\n\n`process_only` spawn is `spawn-process-only-ready` with no dest occupancy and no leftover `file_scope`. Child writes still hit mutation gates. Assist-scratch is `.deft-scratch/` and `temp/`, not `specs/`.\n\nFailure mode: binding a new `specs/**-validation-pass*` write class as the P1 remedy leaves native spawn denied. Binding process_only as the specs write allowlist lets spawn through and still denies tracked specs writes without occupancy plus requirements posture.\n\nDisposition: state two clauses. P1 is writing-capable spawn without a passable skip-class field. Specs writes after occupancy already exist on requirements posture. Do not mint a second specs fence unless child occupancy and posture are named.\n\n## 3. Native advertised spawn has no writing skip class\n\nsharpens-framing\n\nEvidence: this host's advertised `spawn_subagent` fields are prompt, description, subagent_type (`general-purpose` | `explore` | `plan`), background, isolation, resume_from, cwd, model. No `process_only`, no `worker_role`. Playbook: pass is the field on stdin; advertised JSON omitting it is an upstream schema ask. `explore` is spawn-explore-ready and read-only. `plan` is skip-class but cannot post (no Shell). Unmarked `general-purpose` at 0 eligible is #2885 (`dispatcher.ts` spawn-has-no-write-target comment; `scope.ts` missing-active message; `still denies spawn when no active scope even without a write target (#2885)` passed on the Cursor Task fixture). CLI `grok --cwd --prompt-file` is already classified process-only skip (#4219); that is not `spawn_subagent`.\n\nFailure mode: a parallel skip-class in the hook, while the advertised JSON still cannot carry a marker, reprints #4315.\n\nDisposition: name the passable field or keep CLI last-resort. Do not add dest-path skip to paper over the schema omit.\n\n## 4. Eligible count is not product-shaped\n\nsharpens-framing\n\nEvidence: `inspectActiveScope` eligibles are preflight-passing active artifacts, not a product-shape predicate. 0 eligible → missing-active #2885. 1 eligible + dest cwd + parent id → implement-class dest-lock and leftover `file_scope`. 2+ → Deny 1. Recovery text already says do not invent a fake scope.\n\nFailure mode: operators mint a dummy story to unlock spawn, then inherit dest-lock and fail `scope:complete` (#4421). A tree with one leftover running brief does not print P1's missing-active text.\n\nDisposition: write \"eligible active xBRIEF\", not \"product xBRIEF\". Validation on leftover-active trees is dest-lock, not this P1.\n\n## Injection / swarm\n\nsharpens-framing\n\nSpawn, dest worktrees, occupancy, and shared dest are in play.\n\n- Prompt, free-text, and dest-path classification is already refused. Keep it refused.\n- A new glob `specs/**-validation-pass*` as a classifier is weaker than the existing requirements fence (`specs/**` plus deny list plus symlink refuse). Path crafting belongs on that fence, not a second glob.\n- N validators as implement-class dest-lock occupy dest and linger leftover `file_scope`. Skip-class shares dest cwd-without-occupy. Validation is the latter, or it is occupancy linger.\n- Implement envelope signals already win over ephemeral markers. Keep that polarity.\n- `isolation=worktree` plus cwd is invalid-extra-destination, not a hatch.\n\n## Road not taken\n\nStrongest rejected position: P1 is already shipped via process_only plus CLI last-resort plus requirements `specs/**` writes.\n\nSteelman: `spawn-process-only-ready` at 0, 1, and many leftover is locked; CLI argv dest-present is the same skip; requirements writes skip ritual and story xBRIEF after occupancy.\n\nWhat would flip: advertised `spawn_subagent` grows a writing skip-class field that operators can actually pass, and the child can take requirements posture with occupancy for `specs/**`. Until then the native writing spawn at 0 eligible stays #2885.\n\n## Inventory (existing, not new)\n\n- explore / plan advertised seats (read-only / no Shell)\n- process_only stdin skip (#4296 / #4315)\n- CLI last-resort grok --cwd (#4219 / #4391)\n- ephemeral/docs/assist spawn (#3080 / #3259); Grok advertised schema has no worker_role\n- session:start --read-only (occupancy/ritual, not spawn skip)\n- requirements posture writes (#4444)\n- assist-scratch `.deft-scratch/` `temp/` (#1802)\n- CHANGELOG Unreleased at f33b8b8e: no validation-spawn recut\n\n## Re-verification\n\nRan vitest at dispatch-sha f33b8b8e against this dest. Passed: unmarked spawn #2885 deny; dest-path is not skip class; process_only lander; requirements posture write tests. dest-proven Grok fixture file (`dispatcher-spawn-dest.test.ts`) had 21 failures on this host: dest classified destination-foreign (Windows worktree path) before the #2885 message. That is a fixture-env miss, not a recut of the source comment at `dispatcher.ts:1925`.\n\nClosed #3080 / #3259 / #4444 remain other hosts/postures for spawn. They are not this Grok writing-spawn hole.",
+          "id": 5735518259,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-5735518259",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:02:56Z",
+          "updated_at": "2026-09-18T20:02:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nUnmarked dest-cwd general-purpose at zero eligible briefs still fail-closes #2885. Dest path is not a skip class. Spawn without an xBRIEF and specs writes are different gates. Native advertised spawn_subagent has no writing skip-class field operators can pass. Eligible count is not product-shaped. Native writing spawn at zero eligible stays unmet on this number until a passable field exists.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: recut Expected; leftover native skip-class field. Disposition: classified headings accept-into-contract. Residual: unrelieved P1 until a leftover issue is filed.\nSpec-path: next-build contract is not this body.\n\n**Lean:** #4781 validation spawn after critic 5735518259. Cites critic 5735518259. Supersedes write-back 5735398070.\n\nTarget-digest: sha256:36d3250395af0bfa07db9f952b85f77b966a6e43734e750e5ff7687ef96414b3\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: C:\\\\Users\\\\Mini-Slayer\\\\.grok\\\\worktrees\\\\deft-directive\\\\issue-4781-dc\norigin-ref: origin/master\ndispatch-sha: f33b8b8e24c9746d02f66532bd1815271771e969\ntarget shape: single-issue\n\nTakes:\n\n- 5735518259 1 Dest-cwd cannot be the skip class — accept-into-contract\n- 5735518259 2 Spawn without xBRIEF and specs writes are different gates — accept-into-contract\n- 5735518259 3 Native advertised spawn has no writing skip class — accept-into-contract\n- 5735518259 4 Eligible count is not product-shaped — accept-into-contract\n\ndoes-not-relieve: P1\n\n## Bound remedy\n\n- Keep dest-path out of skip class. The marker stays host-visible (process_only or a new advertised field). Implement-class never sets it.\n- State two clauses: writing-capable spawn without a passable skip-class field is P1; specs writes after occupancy already exist on requirements posture. Do not mint a second specs glob as the spawn remedy.\n- Write eligible active xBRIEF, not product xBRIEF.\n- Leftover recommended: file a new issue for an advertised spawn_subagent writing skip-class field operators can actually pass. Yolo standing does not confirm that split.\n\n",
+          "id": 5735576144,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-5735576144",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:08:11Z",
+          "updated_at": "2026-09-18T20:08:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nNative writing spawn at zero eligible briefs stays unmet. This map recuts Expected so dest-path is not skip class and spawn versus specs writes stay two gates. It does not close P1. Leftover recommended: a new issue for an advertised spawn_subagent writing skip-class field. Yolo standing does not confirm that split.\n\nThis is not an instruction to a later builder.\n\nopen-question: file a leftover issue for an advertised spawn_subagent writing skip-class field operators can actually pass?\n\nHandoff because does-not-relieve P1 plus Spec-path on successor lean 5735576144.\n\n\n",
+          "id": 5735580987,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-5735580987",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:08:40Z",
+          "updated_at": "2026-09-18T20:08:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nNative writing spawn at zero eligible briefs is leftover #4794. This number recuts Expected so dest-path is not skip class and spawn versus specs writes stay two gates. It does not close the missing advertised skip-class field.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Operator confirmed leftover split as a live turn.\n\nForward verdict: recut remainder. Disposition: classified headings accept-into-contract. Residual: audit:pain-P1 deferred to #4794.\nSpec-path: next-build contract is not this body.\n\n**Lean:** remainder of #4781 after leftover #4794. Cites critic 5735518259. Supersedes lean 5735576144.\n\nTarget-digest: sha256:36d3250395af0bfa07db9f952b85f77b966a6e43734e750e5ff7687ef96414b3\n\narc-mode: no-ingest\nyolo-standing: yes\nleftover-issue: 4794\ndest: C:\\Users\\Mini-Slayer\\.grok\\worktrees\\deft-directive\\issue-4781-dc\norigin-ref: origin/master\ndispatch-sha: f33b8b8e24c9746d02f66532bd1815271771e969\ntarget shape: single-issue\n\nTakes:\n\n- 5735518259 classified headings — accept-into-contract\n\noperator-deferred: P1 #4794\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=f33b8b8e24c9746d02f66532bd1815271771e969 pointer=comment:5735518259 leftover=4794 reading=measured\n\n## Bound remedy\n\n- Keep dest-path out of skip class. The marker stays host-visible. Implement-class never sets it.\n- State two clauses: writing-capable spawn without a passable skip-class field is leftover #4794; specs writes after occupancy already exist on requirements posture.\n- Write eligible active xBRIEF, not product xBRIEF.\n- Do not claim native validation spawn closed on this number. That remainder is #4794.",
+          "id": 5735892758,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-5735892758",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:37:37Z",
+          "updated_at": "2026-09-18T20:37:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\n\nPain-audit of successor lean 5735892758. Dispatch-sha f33b8b8e24c9746d02f66532bd1815271771e969. Ceiling inclusive 5735892758.\n\n## Verdict\n\nLeftover 4794 is a different open issue. Bound-remedy on this lean does not cover P1. The deferred cite is honest. Harvest unchanged.\n\n## 1. Leftover 4794 is a different open issue\n\nfootnote\n\nEvidence: REST `GET repos/deftai/directive/issues/4794` returns number 4794, state open, title native spawn_subagent has no passable writing skip-class field. 4794 is not 4781. Body names leftover of 4781 after critic 5735518259, successor lean 5735576144, and Handoff 5735580987. Lean 5735892758 records `leftover-issue: 4794` and `operator-deferred: P1 #4794`. Same-number leftover is unrelieved-pain; this is not that shape.\n\nFailure mode: parking P1 on 4781 itself, or on a closed number, would leave the Stop 1 pain on a leftover path that cannot bind.\n\nDisposition: different-issue deferred stays the cite. Do not treat 4794 as 4781.\n\n## 2. Bound-remedy does not cover P1\n\nfootnote\n\nEvidence: Bound-remedy on lean 5735892758 is four items: dest-path stays out of skip class; writing-capable spawn without a passable skip-class field is leftover 4794 and specs writes stay on requirements posture; write eligible active xBRIEF; do not claim native validation spawn closed on this number. None add an advertised writing skip-class field.\n\nPin-read at f33b8b8e: `isProcessOnlyCriticSpawn` requires `plan` or `process_only`; dest cwd is not a class (`packages/core/src/hooks/readonly.ts`). Dispatcher comment at 1925: spawn with no write target still requires scope. `scope.ts` 190-191: 0 eligible prints the missing-active text. CHANGELOG Unreleased at this SHA has no validation-spawn recut.\n\nRe-ran tests on files identical to this SHA: dest-path cwd without `process_only` is not skip class; spawn with no write target still denies when no active scope (#2885); `evaluateBoundRemedyCites` accepts deferred cites only for unmet ids and a different issue. This host's advertised spawn_subagent JSON still omits `process_only`. Lean has no operative `relieves: P1`.\n\nFailure mode: an operative `relieves: P1` cite here would close the NoteTechnic /phase-validate spawn hole on 4781 while unmarked dest-cwd general-purpose at 0 eligible remains #2885.\n\nDisposition: P1 stays unmet on this number. Do not recut Bound-remedy into relief. Footnote-only; harvest unchanged.\n\n## Road not taken\n\nStrongest rejected position: recutting Expected (eligible not product; specs writes already exist) covers P1, so this lean should claim relief.\n\nSteelman: Stop 1 P1 was inventing a product brief. The harvest drops \"product xBRIEF\" and points specs writes at #4444.\n\nWhat would flip: advertised spawn_subagent grows a passable writing skip-class field and Bound-remedy on this number ships that field. Until then the remainder is 4794.\n\n",
+          "id": 5735958219,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-5735958219",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:44:33Z",
+          "updated_at": "2026-09-18T20:44:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| operator-deferred: P1 #4794 is a different-issue leftover; this harvest does not relieves native writing spawn | verified | successor lean 5735892758; REST #4794 open; pain-audit 5735958219 footnote-only |\n| Dest-path is not skip class | verified | critic 5735518259; readonly.ts isProcessOnlyCriticSpawn at f33b8b8e |\n| Native advertised skip-class field remainder is #4794 | verified | leftover #4794 body; pain-audit 5735958219 |\n\n",
+          "id": 5735988522,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-5735988522",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:47:44Z",
+          "updated_at": "2026-09-18T20:47:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nNative writing spawn at zero eligible briefs is leftover #4794. Agents agreed this number recuts Expected so dest-path is not skip class. It does not close the missing advertised skip-class field.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 5735892758.\n\n",
+          "id": 5735989963,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-5735989963",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-18T20:47:53Z",
+          "updated_at": "2026-09-18T20:47:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Field note — 0.129.6 release closeout babysit (pin/deposit)\n\nSame **no active xBRIEF** spawn class as this issue, observed while babysitting **process-only** release closeout PRs (not product implement):\n\n1. Parent tried Approach 1 `spawn_subagent` review-monitor for pin PR #6161 / deposit PR #6162.\n2. First deny: SEC-WT / dest worktree required on spawn payload.\n3. After dest worktree: deny **No active xBRIEF artifact was found under xbrief/active/** (same recovery text as this issue).\n4. Fallback: parent-shell `task pr:watch -- <N>`. That was then **bounded-pr-watch-deny** when a host-capability stamp made Tier 1 prove `spawn_subagent` (bare `pr:watch` without `--monitor-agent-id` refused). Clearing the stamp allowed parent-shell watch → CLEAN → merge.\n\n### Why it belongs here\n\nPin/deposit babysit is independent **review/monitor** work with no product story. Requiring an invented active product xBRIEF (or fighting exclusive-lawful-wait vs process-only spawn) is the same ceremony tax this issue names for validation/review seats.\n\n### Acceptance delta to keep on #4781 (do not fork a dup)\n\nWhen this issue ships a first-class independent validation/review spawn class, please include **Approach 1 review-monitor** for process-only PRs (register + `pr:watch --monitor-agent-id` + merge-path-arm) so release closeout babysit does not need a fake product brief or stamp-clear parent-shell carve-out.\n\nRefs: v0.129.6 cut; PRs #6161 #6162; leftover doctrine #5732 / #5727 (adjacent, not a substitute for this spawn-class gap).",
+          "id": 6772438402,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-6772438402",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:08:17Z",
+          "updated_at": "2026-11-10T16:08:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\n#4794 shipped an advertised process_only skip-class field, but release closeout babysit on 0.129.6 still hit No active xBRIEF when spawning Approach 1 review-monitor seats for pin/deposit PRs. Independent validation/review spawn without inventing a product xBRIEF remains open on this number; the field note keeps Approach 1 on the acceptance surface.\n\nThis is a Prefer-A draft for a fresh no-ingest arc after that field note. Critics refute or sharpen; it is not Bound yet.\n\n## Approaches\n\n### Approach A (recommended Prefer-A seed)\nWire Approach 1 review-monitor spawn (and sibling independent validation/review seats) to pass the host-visible process_only / plan skip class with dest cwd, so zero-eligible #2885 does not fire for process-only babysit/validation. Keep dest-path out of skip class. Fail closed on apps/ packages/ product mutation paths. Allowlisted report roots (specs/**-validation-pass*) stay a separate write gate from spawn admission.\n\n### Approach B\nAdd a distinct advertised spawn class (for example review_monitor or validation) that skips active-xBRIEF independently of process_only, with explicit allowlisted write roots and merge-path-arm compatibility. Higher surface area than A.\n\n### Approach C\nDocument that operators must invent/promote a throwaway active brief for Approach 1 and validation. Reject: recreates the ceremony tax this issue names.\n\n## Reject list (draft)\n- Dest-path as skip class (already rejected on prior Prefer-A 5735892758)\n- Parent-shell bare pr:watch carve-out as the durable fix when Tier-1 spawn_subagent is proven (#5727 / #5732 exclusive lawful wait)\n- Claiming #4794 alone closed #4781 Expected for Approach 1 babysit\n\nconflict_group: independent-validation-review-spawn-no-active-xbrief\ntarget-digest: sha256:5b6f20387a19015bb259b86b0e004004cbb21cb349562673ff98eeda399323ab",
+          "id": 6772582957,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-6772582957",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:14:24Z",
+          "updated_at": "2026-11-10T16:14:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because after #4794 shipped process_only, process-only Approach 1 review-monitor spawn for release closeout PRs still fail-closes No active xBRIEF at zero eligible, so independent validation/review seats still cannot launch without inventing a product-shaped active brief.\n\nmechanism-shaped: true\ncharter: open critique\narc-mode: no-ingest\nyolo-standing: yes\nmateriality-bar: open\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\ntarget-digest: sha256:5b6f20387a19015bb259b86b0e004004cbb21cb349562673ff98eeda399323ab\ndispatch-sha: 633ff476f3fdd9f302d81627daa6ddeea32f4baf\ndest: C:\\\\Repos\\\\deft\\\\directive\\\\.deft-scratch\\\\worktrees\\\\arc-4781\norigin-ref: origin/master\nverification-path: pin-read git show 633ff476f3fdd9f302d81627daa6ddeea32f4baf:; dest cwd-without-occupy\nprefer-a-draft: 6772582957\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\n\npain: P1, P2, P3\n\nPain inventory (non-operative prose):\n- P1 Unmarked or non-process_only Grok spawn_subagent for independent validation/review still fail-closes #2885 (No active xBRIEF) at zero eligible briefs\n- P2 Approach 1 review-monitor (register + pr:watch --monitor-agent-id + merge-path-arm) for process-only release closeout PRs hits the same deny after dest worktree (field note 6772438402 on 0.129.6 / PRs #6161 #6162)\n- P3 Fallback parent-shell bare pr:watch then conflicts with exclusive-lawful-wait / bounded-pr-watch-deny when Tier-1 spawn_subagent is proven, forcing stamp-clear carve-outs\n\nPrior arc note: Prefer-A 5735892758 deferred writing skip-class to leftover #4794 (shipped PR #4807). Fresh arc after field note; charter open critique (post-Handoff). Dest-path remains not skip class.\n\n## Plain-language summary\nValidation and Approach 1 babysit still need a fake product story brief to spawn reviewers. #4794 added process_only, but release babysit still hit the wall. Panel should lock how spawn admits those seats without product xBRIEF.",
+          "id": 6772588444,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-6772588444",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:14:38Z",
+          "updated_at": "2026-11-10T16:14:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\nseat-families: grok, claude, codex\ninput-ceiling: 6772655249\ndispatch-sha: 633ff476f3fdd9f302d81627daa6ddeea32f4baf\ndest: C:\\\\Repos\\\\deft\\\\directive\\\\.deft-scratch\\\\worktrees\\\\arc-4781\nverification-path: pin-read git show 633ff476f3fdd9f302d81627daa6ddeea32f4baf:; dest cwd-without-occupy\nlaunch-probe: grok=pong@0 claude=pong@0 codex=pong@0\nspend: N≥3\narc-mode: no-ingest\n\n## Plain-language summary\nThree-family Round-1 panel on #4781 after the 0.129.6 field note. Shared ceiling will be this deposit id once posted.",
+          "id": 6772655249,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-6772655249",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:17:26Z",
+          "updated_at": "2026-11-10T16:17:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nLean: A, with an explicit monitor-only dispatch contract and a separate child write fence. Do not bind a blanket process_only flag onto the current generic review-cycle prompt.\n\nVerification: pin-read git show at 633ff476f3fdd9f302d81627daa6ddeea32f4baf; issue body and the four named comments through ceiling 6772655249 only. No sibling posts, ingest, product edits, or live Grok spawn. Model self-attestation follows the model identity supplied to this session, rather than the envelope's gpt-5 label.\n\n### sharpens-framing — Hook acceptance exists; live host forwarding remains unproved\n\n[Payload contract](https://github.com/deftai/directive/blob/633ff476f3fdd9f302d81627daa6ddeea32f4baf/packages/core/src/hooks/classify/payload.ts#L86-L175) advertises boolean process_only and normalizes camelCase toolInput. [Classifier](https://github.com/deftai/directive/blob/633ff476f3fdd9f302d81627daa6ddeea32f4baf/packages/core/src/hooks/readonly.ts#L365-L417) accepts it on spawn_subagent, with implementation signals winning. [Dispatcher](https://github.com/deftai/directive/blob/633ff476f3fdd9f302d81627daa6ddeea32f4baf/packages/core/src/hooks/dispatcher.ts#L4320-L4376) already admits that class without active scope, subject to dest and routing. Conversely, scope.ts:503 produces the reported zero-eligible denial.\n\nThus process_only is passable in the repository's advertised contract and recognized by its hook. This does not establish that the installed Grok tool schema accepts and forwards it: references to GROK_SPAWN_SUBAGENT_ADVERTISED_JSON are classifier/helper/test references, not evidence of host schema installation. The field note does not include the failed raw payload. Missing marker, stripped marker, or conflicting implementation signal remain distinguishable causes. Consequence: state A as integration repair, and require a representative host request -> observed hook payload -> spawn-process-only-ready trace at zero eligible scopes. Do not claim the field note proves a defect in the already-present classifier, or that another enum fixes host transport.\n\n### blocks-the-design — The canonical Approach 1 prompt also authorizes implementation\n\n[Approach 1 step 1](https://github.com/deftai/directive/blob/633ff476f3fdd9f302d81627daa6ddeea32f4baf/content/skills/deft-directive-review-cycle/SKILL.md#L728) mandates the canonical poller prompt. [That prompt](https://github.com/deftai/directive/blob/633ff476f3fdd9f302d81627daa6ddeea32f4baf/content/templates/swarm-greptile-poller-prompt.md#L45) explicitly assigns BOTH polling and fixing P0/P1 findings. Neither this dispatch instruction nor the template supplies process_only. The admission card in packages/core/src/swarm/approach1-babysitter.ts:46-79 describes register/watch/verify, but does not build a flagged spawn payload.\n\nA process-only PR does not make every action of its reviewer process-only. Simply adding the flag to this generic prompt either strands the child at its first fix or invites an implementation task through the non-lifecycle spawn path. Consequence: A cannot bind as a blanket Approach 1 change. Give monitor-only seats a bounded watch/report contract; findings hand back for separately authorized fixes. Keep implementation-owning review-cycle workers on their existing implementation path. Preserve register, child --monitor-agent-id, live-wait/merge-path-arm and parent post-CLEAN closeout; do not clear Tier-1 stamps as recovery.\n\n### blocks-the-design — Spawn admission does not supply the promised report-write authority\n\n[Existing scratch gate](https://github.com/deftai/directive/blob/633ff476f3fdd9f302d81627daa6ddeea32f4baf/packages/core/src/hooks/dispatcher.ts#L906-L981) allows .deft-scratch/ and temp/ only with assist/ephemeral posture; process_only is not that posture and specs/**-validation-pass* is not in those roots. The spawn branch returns an admission decision, not a persistent child write policy. Merely retaining a general product gate also does not demonstrate confinement when an unrelated eligible story is present.\n\nFailure mode: validation spawns successfully but cannot emit its requested report; loosening ordinary scope gates to unblock it risks product writes or cross-story authority. Consequence: bind the separate write gate as an actual mechanism, including child-context propagation, rather than assuming the flag confers it. Reuse existing containment checks. Verify allowed reports and denied product writes relative to the child worktree, including a worktree nested below .deft-scratch, path traversal/symlink escape, and an unrelated active story. Untrusted review text must not promote a monitor into a fixer or choose arbitrary allowed roots.\n\n## Bound remedy\n\n- Wire a monitor-only/validation dispatch producer to the existing process_only + linked dest contract; preserve conflict precedence and verify actual Grok payload forwarding.\n- Bind child report/scratch writes to a narrow, contained non-product policy independent of active-story selection.\n- Compose that spawn with existing register -> child-bound watch -> live merge arm; hand implementation findings to an authorized fix owner.\n\nRoad not taken: B could provide a clearer named capability with explicit child confinement. It wins only if the existing process_only transport/child-context contract cannot carry this bounded behavior without broadening unrelated critic permissions. A new name alone provides no extra enforcement. C recreates the reported lifecycle pollution and is rejected. No claim of panel completeness or relief audit is made.\n\n",
+          "id": 6772792957,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-6772792957",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:23:06Z",
+          "updated_at": "2026-11-10T16:23:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nOpen critique of Prefer-A draft 6772582957 after field note 6772438402 / Stop 1 6772588444. Ceiling inclusive 6772655249. Dispatch-sha 633ff476f3fdd9f302d81627daa6ddeea32f4baf.\n\n## Verdict\n\nLean Approach A. Host-visible process_only is already passable on advertised spawn_subagent and already admits spawn-process-only-ready at zero eligible. Approach 1 babysit spawn does not pass that field today, so release closeout still prints No active xBRIEF after dest is set. Bound A must name that production omit and a watch/report seat contract for process-only PRs; do not mint Approach B for a missing schema field.\n\n## 1. process_only is passable; unmarked Approach 1 is the miss\n\nsharpens-framing\n\nEvidence: packages/core/src/hooks/classify/payload.ts GROK_SPAWN_SUBAGENT_ADVERTISED_JSON lists boolean process_only; grokSpawnAdvertisedWritingSkipClass returns process_only (#4794 / PR #4807). packages/core/src/hooks/readonly.ts isProcessOnlyCriticSpawn honors plan or process_only on Grok spawn_subagent; dest-path is not a class; implement conflict is envelope fields only, never prompt text. packages/core/src/hooks/dispatcher.ts admits that class as spawn-process-only-ready and skips dest occupancy, ritual, and active-xBRIEF. Field note 6772438402: after dest worktree, deny was No active xBRIEF — the unmarked #2885 path in hooks/scope.ts — which matches spawn with cwd and without process_only.\n\nFailure mode: treating Prefer-A as a new skip-class / Approach B schema while the advertised field already exists reprints #4794 and leaves Approach 1 unmarked.\n\nDisposition: Approach A binds as wiring of the existing field. Stop 1 P1 stays unmarked or non-process_only callers. Do not reopen B for missing advertised JSON.\n\n## 2. Approach 1 helpers omit process_only; fix-capable poller is the wrong seat for field-note babysit\n\nblocks-the-design\n\nEvidence: packages/core/src/swarm/approach1-babysitter.ts approach1BabysitterCommands and formatApproach1CheapestAdmissionCard list register + pr:watch --monitor-agent-id + merge-path-arm verify only. They never name process_only or the spawn_subagent tool_input that must carry it. content/skills/deft-directive-review-cycle/SKILL.md Approach 1 spawn steps likewise omit the flag. content/templates/swarm-greptile-poller-prompt.md assigns BOTH polling and fixing P0/P1. content/docs/grok-build-subscription-setup.md already requires general-purpose plus process_only plus dest cwd for native process-only seats; plan cannot Shell. Field note P2 is process-only release closeout babysit under exclusive-lawful-wait pressure.\n\nFailure mode: Binding Approach A as “add process_only to the existing fix-capable poller” leaves P2 unmet — parents keep spawning unmarked general-purpose, hit #2885, then fall into P3 stamp-clear bare pr:watch; or the child admits then attempts product fixes that the process-only PR seat must not own.\n\nDisposition: Prefer-A Bound must include mechanism limbs that (1) Approach 1 / independent validation-review spawn envelopes pass advertised process_only with dest cwd (implement-class never sets it), (2) approach1BabysitterCommands / cheapest-admission card / review-cycle Approach 1 recipe name that spawn shape, and (3) process-only PR babysit uses a watch/report child contract (register + child pr:watch + merge-path-arm) with fixes handed to an authorized implement owner. Prose-only A cannot bind.\n\n## 3. Keep spawn admission and write gates as two clauses\n\nsharpens-framing\n\nEvidence: Prior Prefer-A 5735892758 accepted spawn-without-xBRIEF versus specs writes as separate gates. Approach A draft already keeps allowlisted report roots as a separate write gate. process_only + general-purpose can Shell (critics post; babysit needs pr:watch). Requirements posture #4444 still owns specs/** writes after occupancy. Assist-scratch is not specs/.\n\nFailure mode: Folding specs/**-validation-pass* into the spawn skip class makes process_only a write allowlist and weakens the requirements fence.\n\nDisposition: Bound A keeps two clauses. Babysit seats: process_only + general-purpose + dest cwd + Shell for pr:watch. Validation report writes: separate write gate after occupancy. Do not mint a second specs glob as the spawn remedy.\n\n## 4. P3 is consequence of unmarked spawn, not a new exclusive-wait recut\n\nsharpens-framing\n\nEvidence: Field note step 4 fell to parent-shell pr:watch then bounded-pr-watch-deny under Tier-1 stamp (#5727 / #5732 adjacent). Prefer-A reject list already refuses parent-shell bare pr:watch as the durable fix.\n\nFailure mode: Absorbing exclusive-lawful-wait into this Bound widens blast radius past the spawn-class gap.\n\nDisposition: Relieving P2 via A removes this class trigger for P3. Cite operator-deferred or adjacent for #5732 interception leftover. Do not claim this Bound recuts exclusive lawful waits.\n\n## Injection / swarm\n\nsharpens-framing\n\nSpawn, dest worktrees, occupancy, and shared dest are in play. Keep dest-path out of skip class. Keep prompt/free-text classification refused. Implement envelope signals win over skip markers. N process-only babysitters share dest cwd-without-occupy; unique dest-lock stays implement-class.\n\n## Road not taken\n\nStrongest rejected: Approach B (new review_monitor / validation spawn class).\n\nSteelman: a distinct class makes merge-path-arm and write roots explicit without overloading process_only.\n\nWhat would flip: evidence that process_only + cwd cannot admit Approach 1 (Shell/pr:watch) or that host schema cannot carry the flag after #4794. Tree-read shows the opposite for Directive advertised JSON and dispatcher admission.\n\nReject C: inventing throwaway active briefs recreates the ceremony tax.\n\n## Inventory (existing)\n\n- Advertised process_only skip-class (#4794 / PR #4807)\n- spawn-process-only-ready at 0/1/many leftover (#4296 / #4315)\n- approach1BabysitterCommands / cheapest-admission card (omit process_only today)\n- review-cycle Approach 1 skill path + greptile poller template (omit process_only; fix-capable)\n- requirements posture specs writes (#4444)\n- exclusive lawful waits (#5727); undeclared-shell leftover (#5732)\n\n## Re-verification\n\nVerification-path called for pin-read git show 633ff476…:; dest Shell/Write were fail-closed (missing node_modules/@deftai/directive-runtime in arc-4781; #6142-class). Tree-read of dispatcher.ts, readonly.ts, scope.ts, classify/payload.ts, approach1-babysitter.ts, swarm-greptile-poller-prompt.md at this dest. Live host tool schema not re-probed this seat.\n\n## Proposed remedy lean\n\nPrefer Approach A. Bound thin (mechanism limbs only):\n\n## Bound remedy (proposed)\n\n- Approach 1 and independent validation/review Grok spawn_subagent envelopes pass advertised process_only with dest cwd; implement-class never sets process_only; dest-path stays out of skip class.\n- approach1BabysitterCommands, formatApproach1CheapestAdmissionCard, and review-cycle Approach 1 recipe name that process_only+cwd spawn shape before register/pr:watch.\n- Process-only PR babysit uses a watch/report child contract; fix batches stay on an authorized implement owner.\n- Unmarked dest-cwd general-purpose at zero eligible keeps #2885.\n- Specs/report writes stay a separate write gate from spawn admission; babysit uses process_only+general-purpose so Shell can run pr:watch.\n- Do not claim this Bound recuts exclusive-lawful-wait; P3 for this class clears when Approach 1 spawn admits.",
+          "id": 6772890467,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-6772890467",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:27:12Z",
+          "updated_at": "2026-11-10T16:27:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nPin-read verification at 633ff476f3fdd9f302d81627daa6ddeea32f4baf (`git show <sha>:`), dest cwd-without-occupy. No ingest, no product mutation.\n\n## Charter answer first\n\n**Is host-visible `process_only` passable on `spawn_subagent`?** Yes, and it already does everything the Prefer-A seed asks admission to do. `dispatcher.ts:4320-4374` runs the process-only branch after the explore branch and before the ephemeral branch: on a host-visible marker it returns `spawn-process-only-ready`, and the comment above it records the skip set as \"Dest occupancy, ritual, and active-xBRIEF skip.\" `readonly.ts:373-405` (`isProcessOnlyCriticSpawn`) accepts `subagent_type: plan` or the advertised `process_only` flag on the Grok spawn tool; `processOnlyCriticRequiresDest` (`readonly.ts:409-418`) adds the dest-cwd requirement for the flag form.\n\n**Does Approach 1 babysit spawn use it?** No, nowhere. `git grep process_only` at the dispatch SHA returns zero hits under `packages/core/src/review-monitor/`, `packages/core/src/swarm/approach1-babysitter.ts`, `packages/core/src/pr-watch/`, and zero hits under `content/skills/` entirely. `formatApproach1BabysitterOneLiner` (`review-monitor/verify.ts:357-369`) emits only the child's three shell commands — register, `pr:watch --monitor-agent-id`, parent `verify --merge-path-arm` — and never names a spawn-payload marker. `deft-directive-review-cycle/SKILL.md:74` tells babysit workers to use `worker_role: review-monitor`, which is not in `EPHEMERAL_ROLE_MARKERS` and is not a skip class, so the payload falls through to #2885. That is P2's exact mechanism, and it locates the fix in the emitting callers and the skill text, not in the hook.\n\n## sharpens-framing — the class is live *and already advertised in the deny*; the defect is that it is labelled by role, not capability\n\nThe #2885 spawn recovery at `dispatcher.ts:2452-2462` already prints: \"(4) Process-only critic — spawn with structural `subagent_type` plan or `process_only` (Grok PreToolUse stdin). Dest-path is not that class.\" The operator in field note 6772438402 had that text on screen at step 3 and still went to parent-shell `pr:watch`.\n\nFailure mode: an operator spawning a release-closeout review-monitor, or a `/phase-validate` seat, does not self-identify as a \"critic\". A live, documented, zero-ceremony admission path reads as inapplicable because option (4) is named after the seat that happened to motivate it (#4241 / #4296 were critic arcs). Reinforcing evidence: `process_only` appears in exactly two content files at this SHA — `contracts/design-critique.md:69` and `docs/grok-build-subscription-setup.md:200` — both design-critique doctrine. The swarm and review-cycle skills, which are where babysit and validation operators actually read, never mention it.\n\nDisposition consequence: this reframes P1/P2 from \"a spawn class is missing\" to \"a live spawn class has no affordance for two of its three legitimate audiences.\" It is decisive against Approach B — a second advertised class would duplicate an admitted one and split the deny text — and it narrows Approach A from \"wire process_only into spawn\" (already wired) to \"emit the marker from the Approach 1 and validation callers, and relabel the recovery by capability.\"\n\n## blocks-the-design — Approach A as drafted silently fails on the other sanctioned babysit shape\n\n`isProcessOnlyCriticSpawn` ends with `return !hasImplementConflictSignal(toolInput, input)` (`readonly.ts:405`). `hasImplementConflictSignal` (`readonly.ts:173-193`) treats `drive_to` equal to `merge`, `merge-ready`, or any `merge-` prefix as an implement conflict that defeats the marker.\n\n`deft-directive-review-cycle/SKILL.md:74` sanctions **two** babysit payload shapes: \"Cloud babysit workers use `worker_role: review-monitor` (or `drive-to: merge-ready` implementation workers that own the review cycle).\"\n\nFailure mode: an operator on the second shape sets `process_only: true`, the marker is dropped with no trace, the payload falls through to the identical #2885 deny, and recovery option (4) instructs them to pass the marker they just passed. Nothing in the deny names `drive_to` as the suppressing field. That is a closed loop with no exit except abandoning the path — which is what the field note records happening.\n\nDisposition consequence: the Prefer-A seed says \"wire Approach 1 review-monitor spawn … to pass the host-visible process_only / plan skip class\" without naming a variant, so as written it binds a remedy that works for one of the two sanctioned shapes and dead-ends on the other. Bound must pick the `stop-at: pr-open` + `worker_role: review-monitor` shape explicitly, and the present-but-suppressed case must deny with the suppressing field named.\n\n## blocks-the-design — shared process-only dest collides with the write gate for validation seats\n\n`contracts/design-critique.md:69` fixes the process-only convention as \"N>1 process-only critics share that dest with cwd-without-occupy,\" and `dispatcher.ts:4320-4322` confirms the admission skips dest occupancy. That is sound for critics and for monitors, which write nothing to the tree.\n\nValidation seats do write. The issue's Expected names writes under `specs/**-validation-pass*`. The gate that admits them, `write-requirements-ready` (`dispatcher.ts:2086-2110`), is reached **only after** the occupancy gate, which denies `occupancy-occupied` at `dispatcher.ts:2069-2078`.\n\nFailure mode: `/phase-validate` fans N validation seats onto one shared process-only dest. All N are admitted at spawn. Exactly one can hold occupancy in that worktree. Seats 2..N take `occupancy-occupied` when they write their report — after admission succeeded, which is the worst place to discover it, because the ceremony this issue complains about has already been paid in agent-minutes.\n\nDisposition consequence: the two seat kinds this issue merges have opposite dest requirements. Approach A's line \"allowlisted report roots stay a separate write gate from spawn admission\" is correct and insufficient: separating the gates does not resolve that one marker would carry two incompatible dest/occupancy conventions. Bound must state the split — shared cwd-without-occupy for non-writing monitor and critic seats, one dest per writing validation seat.\n\n## sharpens-framing — the write half of Expected is already shipped; do not buy it twice\n\n`REQUIREMENTS_DEFAULT_ALLOW_PATHS` (`session/posture.ts:41-49`) allows `docs/**`, `specs/**`, `README*`, `REQUIREMENTS.md`, `xbrief/proposed/**`, `vbrief/proposed/**`. `REQUIREMENTS_DEFAULT_DENY_PATHS` (`posture.ts:50-60`) denies `packages/**`, `cmd/**`, `src/**`, `content/contracts/**`, `content/templates/**`, `**/AGENTS.md`. `evaluateRuntimeAuthorityPath` (`policy/runtime-authority.ts:236-251`) applies `allowPaths` as a true allowlist — verdict `deny-allowlist` — so `apps/**` is refused by not being listed.\n\nMapped against the issue's Expected: \"Allows writes under `specs/**-validation-pass*`\" is satisfied; \"Still fails closed on `apps/` `packages/` product paths\" is satisfied, `apps/` by allowlist and `packages/` by denylist.\n\nFailure mode if unstated: Bound carries an acceptance limb for a report-root allowlist, ships a second fence, and the project gains two sources of truth for which paths a validation pass may write. The issue body files #4444 under \"Related (not duplicates) — different hosts/postures,\" which is true of the **spawn** half and wrong of the **write** half.\n\nDisposition consequence: scope A to spawn admission plus marker emission. Record the write half as inventory, not as acceptance.\n\n## sharpens-framing — widening the marker's audience widens an honor-system surface, and the containment is child-side\n\nInjection / swarm lens fires: this target changes spawn authority and shared worktree state. `process_only` is self-declared and unverified. The dispatcher is deliberately strict about what may *not* become the class — `hooks/classify/payload.test.ts:119` locks \"does not invent `process_only` from dest-path or prompt text\" — but imposes nothing on who may assert it. The only structural brake is the three envelope fields in `hasImplementConflictSignal`.\n\nFailure mode: a seat that simply omits `drive_to`, `worker_role`, and `dispatch_kind` and asserts `process_only: true` gets active-xBRIEF-free admission and occupancy-free dest entry. Honest bound on that blast radius: the child cannot then mutate product paths, because its own write attempt re-enters `inspectMutationGates` in its own session and takes `scope-not-ready`. So what the marker buys an abuser is unmetered spawn capacity and occupancy skip, not product mutation.\n\nDisposition consequence: Bound may say the marker buys admission only and name the child-side write gate as the containment — which is what makes Approach B's \"explicit allowlisted write roots\" limb unnecessary. The same sentence forbids the tempting shortcut: do not relax `hasImplementConflictSignal` to make the `drive-to: merge-ready` babysit shape fit. Widen the audience, never the predicate.\n\n## footnote — P3 is downstream of P2 and should not buy a mechanism limb\n\n`evaluateBoundedPrWatchDeny` refuses bare `pr:watch` without `--monitor-agent-id` when Tier 1 is provable. The Approach 1 one-liner always passes `--monitor-agent-id` (`review-monitor/verify.ts:364`). Once the spawn is admitted, the parent never reaches for parent-shell bare watch, so the stamp-clear carve-out never arises. P3 relieves as a consequence of P2 rather than as its own remedy limb. Census only; no disposition weight.\n\n## footnote — the dest-cwd requirement is a residual, smaller tax\n\n`processOnlyCriticRequiresDest` means the flag form still requires an existing linked dest worktree, so babysitting PRs #6161 / #6162 means creating a worktree at `origin/<default>` to watch branches it does not contain. Materially cheaper than create-promote-activate-preflight-complete, and #4296 dest-first is a deliberate prior decision, so this is not a reopen. Recorded so Bound does not claim zero ceremony.\n\n## Road not taken\n\nTreating this as a deny-text-only fix — relabel option (4), change nothing else. Rejected: the field note shows the text was visible and did not route the operator, and the emitting callers still produce no marker, so the operator would have to hand-assemble the payload. The relabel is necessary and not sufficient.\n\n## Steelman for Approach B, and what would flip this\n\nB's strongest case is precisely the two blocking findings above. A distinct `review_monitor` / `validation` class would let the deny route by role without overloading \"critic\", would let the dest and occupancy convention differ per class instead of forcing one flag to carry two, and would let a `drive-to: merge-ready` babysit be admitted under a class whose conflict predicate is tuned for it.\n\nWhat flips my verdict to B: if the panel concludes the occupancy convention genuinely must diverge — shared no-occupy for monitors, per-seat occupied for writing validation seats — then one marker carrying two conventions is worse than two classes, and B's extra surface area is the honest price. My verdict rests on the judgment that the divergence is expressible as a dispatch-side dest rule rather than a second hook class. Show that it is not, and B wins.\n\n## Lean\n\nA, scoped down. Not A as drafted, and not B.\n\n## Bound remedy\n\n- Emit `process_only: true` plus dest `cwd` from the Approach 1 babysit spawn surface (`swarm/approach1-babysitter.ts` card, `review-monitor/verify.ts:357`) and from the validation-seat dispatch.\n- Bind that emission to the `stop-at: pr-open` + `worker_role: review-monitor` shape only; never the `drive-to: merge-ready` variant.\n- Relabel #2885 recovery option (4) (`dispatcher.ts:2456`) from \"Process-only critic\" to capability wording covering critic, review-monitor, and validation seats.\n- When a process-only marker is present but suppressed by `hasImplementConflictSignal`, deny naming the suppressing field instead of the generic #2885 text.\n- One dest per validation seat that writes a report root; keep shared cwd-without-occupy for seats that write nothing.\n- Do not add a new spawn class, and do not widen `hasImplementConflictSignal`.\n\nLeftover, out of Bound: report-root fence work (already covered by `REQUIREMENTS_DEFAULT_ALLOW_PATHS`), P3 bounded-watch (downstream of P2), dest-cwd residual (#4296 prior decision).\n\nconflict_group: independent-validation-review-spawn-no-active-xbrief\n\n",
+          "id": 6773053142,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-6773053142",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:34:11Z",
+          "updated_at": "2026-11-10T16:34:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nprocess_only already skips active-xBRIEF when the host forwards it. Approach 1 and validation seats do not emit that marker today, so release babysit still hits No active xBRIEF. Prefer-A wires those callers to process_only+dest for watch/report seats, keeps write gates separate, and rejects a second spawn class or fake product briefs.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.5 parent authored Stop 1 and this lean. Round-1 seats Codex 6772792957, Grok 6772890467, Claude 6773053142 substantiate.\n\nForward verdict: Prefer-A Bound. Disposition: classified headings accept-into-contract.\nSpec-path: next-build contract is not this body.\n\n**Lean:** Prefer-A Bound after field note 6772438402. Cites Round-1 6772792957, 6772890467, 6773053142. Supersedes Prefer-A draft 6772582957 and prior remainder lean 5735892758 for this fresh arc.\n\nTarget-digest: sha256:36d3250395af0bfa07db9f952b85f77b966a6e43734e750e5ff7687ef96414b3\n\narc-mode: no-ingest\nyolo-standing: yes\nmateriality-bar: open\ndest: C:\\\\Repos\\\\deft\\\\directive\\\\.deft-scratch\\\\worktrees\\\\arc-4781\norigin-ref: origin/master\ndispatch-sha: 633ff476f3fdd9f302d81627daa6ddeea32f4baf\nconflict_group: independent-validation-review-spawn-no-active-xbrief\ntarget shape: single-issue\n\nTakes:\n\n- 6772792957 classified headings — accept-into-contract\n- 6772890467 classified headings — accept-into-contract\n- 6773053142 classified headings — accept-into-contract\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=633ff476f3fdd9f302d81627daa6ddeea32f4baf pointer=comment:6772890467,6773053142 reading=measured\naudit:pain-P2 sha=633ff476f3fdd9f302d81627daa6ddeea32f4baf pointer=comment:6772792957,6772890467,6773053142 reading=measured\naudit:pain-P3 sha=633ff476f3fdd9f302d81627daa6ddeea32f4baf pointer=comment:6772890467,6773053142 reading=measured\n\n## Bound remedy\n\n- Emit process_only plus dest cwd — Approach 1 babysit and independent validation/review Grok spawn_subagent envelopes pass advertised process_only with dest cwd; implement-class never sets it; dest-path stays out of skip class.\n- Name the spawn shape on the card — approach1BabysitterCommands, formatApproach1CheapestAdmissionCard, and review-cycle Approach 1 recipe name that process_only+cwd spawn before register/pr:watch.\n- Bind monitor-only seat shape — emit for stop-at: pr-open + worker_role: review-monitor watch/report seats only; do not blanket-flag the fix-capable greptile poller; hand fixes to an authorized implement owner.\n- Name suppressors in deny — when process_only is present but hasImplementConflictSignal wins (for example drive_to merge-ready), deny naming the suppressing field rather than bare #2885.\n- Relabel recovery option (4) — capability wording for critic, review-monitor, and validation seats (not critic-only).\n- Split dest convention by write need — shared cwd-without-occupy for non-writing monitor/critic seats; one dest per validation seat that writes a report root.\n- Keep write gates separate — specs/report writes stay inventory on requirements posture (#4444); do not fold report roots into the spawn skip class.\n- Leave unmarked zero-eligible on #2885 — unmarked dest-cwd general-purpose at zero eligible keeps No active xBRIEF.\n- Do not mint Approach B — no second advertised spawn class for this gap.\n- Do not claim exclusive-lawful-wait recut — P3 clears when Approach 1 spawn admits; no parent-shell bare pr:watch carve-out as durable fix.\n\n## Reject list\n\n- Approach B new spawn class\n- Approach C invent/promote throwaway active briefs\n- Dest-path as skip class\n- Widening hasImplementConflictSignal to fit drive-to: merge-ready under process_only\n- Folding specs/**-validation-pass* into spawn admission\n\n## Plain-language summary\n\nShip the wiring so Approach 1 babysit and validation seats actually pass process_only with a dest. Keep report writes on the existing requirements path. Do not invent a second spawn class or fake product stories.",
+          "id": 6773073676,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-6773073676",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:35:04Z",
+          "updated_at": "2026-11-10T16:42:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\nPain-audit of Prefer-A Bound 6773073676 against Stop 1 write-back 6772588444. Inclusive comment ceiling: 6773073676. Pin-read via git show at 633ff476f3fdd9f302d81627daa6ddeea32f4baf; dest cwd-without-occupy. No ingest or product mutation. This is a design coverage verdict, not a claim that the remedy is implemented or live Grok forwarding was tested.\n\n## Verdict\n\nP1: truly relieves. P2: truly relieves. P3: truly relieves as a consequence of P2. No false-relief finding changes the harvest.\n\n### pain-P1 — truly relieves\n\nStop 1 identifies the unmarked validation/review spawn falling through to #2885 at zero eligible briefs. Bound changes those callers to emit process_only plus linked dest cwd; it does not try to admit unmarked spawns. That is a valid remedy for the operator pain even though unmarked zero-eligible remains denied.\n\nAt the pinned SHA, hooks/readonly.ts:373-418 accepts the structural flag on Grok spawn_subagent and requires dest cwd; implementation signals win (readonly.ts:173-234). hooks/dispatcher.ts:4320-4376 returns spawn-process-only-ready before active-story gates, subject to destination and routing checks. Bound preserves both the classifier and implementation conflict precedence. No invented active brief is needed for that class.\n\nThe report-writing half is separately accounted for: one dest per writing validator avoids shared occupancy collision, and requirements posture supplies the existing write path. dispatcher.ts:2069-2115 checks occupancy before write-requirements-ready; session/posture.ts:41-60 lists specs/** and product-path exclusions. A validation child must actually enter requirements posture with its own occupancy before report writes; spawn success alone does not establish either. This is use of the named existing gate, not a new spawn authority or a second report fence.\n\n### pain-P2 — truly relieves\n\nThe pinned approach1BabysitterCommands and formatApproach1CheapestAdmissionCard (swarm/approach1-babysitter.ts:27-79) provide register/watch/verify instructions but omit the spawn marker. Bound explicitly repairs that producer/recipe gap and restricts emission to monitor-only watch/report seats. That restriction matters: the canonical Approach 1 recipe currently references a fix-capable poller (review-cycle/SKILL.md:728; templates/swarm-greptile-poller-prompt.md). Bound now expressly forbids blanket-flagging that poller and hands fixes to an authorized implementation owner.\n\nThe review-monitor role is not an implementation conflict in readonly.ts; drive_to merge-ready is. Bound retains that distinction and adds suppressor diagnostics rather than weakening the predicate. It therefore covers the process-only release-closeout babysitter described in field note 6772438402 without purporting to exempt implementation-owning workers.\n\n### pain-P3 — truly relieves, downstream\n\nreview-monitor/verify.ts:357-369 already composes register, child pr:watch with --monitor-agent-id, and parent merge-path-arm --live-wait verification. review-monitor/bounded-pr-watch-deny.ts:130-192 admits the recognized child-bound command and refuses bare watch when Tier 1 is proven. Restoring the missing spawn step makes this lawful path reachable, removing the need for the reported parent-shell/stamp-clear fallback.\n\nSpawn admission is the first step, not itself a live-monitor arm: registration, child watch, and live-wait verification remain required. Bound preserves that sequence and explicitly declines an exclusive-lawful-wait recut. It does not need to solve the adjacent undeclared-shell interception residual to relieve this particular fallback pain.\n\n## Footnote — verification limit, no harvest change\n\nThe repository advertises and normalizes process_only (hooks/classify/payload.ts:86-175); this pin-read does not prove an installed Grok host forwards it. The failed field note contains no raw spawn payload. Verify request -> observed hook payload -> spawn-process-only-ready with zero eligible briefs when implementing the already-bound emission limb, then verify the child-bound watch chain. Likewise verify report writes after child occupancy/requirements setup. These sharpen evidence for the existing fail-closed association; they do not require Approach B, a relaxed conflict predicate, or a changed relief disposition under KISS/#5783.\n\nSource pin: https://github.com/deftai/directive/tree/633ff476f3fdd9f302d81627daa6ddeea32f4baf",
+          "id": 6773111592,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-6773111592",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:36:42Z",
+          "updated_at": "2026-11-10T16:39:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| process_only is advertised and admits spawn-process-only-ready without active xBRIEF | verified | Round-1 6772792957 / 6772890467 / 6773053142; pin-read payload.ts / readonly.ts / dispatcher.ts @ 633ff476 |\n| Approach 1 babysit helpers omit process_only today (P2 mechanism) | verified | Round-1 all three; approach1-babysitter.ts / review-cycle SKILL / greptile poller template |\n| Prefer-A Bound 6773073676 relieves P1, P2, P3 (P3 downstream of P2) | verified | pain-audit 6773111592 harvest-changed: false |\n| Dest-path is not skip class; Approach B/C rejected | verified | Bound reject list; Round-1 consensus |\n| Live Grok host schema forwarding of process_only remains implement-time proof, not Bound false-relief | verified | PA footnote; KISS/#5783 harvest-changed:false |\n\ndisagreement-set: empty",
+          "id": 6773123535,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-6773123535",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:37:13Z",
+          "updated_at": "2026-11-10T16:37:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAgents agreed: wire Approach 1 and validation seats to emit process_only with dest, keep write gates separate, and leave unmarked zero-eligible on #2885. Pain-audit found no harvest change.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6773073676.\n\nVerified-claims: 6773123535\npain-audit: 6773111592\nRound-1: 6772792957, 6772890467, 6773053142\nStop 1: 6772588444\npanel-deposit: 6772655249\ntarget-digest: sha256:5b6f20387a19015bb259b86b0e004004cbb21cb349562673ff98eeda399323ab\ndispatch-sha: 633ff476f3fdd9f302d81627daa6ddeea32f4baf\narc-mode: no-ingest\nyolo-standing: yes",
+          "id": 6773123992,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-6773123992",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:37:14Z",
+          "updated_at": "2026-11-10T16:37:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: completed-arc\n\nsynthesis-accepted: 6773123992\nbound-lean: 6773073676\nverified-claims: 6773123535\npain-audit: 6773111592\nstop-1: 6772588444\npanel-deposit: 6772655249\nround-1: 6772792957, 6772890467, 6773053142\nprefer-a-draft: 6772582957\nfield-note: 6772438402\ntarget-digest: sha256:5b6f20387a19015bb259b86b0e004004cbb21cb349562673ff98eeda399323ab\ndispatch-sha: 633ff476f3fdd9f302d81627daa6ddeea32f4baf\ndest: C:\\\\Repos\\\\deft\\\\directive\\\\.deft-scratch\\\\worktrees\\\\arc-4781\nconflict_group: independent-validation-review-spawn-no-active-xbrief\nspend: N≥3\narc-mode: no-ingest\nyolo-standing: yes\nmateriality-bar: open\n\npain: P1, P2, P3\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Plain-language summary\n\nFresh no-ingest arc after the 0.129.6 field note locked Prefer-A: emit process_only from Approach 1/validation seats. Ingest remains a separate operator verb.",
+          "id": 6773124452,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-6773124452",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:37:15Z",
+          "updated_at": "2026-11-10T16:37:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\nClear-carrier correction to pain-audit 6773111592. Rechecked Bound 6773073676 against Stop 1 6772588444 and field note 6772438402, with inclusive ceiling 6773073676 and pin 633ff476f3fdd9f302d81627daa6ddeea32f4baf.\n\nP1: truly relieves. Explicit process_only plus linked dest cwd reaches spawn-process-only-ready without an active product brief (hooks/readonly.ts:373-418; hooks/dispatcher.ts:4320-4376). Bound preserves implementation-conflict precedence. Writing validators use individual destinations and the existing child occupancy plus requirements-posture write gate (dispatcher.ts:2069-2115; session/posture.ts:41-60).\n\nP2: truly relieves. Bound repairs the missing spawn emission in the Approach 1 producer/card/recipe, constrains the seat to stop-at: pr-open with worker_role: review-monitor, and hands implementation fixes to an authorized owner. It does not flag a fix-capable merge-ready worker or weaken hasImplementConflictSignal (readonly.ts:173-234; swarm/approach1-babysitter.ts:27-79).\n\nP3: truly relieves downstream of P2. Admitting that monitor makes register, child pr:watch --monitor-agent-id, and parent live-wait verification reachable; bounded-pr-watch-deny already admits the child-bound command (review-monitor/bounded-pr-watch-deny.ts:130-192). No stamp-clear or bare-parent-watch carve-out is required by this remedy.\n\nNo false-relief finding; harvest unchanged. This is design coverage, not an implementation or live-host test claim. Installed Grok forwarding and the child write/watch chains remain implementation-time verification.",
+          "id": 6773151916,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-6773151916",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:38:26Z",
+          "updated_at": "2026-11-10T16:38:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nClear-carrier pain-audit 6773151916 (and patched carrier on 6773111592) confirms Prefer-A Bound 6773073676 still relieves P1–P3 with harvest-changed:false. This lean re-opens the successor heading after that later critic so completed-arc can cite a post-carrier close.\n\nThis is not an instruction to a later builder.\n\nForward verdict: Prefer-A Bound confirm. Disposition: classified headings accept-into-contract.\nSpec-path: next-build contract is not this body.\n\n**Lean:** Prefer-A Bound confirm after clear-carrier PA. Cites Bound 6773073676; PA 6773151916 / 6773111592; Round-1 6772792957, 6772890467, 6773053142.\n\nTarget-digest: sha256:36d3250395af0bfa07db9f952b85f77b966a6e43734e750e5ff7687ef96414b3\n\narc-mode: no-ingest\nyolo-standing: yes\nmateriality-bar: open\ndest: C:\\\\Repos\\\\deft\\\\directive\\\\.deft-scratch\\\\worktrees\\\\arc-4781\ndispatch-sha: 633ff476f3fdd9f302d81627daa6ddeea32f4baf\nconflict_group: independent-validation-review-spawn-no-active-xbrief\n\nTakes:\n\n- 6772792957 classified headings — accept-into-contract\n- 6772890467 classified headings — accept-into-contract\n- 6773053142 classified headings — accept-into-contract\n- 6773111592 / 6773151916 pain-audit — accept-into-contract\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Parent-side substantiation\n\naudit:pain-P1 sha=633ff476f3fdd9f302d81627daa6ddeea32f4baf pointer=comment:6773151916 reading=measured\naudit:pain-P2 sha=633ff476f3fdd9f302d81627daa6ddeea32f4baf pointer=comment:6773151916 reading=measured\naudit:pain-P3 sha=633ff476f3fdd9f302d81627daa6ddeea32f4baf pointer=comment:6773151916 reading=measured\n\n## Bound remedy\n\n- Emit process_only plus dest cwd — Approach 1 babysit and independent validation/review Grok spawn_subagent envelopes pass advertised process_only with dest cwd; implement-class never sets it; dest-path stays out of skip class.\n- Name the spawn shape on the card — approach1BabysitterCommands, formatApproach1CheapestAdmissionCard, and review-cycle Approach 1 recipe name that process_only+cwd spawn before register/pr:watch.\n- Bind monitor-only seat shape — emit for stop-at: pr-open + worker_role: review-monitor watch/report seats only; do not blanket-flag the fix-capable greptile poller; hand fixes to an authorized implement owner.\n- Name suppressors in deny — when process_only is present but hasImplementConflictSignal wins (for example drive_to merge-ready), deny naming the suppressing field rather than bare #2885.\n- Relabel recovery option (4) — capability wording for critic, review-monitor, and validation seats (not critic-only).\n- Split dest convention by write need — shared cwd-without-occupy for non-writing monitor/critic seats; one dest per validation seat that writes a report root.\n- Keep write gates separate — specs/report writes stay inventory on requirements posture (#4444); do not fold report roots into the spawn skip class.\n- Leave unmarked zero-eligible on #2885 — unmarked dest-cwd general-purpose at zero eligible keeps No active xBRIEF.\n- Do not mint Approach B — no second advertised spawn class for this gap.\n- Do not claim exclusive-lawful-wait recut — P3 clears when Approach 1 spawn admits; no parent-shell bare pr:watch carve-out as durable fix.",
+          "id": 6773186049,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-6773186049",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:39:53Z",
+          "updated_at": "2026-11-10T16:42:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\nFinal pain-audit of confirm lean 6773186049 against Stop 1 6772588444; inclusive ceiling 6773186049; SHA 633ff476f3fdd9f302d81627daa6ddeea32f4baf.\n\nP1: truly relieves. Bound explicitly supplies process_only plus linked dest cwd for validation/review seats, reaching spawn-process-only-ready without an active story. Dest alone remains insufficient and implementation signals retain precedence. Writing validators retain separate destinations, child occupancy, and requirements-posture write gates.\n\nP2: truly relieves. Bound repairs the missing spawn emission in the Approach 1 helpers/card/recipe and confines it to monitor-only stop-at: pr-open / worker_role: review-monitor seats. Fix-capable workers remain with an authorized implementation owner.\n\nP3: truly relieves downstream of P2. Admitting the monitor makes registration, child-bound pr:watch --monitor-agent-id, and parent live-wait verification reachable. The existing bounded-watch gate admits that child-bound form; no stamp-clear or bare-parent-watch exception is needed.\n\nThe confirm lean preserves the substantive Bound remedy from 6773073676. Rechecked hooks/readonly.ts, hooks/dispatcher.ts, swarm/approach1-babysitter.ts, and review-monitor/bounded-pr-watch-deny.ts at the stated HEAD. No false-relief finding; harvest unchanged. This is design coverage, not proof of implementation or live Grok forwarding; forwarding and child write/watch chains remain implementation-time verification.",
+          "id": 6773204116,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-6773204116",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:40:39Z",
+          "updated_at": "2026-11-10T16:40:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n| --- | --- | --- |\n| Prefer-A confirm lean 6773186049 relieves P1, P2, P3 | verified | pain-audit 6773204116 finding-classes: none; harvest-changed: false |\n| Round-1 consensus on Approach A wiring (not Approach B/C) | verified | 6772792957, 6772890467, 6773053142 |\n| process_only already admits spawn-process-only-ready; callers omit it | verified | Round-1 pin-reads @ 633ff476 |\n\ndisagreement-set: empty",
+          "id": 6773215383,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-6773215383",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:41:07Z",
+          "updated_at": "2026-11-10T16:41:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAgents agreed again after the clear-carrier close: Prefer-A Bound stands. Pain-audit 6773204116 found no harvest change.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6773186049.\n\nVerified-claims: 6773215383\npain-audit: 6773204116\nprior-bound: 6773073676\nRound-1: 6772792957, 6772890467, 6773053142\nStop 1: 6772588444\npanel-deposit: 6772655249\ntarget-digest: sha256:36d3250395af0bfa07db9f952b85f77b966a6e43734e750e5ff7687ef96414b3\ndispatch-sha: 633ff476f3fdd9f302d81627daa6ddeea32f4baf\narc-mode: no-ingest\nyolo-standing: yes",
+          "id": 6773215910,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-6773215910",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:41:08Z",
+          "updated_at": "2026-11-10T16:42:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: completed-arc\n\nsynthesis-accepted: 6773215910\nbound-lean: 6773186049\nverified-claims: 6773215383\npain-audit: 6773204116\nprior-bound: 6773073676\nstop-1: 6772588444\npanel_deposit_comment: 6772655249\nround-1: 6772792957, 6772890467, 6773053142\nprefer-a-draft: 6772582957\nfield-note: 6772438402\ntarget-digest: sha256:36d3250395af0bfa07db9f952b85f77b966a6e43734e750e5ff7687ef96414b3\ndispatch-sha: 633ff476f3fdd9f302d81627daa6ddeea32f4baf\ndest: C:\\\\Repos\\\\deft\\\\directive\\\\.deft-scratch\\\\worktrees\\\\arc-4781\nconflict_group: independent-validation-review-spawn-no-active-xbrief\nspend: N≥3\narc-mode: no-ingest\nyolo-standing: yes\nmateriality-bar: open\n\npain: P1, P2, P3\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Plain-language summary\n\nFresh no-ingest arc after the 0.129.6 field note locked Prefer-A: emit process_only from Approach 1/validation seats. Ingest remains a separate operator verb.",
+          "id": 6773216860,
+          "html_url": "https://github.com/deftai/directive/issues/4781#issuecomment-6773216860",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-10T16:41:10Z",
+          "updated_at": "2026-11-10T16:42:38Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\nIndependent multi-agent **validation** (read product code, write only `specs/…-validation-pass*` artifacts, no product mutation) still cannot `spawn_subagent` on Grok Build **0.119.2** without inventing and activating a **product-shaped active xBRIEF**.\n\nDeny text:\n> No active xBRIEF artifact was found under xbrief/active/ … Recovery: scope:promote …\n\nClosed work (#3080 ephemeral docs Task, #3259 local-dev without xBRIEF, #4444 requirements posture) does **not** cover this Grok path. Operators running `/phase-validate` must author a fake scope brief, promote, activate, then later fight `scope:complete` delivery evidence (#4421 class) for a docs-only pass.\n\n## Why this is wrong for normal users\nValidation is explicitly **not** implementation. Requiring a story xBRIEF to spawn independent reviewers:\n- Adds 10–20 minutes of ceremony before any clause is checked\n- Forces dummy `file_scope` / acceptance clauses\n- Leaves active/completed lifecycle pollution for process work\n- Trains agents to mint scopes just to unlock hooks\n\n## Expected\nA first-class posture or spawn class for **independent validation / review** that:\n- Allows `spawn_subagent` with dest worktrees\n- Allows writes under `specs/**-validation-pass*` (and similar allowlisted report roots)\n- Does **not** require a product story xBRIEF\n- Still fails closed on `apps/` `packages/` product paths\n\n## Actual\nHad to `xbrief:create` → edit → `scope:promote` → `scope:activate` → `xbrief:preflight` before any validator could launch; then could not `scope:complete` without a merge commit for this process brief.\n\n## Environment\n- Grok Build, macOS\n- `@deftai/directive@0.119.2`\n- Consumer `deftai/notetechnic` running skill `phase-validate` for M1-05..M1-08\n\n## Related (not duplicates)\n- Closed #3080 / #3259 / #4444 — different hosts/postures; gap remains on Grok validation spawn\n- Open #4575 — dest recovery opacity (compounded this)\n- Closed #4421 — complete-vs-merge chicken egg (hit when finishing the invented brief)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5502353496,
+        "origin": "deftai/directive#4781",
+        "id": "github.issue.5502353496"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "36d3250395af0bfa07db9f952b85f77b966a6e43734e750e5ff7687ef96414b3"
+      },
+      "swarm": {
+        "conflict_group": "independent-validation-review-spawn-no-active-xbrief",
+        "size": "M",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "depends_on": [],
+        "file_scope": [
+          "packages/core/src/swarm/approach1-babysitter.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/skills/deft-directive-swarm/references/host-grok-build.md",
+          "CHANGELOG.md",
+          "packages/core/src/swarm/approach1-babysitter.test.ts",
+          "packages/core/src/hooks/dispatcher.test.ts"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/swarm --reporter=dot",
+          "pnpm exec vitest run packages/core/src/hooks/dispatcher.test.ts --reporter=dot"
+        ],
+        "expected_outputs": [
+          "Approach 1 babysit spawn admits with process_only+dest cwd",
+          "Implement-class spawn never sets process_only"
+        ],
+        "missing_traces_justification": "Prefer-A Bound design-critique arc closed ingest-ready; product traces land with the implement PR under Tracking/Refs."
+      },
+      "kind": "story"
+    },
+    "id": "github.issue.5502353496",
+    "updated": "2026-11-10T20:39:48Z"
+  }
+}

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Activate briefs so workers can start the planned fixes for review and validation, worktree cleanup, Windows release updates, Cursor hooks, and pushes after rebasing. Refs #4781, #5735, #6164, #6163, #5102, and #6172.
+
+
 ### Added
 - Activate #6173 Path B scope brief with concrete file_scope for win32 containedDestExec follow-on (Refs #6173).
 
