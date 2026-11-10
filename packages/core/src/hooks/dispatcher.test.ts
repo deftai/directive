@@ -7011,13 +7011,15 @@ describe("attachLifecycleIdentityRewrite Prefer-A Bound (#5925)", () => {
   const PAYLOAD_RAW = "session-a";
   const GROK_OWNER = "host:grok:v1:c2Vzc2lvbi1h";
   const GROK_ENV = { GROK_HOOK_EVENT: "PreToolUse" } as const;
+  const projectRoot = mkdtempSync(join(tmpdir(), "5925-lifecycle-"));
+  hookTemps.push(projectRoot);
 
   function decideClaudeGrokShell(command: string) {
     return decideHook(
       {
         host: "claude",
         event: "tool.before",
-        projectRoot: "/project",
+        projectRoot,
         payload: {
           tool_name: "Bash",
           session_id: PAYLOAD_RAW,

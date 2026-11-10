@@ -133,6 +133,7 @@ export const CLI_MODULE_VERBS = [
   "occupancy-release",
   "occupancy-heartbeat",
   "occupancy-grant",
+  "applying-host-release",
   "plan-sequence",
   "slice",
   "subagent-monitor",
@@ -548,6 +549,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "occupancy:release": "occupancy-release",
   "occupancy:heartbeat": "occupancy-heartbeat",
   "occupancy:grant": "occupancy-grant",
+  "applying-host:release": "applying-host-release",
   "session:end": "occupancy-release",
   ...FRESHNESS_COLON_ALIASES,
   "lifecycle:event": "lifecycle-event",
@@ -3270,6 +3272,10 @@ const CURATED_HELP_GROUPS: readonly HelpGroup[] = [
       {
         name: "session:end",
         summary: "End this mutation session by releasing occupancy (same as occupancy:release)",
+      },
+      {
+        name: "applying-host:release",
+        summary: "Clear the worktree applying-host soft claim (owner or abandoned no-lease)",
       },
       {
         name: "freshness:report",

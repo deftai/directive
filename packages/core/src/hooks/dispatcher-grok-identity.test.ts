@@ -815,8 +815,8 @@ describe("applying-host SessionStart + multi-host soft-pass (#5676)", () => {
     expect(lifecycle.message ?? "").not.toContain("soft-pass");
   });
 
-  it("denies bare Claude lifecycle when Cursor applying-host is present", () => {
-    const root = mkdtempSync(join(tmpdir(), "hook-5676-bare-deny-"));
+  it("allows bare Claude lifecycle when Cursor applying-host has no lease (#6143)", () => {
+    const root = mkdtempSync(join(tmpdir(), "hook-6143-bare-advisory-"));
     temps.push(root);
     publishApplyingHost(root, { provider: "cursor", rawSessionId: RAW, transport: "native" });
     const decision = decideHook(
@@ -835,9 +835,8 @@ describe("applying-host SessionStart + multi-host soft-pass (#5676)", () => {
       },
       seams(),
     );
-    expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-identity-conflict" });
-    expect(decision.message).toContain(CURSOR_OWNER);
-    expect(decision.message).toContain("--session-id=");
+    expect(decision).toMatchObject({ verdict: "allow" });
+    expect(decision.message ?? "").not.toContain("occupancy-identity-conflict");
   });
 
   it("soft-pass still denies when tool cwd is a different worktree", () => {

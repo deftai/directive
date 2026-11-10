@@ -3462,12 +3462,15 @@ function tryPublishApplyingHostFromSessionStart(
       identity.provider === "grok" && environ.GROK_HOOK_EVENT?.trim()
         ? "grok-hook-event"
         : "native";
+    // SessionStart soft claim may take over a no-lease different-provider record
+    // (#6143 P1/P4); RO CLI path must omit allowForeignTakeover.
     // Native Cursor SessionStart must stay cursor even when GROK_SESSION_ID lingers.
     if (input.host === "cursor" && transport === "native") {
       publishApplyingHost(projectRoot, {
         provider: "cursor",
         rawSessionId: identity.rawSessionId,
         transport: "native",
+        allowForeignTakeover: true,
       });
       return;
     }
@@ -3475,6 +3478,7 @@ function tryPublishApplyingHostFromSessionStart(
       provider: identity.provider,
       rawSessionId: identity.rawSessionId,
       transport,
+      allowForeignTakeover: true,
     });
   } catch {
     /* SessionStart stays non-blocking */
@@ -3602,6 +3606,8 @@ function attachLifecycleIdentityRewrite(
             : "native";
           // Prefer deposit identity when it matches the named canonical owner.
           const identity = resolveHookHostIdentity(input.host, input.payload, environ);
+          // #6143 P4: RO SessionStart must not displace a different-provider fresh
+          // record (omit allowForeignTakeover; publish defers foreign-fresh-claim).
           if (
             identity.status === "ok" &&
             identity.sessionId === lifecycle.sessionId &&
@@ -3681,6 +3687,10 @@ function attachLifecycleIdentityRewrite(
   if (applyingAdmission.kind === "live-owner-cleanup") {
     // Deposit equals live lease holder (#6101 Prefer-A): effectiveOwner is the
     // live deposit identity; bare stays on the rewrite path (not soft-pass).
+    liveOwnerBypass = true;
+  } else if (applyingAdmission.kind === "advisory-takeover") {
+    // #6143 P1: no-lease fresh applying-host is advisory; caller keeps identity
+    // and may republish after lifecycle succeeds.
     liveOwnerBypass = true;
   } else if (applyingAdmission.kind === "foreign-owner") {
     const live = liveOccupant(resolve(input.projectRoot));

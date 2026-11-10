@@ -35,6 +35,7 @@ import {
   applyingHostPath,
   applyWorktreeOccupancy,
   assertOccupancyFreeForHostLaunch,
+  clearApplyingHost,
   DEFT_EXPECTED_DECLARED_HOST_ATTACH,
   evaluateApplyingHostLifecycleAdmission,
   evaluateOccupancyCeremonyEligibility,
@@ -4218,7 +4219,7 @@ describe("applying-host record (#5676 Prefer-A)", () => {
     ).toMatchObject({ kind: "enforce", matchingDeposit: true });
   });
 
-  it("refuses bare non-matching deposits so owner rewrite is not skipped", () => {
+  it("treats bare other-provider as advisory-takeover when no lease (#6143 P1)", () => {
     const root = mkdtempSync(join(tmpdir(), "applying-host-bare-"));
     ephemeralTemps.push(root);
     publishApplyingHost(root, { provider: "cursor", rawSessionId: RAW });
@@ -4228,23 +4229,51 @@ describe("applying-host record (#5676 Prefer-A)", () => {
       depositSessionId: CLAUDE_OWNER,
       namedSessionId: null,
     });
+    expect(bare).toMatchObject({
+      kind: "advisory-takeover",
+      callerSessionId: CLAUDE_OWNER,
+    });
+  });
+
+  it("refuses other-provider when a live lease backs applying-host and names the caller (#6143 P2)", () => {
+    const root = mkdtempSync(join(tmpdir(), "applying-host-bare-live-"));
+    ephemeralTemps.push(root);
+    applyWorktreeOccupancy(root, {
+      sessionId: CURSOR_OWNER,
+      now: new Date("2026-10-16T12:00:00Z"),
+      intent: "mutation",
+    });
+    publishApplyingHost(root, { provider: "cursor", rawSessionId: RAW });
+    const bare = evaluateApplyingHostLifecycleAdmission({
+      projectRoot: root,
+      depositHost: "claude",
+      depositSessionId: CLAUDE_OWNER,
+      namedSessionId: null,
+      now: new Date("2026-10-16T12:01:00Z"),
+    });
     expect(bare).toMatchObject({ kind: "foreign-owner", namedSessionId: null });
-    expect(bare.kind === "foreign-owner" ? bare.message : "").toContain(CURSOR_OWNER);
-    expect(bare.kind === "foreign-owner" ? bare.message : "").toContain("--session-id=");
+    const message = bare.kind === "foreign-owner" ? bare.message : "";
+    expect(message).toContain(CLAUDE_OWNER);
+    expect(message).toContain(CURSOR_OWNER);
+    expect(message).toContain("occupancy:steal");
+    expect(message).not.toMatch(/Re-run with --session-id=host:cursor/);
   });
 
   it("refuses foreign owners and diagnoses same-raw flip-flop when record is missing", () => {
     const root = mkdtempSync(join(tmpdir(), "applying-host-foreign-"));
     ephemeralTemps.push(root);
     publishApplyingHost(root, { provider: "cursor", rawSessionId: RAW });
-    expect(
-      evaluateApplyingHostLifecycleAdmission({
-        projectRoot: root,
-        depositHost: "cursor",
-        depositSessionId: CURSOR_OWNER,
-        namedSessionId: CLAUDE_OWNER,
-      }),
-    ).toMatchObject({ kind: "foreign-owner" });
+    const foreign = evaluateApplyingHostLifecycleAdmission({
+      projectRoot: root,
+      depositHost: "cursor",
+      depositSessionId: CURSOR_OWNER,
+      namedSessionId: CLAUDE_OWNER,
+    });
+    expect(foreign).toMatchObject({ kind: "foreign-owner" });
+    const foreignMessage = foreign.kind === "foreign-owner" ? foreign.message : "";
+    expect(foreignMessage).toContain(CURSOR_OWNER);
+    expect(foreignMessage).toContain("applying-host:release");
+    expect(foreignMessage).not.toMatch(/Re-run with --session-id=host:cursor/);
 
     const empty = mkdtempSync(join(tmpdir(), "applying-host-missing-"));
     ephemeralTemps.push(empty);
@@ -4412,5 +4441,58 @@ describe("applying-host record (#5676 Prefer-A)", () => {
       status: "ok",
       record: { rawSessionId: "replaced-raw" },
     });
+  });
+
+  it("defers RO publish over a different-provider fresh claim without allowForeignTakeover (#6143 P4)", () => {
+    const root = mkdtempSync(join(tmpdir(), "applying-host-ro-displace-"));
+    ephemeralTemps.push(root);
+    publishApplyingHost(root, { provider: "cursor", rawSessionId: RAW });
+    const deferred = publishApplyingHost(root, {
+      provider: "claude",
+      rawSessionId: "second-host",
+    });
+    expect(deferred).toMatchObject({
+      status: "deferred",
+      reason: "foreign-fresh-claim",
+      liveSessionId: CURSOR_OWNER,
+    });
+    expect(readApplyingHost(root)).toMatchObject({
+      status: "ok",
+      record: { applyingHostSessionId: CURSOR_OWNER },
+    });
+    const takeover = publishApplyingHost(root, {
+      provider: "claude",
+      rawSessionId: "second-host",
+      allowForeignTakeover: true,
+    });
+    expect(takeover).toMatchObject({
+      status: "published",
+      record: { provider: "claude" },
+    });
+  });
+
+  it("clears applying-host on occupancy release and via clearApplyingHost (#6143 P3)", () => {
+    const root = mkdtempSync(join(tmpdir(), "applying-host-clear-"));
+    ephemeralTemps.push(root);
+    applyWorktreeOccupancy(root, {
+      sessionId: CURSOR_OWNER,
+      now: new Date("2026-10-16T12:00:00Z"),
+      intent: "mutation",
+    });
+    publishApplyingHost(root, { provider: "cursor", rawSessionId: RAW });
+    expect(readApplyingHost(root).status).toBe("ok");
+    const released = releaseOccupancy(root, {
+      sessionId: CURSOR_OWNER,
+      now: new Date("2026-10-16T12:01:00Z"),
+    });
+    expect(released.code).toBe(0);
+    expect(readApplyingHost(root).status).toBe("missing");
+
+    publishApplyingHost(root, { provider: "cursor", rawSessionId: RAW });
+    expect(clearApplyingHost(root, { sessionId: CLAUDE_OWNER })).toMatchObject({
+      status: "cleared",
+      previousSessionId: CURSOR_OWNER,
+    });
+    expect(readApplyingHost(root).status).toBe("missing");
   });
 });
