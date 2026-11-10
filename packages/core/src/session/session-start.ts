@@ -340,10 +340,30 @@ export function isSessionStartAlwaysOnLine(line: string): boolean {
     return line.includes("session bind deferred") || line.includes("set DEFT_SESSION_ID=");
   }
 
+  // Bound P3 actionable zero-exit exceptions: keep repair detail on quiet path.
   if (
     line.startsWith("[deft orientation] preflight: degraded") ||
-    (line.startsWith("[deft preflight]") && /\bdegraded\b/i.test(line))
+    line.startsWith("[deft orientation] preflight: error") ||
+    line === "preflight=degraded" ||
+    line === "preflight=error" ||
+    (line.startsWith("[deft preflight]") &&
+      (/\bdegraded\b/i.test(line) || /\bMISSING\b/.test(line)))
   ) {
+    return true;
+  }
+
+  if (
+    line.startsWith("[deft orientation] cache_fresh: dirty") ||
+    line.startsWith("[deft orientation] cache_fresh: error") ||
+    line === "cache_fresh=dirty" ||
+    line === "cache_fresh=error" ||
+    line.startsWith("❌ deft cache-fresh:") ||
+    line.startsWith("⚠ deft cache-fresh:")
+  ) {
+    return true;
+  }
+
+  if (line.startsWith("[deft scm]") && !/\bSCM ready\b/i.test(line)) {
     return true;
   }
 

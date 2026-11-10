@@ -120,7 +120,8 @@ describe("runSessionStart read-only posture (#2176)", () => {
       },
     });
     expect(result.code).toBe(0);
-    expect(result.payload.posture).toBeUndefined();
+    // Quiet-default go-signal always carries an explicit posture (#4966).
+    expect(result.payload.posture).toBe("mutation");
     expect(existsSync(ritualStatePath(root))).toBe(true);
     expect(result.lines.join("\n")).toContain("Newer Directive release available");
   });

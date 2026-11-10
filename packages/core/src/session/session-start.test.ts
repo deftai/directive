@@ -1486,6 +1486,29 @@ describe("session:start quiet-default human selection (#4966)", () => {
     expect(isSessionStartAlwaysOnLine("[deft ceremony-dial] depth=elevated source=matrix")).toBe(
       false,
     );
+    expect(
+      isSessionStartAlwaysOnLine(
+        "[deft preflight] task: MISSING — cause: not on PATH; remedy: install go-task",
+      ),
+    ).toBe(true);
+    expect(isSessionStartAlwaysOnLine("[deft orientation] cache_fresh: dirty")).toBe(true);
+    expect(isSessionStartAlwaysOnLine("cache_fresh=dirty")).toBe(true);
+    expect(isSessionStartAlwaysOnLine("preflight=degraded")).toBe(true);
+    expect(
+      isSessionStartAlwaysOnLine(
+        "❌ deft cache-fresh: cache is 32.2h old (max-age=24h); oldest in-scope entry x.",
+      ),
+    ).toBe(true);
+    expect(
+      isSessionStartAlwaysOnLine(
+        "[deft scm] SCM not ready: gh missing (shallow); skipped gates apply",
+      ),
+    ).toBe(true);
+    expect(
+      isSessionStartAlwaysOnLine(
+        "[deft scm] SCM ready: gh present, host-gh provisioned for github.com (shallow)",
+      ),
+    ).toBe(false);
   });
 
   it("selects primary go-signal + always-on on quiet success; verbose keeps dump", () => {
