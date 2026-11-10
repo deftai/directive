@@ -334,7 +334,10 @@ describe("evaluator worktrees", () => {
     const argvSpelling = join(root, "wt-eval");
     const worktreesDir = join(root, ".git", "worktrees");
     mkdirSync(join(worktreesDir, "zzz"), { recursive: true });
-    writeFileSync(join(worktreesDir, "zzz", "gitdir"), `${selectedSpelling.replace(/\\/g, "/")}/.git\n`);
+    writeFileSync(
+      join(worktreesDir, "zzz", "gitdir"),
+      `${selectedSpelling.replace(/\\/g, "/")}/.git\n`,
+    );
     const git: GitRunner = (args, cwd) => {
       if (args[0] === "worktree" && args[1] === "prune") {
         throw new Error("unscoped git worktree prune must not run");
