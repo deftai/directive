@@ -608,7 +608,8 @@
         ],
         "missing_traces_justification": "Prefer-A Bound design-critique arc closed ingest-ready; product traces land with the implement PR under Tracking/Refs."
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 6184
     },
     "id": "github.issue.6310764327",
     "updated": "2026-11-10T20:41:04Z"
