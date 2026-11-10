@@ -104,7 +104,6 @@ describe("npm_publish_workflow (#5365 Prefer-A Bound)", () => {
     expect(code).not.toMatch(/inputs\.dist_tag/);
   });
 
-
   it("pins promote-latest OIDC dist-tag auth prerequisites (#5852)", () => {
     // npm OIDC dist-tag needs CLI >= 11.21.0; Node 24 runners have shipped 11.19.x.
     expect(promote).toMatch(/npm install -g npm@11\.21\.0/);
