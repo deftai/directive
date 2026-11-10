@@ -29,13 +29,18 @@ const CEREMONY_COST_RESIDUAL_TOLERANCE_MS = 250;
 
 import {
   ENV_SESSION_START_NETWORK,
+  escapeSessionGoSignalValue,
+  formatSessionReadyGoSignalLine,
+  isSessionStartAlwaysOnLine,
   OPTIONAL_NETWORK_SKIPPED_MESSAGE,
   READ_ONLY_POSTURE,
   resolveSessionStartOptionalNetwork,
   ritualStatePath,
   runSessionStart,
+  SESSION_READY_GO_SIGNAL_PREFIX,
   type SessionStartOptions,
   type SessionStartStepTiming,
+  selectSessionStartHumanLines,
 } from "./session-start.js";
 
 /** Full ceremony profile — used when tests assert fat-path / optional-network behavior. */
@@ -1427,5 +1432,113 @@ describe("runSessionStart mid-ceremony occupancy steal (#3906)", () => {
     expect(String(result.payload.message)).toMatch(/live occupant none/i);
     expect(readOccupancy(root)).toBeNull();
     expect(readRitualState(root)[0]).toBeNull();
+  });
+});
+
+describe("session:start quiet-default human selection (#4966)", () => {
+  it("formats a stable ready go-signal and escapes embedded newlines", () => {
+    expect(
+      formatSessionReadyGoSignalLine({
+        ready: true,
+        branch: "feat/x",
+        head: "abc1234",
+        occupancyAction: "claimed",
+      }),
+    ).toBe(`${SESSION_READY_GO_SIGNAL_PREFIX}true branch=feat/x head=abc1234 occupancy=claimed`);
+    expect(escapeSessionGoSignalValue("a\nb\rc")).toBe("a\\nb\\nc");
+    expect(
+      formatSessionReadyGoSignalLine({
+        ready: true,
+        posture: READ_ONLY_POSTURE,
+      }),
+    ).toBe(`${SESSION_READY_GO_SIGNAL_PREFIX}true posture=read-only`);
+  });
+
+  it("keeps non-exhaustive always-on lines and hides routine ceremony", () => {
+    expect(
+      isSessionStartAlwaysOnLine(
+        "[deft policy] Direct commits to the default branch are ENABLED (source: typed). Branch-protection policy is OFF.",
+      ),
+    ).toBe(true);
+    expect(
+      isSessionStartAlwaysOnLine(
+        "[deft policy] Branch-protection policy is ON. Direct commits to the default branch are blocked. Use a feature branch.",
+      ),
+    ).toBe(false);
+    expect(isSessionStartAlwaysOnLine("finalize owed deferred: release-cut")).toBe(true);
+    expect(isSessionStartAlwaysOnLine("finalize owed inventory:")).toBe(false);
+    expect(
+      isSessionStartAlwaysOnLine(
+        "[deft branch] checkout=/tmp HEAD=main ahead=0 behind=0 vs origin/main",
+      ),
+    ).toBe(false);
+    expect(
+      isSessionStartAlwaysOnLine(
+        "[deft branch] HEAD main is 0 ahead and 2 commits behind origin/main.",
+      ),
+    ).toBe(true);
+    expect(
+      isSessionStartAlwaysOnLine(
+        "[deft work-claim] scanned 1 issue(s); none tagged status:claimed",
+      ),
+    ).toBe(false);
+    expect(isSessionStartAlwaysOnLine("[deft work-claim] #4966 tagged status:claimed")).toBe(true);
+    expect(isSessionStartAlwaysOnLine("[deft ceremony-dial] depth=elevated source=matrix")).toBe(
+      false,
+    );
+  });
+
+  it("selects primary go-signal + always-on on quiet success; verbose keeps dump", () => {
+    const lines = [
+      "[deft ceremony-dial] depth=elevated source=matrix",
+      "[deft policy] Direct commits to the default branch are ENABLED (source: typed). Branch-protection policy is OFF.",
+      "[deft branch] checkout=/x HEAD=feat/x ahead=0 behind=0 vs origin/master",
+      "finalize owed deferred: release-cut",
+      "[deft session] ceremony cold 12ms; exclusive: alignment=1ms; unaccounted +0ms",
+      "[deft] session ritual recorded at /x/.deft/ritual-state.json (diagnostic-only; not posture authority)",
+    ];
+    const payload = {
+      ready: true,
+      posture: "mutation",
+      occupancy: { action: "claimed", session_id: "s1", occupant_id: "s1" },
+      session_ref: { branch: "feat/x", head: "deadbeef" },
+    };
+    const quiet = selectSessionStartHumanLines({ code: 0, payload, lines, verbose: false });
+    expect(quiet[0]).toBe(
+      `${SESSION_READY_GO_SIGNAL_PREFIX}true branch=feat/x head=deadbeef occupancy=claimed`,
+    );
+    expect(quiet).toContain(
+      "[deft policy] Direct commits to the default branch are ENABLED (source: typed). Branch-protection policy is OFF.",
+    );
+    expect(quiet).toContain("finalize owed deferred: release-cut");
+    expect(quiet.some((l) => l.startsWith("[deft ceremony-dial]"))).toBe(false);
+    expect(quiet.some((l) => l.startsWith("[deft session] ceremony "))).toBe(false);
+    expect(quiet.some((l) => l.startsWith("[deft] session ritual recorded"))).toBe(false);
+
+    const verbose = selectSessionStartHumanLines({ code: 0, payload, lines, verbose: true });
+    expect(verbose).toEqual(lines);
+
+    const failed = selectSessionStartHumanLines({
+      code: 1,
+      payload: { ready: false },
+      lines,
+      verbose: false,
+    });
+    expect(failed).toEqual(lines);
+  });
+
+  it("cold success payload carries session_ref for the go-signal (#4966)", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () =>
+        userMdResult({ path: join(root, "USER.md"), rung: "workspace-local" }),
+      ),
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+    });
+    expect(result.code).toBe(0);
+    expect(result.payload.ready).toBe(true);
+    const ref = result.payload.session_ref as { branch?: string; head?: string };
+    expect(ref).toBeTruthy();
+    expect(typeof ref.head === "string" || ref.head === null).toBe(true);
   });
 });

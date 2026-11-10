@@ -126,8 +126,12 @@ import {
   type OrientationBundle,
   type RunOrientationOptions,
   resolveSessionCompact,
+  resolveSessionVerbose,
   runOrientationCompression,
 } from "./orientation-compression.js";
+
+export { ENV_SESSION_VERBOSE, resolveSessionVerbose } from "./orientation-compression.js";
+
 import {
   clearPersistedSessionPosture,
   persistTrustedSessionPosture,
@@ -254,6 +258,154 @@ export const REARM_SKIPPED_FAT_PATH_MESSAGE =
 
 /** When --rearm is requested but state requires a full cold ceremony (#2992). */
 export const REARM_INELIGIBLE_PREFIX = "session re-arm refused — full cold session:start required:";
+
+/** Stable machine-parseable prefix for the primary go-signal (#4966). */
+export const SESSION_READY_GO_SIGNAL_PREFIX = "[deft session] ready=";
+
+const DEFAULT_BRANCH_POLICY_ON_PREFIX =
+  "[deft policy] Branch-protection policy is ON. Direct commits to the default branch are blocked.";
+const DEFAULT_BRANCH_POLICY_FAIL_CLOSED_PREFIX =
+  "[deft policy] Branch-protection policy is ON (fail-closed:";
+
+/** Escape data-derived go-signal values so embedded newlines cannot forge a second status line (#4966). */
+export function escapeSessionGoSignalValue(raw: string | null | undefined): string {
+  if (raw === null || raw === undefined || raw.length === 0) return "-";
+  return raw.replace(/\r\n|\r|\n/g, "\\n");
+}
+
+export interface SessionReadyGoSignalInput {
+  readonly ready: boolean;
+  readonly posture?: string | null;
+  readonly branch?: string | null;
+  readonly head?: string | null;
+  readonly occupancyAction?: string | null;
+}
+
+/**
+ * Primary trusted-state go-signal (#4966 P1).
+ * Mutation: ready + branch/HEAD + occupancy. Read-only/requirements: posture-qualified.
+ * Exit 0 alone is never the go-signal — callers must pass structured ready/posture.
+ */
+export function formatSessionReadyGoSignalLine(input: SessionReadyGoSignalInput): string {
+  const ready = input.ready ? "true" : "false";
+  const posture = (input.posture ?? "mutation").trim() || "mutation";
+  if (posture === READ_ONLY_POSTURE || posture === REQUIREMENTS_POSTURE) {
+    const parts = [
+      `${SESSION_READY_GO_SIGNAL_PREFIX}${ready}`,
+      `posture=${escapeSessionGoSignalValue(posture)}`,
+    ];
+    if (posture === REQUIREMENTS_POSTURE) {
+      parts.push(`occupancy=${escapeSessionGoSignalValue(input.occupancyAction ?? "-")}`);
+    }
+    return parts.join(" ");
+  }
+  return (
+    `${SESSION_READY_GO_SIGNAL_PREFIX}${ready}` +
+    ` branch=${escapeSessionGoSignalValue(input.branch)}` +
+    ` head=${escapeSessionGoSignalValue(input.head)}` +
+    ` occupancy=${escapeSessionGoSignalValue(input.occupancyAction)}`
+  );
+}
+
+/**
+ * Non-exhaustive always-on classifier for quiet success human stdout (#4966 P3).
+ * Classify by source semantics (prefix / known emitters), not the word "warning".
+ */
+export function isSessionStartAlwaysOnLine(line: string): boolean {
+  if (line.startsWith(SESSION_READY_GO_SIGNAL_PREFIX)) return false;
+
+  if (line.startsWith("[deft policy]")) {
+    if (line.startsWith(DEFAULT_BRANCH_POLICY_ON_PREFIX)) return false;
+    if (line.startsWith(DEFAULT_BRANCH_POLICY_FAIL_CLOSED_PREFIX)) return false;
+    return true;
+  }
+
+  if (line.startsWith("finalize owed deferred:")) return true;
+  if (line === "finalize owed: unknown") return true;
+  if (line.startsWith("finalize owed: repo required")) return true;
+  if (line.startsWith("finalize owed blocks mutation:")) return true;
+
+  if (line.startsWith("[deft branch]") && !line.startsWith("[deft branch] checkout=")) {
+    return true;
+  }
+
+  if (line.startsWith("[deft ownership]")) return true;
+  if (line.startsWith("[deft lifecycle-visible]")) return true;
+
+  if (line.startsWith("[deft work-claim]")) {
+    return !/\bnone tagged\b/i.test(line);
+  }
+
+  if (line.startsWith("[deft freshness]")) {
+    return line.includes("session bind deferred") || line.includes("set DEFT_SESSION_ID=");
+  }
+
+  if (
+    line.startsWith("[deft orientation] preflight: degraded") ||
+    (line.startsWith("[deft preflight]") && /\bdegraded\b/i.test(line))
+  ) {
+    return true;
+  }
+
+  if (line.startsWith("[deft] applying-host publish deferred:")) return true;
+  if (line.startsWith("[deft] applying-host publish failed:")) return true;
+
+  return false;
+}
+
+export interface SelectSessionStartHumanLinesInput {
+  readonly code: number;
+  readonly payload: Record<string, unknown>;
+  readonly lines: readonly string[];
+  readonly verbose?: boolean;
+  readonly env?: NodeJS.ProcessEnv;
+  readonly branch?: string | null;
+  readonly head?: string | null;
+}
+
+/**
+ * Final human-output selection (#4966): quiet success default is primary go-signal
+ * plus non-exhaustive always-on allowlist; `--verbose` / DEFT_SESSION_VERBOSE dumps
+ * ceremony. Fail/deny/steal/non-zero and disabled stay loud. --json is independent.
+ */
+export function selectSessionStartHumanLines(input: SelectSessionStartHumanLinesInput): string[] {
+  const verbose = resolveSessionVerbose({ verbose: input.verbose, env: input.env });
+  if (verbose || input.code !== 0) {
+    return [...input.lines];
+  }
+  if (input.payload.disabled === true) {
+    return [...input.lines];
+  }
+
+  const ready = input.payload.ready === true;
+  const posture =
+    typeof input.payload.posture === "string" && input.payload.posture.length > 0
+      ? input.payload.posture
+      : MUTATION_POSTURE;
+  const occupancy =
+    typeof input.payload.occupancy === "object" &&
+    input.payload.occupancy !== null &&
+    typeof (input.payload.occupancy as { action?: unknown }).action === "string"
+      ? String((input.payload.occupancy as { action: string }).action)
+      : null;
+  const sessionRef =
+    typeof input.payload.session_ref === "object" && input.payload.session_ref !== null
+      ? (input.payload.session_ref as { branch?: unknown; head?: unknown })
+      : null;
+  const branch =
+    input.branch ?? (typeof sessionRef?.branch === "string" ? sessionRef.branch : null);
+  const head = input.head ?? (typeof sessionRef?.head === "string" ? sessionRef.head : null);
+
+  const primary = formatSessionReadyGoSignalLine({
+    ready,
+    posture,
+    branch,
+    head,
+    occupancyAction: occupancy,
+  });
+  const alwaysOn = input.lines.filter(isSessionStartAlwaysOnLine);
+  return [primary, ...alwaysOn.filter((line) => line !== primary)];
+}
 
 /**
  * Ceremony step timing (#2994 / #5375).
@@ -471,10 +623,17 @@ export interface SessionStartOptions {
   /** #3282: framework root for CLI dist probe (defaults to projectRoot). */
   readonly frameworkRoot?: string;
   /**
-   * #3286: compact orientation output (terse machine lines). Default verbose.
-   * CLI: `--compact`; env: `DEFT_SESSION_COMPACT=1`.
+   * #3286: compact orientation *section* formatting (terse machine lines).
+   * #4966: deprecated as whole-stdout volume gate — use `verbose` /
+   * `DEFT_SESSION_VERBOSE` for ceremony dump. CLI `--compact` remains parsed
+   * as a no-op for human stdout selection.
    */
   readonly compact?: boolean;
+  /**
+   * #4966: restore full ceremony human stdout (quiet success is the default).
+   * CLI: `--verbose`; env: `DEFT_SESSION_VERBOSE=1`.
+   */
+  readonly verbose?: boolean;
   /**
    * #3286: orientation compression seams (tests inject full bundle or partial
    * section overrides). When `orientation === null`, skip composition entirely.
@@ -2014,10 +2173,20 @@ function runSessionRearm(
     payload: {
       ready: code === 0,
       exit_code: code,
+      posture: MUTATION_POSTURE,
       ceremony_tier: REARM_CEREMONY_TIER,
       rearm_eligible: true,
       state_path: statePath,
       ...(freshnessBind ? { freshness: freshnessBind } : {}),
+      // #4966: structured checkout fields for quiet-default go-signal (additive).
+      session_ref: {
+        branch: (() => {
+          const ref = runGit(projectRoot, ["rev-parse", "--abbrev-ref", "HEAD"]);
+          const name = ref.stdout.trim();
+          return ref.code === 0 && name.length > 0 && name !== "HEAD" ? name : null;
+        })(),
+        head: eligibility.currentHead,
+      },
       quick_steps: quickSteps,
       gated_steps: gatedSteps,
       steps: stepTimings,
@@ -2969,6 +3138,7 @@ export function runSessionStart(
   const resultPayload = {
     ready: code === 0,
     exit_code: code,
+    posture: MUTATION_POSTURE,
     ceremony_tier: COLD_CEREMONY_TIER,
     ceremony_dial: dialDict,
     ...(preflightDict !== null ? { toolchain_preflight: preflightDict } : {}),
@@ -2991,6 +3161,11 @@ export function runSessionStart(
       : {}),
     state_path: statePath,
     ...(freshnessBind ? { freshness: freshnessBind } : {}),
+    // #4966: structured checkout fields for quiet-default go-signal (additive).
+    session_ref: {
+      branch: branchSync.head,
+      head: gitHeadValue,
+    },
     quick_steps: quickSteps,
     gated_steps: gatedSteps,
     steps: stepTimings,

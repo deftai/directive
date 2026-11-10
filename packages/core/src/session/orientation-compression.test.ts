@@ -5,10 +5,12 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   DEPOSIT_SHA_MATCH_NOOP,
   ENV_SESSION_COMPACT,
+  ENV_SESSION_VERBOSE,
   formatOrientationCompactLines,
   ORIENTATION_LATER_STATUS,
   type OrientationSectionResult,
   resolveSessionCompact,
+  resolveSessionVerbose,
   runCacheFreshOrientationSection,
   runOrientationCompression,
 } from "./orientation-compression.js";
@@ -144,6 +146,16 @@ describe("orientation compression (#3286)", () => {
     expect(cache?.shaMatch).toBe(false);
     expect(cache?.lines.join("\n")).toContain("live evaluate");
     expect(first.depositSha).toBe(second.depositSha);
+  });
+
+  it("resolves DEFT_SESSION_VERBOSE for whole-stdout ceremony dump (#4966)", () => {
+    expect(resolveSessionVerbose({ verbose: true })).toBe(true);
+    expect(resolveSessionVerbose({ verbose: false })).toBe(false);
+    expect(resolveSessionVerbose({ env: { [ENV_SESSION_VERBOSE]: "1" } })).toBe(true);
+    expect(resolveSessionVerbose({ env: { [ENV_SESSION_VERBOSE]: "0" } })).toBe(false);
+    expect(resolveSessionVerbose({ verbose: false, env: { [ENV_SESSION_VERBOSE]: "1" } })).toBe(
+      false,
+    );
   });
 
   it("--compact / DEFT_SESSION_COMPACT emits terse machine format", () => {
