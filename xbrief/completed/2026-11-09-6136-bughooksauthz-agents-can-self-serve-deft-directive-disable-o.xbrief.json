@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6136",
-    "updated": "2026-11-09T20:19:52.216Z"
+    "updated": "2026-11-10T01:55:14.239Z"
   },
   "plan": {
     "title": "bug(hooks,authz): agents can self-serve .deft-directive-disable outside UAT (Write/Shell plant)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Agents can plant root .deft-directive-disable via Write or Shell outside UAT and silently bypass PreToolUse. This activation records Prefer-A Bound so a later product PR can make kill-switch plant deny always-on without a human-origin grant.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6136",
@@ -20,42 +20,70 @@
       {
         "id": "clause.1",
         "title": "Always-on Write and Edit deny for kill-switch basenames without human-origin grant",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Always-on Write and Edit deny for kill-switch basenames without human-origin grant.",
           "Traces": "#6136",
           "Description": "Primary acceptance limb for #6136: Always-on Write and Edit deny for kill-switch basenames without human-origin grant"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3486ef1ec401ac144ba6ff254b87b651a706d166",
+          "recorded_at": "2026-11-10T01:55:14.239Z",
+          "recorded_by": "operator@deft.ai"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.2",
         "title": "Shell protected-basename check before in-repo write-path skip for kill-switch plant",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Shell protected-basename check before in-repo write-path skip for kill-switch plant.",
           "Traces": "#6136",
           "Description": "Primary acceptance limb for #6136: Shell protected-basename check before in-repo write-path skip for kill-switch plant"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3486ef1ec401ac144ba6ff254b87b651a706d166",
+          "recorded_at": "2026-11-10T01:55:14.239Z",
+          "recorded_by": "operator@deft.ai"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.3",
         "title": "Docs state agent self-serve kill-switch ban is always-on and grant-gated",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Docs state agent self-serve kill-switch ban is always-on and grant-gated.",
           "Traces": "#6136",
           "Description": "Primary acceptance limb for #6136: Docs state agent self-serve kill-switch ban is always-on and grant-gated"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3486ef1ec401ac144ba6ff254b87b651a706d166",
+          "recorded_at": "2026-11-10T01:55:14.239Z",
+          "recorded_by": "operator@deft.ai"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.4",
         "title": "CHANGELOG Unreleased Fixed or Security note Refs 6136 never Closes",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG Unreleased Fixed or Security note Refs 6136 never Closes.",
           "Traces": "#6136",
           "Description": "Primary acceptance limb for #6136: CHANGELOG Unreleased Fixed or Security note Refs 6136 never Closes"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3486ef1ec401ac144ba6ff254b87b651a706d166",
+          "recorded_at": "2026-11-10T01:55:14.239Z",
+          "recorded_by": "operator@deft.ai"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -695,6 +723,26 @@
         ],
         "parallel_safe": true,
         "acceptance_criteria_justification": "Prefer-A Bound ships one acceptance item per locked limb; clause count follows the Bound comment."
+      },
+      "productPullRequest": 6158,
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6158,
+        "pullRequestNumber": 6158,
+        "mergeCommit": "3486ef1ec401ac144ba6ff254b87b651a706d166",
+        "deliveryCommit": "3486ef1ec401ac144ba6ff254b87b651a706d166",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-10T01:55:14.239Z",
+        "verifiedAt": "2026-11-10T01:55:14.239Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "parent-through-merge",
+        "repository": "deftai/directive"
+      },
+      "completedAt": "2026-11-10T01:55:14.239Z",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-10T01:55:14.239Z"
       }
     },
     "id": "github.issue.6288274715",

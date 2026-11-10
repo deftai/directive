@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Operator-disable (`.deft-directive-disable`) override is eligible only for a project-root non-symlink regular file after a successful untracked `git ls-files` listing; tracked, wrong-kind, and indeterminate Git/filesystem probes keep enforcement (or host fail-closed) and are never cached as untracked. Host outers use the same lstat + listing predicate. Refs #6034.
 
 ### Fixed
+- Stamp `lifecycleWrite` `{action:complete, writtenAt}` on leftover-complete briefs for #6136 #6142 #6143 so completed-write-guard and merge-gate accept the records.
 - No-lease applying-host soft claims are advisory: other-provider bare lifecycle can take over, foreign-owner denies name the caller plus takeover/wait (never the owner's id), `session:end` / `occupancy:release` clear applying-host, and `applying-host:release` clears abandoned claims; RO SessionStart does not displace a different-provider fresh record. Refs #6143.
 - Record tracked completion for npm12 registry array unwrap (#5916).
 - Record tracked completion for check pin-root resolution (#5996).
