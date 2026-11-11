@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Remove leftover proposed twin for #5102 so product PR closing-keywords only sees the active brief.
 - Remint the #5102 approved-scope record so productPullRequest names product PR #6190.
 - Record Path B approved-scope mint so #5102 can include docs/RULE-MAP.md on the product PR.
 - Widen the #5102 active brief file scope so pack and SLizard gate tests can land with the review-cycle residual fix.
