@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "xbriefRelPath": "xbrief/active/2026-10-22-5102-processreview-cycle-slizard-babysit-re-polls-instead-of-reso.xbrief.json",
   "planId": "github.issue.5616559139",
-  "approvedAt": "2026-11-11T03:21:19Z",
+  "approvedAt": "2026-11-11T05:02:03Z",
   "fileScope": [
     "CHANGELOG.md",
     "content/packs/skills/skills-pack-0.1.json",
@@ -17,9 +17,9 @@
   "humanApproval": {
     "kind": "operator",
     "actor": "Scott",
-    "mintedAt": "2026-11-11T03:21:19Z",
+    "mintedAt": "2026-11-11T05:02:03Z",
     "mintedVia": "scope:record-approved-scope"
   },
-  "intentDigest": "ab98c4ce68f6f72d352545e561ded80ad2c97e23fa29a4fd32210f05cc82e558",
+  "intentDigest": "be0ca709dbb8ee8d964604a87690a61587819ffcb5874ece6fb0e5ef92af4f69",
   "digestAlgo": "intent-extract-v1"
 }
