@@ -6,7 +6,7 @@ import {
 import type { CheckRunRecord } from "./gh.js";
 
 /**
- * Dedicated gate for the SLizard second-reviewer verdict (#2189 / #4387).
+ * Dedicated gate for the SLizard second-reviewer verdict (#2189 / #4387 / #5102).
  *
  * SLizard posts a check-run whose `output.summary` looks like (live capture
  * `deftai/bs-deepwordle#4` SHA a8a20f3):
@@ -23,10 +23,14 @@ import type { CheckRunRecord } from "./gh.js";
  * merge-blocking only when the same summary is not zero-finding.
  *
  * Policy (#4387 Bound-remedy): `conclusion=failure` plus zero findings on the
- * check-run summary is advisory, not a block. Crash/timeout/cancelled with no
- * parseable zero-finding verdict still block. The HTML `slizard:verdict` block
- * is not on the live check-run; it lives on the PR review body. This gate does
- * not fetch reviews.
+ * check-run summary is advisory weather, not a block. Crash/timeout/cancelled
+ * with no parseable zero-finding verdict still block. #3167 weather carve-out
+ * is only timeout / cancelled / unparseable / zero-finding / missing-check —
+ * parseable blocking findings with open tip fingerprints are unfinished
+ * residual (#5102); babysit MUST read the tip review body and falsify
+ * (slizard#2694) before re-arming wait-mergeable. The HTML `slizard:verdict`
+ * block is not on the live check-run; it lives on the PR review body. This
+ * gate does not fetch reviews — compose existing head-blob falsify HOW.
  */
 
 /** Canonical SLizard check-run name; matching is case-insensitive substring for resilience. */
@@ -148,7 +152,9 @@ export function evaluateSlizardGate(
         : "";
     failures.push(
       `SLizard review is blocking: ${reasons.join(", ")}${findings}. ` +
-        "Resolve the SLizard findings or pass --skip-slizard to override (#2189).",
+        "Unfinished residual (not #3167 weather): read tip SLizard review body, " +
+        "falsify open fingerprints (git show <head>:<path> / slizard#2694) or fix " +
+        "before re-arming wait-mergeable; --skip-slizard is explicit override only (#5102 / #2189).",
     );
   } else if (isPending(run.status, run.conclusion)) {
     readyState = "not_ready_yet";

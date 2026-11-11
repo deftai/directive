@@ -138,6 +138,7 @@ Deft runtime is pinned as `@deftai/directive-runtime`. Full guidelines: node_mod
 
 ! Route PR shepherding / review work through `deft-directive-review-cycle` — `node_modules/@deftai/directive-runtime/.agents/skills/deft-directive-review-cycle/SKILL.md`; host `babysit` / `bugbot` / `security-review` advisory-only (#2308 / #2261). Zero-reviewer (#3630): `NO_REVIEWER_INSTALLED` → pre-pr (`skipped:no-reviewer-installed`); empty never CLEAN. Depth: review-cycle SKILL.
 ! Sticky tip-rot (#5162): `clean_gate_holdout=sha_match` + non-HEAD Last-reviewed + no in-flight Greptile on HEAD past sticky-sha clock (~10 min) → `GREPTILE_SHA_STALL` / `BLOCKED: greptile-sha-stall`; ask once (#564) before `@greptileai review`, then re-enter native `pr:watch`. ⊗ Bare one-shot `sha_match` escalate; ⊗ silent auto-post.
+! SLizard merge-ready (#5102 / #3167): weather is only timeout/cancelled/unparseable/zero-finding/missing-check; parseable blocking tip fingerprints are unfinished residual — read tip review body + falsify (slizard#2694) before re-arming wait-mergeable. Depth: review-cycle SKILL.
 
 ## Value feedback and attribution (#1709)
 
