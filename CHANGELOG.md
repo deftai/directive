@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Widen the #5102 active brief file scope so pack and SLizard gate tests can land with the review-cycle residual fix.
 - Activate briefs so workers can start the planned fixes for review and validation, worktree cleanup, Windows release updates, Cursor hooks, and pushes after rebasing. Refs #4781, #5735, #6164, #6163, #5102, and #6172.
 
 
