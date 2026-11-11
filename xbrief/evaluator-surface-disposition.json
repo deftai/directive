@@ -5,5 +5,5 @@
     "Taskfile.yml",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for #6164 release:local-update sed/grep portability + AgeExclude gate (Prefer-A Bound 6772692079). Disclosure only; not #3164 authorization."
+  "note": "Renew disclosure for #6163 Phase 7 Cursor deposit association bookend on release:local-update. Disclosure only; not #3164 authorization. Refs #6163."
 }

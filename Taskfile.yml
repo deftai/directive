@@ -945,10 +945,10 @@ tasks:
             ;;
         esac
         print_deposit_recovery() {
-          echo "Phase 7 local closeout INCOMPLETE (#5953)." >&2
-          echo "Recovery: merge the version-matched agent-hook deposit for $VERSION onto tip, then re-run:" >&2
+          echo "Phase 7 local closeout INCOMPLETE (#5953 / #6163 Prefer-A Bound 6772886751)." >&2
+          echo "Recovery: on the pin candidate, repair/write agent-hook deposit then force-add tip-required Cursor paths (.cursor/hooks.json + .cursor/hooks/deft-hook-<sha8>.mjs) so they co-travel with the pin (preparePinCandidateCursorDeposit / git add -f bounded set); merge that pin+deposit tip, then re-run:" >&2
           echo "  task release:local-update -- $VERSION --checkout $CHECKOUT" >&2
-          echo "Expected managed deposit paths include: .grok/hooks/ .cursor/hooks.json .claude/settings.json .codex/ (and related deposit files)." >&2
+          echo "Expected managed deposit paths include: .grok/hooks/ .cursor/hooks.json .cursor/hooks/deft-hook-<sha8>.mjs .claude/settings.json .codex/ (and related deposit files)." >&2
           echo "Do not auto-commit deposit bytes inside the release flow; do not npm i -g." >&2
         }
         OCC_FILE="$CHECKOUT/.deft/occupancy.json"
@@ -1096,6 +1096,39 @@ tasks:
         fi
         echo "release:local-update: require version-matched agent-hook deposit already on tip"
         if ! DEFT_DOCTOR_HOOK_DIAGNOSTIC=1 node "$RUNTIME_BIN" verify:hooks-installed --project-root "$CHECKOUT" --scope=agent; then
+          print_deposit_recovery
+          exit 1
+        fi
+        # #6163 Prefer-A Bound 6772886751: committed-byte HEAD association (no repair/staging).
+        echo "release:local-update: require committed Cursor deposit association on HEAD"
+        if ! node --input-type=module -e '
+          import { pathToFileURL } from "node:url";
+          import { join, resolve } from "node:path";
+          const checkout = process.argv[1];
+          const vendor = join(
+            checkout,
+            "node_modules/@deftai/directive-runtime/vendor/directive-core/dist/init-deposit/agent-hooks.js",
+          );
+          let validate;
+          try {
+            ({ validateCursorDepositAssociation: validate } = await import(pathToFileURL(resolve(vendor)).href));
+          } catch (err) {
+            const detail = err && err.message ? err.message : String(err);
+            console.error("release:local-update: cannot load validateCursorDepositAssociation from installed runtime (#6163): " + detail);
+            process.exit(1);
+          }
+          if (typeof validate !== "function") {
+            console.error("release:local-update: installed runtime lacks validateCursorDepositAssociation (#6163); pin must co-travel the Bound helper");
+            process.exit(1);
+          }
+          const result = validate(checkout, { source: "HEAD" });
+          if (!result || result.ok !== true) {
+            console.error("release:local-update: committed Cursor deposit association FAILED on HEAD (#6163)");
+            console.error(result && result.detail ? result.detail : "unknown association failure");
+            process.exit(1);
+          }
+          console.log("release:local-update: committed Cursor deposit association ok (" + result.sha8 + ")");
+        ' "$CHECKOUT"; then
           print_deposit_recovery
           exit 1
         fi
