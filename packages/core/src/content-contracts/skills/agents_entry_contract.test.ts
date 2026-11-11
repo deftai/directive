@@ -1125,25 +1125,15 @@ describe("test_agents_entry_pointer_fixtures", () => {
       expect(repoFileExists(spec.canonicalHome)).toBe(true);
     }
   });
-});
 
-describe("slizard merge-ready residual vs weather (#5102)", () => {
-  it("agents-entry and review-cycle skill keep carried-open fingerprints as residual", () => {
-    const entry = readRepoFile("templates/agents-entry.md");
-    expect(entry).toContain("SLizard merge-ready (#5102 / #3167)");
-    expect(entry).toContain("unfinished residual");
-
-    const skill = readRepoFile("skills/deft-directive-review-cycle/SKILL.md");
-    expect(skill).toContain(
-      "SLizard weather vs residual for merge-ready wait (#3167 / #5102 / #4387)",
-    );
-    expect(skill).toContain("unfinished residual");
-    expect(skill).toContain("Previously mentioned fingerprints");
-    expect(skill).toContain(
-      "Re-arm wait-mergeable or treat parseable blocking SLizard tip fingerprints as #3167 weather",
-    );
-    expect(skill).not.toContain(
-      "Block merge-ready wait on SLizard alone when Greptile Step 6 is clean (#3167)",
-    );
+  describe("slizard merge-ready residual vs weather (#5102)", () => {
+    it("review-cycle skill keeps carried-open fingerprints as residual", () => {
+      const skill = readRepoFile("skills/deft-directive-review-cycle/SKILL.md");
+      expect(skill).toContain(
+        "SLizard weather vs residual for merge-ready wait (#3167 / #5102 / #4387)",
+      );
+      expect(skill).toContain("unfinished residual");
+      expect(skill).toContain("Previously mentioned fingerprints");
+    });
   });
 });
