@@ -28,8 +28,21 @@ import {
   isHostHookOuterCommand,
   stageTipRequiredCursorDeposit,
   tipRequiredCursorDepositPaths,
-  validateCursorDepositAssociation,
+  validateCursorDepositAssociation as validateCursorDepositAssociationRaw,
 } from "./host-hook-outer.js";
+
+/** Phase 7 / pin prep association: honor Cursor hostHooks opt-out (#6163 Greptile P1). */
+export function validateCursorDepositAssociation(
+  projectRoot: string,
+  options: {
+    readonly source?: "HEAD" | "index";
+    readonly outerSource?: string;
+    readonly readTreeFile?: import("./host-hook-outer.js").CursorDepositTreeFileReader;
+    readonly hostHooksPolicy?: HostHooksPolicy;
+  } = {},
+): ReturnType<typeof validateCursorDepositAssociationRaw> {
+  return resolveCursorDepositAssociationForCloseout(projectRoot, options);
+}
 
 export {
   DIRECT_WRITE_HOOK_MATCHER,
@@ -54,7 +67,6 @@ export {
   type StageTipRequiredCursorDepositResult,
   stageTipRequiredCursorDeposit,
   tipRequiredCursorDepositPaths,
-  validateCursorDepositAssociation,
 } from "./host-hook-outer.js";
 /** Legacy bare PATH marker — rewritten to PACKAGE_RELATIVE_HOOK_BIN on deposit (AC9.2). */
 export const DEFT_HOOK_COMMAND_MARKER = "deft-hook";

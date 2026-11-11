@@ -400,10 +400,9 @@ The task fails closed and never resets, force-pushes, commits, or runs `npm i -g
 4. When `pnpm-workspace.yaml` carries `minimumReleaseAgeExclude`, assert it already includes `@deftai/directive-runtime@<version>`; then `pnpm install --frozen-lockfile`.
 5. Assert tip-pin-equals-released: installed `node_modules/@deftai/directive-runtime` version equals `<version>` and matches the `package.json` pin.
 6. Require the version-matched agent-hook deposit already merged on tip (inspect against the post-install payload via the checkout runtime). Keep Phase 7 local closeout **incomplete** until that deposit evidence exists; print deposit-merge recovery paths.
-7. ! **Committed Cursor deposit association (#6163 Prefer-A Bound 6772886751).** Validate that tip `HEAD` already associates `.cursor/hooks.json` + `.cursor/hooks/deft-hook-<sha8>.mjs` with the installed runtime outer hash (no repair/staging in Phase 7). Pin candidates MUST run `preparePinCandidateCursorDeposit` (write/repair then `git add -f` the bounded tip-required Cursor paths despite local exclude `.cursor/`) so the deposit co-travels with the pin — never invent a second deposit PR and never broad-directory force-add.
-8. Re-resolve the upgrade binary from the checkout post-install tree and run `directive upgrade --target-version <version> --yes` (never registry-latest). `release:local-update` is inline Taskfile `cmds:` without `engine:invoke` or `deps: [ts:build]`.
-9. After upgrade, any tracked-file diff keeps closeout non-zero/incomplete with deposit-merge recovery paths for expected managed deposit files (`.grok/hooks/`, `.cursor/hooks.json`, `.cursor/hooks/deft-hook-<sha8>.mjs`, `.claude/settings.json`, `.codex/` managed paths, and related deposit files).
-10. Run `deft verify:hooks-installed --project-root <checkout> --scope=all` from the checkout post-install runtime (⊗ bare `task verify:hooks-installed`) and re-assert installed runtime equals `<version>`.
+7. Re-resolve the upgrade binary from the checkout post-install tree and run `directive upgrade --target-version <version> --yes` (never registry-latest). `release:local-update` is inline Taskfile `cmds:` without `engine:invoke` or `deps: [ts:build]`.
+8. After upgrade, any tracked-file diff keeps closeout non-zero/incomplete with deposit-merge recovery paths for expected managed deposit files (`.grok/hooks/`, `.cursor/hooks.json`, `.claude/settings.json`, `.codex/` managed paths, and related deposit files).
+9. Run `deft verify:hooks-installed --project-root <checkout> --scope=all` from the checkout post-install runtime (⊗ bare `task verify:hooks-installed`) and re-assert installed runtime equals `<version>`.
 
 Report the local-update result (version now installed, hooks status) beside the existing global CLI drift report in Skill Completion.
 
@@ -456,8 +455,6 @@ Where `<one-line guidance>` is one of:
 - ⊗ End the release with the maintainer's checkout still on the previous pin (#5953) — run `task release:local-update -- <version> --checkout <primary>` after tip-pin-equals-released
 - ⊗ Run `release:local-update` without `--checkout` naming the maintainer primary occupancy root, or claim success from the release worktree alone while primary stays stale (#5953)
 - ⊗ Soft/warn-only checkout lag; non-fatal green on post-upgrade tracked diffs; auto-commit of upgrade deposit inside release; `directive upgrade` without `--target-version` (registry latest); bare `task verify:hooks-installed` without `--project-root` / `--scope=all`; local-update via pin-exclusive `engine:invoke` on the N-1 runtime (#5953 Prefer-A Bound 6430511888)
-- ⊗ Treat working-tree `verify:hooks-installed --scope=agent` green alone as Phase 7 Cursor deposit proof, or invent a standing second deposit PR after every pin — pin-candidate force-add of tip-required Cursor paths must co-travel with the pin; Phase 7 is a committed-HEAD association bookend (#6163 Prefer-A Bound 6772886751)
-- ⊗ Broad-directory `git add -f .cursor/` or auto-commit deposit bytes inside `release:local-update` (#6163 / #5953)
 - ⊗ Foreground-block the operator chat on Phase 1 long prep (`reconcile:issues`, cache refresh) or Phase 3 `release:e2e` when background / subagent dispatch is available (#1880 Gap D / #2692) — the interactive channel must stay free for version confirmation, `--summary`, and the Phase 2 dry-run gate
 - ⊗ Proceed to `task release` on orientation-dirty `cache_fresh` or check-class stale-by-drift, or treat skip-drift ritual green / ritual-stale as that bar (#4399) — fetch-all first
 
