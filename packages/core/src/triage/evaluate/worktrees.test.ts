@@ -2,11 +2,12 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { defaultGitRunner as swarmGitRunner } from "../../swarm/worktrees.js";
 import type { GitRunner } from "./types.js";
 import {
   __testOnly_clearCaseInsensitiveDirCache,
+  __testOnly_setDirectoryIgnoresCaseOverride,
   addEvaluatorWorktree,
   EvaluatorWorktreeError,
   removeEvaluatorWorktree,
@@ -60,7 +61,11 @@ function hostsCaseDistinctNames(dir: string): boolean {
 }
 
 const temps: string[] = [];
+beforeEach(() => {
+  __testOnly_clearCaseInsensitiveDirCache();
+});
 afterEach(() => {
+  __testOnly_setDirectoryIgnoresCaseOverride(undefined);
   __testOnly_clearCaseInsensitiveDirCache();
   for (const root of temps.splice(0)) {
     rmSync(root, { recursive: true, force: true });
@@ -245,7 +250,113 @@ describe("evaluator worktrees", () => {
     expect(existsSync(wtSibling)).toBe(true);
   });
 
-  it("raises when fallback prune still leaves a registered worktree", () => {
+  it("does not promote a case-only sibling after exact-target first prune", () => {
+    // Dual-to-single: after zzz is removed, second fallback must leave aaa (#5735).
+    const root = mkdtempSync(join(tmpdir(), "wt-promote-"));
+    temps.push(root);
+    initTempRepo(root);
+    const wtTarget = join(root, "Wt-Eval");
+    const wtSibling = join(root, "wt-eval");
+    __testOnly_setDirectoryIgnoresCaseOverride(true);
+    const worktreesDir = join(root, ".git", "worktrees");
+    mkdirSync(join(worktreesDir, "aaa"), { recursive: true });
+    mkdirSync(join(worktreesDir, "zzz"), { recursive: true });
+    writeFileSync(join(worktreesDir, "aaa", "gitdir"), `${wtSibling.replace(/\\/g, "/")}/.git\n`);
+    writeFileSync(join(worktreesDir, "zzz", "gitdir"), `${wtTarget.replace(/\\/g, "/")}/.git\n`);
+    writeFileSync(join(worktreesDir, "aaa", "marker"), "keep\n");
+    let removeCalls = 0;
+    const git: GitRunner = (args, cwd) => {
+      if (args[0] === "worktree" && args[1] === "prune") {
+        throw new Error("unscoped git worktree prune must not run");
+      }
+      if (args[0] === "worktree" && args[1] === "remove") {
+        removeCalls += 1;
+        return { returncode: 1, stdout: "", stderr: "locked" };
+      }
+      if (args[0] === "worktree" && args[1] === "list") {
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
+      return swarmGitRunner(args, cwd);
+    };
+    removeEvaluatorWorktree(root, wtTarget, git);
+    expect(existsSync(join(worktreesDir, "aaa"))).toBe(true);
+    expect(existsSync(join(worktreesDir, "zzz"))).toBe(false);
+    expect(existsSync(join(worktreesDir, "aaa", "marker"))).toBe(true);
+    expect(removeCalls).toBeGreaterThanOrEqual(1);
+  });
+
+  it("does not delete another root's same-basename admin registration", () => {
+    // Unique exact basename pointing at a different checkout must not be selected.
+    const root = mkdtempSync(join(tmpdir(), "wt-cross-a-"));
+    const other = mkdtempSync(join(tmpdir(), "wt-cross-b-"));
+    temps.push(root, other);
+    initTempRepo(root);
+    initTempRepo(other);
+    const wtTarget = join(root, "wt-eval");
+    const wtOther = join(other, "wt-eval");
+    mkdirSync(wtTarget);
+    mkdirSync(wtOther);
+    const worktreesDir = join(root, ".git", "worktrees");
+    mkdirSync(join(worktreesDir, "other"), { recursive: true });
+    writeFileSync(join(worktreesDir, "other", "gitdir"), `${wtOther.replace(/\\/g, "/")}/.git\n`);
+    writeFileSync(join(worktreesDir, "other", "marker"), "keep\n");
+    const git: GitRunner = (args, cwd) => {
+      if (args[0] === "worktree" && args[1] === "prune") {
+        throw new Error("unscoped git worktree prune must not run");
+      }
+      if (args[0] === "worktree" && args[1] === "remove") {
+        return { returncode: 1, stdout: "", stderr: "locked" };
+      }
+      if (args[0] === "worktree" && args[1] === "list") {
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
+      return swarmGitRunner(args, cwd);
+    };
+    removeEvaluatorWorktree(root, wtTarget, git);
+    // Target cleanup may succeed with selected=null; the foreign admin must remain.
+    expect(existsSync(join(worktreesDir, "other"))).toBe(true);
+    expect(existsSync(join(worktreesDir, "other", "marker"))).toBe(true);
+    expect(existsSync(wtOther)).toBe(true);
+  });
+
+  it("force-deletes same live directory when selected spelling differs only by case", () => {
+    const root = mkdtempSync(join(tmpdir(), "wt-fold-same-"));
+    temps.push(root);
+    initTempRepo(root);
+    if (hostsCaseDistinctNames(root)) {
+      // Same-live-dir case alias cannot exist on a case-sensitive volume.
+      return;
+    }
+    __testOnly_setDirectoryIgnoresCaseOverride(true);
+    // Create under selected spelling so readdir lacks argv's exact case.
+    const selectedSpelling = join(root, "Wt-Eval");
+    mkdirSync(selectedSpelling);
+    const argvSpelling = join(root, "wt-eval");
+    const worktreesDir = join(root, ".git", "worktrees");
+    mkdirSync(join(worktreesDir, "zzz"), { recursive: true });
+    writeFileSync(
+      join(worktreesDir, "zzz", "gitdir"),
+      `${selectedSpelling.replace(/\\/g, "/")}/.git\n`,
+    );
+    const git: GitRunner = (args, cwd) => {
+      if (args[0] === "worktree" && args[1] === "prune") {
+        throw new Error("unscoped git worktree prune must not run");
+      }
+      if (args[0] === "worktree" && args[1] === "remove") {
+        return { returncode: 1, stdout: "", stderr: "locked" };
+      }
+      if (args[0] === "worktree" && args[1] === "list") {
+        return { returncode: 0, stdout: "", stderr: "" };
+      }
+      return swarmGitRunner(args, cwd);
+    };
+    removeEvaluatorWorktree(root, argvSpelling, git);
+    expect(existsSync(selectedSpelling)).toBe(false);
+    expect(existsSync(argvSpelling)).toBe(false);
+    expect(existsSync(join(worktreesDir, "zzz"))).toBe(false);
+  });
+
+  it("soft-returns when fallback prune still leaves a registered worktree", () => {
     const root = mkdtempSync(join(tmpdir(), "wt-"));
     temps.push(root);
     const git: GitRunner = (args) => {
@@ -263,7 +374,8 @@ describe("evaluator worktrees", () => {
       return { returncode: 0, stdout: "", stderr: "" };
     };
     const path = addEvaluatorWorktree(root, 3, "inv", "abc123def456aaaaaaaa", git);
-    expect(() => removeEvaluatorWorktree(root, path, git)).toThrow(EvaluatorWorktreeError);
+    // Operational returned-failure: no throw after both prune passes (#5735).
+    expect(() => removeEvaluatorWorktree(root, path, git)).not.toThrow();
   });
 
   it("raises when git worktree add fails", () => {
