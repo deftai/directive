@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5853",
-    "updated": "2026-10-23T05:34:24Z"
+    "updated": "2026-11-11T10:13:12.993Z"
   },
   "plan": {
     "title": "verify:pack-drift compares against the installed runtime package's rewritten copies instead of repo content/ (still in 0.128.0)",
-    "status": "proposed",
+    "status": "completed",
     "narratives": {
       "Description": "verify:pack-drift compares against the installed runtime package's rewritten copies instead of repo content/ (still in 0.128.0)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5853",
@@ -17,82 +17,152 @@
       {
         "id": "clause.1",
         "title": "relieves: P1 — Walk-up render root: resolve once via --project-root → DEFT_PROJECT_ROOT → ancestor walk from cwd for <dir>/content/packs/ (portable parent===dir stop; reuse resolveProjectRoot shape).",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Recut-2 (6360062572)": "n1: relieves: P1 — Resolve the render root once via --project-root → DEFT_PROJECT_ROOT → ancestor walk from cwd for <dir>/content/packs/ with a portable parent===dir stop reusing the resolveProjectRoot shape."
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "46e26945f538996ca89bfc12dc0c557288bc6a39",
+          "recorded_at": "2026-11-11T10:13:12.993Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.2",
         "title": "Explicit flag/env that fails to stat refuses closed (no silent package fallback).",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Recut-2 (6360062572)": "n2: relieves: P1 — Explicit --project-root or DEFT_PROJECT_ROOT that fails to stat refuses closed with no silent package fallback."
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "46e26945f538996ca89bfc12dc0c557288bc6a39",
+          "recorded_at": "2026-11-11T10:13:12.993Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.3",
         "title": "Only after walk miss keep module-location import.meta.url fallback.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Recut-2 (6360062572)": "n3: relieves: P1 — Only after the content/packs walk misses, keep the module-location import.meta.url fallback."
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "46e26945f538996ca89bfc12dc0c557288bc6a39",
+          "recorded_at": "2026-11-11T10:13:12.993Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.4",
         "title": "Same root for pack-render --check and non-check packs:render.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Recut-2 (6360062572)": "n4: relieves: P1 — Use that same resolved root for pack-render --check and non-check packs:render."
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "46e26945f538996ca89bfc12dc0c557288bc6a39",
+          "recorded_at": "2026-11-11T10:13:12.993Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.5",
         "title": "One shared helper for pack-render and packs-slice.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Recut-2 (6360062572)": "n5: relieves: P1 — Share one root helper between pack-render and packs-slice with no third copy."
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "46e26945f538996ca89bfc12dc0c557288bc6a39",
+          "recorded_at": "2026-11-11T10:13:12.993Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.6",
         "title": "relieves: P2 — Framework-source checkout bind: RENDER_REGISTRY / collectTargets / DEFAULT_SOURCE / DEFAULT_OUTPUT / #2914 containment are functions of that resolved root.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Recut-2 (6360062572)": "n6: relieves: P2 — Make RENDER_REGISTRY, collectTargets, DEFAULT_SOURCE, DEFAULT_OUTPUT, and the #2914 containment anchor functions of that resolved root with no import-time consts frozen to the package."
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "46e26945f538996ca89bfc12dc0c557288bc6a39",
+          "recorded_at": "2026-11-11T10:13:12.993Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.7",
         "title": "In framework-source mode, pack inputs and projection outputs bind to checkout content/ and meta/lessons.md and bypass staged @deftai/directive-content preference so deposit-rewritten package trees never enter compare or write.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Recut-2 (6360062572)": "n7: relieves: P2 — In framework-source mode, bind pack inputs and projection outputs to checkout content/ and meta/lessons.md and bypass staged @deftai/directive-content preference so deposit-rewritten package trees never enter compare or write."
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "46e26945f538996ca89bfc12dc0c557288bc6a39",
+          "recorded_at": "2026-11-11T10:13:12.993Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.8",
         "title": "relieves: P3 — Framework-source contentRoot bypass: after checkout root is selected, do not route framework-source pack I/O through contentRoot consumer-package preference; keep #5802 in-repo-over-hoisted as consumer-mode secondary only.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Recut-2 (6360062572)": "n8: relieves: P3 — After the checkout root is selected, do not route framework-source pack I/O through contentRoot consumer-package preference. n9: relieves: P3 — Keep #5802 in-repo-over-hoisted as a consumer-mode secondary guard only."
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "46e26945f538996ca89bfc12dc0c557288bc6a39",
+          "recorded_at": "2026-11-11T10:13:12.993Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.9",
         "title": "relieves: P4 — Subdir+fixture regression: drive main from a subdirectory cwd without pre-set root override and from a tmp fixture outside module ancestry; assert sources/outputs under checkout/fixture; framework-source --check reports checkout projection paths only.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Recut-2 (6360062572)": "n10: relieves: P4 — Drive main from a subdirectory cwd without a pre-set root override and from a tmp fixture outside the module ancestry. n11: relieves: P4 — Assert that sources and outputs resolve under the checkout or fixture root. n12: relieves: P4 — Assert that framework-source --check reports checkout projection paths only."
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "46e26945f538996ca89bfc12dc0c557288bc6a39",
+          "recorded_at": "2026-11-11T10:13:12.993Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.10",
         "title": "Reject tip-tsx verify bypass, warn-only gate, rewrite-strip compare, and #5805 pin-exclusivity remint.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Recut-2 (6360062572)": "n13: relieves: P4 — Reject tip-tsx verify bypass, warn-only gate softening, rewrite-strip compare special cases, and reminting #5805 pin-exclusivity for this verb."
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "46e26945f538996ca89bfc12dc0c557288bc6a39",
+          "recorded_at": "2026-11-11T10:13:12.993Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -702,6 +772,27 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "c2bdf9c5396f5f6d88b746d9ae288361037d0360b0126e8da32132d92d512914"
+      },
+      "productPullRequest": 5871,
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 5871,
+        "pullRequestNumber": 5871,
+        "mergeCommit": "46e26945f538996ca89bfc12dc0c557288bc6a39",
+        "deliveryCommit": "46e26945f538996ca89bfc12dc0c557288bc6a39",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-11T10:13:12.993Z",
+        "verifiedAt": "2026-11-11T10:13:12.993Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "parent-through-merge",
+        "repository": "deftai/directive"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-11T10:13:12.993Z",
+        "actor": "Scott",
+        "via": "prefer-a-leftover-hand-stamp"
       }
     },
     "acceptance": {

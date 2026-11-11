@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Recorded tracked completion for pack-drift bound to framework source checkout after product merge. Refs #5853. Refs #5871.
 - Recorded tracked completion for SLizard residual-vs-weather babysit clarity after product merge. Refs #5102. Refs #6190.
 - Recorded tracked completion for worktrees-probe case-distinct sibling prune after product merge. Refs #5735. Refs #6180.
 - Recorded tracked completion for Approach 1 process_only+cwd monitor seats after product merge. Refs #4781. Refs #6183.
