@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-10-22-5102-processreview-cycle-slizard-babysit-re-polls-instead-of-reso.xbrief.json",
+  "planId": "github.issue.5616559139",
+  "approvedAt": "2026-11-11T03:21:19Z",
+  "fileScope": [
+    "CHANGELOG.md",
+    "content/packs/skills/skills-pack-0.1.json",
+    "content/skills/deft-directive-review-cycle/SKILL.md",
+    "content/templates/agents-entry.md",
+    "docs/RULE-MAP.md",
+    "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+    "packages/core/src/pr-merge-readiness/slizard-gate.test.ts",
+    "packages/core/src/pr-merge-readiness/slizard-gate.ts"
+  ],
+  "fileScopeDigest": "feee6c18d5520103a0351bf1e1fff53be1e91d25f7ae0e6d635975fe63f8b010",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-11-11T03:21:19Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "ab98c4ce68f6f72d352545e561ded80ad2c97e23fa29a4fd32210f05cc82e558",
+  "digestAlgo": "intent-extract-v1"
+}
