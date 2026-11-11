@@ -659,7 +659,7 @@ export function preparePinCandidateCursorDeposit(
     };
   }
   const staged = stageTipRequiredCursorDeposit(projectRoot);
-  const association = validateCursorDepositAssociation(projectRoot, { source: "index" });
+  const association = validateCursorDepositAssociationRaw(projectRoot, { source: "index" });
   return { written, staged, association };
 }
 
@@ -672,7 +672,7 @@ export function resolveCursorDepositAssociationForCloseout(
     readonly source?: "HEAD" | "index";
     readonly hostHooksPolicy?: HostHooksPolicy;
   } = {},
-): ReturnType<typeof validateCursorDepositAssociation> {
+): ReturnType<typeof validateCursorDepositAssociationRaw> {
   const policy = options.hostHooksPolicy ?? loadHostHooksPolicyFromProject(projectRoot);
   if (!isHostHookDepositEnabled("cursor", policy)) {
     const sha8 = hostHookOuterSha8();
@@ -684,7 +684,7 @@ export function resolveCursorDepositAssociationForCloseout(
       detail: "cursor hostHooks opted out; Cursor deposit association not required (#6163)",
     };
   }
-  return validateCursorDepositAssociation(projectRoot, {
+  return validateCursorDepositAssociationRaw(projectRoot, {
     source: options.source ?? "HEAD",
   });
 }
