@@ -130,15 +130,23 @@ export function evaluateSlizardGate(
   const blockingImpact = verdict.mergeImpact === "blocking";
   const failedConclusion = FAILED_CONCLUSIONS.has(run.conclusion);
   const wouldBlock = blockingDecision || blockingImpact || failedConclusion;
+  const noCountedFindings =
+    (verdict.p0Count ?? 0) === 0 && (verdict.p1Count ?? 0) === 0 && (verdict.p2Count ?? 0) === 0;
+  // Parseable blocking findings always win over weather (#5102 Greptile P1).
+  const parseableBlockingFindings =
+    blockingDecision || blockingImpact || (verdict.p0Count ?? 0) > 0 || (verdict.p1Count ?? 0) > 0;
+  // #3167 weather: timeout/cancelled/unparseable-empty with no parseable findings.
+  const weatherEmptyFail =
+    !parseableBlockingFindings &&
+    noCountedFindings &&
+    (run.conclusion === "timed_out" ||
+      run.conclusion === "cancelled" ||
+      (failedConclusion && parsed === null));
 
   const failures: string[] = [];
   let readyState: SlizardReadyState;
 
-  const weatherConclusion =
-    run.conclusion === "timed_out" ||
-    run.conclusion === "cancelled" ||
-    (failedConclusion && parsed === null);
-  if (wouldBlock && !zeroFindings && !weatherConclusion) {
+  if (wouldBlock && parseableBlockingFindings) {
     readyState = "blocked";
     const reasons: string[] = [];
     if (verdict.decision !== null) {
@@ -160,8 +168,11 @@ export function evaluateSlizardGate(
         "falsify open fingerprints (git show <head>:<path> / slizard#2694) or fix " +
         "before re-arming wait-mergeable; --skip-slizard is explicit override only (#5102 / #2189).",
     );
-  } else if (wouldBlock && weatherConclusion) {
-    // #3167 weather: timeout / cancelled / unparseable empty — not fingerprint residual (#5102).
+  } else if (wouldBlock && weatherEmptyFail) {
+    // #3167 weather — no fingerprint hunt; treat as ready (advisory).
+    readyState = "ready";
+  } else if (wouldBlock && failedConclusion && noCountedFindings && !parseableBlockingFindings) {
+    // Failed conclusion without findings: weather recovery, not residual fingerprints.
     readyState = "ready";
   } else if (isPending(run.status, run.conclusion)) {
     readyState = "not_ready_yet";
