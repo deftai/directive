@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5102",
-    "updated": "2026-11-10T20:55:58Z"
+    "updated": "2026-11-10T23:29:50.305Z"
   },
   "plan": {
     "title": "process(review-cycle): SLizard babysit re-polls instead of resolving carried fingerprints",
@@ -133,9 +133,12 @@
           "content/skills/deft-directive-review-cycle/SKILL.md",
           "content/templates/agents-entry.md",
           "packages/core/src/pr-merge-readiness/slizard-gate.ts",
-          "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts"
+          "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "content/packs/skills/skills-pack-0.1.json",
+          "packages/core/src/pr-merge-readiness/slizard-gate.test.ts"
         ],
-        "module_boundary": "content/skills/deft-directive-review-cycle"
+        "module_boundary": "content/skills/deft-directive-review-cycle",
+        "cohesion_exemption": "CHANGELOG + review-cycle always-pin rewrite unit"
       },
       "x-directive/plan-id": {
         "version": 1,
@@ -172,7 +175,9 @@
           "content/templates/agents-entry.md",
           "packages/core/src/pr-merge-readiness/slizard-gate.ts",
           "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "packages/core/src/pr-merge-readiness/slizard-gate.test.ts"
         ],
         "size": "M",
         "file_scope_confidence": "high",
@@ -185,6 +190,6 @@
       "activationPullRequest": 5834
     },
     "id": "github.issue.5616559139",
-    "updated": "2026-11-10T20:40:00Z"
+    "updated": "2026-11-10T23:29:50.305Z"
   }
 }
