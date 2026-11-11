@@ -1134,7 +1134,9 @@ describe("slizard merge-ready residual vs weather (#5102)", () => {
     expect(entry).toContain("unfinished residual");
 
     const skill = readRepoFile("skills/deft-directive-review-cycle/SKILL.md");
-    expect(skill).toContain("SLizard weather vs residual for merge-ready wait (#3167 / #5102 / #4387)");
+    expect(skill).toContain(
+      "SLizard weather vs residual for merge-ready wait (#3167 / #5102 / #4387)",
+    );
     expect(skill).toContain("unfinished residual");
     expect(skill).toContain("Previously mentioned fingerprints");
     expect(skill).toContain(

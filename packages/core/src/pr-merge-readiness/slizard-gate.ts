@@ -134,7 +134,11 @@ export function evaluateSlizardGate(
   const failures: string[] = [];
   let readyState: SlizardReadyState;
 
-  if (wouldBlock && !zeroFindings) {
+  const weatherConclusion =
+    run.conclusion === "timed_out" ||
+    run.conclusion === "cancelled" ||
+    (failedConclusion && parsed === null);
+  if (wouldBlock && !zeroFindings && !weatherConclusion) {
     readyState = "blocked";
     const reasons: string[] = [];
     if (verdict.decision !== null) {
@@ -156,6 +160,9 @@ export function evaluateSlizardGate(
         "falsify open fingerprints (git show <head>:<path> / slizard#2694) or fix " +
         "before re-arming wait-mergeable; --skip-slizard is explicit override only (#5102 / #2189).",
     );
+  } else if (wouldBlock && weatherConclusion) {
+    // #3167 weather: timeout / cancelled / unparseable empty — not fingerprint residual (#5102).
+    readyState = "ready";
   } else if (isPending(run.status, run.conclusion)) {
     readyState = "not_ready_yet";
     failures.push(

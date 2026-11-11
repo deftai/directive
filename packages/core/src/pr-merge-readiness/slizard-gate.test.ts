@@ -202,9 +202,7 @@ describe("evaluateSlizardGate", () => {
       "**Severity counts**: P0: 0, P1: 1, P2: 0, P3: 0",
       "Previously mentioned: packages/core/src/pr-merge-readiness/slizard-gate.ts (P1)",
     ].join("\n");
-    const residual = evaluateSlizardGate([
-      slizardRun({ conclusion: "failure", summary: carried }),
-    ]);
+    const residual = evaluateSlizardGate([slizardRun({ conclusion: "failure", summary: carried })]);
     expect(residual.summary.ready_state).toBe("blocked");
     expect(residual.failures[0]).toContain("Unfinished residual");
     expect(residual.failures[0]).toContain("#5102");
