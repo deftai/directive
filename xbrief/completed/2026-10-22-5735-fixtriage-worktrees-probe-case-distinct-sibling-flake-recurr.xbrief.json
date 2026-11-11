@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5735",
-    "updated": "2026-11-10T20:39:52Z"
+    "updated": "2026-11-11T09:38:00.514Z"
   },
   "plan": {
     "title": "fix(triage): worktrees-probe case-distinct sibling flake recurred a third time (post-#5519)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "removeEvaluatorWorktree keeps operation-scoped registration ownership across both prune passes. A previously excluded case-distinct sibling is never promoted into the target after the first pass deletes the selected registration.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5735",
@@ -20,47 +20,82 @@
       {
         "id": "clause.1",
         "title": "relieves: P2 — Operation-scoped registration ownership across both prune passes",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Operation-scoped registration ownership across both prune passes",
           "Traces": "#5735"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5990b3dadb6e9e719752a3eda2f8bca4cd54019",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.2",
         "title": "relieves: P1 — Native Git removal authority plus fallback deletion under retained selection",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Native Git removal authority plus fallback deletion under retained selection",
           "Traces": "#5735"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5990b3dadb6e9e719752a3eda2f8bca4cd54019",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.3",
         "title": "relieves: P3 — Dual-to-single transition regression through second fallback",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Dual-to-single transition regression through second fallback",
           "Traces": "#5735"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5990b3dadb6e9e719752a3eda2f8bca4cd54019",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.4",
         "title": "relieves: P4 — Suite-local probe override/cache reset across worktrees tests",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P4 — Suite-local probe override/cache reset across worktrees tests",
           "Traces": "#5735"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5990b3dadb6e9e719752a3eda2f8bca4cd54019",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.5",
         "title": "CHANGELOG Unreleased Fixed bullet for #5735; gate integrity no retry/skip/quarantine",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG Unreleased Fixed bullet for #5735; gate integrity no retry/skip/quarantine",
           "Traces": "#5735"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a5990b3dadb6e9e719752a3eda2f8bca4cd54019",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -180,7 +215,28 @@
         ],
         "parallel_safe": true
       },
-      "activationPullRequest": 5834
+      "activationPullRequest": 5834,
+      "productPullRequest": 6180,
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6180,
+        "pullRequestNumber": 6180,
+        "mergeCommit": "a5990b3dadb6e9e719752a3eda2f8bca4cd54019",
+        "deliveryCommit": "a5990b3dadb6e9e719752a3eda2f8bca4cd54019",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-11T09:38:00.514Z",
+        "verifiedAt": "2026-11-11T09:38:00.514Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "parent-through-merge",
+        "repository": "deftai/directive"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-11T09:38:00.514Z",
+        "actor": "Scott",
+        "via": "prefer-a-leftover-hand-stamp"
+      }
     },
     "id": "github.issue.5915030058",
     "updated": "2026-11-10T20:39:52Z"

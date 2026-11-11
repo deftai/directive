@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6164",
-    "updated": "2026-11-10T20:55:58Z"
+    "updated": "2026-11-11T09:38:00.514Z"
   },
   "plan": {
     "title": "bug(release): release:local-update still shells out to sed/grep on Windows",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(release): release:local-update still shells out to sed/grep on Windows",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6164",
@@ -20,74 +20,130 @@
       {
         "id": "clause.1",
         "title": "Default-branch strip captures origin HEAD then strips the remotes prefix with shell parameter expansion; zero sed awk cut grep on that path.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Default-branch strip captures origin HEAD then strips the remotes prefix with shell parameter expansion; zero sed awk cut grep on that path.",
           "Traces": "#6164"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "12d8c3034e099fb2141167fd7e77376431efb475",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.2",
         "title": "Default-branch verify uses git rev-parse after strip and exits non-zero with recovery guidance when the ref is missing.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Default-branch verify uses git rev-parse after strip and exits non-zero with recovery guidance when the ref is missing.",
           "Traces": "#6164"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "12d8c3034e099fb2141167fd7e77376431efb475",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.3",
         "title": "AgeExclude gate runs one dependency-free node probe that reads the workspace yaml before frozen install and fails closed on tool or read errors.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: AgeExclude gate runs one dependency-free node probe that reads the workspace yaml before frozen install and fails closed on tool or read errors.",
           "Traces": "#6164"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "12d8c3034e099fb2141167fd7e77376431efb475",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.4",
         "title": "AgeExclude outcomes continue when the exclude key is absent and otherwise require exact list-item string equality with the runtime version row inside that block only.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: AgeExclude outcomes continue when the exclude key is absent and otherwise require exact list-item string equality with the runtime version row inside that block only.",
           "Traces": "#6164"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "12d8c3034e099fb2141167fd7e77376431efb475",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.5",
         "title": "Fail-closed wiring keeps the AgeExclude node invocation unconditional in recipe control flow without soft-skip or blanket or-true.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Fail-closed wiring keeps the AgeExclude node invocation unconditional in recipe control flow without soft-skip or blanket or-true.",
           "Traces": "#6164"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "12d8c3034e099fb2141167fd7e77376431efb475",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.6",
         "title": "Scope stays on Taskfile.yml release local-update measured call sites without a standalone helper or broad Taskfile rewrite.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Scope stays on Taskfile.yml release local-update measured call sites without a standalone helper or broad Taskfile rewrite.",
           "Traces": "#6164"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "12d8c3034e099fb2141167fd7e77376431efb475",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.7",
         "title": "Proof fixtures cover exact-row pass and refuse cases and a control-flow harness asserts frozen install is not reached on probe failure.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Proof fixtures cover exact-row pass and refuse cases and a control-flow harness asserts frozen install is not reached on probe failure.",
           "Traces": "#6164"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "12d8c3034e099fb2141167fd7e77376431efb475",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.8",
         "title": "CHANGELOG Unreleased notes the portability and fail-closed AgeExclude fix with Refs for this issue.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG Unreleased notes the portability and fail-closed AgeExclude fix with Refs for this issue.",
           "Traces": "#6164"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "12d8c3034e099fb2141167fd7e77376431efb475",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -620,7 +676,28 @@
         ],
         "missing_traces_justification": "Prefer-A Bound design-critique arc closed ingest-ready; product traces land with the implement PR under Tracking/Refs."
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 6181,
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6181,
+        "pullRequestNumber": 6181,
+        "mergeCommit": "12d8c3034e099fb2141167fd7e77376431efb475",
+        "deliveryCommit": "12d8c3034e099fb2141167fd7e77376431efb475",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-11T09:38:00.514Z",
+        "verifiedAt": "2026-11-11T09:38:00.514Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "parent-through-merge",
+        "repository": "deftai/directive"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-11T09:38:00.514Z",
+        "actor": "Scott",
+        "via": "prefer-a-leftover-hand-stamp"
+      }
     },
     "id": "github.issue.6310767559",
     "updated": "2026-11-10T20:41:00Z"

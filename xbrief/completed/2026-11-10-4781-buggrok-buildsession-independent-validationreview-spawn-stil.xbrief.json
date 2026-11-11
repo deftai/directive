@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4781",
-    "updated": "2026-11-10T20:55:58Z"
+    "updated": "2026-11-11T09:38:00.514Z"
   },
   "plan": {
     "title": "bug(grok-build,session): independent validation/review spawn still requires inventing an active product xBRIEF",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(grok-build,session): independent validation/review spawn still requires inventing an active product xBRIEF",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4781",
@@ -19,93 +19,163 @@
     "items": [
       {
         "title": "Emit process_only plus dest cwd — Approach 1 babysit and independent validation/review Grok spawn_subagent envelopes pass advertised process_only with dest cwd; implement-class never sets it; dest-path stays out of skip class.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Emit process_only plus dest cwd — Approach 1 babysit and independent validation/review Grok spawn_subagent envelopes pass advertised process_only with dest cwd; implement-class never sets it; dest-path stays out of skip class.",
           "Traces": "#4781"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e5f2876c4aa4794f381e34fbd4fb2885ea2adb4a",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "title": "Name the spawn shape on the card — approach1BabysitterCommands, formatApproach1CheapestAdmissionCard, and review-cycle Approach 1 recipe name that process_only+cwd spawn before register/pr:watch.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Name the spawn shape on the card — approach1BabysitterCommands, formatApproach1CheapestAdmissionCard, and review-cycle Approach 1 recipe name that process_only+cwd spawn before register/pr:watch.",
           "Traces": "#4781"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e5f2876c4aa4794f381e34fbd4fb2885ea2adb4a",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "title": "Bind monitor-only seat shape — emit for stop-at: pr-open + worker_role: review-monitor watch/report seats only; do not blanket-flag the fix-capable greptile poller; hand fixes to an authorized implement owner.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Bind monitor-only seat shape — emit for stop-at: pr-open + worker_role: review-monitor watch/report seats only; do not blanket-flag the fix-capable greptile poller; hand fixes to an authorized implement owner.",
           "Traces": "#4781"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e5f2876c4aa4794f381e34fbd4fb2885ea2adb4a",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "title": "Name suppressors in deny — when process_only is present but hasImplementConflictSignal wins (for example drive_to merge-ready), deny naming the suppressing field rather than bare #2885.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Name suppressors in deny — when process_only is present but hasImplementConflictSignal wins (for example drive_to merge-ready), deny naming the suppressing field rather than bare #2885.",
           "Traces": "#4781"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e5f2876c4aa4794f381e34fbd4fb2885ea2adb4a",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "title": "Relabel recovery option (4) — capability wording for critic, review-monitor, and validation seats (not critic-only).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Relabel recovery option (4) — capability wording for critic, review-monitor, and validation seats (not critic-only).",
           "Traces": "#4781"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e5f2876c4aa4794f381e34fbd4fb2885ea2adb4a",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "title": "Split dest convention by write need — shared cwd-without-occupy for non-writing monitor/critic seats; one dest per validation seat that writes a report root.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Split dest convention by write need — shared cwd-without-occupy for non-writing monitor/critic seats; one dest per validation seat that writes a report root.",
           "Traces": "#4781"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e5f2876c4aa4794f381e34fbd4fb2885ea2adb4a",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "title": "Keep write gates separate — specs/report writes stay inventory on requirements posture (#4444); do not fold report roots into the spawn skip class.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Keep write gates separate — specs/report writes stay inventory on requirements posture (#4444); do not fold report roots into the spawn skip class.",
           "Traces": "#4781"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e5f2876c4aa4794f381e34fbd4fb2885ea2adb4a",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "title": "Leave unmarked zero-eligible on #2885 — unmarked dest-cwd general-purpose at zero eligible keeps No active xBRIEF.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Leave unmarked zero-eligible on #2885 — unmarked dest-cwd general-purpose at zero eligible keeps No active xBRIEF.",
           "Traces": "#4781"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e5f2876c4aa4794f381e34fbd4fb2885ea2adb4a",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "title": "Do not mint Approach B — no second advertised spawn class for this gap.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Do not mint Approach B — no second advertised spawn class for this gap.",
           "Traces": "#4781"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e5f2876c4aa4794f381e34fbd4fb2885ea2adb4a",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "title": "Do not claim exclusive-lawful-wait recut — P3 clears when Approach 1 spawn admits; no parent-shell bare pr:watch carve-out as durable fix.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Do not claim exclusive-lawful-wait recut — P3 clears when Approach 1 spawn admits; no parent-shell bare pr:watch carve-out as durable fix.",
           "Traces": "#4781"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e5f2876c4aa4794f381e34fbd4fb2885ea2adb4a",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -1047,7 +1117,28 @@
         ],
         "missing_traces_justification": "Prefer-A Bound design-critique arc closed ingest-ready; product traces land with the implement PR under Tracking/Refs."
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 6183,
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6183,
+        "pullRequestNumber": 6183,
+        "mergeCommit": "e5f2876c4aa4794f381e34fbd4fb2885ea2adb4a",
+        "deliveryCommit": "e5f2876c4aa4794f381e34fbd4fb2885ea2adb4a",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-11T09:38:00.514Z",
+        "verifiedAt": "2026-11-11T09:38:00.514Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "parent-through-merge",
+        "repository": "deftai/directive"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-11T09:38:00.514Z",
+        "actor": "Scott",
+        "via": "prefer-a-leftover-hand-stamp"
+      }
     },
     "id": "github.issue.5502353496",
     "updated": "2026-11-10T20:39:48Z"
