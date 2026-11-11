@@ -130,50 +130,49 @@ export function evaluateSlizardGate(
   const blockingImpact = verdict.mergeImpact === "blocking";
   const failedConclusion = FAILED_CONCLUSIONS.has(run.conclusion);
   const wouldBlock = blockingDecision || blockingImpact || failedConclusion;
-  const noCountedFindings =
-    (verdict.p0Count ?? 0) === 0 && (verdict.p1Count ?? 0) === 0 && (verdict.p2Count ?? 0) === 0;
   // Parseable blocking findings always win over weather (#5102 Greptile P1).
   const parseableBlockingFindings =
     blockingDecision || blockingImpact || (verdict.p0Count ?? 0) > 0 || (verdict.p1Count ?? 0) > 0;
-  // #3167 weather: timeout/cancelled/unparseable-empty with no parseable findings.
-  const weatherEmptyFail =
-    !parseableBlockingFindings &&
-    noCountedFindings &&
-    (run.conclusion === "timed_out" ||
-      run.conclusion === "cancelled" ||
-      (failedConclusion && parsed === null));
+  const timedOutOrCancelled = run.conclusion === "timed_out" || run.conclusion === "cancelled";
 
   const failures: string[] = [];
   let readyState: SlizardReadyState;
 
-  if (wouldBlock && parseableBlockingFindings) {
-    readyState = "blocked";
-    const reasons: string[] = [];
-    if (verdict.decision !== null) {
-      reasons.push(`decision=${verdict.decision}`);
+  // zeroFindings carve-out preserved: request_changes + P0=P1=P2=0 stays ready (#3167).
+  if (wouldBlock && !zeroFindings) {
+    if (timedOutOrCancelled && !parseableBlockingFindings) {
+      // #3167 weather: timeout/cancelled with empty summary — not residual fingerprints.
+      readyState = "ready";
+    } else if (parseableBlockingFindings) {
+      readyState = "blocked";
+      const reasons: string[] = [];
+      if (verdict.decision !== null) {
+        reasons.push(`decision=${verdict.decision}`);
+      }
+      if (verdict.mergeImpact !== null) {
+        reasons.push(`merge impact=${verdict.mergeImpact}`);
+      }
+      if (failedConclusion) {
+        reasons.push(`conclusion=${run.conclusion}`);
+      }
+      const findings =
+        verdict.p0Count !== null || verdict.p1Count !== null || verdict.p2Count !== null
+          ? ` (P0=${verdict.p0Count ?? 0} P1=${verdict.p1Count ?? 0} P2=${verdict.p2Count ?? 0})`
+          : "";
+      failures.push(
+        `SLizard review is blocking: ${reasons.join(", ")}${findings}. ` +
+          "Unfinished residual (not #3167 weather): read tip SLizard review body, " +
+          "falsify open fingerprints (git show <head>:<path> / slizard#2694) or fix " +
+          "before re-arming wait-mergeable; --skip-slizard is explicit override only (#5102 / #2189).",
+      );
+    } else {
+      // Failed conclusion without parseable findings — block without fingerprint hunt.
+      readyState = "blocked";
+      failures.push(
+        `SLizard review is blocking: conclusion=${run.conclusion}. ` +
+          "Wait for a completed SLizard verdict or re-run the check before merge (#2189 / #3167).",
+      );
     }
-    if (verdict.mergeImpact !== null) {
-      reasons.push(`merge impact=${verdict.mergeImpact}`);
-    }
-    if (failedConclusion) {
-      reasons.push(`conclusion=${run.conclusion}`);
-    }
-    const findings =
-      verdict.p0Count !== null || verdict.p1Count !== null || verdict.p2Count !== null
-        ? ` (P0=${verdict.p0Count ?? 0} P1=${verdict.p1Count ?? 0} P2=${verdict.p2Count ?? 0})`
-        : "";
-    failures.push(
-      `SLizard review is blocking: ${reasons.join(", ")}${findings}. ` +
-        "Unfinished residual (not #3167 weather): read tip SLizard review body, " +
-        "falsify open fingerprints (git show <head>:<path> / slizard#2694) or fix " +
-        "before re-arming wait-mergeable; --skip-slizard is explicit override only (#5102 / #2189).",
-    );
-  } else if (wouldBlock && weatherEmptyFail) {
-    // #3167 weather — no fingerprint hunt; treat as ready (advisory).
-    readyState = "ready";
-  } else if (wouldBlock && failedConclusion && noCountedFindings && !parseableBlockingFindings) {
-    // Failed conclusion without findings: weather recovery, not residual fingerprints.
-    readyState = "ready";
   } else if (isPending(run.status, run.conclusion)) {
     readyState = "not_ready_yet";
     failures.push(
