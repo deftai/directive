@@ -150,7 +150,8 @@
           "Prefer-A Bound 5872632888 / synthesis 5872759241"
         ]
       },
-      "activationPullRequest": 5834
+      "activationPullRequest": 5834,
+      "productPullRequest": 6190
     },
     "id": "github.issue.5616559139"
   },
@@ -161,6 +162,7 @@
     "metadata.activationPullRequest",
     "metadata.intended_placement",
     "metadata.kind",
+    "metadata.productPullRequest",
     "metadata.swarm.Traces",
     "metadata.x-directive/admitted-target-digest",
     "metadata.x-directive/plan-id"
