@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Recorded tracked completion for SLizard residual-vs-weather babysit clarity after product merge. Refs #5102. Refs #6190.
+- Recorded tracked completion for worktrees-probe case-distinct sibling prune after product merge. Refs #5735. Refs #6180.
+- Recorded tracked completion for Approach 1 process_only+cwd monitor seats after product merge. Refs #4781. Refs #6183.
+- Recorded tracked completion for Cursor deposit co-travel with pin Phase 7 after product merge. Refs #6163. Refs #6184.
+- Recorded tracked completion for portable release:local-update without sed/grep after product merge. Refs #6164. Refs #6181.
+- Recorded tracked completion for bound push outgoing measured from delivery merge-base after product merge. Refs #6172. Refs #6182.
 
 - When SLizard still has open tip findings, babysit must read the tip review and clear them before waiting again to merge; Greptile-clean alone does not treat those findings as weather (#5102).
 - Approach 1 babysit and independent validation/review Grok seats spawn with process_only + dest cwd so watch/report no longer invents an active product xBRIEF (#4781).

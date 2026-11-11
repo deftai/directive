@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6172",
-    "updated": "2026-11-10T21:02:04Z"
+    "updated": "2026-11-11T09:38:00.514Z"
   },
   "plan": {
     "title": "bug(pre-pr): bound push gate refuses every push after a rebase or merge from the delivery branch (outgoing = remoteOid..localOid)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "After a feature branch rebases or merges from the delivery branch, the bound pre-PR push gate was measuring outgoing paths from the remote tip of the feature branch. That invented previously reviewed delivery-only paths as unreviewed and refused every push. This brief activates Prefer-A Bound work to derive outgoing from the authoritative delivery merge-base and fail closed when that tip cannot be resolved.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6172",
@@ -20,38 +20,66 @@
       {
         "id": "clause.1",
         "title": "Derive every live feature push outgoing path set from merge-base of localOid and refs remotes origin deliveryBranch to localOid in outgoingChangedPaths, unifying away the remoteOid to localOid early return.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a feature branch after rebase from delivery, Derive every live feature push outgoing path set from merge-base of localOid and refs remotes origin deliveryBranch to localOid in outgoingChangedPaths, unifying away the remoteOid to localOid early return; verify with pre-push fixtures that delivery-only paths are not refused and missing delivery tip fails closed.",
           "Traces": "#6172"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6a765abb58b331e8477f46a37243a11b7f843083",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.2",
         "title": "Refuse when delivery-branch resolution fails or that merge-base or diff fails; no unrelated-ref fallback to origin master or main or local names.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given delivery-branch resolution or merge-base diff fails, when bound push evaluates outgoing, then the gate fails closed and rejects unrelated origin/master|main fallbacks.",
           "Traces": "#6172"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6a765abb58b331e8477f46a37243a11b7f843083",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.3",
         "title": "Leave evaluateEnrolledBoundPrePrPush reviewedFileManifest reviewedDeletedPaths controllerObservedHash and push-stage marker unchanged once outgoing is correct.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a feature branch after rebase from delivery, Leave evaluateEnrolledBoundPrePrPush reviewedFileManifest reviewedDeletedPaths controllerObservedHash and push-stage marker unchanged once outgoing is correct; verify with pre-push fixtures that delivery-only paths are not refused and missing delivery tip fails closed.",
           "Traces": "#6172"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6a765abb58b331e8477f46a37243a11b7f843083",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.4",
         "title": "Record that each HEAD pushBinding must cover the full PR-versus-delivery path set with the same obligation as new-branch; fixture rebase or merge omits delivery-only paths while feature edits and deletions stay covered.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a rebase or merge fixture that omits delivery-only paths, when HEAD pushBinding is checked, then feature edits and deletions stay covered and the gate rejects inventing delivery-only paths as unreviewed.",
           "Traces": "#6172"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6a765abb58b331e8477f46a37243a11b7f843083",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -520,6 +548,27 @@
           "Missing delivery tip fails closed without unrelated-ref fallback"
         ],
         "missing_traces_justification": "Prefer-A Bound design-critique arc closed ingest-ready; product traces land with the implement PR under Tracking/Refs."
+      },
+      "productPullRequest": 6182,
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6182,
+        "pullRequestNumber": 6182,
+        "mergeCommit": "6a765abb58b331e8477f46a37243a11b7f843083",
+        "deliveryCommit": "6a765abb58b331e8477f46a37243a11b7f843083",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-11T09:38:00.514Z",
+        "verifiedAt": "2026-11-11T09:38:00.514Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "parent-through-merge",
+        "repository": "deftai/directive"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-11T09:38:00.514Z",
+        "actor": "Scott",
+        "via": "prefer-a-leftover-hand-stamp"
       }
     },
     "id": "github.issue.6313578272",

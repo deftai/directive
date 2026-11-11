@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5102",
-    "updated": "2026-11-10T23:29:50.305Z"
+    "updated": "2026-11-11T09:38:00.514Z"
   },
   "plan": {
     "title": "process(review-cycle): SLizard babysit re-polls instead of resolving carried fingerprints",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "On SLizard merge-blocking findings, babysit must read the tip review body and resolve Previously mentioned fingerprints before re-arming wait-mergeable. #3167 weather carve-out must not over-license ignoring parseable blocking findings when Greptile is clean.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5102",
@@ -20,47 +20,82 @@
       {
         "id": "clause.1",
         "title": "relieves: P1 — On pr:merge-ready / wait-mergeable SLizard-blocked (parseable request_changes or merge_impact=blocking), before re-arming wait the owner MUST read tip SLizard review body, enumerate new and Previously mentioned fingerprints, falsify with git show <head>:<path> or fix in one residual batch; keep pr:watch Greptile ownership unchanged",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — On pr:merge-ready / wait-mergeable SLizard-blocked (parseable request_changes or merge_impact=blocking), before re-arming wait the owner MUST read tip SLizard review body, enumerate new and Previously mentioned fingerprints, falsify with git show <head>:<path> or fix in one residual batch; keep pr:watch Greptile ownership unchanged",
           "Traces": "#5102"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d4bfe5b5dae9cf03e891065307be7c9362ae09d9",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.2",
         "title": "relieves: P2 — Compose existing head-blob check (slizard#2694), same-fingerprint stop, and --skip-slizard override; do not invent a third poller",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Compose existing head-blob check (slizard#2694), same-fingerprint stop, and --skip-slizard override; do not invent a third poller",
           "Traces": "#5102"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d4bfe5b5dae9cf03e891065307be7c9362ae09d9",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.3",
         "title": "relieves: P3 — Rewrite #3167 advisory so weather is only timeout/cancelled/unparseable/zero-finding/missing-check; parseable blocking findings with open tip fingerprints are unfinished residual under #2189/#4387; recut matching always-pin anti-pattern catalog bullet with that rewrite",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Rewrite #3167 advisory so weather is only timeout/cancelled/unparseable/zero-finding/missing-check; parseable blocking findings with open tip fingerprints are unfinished residual under #2189/#4387; recut matching always-pin anti-pattern catalog bullet with that rewrite",
           "Traces": "#5102"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d4bfe5b5dae9cf03e891065307be7c9362ae09d9",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.4",
         "title": "Regression/fixture proves carried-open fingerprint is unfinished residual, not weather",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Regression/fixture proves carried-open fingerprint is unfinished residual, not weather",
           "Traces": "#5102"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d4bfe5b5dae9cf03e891065307be7c9362ae09d9",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.5",
         "title": "CHANGELOG Unreleased for #5102; non-goals: no global non-blocking flip; no default --skip-slizard; no silent merge of P1+request_changes",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: CHANGELOG Unreleased for #5102; non-goals: no global non-blocking flip; no default --skip-slizard; no silent merge of P1+request_changes",
           "Traces": "#5102"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d4bfe5b5dae9cf03e891065307be7c9362ae09d9",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -190,7 +225,27 @@
         "parallel_safe": false
       },
       "activationPullRequest": 5834,
-      "productPullRequest": 6190
+      "productPullRequest": 6190,
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6190,
+        "pullRequestNumber": 6190,
+        "mergeCommit": "d4bfe5b5dae9cf03e891065307be7c9362ae09d9",
+        "deliveryCommit": "d4bfe5b5dae9cf03e891065307be7c9362ae09d9",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-11T09:38:00.514Z",
+        "verifiedAt": "2026-11-11T09:38:00.514Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "parent-through-merge",
+        "repository": "deftai/directive"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-11T09:38:00.514Z",
+        "actor": "Scott",
+        "via": "prefer-a-leftover-hand-stamp"
+      }
     },
     "id": "github.issue.5616559139",
     "updated": "2026-11-10T23:29:50.305Z"

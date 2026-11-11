@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6163",
-    "updated": "2026-11-10T20:55:58Z"
+    "updated": "2026-11-11T09:38:00.514Z"
   },
   "plan": {
     "title": "bug(release): pin/Phase 7 leaves Cursor agent-hook deposit behind runtime hash",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(release): pin/Phase 7 leaves Cursor agent-hook deposit behind runtime hash",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6163",
@@ -20,65 +20,114 @@
       {
         "id": "clause.1",
         "title": "Force-add exact tip-required Cursor deposit paths derived from hostHookOuter helpers; stage-only bounded set; never broad-directory force-add.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Force-add exact tip-required Cursor deposit paths derived from hostHookOuter helpers; stage-only bounded set; never broad-directory force-add.",
           "Traces": "#6163"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "18fcf3870dc1da5cfc6d7044d1e16c06cf8f33f8",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.2",
         "title": "Pin-candidate prep repairs then force-adds and validates candidate index association before pin land.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Pin-candidate prep repairs then force-adds and validates candidate index association before pin land.",
           "Traces": "#6163"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "18fcf3870dc1da5cfc6d7044d1e16c06cf8f33f8",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.3",
         "title": "Phase 7 keeps occupancy dirty ff frozen-install then validates committed HEAD without repair or staging so local-update does not invent a second deposit PR.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Phase 7 keeps occupancy dirty ff frozen-install then validates committed HEAD without repair or staging so local-update does not invent a second deposit PR.",
           "Traces": "#6163"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "18fcf3870dc1da5cfc6d7044d1e16c06cf8f33f8",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.4",
         "title": "Committed-byte association bookend requires the candidate or HEAD tree to contain the expected shim bytes and configuration association for the installed target version.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Committed-byte association bookend requires the candidate or HEAD tree to contain the expected shim bytes and configuration association for the installed target version.",
           "Traces": "#6163"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "18fcf3870dc1da5cfc6d7044d1e16c06cf8f33f8",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.5",
         "title": "Single remediation print names the force-add plus pin co-travel prep step and re-run local-update guidance.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Single remediation print names the force-add plus pin co-travel prep step and re-run local-update guidance.",
           "Traces": "#6163"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "18fcf3870dc1da5cfc6d7044d1e16c06cf8f33f8",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.6",
         "title": "Do not auto-commit deposit bytes inside release local-update and do not run global npm install as recovery.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Do not auto-commit deposit bytes inside release local-update and do not run global npm install as recovery.",
           "Traces": "#6163"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "18fcf3870dc1da5cfc6d7044d1e16c06cf8f33f8",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       },
       {
         "id": "clause.7",
         "title": "Do not treat already-tracked as exact-path membership for the new outer hash.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: Do not treat already-tracked as exact-path membership for the new outer hash.",
           "Traces": "#6163"
-        }
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "18fcf3870dc1da5cfc6d7044d1e16c06cf8f33f8",
+          "recorded_at": "2026-11-11T09:38:00.514Z",
+          "recorded_by": "scope:complete"
+        },
+        "x-directive/requires": "merge"
       }
     ],
     "tags": [
@@ -606,7 +655,28 @@
         ],
         "missing_traces_justification": "Prefer-A Bound design-critique arc closed ingest-ready; product traces land with the implement PR under Tracking/Refs."
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 6184,
+      "completionProvenance": {
+        "schema": "deft.scope.completion-provenance.v1",
+        "productPullRequest": 6184,
+        "pullRequestNumber": 6184,
+        "mergeCommit": "18fcf3870dc1da5cfc6d7044d1e16c06cf8f33f8",
+        "deliveryCommit": "18fcf3870dc1da5cfc6d7044d1e16c06cf8f33f8",
+        "deliveryBranch": "master",
+        "completedAt": "2026-11-11T09:38:00.514Z",
+        "verifiedAt": "2026-11-11T09:38:00.514Z",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "verifier": "parent-through-merge",
+        "repository": "deftai/directive"
+      },
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-11T09:38:00.514Z",
+        "actor": "Scott",
+        "via": "prefer-a-leftover-hand-stamp"
+      }
     },
     "id": "github.issue.6310764327",
     "updated": "2026-11-10T20:41:04Z"
