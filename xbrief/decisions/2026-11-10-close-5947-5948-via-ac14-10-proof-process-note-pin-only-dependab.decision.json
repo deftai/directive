@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "close-5947-5948-via-ac14-10-proof-process-note-pin-only-dependab",
+  "decision": "Close #5947/#5948 via AC14.10 proof + process note; pin-only/Dependabot OK; upgrade/repair refresh wiring; AC8.6 auto-setup is Dependabot bridge; doctor read-only; parallel Windows Parallels SSH for #5383",
+  "governingRule": {
+    "description": "OVPR AC14.10 AC8.6 AC9.10 AC14.11; sealed #5947/#5948",
+    "path": null,
+    "rfc2119": null
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Require deposit refresh in every pin/Dependabot PR"
+    },
+    {
+      "option": "Redesign pin policy / reopen Prefer-A tip-track"
+    },
+    {
+      "option": "Serialize Windows UAT before closing 5947/5948"
+    }
+  ],
+  "whyWinner": "Matches sealed OVPR and operator restatement; closes without pin redesign; parallel tracks",
+  "confidence": "high",
+  "activeScopeRefs": [
+    "issues/5947+5948+5383"
+  ],
+  "timestamp": "2026-11-10T17:05:13Z",
+  "revisitTrigger": "AC14.10 regression fails or product auto-setup defect found"
+}
