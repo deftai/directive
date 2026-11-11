@@ -536,7 +536,7 @@ REDISPATCH_OK: yes|no
 ⊗ Treat `ci_never_scheduled` as ordinary Greptile latency (`sha_match` / `terminal_check_run` only).
 ⊗ Silent `--skip-ci` / admin merge without the outage playbook audit trail below.
 
-### SLizard weather vs residual for merge-ready wait (#3167 / #5102 / #4387)
+### SLizard advisory-only for merge-ready wait (#3167) — weather vs residual (#5102 / #4387)
 
 ! Required bot for **Greptile Step 6 exit ownership** is **Greptile**. SLizard **weather** is only timeout / cancelled / unparseable / zero-finding / missing-check — those MUST NOT gate the review-cycle wait loop or authorize unbounded re-push (#3167).
 
