@@ -193,6 +193,34 @@ describe("evaluateSlizardGate", () => {
     expect(result.summary.ready_state).toBe("ready");
     expect(result.failures).toHaveLength(0);
   });
+
+  it("carried-open fingerprint stays unfinished residual, not #3167 weather (#5102)", () => {
+    const carried = [
+      "**Decision**: request_changes",
+      "**Merge impact**: blocking",
+      "**Findings**: 1 actionable, 0 advisory",
+      "**Severity counts**: P0: 0, P1: 1, P2: 0, P3: 0",
+      "Previously mentioned: packages/core/src/pr-merge-readiness/slizard-gate.ts (P1)",
+    ].join("\n");
+    const residual = evaluateSlizardGate([slizardRun({ conclusion: "failure", summary: carried })]);
+    expect(residual.summary.ready_state).toBe("blocked");
+    expect(residual.failures[0]).toContain("Unfinished residual");
+    expect(residual.failures[0]).toContain("#5102");
+    expect(residual.summary.summary_line).not.toContain("advisory");
+
+    const weatherZero = [
+      "**Decision**: request_changes",
+      "**Merge impact**: blocking",
+      "**Findings**: 0 actionable, 0 advisory",
+      "**Severity counts**: P0: 0, P1: 0, P2: 0, P3: 0",
+    ].join("\n");
+    const weather = evaluateSlizardGate([
+      slizardRun({ conclusion: "failure", summary: weatherZero }),
+    ]);
+    expect(weather.summary.ready_state).toBe("ready");
+    expect(weather.summary.summary_line).toContain("advisory");
+    expect(weather.failures).toHaveLength(0);
+  });
 });
 
 const HEAD = "abc1234567890def1234567890abcdef12345678";

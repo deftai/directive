@@ -1125,4 +1125,15 @@ describe("test_agents_entry_pointer_fixtures", () => {
       expect(repoFileExists(spec.canonicalHome)).toBe(true);
     }
   });
+
+  describe("slizard merge-ready residual vs weather (#5102)", () => {
+    it("review-cycle skill keeps carried-open fingerprints as residual", () => {
+      const skill = readRepoFile("skills/deft-directive-review-cycle/SKILL.md");
+      expect(skill).toContain(
+        "SLizard advisory-only for merge-ready wait (#3167) — weather vs residual (#5102 / #4387)",
+      );
+      expect(skill).toContain("unfinished residual");
+      expect(skill).toContain("Previously mentioned fingerprints");
+    });
+  });
 });

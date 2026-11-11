@@ -536,13 +536,21 @@ REDISPATCH_OK: yes|no
 ⊗ Treat `ci_never_scheduled` as ordinary Greptile latency (`sha_match` / `terminal_check_run` only).
 ⊗ Silent `--skip-ci` / admin merge without the outage playbook audit trail below.
 
-### SLizard advisory-only for merge-ready wait (#3167)
+### SLizard advisory-only for merge-ready wait (#3167) — weather vs residual (#5102 / #4387)
 
-! Required bot for **merge-ready wait** / Step 6 exit ownership is **Greptile**. SLizard (Gemini Verify) is **advisory only**: timeouts, retries, missing check, or flaky SLizard conclusions MUST NOT gate the review-cycle wait loop or authorize unbounded re-push.
+! SLizard is advisory only for the Greptile merge-ready confidence floor; parseable blocking tip fingerprints are unfinished residual (#5102 / #3167).
 
-! `task pr:merge-ready` may still surface SLizard structure when present (#2189); agents MUST NOT idle-poll or thrash solely for SLizard when Greptile Step 6 is clean. Prefer continue / BLOCKED on CI weather / human decision.
+! Required bot for **merge-ready wait** / Step 6 exit ownership is **Greptile**. SLizard is **advisory only** for weather (timeout / cancelled / unparseable / zero-finding / missing-check): those MUST NOT gate the review-cycle wait loop (#3167). Parseable blocking tip fingerprints are unfinished residual (#5102).
 
-⊗ Block merge-ready babysit on SLizard alone when Greptile Step 6 all-of is satisfied on HEAD.
+! When `pr:merge-ready` / wait-mergeable reports **SLizard blocked** (parseable `request_changes` or `merge_impact=blocking` with non-zero findings) — especially Greptile CLEAN + SLizard blocked — before re-arming merge-ready wait or `pr:wait-mergeable-and-merge` the owner MUST read the tip SLizard **review body** in full, enumerate new and Previously mentioned fingerprints / deterministic tool names, and for each open P0/P1 falsify with `git show <head>:<path>` (slizard#2694) or fix in one residual batch. Do not idle-poll. Keep `pr:watch` Greptile ownership unchanged (#5102 / #2189 / #4387).
+
+! Compose existing head-blob check, same-fingerprint stop (#3448), and `--skip-slizard` override. Do not invent a third poller. `--skip-slizard` is explicit override only — not the default babysit escape.
+
+! Parseable blocking findings with open tip fingerprints are **unfinished residual**, not weather. Cross-link: `packages/core/src/pr-merge-readiness/slizard-gate.ts` (`evaluateSlizardGate`).
+
+⊗ Re-arm wait-mergeable / idle-poll while SLizard still has parseable blocking findings with open tip fingerprints (#5102).
+⊗ Treat parseable blocking SLizard findings as #3167 weather when Greptile Step 6 is clean (#5102 / #4387).
+⊗ Default to `--skip-slizard` to clear a merge-ready SLizard block (#5102).
 
 ### Outage admin-merge playbook (opt-in / human, #3167)
 
@@ -1029,7 +1037,8 @@ task lifecycle:event -- emit plan:approved \
 - ⊗ Workflow thrash or empty-commit spam during attributed platform outage without status-page probe (#3180)
 - ⊗ Tight forge-outage retry / empty-commit thrash without a one-shot human report (#3422)
 - ⊗ Merge or `--skip-ci` solely because a status page is red without check-run evidence (#3180)
-- ⊗ Block merge-ready wait on SLizard alone when Greptile Step 6 is clean (#3167)
+- ⊗ Re-arm wait-mergeable or treat parseable blocking SLizard tip fingerprints as #3167 weather when Greptile Step 6 is clean (#5102 / #3167)
+- ⊗ Idle-poll / skip reading tip SLizard review body while open Previously mentioned fingerprints remain (#5102)
 - ⊗ Silent admin / `--skip-ci` merge under Actions outage without audit comment and opt-in authority (#3167)
 - ⊗ Leave a deliberate `stop-at: pr-open` (or thin-DONE recovery) open PR without spawning/retaining one review-cycle babysit owner + lease continuity and post-merge `scope:complete` plan (#3153)
 - ⊗ Stand down at CLEAN under human-merge policy without a durable owner (sticky lease + live parent/monitor/Phase 6 closer) **and** a post-CLEAN observe path (poller / parent wake / Phase 6 re-poll) for post-merge `scope:complete` (#3153 / #1193 / #2321)

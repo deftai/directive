@@ -6,7 +6,7 @@ import {
 import type { CheckRunRecord } from "./gh.js";
 
 /**
- * Dedicated gate for the SLizard second-reviewer verdict (#2189 / #4387).
+ * Dedicated gate for the SLizard second-reviewer verdict (#2189 / #4387 / #5102).
  *
  * SLizard posts a check-run whose `output.summary` looks like (live capture
  * `deftai/bs-deepwordle#4` SHA a8a20f3):
@@ -23,10 +23,15 @@ import type { CheckRunRecord } from "./gh.js";
  * merge-blocking only when the same summary is not zero-finding.
  *
  * Policy (#4387 Bound-remedy): `conclusion=failure` plus zero findings on the
- * check-run summary is advisory, not a block. Crash/timeout/cancelled with no
- * parseable zero-finding verdict still block. The HTML `slizard:verdict` block
- * is not on the live check-run; it lives on the PR review body. This gate does
- * not fetch reviews.
+ * check-run summary is advisory weather, not a block. Timeout/cancelled with
+ * no parseable blocking findings are also weather (ready). Crash /
+ * `conclusion=failure` without a zero-finding parse still block. #3167 weather
+ * carve-out is timeout / cancelled / unparseable / zero-finding / missing-check —
+ * parseable blocking findings with open tip fingerprints are unfinished
+ * residual (#5102); babysit MUST read the tip review body and falsify
+ * (slizard#2694) before re-arming wait-mergeable. The HTML `slizard:verdict`
+ * block is not on the live check-run; it lives on the PR review body. This
+ * gate does not fetch reviews — compose existing head-blob falsify HOW.
  */
 
 /** Canonical SLizard check-run name; matching is case-insensitive substring for resilience. */
@@ -126,30 +131,49 @@ export function evaluateSlizardGate(
   const blockingImpact = verdict.mergeImpact === "blocking";
   const failedConclusion = FAILED_CONCLUSIONS.has(run.conclusion);
   const wouldBlock = blockingDecision || blockingImpact || failedConclusion;
+  // Parseable blocking findings always win over weather (#5102 Greptile P1).
+  const parseableBlockingFindings =
+    blockingDecision || blockingImpact || (verdict.p0Count ?? 0) > 0 || (verdict.p1Count ?? 0) > 0;
+  const timedOutOrCancelled = run.conclusion === "timed_out" || run.conclusion === "cancelled";
 
   const failures: string[] = [];
   let readyState: SlizardReadyState;
 
+  // zeroFindings carve-out preserved: request_changes + P0=P1=P2=0 stays ready (#3167).
   if (wouldBlock && !zeroFindings) {
-    readyState = "blocked";
-    const reasons: string[] = [];
-    if (verdict.decision !== null) {
-      reasons.push(`decision=${verdict.decision}`);
+    if (timedOutOrCancelled && !parseableBlockingFindings) {
+      // #3167 weather: timeout/cancelled with empty summary — not residual fingerprints.
+      readyState = "ready";
+    } else if (parseableBlockingFindings) {
+      readyState = "blocked";
+      const reasons: string[] = [];
+      if (verdict.decision !== null) {
+        reasons.push(`decision=${verdict.decision}`);
+      }
+      if (verdict.mergeImpact !== null) {
+        reasons.push(`merge impact=${verdict.mergeImpact}`);
+      }
+      if (failedConclusion) {
+        reasons.push(`conclusion=${run.conclusion}`);
+      }
+      const findings =
+        verdict.p0Count !== null || verdict.p1Count !== null || verdict.p2Count !== null
+          ? ` (P0=${verdict.p0Count ?? 0} P1=${verdict.p1Count ?? 0} P2=${verdict.p2Count ?? 0})`
+          : "";
+      failures.push(
+        `SLizard review is blocking: ${reasons.join(", ")}${findings}. ` +
+          "Unfinished residual (not #3167 weather): read tip SLizard review body, " +
+          "falsify open fingerprints (git show <head>:<path> / slizard#2694) or fix " +
+          "before re-arming wait-mergeable; --skip-slizard is explicit override only (#5102 / #2189).",
+      );
+    } else {
+      // Failed conclusion without parseable findings — block without fingerprint hunt.
+      readyState = "blocked";
+      failures.push(
+        `SLizard review is blocking: conclusion=${run.conclusion}. ` +
+          "Wait for a completed SLizard verdict or re-run the check before merge (#2189 / #3167).",
+      );
     }
-    if (verdict.mergeImpact !== null) {
-      reasons.push(`merge impact=${verdict.mergeImpact}`);
-    }
-    if (failedConclusion) {
-      reasons.push(`conclusion=${run.conclusion}`);
-    }
-    const findings =
-      verdict.p0Count !== null || verdict.p1Count !== null || verdict.p2Count !== null
-        ? ` (P0=${verdict.p0Count ?? 0} P1=${verdict.p1Count ?? 0} P2=${verdict.p2Count ?? 0})`
-        : "";
-    failures.push(
-      `SLizard review is blocking: ${reasons.join(", ")}${findings}. ` +
-        "Resolve the SLizard findings or pass --skip-slizard to override (#2189).",
-    );
   } else if (isPending(run.status, run.conclusion)) {
     readyState = "not_ready_yet";
     failures.push(
