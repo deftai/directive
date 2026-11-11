@@ -23,9 +23,10 @@ import type { CheckRunRecord } from "./gh.js";
  * merge-blocking only when the same summary is not zero-finding.
  *
  * Policy (#4387 Bound-remedy): `conclusion=failure` plus zero findings on the
- * check-run summary is advisory weather, not a block. Crash/timeout/cancelled
- * with no parseable zero-finding verdict still block. #3167 weather carve-out
- * is only timeout / cancelled / unparseable / zero-finding / missing-check —
+ * check-run summary is advisory weather, not a block. Timeout/cancelled with
+ * no parseable blocking findings are also weather (ready). Crash /
+ * `conclusion=failure` without a zero-finding parse still block. #3167 weather
+ * carve-out is timeout / cancelled / unparseable / zero-finding / missing-check —
  * parseable blocking findings with open tip fingerprints are unfinished
  * residual (#5102); babysit MUST read the tip review body and falsify
  * (slizard#2694) before re-arming wait-mergeable. The HTML `slizard:verdict`

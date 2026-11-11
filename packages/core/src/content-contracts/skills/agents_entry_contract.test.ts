@@ -1130,7 +1130,7 @@ describe("test_agents_entry_pointer_fixtures", () => {
     it("review-cycle skill keeps carried-open fingerprints as residual", () => {
       const skill = readRepoFile("skills/deft-directive-review-cycle/SKILL.md");
       expect(skill).toContain(
-        "SLizard weather vs residual for merge-ready wait (#3167 / #5102 / #4387)",
+        "SLizard advisory-only for merge-ready wait (#3167) — weather vs residual (#5102 / #4387)",
       );
       expect(skill).toContain("unfinished residual");
       expect(skill).toContain("Previously mentioned fingerprints");
