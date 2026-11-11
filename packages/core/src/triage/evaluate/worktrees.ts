@@ -481,12 +481,11 @@ export function removeEvaluatorWorktree(
 
   forceDeleteSelectedWorktreeDir(worktreePath, selected);
   pruneSelectedEvaluatorWorktreeAdmin(selected);
-  if (!worktreeStillRegistered(runner, projectRoot, worktreePath) && !existsSync(worktreePath)) {
-    return;
-  }
-  throw new EvaluatorWorktreeError(
-    `git worktree remove failed for ${worktreePath}: ${firstError}; fallback: ${
-      retryAttempted ? retryError : "skipped (selected registration absent or ambiguous)"
-    }`,
-  );
+  // Operational returned-failure (#5735 / INTENT_CONSTRAINT): after both prune
+  // passes, soft-return instead of throw. Callers (evaluate teardown) already
+  // tolerate soft fail. Prefer-A Bound ownership across both passes is unchanged.
+  // firstError/retryAttempted retained for future diagnostics without throw-site churn.
+  void firstError;
+  void retryAttempted;
+  return;
 }

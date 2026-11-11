@@ -356,7 +356,7 @@ describe("evaluator worktrees", () => {
     expect(existsSync(join(worktreesDir, "zzz"))).toBe(false);
   });
 
-  it("raises when fallback prune still leaves a registered worktree", () => {
+  it("soft-returns when fallback prune still leaves a registered worktree", () => {
     const root = mkdtempSync(join(tmpdir(), "wt-"));
     temps.push(root);
     const git: GitRunner = (args) => {
@@ -374,7 +374,8 @@ describe("evaluator worktrees", () => {
       return { returncode: 0, stdout: "", stderr: "" };
     };
     const path = addEvaluatorWorktree(root, 3, "inv", "abc123def456aaaaaaaa", git);
-    expect(() => removeEvaluatorWorktree(root, path, git)).toThrow(EvaluatorWorktreeError);
+    // Operational returned-failure: no throw after both prune passes (#5735).
+    expect(() => removeEvaluatorWorktree(root, path, git)).not.toThrow();
   });
 
   it("raises when git worktree add fails", () => {
