@@ -538,7 +538,9 @@ REDISPATCH_OK: yes|no
 
 ### SLizard advisory-only for merge-ready wait (#3167) — weather vs residual (#5102 / #4387)
 
-! Required bot for **Greptile Step 6 exit ownership** is **Greptile**. SLizard **weather** is only timeout / cancelled / unparseable / zero-finding / missing-check — those MUST NOT gate the review-cycle wait loop or authorize unbounded re-push (#3167).
+! SLizard is advisory only for the Greptile merge-ready confidence floor; parseable blocking tip fingerprints are unfinished residual (#5102 / #3167).
+
+! Required bot for **merge-ready wait** / Step 6 exit ownership is **Greptile**. SLizard is **advisory only** for weather (timeout / cancelled / unparseable / zero-finding / missing-check): those MUST NOT gate the review-cycle wait loop (#3167). Parseable blocking tip fingerprints are unfinished residual (#5102).
 
 ! When `pr:merge-ready` / wait-mergeable reports **SLizard blocked** (parseable `request_changes` or `merge_impact=blocking` with non-zero findings) — especially Greptile CLEAN + SLizard blocked — before re-arming merge-ready wait or `pr:wait-mergeable-and-merge` the owner MUST read the tip SLizard **review body** in full, enumerate new and Previously mentioned fingerprints / deterministic tool names, and for each open P0/P1 falsify with `git show <head>:<path>` (slizard#2694) or fix in one residual batch. Do not idle-poll. Keep `pr:watch` Greptile ownership unchanged (#5102 / #2189 / #4387).
 
