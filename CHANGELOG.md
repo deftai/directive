@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Dropped leftover proposed twin for worktrees-probe ownership after tracked completion. Refs #5735.
 - Recorded tracked completion for pack-drift bound to framework source checkout after product merge. Refs #5853. Refs #5871.
 - Recorded tracked completion for SLizard residual-vs-weather babysit clarity after product merge. Refs #5102. Refs #6190.
 - Recorded tracked completion for worktrees-probe case-distinct sibling prune after product merge. Refs #5735. Refs #6180.
