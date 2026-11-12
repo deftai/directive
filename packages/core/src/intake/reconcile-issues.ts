@@ -1108,7 +1108,7 @@ function knownStatesFromReport(
 }
 
 type ChildProbeVerdict =
-  | { readonly kind: "ok" }
+  | { readonly kind: "ok"; readonly relatedRels: string[] }
   | { readonly kind: "deleted"; readonly message: string; readonly protectedRels: string[] }
   | { readonly kind: "unresolved"; readonly message: string; readonly protectedRels: string[] };
 
@@ -1175,7 +1175,7 @@ function probeDecomposedChildren(
       }
     }
   }
-  return { kind: "ok" };
+  return { kind: "ok", relatedRels: protectedRels.slice(1) };
 }
 
 /**
@@ -1215,13 +1215,77 @@ export function applyLifecycleFixes(
     }
   }
 
+  // #5912 pass 1: probe every move candidate's related children before any write,
+  // so a path protected by one refused move cannot be moved later in the sweep.
+  const refusals = new Map<string, ChildProbeVerdict>();
+  const okRelated = new Map<string, string[]>();
+  for (const relPath of relReasons.keys()) {
+    if (relDeleted.has(relPath)) {
+      protectedRels.add(relPath);
+      continue;
+    }
+    if (!relPath.includes("/") || isTerminalLifecyclePath(relPath)) {
+      continue;
+    }
+    let candidate: Record<string, unknown>;
+    try {
+      candidate = JSON.parse(readFileSync(join(vbriefDir, relPath), "utf8")) as Record<
+        string,
+        unknown
+      >;
+    } catch {
+      continue; // the move pass reports the missing / unparseable file
+    }
+    const verdict = probeDecomposedChildren(
+      relPath,
+      candidate,
+      vbriefDir,
+      known,
+      options.probeIssueState,
+    );
+    if (verdict.kind !== "ok") {
+      refusals.set(relPath, verdict);
+      for (const rel of verdict.protectedRels) protectedRels.add(rel);
+    } else {
+      okRelated.set(relPath, verdict.relatedRels);
+    }
+  }
+  // A move that would rewrite a protected brief is refused too; repeat until stable.
+  for (let changed = true; changed; ) {
+    changed = false;
+    for (const [relPath, related] of okRelated) {
+      if (!protectedRels.has(relPath) && !related.some((r) => protectedRels.has(r))) {
+        continue;
+      }
+      okRelated.delete(relPath);
+      const verdict: ChildProbeVerdict = {
+        kind: "deleted",
+        message: `${relPath}: related move refused -- a related brief is protected by a refused move this run; left parent and children unmoved (#5912)`,
+        protectedRels: [relPath, ...related],
+      };
+      refusals.set(relPath, verdict);
+      for (const rel of verdict.protectedRels) protectedRels.add(rel);
+      changed = true;
+    }
+  }
+
   for (const [relPath, stateReason] of relReasons) {
     const deletedIssue = relDeleted.get(relPath);
     if (deletedIssue !== undefined) {
       deletedSkips.push(
         `${relPath}: anchored to deleted issue #${deletedIssue} (HTTP 410); ${DELETED_ISSUE_LEFTOVER_NOTE}`,
       );
-      protectedRels.add(relPath);
+      continue;
+    }
+    const refusal = refusals.get(relPath);
+    if (refusal !== undefined && refusal.kind !== "ok") {
+      (refusal.kind === "deleted" ? deletedSkips : failures).push(refusal.message);
+      continue;
+    }
+    if (protectedRels.has(relPath) && !isTerminalLifecyclePath(relPath)) {
+      deletedSkips.push(
+        `${relPath}: left in place -- child of a refused related move this run (#5912)`,
+      );
       continue;
     }
     const slash = relPath.indexOf("/");
@@ -1293,20 +1357,6 @@ export function applyLifecycleFixes(
         relPath +
           ": unstamped active/ to completed/ (#4508); left source unmutated. leftover-land (#3476) is the land step after leftover-complete, not this refuse.",
       );
-      continue;
-    }
-
-    // #5912: probe related children before any parent write or gitMv.
-    const verdict = probeDecomposedChildren(
-      relPath,
-      data,
-      vbriefDir,
-      known,
-      options.probeIssueState,
-    );
-    if (verdict.kind !== "ok") {
-      for (const rel of verdict.protectedRels) protectedRels.add(rel);
-      (verdict.kind === "deleted" ? deletedSkips : failures).push(verdict.message);
       continue;
     }
 

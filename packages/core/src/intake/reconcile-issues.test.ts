@@ -1351,6 +1351,77 @@ describe("deleted issues -- HTTP 410 (#5912)", () => {
     ]);
   });
 
+  it("a protected child with a CLOSED anchor and a DELETED second ref does not move alone", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-5912-child-alone-"));
+    const { xbrief, parent, child } = writeParentAndChild(
+      "pending",
+      [issueRef(60), issueRef(61)],
+      "pending",
+    );
+    const before = [readFileSync(parent, "utf8"), readFileSync(child, "utf8")];
+    const states = new Map([
+      [55, new IssueState("CLOSED", "COMPLETED")],
+      [60, new IssueState("CLOSED", "COMPLETED")],
+      [61, new IssueState("DELETED")],
+    ]);
+    const report = buildLifecycleReport(scanLifecycleAnchors(xbrief), states, false);
+    const [moved, , failures, deletedSkips] = applyLifecycleFixes(xbrief, report, root, {
+      issueStates: states,
+    });
+    expect(moved).toBe(0);
+    expect(failures).toEqual([]);
+    expect(deletedSkips).toHaveLength(2);
+    expect([readFileSync(parent, "utf8"), readFileSync(child, "utf8")]).toEqual(before);
+    expect(existsSync(join(xbrief, "completed"))).toBe(false);
+  });
+
+  it("a move that would rewrite a brief protected by another refusal is refused too", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-5912-fixpoint-"));
+    const xbrief = join(root, "xbrief");
+    const planRef = (folder: string, name: string) => ({
+      type: "x-xbrief/plan",
+      uri: `${folder}/${name}`,
+    });
+    const shared = writeBrief(xbrief, "pending", "shared.xbrief.json", {
+      planRef: "proposed/b.xbrief.json",
+      references: [issueRef(63)],
+    });
+    const gone = writeBrief(xbrief, "pending", "gone.xbrief.json", {
+      planRef: "proposed/b.xbrief.json",
+      references: [issueRef(64)],
+    });
+    const b = writeBrief(xbrief, "proposed", "b.xbrief.json", {
+      references: [
+        issueRef(56),
+        planRef("pending", "shared.xbrief.json"),
+        planRef("pending", "gone.xbrief.json"),
+      ],
+    });
+    const a = writeBrief(xbrief, "proposed", "a.xbrief.json", {
+      references: [issueRef(55), planRef("pending", "shared.xbrief.json")],
+    });
+    const paths = [a, b, shared, gone];
+    const before = paths.map((p) => readFileSync(p, "utf8"));
+    const states = new Map([
+      [55, new IssueState("CLOSED", "COMPLETED")],
+      [56, new IssueState("CLOSED", "COMPLETED")],
+      [63, new IssueState("OPEN")],
+      [64, new IssueState("DELETED")],
+    ]);
+    const report = buildLifecycleReport(scanLifecycleAnchors(xbrief), states, false);
+    const [moved, , failures, deletedSkips, protectedRels] = applyLifecycleFixes(
+      xbrief,
+      report,
+      root,
+      { issueStates: states },
+    );
+    expect(moved).toBe(0);
+    expect(failures).toEqual([]);
+    expect(deletedSkips.some((d) => d.startsWith("proposed/a.xbrief.json:"))).toBe(true);
+    expect(protectedRels.has("proposed/a.xbrief.json")).toBe(true);
+    expect(paths.map((p) => readFileSync(p, "utf8"))).toEqual(before);
+  });
+
   it("issue-less child is not probed; the parent moves and the run exits 0", () => {
     root = mkdtempSync(join(tmpdir(), "reconcile-5912-probe-none-"));
     const { xbrief, child } = writeParentAndChild("active", []);
