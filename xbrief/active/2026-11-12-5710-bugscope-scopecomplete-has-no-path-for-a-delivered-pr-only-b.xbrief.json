@@ -3384,7 +3384,8 @@
           "packages/runtime/src/vbrief-preflight.ts",
           "packages/runtime/src/vbrief-preflight.test.ts",
           "content/commands.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/core/src/product-first-done-gate/bank-aware-complete.test.ts"
         ],
         "parallel_safe": true,
         "size": "medium",
