@@ -21,7 +21,7 @@ import { firstMergedPrRef } from "../orphan-active/refs.js";
 import { productPullRequestFromPlan } from "../orphan-active/running-briefs.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { runTransition } from "../scope/transition.js";
-import { EXIT_CONFIG_ERROR, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
+import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
 import {
   evaluateFinalizeClassMergeCarveOut,
   FINALIZE_CLASS_HUMAN_MERGE_ASSUMPTION,
@@ -37,6 +37,7 @@ import {
   UNMARKED_STAMP_REMEDIATION,
 } from "./finalize-owed.js";
 import type { TextCaptureResult } from "./subprocess.js";
+import type { WorktreePmRunner } from "./worktree-pm-install.js";
 
 function writeActiveStory(
   project: string,
@@ -3338,5 +3339,184 @@ describe("finalize-cohort AppSec fetch gate (#5545)", () => {
       "refs/heads/master:refs/remotes/origin/master",
     ]);
     rmSync(project, { recursive: true, force: true });
+  });
+});
+
+describe("finalize-cohort lifecycle checkout package install (#5882)", () => {
+  type CheckoutPm = "npm" | "pnpm" | "yarn" | "bun";
+  const LOCKFILES: Record<CheckoutPm, string> = {
+    npm: "package-lock.json",
+    pnpm: "pnpm-lock.yaml",
+    yarn: "yarn.lock",
+    bun: "bun.lockb",
+  };
+  const RUNTIME_REL = join("node_modules", "@deftai", "directive-runtime");
+  const DEFT_INCLUDE_REL = "./node_modules/@deftai/directive-runtime/Taskfile.yml";
+
+  beforeEach(() => {
+    vi.mocked(runTransition).mockReset();
+    vi.mocked(runTransition).mockImplementation((verb: string) => ({
+      ok: true,
+      message: `${verb} ok`,
+    }));
+  });
+
+  /** Lays a consumer package.json + lockfile (+ Taskfile deft: include) on the checkout. */
+  function consumerCheckoutGit(
+    opts: { pinned: boolean; pm: CheckoutPm },
+    seen: { checkout: string | null },
+  ): (command: readonly string[], options?: { cwd?: string }) => TextCaptureResult {
+    const inner = mockRunGit({ landedCompleted: ["xbrief/completed/story-5882.xbrief.json"] });
+    return (command, options) => {
+      const result = inner(command, options);
+      if (command[1] === "worktree" && command[2] === "add") {
+        const dest = command[command.indexOf("--detach") + 1];
+        if (dest !== undefined) {
+          seen.checkout = dest;
+          writeFileSync(
+            join(dest, "package.json"),
+            JSON.stringify({
+              name: "consumer",
+              devDependencies: opts.pinned ? { "@deftai/directive-runtime": "1.2.3" } : {},
+            }),
+          );
+          writeFileSync(join(dest, LOCKFILES[opts.pm]), "");
+          writeFileSync(
+            join(dest, "Taskfile.yml"),
+            `version: '3'\nincludes:\n  deft: ${DEFT_INCLUDE_REL}\n`,
+          );
+        }
+      }
+      return result;
+    };
+  }
+
+  /** Fake PM install: materializes the runtime pin and its Taskfile under node_modules. */
+  function installingRunner(): ReturnType<typeof vi.fn<WorktreePmRunner>> {
+    return vi.fn<WorktreePmRunner>((_cmd, _args, cwd) => {
+      const runtime = join(cwd, RUNTIME_REL);
+      mkdirSync(join(runtime, "dist"), { recursive: true });
+      writeFileSync(join(runtime, "dist", "hook-bin.js"), "export {};\n");
+      writeFileSync(
+        join(runtime, "Taskfile.yml"),
+        "version: '3'\ntasks:\n  verify:test-boundary: {}\n",
+      );
+      return { status: 0, stdout: "ok", stderr: "" };
+    });
+  }
+
+  function runFinalize(
+    opts: { pinned: boolean; pm: CheckoutPm },
+    pmRunner: WorktreePmRunner,
+  ): { outcome: ReturnType<typeof finalizeCohort>; checkout: string | null } {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-5882-"));
+    const storyPath = writeActiveStory(project, "story-5882", 5882);
+    const seen: { checkout: string | null } = { checkout: null };
+    const outcome = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      label: "story-5882",
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      landProbeLimit: 1,
+      sleep: () => {},
+      runGit: consumerCheckoutGit(opts, seen),
+      runGh: mockRunGh({ 9999: { merged: true, closingIssues: [], baseRef: "master" } }),
+      pmRunner,
+    });
+    rmSync(project, { recursive: true, force: true });
+    return { outcome, checkout: seen.checkout };
+  }
+
+  it("installs on a pinned lifecycle checkout before completeCohort", () => {
+    const runner = installingRunner();
+    const { outcome, checkout } = runFinalize({ pinned: true, pm: "pnpm" }, runner);
+    expect(outcome.exitCode).toBe(EXIT_OK);
+    expect(runner).toHaveBeenCalledTimes(1);
+    expect(runner.mock.calls[0]?.[0]).toBe("pnpm");
+    expect(runner.mock.calls[0]?.[2]).toBe(checkout);
+    const completeOrder = vi.mocked(runTransition).mock.invocationCallOrder[0];
+    expect(completeOrder).toBeDefined();
+    expect(runner.mock.invocationCallOrder[0]).toBeLessThan(completeOrder ?? 0);
+  });
+
+  it("resolves a node_modules-hosted Taskfile include during the sweep after install", () => {
+    let includeResolved = false;
+    vi.mocked(runTransition).mockImplementation((verb: string, filePath: string) => {
+      // Stand-in for `task deft:verify:test-boundary` on the sweep checkout.
+      const root = dirname(dirname(dirname(filePath)));
+      includeResolved = existsSync(join(root, DEFT_INCLUDE_REL));
+      return includeResolved
+        ? { ok: true, message: `${verb} ok` }
+        : { ok: false, message: 'task: Task "deft:verify:test-boundary" does not exist' };
+    });
+    const { outcome } = runFinalize({ pinned: true, pm: "npm" }, installingRunner());
+    expect(includeResolved).toBe(true);
+    expect(outcome.exitCode).toBe(EXIT_OK);
+  });
+
+  it.each([
+    "npm",
+    "pnpm",
+  ] as const)("fails closed as environment/setup before completeCohort when %s install fails", (pm) => {
+    const runner = vi.fn<WorktreePmRunner>(() => ({ status: 1, stdout: "", stderr: "boom" }));
+    const { outcome } = runFinalize({ pinned: true, pm }, runner);
+    expect(outcome.exitCode).toBe(EXIT_GATE_FAILED);
+    expect(runner).toHaveBeenCalled();
+    expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
+    expect(outcome.result.sweep).toBeNull();
+    const setup = outcome.result.errors.find((e) => e.startsWith("environment/setup:"));
+    expect(setup).toContain(`lifecycle install disposition=failed pm=${pm}`);
+    expect(setup).toContain("boom");
+    expect(outcome.result.errors.some((e) => e.startsWith("cohort completion sweep failed"))).toBe(
+      false,
+    );
+  });
+
+  it.each([
+    "yarn",
+    "bun",
+  ] as const)("skips the install with a warning and still sweeps for %s", (pm) => {
+    const runner = installingRunner();
+    const { outcome } = runFinalize({ pinned: true, pm }, runner);
+    expect(runner).not.toHaveBeenCalled();
+    expect(outcome.exitCode).toBe(EXIT_OK);
+    expect(vi.mocked(runTransition)).toHaveBeenCalled();
+    expect(
+      outcome.result.warnings.some((w) =>
+        w.includes("lifecycle install disposition=skipped-unsupported-pm"),
+      ),
+    ).toBe(true);
+  });
+
+  it("does not install when the lifecycle checkout has no runtime pin", () => {
+    const runner = installingRunner();
+    const { outcome } = runFinalize({ pinned: false, pm: "npm" }, runner);
+    expect(runner).not.toHaveBeenCalled();
+    expect(outcome.exitCode).toBe(EXIT_OK);
+    expect(outcome.result.warnings.some((w) => w.includes("lifecycle install"))).toBe(false);
+  });
+
+  it("names the install disposition on the sweep failure line", () => {
+    vi.mocked(runTransition).mockImplementation(() => ({ ok: false, message: "acceptance red" }));
+    const { outcome } = runFinalize({ pinned: true, pm: "pnpm" }, installingRunner());
+    expect(outcome.exitCode).toBe(EXIT_GATE_FAILED);
+    expect(outcome.result.errors).toContain(
+      "cohort completion sweep failed (lifecycle install disposition=installed pm=pnpm).",
+    );
+  });
+
+  it("reuses the installWorktreePackages pinned-runtime postcondition after an npm ci retry", () => {
+    // npm ci fails, npm install succeeds, but the runtime pin never lands.
+    const runner = vi.fn<WorktreePmRunner>((_cmd, args) =>
+      args[0] === "ci"
+        ? { status: 1, stdout: "", stderr: "ci fail" }
+        : { status: 0, stdout: "ok", stderr: "" },
+    );
+    const { outcome } = runFinalize({ pinned: true, pm: "npm" }, runner);
+    expect(runner.mock.calls.map((call) => call[1][0])).toEqual(["ci", "install"]);
+    expect(outcome.exitCode).toBe(EXIT_GATE_FAILED);
+    expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
+    expect(outcome.result.errors.some((e) => /outer-visible pin missing/i.test(e))).toBe(true);
   });
 });

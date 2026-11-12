@@ -110,6 +110,30 @@ describe("worktree-pm-install (AC14.25)", () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.message).toMatch(/Yarn|Bun/i);
   });
+
+  it("checks the pinned-runtime postcondition when npm ci succeeds on retry (#5882)", () => {
+    const root = fixture(
+      {
+        name: "configured",
+        devDependencies: { "@deftai/directive-runtime": "1.2.3" },
+      },
+      "npm",
+    );
+    const calls: string[] = [];
+    const r = installWorktreePackages(root, {
+      runner: (_cmd, args) => {
+        calls.push(args[0] ?? "");
+        if (args[0] === "ci") return { status: 1, stdout: "", stderr: "ci fail" };
+        const runtime = join(root, "node_modules", "@deftai", "directive-runtime");
+        mkdirSync(join(runtime, "dist"), { recursive: true });
+        writeFileSync(join(runtime, "dist", "hook-bin.js"), "export {};\n");
+        return { status: 0, stdout: "ok", stderr: "" };
+      },
+    });
+    expect(calls).toEqual(["ci", "install"]);
+    expect(r).toEqual({ ok: true, pm: "npm", skipped: false });
+    rmSync(root, { recursive: true, force: true });
+  });
 });
 
 describe("prepareLinkedWorktree (#6100)", () => {
