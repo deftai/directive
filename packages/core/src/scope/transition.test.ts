@@ -49,10 +49,8 @@ function staticMergeTimeForge(opts?: {
     listMergedPrsPage: () => page(opts?.merged ?? []),
     fetchBodyRevisionsPage: () => page([]),
     fetchConnectionEventsPage: () => page([]),
-    fetchPrFiles: (_repo, n) => ({
-      ok: true,
-      files: opts?.files?.[n] ?? [{ status: "modified", filename: "packages/core/src/x.ts" }],
-    }),
+    fetchPrFilesPage: (_repo, n) =>
+      page(opts?.files?.[n] ?? [{ status: "modified", filename: "packages/core/src/x.ts" }]),
     probeRateLimit: () => ({ graphqlRemaining: 5000, coreRemaining: 5000 }),
     nowMs: () => 0,
   };

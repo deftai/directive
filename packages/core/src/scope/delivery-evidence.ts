@@ -670,11 +670,6 @@ export type ForgePage<T> =
     }
   | { readonly ok: false; readonly error: string };
 
-/** Complete changed-file list, or `ok:false` on failure or a truncated listing. */
-export type FetchPrFileListResult =
-  | { readonly ok: true; readonly files: readonly PrFileEntry[] }
-  | { readonly ok: false; readonly error: string };
-
 /** Live rate-limit read (`gh api rate_limit`, never the cached proxy). */
 export interface RateLimitSnapshot {
   readonly graphqlRemaining: number;
@@ -700,7 +695,12 @@ export interface MergeTimeForge {
     prNumber: number,
     after: string | null,
   ) => ForgePage<PrConnectionEvent>;
-  readonly fetchPrFiles: (repository: string, prNumber: number) => FetchPrFileListResult;
+  /** One REST page of changed files; the scan checks the REST budget before each page. */
+  readonly fetchPrFilesPage: (
+    repository: string,
+    prNumber: number,
+    after: string | null,
+  ) => ForgePage<PrFileEntry>;
   readonly probeRateLimit: () => RateLimitSnapshot | null;
   readonly nowMs: () => number;
 }
@@ -958,15 +958,17 @@ function classifyDeliveryExclusion(
   repository: string,
   prNumber: number,
 ): { ok: true; excluded: boolean; fileCount: number } | { ok: false; error: string } {
-  const refused = budget.beforeRest();
-  if (refused !== null) {
-    return { ok: false, error: `PR #${prNumber} changed files: ${refused}` };
-  }
-  const listed = forge.fetchPrFiles(repository, prNumber);
+  // REST budget is checked before every page, not once per PR (#5710).
+  const listed = collectAllPages(
+    (after) => forge.fetchPrFilesPage(repository, prNumber, after),
+    budget.beforeRest,
+    `PR #${prNumber} changed files`,
+  );
   if (!listed.ok) {
-    return { ok: false, error: `PR #${prNumber} changed files: ${listed.error}` };
+    return listed;
   }
-  if (listed.files.length >= PR_FILES_LISTING_CAP) {
+  // The forge stops listing at its cap, so reaching it means the list may be truncated.
+  if (listed.nodes.length >= PR_FILES_LISTING_CAP) {
     return {
       ok: false,
       error: `PR #${prNumber} changed files: listing truncated at the ${PR_FILES_LISTING_CAP}-file cap`,
@@ -974,8 +976,8 @@ function classifyDeliveryExclusion(
   }
   return {
     ok: true,
-    excluded: isDeliveryBriefLandExcluded(listed.files),
-    fileCount: listed.files.length,
+    excluded: isDeliveryBriefLandExcluded(listed.nodes),
+    fileCount: listed.nodes.length,
   };
 }
 
@@ -1252,52 +1254,55 @@ function graphqlPage<T>(
   return { ok: true, nodes, hasNextPage: conn.hasNextPage, endCursor: conn.endCursor };
 }
 
-function fetchPrFilesWithRenames(
+function parsePrFileEntry(value: unknown): PrFileEntry | null {
+  const rec = asRecord(value);
+  if (rec === null || typeof rec.filename !== "string" || rec.filename.length === 0) return null;
+  if (typeof rec.status !== "string") return null;
+  const previous = typeof rec.previous_filename === "string" ? rec.previous_filename : "";
+  return previous.length > 0
+    ? { status: rec.status, filename: rec.filename, previousFilename: previous }
+    : { status: rec.status, filename: rec.filename };
+}
+
+/**
+ * One REST page of `pulls/{n}/files` with rename sources, read uncached. The
+ * cursor is the next page number; paging ends at the first empty page.
+ */
+function fetchPrFilesPageLive(
   runGh: RunGhFn,
   repository: string,
   prNumber: number,
-): FetchPrFileListResult {
+  after: string | null,
+): ForgePage<PrFileEntry> {
   const parsed = parseOwnerRepo(repository);
   if (parsed === null) return { ok: false, error: `invalid repository ${repository}` };
-  const payload = defaultFetchPrPayload(prNumber, repository, liveRunGh(runGh));
-  const expected = typeof payload?.changed_files === "number" ? payload.changed_files : null;
-  if (expected === null) return { ok: false, error: "could not read changed_files count" };
+  const page = after === null ? 1 : Number(after);
+  if (!Number.isInteger(page) || page < 1) return { ok: false, error: `invalid page ${after}` };
+  const path = `repos/${parsed.owner}/${parsed.name}/pulls/${prNumber}/files?per_page=100&page=${page}`;
   let result: RunGhResult;
   try {
-    result = runGh([
-      "gh",
-      "api",
-      "--paginate",
-      `repos/${parsed.owner}/${parsed.name}/pulls/${prNumber}/files?per_page=100`,
-      "--jq",
-      '.[] | [.status, .filename, (.previous_filename // "")] | @tsv',
-    ]);
+    result = liveRunGh(runGh)(["gh", "api", path]);
   } catch (exc: unknown) {
     return { ok: false, error: exc instanceof Error ? exc.message : String(exc) };
   }
   if (result.returncode !== 0) {
     return { ok: false, error: result.stderr.trim() || "gh api files non-zero" };
   }
-  const files: PrFileEntry[] = [];
-  for (const line of result.stdout.split("\n")) {
-    if (line.trim().length === 0) continue;
-    const [status, filename, previous] = line.split("\t");
-    if (status === undefined || filename === undefined || filename.length === 0) {
-      return { ok: false, error: "unreadable files line" };
-    }
-    files.push(
-      previous !== undefined && previous.length > 0
-        ? { status, filename, previousFilename: previous }
-        : { status, filename },
-    );
+  let payload: unknown;
+  try {
+    payload = JSON.parse(result.stdout) as unknown;
+  } catch {
+    return { ok: false, error: "unparseable files page" };
   }
-  if (files.length !== expected) {
-    return {
-      ok: false,
-      error: `listing truncated or incomplete (${files.length} of ${expected} files)`,
-    };
+  if (!Array.isArray(payload)) return { ok: false, error: "files page is not an array" };
+  const nodes: PrFileEntry[] = [];
+  for (const raw of payload) {
+    const entry = parsePrFileEntry(raw);
+    if (entry === null) return { ok: false, error: "unreadable files entry" };
+    nodes.push(entry);
   }
-  return { ok: true, files };
+  const hasNextPage = nodes.length > 0;
+  return { ok: true, nodes, hasNextPage, endCursor: hasNextPage ? String(page + 1) : null };
 }
 
 /**
@@ -1378,7 +1383,8 @@ export function defaultMergeTimeForge(runGh: RunGhFn = defaultRunGh): MergeTimeF
         parseConnectionEventNode,
       );
     },
-    fetchPrFiles: (repository, prNumber) => fetchPrFilesWithRenames(runGh, repository, prNumber),
+    fetchPrFilesPage: (repository, prNumber, after) =>
+      fetchPrFilesPageLive(runGh, repository, prNumber, after),
     probeRateLimit: () => probeLiveRateLimit(runGh),
     nowMs: () => Date.now(),
   };
@@ -2189,6 +2195,15 @@ function deliveryEvidenceRemediation(deliveryBranch: string): string {
  * canonical remote). Merged to an integration branch counts as merged in v1.
  * Returns null when no stamp exists or the stamped PR is confirmed unmerged.
  * Any failure to establish merge state fails closed with a retry diagnostic.
+ *
+ * Policy (Recut-13 lean, #5710 comment 6817282070):
+ * - Guarantee: a code-bearing brief (`isCodeBearingScope`) cannot take a
+ *   non-delivery disposition while its stamped PR is merged or unreadable.
+ * - Non-goal in v1: briefs that are not code-bearing (`docs-only` /
+ *   `process-only` tags, `metadata.delivery.required: false`, docs/process/
+ *   research kinds). They return before this check. The lean parks "Moving the
+ *   non-delivery refuse ahead of the !codeBearing early return"; widening it
+ *   needs a new contract, not a review fix.
  */
 function refuseNonDeliveryForMergedStamp(input: {
   readonly plan: Record<string, unknown>;

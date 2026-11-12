@@ -24,7 +24,7 @@ function noEditHistoryForge(): MergeTimeForge {
     listMergedPrsPage: () => page,
     fetchBodyRevisionsPage: () => page,
     fetchConnectionEventsPage: () => page,
-    fetchPrFiles: () => ({ ok: true, files: [] }),
+    fetchPrFilesPage: () => page,
     probeRateLimit: () => ({ graphqlRemaining: 5000, coreRemaining: 5000 }),
     nowMs: () => 0,
   };

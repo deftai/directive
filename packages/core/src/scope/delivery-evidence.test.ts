@@ -203,6 +203,8 @@ interface ForgeFixture {
   readonly eventsFail?: readonly number[];
   /** Per-PR files; default is one product file. */
   readonly files?: Readonly<Record<number, readonly PrFileEntry[] | "fail">>;
+  /** Per-PR changed files served over several pages. */
+  readonly filePages?: Readonly<Record<number, readonly (readonly PrFileEntry[])[]>>;
   /** Rate snapshots served in order; the last repeats. null = probe failure. */
   readonly rates?: readonly (RateLimitSnapshot | null)[];
   /** Clock step added after each nowMs() read. */
@@ -247,14 +249,22 @@ function makeForge(fx: ForgeFixture): MergeTimeForge & { readonly calls: string[
       if (fx.eventsFail?.includes(n)) return { ok: false, error: "timeline read failed" };
       return single(fx.events?.[n] ?? []);
     },
-    fetchPrFiles: (_repo, n) => {
-      calls.push(`files:${n}`);
+    fetchPrFilesPage: (_repo, n, after) => {
+      calls.push(after === null ? `files:${n}` : `files:${n}:${after}`);
       const files = fx.files?.[n];
       if (files === "fail") return { ok: false, error: "files read failed" };
-      return {
-        ok: true,
-        files: files ?? [{ status: "modified", filename: "packages/core/src/x.ts" }],
-      };
+      const pages = fx.filePages?.[n];
+      if (pages !== undefined) {
+        const index = after === null ? 0 : Number(after);
+        const hasNextPage = index + 1 < pages.length;
+        return {
+          ok: true,
+          nodes: pages[index] ?? [],
+          hasNextPage,
+          endCursor: hasNextPage ? String(index + 1) : null,
+        };
+      }
+      return single(files ?? [{ status: "modified", filename: "packages/core/src/x.ts" }]);
     },
     probeRateLimit: () => {
       const rates = fx.rates ?? [{ graphqlRemaining: 5000, coreRemaining: 5000 }];
@@ -2767,6 +2777,24 @@ describe("sole-mark uniqueness scan (#5710 P3)", () => {
     }
   });
 
+  it("clause.6: checks the REST budget before every changed-files page", () => {
+    const pages = [[PRODUCT_FILE], [PRODUCT_FILE], []];
+    const paged = makeForge({ merged: [listed(1, mark)], filePages: { 1: pages, 99: pages } });
+    expect(joinIssue({ pr: 99, body: mark, forge: paged }).message).toMatch(/#1 also carry/);
+    expect(paged.calls).toEqual(expect.arrayContaining(["files:1", "files:1:1", "files:1:2"]));
+    // REST core drops below the floor before the second page of the candidate files.
+    const rich = { graphqlRemaining: 5000, coreRemaining: 5000 };
+    const low = makeForge({
+      filePages: { 99: pages },
+      rates: [rich, rich, rich, { graphqlRemaining: 5000, coreRemaining: 99 }],
+    });
+    const refused = joinIssue({ pr: 99, body: mark, forge: low });
+    expect(refused.ok).toBe(false);
+    expect(refused.message).toMatch(/changed files: scan budget exhausted: REST core remaining 99/);
+    expect(low.calls).toContain("files:99");
+    expect(low.calls).not.toContain("files:99:1");
+  });
+
   it("isDeliveryBriefLandExcluded differs from activation brief-land shape", () => {
     expect(isDeliveryBriefLandExcluded([{ status: "modified", filename: "CHANGELOG.md" }])).toBe(
       true,
@@ -2940,14 +2968,22 @@ describe("default merge-time forge (#5710)", () => {
     expect(defaultMergeTimeForge(throws).listMergedPrsPage(REPO, null).ok).toBe(false);
   });
 
-  it("lists changed files with rename sources and refuses an incomplete listing", () => {
-    const ok = gh({
-      "/files": "renamed\txbrief/completed/a.json\txbrief/active/a.json\nmodified\tsrc/a.ts\t\n",
-      "pulls/5": { changed_files: 2 },
+  it("reads one changed-files page with rename sources and fails closed on bad pages", () => {
+    const run = gh({
+      "files?per_page=100&page=2": [],
+      "files?per_page=100&page=1": [
+        {
+          status: "renamed",
+          filename: "xbrief/completed/a.json",
+          previous_filename: "xbrief/active/a.json",
+        },
+        { status: "modified", filename: "src/a.ts", previous_filename: null },
+      ],
     });
-    expect(defaultMergeTimeForge(ok).fetchPrFiles(REPO, 5)).toEqual({
+    const forge = defaultMergeTimeForge(run);
+    expect(forge.fetchPrFilesPage(REPO, 5, null)).toEqual({
       ok: true,
-      files: [
+      nodes: [
         {
           status: "renamed",
           filename: "xbrief/completed/a.json",
@@ -2955,25 +2991,37 @@ describe("default merge-time forge (#5710)", () => {
         },
         { status: "modified", filename: "src/a.ts" },
       ],
+      hasNextPage: true,
+      endCursor: "2",
     });
-    const short = gh({ "/files": "modified\tsrc/a.ts\t\n", "pulls/5": { changed_files: 3000 } });
-    expect(defaultMergeTimeForge(short).fetchPrFiles(REPO, 5)).toMatchObject({
-      ok: false,
-      error: expect.stringMatching(/truncated/),
+    expect(forge.fetchPrFilesPage(REPO, 5, "2")).toEqual({
+      ok: true,
+      nodes: [],
+      hasNextPage: false,
+      endCursor: null,
     });
-    expect(defaultMergeTimeForge(gh({ "pulls/5": {} })).fetchPrFiles(REPO, 5).ok).toBe(false);
-    expect(
-      defaultMergeTimeForge(gh({ "/files": "FAIL", "pulls/5": { changed_files: 1 } })).fetchPrFiles(
-        REPO,
-        5,
-      ).ok,
-    ).toBe(false);
-    expect(
-      defaultMergeTimeForge(
-        gh({ "/files": "garbage\n", "pulls/5": { changed_files: 1 } }),
-      ).fetchPrFiles(REPO, 5).ok,
-    ).toBe(false);
-    expect(defaultMergeTimeForge(ok).fetchPrFiles("bad", 5).ok).toBe(false);
+    expect(run.calls[0]).toEqual([
+      "gh",
+      "api",
+      "repos/deftai/directive/pulls/5/files?per_page=100&page=1",
+    ]);
+    for (const value of [
+      "FAIL",
+      "not json",
+      { not: "array" },
+      [{ status: "added" }],
+      [{ filename: "a" }],
+    ]) {
+      expect(
+        defaultMergeTimeForge(gh({ "/files": value })).fetchPrFilesPage(REPO, 5, null).ok,
+      ).toBe(false);
+    }
+    expect(forge.fetchPrFilesPage(REPO, 5, "0").ok).toBe(false);
+    expect(forge.fetchPrFilesPage("bad", 5, null).ok).toBe(false);
+    const throws: RunGhFn = () => {
+      throw new Error("spawn");
+    };
+    expect(defaultMergeTimeForge(throws).fetchPrFilesPage(REPO, 5, null).ok).toBe(false);
   });
 
   it("reads the live rate limit and returns null on any failure", () => {
