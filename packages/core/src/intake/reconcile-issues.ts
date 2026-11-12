@@ -945,11 +945,7 @@ export function formatMarkdown(report: ReconcileReport): string {
   if (summary.deleted_issue_count !== undefined) {
     lines.push(`- **Deleted issues (HTTP 410)**: ${summary.deleted_issue_count}`);
   }
-  lines.push(
-    "",
-    "## (a) Open issues with matching vBRIEF provenance",
-    "",
-  );
+  lines.push("", "## (a) Open issues with matching vBRIEF provenance", "");
 
   if (report.linked.length > 0) {
     for (const entry of report.linked) {
@@ -1096,7 +1092,10 @@ function knownStatesFromReport(
     const n = entry.issue_number;
     // NOT_FOUND here may only mean "never fetched" (absent from the map), so it
     // is not a known state; the probe live-GETs it instead.
-    if (typeof n === "number" && (entry.state === "CLOSED" || entry.state === DELETED_ISSUE_STATE)) {
+    if (
+      typeof n === "number" &&
+      (entry.state === "CLOSED" || entry.state === DELETED_ISSUE_STATE)
+    ) {
       known.set(n, new IssueState(entry.state, (entry.state_reason as string | null) ?? null));
     }
   }
@@ -1285,7 +1284,13 @@ export function applyLifecycleFixes(
     }
 
     // #5912: probe related children before any parent write or gitMv.
-    const verdict = probeDecomposedChildren(relPath, data, vbriefDir, known, options.probeIssueState);
+    const verdict = probeDecomposedChildren(
+      relPath,
+      data,
+      vbriefDir,
+      known,
+      options.probeIssueState,
+    );
     if (verdict.kind === "deleted") {
       deletedSkips.push(verdict.message);
       continue;
