@@ -3,8 +3,24 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as reviewMonitor from "@deftai/directive-core/review-monitor";
 import { EXIT_NOT_READY, MONITORING_TIER_1 } from "@deftai/directive-core/review-monitor";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { parseVerifyReviewMonitorArgs, run } from "./verify-review-monitor.js";
+
+// Agent-host isolation (#6227): an agent session sets host markers (CLAUDE_*, DEFT_*,
+// CURSOR_*, GROK_*, ...) that the tier probe reads. Clear them for the suite lifetime
+// so results match a clean process; per-case vi.stubEnv still applies on top.
+const HOST_ENV_PATTERN = /^(CLAUDE|CURSOR_|GROK_|DEFT_|OPENCLAW|WARP_)/;
+const savedHostEnv: Record<string, string> = {};
+beforeAll(() => {
+  for (const key of Object.keys(process.env)) {
+    if (!HOST_ENV_PATTERN.test(key)) continue;
+    savedHostEnv[key] = process.env[key] as string;
+    delete process.env[key];
+  }
+});
+afterAll(() => {
+  Object.assign(process.env, savedHostEnv);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();

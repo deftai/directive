@@ -12,7 +12,7 @@
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { canonicalHostSessionId } from "../session/host-session-owner.js";
 import {
   applyWorktreeOccupancy,
@@ -36,6 +36,22 @@ import {
 const GROK_RAW_SESSION_ID = "grok-session-a";
 const GROK_OWNER = "host:grok:v1:Z3Jvay1zZXNzaW9uLWE";
 const HOST_ENVIRON = { GROK_SESSION_ID: GROK_RAW_SESSION_ID } as const;
+
+// Agent-host isolation (#6227): an agent session sets host markers (CLAUDE_*, DEFT_*,
+// CURSOR_*, GROK_*, ...) such as DEFT_SESSION_ID / DEFT_ACTIVE_SCOPE. Clear them for the
+// suite lifetime so results match a clean process; cases pass explicit `environ`.
+const HOST_ENV_PATTERN = /^(CLAUDE|CURSOR_|GROK_|DEFT_|OPENCLAW|WARP_)/;
+const savedHostEnv: Record<string, string> = {};
+beforeAll(() => {
+  for (const key of Object.keys(process.env)) {
+    if (!HOST_ENV_PATTERN.test(key)) continue;
+    savedHostEnv[key] = process.env[key] as string;
+    delete process.env[key];
+  }
+});
+afterAll(() => {
+  Object.assign(process.env, savedHostEnv);
+});
 
 const temps: string[] = [];
 afterEach(() => {
