@@ -1,0 +1,490 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5942",
+    "updated": "2026-11-12T21:51:33Z"
+  },
+  "plan": {
+    "title": "bug(release): release:e2e, release:publish and release:rollback miss the #5805 --project-root fix",
+    "status": "running",
+    "narratives": {
+      "Description": "#5805 fixed release: to pass --project-root \"{{.USER_WORKING_DIR}}\" so the engine resolves the operator checkout, but release:e2e, release:publish and release:rollback still resolve the runtime package as project root. This story copies the #5805 ENGINE_CMD pattern to those three tasks and adds a static content-contract that locks the fragment on all four release tasks.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5942",
+      "Overview": "\n\nIn `Taskfile.yml`, change these three ENGINE_CMD lines to match `release:`:\n\n1. `release:e2e` → `ENGINE_CMD: 'release-e2e --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`\n2. `release:publish` → `ENGINE_CMD: 'release-publish --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`\n3. `release:rollback` → `ENGINE_CMD: 'release-rollback --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`\n\nKeep the #5805 comment class (pin default root is the package dir; operator `--project-root` in CLI_ARGS still wins).\n\nAdd a content-contract test (static Taskfile parse via `_taskfile-helpers.ts`) that asserts the same `--project-root \"{{.USER_WORKING_DIR}}\"` ENGINE_CMD fragment on `release:` plus `release:e2e`, `release:publish`, and `release:rollback`.\n\nOut of Bound (follow-up): `release:wait-npm`. Out of Bound: `release:local-update` (no `engine:invoke`).\n\n\n",
+      "Labels": "bug, area:release, design-critique:ingest-ready",
+      "ImplementationPlan": "1. Update the release:publish, release:rollback and release:e2e ENGINE_CMD lines in Taskfile.yml with the #5805 fragment and comment.\n2. Add packages/core/src/content-contracts/standards/taskfile_release_project_root.test.ts asserting the fragment on an explicit list of release, release:e2e, release:publish, release:rollback.\n3. Add a CHANGELOG [Unreleased] Fixed entry.",
+      "UserStory": "As a maintainer running release tasks from my checkout, I want every engine-invoking release task to use my checkout as project root, so that publish, rollback and e2e act on the right repository.",
+      "Traces": "#5942; #5805"
+    },
+    "items": [
+      {
+        "title": "`release:e2e` → `ENGINE_CMD: 'release-e2e --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When an operator runs task release:e2e from the checkout, the ENGINE_CMD passes --project-root \"{{.USER_WORKING_DIR}}\" and the new content-contract test fails if the fragment is removed."
+        }
+      },
+      {
+        "title": "`release:publish` → `ENGINE_CMD: 'release-publish --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When an operator runs task release:publish from the checkout, the ENGINE_CMD passes --project-root \"{{.USER_WORKING_DIR}}\" and the content-contract test fails if the fragment is removed."
+        }
+      },
+      {
+        "title": "`release:rollback` → `ENGINE_CMD: 'release-rollback --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When an operator runs task release:rollback from the checkout, the ENGINE_CMD passes --project-root \"{{.USER_WORKING_DIR}}\" and the content-contract test fails if the fragment is removed."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:release",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5942",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5942: bug(release): release:e2e, release:publish and release:rollback miss the #5805 --project-root fix"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5805",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5805"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(release): release:e2e, release:publish and release:rollback miss the #5805 --project-root fix",
+        "In `Taskfile.yml`, change these three ENGINE_CMD lines to match `release:`: 1.",
+        "`release:e2e` → `ENGINE_CMD: 'release-e2e --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'` 2.",
+        "`release:publish` → `ENGINE_CMD: 'release-publish --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'` 3.",
+        "`release:rollback` → `ENGINE_CMD: 'release-rollback --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'` Keep the #5805 comment class (pin default root is the package dir; operator `--project-root` in CLI_ARGS still wins).",
+        "Add a content-contract test (static Taskfile parse via `_taskfile-helpers.ts`) that asserts the same `--project-root \"{{.USER_WORKING_DIR}}\"` ENGINE_CMD fragment on `release:` plus `release:e2e`, `release:publish`, and `release:rollback`.",
+        "Out of Bound (follow-up): `release:wait-npm`.",
+        "Out of Bound: `release:local-update` (no `engine:invoke`).",
+        "`release:e2e` → `ENGINE_CMD: 'release-e2e --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`",
+        "`release:publish` → `ENGINE_CMD: 'release-publish --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`",
+        "`release:rollback` → `ENGINE_CMD: 'release-rollback --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`"
+      ],
+      "admitted_source_sentences": [
+        "In `Taskfile.yml`, change these three ENGINE_CMD lines to match `release:`: 1.",
+        "`release:e2e` → `ENGINE_CMD: 'release-e2e --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'` 2.",
+        "`release:publish` → `ENGINE_CMD: 'release-publish --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'` 3.",
+        "`release:rollback` → `ENGINE_CMD: 'release-rollback --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'` Keep the #5805 comment class (pin default root is the package dir; operator `--project-root` in CLI_ARGS still wins).",
+        "Add a content-contract test (static Taskfile parse via `_taskfile-helpers.ts`) that asserts the same `--project-root \"{{.USER_WORKING_DIR}}\"` ENGINE_CMD fragment on `release:` plus `release:e2e`, `release:publish`, and `release:rollback`.",
+        "Out of Bound (follow-up): `release:wait-npm`.",
+        "Out of Bound: `release:local-update` (no `engine:invoke`)."
+      ],
+      "admitted_source_digest": "21eee25adc5540996f4529b87a28f0d7f6e7c9bce465fc6bc047f54b15d558d1",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`release:e2e` → `ENGINE_CMD: 'release-e2e --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`release:publish` → `ENGINE_CMD: 'release-publish --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`release:rollback` → `ENGINE_CMD: 'release-rollback --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "Taskfile.yml",
+          "packages/core/src/content-contracts/standards/taskfile_release_project_root.test.ts"
+        ],
+        "module_boundary": "root Taskfile release-family ENGINE_CMD wiring + packages/core/src/content-contracts/standards",
+        "cohesion_exemption": "Taskfile.yml (1495 lines) edit is three adjacent ENGINE_CMD lines in the existing release* cluster next to the release: exemplar."
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Also `release:publish` and `release:rollback` (0.129.7 cut, 2026-11-12)\n\nPosted by Scott's Claude session at his request.\n\nSame root cause, two more tasks, and a worse symptom. In `Taskfile.yml` only `release:` passes `--project-root \"{{.USER_WORKING_DIR}}\"`. These pass only `{{.CLI_ARGS}}`:\n\n```\nrelease:publish:   ENGINE_CMD: 'release-publish {{.CLI_ARGS}}'\nrelease:rollback:  ENGINE_CMD: 'release-rollback {{.CLI_ARGS}}'\nrelease:e2e:       ENGINE_CMD: 'release-e2e {{.CLI_ARGS}}'\n```\n\n`resolveProjectRoot` (`packages/core/src/release/paths.ts`) then falls back to `resolveDefaultFrameworkRoot()`, which is the pinned `node_modules/@deftai/directive-runtime` package.\n\n**What it did on this cut**\n\n- `task release:e2e` cloned the pinned runtime package and failed: `'…\\node_modules\\.pnpm\\@deftai+directive-runtime@0.129.6\\node_modules\\@deftai\\directive-runtime' does not appear to be a git repository`.\n- `task release:publish -- 0.129.7` refused with `closed-verb-deny-missing: … no human-origin grant covers this verb/target`, although two valid `release-publish` grants for 0.129.7 were in the checkout's `.deft/authz/grants/`. It looked for grants under the runtime package. The message sent the operator to mint again, and a fresh mint did not help.\n- Both passed with `-- --project-root C:/Repos/deft/directive`.\n\n`release:rollback` has the same shape and was not exercised. During an incident, a wrong-root grant miss on rollback would be the same false \"no grant\".\n\n**Suggested addition to Expected:** every release-family task passes `--project-root \"{{.USER_WORKING_DIR}}\"` the way `release:` does, with an operator `--project-root` still winning, and the test asked for above covers `release:publish` and `release:rollback` too.\n\n",
+          "id": 6835282062,
+          "html_url": "https://github.com/deftai/directive/issues/5942#issuecomment-6835282062",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:36:41Z",
+          "updated_at": "2026-11-12T20:36:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft\n\nconflict_group: release-family-taskfile-misses-5805-project-root\nSpec-path: Prefer-A draft — pass USER_WORKING_DIR project-root on release e2e/publish/rollback\nTarget-digest: sha256:e4e3cd3d1527d6541c1ad8b95f859d48e8960a50a5e87f08b77d0a3a26c24a0b\ndispatch-sha: b74df2f9dbf31c3210ccd0d16c3c9caa9c8847c7\ndest: .deft-scratch/worktrees/arc-5942\narc-mode: no-ingest\nyolo-standing: on\nspend: N=1\nspend-recommend: N=1\nspend-ask: resolved\nmateriality-bar: open\nmove-forward: yes\nKISS ceiling: Thin Fail-Closed #3265 / #5805 — copy the existing release: ENGINE_CMD project-root pattern; no new root-resolution mechanism\nDepends-on: #5805 (release: already passes --project-root \"{{.USER_WORKING_DIR}}\")\n\n## Bound remedy\n\nIn `Taskfile.yml`, change these three ENGINE_CMD lines to match `release:`:\n\n1. `release:e2e` → `ENGINE_CMD: 'release-e2e --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`\n2. `release:publish` → `ENGINE_CMD: 'release-publish --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`\n3. `release:rollback` → `ENGINE_CMD: 'release-rollback --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`\n\nKeep the #5805 comment class on those blocks (pin default root is the package dir; operator `--project-root` in CLI_ARGS still wins).\n\nAdd a content-contract test (extend `taskfile_release_names.test.ts` or a sibling) that asserts each of those three tasks' ENGINE_CMD includes `--project-root \"{{.USER_WORKING_DIR}}\"` the same way `release:` does.\n\nOut of this Prefer-A Bound (follow-up if needed): `release:wait-npm` (same hole, not issue-named); `release:local-update` (no `engine:invoke`).\n\n## Acceptance (issue)\n\n- From a fresh clone with the runtime pin installed, `task release:e2e -- --dry-run` uses the clone as project root without an explicit `--project-root`.\n- `task release:publish` / `task release:rollback` resolve grants and git state under the operator checkout, not under `node_modules/@deftai/directive-runtime`.\n- An operator `--project-root` in CLI_ARGS still wins.\n- Content-contract test covers `release:e2e`, `release:publish`, and `release:rollback`.\n- CHANGELOG `[Unreleased]` entry.\n\n## In plain English\n\nThree release tasks still run against the pinned runtime package instead of the cut tree, so e2e thinks the pin is the repo and publish/rollback miss real grants. Prefer-A copies the #5805 `--project-root` wiring already on `release:` onto those three tasks and locks it with a test.\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6835623193,
+          "html_url": "https://github.com/deftai/directive/issues/5942#issuecomment-6835623193",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:52:11Z",
+          "updated_at": "2026-11-12T20:52:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: triage\n```\n\n## Stop 1 — Gate\n\narc-mode: no-ingest\nyolo-standing: on\nspend: N=1\nspend-recommend: N=1\nspend-ask: resolved\nmateriality-bar: open\ncharter: open critique\nmechanism-shaped: true\nTarget-digest: sha256:e4e3cd3d1527d6541c1ad8b95f859d48e8960a50a5e87f08b77d0a3a26c24a0b\ndispatch-sha: b74df2f9dbf31c3210ccd0d16c3c9caa9c8847c7\ndest: .deft-scratch/worktrees/arc-5942\nverification-path: pin-read git show b74df2f9dbf31c3210ccd0d16c3c9caa9c8847c7: + dest cwd-without-occupy\nPrefer-A draft: 6835623193\nDepends-on: #5805\n\npain: P1, P2, P3\n\n- P1: `release:e2e` resolves project root to the pinned runtime package, so the rehearsal clones/fails against a non-git pin dir instead of the operator cut tree.\n- P2: `release:publish` / `release:rollback` look for closed-verb grants and git state under the pin package, producing false `closed-verb-deny-missing` (and the same wrong-root hazard on incident rollback).\n- P3: No content-contract asserts `--project-root \"{{.USER_WORKING_DIR}}\"` on these three ENGINE_CMD lines, so the next sibling can miss the #5805 pattern again.\n\ndesign-critique: warranted, because the #5805 Taskfile project-root wiring is a mechanism-shaped release gate whose incomplete sibling coverage already failed the 0.129.7 cut (e2e + publish), with a drafted Prefer-A that copies the existing `release:` pattern.\n\nStop 2: drafted bound remedy + narrow solution space → spend N=1 (no panel permission).\nKISS: Thin Fail-Closed #3265 — copy the existing ENGINE_CMD project-root pattern; do not invent a new root resolver.\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6835627250,
+          "html_url": "https://github.com/deftai/directive/issues/5942#issuecomment-6835627250",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:52:22Z",
+          "updated_at": "2026-11-12T20:52:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\naudit-targets: none\ndispatch-sha: b74df2f9dbf31c3210ccd0d16c3c9caa9c8847c7\nid-ceiling: 6835627250\nPrefer-A draft: 6835623193\n\n## Method\n\nPin-read at `b74df2f9dbf31c3210ccd0d16c3c9caa9c8847c7` from dest cwd (no occupy):\n\n- `Taskfile.yml` `release:` ENGINE_CMD is `release --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}` with the #5805 comment. `release:e2e` / `release:publish` / `release:rollback` / `release:wait-npm` pass only `{{.CLI_ARGS}}`. `release:local-update` has no `engine:invoke`.\n- `packages/core/src/release/paths.ts` `resolveProjectRoot`: explicit `--project-root` → `DEFT_PROJECT_ROOT` → `resolveDefaultFrameworkRoot()` (pin package when the pin bin runs).\n- Flag parsers for `release` / `release-publish` / `release-rollback` / `release-e2e` overwrite `projectRoot` on each `--project-root` token (last wins). Prefer-A order (Taskfile default then `{{.CLI_ARGS}}`) keeps operator override winning.\n- Content-contract inventory: `taskfile_release_names.test.ts` locks installed task names only; `_taskfile-helpers.ts` already exposes `readRoot` / `iterTaskBlocks` / `blockBody` for static ENGINE_CMD asserts. No existing contract locks the #5805 project-root fragment on these ENGINE_CMD lines.\n\nInventory before new mechanisms: reuse the existing `release:` ENGINE_CMD pattern and the static Taskfile helpers. Do not invent a new root resolver.\n\nRoad-not-taken: change `resolveProjectRoot` / `resolveDefaultFrameworkRoot` so pin-bin default prefers invocation cwd. That would cover every missing sibling in one place, including `release:wait-npm`, but it invents a new root-resolution mechanism and changes pin-default semantics beyond Thin Fail-Closed #3265 / #5805. Flip condition: many more engine-invoke release siblings than the one Prefer-A already leaves Out of Bound. Pin shows only `release:wait-npm` remains after Prefer-A's three.\n\nInjection / swarm lens (authority + shared state): `projectRoot` selects `.deft/authz/grants/` and git state for closed-verb gates. Wrong-root on the 0.129.7 cut produced false `closed-verb-deny-missing` against grants that existed in the operator checkout. Prefer-A restores the operator-checkout authority surface via the same Taskfile wiring as `release:`. `USER_WORKING_DIR` is go-task invocation cwd (trusted for this pattern); operator `--project-root` in CLI_ARGS still wins last. No additional blocks-the-design from this lens; the deterministic control is the ENGINE_CMD fragment plus the content-contract lock.\n\n## Finding census\n\nclean-result: no\n\n### F1 — Lock the #5805 exemplar on `release:` in the content-contract — sharpens-framing\n\nEvidence: Prefer-A Acceptance names content-contract coverage for `release:e2e` / `release:publish` / `release:rollback` only. Pin `taskfile_release_names.test.ts` already treats `release` as CANONICAL alongside those three for names, but no ENGINE_CMD project-root lock exists for any of them. Prefer-A Bound copies the `release:` pattern without locking that exemplar line.\n\nFailure mode: a later edit strips `--project-root \"{{.USER_WORKING_DIR}}\"` from `release:` while the three Bound tasks stay green; the #5805 exemplar regresses and the locked siblings no longer match a live reference.\n\nDisposition consequence: Prefer-A can bind; sharpen Acceptance / content-contract so the same ENGINE_CMD project-root fragment is asserted on `release:` plus the three Bound tasks (static `readRoot(\"Taskfile.yml\")` parse via `_taskfile-helpers.ts`).\n\n### F2 — `release:wait-npm` same ENGINE_CMD hole — footnote\n\nEvidence: pin `Taskfile.yml` `release:wait-npm` ENGINE_CMD is `release-wait-npm {{.CLI_ARGS}}` only. Prefer-A already marks it Out of Bound (follow-up).\n\nFailure mode: same `resolveProjectRoot` → pin package path if that verb resolves project files under project root.\n\nDisposition consequence: leftover follow-up only; does not change Prefer-A Bound for the issue-named three. Not residual for this arc's bind.\n\n### F3 — Static Taskfile parse for the ENGINE_CMD lock — footnote\n\nEvidence: `taskfile_release_names.test.ts` uses `task --list-all` name presence; Prefer-A allows extend-or-sibling and requires an ENGINE_CMD substring assert. `_taskfile-helpers.ts` already supports static root Taskfile block reads.\n\nFailure mode: none against Prefer-A as written (sibling + ENGINE_CMD assert already required).\n\nDisposition consequence: implementation note only — prefer a sibling (or extend with static parse) over names-only; no Bound remint.",
+          "id": 6835817074,
+          "html_url": "https://github.com/deftai/directive/issues/5942#issuecomment-6835817074",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T21:00:48Z",
+          "updated_at": "2026-11-12T21:00:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\n\n**Lean:** Prefer-A Bound — Taskfile `--project-root` on release e2e/publish/rollback + content-contract lock including `release:` exemplar\nSpec-path: Prefer-A Bound — Taskfile --project-root on release e2e/publish/rollback + content-contract lock including release: exemplar\nTarget-digest: sha256:e4e3cd3d1527d6541c1ad8b95f859d48e8960a50a5e87f08b77d0a3a26c24a0b\ndispatch-sha: b74df2f9dbf31c3210ccd0d16c3c9caa9c8847c7\ndest: .deft-scratch/worktrees/arc-5942\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\nmove-forward: yes\nsupersedes: Prefer-A draft 6835623193; Stop 1 6835627250\nround-1 critic: 6835817074 (siblings: 1)\nKISS ceiling: Thin Fail-Closed #3265 / #5805 — copy existing release: ENGINE_CMD pattern; lock exemplar + three Bound tasks in content-contract\n\n## In plain English\n\nThree release tasks still point at the pinned runtime package instead of the cut tree, so e2e and publish already failed the 0.129.7 cut. Prefer-A copies the working `release:` `--project-root` wiring onto those three tasks and locks that same fragment on `release:` plus the three in a content-contract test.\n\n## Bound remedy\n\nIn `Taskfile.yml`, change these three ENGINE_CMD lines to match `release:`:\n\n1. `release:e2e` → `ENGINE_CMD: 'release-e2e --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`\n2. `release:publish` → `ENGINE_CMD: 'release-publish --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`\n3. `release:rollback` → `ENGINE_CMD: 'release-rollback --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`\n\nKeep the #5805 comment class (pin default root is the package dir; operator `--project-root` in CLI_ARGS still wins).\n\nAdd a content-contract test (static Taskfile parse via `_taskfile-helpers.ts`) that asserts the same `--project-root \"{{.USER_WORKING_DIR}}\"` ENGINE_CMD fragment on `release:` plus `release:e2e`, `release:publish`, and `release:rollback`.\n\nOut of Bound (follow-up): `release:wait-npm`. Out of Bound: `release:local-update` (no `engine:invoke`).\n\n## Acceptance\n\n- From a fresh clone with the runtime pin installed, `task release:e2e -- --dry-run` uses the clone as project root without an explicit `--project-root`.\n- `task release:publish` / `task release:rollback` resolve grants and git state under the operator checkout, not under `node_modules/@deftai/directive-runtime`.\n- An operator `--project-root` in CLI_ARGS still wins.\n- Content-contract test asserts the ENGINE_CMD project-root fragment on `release:`, `release:e2e`, `release:publish`, and `release:rollback`.\n- CHANGELOG `[Unreleased]` entry.\n\n## Disposition map (round-1 critic 6835817074)\n\n- F1 Lock the #5805 exemplar on `release:` in the content-contract — accept-into-contract (Acceptance / content-contract sharpened; Bound mechanism for the three tasks unchanged)\n- F2 `release:wait-npm` same hole — accept-into-contract as footnote leftover follow-up (not residual; stays Out of Bound)\n- F3 Static Taskfile parse for the ENGINE_CMD lock — accept-into-contract as footnote implementation note\n\n## Pain cites\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n- P1 relieved by Bound remedy item 1 (`release:e2e` project-root)\n- P2 relieved by Bound remedy items 2–3 (`release:publish` / `release:rollback` project-root)\n- P3 relieved by content-contract lock on the three Bound tasks plus the `release:` exemplar (F1)\n\n## Parent-side substantiation\n\nADR-006: triage author and disposition author are the same session party. Takes introduce no new load-bearing premise beyond critic F1's pin-read evidence that `release:` is unlocked while Prefer-A only locked the three Bound tasks. Primary source: critic Method pin-read of `Taskfile.yml` and `taskfile_release_names.test.ts` / `_taskfile-helpers.ts` at dispatch-sha.\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6835842959,
+          "html_url": "https://github.com/deftai/directive/issues/5942#issuecomment-6835842959",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T21:01:56Z",
+          "updated_at": "2026-11-12T21:01:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\n## Method\n\nPin-read at `b74df2f9dbf31c3210ccd0d16c3c9caa9c8847c7` from dest cwd (no occupy). Ceiling inclusive `6835842959` (bind lean). Round-1 critic `6835817074`. Stop 1 `6835627250`.\n\n- Stop 1 pains: P1 `release:e2e` wrong root → pin package; P2 `release:publish` / `release:rollback` grants/git under pin → false `closed-verb-deny-missing`; P3 no content-contract on those three ENGINE_CMD `--project-root` fragments.\n- Bind lean Bound remedy: copy `release:` `#5805` ENGINE_CMD `--project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}` onto the three; content-contract static parse locks the same fragment on `release:` plus the three (F1 absorbed; Disposition: Bound mechanism for the three unchanged).\n- Pin `Taskfile.yml`: `release:` has the fragment; `release:e2e` / `release:publish` / `release:rollback` / `release:wait-npm` pass only `{{.CLI_ARGS}}`. `packages/core/src/release/paths.ts` `resolveProjectRoot`: explicit arg → `DEFT_PROJECT_ROOT` → `resolveDefaultFrameworkRoot()` (pin package when pin bin runs). Writing-bar (#3368): naming/docs/alias → footnote + `harvest-changed: false` unless Bound remedy mechanism changes.\n\n## Pain-audit\n\n### pain-P1\n\nStop 1 P1 is the e2e wrong-root failure mode. Bound remedy item 1 adds the `#5805` `--project-root \"{{.USER_WORKING_DIR}}\"` fragment to `release:e2e` ENGINE_CMD. Pin confirms that line currently lacks it, so `resolveProjectRoot` falls through to the pin package. `relieves: P1` honestly covers P1. No Bound-mechanism gap.\n\n### pain-P2\n\nStop 1 P2 is publish/rollback closed-verb and git state under the pin. Bound remedy items 2–3 apply the same ENGINE_CMD fragment to `release:publish` and `release:rollback`. Pin confirms both miss it today. Acceptance requires grants/git under the operator checkout. `relieves: P2` honestly covers P2. No Bound-mechanism gap.\n\n### pain-P3\n\nStop 1 P3 is the missing content-contract on the three ENGINE_CMD lines. Bound Acceptance / content-contract locks the fragment on those three plus the `release:` exemplar (F1). That still asserts the three Stop 1 named; the exemplar is additive sharpening already dispositioned without reminting Bound mechanism for the three. `relieves: P3` honestly covers P3. No Bound-mechanism gap.\n\nPain-audit census: none — all three asserted relieves hold under Bound remedy as written.\nPain-audit harvest note: Bound remedy mechanism unchanged by this audit.\n\n\n",
+          "id": 6835892677,
+          "html_url": "https://github.com/deftai/directive/issues/5942#issuecomment-6835892677",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T21:04:05Z",
+          "updated_at": "2026-11-12T21:06:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThree release tasks missed the #5805 `--project-root` wiring. Prefer-A copies that wiring onto e2e/publish/rollback and locks the same fragment on `release:` plus those three in a content-contract test. Round-1 accepted one sharpen (lock the exemplar) and two footnotes; pain-audit found no blocking findings and no harvest change.\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n|---|---|---|\n| `release:e2e` / `release:publish` / `release:rollback` ENGINE_CMD omit `--project-root \"{{.USER_WORKING_DIR}}\"` at dispatch-sha while `release:` includes it | verified | Primary pin-read `git show b74df2f9…:Taskfile.yml` (critic Method + parent re-read) |\n| `resolveProjectRoot` falls through to `resolveDefaultFrameworkRoot()` (pin package) when `--project-root` / `DEFT_PROJECT_ROOT` absent | verified | Primary pin-read `packages/core/src/release/paths.ts` |\n| Operator `--project-root` in CLI_ARGS still wins under Prefer-A order | verified | Flag parsers overwrite on each `--project-root` token (last wins); Prefer-A places Taskfile default before `{{.CLI_ARGS}}` |\n| Content-contract did not lock the #5805 ENGINE_CMD fragment on `release:` or the three Bound tasks | verified | Inventory of `taskfile_release_names.test.ts` + `_taskfile-helpers.ts` |\n| F1 sharpen (lock `release:` exemplar too) does not change the three-task Bound mechanism | verified | Critic F1 disposition + pain-audit `harvest-changed: false` |\n| Pain cites P1–P3 honestly relieved by Bound remedy + sharpened Acceptance | verified | Pain-audit 6835892677 `finding-classes: none` |\n\nCitations: Prefer-A draft 6835623193; Stop 1 6835627250; Round-1 critic 6835817074; Prefer-A Bound lean 6835842959; pain-audit 6835892677.\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6835902800,
+          "html_url": "https://github.com/deftai/directive/issues/5942#issuecomment-6835902800",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T21:04:32Z",
+          "updated_at": "2026-11-12T21:04:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAgents agreed: copy the existing `release:` `--project-root` pattern onto e2e/publish/rollback, and lock that same fragment on `release:` plus those three in a content-contract test. No blocking findings remain.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCites Prefer-A Bound lean 6835842959; verified-claims table 6835902800; Round-1 critic 6835817074; pain-audit 6835892677; Stop 1 6835627250.\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6835906132,
+          "html_url": "https://github.com/deftai/directive/issues/5942#issuecomment-6835906132",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T21:04:40Z",
+          "updated_at": "2026-11-12T21:04:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n## Prefer-A Bound\n\n**Lean:** Prefer-A Bound — Taskfile `--project-root` on release e2e/publish/rollback + content-contract lock including `release:` exemplar\nSpec-path: Prefer-A Bound — Taskfile --project-root on release e2e/publish/rollback + content-contract lock including release: exemplar\nTarget-digest: sha256:4a4878b6049f7d70001a67ab9c0fb7b41e23beebdde10655a994759f3370ce78\ndispatch-sha: b74df2f9dbf31c3210ccd0d16c3c9caa9c8847c7\ndest: .deft-scratch/worktrees/arc-5942\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=1\nmove-forward: yes\nRecut-supersedes: 6835842959\nround-1 critic: 6835817074 (siblings: 1)\nKISS ceiling: Thin Fail-Closed #3265 / #5805 — copy existing release: ENGINE_CMD pattern; lock exemplar + three Bound tasks in content-contract\n\n## In plain English\n\nThree release tasks still point at the pinned runtime package instead of the cut tree, so e2e and publish already failed the 0.129.7 cut. Prefer-A copies the working `release:` `--project-root` wiring onto those three tasks and locks that same fragment on `release:` plus the three in a content-contract test.\n\nDigest note: prior lean 6835842959 used sha256 of `gh --jq .body` bytes (trailing newline). Live REST body has no trailing newline; this lean pins the live hash. Issue body text is unchanged.\n\n## Bound remedy\n\nIn `Taskfile.yml`, change these three ENGINE_CMD lines to match `release:`:\n\n1. `release:e2e` → `ENGINE_CMD: 'release-e2e --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`\n2. `release:publish` → `ENGINE_CMD: 'release-publish --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`\n3. `release:rollback` → `ENGINE_CMD: 'release-rollback --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`\n\nKeep the #5805 comment class (pin default root is the package dir; operator `--project-root` in CLI_ARGS still wins).\n\nAdd a content-contract test (static Taskfile parse via `_taskfile-helpers.ts`) that asserts the same `--project-root \"{{.USER_WORKING_DIR}}\"` ENGINE_CMD fragment on `release:` plus `release:e2e`, `release:publish`, and `release:rollback`.\n\nOut of Bound (follow-up): `release:wait-npm`. Out of Bound: `release:local-update` (no `engine:invoke`).\n\n## Acceptance\n\n- From a fresh clone with the runtime pin installed, `task release:e2e -- --dry-run` uses the clone as project root without an explicit `--project-root`.\n- `task release:publish` / `task release:rollback` resolve grants and git state under the operator checkout, not under `node_modules/@deftai/directive-runtime`.\n- An operator `--project-root` in CLI_ARGS still wins.\n- Content-contract test asserts the ENGINE_CMD project-root fragment on `release:`, `release:e2e`, `release:publish`, and `release:rollback`.\n- CHANGELOG `[Unreleased]` entry.\n\n## Disposition map (round-1 critic 6835817074)\n\n- F1 Lock the #5805 exemplar on `release:` in the content-contract — accept-into-contract (Acceptance / content-contract sharpened; Bound mechanism for the three tasks unchanged)\n- F2 `release:wait-npm` same hole — accept-into-contract as footnote leftover follow-up (not residual; stays Out of Bound)\n- F3 Static Taskfile parse for the ENGINE_CMD lock — accept-into-contract as footnote implementation note\n\n## Pain cites\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n- P1 relieved by Bound remedy item 1 (`release:e2e` project-root)\n- P2 relieved by Bound remedy items 2–3 (`release:publish` / `release:rollback` project-root)\n- P3 relieved by content-contract lock on the three Bound tasks plus the `release:` exemplar (F1)\n\n## Parent-side substantiation\n\nADR-006: same session party as triage. Digest correction only — primary source is REST issue body bytes vs `gh --jq` newline. Bound remedy and disposition unchanged from 6835842959.\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6835963928,
+          "html_url": "https://github.com/deftai/directive/issues/5942#issuecomment-6835963928",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T21:07:11Z",
+          "updated_at": "2026-11-12T21:07:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\n## Method\n\nPin-read at `b74df2f9dbf31c3210ccd0d16c3c9caa9c8847c7` from dest cwd (no occupy). Ceiling inclusive `6835963928` (Recut-supersedes lean; Target-digest corrected to live REST body hash). Prior pain-audit `6835892677` historical. Stop 1 `6835627250`.\n\n- Stop 1 pains: P1 `release:e2e` wrong root → pin package; P2 `release:publish` / `release:rollback` grants/git under pin → false `closed-verb-deny-missing`; P3 no content-contract on those three ENGINE_CMD `--project-root` fragments.\n- Lean Bound remedy (unchanged vs `6835842959`): copy `release:` `#5805` ENGINE_CMD `--project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}` onto the three; content-contract static parse locks the same fragment on `release:` plus the three (F1 absorbed; Disposition: Bound mechanism for the three unchanged). Digest note is Target-digest only.\n- Pin `Taskfile.yml`: `release:` has the fragment; `release:e2e` / `release:publish` / `release:rollback` / `release:wait-npm` pass only `{{.CLI_ARGS}}`. `packages/core/src/release/paths.ts` `resolveProjectRoot`: explicit arg → `DEFT_PROJECT_ROOT` → `resolveDefaultFrameworkRoot()` (pin package when pin bin runs).\n\n## Pain-audit\n\n### pain-P1\n\nStop 1 P1 is the e2e wrong-root failure mode. Bound remedy item 1 adds the `#5805` `--project-root \"{{.USER_WORKING_DIR}}\"` fragment to `release:e2e` ENGINE_CMD. Pin confirms that line currently lacks it, so `resolveProjectRoot` falls through to the pin package. `relieves: P1` honestly covers P1. No Bound-mechanism gap.\n\n### pain-P2\n\nStop 1 P2 is publish/rollback closed-verb and git state under the pin. Bound remedy items 2–3 apply the same ENGINE_CMD fragment to `release:publish` and `release:rollback`. Pin confirms both miss it today. Acceptance requires grants/git under the operator checkout. `relieves: P2` honestly covers P2. No Bound-mechanism gap.\n\n### pain-P3\n\nStop 1 P3 is the missing content-contract on the three ENGINE_CMD lines. Bound Acceptance / content-contract locks the fragment on those three plus the `release:` exemplar (F1). That still asserts the three Stop 1 named; the exemplar is additive sharpening already dispositioned without reminting Bound mechanism for the three. `relieves: P3` honestly covers P3. No Bound-mechanism gap.\n\nPain-audit census: none — all three asserted relieves hold under Bound remedy as written.\nPain-audit harvest note: Digest-only correction; Bound remedy mechanism unchanged → `harvest-changed: false`.\r\n\n",
+          "id": 6835989744,
+          "html_url": "https://github.com/deftai/directive/issues/5942#issuecomment-6835989744",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T21:08:19Z",
+          "updated_at": "2026-11-12T21:08:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAgents agreed on the digest-corrected Prefer-A Bound lean: copy the existing `release:` `--project-root` pattern onto e2e/publish/rollback, and lock that same fragment on `release:` plus those three in a content-contract test. Pain-audit after the digest Recut found no blocking findings and no harvest change.\n\n## Verified-claims table\n\n| Claim | Verdict | Method |\n|---|---|---|\n| Live REST issue body Target-digest is sha256:4a4878b6049f7d70001a67ab9c0fb7b41e23beebdde10655a994759f3370ce78 | verified | Primary hash of REST `.body` without jq trailing newline |\n| Three Bound ENGINE_CMD lines omit project-root; `release:` includes it at dispatch-sha | verified | Pin-read Taskfile.yml (critic + pain-audit) |\n| Pain cites P1–P3 honestly relieved; harvest-changed false | verified | Pain-audit 6835989744 |\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCites Prefer-A Bound lean 6835963928; Round-1 critic 6835817074; pain-audit 6835989744; Stop 1 6835627250; prior lean 6835842959 Recut-superseded.\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6835997697,
+          "html_url": "https://github.com/deftai/directive/issues/5942#issuecomment-6835997697",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T21:08:40Z",
+          "updated_at": "2026-11-12T21:08:40Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\n`task release:e2e` doesn't get the #5805 `--project-root` fix that `task release` has. The `release` task passes `--project-root \"{{.USER_WORKING_DIR}}\"` to the engine, because the pin's default project root is its own package dir. `release:e2e` passes only `{{.CLI_ARGS}}`, so with the pinned runtime it resolves the project root to the pinned runtime package under `node_modules` (0.129.0 at the time) instead of the operator's cut tree.\n\n## What happened\n\nDuring the 0.129.1 cut, the release e2e step failed because it ran against the pinned runtime dir, not the cut tree. Re-running it with an explicit root passed:\n\n```\ntask release:e2e -- --project-root \"<cut dir>\"\n```\n\n## Repro\n\n1. In a fresh clone of the repo with the runtime pinned in `package.json`, run `pnpm install --frozen-lockfile`.\n2. From the clone root, run `task release:e2e -- --dry-run`.\n3. The engine's project root is the pinned `node_modules/@deftai/directive-runtime` dir, not the clone.\n\n## Expected\n\n`release:e2e` uses the operator's working dir as the project root, the same as `release` (Taskfile `release:` block, the #5805 comment), while an operator `--project-root` in `CLI_ARGS` still wins. A test should cover every release-family task that invokes the engine, so the next one doesn't miss it.\n\n## Where\n\n`Taskfile.yml`, `release:e2e` (`ENGINE_CMD: 'release-e2e {{.CLI_ARGS}}'`).\n\nRefs #5805\n\nFiled for @MScottAdams\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6046051491,
+        "origin": "deftai/directive#5942",
+        "id": "github.issue.6046051491"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "4a4878b6049f7d70001a67ab9c0fb7b41e23beebdde10655a994759f3370ce78"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "release-family-taskfile-misses-5805-project-root",
+        "expected_outputs": [
+          "release:e2e, release:publish and release:rollback ENGINE_CMD pass --project-root \"{{.USER_WORKING_DIR}}\" like release: (#5805)",
+          "new static content-contract locks the fragment on release, release:e2e, release:publish, release:rollback (explicit list; release:wait-npm out of Bound)",
+          "names test and ENGINE_CMD registry test stay green",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/content-contracts/standards/taskfile_release_project_root.test.ts packages/core/src/content-contracts/standards/taskfile_release_names.test.ts packages/runtime/src/engine-cmd-registry.test.ts"
+        ],
+        "file_scope": [
+          "Taskfile.yml",
+          "packages/core/src/content-contracts/standards/taskfile_release_project_root.test.ts",
+          "CHANGELOG.md"
+        ],
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#5942"
+        ]
+      }
+    },
+    "id": "github.issue.6046051491",
+    "updated": "2026-11-12T21:51:33Z"
+  }
+}
