@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Restored the #6212 scope brief's admitted statement sentences as clauses so `verify:ac` maps every sentence. Refs #6212.
 - Replaced the #5710 scope brief's Recut-4 contract with the accepted Recut-13 lean. Refs #5710.
 - Added the bank-aware completion test file to the #5710 scope brief's `file_scope`. Refs #5710.
+- Minted the intent-constraint record for the #5710 uniqueness-scan budget constants (200, 100, 3000). Refs #5710.
 
 ### Changed
 
