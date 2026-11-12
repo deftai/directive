@@ -3,8 +3,13 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { ENFORCE_NOOP_NOTICE, parseArgs, run } from "./verify-scope-provenance.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  ENFORCE_NOOP_NOTICE,
+  parseArgs,
+  resolveForgeContext,
+  run,
+} from "./verify-scope-provenance.js";
 
 const repoRoot = join(fileURLToPath(new URL(".", import.meta.url)), "../../..");
 
@@ -80,7 +85,14 @@ function captureRun(argv: string[]): { code: number; stdout: string; stderr: str
 describe("verify-scope-provenance CLI (#3145 / #5057)", () => {
   const roots: string[] = [];
 
+  // CI sets GITHUB_PR_NUMBER for the merge gate; keep these runs off the
+  // live forge (#6203).
+  beforeEach(() => {
+    vi.stubEnv("GITHUB_PR_NUMBER", "");
+  });
+
   afterEach(() => {
+    vi.unstubAllEnvs();
     while (roots.length > 0) {
       const root = roots.pop();
       if (root) rmSync(root, { recursive: true, force: true });
@@ -104,6 +116,39 @@ describe("verify-scope-provenance CLI (#3145 / #5057)", () => {
 
   it("rejects unknown args", () => {
     expect(parseArgs(["--bad"]).error).toMatch(/unrecognized/);
+  });
+
+  it("parses --pr / --repo for the forge-approval admit (#6203)", () => {
+    const a = parseArgs(["--pr", "6203", "--repo", "deftai/directive"]);
+    expect(a.error).toBeUndefined();
+    expect(a.prNumber).toBe(6203);
+    expect(a.repo).toBe("deftai/directive");
+    const b = parseArgs(["--pr=12", "--repo=o/r"]);
+    expect(b.prNumber).toBe(12);
+    expect(b.repo).toBe("o/r");
+    expect(parseArgs(["--pr", "abc"]).error).toMatch(/--pr/);
+    expect(parseArgs(["--pr", "0"]).error).toMatch(/--pr/);
+    expect(parseArgs(["--pr"]).error).toMatch(/--pr/);
+    expect(parseArgs(["--repo"]).error).toMatch(/--repo/);
+    expect(captureRun(["--pr", "x1"]).code).toBe(2);
+  });
+
+  it("resolves forge context from flags, then GITHUB_PR_NUMBER / GITHUB_REPOSITORY (#6203)", () => {
+    const none = parseArgs([]);
+    expect(resolveForgeContext(none, {})).toBeNull();
+    expect(resolveForgeContext(none, { GITHUB_PR_NUMBER: "" })).toBeNull();
+    expect(resolveForgeContext(none, { GITHUB_PR_NUMBER: "12abc" })).toBeNull();
+    expect(resolveForgeContext(none, { GITHUB_PR_NUMBER: "77", GITHUB_REPOSITORY: "o/r" })).toEqual(
+      { prNumber: 77, repo: "o/r" },
+    );
+    expect(resolveForgeContext(none, { GITHUB_PR_NUMBER: "77" })).toEqual({
+      prNumber: 77,
+      repo: null,
+    });
+    const flags = parseArgs(["--pr", "5", "--repo", "a/b"]);
+    expect(
+      resolveForgeContext(flags, { GITHUB_PR_NUMBER: "77", GITHUB_REPOSITORY: "o/r" }),
+    ).toEqual({ prNumber: 5, repo: "a/b" });
   });
 
   it("task description no longer teaches fail-closed --enforce or missing digests warn (#5057)", () => {

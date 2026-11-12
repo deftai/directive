@@ -263,3 +263,45 @@ describe("evaluateApprovedScopeMembership (#4774)", () => {
     expect(hit?.kind).toBe("active-xbrief-modified-without-digest");
   });
 });
+
+describe("forge-approval membership authority (#6203)", () => {
+  const base = {
+    xbriefRelPath: "xbrief/active/story.xbrief.json",
+    planId: "story-1",
+    xbriefModifiedInChangeSet: true,
+    allowlistAuthority: "forge-approval" as const,
+  };
+
+  it("admits concrete head entries", () => {
+    const hit = evaluateApprovedScopeMembership({
+      ...base,
+      baseApprovedFileScope: ["packages/core/src/a.ts", "tests/helpers/probe.ts"],
+      changedFiles: [
+        "xbrief/active/story.xbrief.json",
+        "packages/core/src/a.ts",
+        "tests/helpers/probe.ts",
+      ],
+    });
+    expect(hit).toBeNull();
+  });
+
+  it("never admits glob entries (same F4 rule as precommitment)", () => {
+    const hit = evaluateApprovedScopeMembership({
+      ...base,
+      baseApprovedFileScope: ["packages/core/src/a.ts", "tests/**"],
+      changedFiles: ["xbrief/active/story.xbrief.json", "tests/helpers/probe.ts"],
+    });
+    expect(hit?.kind).toBe("change-set-outside-approved-scope");
+    expect(hit?.detail).toMatch(/forge-approved head brief \(#6203\)/);
+    expect(hit?.remediation).toMatch(/fresh qualifying human approval/);
+  });
+
+  it("treats an empty head scope as no declaration, not an authoritative mint", () => {
+    const hit = evaluateApprovedScopeMembership({
+      ...base,
+      baseApprovedFileScope: [],
+      changedFiles: ["xbrief/active/story.xbrief.json", "packages/core/src/a.ts"],
+    });
+    expect(hit?.kind).toBe("active-xbrief-modified-without-digest");
+  });
+});

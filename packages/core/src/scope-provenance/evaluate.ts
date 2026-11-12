@@ -25,6 +25,11 @@
  * only when active on the merge base. Brand-new pending that was never
  * active on base must not become an active scope via the diff or the map.
  *
+ * Forge approval (#6203): with a PR context and no present mint, a failing
+ * membership check may admit the head brief's concrete file_scope when a
+ * qualifying human forge approval covers its auth-hash v1. Membership only;
+ * the production fence still reads the merge-base brief.
+ *
  * Intent-pin checks (#3385) remain for existing base-committed records.
  *
  * Three-state exit: 0 clean / 1 fence violation / 2 config.
@@ -66,6 +71,7 @@ import {
   normalizeFileScope,
   readApprovedScopeRecord,
 } from "./digest.js";
+import { evaluateForgeHeadBriefApproval, type ForgeApprovalContext } from "./forge-approval.js";
 import { bodyDigestIsAuthority, evaluateIntentForXbrief } from "./intent-evaluate.js";
 import { recoverApprovedScopePairs } from "./mint-artifacts.js";
 
@@ -135,6 +141,12 @@ export interface ScopeProvenanceOptions {
   readonly testRoots?: readonly string[];
   readonly fixtureRoots?: readonly string[];
   readonly sourceRoots?: readonly string[];
+  /**
+   * PR context for the forge-approved head-brief membership admit (#6203).
+   * Consulted only when membership fails under precommitment or missing
+   * authority (never under a present mint). Absent → today's Path B.
+   */
+  readonly forgeApproval?: ForgeApprovalContext;
 }
 
 function git(args: string[], projectRoot: string): { status: number; stdout: string } {
@@ -935,6 +947,8 @@ export function evaluateScopeProvenance(
   }
 
   let reportedPeerFailure = false;
+  /** Forge-approval admit / reject notes appended to the result message (#6203). */
+  const forgeNotes: string[] = [];
   for (const { rel, raw } of activeEntries) {
     const modifiedEarly = changedSetHasPath(changedSet, rel);
     let payload: unknown;
@@ -1364,7 +1378,7 @@ export function evaluateScopeProvenance(
       }
     }
 
-    const membershipHit = evaluateApprovedScopeMembership({
+    const membershipInput = {
       xbriefRelPath: rel,
       planId: planId ?? rel,
       xbriefModifiedInChangeSet: modified,
@@ -1377,7 +1391,41 @@ export function evaluateScopeProvenance(
       testRoots: boundary.testRoots,
       fixtureRoots: boundary.fixtureRoots,
       sourceRoots: boundary.sourceRoots,
-    });
+    };
+    let membershipHit = evaluateApprovedScopeMembership(membershipInput);
+    // Forge-approved head-brief admit (#6203): membership-only, never under a
+    // present mint. Reject keeps today's finding unchanged (Path B).
+    if (
+      membershipHit !== null &&
+      modified &&
+      options.forgeApproval !== undefined &&
+      (authorityForEval === "precommitment" || authorityForEval === "missing")
+    ) {
+      const verdict = evaluateForgeHeadBriefApproval({
+        projectRoot: root,
+        context: options.forgeApproval,
+        xbriefRelPath: rel,
+        headPayload: payload,
+      });
+      if (verdict.kind === "admit") {
+        membershipHit = evaluateApprovedScopeMembership({
+          ...membershipInput,
+          baseApprovedFileScope: normalizeFileScope(extractFileScope(payload)).filter((e) =>
+            isConcreteFileScopeEntry(e),
+          ),
+          allowlistAuthority: "forge-approval",
+        });
+        forgeNotes.push(
+          `forge approval (#6203): ${rel} head brief admitted for membership ` +
+            `(approver=${verdict.approver}, commit=${verdict.commitId.slice(0, 7)}, ` +
+            `${verdict.authHash})`,
+        );
+      } else {
+        forgeNotes.push(
+          `forge approval (#6203): ${rel} not admitted -- ${verdict.reason}; Path B applies`,
+        );
+      }
+    }
     // Only emit membership when the xBRIEF is in the change set (helper no-ops otherwise).
     if (membershipHit !== null) {
       findings.push({
@@ -1591,13 +1639,15 @@ export function evaluateScopeProvenance(
     }
   }
 
+  const forgeTail = forgeNotes.length > 0 ? `\n${forgeNotes.join("\n")}` : "";
+
   if (findings.length === 0 && softFindings.length === 0) {
     return {
       exitCode: 0,
       findings: [],
       message:
         `verify_scope_provenance: clean (${activeEntries.length} active xBRIEF(s), ` +
-        `${changed.length} changed file(s)) (#3145).`,
+        `${changed.length} changed file(s)) (#3145).${forgeTail}`,
     };
   }
 
@@ -1613,7 +1663,7 @@ export function evaluateScopeProvenance(
       findings: softFindings,
       message:
         `verify_scope_provenance: WARN ${softFindings.length} intent-pin finding(s) ` +
-        `(intent edit on a brief with no intent pin (advisory; not failing)) (#3385).\n${body}`,
+        `(intent edit on a brief with no intent pin (advisory; not failing)) (#3385).\n${body}${forgeTail}`,
     };
   }
 
@@ -1632,7 +1682,7 @@ export function evaluateScopeProvenance(
   return {
     exitCode: 1,
     findings: all,
-    message: `verify_scope_provenance: ${findings.length} self-authorization violation(s) (#3145).\n${body}`,
+    message: `verify_scope_provenance: ${findings.length} self-authorization violation(s) (#3145).\n${body}${forgeTail}`,
   };
 }
 
