@@ -1109,8 +1109,8 @@ function knownStatesFromReport(
 
 type ChildProbeVerdict =
   | { readonly kind: "ok" }
-  | { readonly kind: "deleted"; readonly message: string }
-  | { readonly kind: "unresolved"; readonly message: string };
+  | { readonly kind: "deleted"; readonly message: string; readonly protectedRels: string[] }
+  | { readonly kind: "unresolved"; readonly message: string; readonly protectedRels: string[] };
 
 /**
  * Pre-write probe (#5912): resolve the children `updateDecomposedChildBackReferences`
@@ -1131,8 +1131,14 @@ function probeDecomposedChildren(
     return {
       kind: "unresolved",
       message: `${relPath}: related move refused -- child reference did not resolve (${String(err)}); left parent and children unmoved (#5912)`,
+      protectedRels: [relPath],
     };
   }
+  // A refused move protects the parent and every child from later writes in this run.
+  const protectedRels = [
+    relPath,
+    ...targets.map((t) => relative(vbriefDir, t).replace(/\\/g, "/")),
+  ];
   for (const childPath of targets) {
     const childRel = relative(vbriefDir, childPath).replace(/\\/g, "/");
     let childData: Record<string, unknown>;
@@ -1142,6 +1148,7 @@ function probeDecomposedChildren(
       return {
         kind: "unresolved",
         message: `${relPath}: related move refused -- could not read child ${childRel} (${String(err)}); left parent and children unmoved (#5912)`,
+        protectedRels,
       };
     }
     for (const n of briefIssueNumbers(childData)) {
@@ -1156,12 +1163,14 @@ function probeDecomposedChildren(
         return {
           kind: "unresolved",
           message: `${relPath}: related move refused -- child ${childRel} issue #${n} state did not resolve; left parent and children unmoved (#5912)`,
+          protectedRels,
         };
       }
       if (isDeletedIssueState(state)) {
         return {
           kind: "deleted",
           message: `${relPath}: related move refused -- child ${childRel} is anchored to deleted issue #${n} (HTTP 410); left parent and children unmoved (#5912)`,
+          protectedRels,
         };
       }
     }
@@ -1171,20 +1180,23 @@ function probeDecomposedChildren(
 
 /**
  * Move briefs whose anchor issue is closed into a terminal folder.
- * Returns `[moved, skipped, failures, deletedSkips]`. `deletedSkips` lists
- * briefs left in place because of a DELETED (HTTP 410) issue (#5912); they are
- * not failures.
+ * Returns `[moved, skipped, failures, deletedSkips, protectedRels]`.
+ * `deletedSkips` lists briefs left in place because of a DELETED (HTTP 410)
+ * issue (#5912); they are not failures. `protectedRels` names every brief this
+ * run must not rewrite afterwards (DELETED-anchored briefs, and the parent and
+ * children of a refused related move), e.g. in completed/ drift repair.
  */
 export function applyLifecycleFixes(
   vbriefDir: string,
   report: ReconcileReport,
   projectRoot: string | null = null,
   options: ApplyLifecycleFixesOptions = {},
-): [number, number, string[], string[]] {
+): [number, number, string[], string[], Set<string>] {
   let moved = 0;
   let skipped = 0;
   const failures: string[] = [];
   const deletedSkips: string[] = [];
+  const protectedRels = new Set<string>();
   const cwd = projectRoot ?? resolve(vbriefDir, "..");
   const known = knownStatesFromReport(report, options.issueStates);
 
@@ -1209,6 +1221,7 @@ export function applyLifecycleFixes(
       deletedSkips.push(
         `${relPath}: anchored to deleted issue #${deletedIssue} (HTTP 410); ${DELETED_ISSUE_LEFTOVER_NOTE}`,
       );
+      protectedRels.add(relPath);
       continue;
     }
     const slash = relPath.indexOf("/");
@@ -1291,12 +1304,9 @@ export function applyLifecycleFixes(
       known,
       options.probeIssueState,
     );
-    if (verdict.kind === "deleted") {
-      deletedSkips.push(verdict.message);
-      continue;
-    }
-    if (verdict.kind === "unresolved") {
-      failures.push(verdict.message);
+    if (verdict.kind !== "ok") {
+      for (const rel of verdict.protectedRels) protectedRels.add(rel);
+      (verdict.kind === "deleted" ? deletedSkips : failures).push(verdict.message);
       continue;
     }
 
@@ -1330,7 +1340,7 @@ export function applyLifecycleFixes(
     moved += 1;
   }
 
-  return [moved, skipped, failures, deletedSkips];
+  return [moved, skipped, failures, deletedSkips, protectedRels];
 }
 
 /** Repair completed/ files whose plan.status is not terminal (#2578). */
@@ -1533,13 +1543,16 @@ export function reconcileMain(args: ReconcileCliArgs): number {
             process.stderr.write(`apply-lifecycle-fixes probing child issue #${n}\n`);
             return fetchOneIssueStateRest(slug[0], slug[1], n, call, projectRoot ?? undefined);
           };
-    const [moved, skipped, failures, deletedSkips] = applyLifecycleFixes(
+    const [moved, skipped, failures, deletedSkips, protectedRels] = applyLifecycleFixes(
       vbriefDir,
       applyReport,
       projectRoot,
       { issueStates: issueStateMap, probeIssueState },
     );
-    const driftAfterMove = scanCompletedStatusDrift(vbriefDir);
+    // #5912: briefs protected by a DELETED skip or a refused related move stay byte-identical.
+    const driftAfterMove = scanCompletedStatusDrift(vbriefDir).filter(
+      (entry) => !protectedRels.has(entry.rel_path),
+    );
     const [driftRepaired, driftSkipped, driftFailures] = repairCompletedStatusDrift(
       vbriefDir,
       driftAfterMove,

@@ -1254,7 +1254,11 @@ describe("deleted issues -- HTTP 410 (#5912)", () => {
     expect(std.err()).toContain("DELETED (skipped, not a failure): active/multi.xbrief.json");
   });
 
-  function writeParentAndChild(childFolder: string, childRefs: Record<string, unknown>[]) {
+  function writeParentAndChild(
+    childFolder: string,
+    childRefs: Record<string, unknown>[],
+    childStatus?: string,
+  ) {
     const xbrief = join(root, "xbrief");
     const parent = writeBrief(xbrief, "proposed", "parent.xbrief.json", {
       status: "proposed",
@@ -1264,7 +1268,7 @@ describe("deleted issues -- HTTP 410 (#5912)", () => {
       ],
     });
     const child = writeBrief(xbrief, childFolder, "child.xbrief.json", {
-      status: childFolder === "completed" ? "completed" : "running",
+      status: childStatus ?? (childFolder === "completed" ? "completed" : "running"),
       planRef: "proposed/parent.xbrief.json",
       references: childRefs,
     });
@@ -1273,7 +1277,8 @@ describe("deleted issues -- HTTP 410 (#5912)", () => {
 
   it("probe refuses a CLOSED parent move when a terminal child is DELETED (exit 0)", () => {
     root = mkdtempSync(join(tmpdir(), "reconcile-5912-probe-del-"));
-    const { xbrief, parent, child } = writeParentAndChild("completed", [issueRef(57)]);
+    // Drifted status: completed/ drift repair must not rewrite a protected child either.
+    const { xbrief, parent, child } = writeParentAndChild("completed", [issueRef(57)], "running");
     const before = [readFileSync(parent, "utf8"), readFileSync(child, "utf8")];
     const seen = stubGh({
       55: completed(JSON.stringify({ state: "closed", state_reason: "completed" })),
@@ -1299,7 +1304,7 @@ describe("deleted issues -- HTTP 410 (#5912)", () => {
   it("probe refuses when the child GET does not resolve (exit 1, nothing written)", () => {
     root = mkdtempSync(join(tmpdir(), "reconcile-5912-probe-unres-"));
     // Terminal child: not a mover, so only the probe GETs it.
-    const { xbrief, parent, child } = writeParentAndChild("completed", [issueRef(58)]);
+    const { xbrief, parent, child } = writeParentAndChild("completed", [issueRef(58)], "running");
     const before = [readFileSync(parent, "utf8"), readFileSync(child, "utf8")];
     stubGh({
       55: completed(JSON.stringify({ state: "closed", state_reason: "completed" })),
@@ -1316,6 +1321,34 @@ describe("deleted issues -- HTTP 410 (#5912)", () => {
     ).toBe(1);
     expect([readFileSync(parent, "utf8"), readFileSync(child, "utf8")]).toEqual(before);
     expect(std.err()).toContain("issue #58 state did not resolve");
+  });
+
+  it("returns protected paths for DELETED skips and refused related moves", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-5912-protected-"));
+    const { xbrief } = writeParentAndChild("completed", [issueRef(71)], "running");
+    writeBrief(xbrief, "pending", "gone.xbrief.json", { references: [issueRef(70)] });
+    const report = buildLifecycleReport(
+      scanLifecycleAnchors(xbrief),
+      new Map([
+        [55, new IssueState("CLOSED", "COMPLETED")],
+        [70, new IssueState("DELETED")],
+        [71, new IssueState("DELETED")],
+      ]),
+      false,
+    );
+    const [moved, , failures, deletedSkips, protectedRels] = applyLifecycleFixes(
+      xbrief,
+      report,
+      root,
+    );
+    expect(moved).toBe(0);
+    expect(failures).toEqual([]);
+    expect(deletedSkips).toHaveLength(3);
+    expect([...protectedRels].sort()).toEqual([
+      "completed/child.xbrief.json",
+      "pending/gone.xbrief.json",
+      "proposed/parent.xbrief.json",
+    ]);
   });
 
   it("issue-less child is not probed; the parent moves and the run exits 0", () => {
