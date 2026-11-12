@@ -5,6 +5,13 @@
 
 # Roadmap
 
+## Active
+
+- **#5710** -- bug(scope): scope:complete has no path for a delivered PR-only brief, and the identity join accepts a post-merge closing link -- `[running]`
+- **#5882** -- BLOCKER: [framework-gap] swarm:finalize-cohort lifecycle checkout skips package install, so Taskfile-based acceptance commands fail in scope:complete -- `[running]`
+- **#6203** -- feat(scope): admit a brief and its implementation in one PR under a forge-attested human approval -- `[running]`
+- **#6212** -- bug(swarm): finalize-cohort refuses a deft-story mark until productPullRequest is stamped, but nothing can stamp it first -- `[running]`
+
 ## Proposed
 
 _Scopes not yet promoted to pending. Orientation only — not a substitute for `task triage:queue`._
@@ -30,20 +37,25 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 - **#1299** -- When to use CRUD tool vs direct vBRIEF authoring (contributor doc) -- `[proposed]`
 - **#2651** -- ADR-002: Forge-provider Azure DevOps adoption gate (proposed) -- `[proposed]`
 - **#3014** -- research(deposit): opt-in minimal consumer AGENTS profile for app-bank / greenfield -- `[proposed]`
-- **#4966** -- feat(session): session:start should default to one-line ready output; put ceremony behind --verbose -- `[proposed]`
-- **#5102** -- process(review-cycle): SLizard babysit re-polls instead of resolving carried fingerprints -- `[proposed]`
 - **#5732** -- leftover(#5727): host/deft-hook admission must refuse undeclared forge-poll before execution (#5229 residual) -- `[proposed]`
-- **#5735** -- fix(triage): worktrees-probe case-distinct sibling flake recurred a third time (post-#5519) -- `[proposed]`
 - **#5810** -- [framework-gap] Grok Bot cannot attach to and steer an already-open Grok Build session over ACP -- `[proposed]`
 - **#5812** -- recurrence(#5278): query-before Class A push/PR-open while stop-at:pr-open leaf still live -- `[proposed]`
-- **#5853** -- verify:pack-drift compares against the installed runtime package's rewritten copies instead of repo content/ (still in 0.128.0) -- `[proposed]`
 - **#5854** -- directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release) -- `[proposed]`
 - **#5994** -- feat(hooks): v261027 thin host .mjs outer; kill .sh; unify entry guards -- `[proposed]`
 
 ## Completed
 
-_Showing 25 of 1907 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1917 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#5102** -- process(review-cycle): SLizard babysit re-polls instead of resolving carried fingerprints -- `[completed]`
+- **#6173** -- bug(win32,update): containedDestExec still execFileSync pnpm.CMD without shell — #5383 residual lockfile refresh EINVAL -- `[completed]`
+- **#6172** -- bug(pre-pr): bound push gate refuses every push after a rebase or merge from the delivery branch (outgoing = remoteOid..localOid) -- `[completed]`
+- **#6163** -- bug(release): pin/Phase 7 leaves Cursor agent-hook deposit behind runtime hash -- `[completed]`
+- **#6164** -- bug(release): release:local-update still shells out to sed/grep on Windows -- `[completed]`
+- **#5735** -- fix(triage): worktrees-probe case-distinct sibling flake recurred a third time (post-#5519) -- `[completed]`
+- **#4781** -- bug(grok-build,session): independent validation/review spawn still requires inventing an active product xBRIEF -- `[completed]`
+- **#5947** -- test+docs(ovpr): AC14.10 Dependabot pin-bump self-complete regression (#5947 #5948) -- `[completed]`
+- **#4966** -- feat(session): session:start should default to one-line ready output; put ceremony behind --verbose -- `[completed]`
 - **#6143** -- bug(hooks,session): an idle session's applying-host claim blocks other-provider lifecycle commands with no lease behind it, and the deny names the wrong id -- `[completed]`
 - **#6142** -- bug(design-critique): ensureArcDest via stale gitignored packages/core/dist skips guarded-prep, so arc dests launch without runtime -- `[completed]`
 - **#6136** -- bug(hooks,authz): agents can self-serve .deft-directive-disable outside UAT (Write/Shell plant) -- `[completed]`
@@ -60,13 +72,4 @@ _Showing 25 of 1907 completed scopes (newest first). Full history: lifecycle `co
 - **#6100** -- [framework-gap] Codex hook root binding blocks linked-worktree reads and dependency bootstrap -- `[completed]`
 - **#6008** -- [framework-gap] finalize-owed probes each claim ref with its own unbounded ls-remote -- `[completed]`
 - **#6099** -- perf(cache): reuse open-issue list payload in drift probe instead of refetching up to 25 issues -- `[completed]`
-- **#6101** -- [framework-gap] Read-only session recovery overwrites live-owner identity and blocks bare cleanup -- `[completed]`
-- **#6032** -- fix(gh): release, release-publish and release-rollback gh reads still inherit the color env (#6023 follow-up) -- `[completed]`
-- **#5852** -- feat(release): let the release skill choose the npm dist-tag (latest / maintainer / beta) for both packages -- `[completed]`
-- **#1037** -- Codify edit_files search-substring truncation hazard as a meta/lessons.md entry (recurrence on PR #1034) -- `[completed]`
-- **#1092** -- chore(docs): remove or rewrite misleading docs/gitcrawl-fallback.md -- `[completed]`
-- **#6092** -- scope:complete cannot complete a shipped brief whose issue was linked after merge -- `[completed]`
-- **#6071** -- fix(merge,release,pre-pr): block ordinary merges while master's Merge gate is red; hotfix-only until green, with a cited skip fallback -- `[completed]`
-- **#6072** -- enhancement(check): baseline ratchet for sanctioned test-skip count -- `[completed]`
-- **#5925** -- bug(hooks,cli): lifecycle verbs still deny normal agent shells as not inspectable (regression class of #4577/#4780) -- `[completed]`
 

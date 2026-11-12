@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.129.7] - 2026-11-12
+
+> Completion now proves the issue-to-PR link as of merge time, finalize binds deft-story marks, and a brief can land with its code under a human approval.
+
+### Added
 - `verify:scope-provenance` admits a new or widened brief and its code in one PR when a non-author human with repo write approves a commit whose brief has the same auth-hash; without that approval, or with a mint present, behaviour is unchanged. Pass `--pr` / `--repo` or set `GITHUB_PR_NUMBER`. Refs #6203.
 
 ### Fixed
@@ -7969,7 +7981,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.129.6...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.129.7...HEAD
+[0.129.7]: https://github.com/deftai/directive/compare/v0.129.6...v0.129.7
 [0.129.6]: https://github.com/deftai/directive/compare/v0.129.5...v0.129.6
 [0.129.5]: https://github.com/deftai/directive/compare/v0.129.4...v0.129.5
 [0.129.4]: https://github.com/deftai/directive/compare/v0.129.3...v0.129.4
