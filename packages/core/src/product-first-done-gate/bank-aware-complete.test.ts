@@ -10,11 +10,25 @@ import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import { evaluateScopeCompleteAcceptanceWalk } from "../scope/acceptance-evidence.js";
+import type { MergeTimeForge } from "../scope/delivery-evidence.js";
 import { runTransition } from "../scope/transition.js";
 import { acPassBankPath, maybeBankOnAcPass } from "../session/ac-pass-banking.js";
 import { hashProductState } from "../session/product-state-hash.js";
 import { acceptanceLedgersEqual, readAcceptanceLedger } from "./acceptance-resolver.js";
 import { evaluateVerifyAcFromPath, evaluateVerifyAcFromPlan } from "./evaluate.js";
+
+/** Offline merge-time forge (#5710): no edit history and no link events. */
+function noEditHistoryForge(): MergeTimeForge {
+  const page = { ok: true as const, nodes: [], hasNextPage: false, endCursor: null };
+  return {
+    listMergedPrsPage: () => page,
+    fetchBodyRevisionsPage: () => page,
+    fetchConnectionEventsPage: () => page,
+    fetchPrFilesPage: () => page,
+    probeRateLimit: () => ({ graphqlRemaining: 5000, coreRemaining: 5000 }),
+    nowMs: () => 0,
+  };
+}
 
 function writeBrief(root: string, plan: Record<string, unknown>): string {
   mkdirSync(join(root, "xbrief", "active"), { recursive: true });
@@ -797,12 +811,15 @@ describe("one-path complete recut (#4060)", () => {
               merge_commit_sha: "abc1234deadbeef",
               base: { ref: "master" },
               head: { sha: "head1" },
+              // #5710: a merge-time closing keyword proves the issue link.
+              body: "Closes #4060",
             }
           : null,
       fetchClosingIssueIds: (n: number, repo: string) =>
         n === 1 && repo === "deftai/directive"
           ? [{ repository: "deftai/directive", issueNumber: 4060 }]
           : null,
+      mergeTimeForge: noEditHistoryForge(),
     };
     const result = runTransition("complete", brief, new Date("2026-09-02T12:00:00.000Z"), {
       deliveryEvidence: {
@@ -836,12 +853,15 @@ describe("one-path complete recut (#4060)", () => {
               merge_commit_sha: "abc1234deadbeef",
               base: { ref: "master" },
               head: { sha: "head1" },
+              // #5710: a merge-time closing keyword proves the issue link.
+              body: "Closes #4060",
             }
           : null,
       fetchClosingIssueIds: (n: number, repo: string) =>
         n === 1 && repo === "deftai/directive"
           ? [{ repository: "deftai/directive", issueNumber: 4060 }]
           : null,
+      mergeTimeForge: noEditHistoryForge(),
     };
     const result = runTransition("complete", brief, new Date("2026-09-02T12:00:00.000Z"), {
       deliveryEvidence: {

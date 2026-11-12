@@ -2,7 +2,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it, vi } from "vitest";
-import { parseArgs, run } from "./vbrief-preflight.js";
+import {
+  ISSUELESS_CODE_BEARING_REMEDIATION,
+  issuelessCodeBearingNote,
+  parseArgs,
+  run,
+} from "./vbrief-preflight.js";
 
 const temps: string[] = [];
 afterAll(() => {
@@ -217,6 +222,59 @@ describe("run", () => {
       out.mockRestore();
       err.mockRestore();
     }
+  });
+});
+
+describe("issue-less code-bearing remediation (#5710 P2)", () => {
+  function briefWith(plan: Record<string, unknown>): string {
+    const root = mkdtempSync(join(tmpdir(), "deft-preflight-5710-"));
+    temps.push(root);
+    mkdirSync(join(root, "active"), { recursive: true });
+    const path = join(root, "active", "story.xbrief.json");
+    writeFileSync(path, JSON.stringify({ plan: { status: "running", ...plan } }), "utf8");
+    return path;
+  }
+
+  function capture(argv: string[]): { code: number; stdout: string } {
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    try {
+      const code = run(argv, () => []);
+      return { code, stdout: out.mock.calls.map((call) => String(call[0])).join("") };
+    } finally {
+      out.mockRestore();
+      err.mockRestore();
+    }
+  }
+
+  it("clause.4: prints one line naming the PR-only and issue-first paths; exit stays 0", () => {
+    const path = briefWith({ metadata: { swarm: { file_scope: ["src/a.ts"] } } });
+    const { code, stdout } = capture(["--vbrief-path", path]);
+    expect(code).toBe(0);
+    const lines = stdout.split("\n").filter((line) => line.includes("#5710"));
+    expect(lines).toEqual([ISSUELESS_CODE_BEARING_REMEDIATION]);
+    expect(ISSUELESS_CODE_BEARING_REMEDIATION).toMatch(/PR-only complete/);
+    expect(ISSUELESS_CODE_BEARING_REMEDIATION).toMatch(/Issue-first/);
+    const json = capture(["--vbrief-path", path, "--json"]);
+    expect(json.code).toBe(0);
+    expect((JSON.parse(json.stdout.trim()) as { message: string }).message).toContain(
+      "PR-only complete",
+    );
+  });
+
+  it("clause.4: stays silent for briefs with an issue origin or no code", () => {
+    const issue = briefWith({
+      metadata: { swarm: { file_scope: ["src/a.ts"] } },
+      references: [{ uri: "https://github.com/o/r/issues/1", type: "x-xbrief/github-issue" }],
+    });
+    const docs = briefWith({ tags: ["docs-only"], metadata: { swarm: { file_scope: ["a.md"] } } });
+    for (const path of [issue, docs]) {
+      expect(issuelessCodeBearingNote(path)).toBeNull();
+    }
+    expect(issuelessCodeBearingNote(join(tmpdir(), "missing-5710.xbrief.json"))).toBeNull();
+    const notObject = briefWith({});
+    writeFileSync(notObject, "[]", "utf8");
+    expect(issuelessCodeBearingNote(notObject)).toBeNull();
   });
 });
 

@@ -105,6 +105,7 @@ import {
   type FetchClosingPrRefsFn,
   type FetchPrChangedFilesFn,
   type FetchPrPayloadFn,
+  type MergeTimeForge,
   type NonDeliveryDisposition,
   resolveCompletionSessionId,
   stampDeliveryProvenance,
@@ -133,7 +134,10 @@ export interface TransitionOptions {
   readonly assumeEvidenceValidated?: boolean;
   /** Prefer-A identity-join seams (#3675); forwarded to evaluateDeliveryGate. */
   readonly fetchPrPayload?: FetchPrPayloadFn;
+  /** One-PR-unit closer-set seam only; not a delivery-identity basis (#5710). */
   readonly fetchClosingIssueIds?: FetchClosingIssueIdsFn;
+  /** Merge-time association seam (#5710 P3); forwarded to evaluateDeliveryGate. */
+  readonly mergeTimeForge?: MergeTimeForge;
   /** Brief-in-PR-diff identity fallback seam (#3675); forwarded to evaluateDeliveryGate. */
   readonly fetchPrChangedFiles?: FetchPrChangedFilesFn;
   /** Prefer-A complete-time issue→PR discovery seam (#3583). */
@@ -734,7 +738,7 @@ export function runTransition(
       verifier: options.verifier ?? "scope:complete",
       assumeEvidenceValidated: options.assumeEvidenceValidated,
       fetchPrPayload: options.fetchPrPayload,
-      fetchClosingIssueIds: options.fetchClosingIssueIds,
+      mergeTimeForge: options.mergeTimeForge,
       briefBasename: basename,
       fetchPrChangedFiles: options.fetchPrChangedFiles,
     });
@@ -1315,7 +1319,7 @@ function restampCompletedBrief(args: RestampArgs): TransitionResult {
     verifier: options.verifier ?? "scope:complete",
     assumeEvidenceValidated: options.assumeEvidenceValidated,
     fetchPrPayload: options.fetchPrPayload,
-    fetchClosingIssueIds: options.fetchClosingIssueIds,
+    mergeTimeForge: options.mergeTimeForge,
     briefBasename: basename,
     fetchPrChangedFiles: options.fetchPrChangedFiles,
   });

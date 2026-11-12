@@ -1,9 +1,40 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { emitJson, evaluate, PREFLIGHT_USAGE_HINT } from "@deftai/directive-core/preflight";
 import { scanWorkClaimForBriefPath } from "@deftai/directive-core/scm";
+import { isCodeBearingScope, resolvePlanGithubIssueRef } from "@deftai/directive-core/scope";
 import { refuseIfWslOwnershipBlocked } from "./wsl-ownership-guard.js";
+
+/** One remediation line for a code-bearing brief with no issue origin (#5710 P2). */
+export const ISSUELESS_CODE_BEARING_REMEDIATION =
+  "[deft preflight] note: code-bearing brief has no x-xbrief/github-issue origin (#5710). " +
+  "PR-only complete: stamp plan.metadata.productPullRequest, then " +
+  "scope:complete -- --pr <that PR> --merge-commit <sha>. " +
+  "Issue-first: add an x-xbrief/github-issue reference before the product PR.";
+
+/** The P2 remediation line when the brief is code-bearing with no issue origin, else null. */
+export function issuelessCodeBearingNote(briefPath: string): string | null {
+  let plan: unknown;
+  try {
+    const raw = JSON.parse(readFileSync(briefPath, "utf8")) as unknown;
+    plan =
+      raw !== null && typeof raw === "object" && !Array.isArray(raw)
+        ? (raw as Record<string, unknown>).plan
+        : null;
+  } catch {
+    return null;
+  }
+  if (plan === null || typeof plan !== "object" || Array.isArray(plan)) {
+    return null;
+  }
+  const record = plan as Record<string, unknown>;
+  if (!isCodeBearingScope(record) || resolvePlanGithubIssueRef(record) !== null) {
+    return null;
+  }
+  return ISSUELESS_CODE_BEARING_REMEDIATION;
+}
 
 interface ParsedArgs {
   vbriefPath: string | null;
@@ -125,6 +156,11 @@ export function run(
     scanLines = [
       `[deft work-claim] warning: scan failed (${message}). Warn is success; this is not a GitHub lock.`,
     ];
+  }
+  // #5710 P2: advisory only; the exit code is unchanged.
+  const issuelessNote = issuelessCodeBearingNote(vbriefPath);
+  if (issuelessNote !== null) {
+    scanLines = [issuelessNote, ...scanLines];
   }
 
   if (args.emitJson) {
