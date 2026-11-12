@@ -53,7 +53,7 @@ describe("release-family ENGINE_CMD passes the operator project root (#5805 / #5
       "    cmds:",
       "      - task: engine:invoke",
       "        vars:",
-      "          # #5805: --project-root \"{{.USER_WORKING_DIR}}\" in a comment does not count",
+      '          # #5805: --project-root "{{.USER_WORKING_DIR}}" in a comment does not count',
       "          ENGINE_CMD: 'release-e2e {{.CLI_ARGS}}'",
     ].join("\n");
     expect(engineCmdLines(stripped)).not.toEqual([expectedEngineCmd("release-e2e")]);
