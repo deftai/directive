@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 import {
   assertProjectionContained,
   assertWriteTargetSafe,
@@ -15,7 +15,10 @@ import {
   type RunGhApiFn,
   restIssueListOpenInventory,
 } from "../scm/gh-rest.js";
-import { updateDecomposedChildBackReferences } from "../scope/decomposed-refs.js";
+import {
+  resolveDecomposedChildTargets,
+  updateDecomposedChildBackReferences,
+} from "../scope/decomposed-refs.js";
 import { hasCompleteTransitionWrite } from "../scope/lifecycle-write.js";
 import { resolveProjectRoot } from "../scope/project-context.js";
 import { resolveProjectRepo } from "../slice/project-context.js";
@@ -335,6 +338,35 @@ function isRestNotFoundResult(result: CompletedProcess): boolean {
   );
 }
 
+/** IssueState value for an issue the forge reports as deleted (REST 410, #5912). */
+export const DELETED_ISSUE_STATE = "DELETED";
+
+/**
+ * REST 410 Gone = deleted issue (#5912). Prefer the JSON error body `gh api`
+ * prints on stdout (`"status": "410"`); fall back to the stderr text.
+ */
+export function isRestDeletedResult(result: CompletedProcess): boolean {
+  try {
+    const body = JSON.parse(result.stdout) as unknown;
+    if (body !== null && typeof body === "object" && !Array.isArray(body)) {
+      const status = (body as Record<string, unknown>).status;
+      if (status === "410" || status === 410) {
+        return true;
+      }
+    }
+  } catch {
+    // not JSON; use the stderr fallback
+  }
+  const stderr = result.stderr;
+  return stderr.includes("HTTP 410") || stderr.includes("This issue was deleted");
+}
+
+/** Whether a fetched issue state is DELETED (#5912). */
+export function isDeletedIssueState(value: unknown): boolean {
+  const state = value instanceof IssueState ? value.value : value;
+  return state === DELETED_ISSUE_STATE;
+}
+
 function issueStateFromRestPayload(payload: Record<string, unknown>): IssueState {
   return new IssueState(
     normalizeRestIssueState(payload.state),
@@ -360,6 +392,9 @@ function fetchOneIssueStateRest(
   }
 
   if (result.returncode !== 0) {
+    if (isRestDeletedResult(result)) {
+      return new IssueState(DELETED_ISSUE_STATE, null);
+    }
     if (isRestNotFoundResult(result)) {
       return new IssueState("NOT_FOUND", null);
     }
@@ -559,6 +594,31 @@ export interface ReconcileReport {
   summary: Record<string, number>;
 }
 
+/** Leftover named for briefs anchored to a deleted issue (#5912 / #5126). */
+export const DELETED_ISSUE_LEFTOVER_NOTE =
+  "scope:cancel cannot resolve a deleted origin (#5126 leftover); brief left in place";
+
+/**
+ * Report note for a no-open-issue entry. Deleted (410) and missing (404) are
+ * named separately (#5912); a state absent from the map keeps the legacy note.
+ */
+export function noOpenIssueNote(state: string, raw: unknown): string {
+  if (state === "CLOSED") {
+    return "Issue is closed";
+  }
+  if (state === DELETED_ISSUE_STATE) {
+    return `Issue was deleted (HTTP 410); ${DELETED_ISSUE_LEFTOVER_NOTE}`;
+  }
+  if (state === "NOT_FOUND" && raw instanceof IssueState) {
+    return "Issue does not exist (HTTP 404)";
+  }
+  return "Issue is closed or does not exist";
+}
+
+function countDeletedEntries(entries: readonly Record<string, unknown>[]): number {
+  return entries.filter((e) => e.state === DELETED_ISSUE_STATE).length;
+}
+
 export function reconcile(
   issueToVbriefs: Map<number, string[]>,
   issueStateMap: Map<number, IssueState | string>,
@@ -573,7 +633,7 @@ export function reconcile(
     if (state === "OPEN") {
       linked.push({ issue_number: num, vbrief_files: vbriefFiles });
     } else {
-      const note = state === "CLOSED" ? "Issue is closed" : "Issue is closed or does not exist";
+      const note = noOpenIssueNote(state, raw);
       noOpenIssue.push({
         issue_number: num,
         vbrief_files: vbriefFiles,
@@ -590,6 +650,7 @@ export function reconcile(
     summary: {
       linked_count: linked.length,
       vbriefs_no_open_issue_count: noOpenIssue.length,
+      deleted_issue_count: countDeletedEntries(noOpenIssue),
     },
   };
 }
@@ -842,11 +903,10 @@ export function buildLifecycleReport(
     if (state === "OPEN") {
       linked.push({ issue_number: num, vbrief_files: [rel] });
     } else {
-      const note = state === "CLOSED" ? "Issue is closed" : "Issue is closed or does not exist";
       noOpenIssue.push({
         issue_number: num,
         vbrief_files: [rel],
-        note,
+        note: noOpenIssueNote(state, value),
         state,
         state_reason: reason,
       });
@@ -859,6 +919,7 @@ export function buildLifecycleReport(
     summary: {
       linked_count: linked.length,
       vbriefs_no_open_issue_count: noOpenIssue.length,
+      deleted_issue_count: countDeletedEntries(noOpenIssue),
     },
   };
 }
@@ -880,8 +941,11 @@ export function formatMarkdown(report: ReconcileReport): string {
   if (hasUnlinked && summary.unlinked_count !== undefined) {
     lines.push(`- **Unlinked** (no vBRIEF): ${summary.unlinked_count}`);
   }
+  lines.push(`- **vBRIEFs without open issue**: ${summary.vbriefs_no_open_issue_count}`);
+  if (summary.deleted_issue_count !== undefined) {
+    lines.push(`- **Deleted issues (HTTP 410)**: ${summary.deleted_issue_count}`);
+  }
   lines.push(
-    `- **vBRIEFs without open issue**: ${summary.vbriefs_no_open_issue_count}`,
     "",
     "## (a) Open issues with matching vBRIEF provenance",
     "",
@@ -988,27 +1052,166 @@ function gitMv(src: string, dst: string, cwd: string | null): boolean {
   }
 }
 
+/** Live single-issue GET used by the pre-write child probe (#5912). */
+export type IssueStateProbeFn = (issueNumber: number) => IssueState | null | "CLI_MISSING";
+
+export interface ApplyLifecycleFixesOptions {
+  /** Apply mover map (from `fetchIssueStatesForApply`); report states are folded in. */
+  readonly issueStates?: ReadonlyMap<number, IssueState | string> | null;
+  /** Live GET for probed child issues absent from the mover map. */
+  readonly probeIssueState?: IssueStateProbeFn | null;
+}
+
+/** Every GitHub issue number a brief carries: lifecycle anchor plus issue refs. */
+function briefIssueNumbers(data: Record<string, unknown>): number[] {
+  const numbers = new Set<number>();
+  const [anchor] = resolveLifecycleAnchor(data);
+  if (anchor !== null) {
+    numbers.add(anchor);
+  }
+  for (const ref of extractReferencesFromVbrief(data)) {
+    if (!GITHUB_ISSUE_REF_TYPES.has(String(ref.type ?? ""))) {
+      continue;
+    }
+    const n = parseIssueNumber(ref);
+    if (n !== null) {
+      numbers.add(n);
+    }
+  }
+  return [...numbers].sort((a, b) => a - b);
+}
+
+function knownStatesFromReport(
+  report: ReconcileReport,
+  extra: ReadonlyMap<number, IssueState | string> | null | undefined,
+): Map<number, IssueState | string> {
+  const known = new Map<number, IssueState | string>();
+  for (const entry of report.linked) {
+    const n = entry.issue_number;
+    if (typeof n === "number") {
+      known.set(n, new IssueState("OPEN"));
+    }
+  }
+  for (const entry of report.no_open_issue) {
+    const n = entry.issue_number;
+    // NOT_FOUND here may only mean "never fetched" (absent from the map), so it
+    // is not a known state; the probe live-GETs it instead.
+    if (typeof n === "number" && (entry.state === "CLOSED" || entry.state === DELETED_ISSUE_STATE)) {
+      known.set(n, new IssueState(entry.state, (entry.state_reason as string | null) ?? null));
+    }
+  }
+  if (extra) {
+    for (const [n, state] of extra) {
+      known.set(n, state);
+    }
+  }
+  return known;
+}
+
+type ChildProbeVerdict =
+  | { readonly kind: "ok" }
+  | { readonly kind: "deleted"; readonly message: string }
+  | { readonly kind: "unresolved"; readonly message: string };
+
+/**
+ * Pre-write probe (#5912): resolve the children `updateDecomposedChildBackReferences`
+ * would rewrite, and refuse the related move when any child issue is DELETED or
+ * cannot be resolved. Issue-less children are not probe subjects.
+ */
+function probeDecomposedChildren(
+  relPath: string,
+  parentData: Record<string, unknown>,
+  vbriefDir: string,
+  known: Map<number, IssueState | string>,
+  probe: IssueStateProbeFn | null | undefined,
+): ChildProbeVerdict {
+  let targets: string[];
+  try {
+    targets = resolveDecomposedChildTargets(parentData, vbriefDir);
+  } catch (err) {
+    return {
+      kind: "unresolved",
+      message: `${relPath}: related move refused -- child reference did not resolve (${String(err)}); left parent and children unmoved (#5912)`,
+    };
+  }
+  for (const childPath of targets) {
+    const childRel = relative(vbriefDir, childPath).replace(/\\/g, "/");
+    let childData: Record<string, unknown>;
+    try {
+      childData = JSON.parse(readFileSync(childPath, "utf8")) as Record<string, unknown>;
+    } catch (err) {
+      return {
+        kind: "unresolved",
+        message: `${relPath}: related move refused -- could not read child ${childRel} (${String(err)}); left parent and children unmoved (#5912)`,
+      };
+    }
+    for (const n of briefIssueNumbers(childData)) {
+      if (!known.has(n)) {
+        const fetched = probe ? probe(n) : null;
+        if (fetched instanceof IssueState) {
+          known.set(n, fetched);
+        }
+      }
+      const state = known.get(n);
+      if (state === undefined) {
+        return {
+          kind: "unresolved",
+          message: `${relPath}: related move refused -- child ${childRel} issue #${n} state did not resolve; left parent and children unmoved (#5912)`,
+        };
+      }
+      if (isDeletedIssueState(state)) {
+        return {
+          kind: "deleted",
+          message: `${relPath}: related move refused -- child ${childRel} is anchored to deleted issue #${n} (HTTP 410); left parent and children unmoved (#5912)`,
+        };
+      }
+    }
+  }
+  return { kind: "ok" };
+}
+
+/**
+ * Move briefs whose anchor issue is closed into a terminal folder.
+ * Returns `[moved, skipped, failures, deletedSkips]`. `deletedSkips` lists
+ * briefs left in place because of a DELETED (HTTP 410) issue (#5912); they are
+ * not failures.
+ */
 export function applyLifecycleFixes(
   vbriefDir: string,
   report: ReconcileReport,
   projectRoot: string | null = null,
-): [number, number, string[]] {
+  options: ApplyLifecycleFixesOptions = {},
+): [number, number, string[], string[]] {
   let moved = 0;
   let skipped = 0;
   const failures: string[] = [];
+  const deletedSkips: string[] = [];
   const cwd = projectRoot ?? resolve(vbriefDir, "..");
+  const known = knownStatesFromReport(report, options.issueStates);
 
   const relReasons = new Map<string, string | null | undefined>();
+  // DELETED wins over any sibling entry for the same brief, in any order (#5912).
+  const relDeleted = new Map<string, number>();
   for (const entry of report.no_open_issue) {
     const reason = entry.state_reason as string | null | undefined;
     for (const relPath of (entry.vbrief_files as string[]) ?? []) {
       if (!relReasons.has(relPath)) {
         relReasons.set(relPath, reason);
       }
+      if (entry.state === DELETED_ISSUE_STATE && !relDeleted.has(relPath)) {
+        relDeleted.set(relPath, Number(entry.issue_number));
+      }
     }
   }
 
   for (const [relPath, stateReason] of relReasons) {
+    const deletedIssue = relDeleted.get(relPath);
+    if (deletedIssue !== undefined) {
+      deletedSkips.push(
+        `${relPath}: anchored to deleted issue #${deletedIssue} (HTTP 410); ${DELETED_ISSUE_LEFTOVER_NOTE}`,
+      );
+      continue;
+    }
     const slash = relPath.indexOf("/");
     if (slash < 0) {
       failures.push(`unexpected vBRIEF path shape (no folder): ${JSON.stringify(relPath)}`);
@@ -1081,6 +1284,17 @@ export function applyLifecycleFixes(
       continue;
     }
 
+    // #5912: probe related children before any parent write or gitMv.
+    const verdict = probeDecomposedChildren(relPath, data, vbriefDir, known, options.probeIssueState);
+    if (verdict.kind === "deleted") {
+      deletedSkips.push(verdict.message);
+      continue;
+    }
+    if (verdict.kind === "unresolved") {
+      failures.push(verdict.message);
+      continue;
+    }
+
     mkdirSync(join(vbriefDir, destFolder), { recursive: true });
     const terminalStatus = destFolder === "cancelled" ? "cancelled" : "completed";
     plan.status = terminalStatus;
@@ -1111,7 +1325,7 @@ export function applyLifecycleFixes(
     moved += 1;
   }
 
-  return [moved, skipped, failures];
+  return [moved, skipped, failures, deletedSkips];
 }
 
 /** Repair completed/ files whose plan.status is not terminal (#2578). */
@@ -1306,7 +1520,20 @@ export function reconcileMain(args: ReconcileCliArgs): number {
       }
       return acc;
     }, 0);
-    const [moved, skipped, failures] = applyLifecycleFixes(vbriefDir, applyReport, projectRoot);
+    const slug = splitRepoSlug(repo);
+    const probeIssueState: IssueStateProbeFn | null =
+      slug === null
+        ? null
+        : (n) => {
+            process.stderr.write(`apply-lifecycle-fixes probing child issue #${n}\n`);
+            return fetchOneIssueStateRest(slug[0], slug[1], n, call, projectRoot ?? undefined);
+          };
+    const [moved, skipped, failures, deletedSkips] = applyLifecycleFixes(
+      vbriefDir,
+      applyReport,
+      projectRoot,
+      { issueStates: issueStateMap, probeIssueState },
+    );
     const driftAfterMove = scanCompletedStatusDrift(vbriefDir);
     const [driftRepaired, driftSkipped, driftFailures] = repairCompletedStatusDrift(
       vbriefDir,
@@ -1315,8 +1542,11 @@ export function reconcileMain(args: ReconcileCliArgs): number {
     );
     const allFailures = [...failures, ...driftFailures];
     process.stderr.write(
-      `[${moved}/${candidates}] vBRIEFs reconciled (moved=${moved}, already-terminal=${skipped}, failures=${failures.length})\n`,
+      `[${moved}/${candidates}] vBRIEFs reconciled (moved=${moved}, already-terminal=${skipped}, deleted-skipped=${deletedSkips.length}, failures=${failures.length})\n`,
     );
+    for (const d of deletedSkips) {
+      process.stderr.write(`  -- DELETED (skipped, not a failure): ${d}\n`);
+    }
     process.stderr.write(
       `[${driftRepaired}/${completedDrift.length}] completed/ status drift repaired (repaired=${driftRepaired}, already-terminal=${driftSkipped}, failures=${driftFailures.length})\n`,
     );
