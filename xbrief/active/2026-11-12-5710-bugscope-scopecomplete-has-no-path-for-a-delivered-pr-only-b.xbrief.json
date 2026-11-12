@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5710",
-    "updated": "2026-11-12T01:39:52Z"
+    "updated": "2026-11-12T04:36:26Z"
   },
   "plan": {
     "title": "bug(scope): scope:complete has no path for a delivered PR-only brief, and the identity join accepts a post-merge closing link",
@@ -161,7 +161,10 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(scope): scope:complete has no path for a delivered PR-only brief, and the identity join accepts a post-merge closing link"
+      ]
     },
     "metadata": {
       "intended_placement": {

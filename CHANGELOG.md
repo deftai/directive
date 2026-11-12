@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - `swarm:finalize-cohort` installs packages on a pinned lifecycle checkout before the completion sweep, so Taskfile includes from `node_modules` resolve. npm/pnpm install failure is an environment/setup error, not commands-failed; Yarn/Bun skip with a warning. Refs #5882.
+- Added title confessions to the #5710, #5882 and #6203 scope briefs so `verify:ac` maps every acceptance sentence. Refs #5710. Refs #5882. Refs #6203.
 - Activated scope briefs for #5710, #5882 and #6203 for through-merge. Refs #5710. Refs #5882. Refs #6203.
 - Dropped leftover proposed twin for worktrees-probe ownership after tracked completion. Refs #5735.
 - Recorded tracked completion for pack-drift bound to framework source checkout after product merge. Refs #5853. Refs #5871.
