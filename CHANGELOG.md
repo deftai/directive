@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - When SLizard still has open tip findings, babysit must read the tip review and clear them before waiting again to merge; Greptile-clean alone does not treat those findings as weather (#5102).
 - Approach 1 babysit and independent validation/review Grok seats spawn with process_only + dest cwd so watch/report no longer invents an active product xBRIEF (#4781).
+- Restored the #6212 scope brief's admitted statement sentences as clauses so `verify:ac` maps every sentence. Refs #6212.
 
 ### Changed
 
