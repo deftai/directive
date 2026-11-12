@@ -18,6 +18,11 @@
  * other undeclared paths must match the allowlist. Peer coverage never clears
  * a missing own allowlist. Missing-mint remediation is split or land a widened
  * concrete brief — never renew mint.
+ *
+ * Forge approval (#6203): when no mint is present, a qualifying human forge
+ * approval (see forge-approval.ts) may admit the head brief's concrete
+ * file_scope for membership only (`forge-approval` authority, same rules as
+ * precommitment). The production fence below stays merge-base.
  */
 
 import { matchAny, matchPath } from "../orchestration/pathspec.js";
@@ -198,8 +203,17 @@ export type ApprovedScopeMembershipKind =
   | "active-xbrief-modified-without-digest"
   | "change-set-outside-approved-scope";
 
-/** How the membership allowlist was obtained (#5192). */
-export type MembershipAllowlistAuthority = "mint" | "precommitment" | "missing";
+/**
+ * How the membership allowlist was obtained (#5192 / #6203).
+ * `forge-approval`: head brief concrete file_scope admitted by a qualifying
+ * human forge approval (#6203). Same matching rules as precommitment.
+ */
+export type MembershipAllowlistAuthority = "mint" | "precommitment" | "missing" | "forge-approval";
+
+/** Concrete-only authorities: globs never admit and empty is not authoritative (F4). */
+function isConcreteOnlyAuthority(authority: MembershipAllowlistAuthority): boolean {
+  return authority === "precommitment" || authority === "forge-approval";
+}
 
 export interface ApprovedScopeMembershipInput {
   readonly xbriefRelPath: string;
@@ -274,6 +288,13 @@ function remediationForOutsideMembership(
       `clear this finding. Live HEAD file_scope cannot authorize extras. ${outside}`
     );
   }
+  if (authority === "forge-approval") {
+    return (
+      "Split paths outside the forge-approved head brief file_scope to a follow-up story, or " +
+      "widen the head brief and get a fresh qualifying human approval on the new head (#6203). " +
+      outside
+    );
+  }
   return (
     "Split paths outside the membership allowlist to a follow-up story, or land a " +
     "widened concrete brief on the merge base before widening (#5192). Live HEAD " +
@@ -340,10 +361,9 @@ export function evaluateApprovedScopeMembership(
   };
 
   const rawOwn = input.baseApprovedFileScope;
-  const ownAllow =
-    authority === "precommitment"
-      ? normalizeFileScope(rawOwn ?? []).filter((e) => isConcreteFileScopeEntry(e))
-      : normalizeFileScope(rawOwn ?? []);
+  const ownAllow = isConcreteOnlyAuthority(authority)
+    ? normalizeFileScope(rawOwn ?? []).filter((e) => isConcreteFileScopeEntry(e))
+    : normalizeFileScope(rawOwn ?? []);
   const peerAllow = normalizeFileScope((input.peerApprovedFileScopes ?? []).flat());
 
   const emptyAuthoritative = input.emptyAllowlistAuthoritative ?? authority === "mint";
@@ -443,6 +463,7 @@ export function evaluateApprovedScopeMembership(
     detail:
       `changed paths outside membership allowlist (#4774 / #5192` +
       `${authority === "precommitment" ? "; concrete precommitment" : ""}` +
+      `${authority === "forge-approval" ? "; forge-approved head brief (#6203)" : ""}` +
       `${overflow.length > 0 ? `; production extras past allowance ${String(allowance)}` : ""}` +
       `): ${outside.join(", ")}`,
     remediation: remediationForOutsideMembership(outside, authority),

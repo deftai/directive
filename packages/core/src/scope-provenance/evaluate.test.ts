@@ -19,6 +19,7 @@ import {
   resolveDefaultBaseRef,
   unquoteGitPath,
 } from "./evaluate.js";
+import type { ForgeApprovalContext, ForgeApprovalReader } from "./forge-approval.js";
 
 function xbrief(planId: string, fileScope: string[]): Record<string, unknown> {
   return {
@@ -2039,5 +2040,174 @@ describe("resolveDefaultBaseRef deliveryBranch (#5520)", () => {
     delete process.env.DEFT_BASE_REF;
     delete process.env.GITHUB_BASE_REF;
     expect(resolveDefaultBaseRef(root)).toBe("origin/master");
+  });
+});
+
+describe("forge-approved head-brief membership admit (#6203)", () => {
+  const REL = "xbrief/active/story.xbrief.json";
+  const REPO = "acme/widgets";
+  const PR = 7;
+  const HEAD_SHA = "a".repeat(40);
+
+  function forgeContext(
+    headBriefRaw: string,
+    opts: { approve?: boolean; calls?: string[] } = {},
+  ): ForgeApprovalContext {
+    const calls = opts.calls ?? [];
+    const reader: ForgeApprovalReader = {
+      getJson: (path) => {
+        calls.push(path);
+        if (path === `repos/${REPO}/pulls/${PR}`) {
+          return {
+            ok: true,
+            value: {
+              number: PR,
+              user: { login: "agent" },
+              head: { sha: HEAD_SHA },
+              base: { repo: { full_name: REPO } },
+            },
+          };
+        }
+        if (path.includes("/reviews")) {
+          return {
+            ok: true,
+            value:
+              opts.approve === false
+                ? []
+                : [
+                    {
+                      user: { login: "human", type: "User" },
+                      state: "APPROVED",
+                      commit_id: HEAD_SHA,
+                    },
+                  ],
+          };
+        }
+        if (path.includes("/collaborators/")) return { ok: true, value: { permission: "write" } };
+        return { ok: false, detail: "unexpected" };
+      },
+      getRaw: (path) => {
+        calls.push(path);
+        return { ok: true, value: headBriefRaw };
+      },
+    };
+    return {
+      prNumber: PR,
+      repo: REPO,
+      reader,
+      git: { headSha: () => HEAD_SHA, headParents: () => [] },
+    };
+  }
+
+  function run(
+    head: Record<string, unknown>,
+    changedFiles: string[],
+    extra: {
+      base?: Record<string, unknown>;
+      mint?: ReturnType<typeof buildApprovedScopeRecord>;
+      forge?: ForgeApprovalContext;
+    } = {},
+  ) {
+    const raw = JSON.stringify(head);
+    return evaluateScopeProvenance("/tmp/proj-forge", {
+      changedFiles,
+      activeXbriefs: new Map([[REL, raw]]),
+      approvedRecords: extra.mint !== undefined ? [extra.mint] : [],
+      baseApprovedRecords:
+        extra.mint !== undefined ? new Map([["story-1", extra.mint]]) : new Map(),
+      baseXbriefs:
+        extra.base !== undefined ? new Map([[REL, JSON.stringify(extra.base)]]) : new Map(),
+      ...(extra.forge !== undefined ? { forgeApproval: extra.forge } : {}),
+    });
+  }
+
+  it("admits a new brief plus its code in one PR under a qualifying approval", () => {
+    const head = xbrief("story-1", ["packages/core/src/a.ts", "packages/core/src/a.test.ts"]);
+    const changed = [REL, "packages/core/src/a.ts", "packages/core/src/a.test.ts"];
+    expect(run(head, changed).exitCode).toBe(1);
+    const admitted = run(head, changed, { forge: forgeContext(JSON.stringify(head)) });
+    expect(admitted.exitCode).toBe(0);
+    expect(admitted.message).toMatch(/forge approval \(#6203\).*admitted for membership/);
+    expect(admitted.message).toMatch(/approver=human/);
+  });
+
+  it("admits a widened brief (precommitment authority) under the same approval", () => {
+    const base = xbrief("story-1", ["packages/core/src/a.ts"]);
+    const head = xbrief("story-1", ["packages/core/src/a.ts", "tests/helpers/probe.ts"]);
+    const changed = [REL, "packages/core/src/a.ts", "tests/helpers/probe.ts"];
+    expect(run(head, changed, { base }).exitCode).toBe(1);
+    expect(run(head, changed, { base, forge: forgeContext(JSON.stringify(head)) }).exitCode).toBe(
+      0,
+    );
+  });
+
+  it("never consults the forge when a mint is present (clause 1)", () => {
+    const head = xbrief("story-1", ["packages/core/src/a.ts", "tests/helpers/probe.ts"]);
+    const mint = buildApprovedScopeRecord({
+      xbriefRelPath: REL,
+      payload: xbrief("story-1", ["packages/core/src/a.ts"]),
+      humanApproval: { kind: "operator", actor: "scott", mintedAt: "2026-08-01T00:00:00Z" },
+    });
+    const base = xbrief("story-1", ["packages/core/src/a.ts"]);
+    const changed = [REL, "packages/core/src/a.ts", "tests/helpers/probe.ts"];
+    const calls: string[] = [];
+    const without = run(head, changed, { base, mint });
+    const withForge = run(head, changed, {
+      base,
+      mint,
+      forge: forgeContext(JSON.stringify(head), { calls }),
+    });
+    expect(calls).toEqual([]);
+    expect(withForge).toEqual(without);
+    expect(withForge.exitCode).toBe(1);
+  });
+
+  it("keeps today's Path B finding unchanged when proof is missing (clause 4)", () => {
+    const head = xbrief("story-1", ["packages/core/src/a.ts"]);
+    const changed = [REL, "packages/core/src/a.ts"];
+    const without = run(head, changed);
+    const rejected = run(head, changed, {
+      forge: forgeContext(JSON.stringify(head), { approve: false }),
+    });
+    expect(rejected.exitCode).toBe(without.exitCode);
+    expect(rejected.findings).toEqual(without.findings);
+    expect(rejected.message.startsWith(without.message)).toBe(true);
+    expect(rejected.message).toMatch(/not admitted -- no currently effective APPROVED/);
+  });
+
+  it("keeps the production fence on the merge base after an admit (clause 5)", () => {
+    const base = xbrief("story-1", ["packages/core/src/a.ts"]);
+    const widened = [
+      "packages/core/src/a.ts",
+      "packages/core/src/b.ts",
+      "packages/core/src/c.ts",
+      "packages/core/src/d.ts",
+      "packages/core/src/e.ts",
+      "packages/core/src/f.ts",
+    ];
+    const head = xbrief("story-1", widened);
+    const result = run(head, [REL, ...widened], {
+      base,
+      forge: forgeContext(JSON.stringify(head)),
+    });
+    expect(result.message).toMatch(/admitted for membership/);
+    const kinds = result.findings.map((f) => f.kind);
+    expect(result.exitCode).toBe(1);
+    expect(kinds).toContain("production-scope-over-budget");
+    expect(kinds).not.toContain("change-set-outside-approved-scope");
+    expect(kinds).not.toContain("active-xbrief-modified-without-digest");
+    const fence = result.findings.find((f) => f.kind === "production-scope-over-budget");
+    expect(fence?.detail).toMatch(/concreteBase=1/);
+  });
+
+  it("refuses paths outside the forge-approved head scope with forge remediation", () => {
+    const head = xbrief("story-1", ["packages/core/src/a.ts"]);
+    const result = run(head, [REL, "packages/core/src/a.ts", "tests/helpers/probe.ts"], {
+      forge: forgeContext(JSON.stringify(head)),
+    });
+    expect(result.exitCode).toBe(1);
+    const hit = result.findings.find((f) => f.kind === "change-set-outside-approved-scope");
+    expect(hit?.detail).toMatch(/forge-approved head brief \(#6203\)/);
+    expect(hit?.remediation).toMatch(/fresh qualifying human approval/);
   });
 });

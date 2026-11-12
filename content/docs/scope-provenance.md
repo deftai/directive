@@ -1,6 +1,6 @@
 # Scope provenance (`verify:scope-provenance`)
 
-Refs: #3145 · #3205 · #4956 · #4774 · #5192 · #3715 · Related: #1310, #2944 human-origin grants, #516 file scope · class checks: #4980 · generalizes under [gate-integrity.md](./gate-integrity.md) (#3156) · UI structure: [observable-scope.md](./observable-scope.md) (#4495)
+Refs: #3145 · #3205 · #4956 · #4774 · #5192 · #3715 · #6203 · Related: #1310, #2944 human-origin grants, #516 file scope · class checks: #4980 · generalizes under [gate-integrity.md](./gate-integrity.md) (#3156) · UI structure: [observable-scope.md](./observable-scope.md) (#4495)
 
 ## Problem
 
@@ -45,9 +45,23 @@ Allowance = clamp(count of **concrete** production files on the merge-base `file
 When the bound story is in the change set:
 
 1. A human-stamped merge-base mint for the **continuity-resolved** story is the allowlist when present (planId match ignores stale `xbriefRelPath`; no-`plan.id` is path-first + basename-keyed mint with matching `xbriefRelPath`).
-2. Otherwise membership evaluates against the merge-base brief's **concrete** `file_scope` as agent precommitment. Head brief cannot widen.
+2. Otherwise membership evaluates against the merge-base brief's **concrete** `file_scope` as agent precommitment. Head brief cannot widen, except under a qualifying forge approval (#6203, below).
 3. Free paths: bound brief, verified peer briefs, `CHANGELOG.md`, and continuity lifecycle paths of the bound identity. An xBRIEF-only change set may omit a mint.
 4. Empty / invalid / unreadable mint records fail closed (they are not absence).
+
+#### Forge-approved head brief (#6203)
+
+A PR can carry a new or widened brief plus its code when a human approves it on GitHub. With PR context (`--pr N` / `--repo OWNER/NAME`, or `GITHUB_PR_NUMBER` / `GITHUB_REPOSITORY` in CI), a failing membership check under precommitment or missing authority consults the forge. When a qualifying approval exists, membership evaluates against the **head** brief's concrete `file_scope` instead of the merge-base brief.
+
+- **Mint wins.** A present mint keeps the mint path. The forge is never consulted.
+- **Auth-hash v1** (`sha256:` over canonical JSON) covers `plan.id`, the xbrief path, the concrete `file_scope`, and the acceptanceCriteria array: `plan.acceptance`, `plan.narratives.AcceptanceCriteria`, and each item's `narrative.Acceptance`, in document order. `productPullRequest` and other delivery metadata stay out, so a PPR stamp keeps the approval. Any change to the covered fields drops it.
+- **Qualifying approval:** the reviewer's latest deciding review (APPROVED / CHANGES_REQUESTED / DISMISSED) is APPROVED; the reviewer is a `User` (not Bot or App), not the PR author, and has `write`, `maintain` or `admin` on the repo; the PR's base repo is this repo; the evaluated HEAD is the PR head (or GitHub's merge commit whose second parent is the PR head); and the brief at the reviewed commit hashes the same as the head brief.
+- **Fallback:** missing PR context, no qualifying approval, a hash mismatch, or an unavailable forge keeps today's Path B or mint finding unchanged. The result message adds one `forge approval (#6203)` line with the reason.
+- **Membership only.** The production fence still reads the merge-base brief. A widened brief can pass membership and still fail `production-scope-over-budget`. A brand-new brief has no production fence (as today).
+- **Re-run after approval.** Approval does not re-trigger CI. Re-run the merge gate (or push) after the approval lands.
+- **Residual (#6207):** an agent that holds a second human forge token can satisfy every predicate above. The hash binds the approved bytes; it does not prove independent human intent and does not close that confused-deputy risk. That posture stays open on #6207.
+
+Code: `packages/core/src/scope-provenance/forge-approval.ts`.
 
 #### Path A planning split (#5551)
 
