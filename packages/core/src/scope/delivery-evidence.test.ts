@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { mintOnePrUnitGrant } from "../one-pr-unit/mint.js";
 import { getDefaultAppStore } from "../one-pr-unit/simulator.js";
+import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import type { GitRunner } from "../session/git.js";
 import {
@@ -28,6 +29,7 @@ import {
   isCodeBearingScope,
   isDeliveryBriefLandExcluded,
   isEligibleStoredDeliveryDisposition,
+  liveRunGh,
   MERGE_TIME_SCAN_WALL_CLOCK_MS,
   type MergedPrListNode,
   type MergeTimeForge,
@@ -3052,6 +3054,34 @@ describe("non-delivery refuse for a merged stamped PR (#5710 P4)", () => {
     );
     expect(noRemote.ok).toBe(false);
     expect(noRemote.message).toMatch(/cannot resolve the repository/);
+  });
+
+  it("clause.9: the default stamped-PR read goes through gh, not an injected PR fetcher", () => {
+    root = makeRepo();
+    const calls: string[] = [];
+    const runGh: RunGhFn = (cmd) => {
+      calls.push(cmd.join(" "));
+      return cmd.join(" ") === "gh api repos/deftai/directive/pulls/6215"
+        ? { returncode: 0, stdout: JSON.stringify(mergedPayload()), stderr: "" }
+        : { returncode: 1, stdout: "", stderr: "unexpected" };
+    };
+    const result = evaluateDeliveryGate({
+      projectRoot: root,
+      plan: issuePlan(6212, { productPullRequest: 6215 }),
+      nowIso: AFTER,
+      nonDeliveryDisposition: "cancelled",
+      runGh,
+      runGit: gitWithOrigin(),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/is merged/);
+    expect(calls).toEqual(["gh api repos/deftai/directive/pulls/6215"]);
+  });
+
+  it("liveRunGh pins plain gh only for the default runner", () => {
+    const injected: RunGhFn = () => ({ returncode: 0, stdout: "", stderr: "" });
+    expect(liveRunGh(injected)).toBe(injected);
+    expect(liveRunGh(defaultRunGh)).not.toBe(defaultRunGh);
   });
 
   it("clause.9: a confirmed unmerged stamp, or no stamp, keeps the non-delivery path", () => {

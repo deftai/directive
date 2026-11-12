@@ -1259,7 +1259,7 @@ function fetchPrFilesWithRenames(
 ): FetchPrFileListResult {
   const parsed = parseOwnerRepo(repository);
   if (parsed === null) return { ok: false, error: `invalid repository ${repository}` };
-  const payload = defaultFetchPrPayload(prNumber, repository, runGh);
+  const payload = defaultFetchPrPayload(prNumber, repository, liveRunGh(runGh));
   const expected = typeof payload?.changed_files === "number" ? payload.changed_files : null;
   if (expected === null) return { ok: false, error: "could not read changed_files count" };
   let result: RunGhResult;
@@ -1300,12 +1300,21 @@ function fetchPrFilesWithRenames(
   return { ok: true, files };
 }
 
+/**
+ * Pin plain `gh` for single-path GETs the default runner would send to the
+ * `ghx` cache proxy. A cached read can be stale: a PR cached before merge
+ * reads as unmerged, a rate bucket reads as fuller than it is (#954 / #5710).
+ * Injected runners are used as given.
+ */
+export function liveRunGh(runGh: RunGhFn): RunGhFn {
+  return runGh === defaultRunGh ? (cmd) => defaultRunGh(cmd, "gh") : runGh;
+}
+
 function probeLiveRateLimit(runGh: RunGhFn): RateLimitSnapshot | null {
   const cmd = ["gh", "api", "rate_limit"];
   let result: RunGhResult;
   try {
-    // Uncached live read: the cached proxy can report a stale bucket (#954).
-    result = runGh === defaultRunGh ? defaultRunGh(cmd, "gh") : runGh(cmd);
+    result = liveRunGh(runGh)(cmd);
   } catch {
     return null;
   }
@@ -2262,6 +2271,12 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
     options.mergeTimeForge ?? (liveForge ? defaultMergeTimeForge(runGh) : undefined);
   const resolveCanonicalRepository = () =>
     resolveCanonicalProjectRepository(options.projectRoot, runGit);
+  // #5710 P4: the merged-stamp check needs an uncached read; a stale
+  // "unmerged" would let shipped work record as non-delivery.
+  const fetchStampedPrLive =
+    options.fetchPrPayload ??
+    ((prNumber: number, repository: string) =>
+      defaultFetchPrPayload(prNumber, repository, liveRunGh(runGh)));
   const verifier = options.verifier ?? "scope:complete";
   const codeBearing = isCodeBearingScope(options.plan);
 
@@ -2304,7 +2319,7 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
     const shipped = refuseNonDeliveryForMergedStamp({
       plan: options.plan,
       disposition: options.nonDeliveryDisposition,
-      fetchPrPayload,
+      fetchPrPayload: fetchStampedPrLive,
       resolveCanonicalRepository,
     });
     if (shipped !== null) {
