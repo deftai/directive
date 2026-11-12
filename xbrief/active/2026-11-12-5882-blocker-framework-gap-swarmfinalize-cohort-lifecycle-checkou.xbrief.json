@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5882",
-    "updated": "2026-11-12T01:39:58Z"
+    "updated": "2026-11-12T04:36:26Z"
   },
   "plan": {
     "title": "BLOCKER: [framework-gap] swarm:finalize-cohort lifecycle checkout skips package install, so Taskfile-based acceptance commands fail in scope:complete",
@@ -135,7 +135,10 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "BLOCKER: [framework-gap] swarm:finalize-cohort lifecycle checkout skips package install, so Taskfile-based acceptance commands fail in scope:complete"
+      ]
     },
     "metadata": {
       "intended_placement": {
