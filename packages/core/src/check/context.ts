@@ -1,5 +1,6 @@
-import { existsSync, readdirSync, readFileSync, type Stats, statSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
+import { walkTestFiles } from "./walk-test-files.js";
 
 export interface CheckOrchestratorOptions {
   readonly noCache?: boolean;
@@ -564,35 +565,8 @@ export function inventoryCitedSkipsInSource(source: string, file: string): Cited
   return sites;
 }
 
-function walkTestFiles(root: string, dir: string, out: string[]): void {
-  let entries: string[] = [];
-  try {
-    entries = readdirSync(dir);
-  } catch {
-    return;
-  }
-  for (const name of entries) {
-    if (name === "node_modules" || name === "dist" || name === ".git") continue;
-    const full = join(dir, name);
-    let st: Stats | undefined;
-    try {
-      st = statSync(full);
-    } catch {
-      continue;
-    }
-    if (st.isDirectory()) {
-      walkTestFiles(root, full, out);
-      continue;
-    }
-    if (/\.(test|spec)\.(ts|tsx|js|mjs|cjs)$/.test(name)) {
-      out.push(full);
-    }
-  }
-}
-
 export function inventoryCitedSkipsInTree(projectRoot: string): CitedSkipSite[] {
-  const files: string[] = [];
-  walkTestFiles(projectRoot, projectRoot, files);
+  const files = walkTestFiles(projectRoot);
   const sites: CitedSkipSite[] = [];
   for (const abs of files) {
     let source = "";

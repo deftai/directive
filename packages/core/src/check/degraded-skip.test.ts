@@ -494,6 +494,49 @@ describe("sanctioned-skip-count-baseline (#6072)", () => {
     expect(isSanctionedSkipCountBaselinePath("packages/core/src/check/other.json")).toBe(false);
   });
 
+  it("does not count skips inside linked worktrees under .deft-scratch; primary-tree skips still raise (#6226)", () => {
+    const root = mkdtempSync(join(tmpdir(), "sanctioned-skip-nested-wt-"));
+    tempDirs.push(root);
+    const baselineAbs = join(root, ...SANCTIONED_SKIP_COUNT_BASELINE_REL.split("/"));
+    mkdirSync(join(baselineAbs, ".."), { recursive: true });
+    writeFileSync(
+      baselineAbs,
+      JSON.stringify({ schema: SANCTIONED_SKIP_COUNT_BASELINE_SCHEMA, count: 0 }),
+      "utf8",
+    );
+    // Build skip strings at runtime so the repo-root inventory does not see them.
+    const citedSkip = [
+      "// skip: deftai/directive#",
+      "6226",
+      "\n",
+      "it",
+      '.skip("nested cited skip", () => {});',
+      "\n",
+      "describe",
+      '.skip("nested suite", () => {});',
+      "\n",
+    ].join("");
+    const wt = join(root, ".deft-scratch", "worktrees", "story-x");
+    mkdirSync(wt, { recursive: true });
+    writeFileSync(join(wt, ".git"), "gitdir: ../../../.git/worktrees/story-x\n", "utf8");
+    writeFileSync(join(wt, "nested.test.ts"), citedSkip, "utf8");
+
+    const clean = runSanctionedSkipCountBaselineGate({
+      projectRoot: root,
+      phase: "merge-readiness",
+    });
+    expect(clean.ok).toBe(true);
+    expect(inventoryCitedSkipsInTree(root)).toHaveLength(0);
+
+    writeFileSync(join(root, "primary.test.ts"), citedSkip, "utf8");
+    const raised = runSanctionedSkipCountBaselineGate({
+      projectRoot: root,
+      phase: "merge-readiness",
+    });
+    expect(raised.ok).toBe(false);
+    expect(inventoryCitedSkipsInTree(root).every((s) => s.file === "primary.test.ts")).toBe(true);
+  });
+
   it("parses the committed baseline schema strictly", () => {
     const ok = parseSanctionedSkipCountBaselineJson(
       JSON.stringify({ schema: SANCTIONED_SKIP_COUNT_BASELINE_SCHEMA, count: 0 }),
