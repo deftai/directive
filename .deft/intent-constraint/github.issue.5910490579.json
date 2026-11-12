@@ -1,0 +1,30 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.5910490579",
+  "xbriefRelPath": "xbrief/active/2026-11-12-5710-bugscope-scopecomplete-has-no-path-for-a-delivered-pr-only-b.xbrief.json",
+  "approvedAt": "2026-11-12T17:07:46Z",
+  "constraints": [
+    {
+      "value": "200",
+      "unit": "graphql-rate-limit-remaining-floor",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "100",
+      "unit": "rest-core-rate-limit-remaining-floor",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "3000",
+      "unit": "pr-files-listing-cap",
+      "rejectionScope": "invocation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-11-12T17:07:46Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "da4003789e5b171e5a23107f422ed70b3fca2d2d679f45ac78fc52f8915f5b67"
+}
