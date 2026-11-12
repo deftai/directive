@@ -26,10 +26,14 @@ import {
 import { parseAllDeftStoryMarks } from "../pr-closing-keywords/main.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
+import { LIFECYCLE_FOLDERS } from "../scope/constants.js";
 import {
   classifyStoredDeliveryDisposition,
   type DeliveryEvidenceInput,
+  defaultFetchPrChangedFiles,
   evidenceFromPrPayload,
+  type FetchPrChangedFilesFn,
+  type PrChangedFile,
   verifyDeliveryAncestry,
 } from "../scope/delivery-evidence.js";
 import type { GitRunner } from "../session/git.js";
@@ -119,6 +123,8 @@ export interface FinalizeCohortArgs {
   readonly retainedDests?: readonly string[];
   /** Test seam: package-manager runner for the lifecycle checkout install (#5882). */
   readonly pmRunner?: WorktreePmRunner;
+  /** Test seam: PR changed-files lookup for the lifecycle-shaped PR guard (#6212). */
+  readonly fetchPrChangedFiles?: FetchPrChangedFilesFn;
 }
 
 /**
@@ -526,9 +532,17 @@ function collectProductPullRequestOrigins(
 /**
  * PR-body `deft-story: N` may bind only when this PR is delivery for N (#4864 / #4919):
  * TIP_NONTERMINAL or completed brief for N with metadata.productPullRequest === this PR.
- * Absent stamp never binds (unrelated completed issue must not close).
+ * Absent stamp never binds on its own (unrelated completed issue must not close).
+ * Also reports a stamp naming another PR and whether an unstamped active brief
+ * exists, for the operator-story bind at the call site (#6212).
  */
-function deftStoryMarkBindsDelivery(projectRoot: string, issue: number, prNumber: number): boolean {
+function deftStoryMarkBindsDelivery(
+  projectRoot: string,
+  issue: number,
+  prNumber: number,
+): { stampMatch: boolean; otherPr: number | null; unstampedActive: boolean } {
+  let otherPr: number | null = null;
+  let unstampedActive = false;
   for (const folder of MARK_READER_FOLDERS) {
     const dir = resolve(projectRoot, folder);
     if (!existsSync(dir)) {
@@ -551,15 +565,42 @@ function deftStoryMarkBindsDelivery(projectRoot: string, issue: number, prNumber
         if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
           continue;
         }
-        if (productPullRequestFromPlan(plan as Record<string, unknown>) === prNumber) {
-          return true;
+        const stamped = productPullRequestFromPlan(plan as Record<string, unknown>);
+        if (stamped === prNumber) {
+          return { stampMatch: true, otherPr: null, unstampedActive: false };
+        }
+        if (stamped !== null) {
+          otherPr ??= stamped;
+        } else if (folder.endsWith("/active")) {
+          unstampedActive = true;
         }
       } catch {
         /* unreadable brief — try next */
       }
     }
   }
-  return false;
+  return { stampMatch: false, otherPr, unstampedActive };
+}
+
+/**
+ * Lifecycle-shaped PR (#6212): every changed path is a brief under an
+ * `xbrief|vbrief/<lifecycle>/` folder or root `CHANGELOG.md`. Activation and
+ * lifecycle PRs carry `deft-story` marks too, so they never bind as delivery.
+ */
+function isLifecycleShapedPr(files: readonly PrChangedFile[]): boolean {
+  const folders: ReadonlySet<string> = new Set(LIFECYCLE_FOLDERS);
+  return files.every((f) => {
+    const path = f.filename.replace(/\\/g, "/");
+    if (path === "CHANGELOG.md") {
+      return true;
+    }
+    const parts = path.split("/");
+    return (
+      parts.length === 3 &&
+      (parts[0] === "xbrief" || parts[0] === "vbrief") &&
+      folders.has(parts[1] ?? "")
+    );
+  });
 }
 
 /**
@@ -1557,6 +1598,9 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
 } {
   const projectRoot = resolve(args.projectRoot ?? process.cwd());
   const runGh = args.runGh ?? defaultRunGh;
+  const fetchPrChangedFiles: FetchPrChangedFilesFn =
+    args.fetchPrChangedFiles ??
+    ((prNumber, repository) => defaultFetchPrChangedFiles(prNumber, repository, runGh));
   const runGit = args.runGit ?? runText;
   const gitRunner = asGitRunner(runGit);
   const prNumbers = [...(args.prNumbers ?? [])].sort((a, b) => a - b);
@@ -1755,6 +1799,14 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   /** Full-story close intent from PR-body `deft-story: N` (#4864). Not Tracking/Refs scrape. */
   const fullStoryCloseIssues = new Set<number>();
   let closingLookupFailed = false;
+  // Operator --stories issues: their deft-story marks may bind before the sweep stamp (#6212).
+  const operatorResolved = storyTokens.length > 0 ? resolveStories(projectRoot, storyTokens) : null;
+  const operatorStoryIssues = new Set(
+    collectOriginIssueNumbers(
+      operatorResolved?.resolved.map((story) => story.path) ?? [],
+      storyTokens,
+    ),
+  );
 
   if (prNumbers.length > 0 && errors.length === 0) {
     if (repo === null || repo.length === 0) {
@@ -1822,12 +1874,37 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
         }
 
         const prBody = typeof snap.payload.body === "string" ? snap.payload.body : "";
+        let prFiles: PrChangedFile[] | null | undefined;
         for (const issue of parseAllDeftStoryMarks(prBody)) {
-          if (!deftStoryMarkBindsDelivery(projectRoot, issue, prNumber)) {
+          const mark = deftStoryMarkBindsDelivery(projectRoot, issue, prNumber);
+          let bound = mark.stampMatch;
+          let reason =
+            `need active or completed brief #${String(issue)} with ` +
+            `metadata.productPullRequest=${String(prNumber)}`;
+          // Operator named N in --stories (#6212): an unstamped active brief binds this
+          // validated PR, and the sweep stamps it. A lifecycle-shaped PR never binds.
+          if (!bound && operatorStoryIssues.has(issue)) {
+            if (mark.otherPr !== null) {
+              reason =
+                `brief #${String(issue)} is already stamped ` +
+                `metadata.productPullRequest=${String(mark.otherPr)}`;
+            } else if (mark.unstampedActive) {
+              if (prFiles === undefined) {
+                prFiles = fetchPrChangedFiles(prNumber, repo);
+              }
+              if (prFiles === null) {
+                reason = `changed-file lookup for PR #${String(prNumber)} failed`;
+              } else if (isLifecycleShapedPr(prFiles)) {
+                reason = `PR #${String(prNumber)} changes only briefs and CHANGELOG.md`;
+              } else {
+                bound = true;
+              }
+            }
+          }
+          if (!bound) {
             errors.push(
               `#${String(issue)}: deft-story mark on PR #${String(prNumber)} does not bind PR delivery ` +
-                `(need active or completed brief #${String(issue)} with ` +
-                `metadata.productPullRequest=${String(prNumber)}) (#4864).`,
+                `(${reason}) (#4864).`,
             );
             continue;
           }
@@ -1871,8 +1948,8 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
 
   // Operator-supplied story tokens keep the hard-error contract: an explicit
   // --stories token that does not resolve to an active brief is a real error.
-  if (storyTokens.length > 0) {
-    const resolved = resolveStories(projectRoot, storyTokens);
+  if (operatorResolved !== null) {
+    const resolved = operatorResolved;
     for (const story of resolved.resolved) {
       addStory(story.path);
     }

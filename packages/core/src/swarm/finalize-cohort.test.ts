@@ -1503,6 +1503,163 @@ describe("finalizeCohort", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
+  const productFiles = () => [
+    { status: "modified", filename: "packages/core/src/swarm/finalize-cohort.ts" },
+    { status: "modified", filename: "CHANGELOG.md" },
+  ];
+
+  it("binds deft-story to an unstamped active brief the operator named in --stories, then stamps it (#6212)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-6212-bind-"));
+    const storyPath = writeActiveStory(project, "story-6212", 6212);
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: ["6212"],
+      prNumbers: [6300],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({
+        6300: { merged: true, closingIssues: [], body: "Refs #6212\n\ndeft-story: 6212\n" },
+      }),
+      runGit: mockRunGit(),
+      fetchPrChangedFiles: productFiles,
+    });
+    expect(result.result.errors.filter((e) => e.includes("does not bind PR delivery"))).toEqual([]);
+    expect(result.result.story_paths).toContain(storyPath);
+    expect(vi.mocked(runTransition)).toHaveBeenCalledWith(
+      "complete",
+      storyPath,
+      expect.any(Date),
+      expect.objectContaining({
+        assumeEvidenceValidated: true,
+        deliveryEvidence: expect.objectContaining({ prNumber: 6300 }),
+      }),
+    );
+    const plan = (JSON.parse(readFileSync(storyPath, "utf8")) as { plan: Record<string, unknown> })
+      .plan;
+    expect(productPullRequestFromPlan(plan)).toBe(6300);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("still refuses a deft-story mark for an issue outside --stories (#6212 / #4864)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-6212-outside-"));
+    writeActiveStory(project, "story-6212", 6212);
+    writeActiveStory(project, "story-7000", 7000);
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh(
+      {
+        6300: {
+          merged: true,
+          closingIssues: [],
+          body: "Refs #6212\n\ndeft-story: 6212\ndeft-story: 7000\n",
+        },
+      },
+      { 6212: "open", 7000: "open" },
+    );
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: ["6212"],
+      prNumbers: [6300],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: (cmd) => {
+        ghCalls.push([...cmd]);
+        return runGh(cmd);
+      },
+      runGit: mockRunGit(),
+      fetchPrChangedFiles: productFiles,
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors).toContain(
+      "#7000: deft-story mark on PR #6300 does not bind PR delivery " +
+        "(need active or completed brief #7000 with metadata.productPullRequest=6300) (#4864).",
+    );
+    expect(result.result.errors.some((e) => e.startsWith("#6212:"))).toBe(false);
+    expect(
+      ghCalls.some((c) => c.includes("PATCH") && c.some((p) => p.includes("/issues/7000"))),
+    ).toBe(false);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses an operator-story mark when the brief is stamped to a different PR (#6212)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-6212-other-pr-"));
+    const storyPath = writeActiveStory(project, "story-6212", 6212, { productPullRequest: 1111 });
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: ["6212"],
+      prNumbers: [6300],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({
+        6300: { merged: true, closingIssues: [], body: "Refs #6212\n\ndeft-story: 6212\n" },
+      }),
+      runGit: mockRunGit(),
+      fetchPrChangedFiles: productFiles,
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors).toContain(
+      "#6212: deft-story mark on PR #6300 does not bind PR delivery " +
+        "(brief #6212 is already stamped metadata.productPullRequest=1111) (#4864).",
+    );
+    const plan = (JSON.parse(readFileSync(storyPath, "utf8")) as { plan: Record<string, unknown> })
+      .plan;
+    expect(productPullRequestFromPlan(plan)).toBe(1111);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("does not bind an operator-story mark on a brief-plus-CHANGELOG-only PR (#6212)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-6212-lifecycle-"));
+    writeActiveStory(project, "story-6212", 6212);
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: ["6212"],
+      prNumbers: [6214],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({
+        6214: { merged: true, closingIssues: [], body: "Refs #6212\n\ndeft-story: 6212\n" },
+      }),
+      runGit: mockRunGit(),
+      fetchPrChangedFiles: () => [
+        { status: "added", filename: "xbrief/active/story-6212.xbrief.json" },
+        { status: "modified", filename: "CHANGELOG.md" },
+      ],
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors).toContain(
+      "#6212: deft-story mark on PR #6214 does not bind PR delivery " +
+        "(PR #6214 changes only briefs and CHANGELOG.md) (#4864).",
+    );
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("fails closed on an operator-story mark when the changed-file lookup fails (#6212)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-6212-lookup-"));
+    writeActiveStory(project, "story-6212", 6212);
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: ["6212"],
+      prNumbers: [6300],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      // Default fetcher: the gh mock has no pulls/<n>/files route, so the lookup fails.
+      runGh: mockRunGh({
+        6300: { merged: true, closingIssues: [], body: "Refs #6212\n\ndeft-story: 6212\n" },
+      }),
+      runGit: mockRunGit(),
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.result.errors).toContain(
+      "#6212: deft-story mark on PR #6300 does not bind PR delivery " +
+        "(changed-file lookup for PR #6300 failed) (#4864).",
+    );
+    rmSync(project, { recursive: true, force: true });
+  });
+
   it("discovers active brief productPullRequest so --pr alone is a non-empty cohort (#4864)", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-active-product-pr-"));
     const storyPath = writeActiveStory(project, "story-4864", 4864, {
