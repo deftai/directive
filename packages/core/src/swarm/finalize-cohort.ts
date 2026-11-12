@@ -48,6 +48,13 @@ import {
   parseStagedXbriefPaths,
 } from "./lifecycle-diff.js";
 import { runText } from "./subprocess.js";
+import {
+  detectWorktreePm,
+  installWorktreePackages,
+  type WorktreePm,
+  type WorktreePmRunner,
+  worktreeHasRuntimePin,
+} from "./worktree-pm-install.js";
 
 /** Structured awaiting-land state (#4919). Distinct from validation/REST failures. */
 export interface FinalizeOriginClosePending {
@@ -110,6 +117,47 @@ export interface FinalizeCohortArgs {
    * isolated delivery checkout (#4714 R5). Default: the calling project root.
    */
   readonly retainedDests?: readonly string[];
+  /** Test seam: package-manager runner for the lifecycle checkout install (#5882). */
+  readonly pmRunner?: WorktreePmRunner;
+}
+
+/**
+ * Lifecycle checkout package install disposition (#5882). Surfaced on finalize
+ * lines only; it is not an acceptance predicate member.
+ */
+export type LifecycleInstallDisposition =
+  | { readonly kind: "not-pinned" }
+  | { readonly kind: "installed"; readonly pm: WorktreePm }
+  | { readonly kind: "skipped-unsupported-pm" }
+  | { readonly kind: "failed"; readonly pm: WorktreePm | null; readonly message: string };
+
+/**
+ * Install packages on the lifecycle checkout before the completion sweep (#5882).
+ * Gated by the runtime pin, as linked-worktree prep gates it. npm/pnpm failure is
+ * `failed`; Yarn/Bun is diagnosed-only (`skipped-unsupported-pm`).
+ */
+export function installLifecycleCheckoutPackages(
+  checkout: string,
+  runner?: WorktreePmRunner,
+): LifecycleInstallDisposition {
+  if (!worktreeHasRuntimePin(checkout)) {
+    return { kind: "not-pinned" };
+  }
+  if (detectWorktreePm(checkout) === null) {
+    return { kind: "skipped-unsupported-pm" };
+  }
+  const installed = installWorktreePackages(checkout, { runner });
+  if (!installed.ok) {
+    return { kind: "failed", pm: installed.pm, message: installed.message };
+  }
+  return { kind: "installed", pm: installed.pm };
+}
+
+export function formatLifecycleInstallDisposition(
+  disposition: LifecycleInstallDisposition,
+): string {
+  const pm = "pm" in disposition && disposition.pm !== null ? ` pm=${disposition.pm}` : "";
+  return `lifecycle install disposition=${disposition.kind}${pm}`;
 }
 
 function splitCsv(values: readonly string[]): string[] {
@@ -2099,6 +2147,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   let pendingOrigin: FinalizeOriginClosePending | null = null;
   let createdSweepBranch: string | null = null;
   let lifecycle: LifecycleCheckout | null = null;
+  let lifecycleInstall: LifecycleInstallDisposition | null = null;
   // Closure assignment is invisible to finally control flow, so a bare let stays null.
   const held: {
     outcome: {
@@ -2183,6 +2232,24 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
               if (branchResult.branch === branchName) {
                 createdSweepBranch = branchName;
               }
+              // Sweep is required: install packages so Taskfile includes that
+              // resolve through node_modules exist on this checkout (#5882).
+              lifecycleInstall = installLifecycleCheckoutPackages(prepared.checkout, args.pmRunner);
+              if (lifecycleInstall.kind === "failed") {
+                errors.push(
+                  `environment/setup: ${formatLifecycleInstallDisposition(lifecycleInstall)}: ` +
+                    `${oneLine(lifecycleInstall.message)}. The completion sweep did not run; ` +
+                    "this is not an acceptance commands-failed result. Fix the package install " +
+                    `on origin/${deliveryBranch}, then re-run swarm:finalize-cohort.`,
+                );
+                skipSweep = true;
+              } else if (lifecycleInstall.kind === "skipped-unsupported-pm") {
+                warnings.push(
+                  `${formatLifecycleInstallDisposition(lifecycleInstall)}: Yarn/Bun lifecycle ` +
+                    "checkout was not installed (AC5.7). Taskfile includes that resolve through " +
+                    "node_modules can be missing during the completion sweep.",
+                );
+              }
             }
           }
         }
@@ -2243,7 +2310,11 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       });
       sweep = sweepResult.sweep;
       if (sweepResult.exitCode !== 0) {
-        errors.push("cohort completion sweep failed.");
+        errors.push(
+          lifecycleInstall === null
+            ? "cohort completion sweep failed."
+            : `cohort completion sweep failed (${formatLifecycleInstallDisposition(lifecycleInstall)}).`,
+        );
         if (sweep !== null) {
           errors.push(...sweepDetailLines(sweep));
         } else if (sweepResult.stdout.trim().length > 0) {
