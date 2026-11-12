@@ -1,0 +1,211 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6212",
+    "updated": "2026-11-12T06:17:19Z"
+  },
+  "plan": {
+    "title": "bug(swarm): finalize-cohort refuses a deft-story mark until productPullRequest is stamped, but nothing can stamp it first",
+    "status": "running",
+    "narratives": {
+      "Description": "swarm:finalize-cohort refuses a `deft-story: N` mark on a product PR unless a brief for N already has `metadata.productPullRequest` equal to that PR, but Path B activation leaves the stamp unset and finalize only stamps it later in its own sweep. This story lets the mark bind when the operator names N in `--stories` and the PR passed delivery validation, so finalize can stamp the brief and complete it. A mark for an issue outside `--stories` keeps the #4864 fail-closed error, and a brief already stamped to a different PR is still refused.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6212",
+      "Overview": "## Problem\n\n`swarm:finalize-cohort` cannot complete a Path B story whose product PR carries `deft-story: N`. Seen on this repo, 2026-11-12: cohort #5882 (PR #6210) and #6203 (PR #6211), both merged.\n\nFinalize checks every `deft-story: N` mark on a product PR before it does anything else. The mark binds only when an active or completed brief for N already has `metadata.productPullRequest` equal to that PR (#4864, `deftStoryMarkBindsDelivery`). Otherwise finalize adds an error and skips the sweep.\n\nNothing can set that field first:\n\n1. Path B activation leaves `productPullRequest` unset (#5387).\n2. No verb stamps it. `scope:stamp-evidence` writes evidence only.\n3. Finalize stamps it itself (`stampProductPullRequestOnBriefFile`), but only inside the sweep, after the mark check has already failed.\n4. With more than one brief in `active/`, the #4007 write fence and the #5656 prospective scope-cover deny any Write, Edit or commit of an active brief. That holds for pinned workers too, because the brief is outside the story's `file_scope`, and for an operator worktree outside the repo root.\n\nSo the check needs the stamp, and only the check's own success leads to the stamp.\n\nWorkers cannot use `Closes #N` instead: `pr:check-closing-keywords` refuses it while the brief is active (#3015). That makes `deft-story: N` the only full-story mark a product PR can carry.\n\n## Evidence\n\n`task swarm:finalize-cohort -- --stories 5882 --pr 6210 --repo deftai/directive --dry-run`:\n\n```\n#5882: deft-story mark on PR #6210 does not bind PR delivery (need active or completed brief #5882 with metadata.productPullRequest=6210) (#4864).\n```\n\nThe same happens for #6203 / #6211. Without the mark, the single-PR path (`--stories N --pr M`, no closing refs) would bind the PR's evidence, stamp `productPullRequest` in the lifecycle checkout, and record merge evidence.\n\n## Expected\n\n- When the operator pairs `--stories N` with `--pr M`, and M is merged and passes delivery validation, a `deft-story: N` mark on M binds without a prior stamp. Finalize then stamps `productPullRequest=M` in the lifecycle checkout, as it does today.\n- A mark naming an issue outside `--stories` keeps today's fail-closed behavior, so an unrelated completed issue is never closed.\n\n## Acceptance Criteria\n\n- `swarm:finalize-cohort -- --stories N --pr M` completes a Path B brief whose PR M carries `deft-story: N` and whose brief has no `productPullRequest`.\n- The completed brief has `metadata.productPullRequest = M` and merge evidence on each item.\n- A `deft-story: K` mark on M for a K not in `--stories` still fails with the #4864 error.\n\n## Related\n\n#4864 (deft-story delivery bind), #5387 (activation leaves the stamp unset), #4007 (multi-active write fence), #5656 (prospective scope-cover), #5710 (delivery identity), #680 (lifecycle PR overhead), #6209 (`swarm:launch` worktree gap).\n\n",
+      "Labels": "bug, framework-gap",
+      "UserStory": "As a maintainer finalizing a shipped Path B story, I want a `deft-story: N` mark on the merged product PR to bind when I pass `--stories N --pr M`, so that swarm:finalize-cohort stamps productPullRequest and completes the brief instead of refusing.",
+      "ImplementationPlan": "In packages/core/src/swarm/finalize-cohort.ts, before the per-PR loop, resolve the operator `--stories` tokens to their issue numbers. Extend deftStoryMarkBindsDelivery so a mark for an issue in that set binds when a nonterminal brief for the issue has no productPullRequest, and refuses when any brief for the issue is stamped to a different PR. Marks for issues outside the operator set keep today's #4864 check unchanged. The existing sweep stamp (stampProductPullRequestOnBriefFile) then records productPullRequest=M. Add focused vitest cases in finalize-cohort.test.ts and a CHANGELOG Unreleased Fixed line.",
+      "Traces": "#6212; #4864; #5387",
+      "DesignCritique": "design-critique: not warranted, because #6212 is a narrow bug with one bounded remedy stated in the issue, and the operator directed through-merge."
+    },
+    "items": [
+      {
+        "title": "`swarm:finalize-cohort -- --stories N --pr M` completes a Path B brief whose PR M carries `deft-story: N` and whose brief has no `productPullRequest`.",
+        "status": "cancelled",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When the operator passes `--stories N --pr M` and merged PR M carries `deft-story: N`, the mark binds to an active brief for N that has no productPullRequest, and finalize-cohort completes that brief in a test."
+        }
+      },
+      {
+        "title": "The completed brief has `metadata.productPullRequest = M` and merge evidence on each item.",
+        "status": "cancelled",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "After that run the brief records `metadata.productPullRequest = M`, and completion receives delivery evidence for PR M on each item."
+        }
+      },
+      {
+        "title": "A `deft-story: K` mark on M for a K not in `--stories` still fails with the #4864 error.",
+        "status": "cancelled",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "A `deft-story: K` mark on PR M for a K not in `--stories` still fails with the #4864 `does not bind PR delivery` error, and a brief for N already stamped to a different PR is refused."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6212",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6212: bug(swarm): finalize-cohort refuses a deft-story mark until productPullRequest is stamped, but nothing can stamp it first"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4864",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4864"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "task swarm:finalize-cohort -- --stories 5882 --pr 6210 --repo deftai/directive --dry-run",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L22"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "finalize-cohort-deft-story-bind",
+        "expected_outputs": [
+          "deft-story mark binds for operator --stories issues without a prior stamp",
+          "#4864 fail-closed kept for non-operator issues and conflicting stamps",
+          "vitest coverage",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/swarm/finalize-cohort.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "packages/core/src/swarm/finalize-cohort.test.ts",
+          "CHANGELOG.md"
+        ],
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#6212"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "packages/core/src/swarm/finalize-cohort.test.ts"
+        ],
+        "module_boundary": "packages/core/src/swarm",
+        "cohesion_exemption": "finalize-cohort.ts and its test file already exceed the review trigger; this slice only widens the existing deftStoryMarkBindsDelivery check, not a module split."
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6343655993,
+        "origin": "deftai/directive#6212",
+        "id": "github.issue.6343655993"
+      },
+      "kind": "story",
+      "lifecycleWrite": {
+        "action": "cancel",
+        "writtenAt": "2026-11-12T06:17:00Z"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(swarm): finalize-cohort refuses a deft-story mark until productPullRequest is stamped, but nothing can stamp it first",
+        "Problem `swarm:finalize-cohort` cannot complete a Path B story whose product PR carries `deft-story: N`.",
+        "Seen on this repo, 2026-11-12: cohort #5882 (PR #6210) and #6203 (PR #6211), both merged.",
+        "Finalize checks every `deft-story: N` mark on a product PR before it does anything else.",
+        "The mark binds only when an active or completed brief for N already has `metadata.productPullRequest` equal to that PR (#4864, `deftStoryMarkBindsDelivery`).",
+        "Otherwise finalize adds an error and skips the sweep.",
+        "Nothing can set that field first: 1.",
+        "Path B activation leaves `productPullRequest` unset (#5387).",
+        "No verb stamps it.",
+        "`scope:stamp-evidence` writes evidence only.",
+        "Finalize stamps it itself (`stampProductPullRequestOnBriefFile`), but only inside the sweep, after the mark check has already failed.",
+        "With more than one brief in `active/`, the #4007 write fence and the #5656 prospective scope-cover deny any Write, Edit or commit of an active brief.",
+        "That holds for pinned workers too, because the brief is outside the story's `file_scope`, and for an operator worktree outside the repo root.",
+        "So the check needs the stamp, and only the check's own success leads to the stamp.",
+        "Workers cannot use `Closes #N` instead: `pr:check-closing-keywords` refuses it while the brief is active (#3015).",
+        "That makes `deft-story: N` the only full-story mark a product PR can carry.",
+        "Evidence `task swarm:finalize-cohort -- --stories 5882 --pr 6210 --repo deftai/directive --dry-run`: The same happens for #6203 / #6211.",
+        "Without the mark, the single-PR path (`--stories N --pr M`, no closing refs) would bind the PR's evidence, stamp `productPullRequest` in the lifecycle checkout, and record merge evidence.",
+        "Expected - When the operator pairs `--stories N` with `--pr M`, and M is merged and passes delivery validation, a `deft-story: N` mark on M binds without a prior stamp.",
+        "Finalize then stamps `productPullRequest=M` in the lifecycle checkout, as it does today.",
+        "A mark naming an issue outside `--stories` keeps today's fail-closed behavior, so an unrelated completed issue is never closed.",
+        "Acceptance Criteria - `swarm:finalize-cohort -- --stories N --pr M` completes a Path B brief whose PR M carries `deft-story: N` and whose brief has no `productPullRequest`.",
+        "The completed brief has `metadata.productPullRequest = M` and merge evidence on each item.",
+        "A `deft-story: K` mark on M for a K not in `--stories` still fails with the #4864 error.",
+        "Related #4864 (deft-story delivery bind), #5387 (activation leaves the stamp unset), #4007 (multi-active write fence), #5656 (prospective scope-cover), #5710 (delivery identity), #680 (lifecycle PR overhead), #6209 (`swarm:launch` worktree gap).",
+        "`swarm:finalize-cohort -- --stories N --pr M` completes a Path B brief whose PR M carries `deft-story: N` and whose brief has no `productPullRequest`."
+      ],
+      "admitted_source_sentences": [
+        "Problem `swarm:finalize-cohort` cannot complete a Path B story whose product PR carries `deft-story: N`.",
+        "Seen on this repo, 2026-11-12: cohort #5882 (PR #6210) and #6203 (PR #6211), both merged.",
+        "Finalize checks every `deft-story: N` mark on a product PR before it does anything else.",
+        "The mark binds only when an active or completed brief for N already has `metadata.productPullRequest` equal to that PR (#4864, `deftStoryMarkBindsDelivery`).",
+        "Otherwise finalize adds an error and skips the sweep.",
+        "Nothing can set that field first: 1.",
+        "Path B activation leaves `productPullRequest` unset (#5387).",
+        "No verb stamps it.",
+        "`scope:stamp-evidence` writes evidence only.",
+        "Finalize stamps it itself (`stampProductPullRequestOnBriefFile`), but only inside the sweep, after the mark check has already failed.",
+        "With more than one brief in `active/`, the #4007 write fence and the #5656 prospective scope-cover deny any Write, Edit or commit of an active brief.",
+        "That holds for pinned workers too, because the brief is outside the story's `file_scope`, and for an operator worktree outside the repo root.",
+        "So the check needs the stamp, and only the check's own success leads to the stamp.",
+        "Workers cannot use `Closes #N` instead: `pr:check-closing-keywords` refuses it while the brief is active (#3015).",
+        "That makes `deft-story: N` the only full-story mark a product PR can carry.",
+        "Evidence `task swarm:finalize-cohort -- --stories 5882 --pr 6210 --repo deftai/directive --dry-run`: The same happens for #6203 / #6211.",
+        "Without the mark, the single-PR path (`--stories N --pr M`, no closing refs) would bind the PR's evidence, stamp `productPullRequest` in the lifecycle checkout, and record merge evidence.",
+        "Expected - When the operator pairs `--stories N` with `--pr M`, and M is merged and passes delivery validation, a `deft-story: N` mark on M binds without a prior stamp.",
+        "Finalize then stamps `productPullRequest=M` in the lifecycle checkout, as it does today.",
+        "A mark naming an issue outside `--stories` keeps today's fail-closed behavior, so an unrelated completed issue is never closed.",
+        "Acceptance Criteria - `swarm:finalize-cohort -- --stories N --pr M` completes a Path B brief whose PR M carries `deft-story: N` and whose brief has no `productPullRequest`.",
+        "The completed brief has `metadata.productPullRequest = M` and merge evidence on each item.",
+        "A `deft-story: K` mark on M for a K not in `--stories` still fails with the #4864 error.",
+        "Related #4864 (deft-story delivery bind), #5387 (activation leaves the stamp unset), #4007 (multi-active write fence), #5656 (prospective scope-cover), #5710 (delivery identity), #680 (lifecycle PR overhead), #6209 (`swarm:launch` worktree gap)."
+      ],
+      "admitted_source_digest": "bb0eef365abeb0ec351f90045049aff16a9a89da941b8d910f9582cca62c4432",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`swarm:finalize-cohort -- --stories N --pr M` completes a Path B brief whose PR M carries `deft-story: N` and whose brief has no `productPullRequest`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The completed brief has `metadata.productPullRequest = M` and merge evidence on each item.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A `deft-story: K` mark on M for a K not in `--stories` still fails with the #4864 error.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "source_kind": "defect-description",
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(swarm): finalize-cohort refuses a deft-story mark until productPullRequest is stamped, but nothing can stamp it first"
+      ]
+    },
+    "id": "github.issue.6343655993",
+    "updated": "2026-11-12T06:17:19Z"
+  }
+}
