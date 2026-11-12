@@ -84,30 +84,6 @@
       "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
       "specImpact": null,
       "completedAt": "2026-10-20T05:26:22Z"
-    },
-    {
-      "scopeId": "github.issue.5910490579",
-      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
-      "specImpact": null,
-      "completedAt": "2026-11-12T21:00:24Z"
-    },
-    {
-      "scopeId": "github.issue.6014586344",
-      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
-      "specImpact": null,
-      "completedAt": "2026-11-12T21:02:12Z"
-    },
-    {
-      "scopeId": "github.issue.6339727631",
-      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
-      "specImpact": null,
-      "completedAt": "2026-11-12T21:05:51Z"
-    },
-    {
-      "scopeId": "github.issue.6343655993",
-      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
-      "specImpact": null,
-      "completedAt": "2026-11-12T21:07:43Z"
     }
   ],
   "coverage": [],
