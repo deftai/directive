@@ -1,0 +1,816 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6204",
+    "updated": "2026-11-12T23:17:28Z"
+  },
+  "plan": {
+    "title": "feat(ceremony-dial): small-change lane - scale brief size and PR count to change size",
+    "status": "running",
+    "narratives": {
+      "Description": "Small changes pay the same lifecycle ceremony as large ones: a full brief, narratives and clause scaffolding, whatever the size of the diff. This story adds a small-change lane under the rapid ceremony dial: a measured, fail-closed bound on the change, a thin command-backed brief that the existing gates admit, and a lane exit that converts the scope to the full brief shape when the bound is crossed. Multi-PR relief (P2) stays with #6203 and #680.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6204",
+      "Overview": "\nrelieves: P1\nrelieves: P3\nrelieves: P4\noperator-deferred: P2 #6203\n\n- Small-change predicate under rapid — Admit only when ceremony dial depth is rapid and one fail-closed evaluator next to ceremonyDial policy holds on a typed bound: cumulative production-file count and changed-line count against a named comparison base (worktree product diff vs lane-admit base), rechecked at the same gate points that can refuse, plus an authoritative public-surface determination (unknown refuses / escalates). Provisional dial estimators are not proof. Numerical N/M defaults are policy constants. relieves: P1. disposes critic 6811480236 C1; disposes critic 6811570274 public-surface sharpen.\n- Command-backed minimal brief — Emitter writes title, issue ref, file_scope, and acceptance commands only inside xBRIEF 0.8. First lane admits only when a valid supported command-based acceptance record already exists; otherwise keep/escalate to full shape (preserve derived acceptance representation). Named admit surfaces for this lane: preflight/verify:ac/scope:complete accept command-backed thin shape without requiring narrative/plan/clause scaffolding. Delivery identity (#3041 / #3675) unchanged. relieves: P1. relieves: P4. disposes critic 6811480236 C2; disposes critic 6811570274 gate-surface sharpen.\n- Mid-flight escalate-once (lane exit) — When the bound is crossed after admit, refuse the current scope on every retry until its full brief representation passes existing gates; remediation vocabulary is one escalate-to-full-shape conversion that preserves scope identity and AC evidence and is scope-local. Distinct from #3319 escalateCeremonyDial depth-only raise. No silent keep-minimal. relieves: P3. disposes critic 6811480236 C3; disposes critic 6811570274 escalate-name sharpen.\n- One-PR composition residual — PR-count reduction composes Prefer-A outcomes of #6203 and #680. This limb does not invent forge-approval. Path B brief-first remains lawful until those Prefer-A records provide a one-PR path. operator-deferred: P2 #6203. Completion-path ownership may also cite #680 in prose. Remint this limb if #6203/#680 Prefer-A drops or replaces the one-PR admit. disposes critic 6811480236 C4; disposes critic 6811570274 P2 cite block.\n\n\n",
+      "Labels": "enhancement, adoption-blocker, agent-experience, process, scm, urgent, area:vbrief, design-critique:ingest-ready, core-capabilities, promise:lifecycle, promise:gates",
+      "UserStory": "As a maintainer making a small change under the rapid dial, I want a thin brief whose acceptance is its commands, admitted by preflight, verify:ac and scope:complete, so that the ceremony scales with the change and a change that grows past the bound is moved to the full shape instead of slipping through.",
+      "ImplementationPlan": "Follow the accepted Prefer-A Bound on #6204 (comment 6811591036). Add a small-change evaluator next to the ceremony dial policy (packages/core/src/policy/) that measures cumulative production-file and changed-line counts against the lane-admit base, rechecks at every gate that can refuse, and refuses on an unknown public surface. Add a thin-brief emitter that writes only title, issue ref, file_scope and acceptance commands inside xBRIEF 0.8, and only when command-backed acceptance already exists. Make preflight, verify:ac and scope:complete admit that thin shape without narrative, plan or clause scaffolding, with delivery identity unchanged. Add the lane exit: once the bound is crossed, refuse on every retry until the full brief shape passes, as a scope-local conversion distinct from the #3319 dial raise. N/M bound defaults are policy values; a new numeric constant needs a human intent-constraint mint. Cover each limb with focused vitest cases and add a CHANGELOG Unreleased entry.",
+      "Traces": "#6204 Prefer-A Bound 6811591036; synthesis 6811702080; verified-claims 6811701823; #6203; #680; #3319; #3041; #3675",
+      "IngestNote": "#6203 has shipped (forge-approved brief-plus-code PR). Under the current tree the one-PR limb relieves the activation PR only; the completion PR count stays with #680, which is being recut. The limb's own remint condition applies if #680's outcome changes the one-PR admit."
+    },
+    "items": [
+      {
+        "title": "Small-change predicate under rapid — Admit only when ceremony dial depth is rapid and one fail-closed evaluator next to ceremonyDial policy holds on a typed bound: cumulative production-file count and changed-line count against a named comparison base (worktree product diff vs lane-admit base), rechecked at the same gate points that can refuse, plus an authoritative public-surface determination (unknown refuses / escalates). Provisional dial estimators are not proof. Numerical N/M defaults are policy constants. relieves: P1. disposes critic 6811480236 C1; disposes critic 6811570274 public-surface sharpen.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Under the rapid dial, the small-change lane admits a scope only while one fail-closed evaluator next to the ceremony dial policy holds on cumulative production-file and changed-line counts against the lane-admit base, rechecked at each gate that can refuse; an unknown public surface refuses or escalates, and provisional dial estimators never count as proof."
+        }
+      },
+      {
+        "title": "Command-backed minimal brief — Emitter writes title, issue ref, file_scope, and acceptance commands only inside xBRIEF 0.8. First lane admits only when a valid supported command-based acceptance record already exists; otherwise keep/escalate to full shape (preserve derived acceptance representation). Named admit surfaces for this lane: preflight/verify:ac/scope:complete accept command-backed thin shape without requiring narrative/plan/clause scaffolding. Delivery identity (#3041 / #3675) unchanged. relieves: P1. relieves: P4. disposes critic 6811480236 C2; disposes critic 6811570274 gate-surface sharpen.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "The thin-brief emitter writes only title, issue ref, file_scope and acceptance commands inside xBRIEF 0.8, and only when a supported command-backed acceptance record already exists; preflight, verify:ac and scope:complete admit that shape without narrative, plan or clause scaffolding, and delivery identity is unchanged."
+        }
+      },
+      {
+        "title": "Mid-flight escalate-once (lane exit) — When the bound is crossed after admit, refuse the current scope on every retry until its full brief representation passes existing gates; remediation vocabulary is one escalate-to-full-shape conversion that preserves scope identity and AC evidence and is scope-local. Distinct from #3319 escalateCeremonyDial depth-only raise. No silent keep-minimal. relieves: P3. disposes critic 6811480236 C3; disposes critic 6811570274 escalate-name sharpen.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Once the bound is crossed after admit, every retry on that scope is refused until its full brief representation passes the existing gates; the one remediation is a scope-local escalate-to-full-shape conversion that keeps scope identity and acceptance evidence, distinct from the #3319 dial-depth raise."
+        }
+      },
+      {
+        "title": "One-PR composition residual — PR-count reduction composes Prefer-A outcomes of #6203 and #680. This limb does not invent forge-approval. Path B brief-first remains lawful until those Prefer-A records provide a one-PR path. operator-deferred: P2 #6203. Completion-path ownership may also cite #680 in prose. Remint this limb if #6203/#680 Prefer-A drops or replaces the one-PR admit. disposes critic 6811480236 C4; disposes critic 6811570274 P2 cite block.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "PR-count reduction composes the #6203 and #680 outcomes only: this story adds no forge-approval path, and Path B brief-first stays lawful."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "adoption-blocker",
+      "agent-experience",
+      "process",
+      "scm",
+      "urgent",
+      "area:vbrief",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:lifecycle",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6204",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6204: feat(ceremony-dial): small-change lane - scale brief size and PR count to change size"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3214",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3214"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "feat(ceremony-dial): small-change lane - scale brief size and PR count to change size",
+        "relieves: P1 relieves: P3 relieves: P4 operator-deferred: P2 #6203 - Small-change predicate under rapid — Admit only when ceremony dial depth is rapid and one fail-closed evaluator next to ceremonyDial policy holds on a typed bound: cumulative production-file count and changed-line count against a named comparison base (worktree product diff vs lane-admit base), rechecked at the same gate points that can refuse, plus an authoritative public-surface determination (unknown refuses / escalates).",
+        "Provisional dial estimators are not proof.",
+        "Numerical N/M defaults are policy constants.",
+        "relieves: P1.",
+        "disposes critic 6811480236 C1; disposes critic 6811570274 public-surface sharpen.",
+        "Command-backed minimal brief — Emitter writes title, issue ref, file_scope, and acceptance commands only inside xBRIEF 0.8.",
+        "First lane admits only when a valid supported command-based acceptance record already exists; otherwise keep/escalate to full shape (preserve derived acceptance representation).",
+        "Named admit surfaces for this lane: preflight/verify:ac/scope:complete accept command-backed thin shape without requiring narrative/plan/clause scaffolding.",
+        "Delivery identity (#3041 / #3675) unchanged.",
+        "relieves: P4.",
+        "disposes critic 6811480236 C2; disposes critic 6811570274 gate-surface sharpen.",
+        "Mid-flight escalate-once (lane exit) — When the bound is crossed after admit, refuse the current scope on every retry until its full brief representation passes existing gates; remediation vocabulary is one escalate-to-full-shape conversion that preserves scope identity and AC evidence and is scope-local.",
+        "Distinct from #3319 escalateCeremonyDial depth-only raise.",
+        "No silent keep-minimal.",
+        "relieves: P3.",
+        "disposes critic 6811480236 C3; disposes critic 6811570274 escalate-name sharpen.",
+        "One-PR composition residual — PR-count reduction composes Prefer-A outcomes of #6203 and #680.",
+        "This limb does not invent forge-approval.",
+        "Path B brief-first remains lawful until those Prefer-A records provide a one-PR path.",
+        "operator-deferred: P2 #6203.",
+        "Completion-path ownership may also cite #680 in prose.",
+        "Remint this limb if #6203/#680 Prefer-A drops or replaces the one-PR admit.",
+        "disposes critic 6811480236 C4; disposes critic 6811570274 P2 cite block.",
+        "Small-change predicate under rapid — Admit only when ceremony dial depth is rapid and one fail-closed evaluator next to ceremonyDial policy holds on a typed bound: cumulative production-file count and changed-line count against a named comparison base (worktree product diff vs lane-admit base), rechecked at the same gate points that can refuse, plus an authoritative public-surface determination (unknown refuses / escalates)."
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 relieves: P3 relieves: P4 operator-deferred: P2 #6203 - Small-change predicate under rapid — Admit only when ceremony dial depth is rapid and one fail-closed evaluator next to ceremonyDial policy holds on a typed bound: cumulative production-file count and changed-line count against a named comparison base (worktree product diff vs lane-admit base), rechecked at the same gate points that can refuse, plus an authoritative public-surface determination (unknown refuses / escalates).",
+        "Provisional dial estimators are not proof.",
+        "Numerical N/M defaults are policy constants.",
+        "relieves: P1.",
+        "disposes critic 6811480236 C1; disposes critic 6811570274 public-surface sharpen.",
+        "Command-backed minimal brief — Emitter writes title, issue ref, file_scope, and acceptance commands only inside xBRIEF 0.8.",
+        "First lane admits only when a valid supported command-based acceptance record already exists; otherwise keep/escalate to full shape (preserve derived acceptance representation).",
+        "Named admit surfaces for this lane: preflight/verify:ac/scope:complete accept command-backed thin shape without requiring narrative/plan/clause scaffolding.",
+        "Delivery identity (#3041 / #3675) unchanged.",
+        "relieves: P4.",
+        "disposes critic 6811480236 C2; disposes critic 6811570274 gate-surface sharpen.",
+        "Mid-flight escalate-once (lane exit) — When the bound is crossed after admit, refuse the current scope on every retry until its full brief representation passes existing gates; remediation vocabulary is one escalate-to-full-shape conversion that preserves scope identity and AC evidence and is scope-local.",
+        "Distinct from #3319 escalateCeremonyDial depth-only raise.",
+        "No silent keep-minimal.",
+        "relieves: P3.",
+        "disposes critic 6811480236 C3; disposes critic 6811570274 escalate-name sharpen.",
+        "One-PR composition residual — PR-count reduction composes Prefer-A outcomes of #6203 and #680.",
+        "This limb does not invent forge-approval.",
+        "Path B brief-first remains lawful until those Prefer-A records provide a one-PR path.",
+        "operator-deferred: P2 #6203.",
+        "Completion-path ownership may also cite #680 in prose.",
+        "Remint this limb if #6203/#680 Prefer-A drops or replaces the one-PR admit.",
+        "disposes critic 6811480236 C4; disposes critic 6811570274 P2 cite block."
+      ],
+      "admitted_source_digest": "549c901234c3cfc52dd205ad0de138e6d352447ca7e0c743b8ba9d43ec95d04e",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Small-change predicate under rapid — Admit only when ceremony dial depth is rapid and one fail-closed evaluator next to ceremonyDial policy holds on a typed bound: cumulative production-file count and changed-line count against a named comparison base (worktree product diff vs lane-admit base), rechecked at the same gate points that can refuse, plus an authoritative public-surface determination (unknown refuses / escalates). Provisional dial estimators are not proof. Numerical N/M defaults are policy constants. relieves: P1. disposes critic 6811480236 C1; disposes critic 6811570274 public-surface sharpen.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Command-backed minimal brief — Emitter writes title, issue ref, file_scope, and acceptance commands only inside xBRIEF 0.8. First lane admits only when a valid supported command-based acceptance record already exists; otherwise keep/escalate to full shape (preserve derived acceptance representation). Named admit surfaces for this lane: preflight/verify:ac/scope:complete accept command-backed thin shape without requiring narrative/plan/clause scaffolding. Delivery identity (#3041 / #3675) unchanged. relieves: P1. relieves: P4. disposes critic 6811480236 C2; disposes critic 6811570274 gate-surface sharpen.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Mid-flight escalate-once (lane exit) — When the bound is crossed after admit, refuse the current scope on every retry until its full brief representation passes existing gates; remediation vocabulary is one escalate-to-full-shape conversion that preserves scope identity and AC evidence and is scope-local. Distinct from #3319 escalateCeremonyDial depth-only raise. No silent keep-minimal. relieves: P3. disposes critic 6811480236 C3; disposes critic 6811570274 escalate-name sharpen.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "One-PR composition residual — PR-count reduction composes Prefer-A outcomes of #6203 and #680. This limb does not invent forge-approval. Path B brief-first remains lawful until those Prefer-A records provide a one-PR path. operator-deferred: P2 #6203. Completion-path ownership may also cite #680 in prose. Remint this limb if #6203/#680 Prefer-A drops or replaces the one-PR admit. disposes critic 6811480236 C4; disposes critic 6811570274 P2 cite block.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "relieves: P1 relieves: P3 relieves: P4 operator-deferred: P2 #6203 - Small-change predicate under rapid — Admit only when ceremony dial depth is rapid and one fail-closed evaluator next to ceremonyDial policy holds on a typed bound: cumulative production-file count and changed-line count against a named comparison base (worktree product diff vs lane-admit base), rechecked at the same gate points that can refuse, plus an authoritative public-surface determination (unknown refuses / escalates).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Provisional dial estimators are not proof.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Numerical N/M defaults are policy constants.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "relieves: P1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "disposes critic 6811480236 C1; disposes critic 6811570274 public-surface sharpen.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Command-backed minimal brief — Emitter writes title, issue ref, file_scope, and acceptance commands only inside xBRIEF 0.8.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "First lane admits only when a valid supported command-based acceptance record already exists; otherwise keep/escalate to full shape (preserve derived acceptance representation).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Named admit surfaces for this lane: preflight/verify:ac/scope:complete accept command-backed thin shape without requiring narrative/plan/clause scaffolding.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Delivery identity (#3041 / #3675) unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "relieves: P4.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "disposes critic 6811480236 C2; disposes critic 6811570274 gate-surface sharpen.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Mid-flight escalate-once (lane exit) — When the bound is crossed after admit, refuse the current scope on every retry until its full brief representation passes existing gates; remediation vocabulary is one escalate-to-full-shape conversion that preserves scope identity and AC evidence and is scope-local.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Distinct from #3319 escalateCeremonyDial depth-only raise.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "No silent keep-minimal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "relieves: P3.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "disposes critic 6811480236 C3; disposes critic 6811570274 escalate-name sharpen.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "One-PR composition residual — PR-count reduction composes Prefer-A outcomes of #6203 and #680.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "This limb does not invent forge-approval.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "Path B brief-first remains lawful until those Prefer-A records provide a one-PR path.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "operator-deferred: P2 #6203.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "Completion-path ownership may also cite #680 in prose.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "Remint this limb if #6203/#680 Prefer-A drops or replaces the one-PR admit.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 27,
+          "text": "disposes critic 6811480236 C4; disposes critic 6811570274 P2 cite block.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 28,
+          "text": "Small-change predicate under rapid — Admit only when ceremony dial depth is rapid and one fail-closed evaluator next to ceremonyDial policy holds on a typed bound: cumulative production-file count and changed-line count against a named comparison base (worktree product diff vs lane-admit base), rechecked at the same gate points that can refuse, plus an authoritative public-surface determination (unknown refuses / escalates).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "feat(ceremony-dial): small-change lane - scale brief size and PR count to change size"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nPrefer-A draft\nconflict_group: ceremony-dial-small-change-lane\nSpec-path: issue #6204 proposal (rapid + small-change bound → minimal brief + one PR + escalate-once)\ncharter: refutation\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nTarget-kind: issue\n\n## Plain-language summary\nToday the ceremony dial can lighten session ritual and check depth, but a tiny fix still gets a fat brief and a multi-PR lifecycle. This draft picks one Prefer-A: under rapid, when a hard small-change bound holds, emit a thin brief and ride one PR; if the change grows past the bound, refuse once and tell the agent to escalate to the full shape.\n\n## Bound remedy\n- Small-change predicate under rapid — Admit the lane only when ceremony dial depth is rapid and a typed bound holds (production file count, changed-line count, and no new public surface). Bound lives next to ceremonyDial policy; one fail-closed evaluator. relieves: P1, P2\n- Minimal brief shape — Emitter writes title, issue ref, file_scope, and acceptance commands only. That shape MUST pass xbrief:preflight, verify:ac, and scope:complete without narrative/plan/clause scaffolding. Delivery identity (#3041 / #3675) unchanged. relieves: P1, P4\n- One-PR compose — Product + brief (+ completion when #680 path exists) land in one PR via the #6203 forge-attested human-approval admit. Without a qualifying approval, Path B brief-first behaviour is unchanged. relieves: P2\n- Mid-flight escalate-once — When the bound is crossed after admit, one refuse with one remediation that names escalate-to-full-shape (same two-stage spirit as vbrief.md ceremony dial). No silent keep-minimal. relieves: P3\n\n## Reject list (draft)\n- Soft / advisory-only small-change hints that agents may ignore\n- A second parallel brief schema outside xBRIEF 0.8\n- Weakening delivery identity or AC verification to make the thin brief green\n- Shipping one-PR by relaxing merge-base scope-provenance without the #6203 approval proof\n- Auto-ingest or primary mutation from this arc\n\n## Footnotes (non-mechanism)\n- Naming: small-change lane / rapid-small; docs and strategy pointers are footnotes unless they change the fail-closed association (#5783 / #3368).\n- Ship order with #6203 / #680 is composition, not a second Prefer-A mechanism.\n\nFiled for @MScottAdams",
+          "id": 6811348464,
+          "html_url": "https://github.com/deftai/directive/issues/6204#issuecomment-6811348464",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T01:08:27Z",
+          "updated_at": "2026-11-12T01:08:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because mechanism-shaped stamp present and Prefer-A draft names a fail-closed small-change lane under rapid (bound + minimal brief + one-PR compose + escalate-once).\nmechanism-shaped: true\nrefutation-target: rapid + typed small-change bound admits a minimal xBRIEF and one-PR delivery (#6203/#680 compose) with one-shot escalate when the bound is crossed\ncharter: refutation\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nTarget-kind: issue\ndispatch-sha: e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a\nverification-path: pin-read git show e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a: ; dest cwd-without-occupy .deft-scratch/worktrees/arc-6204\ndual-stop-reserved: 2\nseat-families: grok, claude, codex\n\npain: P1, P2, P3, P4\n- P1 Brief bloat under rapid — Full ~200-line lifecycle JSON for tiny product diffs; dial lifecycleWrites light/minimal does not shrink the brief shape agents must author.\n- P2 Multi-PR lifecycle tax — Activation + product + completion (or widen) PRs for a small change; lifecycle lines can rival product lines.\n- P3 No mid-flight escalate-once — When a rapid-small change grows past the bound, there is no single refuse+remediation that forces escalate-to-full-shape.\n- P4 Gate refusal of minimal shape — xbrief:preflight / verify:ac / scope:complete may still expect narrative, plan items, or clause scaffolding the thin brief omits.\n\n## Plain-language summary\nStop 1 opens a no-ingest YOLO N≥3 refutation arc on #6204. Pains are fat briefs, multi-PR tax, missing escalate-once, and gates that may reject a thin brief. Dest pin e514bc81. Critics next.\n\nFiled for @MScottAdams",
+          "id": 6811352400,
+          "html_url": "https://github.com/deftai/directive/issues/6204#issuecomment-6811352400",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T01:08:42Z",
+          "updated_at": "2026-11-12T01:08:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 6811367514\nfamilies: grok, claude, codex\ndispatch-sha: e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a\nverification-path: pin-read git show e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a: ; dest cwd-without-occupy .deft-scratch/worktrees/arc-6204\nseat-families: grok, claude, codex\ndual-stop-reserved: 2\nlaunch-probe: claude=pong@0; grok=pong@0; codex=rc0 (dest-rooted)\nnative-spawn: denied implement-class (no process_only on spawn_subagent schema); seating dest-rooted family CLIs after recorded miss\n\n## Plain-language summary\nRound-1 panel deposited. Three isolated critics (Grok, Claude, Codex) will refute Prefer-A draft 6811348464 against Stop 1 pains through ceiling 6811367514 (deposit inclusive).\n\nFiled for @MScottAdams",
+          "id": 6811367514,
+          "html_url": "https://github.com/deftai/directive/issues/6204#issuecomment-6811367514",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T01:09:40Z",
+          "updated_at": "2026-11-12T01:10:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\noperator-steer: dependency on #6203 / #680\nconflict_group: ceremony-dial-small-change-lane\n\n## Plain-language summary\nOperator note: #6204 assumes one PR per change via how #6203 and #680 come out. If either arc changes direction (for example dropping forge-approval), this arc remints its one-PR limb to match. Prefer-A remint below keeps minimal-brief + escalate as this issue mechanism and treats one-PR as a composition residual keyed to those Prefer-A outcomes.\n\n## Prefer-A remint (draft → contingent compose)\nSpec-path: issue #6204 + operator steer (one-PR tracks #6203/#680)\n\n## Bound remedy\n- Small-change predicate under rapid — Admit the lane only when ceremony dial depth is rapid and a typed bound holds (production file count, changed-line count, and no new public surface). Bound lives next to ceremonyDial policy; one fail-closed evaluator. relieves: P1\n- Minimal brief shape — Emitter writes title, issue ref, file_scope, and acceptance commands only. That shape MUST pass xbrief:preflight, verify:ac, and scope:complete without narrative/plan/clause scaffolding. Delivery identity (#3041 / #3675) unchanged. relieves: P1, P4\n- Mid-flight escalate-once — When the bound is crossed after admit, one refuse with one remediation that names escalate-to-full-shape. No silent keep-minimal. relieves: P3\n- One-PR composition residual — PR-count reduction composes the Prefer-A outcome of #6203 and the completion path of #680. This limb does not invent forge-approval. If #6203 or #680 Prefer-A drops or replaces forge-approval (or otherwise changes the one-PR admit), remint this limb to match before ingest/implement. Until those Prefer-A records exist, Path B brief-first remains lawful. relieves: P2\n\n## Reject list\n- Hard-baking forge-approval into #6204 ahead of #6203/#680 Prefer-A\n- Soft advisory-only small-change hints\n- A second parallel brief schema outside xBRIEF 0.8\n- Weakening delivery identity or AC verification to green the thin brief\n- Relaxing merge-base scope-provenance without whatever admit #6203 settles\n\ndispatch-fail-round1: claude/grok empty-exit; codex argv split on unquoted prompt (unexpected argument and). Relaunch after this remint.\n\nFiled for @MScottAdams",
+          "id": 6811408519,
+          "html_url": "https://github.com/deftai/directive/issues/6204#issuecomment-6811408519",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T01:12:14Z",
+          "updated_at": "2026-11-12T01:12:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 6811411309\nfamilies: grok, claude, codex\ndispatch-sha: e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a\nverification-path: pin-read git show e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a: ; dest cwd-without-occupy .deft-scratch/worktrees/arc-6204\nseat-families: grok, claude, codex\ndual-stop-reserved: 2\nrelaunch: after dispatch-fail (claude/grok empty; codex argv split); Prefer-A remint 6811408519 in envelope\n\n## Plain-language summary\nRelaunch Round-1 panel after operator dependency steer. Critics refute Prefer-A remint that keeps minimal-brief+escalate here and treats one-PR as composition residual on #6203/#680.\n\nFiled for @MScottAdams",
+          "id": 6811411309,
+          "html_url": "https://github.com/deftai/directive/issues/6204#issuecomment-6811411309",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T01:12:25Z",
+          "updated_at": "2026-11-12T01:12:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\nRound-1 refutation of Prefer-A remint https://github.com/deftai/directive/issues/6204#issuecomment-6811408519\nEnvelope ceiling: 6811411309 (inclusive). Pin: e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a. audit-targets: none.\n\nThe thin brief is plausible, but the admission and acceptance contracts are not yet sufficient to bind this exact remedy.\n\n### C1 — blocks-the-design — A typed bound needs an authoritative measurement contract\nEvidence: the remint requires production-file count, changed-line count and no new public surface, but supplies no comparison baseline, measured artifact, public-surface oracle or unknown-result rule. At the pin, `packages/core/src/policy/ceremony-dial.ts` explicitly calls `estimateProvisionalCeremonyInputs` provisional: it accepts file counts, environment and prompt signals; `ceremonyDialProfile` scales cold ceremony, not verification. Those existing signals cannot certify the new hard bound.\nFailure mode: an agent admits an empty worktree, adds a new exported command in one line, and retains minimal status using the initial count or a self-declared no-public-surface flag. A last-commit count also admits an oversized cumulative change split across commits. This is an authority/input-trust issue, not merely threshold tuning.\nConsequence: before bind, name the cumulative product diff and comparison base, when the same predicate is rechecked, and an authoritative supported public-surface determination (unknown refuses/escalates). Keep one evaluator; do not turn the provisional dial estimator into proof. Numerical N/M defaults can remain implementation detail.\n\n### C2 — blocks-the-design — Command-only eligibility leaves valid small changes without their acceptance oracle\nEvidence: the remint says title, issue ref, file_scope and acceptance commands **only**, while promising unchanged AC verification and no clause scaffolding. At the pin, `packages/core/src/verify-ac/clauses.ts` has a separate no-stated-command path: `stampDerivedClausesOnAcceptance` derives clauses from the task statement, `collectPlanItemAcceptanceSurface` and `collectDeclaredAcceptanceNarrativeSurface`; `readAcceptanceClauses` reads persisted clauses. These are meaningful acceptance sources, not universally disposable boilerplate.\nFailure mode: a tiny fix has behavioral acceptance prose but no operator-stated command. Removing both the declared sources and derived clauses either loses that acceptance obligation or leaves the thin brief unable to satisfy the existing verifier. Inventing a generic test command is not proof that the original behavior was preserved.\nConsequence: restrict this first lane to briefs with a valid supported command-based acceptance record, falling back to the full shape otherwise; alternatively preserve the existing derived acceptance representation. Do not promise command-only shape for every size-qualified change. Keep the xBRIEF envelope and native issue/file-scope locations so existing delivery identity readers still operate.\n\n### C3 — sharpens-framing — Escalate once must mean one remediation, not one lifetime refusal\nEvidence: `packages/core/src/policy/ceremony-dial-escalation.ts` says `evaluateCeremonyDialEscalation` does not persist a transition. `escalateCeremonyDial` in `ceremony-dial.ts` changes policy for future session starts. Neither operation expands the current brief. The remint currently says one refuse with one remediation, without defining successful exit from refusal.\nFailure mode: the agent runs the existing dial escalation, retries in another session, and mistakes a changed depth or a previously emitted warning for a converted brief. A shared policy change could also affect another worker's unrelated small scope.\nConsequence: clarify that the current scope remains refused on every retry until its full representation passes the existing gates; once describes the remediation vocabulary, not a bypass after the first failure. Conversion preserves scope identity and AC evidence and is scope-local. This sharpens the stated no-silent-keep-minimal intent rather than adding another mechanism.\n\n### C4 — sharpens-framing — P2 is contingent, not presently relieved\nEvidence: the remint correctly makes one-PR delivery contingent on #6203/#680 and explicitly keeps Path B brief-first lawful until their Prefer-A records exist, yet marks the same limb `relieves: P2`.\nFailure mode: a harvest can claim the multi-PR tax solved while delivering only brief-size reduction and retaining the activation/completion PRs.\nConsequence: retain the operator's contingent composition, but report P2 as a dependency residual until the selected dependency outcomes actually provide the one-PR path. Do not restore forge-approval as a requirement here. I make no claim about either dependency's current outcome.\n\nVerification/inventory: REST-read #6204 body and only comments through the ceiling; inspected the above files with `git show` at the envelope SHA, plus `packages/core/src/scope/delivery-evidence.ts` (`resolvePlanGithubIssueRef`, completion provenance and delivery auto-discovery). No tests executed; this is the recorded pin-read verification path. Existing dial profiles, escalation, clause derivation and delivery identity should be composed, not duplicated.\n\nRoad not taken: a second brief schema or an advisory-only size hint. The strongest case for the proposed command-only shape is a narrow repair already carrying a concrete acceptance command; that can remove authoring ceremony without weakening its oracle. An explicit command-backed eligibility rule plus measured/rechecked bounds would remove C1/C2's objections. No reviewer-attention fallback is assumed.",
+          "id": 6811480236,
+          "html_url": "https://github.com/deftai/directive/issues/6204#issuecomment-6811480236",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T01:16:43Z",
+          "updated_at": "2026-11-12T01:16:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\nIssue: https://github.com/deftai/directive/issues/6204\nCharter: refutation. Spend: N≥3. Round: 1. Fresh.\nId ceiling (inclusive): 6811411309\nSHA: e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a\narc-mode: no-ingest; materiality-bar: open; Target-kind: issue\nverification-path: pin-read git show e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a:\nCritique target: Prefer-A remint 6811408519 (minimal-brief+escalate; one-PR composition residual on #6203/#680).\n\n## One-PR residual claims relieves:P2 while leaving multi-PR lawful\nblocks-the-design\nEvidence: Remint 6811408519 Bound remedy limb \"One-PR composition residual\" ends with relieves: P2, and states this limb does not invent forge-approval, remints if #6203/#680 Prefer-A drop or replace forge-approval, and \"Until those Prefer-A records exist, Path B brief-first remains lawful.\" Stop 1 P2 (6811352400) is Multi-PR lifecycle tax. Contract pain coverage (design-critique.md): cite relieves only for ids the Bound-remedy actually covers; unmet ids use operator-deferred: P* #<different-issue>.\nFailure mode: Binding this harvest asserts P2 relief on #6204 while the same limb keeps multi-PR Path B lawful until sibling Prefer-A lands. Ingest/pain-audit then treat multi-PR tax as relieved here when the next-build contract still admits it. Same class as false-relief / unmet-runtime-deferred-as-relieves.\nDisposition: Remint the cite to operator-deferred: P2 #6203 (and name #680 in prose or a second deferred cite if completion-path ownership splits). Keep the composition-residual limb text. Do not bind relieves: P2 on this issue until a Prefer-A compose actually removes multi-PR for the rapid-small lane.\n\n## Minimal-brief MUST-pass does not name which gate surfaces change\nsharpens-framing\nEvidence: Minimal brief shape limb requires title, issue ref, file_scope, and acceptance commands only, and MUST pass xbrief:preflight, verify:ac, and scope:complete without narrative/plan/clause scaffolding. At pin e514bc81, ceremonyDialProfile.lifecycleWrites is only a cold-ceremony write budget (ceremony-dial.ts; session-start uses it with skipFatPath for optional release_probe). It does not shrink brief schema. packages/core/src/scope/acceptance-evidence.ts still walks plan.items for evidence/disposition and clause-keyed complete-prep; clause-bearing paths expect items.\nFailure mode: Implementers can emit a thin JSON object and still hit P4 (gate refusal) because the lean never names which refuse paths / schema admits are in scope. \"MUST pass\" becomes hope against unchanged walkers.\nDisposition: Sharpen the limb to name the admit surfaces (for example: clause-less acceptance.commands-only path under #5403/#3284; empty or omitted narratives/items admitted by preflight/complete for this lane) or the exact gate edits that make the thin shape green. Delivery identity unchanged stays.\n\n## Escalate-once collides in name with escalateCeremonyDial depth raise\nsharpens-framing\nEvidence: Mid-flight escalate-once remediation names escalate-to-full-shape (vbrief.md two-stage spirit). At this SHA, escalateCeremonyDial / evaluateCeremonyDialEscalation (#3319) raise ritual depth (rapid→standard/elevated), not brief-shape or PR-count lane membership.\nFailure mode: Agents may call depth escalation and keep a thin brief, or treat dial raise as discharging bound-cross refuse, leaving silent keep-minimal (P3) intact.\nDisposition: State that small-change-bound escalate is lane exit to full brief shape (and whatever PR path then applies), distinct from #3319 depth-only escalation. Optional compose with dial raise is a footnote unless the mechanism requires both.\n\n## \"No new public surface\" lacks a deterministic measure\nsharpens-framing\nEvidence: Small-change predicate requires production file count, changed-line count, and no new public surface, with one fail-closed evaluator next to ceremonyDial policy. Pin inventory shows no small-change bound type and no public-surface enumerator tied to ceremony dial.\nFailure mode: Without a closed measure (exports, package API, routes/actions, or an explicit none_declared hatch), the fail-closed evaluator cannot be fixture-locked and agents will guess, recreating soft/advisory hints on the Reject list.\nDisposition: Pin the public-surface measure (or operator-deferred leftover for the enumerator) on the predicate limb before bind so the typed bound is testable.\n\n## Concrete N/M thresholds are policy constants\nfootnote\nTyped bound next to ceremonyDial is enough for Prefer-A mechanism; exact file/line caps can land as policy defaults without another remint unless the fail-closed association changes (#5783 / #3368).\n\n## Operator steer demotion of forge-approval invent is sound\nfootnote\nHard-baking #6203 forge-approval into #6204 is on the Reject list; contingent compose matches operator steer 6811408519. Cite-form fix above is the remaining P2 honesty gap.\n\n## Injection / swarm lens\nTarget changes lifecycle authority (brief admit, gate refuse) and composes with #6203 forge-attested approval. Remint correctly refuses inventing that admit here; authority stays on sibling Prefer-A. No additional blocks-the-design from this lens beyond the P2 cite honesty finding.\n\n## Road-not-taken\nRejected: keep one-PR as a hard #6204 mechanism that invents forge-approval. Steelman: would claim on-issue P2 relief without waiting on #6203/#680. Flip: operator steer makes that coupling a remint trigger; contingent residual plus operator-deferred cite is the honest form.\n\n## Plain-language summary\nPrefer-A remint correctly keeps minimal-brief + escalate on #6204 and parks one-PR as composition with #6203/#680. It cannot yet claim relieves: P2 while Path B multi-PR stays lawful—defer that pain to #6203/#680. Sharpen which gates admit the thin brief, separate bound-escalate from dial depth raise, and pin how \"public surface\" is measured.\n\nFiled for @MScottAdams\n\n",
+          "id": 6811570274,
+          "html_url": "https://github.com/deftai/directive/issues/6204#issuecomment-6811570274",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T01:22:13Z",
+          "updated_at": "2026-11-12T01:22:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nspend-amend: N≥3 → N=2\nseat-families: codex, grok\nreason: Claude Round-1 claimed applying-host then exited with empty stdout / no critic comment after hang window (#5478 class). Codex 6811480236 and Grok 6811570274 posted. Reduced panel hang-only; do not drop a posting seat.\ndual-stop-reserved: 2\n\nFiled for @MScottAdams",
+          "id": 6811590788,
+          "html_url": "https://github.com/deftai/directive/issues/6204#issuecomment-6811590788",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T01:23:33Z",
+          "updated_at": "2026-11-12T01:23:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Bound\nPrefer-A Bound\nconflict_group: ceremony-dial-small-change-lane\nSpec-path: Prefer-A remint 6811408519 + Round-1 Codex 6811480236 + Grok 6811570274 (reduced panel N=2)\nRecut: absorb R1 blocks on bound measurement + command-backed eligibility + P2 cite honesty\ncharter: refutation\nspend: N=2\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nTarget-kind: issue\ndispatch-sha: e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a\n\n## In plain English\nBind Prefer-A for the rapid small-change lane: a measured bound, a thin brief only when acceptance is already command-backed, escalate that means convert this scope to the full shape (not dial-depth raise), and park multi-PR relief on #6203/#680 until those Prefer-A outcomes exist.\n\n## Bound remedy\nrelieves: P1\nrelieves: P3\nrelieves: P4\noperator-deferred: P2 #6203\n\n- Small-change predicate under rapid — Admit only when ceremony dial depth is rapid and one fail-closed evaluator next to ceremonyDial policy holds on a typed bound: cumulative production-file count and changed-line count against a named comparison base (worktree product diff vs lane-admit base), rechecked at the same gate points that can refuse, plus an authoritative public-surface determination (unknown refuses / escalates). Provisional dial estimators are not proof. Numerical N/M defaults are policy constants. relieves: P1. disposes critic 6811480236 C1; disposes critic 6811570274 public-surface sharpen.\n- Command-backed minimal brief — Emitter writes title, issue ref, file_scope, and acceptance commands only inside xBRIEF 0.8. First lane admits only when a valid supported command-based acceptance record already exists; otherwise keep/escalate to full shape (preserve derived acceptance representation). Named admit surfaces for this lane: preflight/verify:ac/scope:complete accept command-backed thin shape without requiring narrative/plan/clause scaffolding. Delivery identity (#3041 / #3675) unchanged. relieves: P1. relieves: P4. disposes critic 6811480236 C2; disposes critic 6811570274 gate-surface sharpen.\n- Mid-flight escalate-once (lane exit) — When the bound is crossed after admit, refuse the current scope on every retry until its full brief representation passes existing gates; remediation vocabulary is one escalate-to-full-shape conversion that preserves scope identity and AC evidence and is scope-local. Distinct from #3319 escalateCeremonyDial depth-only raise. No silent keep-minimal. relieves: P3. disposes critic 6811480236 C3; disposes critic 6811570274 escalate-name sharpen.\n- One-PR composition residual — PR-count reduction composes Prefer-A outcomes of #6203 and #680. This limb does not invent forge-approval. Path B brief-first remains lawful until those Prefer-A records provide a one-PR path. operator-deferred: P2 #6203. Completion-path ownership may also cite #680 in prose. Remint this limb if #6203/#680 Prefer-A drops or replaces the one-PR admit. disposes critic 6811480236 C4; disposes critic 6811570274 P2 cite block.\n\n## Reject list\n- Hard-baking forge-approval into #6204 ahead of #6203/#680 Prefer-A\n- Claiming multi-PR tax (P2) is relieved on this issue while Path B multi-PR stays lawful\n- Soft advisory-only small-change hints\n- A second parallel brief schema outside xBRIEF 0.8\n- Weakening delivery identity or AC verification to green the thin brief\n- Treating #3319 dial depth raise as discharging bound-cross refuse\n- Using provisional ceremony input estimators as the hard bound proof\n\n## Footnotes\n- Exact N/M caps are policy defaults (#5783 / #3368).\n- Optional compose of lane-exit with dial depth raise is a footnote unless mechanism requires both.\n\nFiled for @MScottAdams",
+          "id": 6811591036,
+          "html_url": "https://github.com/deftai/directive/issues/6204#issuecomment-6811591036",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T01:23:34Z",
+          "updated_at": "2026-11-12T01:32:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: pain-audit-1\nsiblings: 2\ninput-ceiling: 6811597607\nfamilies: codex, grok\naudit-targets: Prefer-A Bound 6811591036\ndispatch-sha: e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a\nverification-path: pin-read git show e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a:\ndual-stop-reserved: 2\nreduced-panel: Claude hang; N=2 Codex+Grok\n\n## Plain-language summary\nPain-audit of Prefer-A Bound 6811591036: do the relieves/operator-deferred cites honestly clear Stop 1 pains without false relief?\n\nFiled for @MScottAdams",
+          "id": 6811597607,
+          "html_url": "https://github.com/deftai/directive/issues/6204#issuecomment-6811597607",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T01:24:00Z",
+          "updated_at": "2026-11-12T01:24:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nfinding-classes: footnote\nharvest-changed: false\n\nPain-audit PA-1 of [Prefer-A Bound 6811591036](https://github.com/deftai/directive/issues/6204#issuecomment-6811591036), against [Stop 1 6811352400](https://github.com/deftai/directive/issues/6204#issuecomment-6811352400). Inclusive ceiling: 6811597607. Pin: e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a.\n\nNo blocking or sharpening finding in this pain audit. The relief claims are honest for the explicitly bounded first lane; P2 remains deferred rather than solved. No change to the harvested Bound remedy is requested.\n\n### PA1 - footnote - P1 and P4 relief is deliberately command-backed\n\nThe Bound remedy now limits thin briefs to an existing valid supported command-based acceptance record, retains xBRIEF 0.8 and delivery identity, and explicitly names preflight, verify:ac and scope:complete as admit surfaces to change. That addresses brief authoring overhead and gate compatibility for this lane. It does not promise thin briefs for prose-only acceptance: the full-shape fallback expressly preserves that representation.\n\nPin-read verification: `packages/core/src/policy/ceremony-dial.ts` describes lifecycleWrites as a write budget and keeps literal acceptance required; its provisional estimator is not proof of the new bound. `packages/core/src/verify-ac/clauses.ts`, `stampDerivedClausesOnAcceptance`, leaves nonempty stated commands alone and derives clauses when commands are absent. The revised lane composes with that distinction instead of silently deleting the fallback oracle. These are design obligations, not a claim that the current pin already implements thin-shape admission.\n\n### PA2 - footnote - P2 is an honest dependency residual\n\nThe one-PR limb now uses `operator-deferred: P2 #6203`, explicitly retains lawful brief-first behavior, and names #680's completion dependency and the remint trigger. This fixes the previous contradiction between claiming relief and retaining multiple PRs. The ceiling contains the parent's recorded operator dependency steer (6811408519). This audit verifies the honesty of that deferral; it does not certify either dependency's outcome or claim the multi-PR pain has disappeared.\n\n### PA3 - footnote - P3 relief survives retries\n\nThe revised remedy refuses the current scope on every retry until the full representation passes existing gates. Conversion is scope-local and preserves identity and acceptance evidence; changing dial depth alone cannot discharge refusal. That covers the original missing escalation behavior without interpreting once as a lifetime bypass.\n\nAuthority / concurrency lens: the harvest rejects provisional estimators as hard-bound proof, requires authoritative public-surface determination with unknown refusing/escalating, and keeps conversion scope-local. An implementation that trusts an agent's unsupported no-public-surface assertion or measures only a last-commit fragment would violate these stated obligations, not satisfy them. No extra authority mechanism or shared-policy mutation is needed for this audit's disposition.\n\nVerification used SHA-pinned reads and the permitted thread through the ceiling. No sibling PA posts were read; no tests were run under this read-only verification path. This footnote-only result does not itself establish completed-arc clearance or dispose any other critic's findings.\n\n## In plain English\n\nThe revised design makes briefs smaller for small fixes that already have acceptance commands, and keeps larger or unsuitable work on the full path. Growing work stays blocked until its brief is converted. Reducing the number of PRs is still deferred to the related issues. Those claims match the proposed remedy; this audit requests no revision.",
+          "id": 6811624190,
+          "html_url": "https://github.com/deftai/directive/issues/6204#issuecomment-6811624190",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T01:25:41Z",
+          "updated_at": "2026-11-12T01:25:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nIssue: https://github.com/deftai/directive/issues/6204\nCharter: refutation. Spend: N=2 reduced panel. Round: pain-audit.\nCritic role: fresh.\nId ceiling (inclusive): 6811597607\nSHA: e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a\narc-mode: no-ingest; materiality-bar: open; Target-kind: issue\nTarget Prefer-A Bound: 6811591036\nverification-path: pin-read git show e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a:\n\nfinding-classes: footnote\nharvest-changed: false\n\n## Pain-audit of Prefer-A Bound 6811591036 vs Stop 1 6811352400\n\nStop 1 denominator: pain: P1, P2, P3, P4.\nBound cites audited: relieves: P1 (predicate + command-backed brief); relieves: P1, P4 (command-backed brief); relieves: P3 (lane-exit escalate); operator-deferred: P2 #6203 (one-PR residual; #680 named in prose).\n\n### P1 — Brief bloat under rapid — relieves: honest\nEvidence: Stop 1 P1 is fat ~200-line briefs under rapid because lifecycleWrites does not shrink brief shape. Pin e514bc81 ceremony-dial.ts confirms lifecycleWrites is only a cold write budget (rapid=light). Bound adds a fail-closed measured small-change predicate (cumulative production-file/line counts vs named lane-admit base, rechecked at refuse gates; public-surface unknown refuses/escalates; provisional estimators not proof) plus a command-backed thin emitter. Absorbs Round-1 Codex C1 and Grok public-surface sharpen without restoring soft/advisory hints.\nFailure mode if false: thin lane admitted on provisional dial estimates or undeclared public surface while agents still author full scaffolding.\nDisposition: keep relieves: P1. No false relief.\n\n### P2 — Multi-PR lifecycle tax — operator-deferred: honest\nEvidence: Stop 1 P2 is activation+product+completion PR tax. Remint 6811408519 wrongly claimed relieves: P2 while Path B multi-PR stayed lawful. Bound Recut cites operator-deferred: P2 #6203 (different open issue; one-PR admit) and keeps Path B lawful until #6203/#680 Prefer-A compose; Reject list bans claiming relieves: P2 under that residual. Absorbs Codex C4 / Grok P2 cite block.\nFailure mode if false: harvest treats multi-PR tax as solved on #6204 while multi-PR remains lawful.\nDisposition: keep operator-deferred: P2 #6203. No false relief; harvest cite form corrected.\n\n### P3 — No mid-flight escalate-once — relieves: honest\nEvidence: Stop 1 P3 needs one refuse+remediation forcing escalate-to-full-shape. Pin ceremony-dial-escalation.ts / escalateCeremonyDial only raise ritual depth (#3319) and do not expand the current brief. Bound refuses the current scope on every retry until its full brief representation passes existing gates; remediation is one scope-local escalate-to-full-shape conversion preserving identity/AC; explicitly distinct from dial depth raise. Absorbs Codex C3 / Grok escalate-name sharpen.\nFailure mode if false: agents call depth escalate and keep a thin brief (silent keep-minimal).\nDisposition: keep relieves: P3. No false relief.\n\n### P4 — Gate refusal of minimal shape — relieves: honest\nEvidence: Stop 1 P4 is preflight/verify:ac/scope:complete still expecting narrative/plan/clause scaffolding. Pin verify-ac/clauses.ts leaves stated-command acceptance alone (commands.length > 0 short-circuits derived clauses). Bound first-admits only with a valid supported command-based acceptance record otherwise keep/escalate to full shape, and names those three admit surfaces to accept command-backed thin shape without requiring narrative/plan/clause scaffolding. Delivery identity unchanged. Absorbs Codex C2 / Grok gate-surface sharpen.\nFailure mode if false: MUST-pass hope against unchanged walkers for command-backed thin briefs.\nDisposition: keep relieves: P4. No false relief at Prefer-A mechanism level.\n\n### F1 — footnote — xBRIEF 0.8 envelope keys remain under the thin only-list\nEvidence: Bound command-backed limb says emitter writes title, issue ref, file_scope, and acceptance commands only inside xBRIEF 0.8. Pin schema xbrief-core-0.8.schema.json still requires xBRIEFInfo plus plan.title/status/items. Empty items: [] validates; omitting the keys fails schema and would reintroduce P4.\nFailure mode: implementers drop status/items keys while reading only literally, then hit gate refusal.\nDisposition consequence: footnote / writing-bar (#3368). Read only as no narrative/plan-item/clause scaffolding beyond the required 0.8 envelope (items may be empty when command-backed). Does not change fail-closed association or Bound-remedy harvest. No remint.\n\n## Operative classification\nfinding-classes: footnote\nharvest-changed: false\n\nNo blocking or harvest-changing sharpening. P1/P3/P4 relieves hold; P2 deferred cite is honest vs Stop 1.\n\n## Plain-language summary\nPrefer-A Bound 6811591036 honestly clears Stop 1: measured rapid small-change + command-backed thin brief for P1/P4, lane-exit escalate (not dial depth raise) for P3, and parks multi-PR tax on #6203 as operator-deferred for P2. One footnote: keep required xBRIEF 0.8 envelope keys (status/items) even when scaffolding is omitted. harvest-changed false.\n\nVerification/inventory: REST-read #6204 body and comments id<=6811597607 only (Prefer-A Bound 6811591036, Stop 1 6811352400, remint 6811408519, Round-1 6811480236/6811570274, panel-deposit 6811597607). Pin-read ceremony-dial.ts, ceremony-dial-escalation.ts, verify-ac/clauses.ts, xbrief-core-0.8.schema.json at e514bc81. Confirmed #6203/#680 open. No sibling PA posts read. No tests executed.\n\nFiled for @MScottAdams",
+          "id": 6811672561,
+          "html_url": "https://github.com/deftai/directive/issues/6204#issuecomment-6811672561",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T01:28:50Z",
+          "updated_at": "2026-11-12T01:28:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\nreduced-panel: N=2 (Codex+Grok); Claude Round-1 hang/empty (#5478); spend-amend 6811590788\nPrefer-A Bound: 6811591036\nRound-1: Codex 6811480236; Grok 6811570274\nPA-1: Codex 6811624190; Grok 6811672561 (finding-classes: footnote; harvest-changed: false)\n\n| Claim | Method | Disposition |\n|---|---|---|\n| Measured rapid small-change bound (cumulative product diff vs lane-admit base; recheck; public-surface unknown refuses) | Pin-read ceremony-dial.ts + Round-1 C1/Grok public-surface; absorbed into Bound limb | accept-into-contract |\n| Command-backed minimal brief admit surfaces (preflight/ac/complete without narrative/plan/clause scaffolding; else full shape) | Pin-read verify-ac/clauses + Round-1 C2/Grok gate-surface; absorbed | accept-into-contract |\n| Lane-exit escalate-once distinct from #3319 dial depth raise; refuse until full shape passes | Pin-read ceremony-dial-escalation.ts + Round-1 C3/Grok escalate sharpen; absorbed | accept-into-contract |\n| P2 multi-PR tax operator-deferred to #6203 (#680 prose); no relieves:P2 while Path B lawful | Operator steer + Round-1 C4/Grok P2 block; Bound cite form; PA honesty | accept-into-contract |\n| PA-1 footnote: keep required xBRIEF 0.8 envelope keys (status/items; empty items OK) | PA Codex/Grok footnote; writing-bar #3368; harvest-changed false | accept-into-contract (footnote) |\n| PA-1 footnote: command-backed eligibility narrows first lane (does not reopen harvest) | PA Codex PA1; harvest-changed false | accept-into-contract (footnote) |\n\n## Take map\n- Codex C1 / Grok public-surface → accept-into-contract (Bound measurement limb)\n- Codex C2 / Grok gate-surface → accept-into-contract (command-backed brief limb)\n- Codex C3 / Grok escalate-name → accept-into-contract (lane-exit escalate limb)\n- Codex C4 / Grok P2 cite → accept-into-contract (operator-deferred: P2 #6203)\n- PA footnotes → accept-into-contract (footnote)\n\ndisagreement-set: empty\n\nFiled for @MScottAdams",
+          "id": 6811701823,
+          "html_url": "https://github.com/deftai/directive/issues/6204#issuecomment-6811701823",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T01:30:44Z",
+          "updated_at": "2026-11-12T01:30:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\nUnder rapid, a small change can use a thin brief when acceptance is already command-backed and a measured bound holds. If the change grows, convert that scope to the full brief shape. Cutting the multi-PR tax waits on how #6203 and #680 Prefer-A come out; until then Path B stays lawful and this issue defers that pain.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\nsuccessor lean 6811591036\nverified-claims table 6811701823\npain: P1, P2, P3, P4\nrelieves: P1, P3, P4\noperator-deferred: P2 #6203\nyolo-standing: on (confirm conjunct)\narc-mode: no-ingest\nmateriality-bar: open\nreduced-panel: N=2 Codex+Grok\n\n## Citations\n- Prefer-A Bound / Spec-path: comment 6811591036\n- verified-claims table 6811701823\n- Round-1 Codex 6811480236; Grok 6811570274\n- PA-1 Codex 6811624190; Grok 6811672561\n- Operator steer / remint 6811408519\n- Stop 1 6811352400\n\nFiled for @MScottAdams",
+          "id": 6811702080,
+          "html_url": "https://github.com/deftai/directive/issues/6204#issuecomment-6811702080",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T01:30:45Z",
+          "updated_at": "2026-11-12T01:30:45Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nThe ceremony dial (#3214) scales session ritual and check depth. It does not scale the lifecycle. A 14-line fix still gets a full brief (often ~200 lines of JSON), its own activation PR, and its own completion PR. Lifecycle JSON in one consumer run nearly equalled product lines.\n\n## Proposal\n\nWhen the dial selects `rapid` and the change is small (define the bound: for example, at most N production files and M changed lines, and no new public surface):\n\n- Brief: emit a minimal shape (title, issue ref, `file_scope`, acceptance commands). Omit narratives, plan items and clause scaffolding that only exist for larger scopes.\n- PR count: one PR. Uses the one-PR path from #6203 and the completion path from #680.\n- Escalate to the full shape when the change grows past the bound, like the dial's two-stage path in `vbrief.md`.\n\n## Acceptance\n\n- A small change under `rapid` produces a minimal brief that passes `xbrief:preflight`, `verify:ac` and `scope:complete`.\n- A change that crosses the bound mid-flight is told to escalate, once, with one remediation.\n- Delivery identity (#3041 / #3675) and AC verification stay unchanged.\n\n## Related\n\n#3214 (dial), #680 (completion PR), #5931 (tiny-PR review ceremony), #3813 (ceremony economy), #3631 / #4012 (chore and lifecycle-only CI lanes).\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6339728998,
+        "origin": "deftai/directive#6204",
+        "id": "github.issue.6339728998"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "ceremony-dial-small-change-lane",
+        "expected_outputs": [
+          "measured small-change bound evaluator next to the ceremony dial",
+          "thin command-backed brief emitter (xBRIEF 0.8)",
+          "preflight / verify:ac / scope:complete admit the thin shape",
+          "lane exit: refuse until the full shape passes",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/policy/ceremony-dial.test.ts packages/core/src/policy/small-change-lane.test.ts packages/core/src/policy/ceremony-dial-escalation.test.ts packages/core/src/preflight/evaluate.test.ts packages/core/src/verify-ac/clauses.test.ts packages/core/src/scope/acceptance-evidence.test.ts packages/core/src/scope/transition.test.ts packages/runtime/src/vbrief-preflight.test.ts packages/core/src/intake/thin-brief.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/policy/ceremony-dial.ts",
+          "packages/core/src/policy/small-change-lane.ts",
+          "packages/core/src/policy/ceremony-dial-escalation.ts",
+          "packages/core/src/preflight/evaluate.ts",
+          "packages/core/src/verify-ac/clauses.ts",
+          "packages/core/src/verify-ac/evaluate.ts",
+          "packages/core/src/product-first-done-gate/evaluate.ts",
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/intake/thin-brief.ts",
+          "packages/runtime/src/vbrief-preflight.ts",
+          "packages/core/src/policy/ceremony-dial.test.ts",
+          "packages/core/src/policy/small-change-lane.test.ts",
+          "packages/core/src/policy/ceremony-dial-escalation.test.ts",
+          "packages/core/src/preflight/evaluate.test.ts",
+          "packages/core/src/verify-ac/clauses.test.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "packages/runtime/src/vbrief-preflight.test.ts",
+          "packages/core/src/intake/thin-brief.test.ts",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "parallel_safe": true,
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "Traces": [
+          "#6204",
+          "#6203",
+          "#680"
+        ],
+        "acceptance_criteria_justification": "Four clauses map one-to-one to the four limbs of the accepted Prefer-A Bound; the bound, the thin brief and the lane exit share one evaluator, so splitting them would ship an unbounded thin brief."
+      }
+    },
+    "id": "github.issue.6339728998",
+    "updated": "2026-11-12T23:17:28Z"
+  }
+}
