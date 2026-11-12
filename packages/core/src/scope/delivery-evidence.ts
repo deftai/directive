@@ -904,17 +904,23 @@ function isDeliveryBriefLandPath(path: string): boolean {
 /**
  * Delivery-brief-land exclusion (#5710): every changed path, rename sources
  * included, is a brief under `xbrief|vbrief/(proposed|pending|active|completed)/`
- * or root `CHANGELOG.md`. CHANGELOG-only, completed-folder renames and
- * deletion-only or empty diffs on those paths are excluded. Not identical to
+ * or root `CHANGELOG.md`, with at least one such path for a positive
+ * exclusion. CHANGELOG-only, completed-folder renames and deletion-only diffs
+ * on those paths are excluded. A zero-file diff is not a positive exclusion:
+ * as a competitor it still counts (fail closed), and as a candidate it is
+ * refused separately because it carries no delivery. Not identical to
  * activation `isBriefLandShapedDiff`, which denies completed/ and needs a
  * non-removed nonterminal brief.
  */
 export function isDeliveryBriefLandExcluded(files: readonly PrFileEntry[]): boolean {
-  return files.every(
-    (file) =>
-      isDeliveryBriefLandPath(file.filename) &&
-      ((file.previousFilename ?? "").length === 0 ||
-        isDeliveryBriefLandPath(file.previousFilename ?? "")),
+  return (
+    files.length > 0 &&
+    files.every(
+      (file) =>
+        isDeliveryBriefLandPath(file.filename) &&
+        ((file.previousFilename ?? "").length === 0 ||
+          isDeliveryBriefLandPath(file.previousFilename ?? "")),
+    )
   );
 }
 
@@ -951,7 +957,7 @@ function classifyDeliveryExclusion(
   budget: ScanBudget,
   repository: string,
   prNumber: number,
-): { ok: true; excluded: boolean } | { ok: false; error: string } {
+): { ok: true; excluded: boolean; fileCount: number } | { ok: false; error: string } {
   const refused = budget.beforeRest();
   if (refused !== null) {
     return { ok: false, error: `PR #${prNumber} changed files: ${refused}` };
@@ -966,7 +972,11 @@ function classifyDeliveryExclusion(
       error: `PR #${prNumber} changed files: listing truncated at the ${PR_FILES_LISTING_CAP}-file cap`,
     };
   }
-  return { ok: true, excluded: isDeliveryBriefLandExcluded(listed.files) };
+  return {
+    ok: true,
+    excluded: isDeliveryBriefLandExcluded(listed.files),
+    fileCount: listed.files.length,
+  };
 }
 
 /** Merge-time body of one listed PR; edits only replayed when one landed after merge. */
@@ -1070,6 +1080,12 @@ function proveSoleMarkBasis(input: {
   const exclusion = classifyDeliveryExclusion(forge, budget, repository, prNumber);
   if (!exclusion.ok) {
     return { ok: false, reason: `(a) ${exclusion.error}` };
+  }
+  if (exclusion.fileCount === 0) {
+    return {
+      ok: false,
+      reason: `(a) PR #${prNumber} changes no files (a zero-file PR carries no delivery)`,
+    };
   }
   if (exclusion.excluded) {
     return {

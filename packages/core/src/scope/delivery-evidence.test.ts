@@ -2595,7 +2595,7 @@ describe("sole-mark uniqueness scan (#5710 P3)", () => {
     },
   ];
 
-  it("clause.6: #6212 shape — product #6215 passes when only brief-land PRs #6214/#6216 share the mark", () => {
+  it("clause.6: #6212 shape — product #6215 passes when only delivery-excluded PRs share the mark (including a completed-folder rename)", () => {
     const forge = makeForge({
       merged: [listed(6214, mark), listed(6215, mark), listed(6216, mark), listed(6217, mark)],
       files: { 6214: briefOnly, 6216: briefAndChangelog, 6217: completedRename },
@@ -2603,14 +2603,49 @@ describe("sole-mark uniqueness scan (#5710 P3)", () => {
     const result = joinIssue({ pr: 6215, body: mark, forge });
     expect(result.ok).toBe(true);
     expect(result.identityBasis).toBe("merge-time-mark");
-    // Brief-land PRs are themselves excluded candidates and refuse even alone.
-    const alone = joinIssue({
+    expect(forge.calls).toEqual(expect.arrayContaining(["files:6214", "files:6216", "files:6217"]));
+  });
+
+  it("clause.6: a product PR passes when only a completed-folder rename shares the mark", () => {
+    const forge = makeForge({
+      merged: [listed(6215, mark), listed(6230, mark)],
+      files: { 6230: completedRename },
+    });
+    const result = joinIssue({ pr: 6215, body: mark, forge });
+    expect(result.ok).toBe(true);
+    expect(result.identityBasis).toBe("merge-time-mark");
+    expect(forge.calls).toContain("files:6230");
+  });
+
+  it("clause.6: a delivery-excluded candidate refuses even alone", () => {
+    const changelogOnly: PrFileEntry[] = [{ status: "modified", filename: "CHANGELOG.md" }];
+    for (const files of [briefOnly, briefAndChangelog, completedRename, changelogOnly]) {
+      const alone = joinIssue({
+        pr: 6214,
+        body: mark,
+        forge: makeForge({ files: { 6214: files } }),
+      });
+      expect(alone.ok).toBe(false);
+      expect(alone.message).toMatch(/delivery-brief-land excluded/);
+    }
+  });
+
+  it("clause.6: a zero-file PR never proves delivery and still competes (lean reading)", () => {
+    expect(isDeliveryBriefLandExcluded([])).toBe(false);
+    const candidate = joinIssue({
       pr: 6214,
       body: mark,
-      forge: makeForge({ files: { 6214: briefOnly } }),
+      forge: makeForge({ files: { 6214: [] } }),
     });
-    expect(alone.ok).toBe(false);
-    expect(alone.message).toMatch(/delivery-brief-land excluded/);
+    expect(candidate.ok).toBe(false);
+    expect(candidate.message).toMatch(/changes no files/);
+    const competitor = joinIssue({
+      pr: 6215,
+      body: mark,
+      forge: makeForge({ merged: [listed(6240, mark)], files: { 6240: [] } }),
+    });
+    expect(competitor.ok).toBe(false);
+    expect(competitor.message).toMatch(/#6240 also carry a sole/);
   });
 
   it("clause.6: two non-excluded sole-mark PRs both refuse", () => {
@@ -2738,7 +2773,7 @@ describe("sole-mark uniqueness scan (#5710 P3)", () => {
     expect(
       isDeliveryBriefLandExcluded([{ status: "removed", filename: "vbrief/pending/a.json" }]),
     ).toBe(true);
-    expect(isDeliveryBriefLandExcluded([])).toBe(true);
+    expect(isDeliveryBriefLandExcluded([])).toBe(false);
     expect(isDeliveryBriefLandExcluded([...briefOnly, PRODUCT_FILE])).toBe(false);
     expect(
       isDeliveryBriefLandExcluded([
