@@ -1224,25 +1224,28 @@ describe("evaluateCoverageHotspots", () => {
     expect(result.message).toBe(COVERAGE_REPORT_NOT_REGULAR_FILE);
   });
 
-  itSymlink("symlink swap at the read (mocked lstatSync, no production hook): exit 2, target never read", () => {
-    const root = makeProject({ "elsewhere/good.json": PASSING_REPORT });
-    const target = join(root, "elsewhere/good.json");
-    mkdirSync(join(root, "coverage"), { recursive: true });
-    const reportPath = join(root, "coverage", "coverage-final.json");
-    // The path is a symlink to a passing report; lstat is mocked to report a
-    // regular file, as if the swap happened between the presence check and the read.
-    symlinkSync(target, reportPath);
-    vi.mocked(lstatSync).mockImplementation(((p: Parameters<typeof lstatSync>[0], o?: object) =>
-      isReportPath(p)
-        ? realFs.lstatSync(target)
-        : realFs.lstatSync(p, o as undefined)) as typeof lstatSync);
-    vi.mocked(readFileSync).mockClear();
-    const result = evaluateCoverageHotspots({ projectRoot: root, useDiffPaths: false });
-    expect(result.exitCode).toBe(2);
-    expect(result.message).toBe(COVERAGE_REPORT_NOT_REGULAR_FILE);
-    const readPaths = vi.mocked(readFileSync).mock.calls.map((c) => String(c[0]));
-    expect(readPaths.some((p) => p === target || p === reportPath)).toBe(false);
-  });
+  itSymlink(
+    "symlink swap at the read (mocked lstatSync, no production hook): exit 2, target never read",
+    () => {
+      const root = makeProject({ "elsewhere/good.json": PASSING_REPORT });
+      const target = join(root, "elsewhere/good.json");
+      mkdirSync(join(root, "coverage"), { recursive: true });
+      const reportPath = join(root, "coverage", "coverage-final.json");
+      // The path is a symlink to a passing report; lstat is mocked to report a
+      // regular file, as if the swap happened between the presence check and the read.
+      symlinkSync(target, reportPath);
+      vi.mocked(lstatSync).mockImplementation(((p: Parameters<typeof lstatSync>[0], o?: object) =>
+        isReportPath(p)
+          ? realFs.lstatSync(target)
+          : realFs.lstatSync(p, o as undefined)) as typeof lstatSync);
+      vi.mocked(readFileSync).mockClear();
+      const result = evaluateCoverageHotspots({ projectRoot: root, useDiffPaths: false });
+      expect(result.exitCode).toBe(2);
+      expect(result.message).toBe(COVERAGE_REPORT_NOT_REGULAR_FILE);
+      const readPaths = vi.mocked(readFileSync).mock.calls.map((c) => String(c[0]));
+      expect(readPaths.some((p) => p === target || p === reportPath)).toBe(false);
+    },
+  );
 
   it("read error: openSync EACCES on the report returns exit 2", () => {
     const root = makeProject({ "coverage/coverage-final.json": PASSING_REPORT });
