@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6212",
-    "updated": "2026-11-12T06:45:12Z"
+    "updated": "2026-11-12T21:05:51Z"
   },
   "plan": {
     "title": "bug(swarm): finalize-cohort refuses a deft-story mark until productPullRequest is stamped, but nothing can stamp it first",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "swarm:finalize-cohort refuses a `deft-story: N` mark on a product PR unless a brief for N already has `metadata.productPullRequest` equal to that PR, but Path B activation leaves the stamp unset and finalize only stamps it later in its own sweep. This story lets the mark bind when the operator names N in `--stories` and the PR passed delivery validation, so finalize can stamp the brief and complete it. A mark for an issue outside `--stories` keeps the #4864 fail-closed error, and a brief already stamped to a different PR is still refused.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6212",
@@ -24,6 +24,13 @@
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When the operator passes `--stories N --pr M` and merged PR M carries `deft-story: N`, the mark binds to an active brief for N that has no productPullRequest, and finalize-cohort completes that brief in a test."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
@@ -32,6 +39,13 @@
         "id": "clause.2",
         "narrative": {
           "Acceptance": "After that run the brief records `metadata.productPullRequest = M`, and completion receives delivery evidence for PR M on each item."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
@@ -40,6 +54,277 @@
         "id": "clause.3",
         "narrative": {
           "Acceptance": "A `deft-story: K` mark on PR M for a K not in `--stories` still fails with the #4864 `does not bind PR delivery` error, and a brief for N already stamped to a different PR is refused."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "clause.21",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.22",
+        "title": "clause.22",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.23",
+        "title": "clause.23",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.24",
+        "title": "clause.24",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.25",
+        "title": "clause.25",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+          "recorded_at": "2026-11-12T21:05:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -112,9 +397,32 @@
       },
       "kind": "story",
       "lifecycleWrite": {
-        "action": "cancel",
-        "writtenAt": "2026-11-12T06:17:00Z"
-      }
+        "action": "complete",
+        "writtenAt": "2026-11-12T21:05:51Z"
+      },
+      "productPullRequest": 6215,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "d42bbbccb203733a1c5395d66cd9fb2614b46edb",
+        "prNumber": 6215,
+        "prBase": "master",
+        "mergeCommit": "9ed89c924a875658b4834a12fdd8b7ef6a3698e3",
+        "deliveryBranch": "master",
+        "deliveryCommit": "cd76d7d752e6a56ed979a4af34b4fc4821072710",
+        "verifiedAt": "2026-11-12T21:05:51Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-12T21:05:51Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "technical-debt"
     },
     "acceptance": {
       "commands": [],
@@ -360,6 +668,6 @@
       ]
     },
     "id": "github.issue.6343655993",
-    "updated": "2026-11-12T06:17:19Z"
+    "updated": "2026-11-12T21:05:51Z"
   }
 }

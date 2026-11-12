@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5882",
-    "updated": "2026-11-12T04:36:26Z"
+    "updated": "2026-11-12T21:00:24Z"
   },
   "plan": {
     "title": "BLOCKER: [framework-gap] swarm:finalize-cohort lifecycle checkout skips package install, so Taskfile-based acceptance commands fail in scope:complete",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "swarm:finalize-cohort runs completeCohort in a lifecycle checkout that never installs packages. Taskfile-hosted acceptance commands that resolve through node_modules then fail during scope:complete on shipped stories. This story installs packages on that checkout, gated by the runtime pin, before the completion sweep.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5882",
@@ -19,42 +19,77 @@
     "items": [
       {
         "title": "relieves: P1 — After remapStoriesToCheckout decides a completion sweep is still required, call installWorktreePackages on the lifecycle checkout before completeCohort, gated by worktreeHasRuntimePin exactly as dest-place and worktrees already gate it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When a completion sweep is required and the lifecycle checkout has a runtime pin, finalize-cohort calls installWorktreePackages before completeCohort in a test."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "58ca5e9f68fe32737554699e959bafcac22730f3",
+          "recorded_at": "2026-11-12T21:00:24Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P3 — Discharge Taskfile deft: finalize failure on shipped stories by that same pin-gated lifecycle install so node_modules-hosted includes resolve on the sweep checkout.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When the pin-gated install has run, a Taskfile-hosted verify command that resolves through node_modules passes during the finalize sweep in a test fixture."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "58ca5e9f68fe32737554699e959bafcac22730f3",
+          "recorded_at": "2026-11-12T21:00:24Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P4 — Discharge the npx/global verify_commands workaround tax by that same pin-gated lifecycle install so original Taskfile-hosted commands run unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "An npm or pnpm install failure with a runtime pin fails closed as environment/setup before completeCohort and is never reported as commands-failed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "58ca5e9f68fe32737554699e959bafcac22730f3",
+          "recorded_at": "2026-11-12T21:00:24Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P2 — For npm and pnpm, genuine PM install failure with a runtime pin fails closed as environment/setup before completeCohort and never as commands-failed; for Yarn and Bun, unsupported-PM is diagnosed-only with skip-plus-warning and recorded disposition and no post-merge refuse; surface install disposition on finalize failure lines without widening AcceptancePredicate.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When the lifecycle checkout uses Yarn or Bun, finalize-cohort emits an unsupported package manager diagnostic and skips the install without failing the sweep."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "58ca5e9f68fe32737554699e959bafcac22730f3",
+          "recorded_at": "2026-11-12T21:00:24Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P1 — Converge successful npm-ci-retry installs through the existing pinned-runtime postcondition inside installWorktreePackages; do not invent a second lifecycle installer.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When npm ci succeeds on retry, installWorktreePackages validates the existing pinned-runtime postcondition, and no second lifecycle installer exists."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "58ca5e9f68fe32737554699e959bafcac22730f3",
+          "recorded_at": "2026-11-12T21:00:24Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -980,9 +1015,36 @@
         "Traces": [
           "#5882"
         ]
+      },
+      "productPullRequest": 6210,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "7c581974e58a20da4546e4540a574deb99499626",
+        "prNumber": 6210,
+        "prBase": "master",
+        "mergeCommit": "58ca5e9f68fe32737554699e959bafcac22730f3",
+        "deliveryBranch": "master",
+        "deliveryCommit": "cd76d7d752e6a56ed979a4af34b4fc4821072710",
+        "verifiedAt": "2026-11-12T21:00:24Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-12T21:00:24Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-12T21:00:24Z"
       }
     },
     "id": "github.issue.6014586344",
-    "updated": "2026-11-12T01:39:58Z"
+    "updated": "2026-11-12T21:00:24Z"
   }
 }
