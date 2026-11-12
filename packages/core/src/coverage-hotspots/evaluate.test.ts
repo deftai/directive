@@ -27,6 +27,9 @@ import {
 } from "./evaluate.js";
 import { readProjectCoverageThresholds } from "./thresholds.js";
 
+// Symlinks require elevated privileges on Windows (SeCreateSymbolicLink); skip there.
+const itSymlink = it.skipIf(process.platform === "win32");
+
 // Pass-through fs spies so a test can make lstat or open misbehave for the report
 // path only. There is no production hook: the symlink-swap case mocks lstatSync.
 vi.mock("node:fs", async (importOriginal) => {
@@ -567,6 +570,8 @@ describe("evaluateCoverageHotspots", () => {
         "src/base.ts": { s: { "0": 1 }, f: { "0": 1 }, b: { "0": [1, 1] } },
       }),
     });
+    // Pin the branch name: host `init.defaultBranch` may not be master.
+    childProcess.execFileSync("git", ["branch", "-M", "master"], { cwd: root });
     const result = evaluateCoverageHotspots({ projectRoot: root });
     expect(result.exitCode).toBe(0);
     expect(result.report?.pathFilter).toEqual([]);
@@ -1210,7 +1215,7 @@ describe("evaluateCoverageHotspots", () => {
     expect(result.message).toBe(COVERAGE_REPORT_NOT_REGULAR_FILE);
   });
 
-  it("exits 2 when the coverage report path is a symlink (regular file only)", () => {
+  itSymlink("exits 2 when the coverage report path is a symlink (regular file only)", () => {
     const root = makeProject({ "elsewhere/good.json": PASSING_REPORT });
     mkdirSync(join(root, "coverage"), { recursive: true });
     symlinkSync(join(root, "elsewhere/good.json"), join(root, "coverage", "coverage-final.json"));
@@ -1219,7 +1224,7 @@ describe("evaluateCoverageHotspots", () => {
     expect(result.message).toBe(COVERAGE_REPORT_NOT_REGULAR_FILE);
   });
 
-  it("symlink swap at the read (mocked lstatSync, no production hook): exit 2, target never read", () => {
+  itSymlink("symlink swap at the read (mocked lstatSync, no production hook): exit 2, target never read", () => {
     const root = makeProject({ "elsewhere/good.json": PASSING_REPORT });
     const target = join(root, "elsewhere/good.json");
     mkdirSync(join(root, "coverage"), { recursive: true });

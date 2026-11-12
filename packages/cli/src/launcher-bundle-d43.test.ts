@@ -77,8 +77,12 @@ describe("launcher single-file bundle (D4.3 / AC3.2)", () => {
       expect(tgzName?.endsWith(".tgz")).toBe(true);
       const tgz = join(art, tgzName!);
 
-      const listing = spawnSync("tar", ["-tzf", tgz], { encoding: "utf8" });
-      expect(listing.status).toBe(0);
+      expect(existsSync(tgz)).toBe(true);
+
+      // Pass the archive name relative to its directory: GNU tar (Git Bash on
+      // Windows) reads a drive-letter path like C:\... as host:path and exits 2.
+      const listing = spawnSync("tar", ["-tzf", tgzName!], { cwd: art, encoding: "utf8" });
+      expect(listing.status, listing.stderr).toBe(0);
       const entries = listing.stdout.split("\n").filter(Boolean);
       const jsEntries = entries.filter((n) => n.endsWith(".js") && !n.endsWith(".js.map"));
       expect(jsEntries).toEqual(["package/dist/bin.js"]);
@@ -88,7 +92,8 @@ describe("launcher single-file bundle (D4.3 / AC3.2)", () => {
       );
 
       const pkgJson = JSON.parse(
-        spawnSync("tar", ["-xOf", tgz, "package/package.json"], { encoding: "utf8" }).stdout,
+        spawnSync("tar", ["-xOf", tgzName!, "package/package.json"], { cwd: art, encoding: "utf8" })
+          .stdout,
       ) as {
         dependencies?: Record<string, string>;
         bin?: Record<string, string>;
