@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - chore(dogfood): pin Directive to 0.129.7.
+- Completed the #5710, #5882, #6203 and #6212 scope briefs after their product PRs merged. Refs #5710. Refs #5882. Refs #6203. Refs #6212.
 - chore(scope): activate the #5942, #6226, #5912 and #6227 story briefs for a through-merge cohort.
 
 ### Fixed
