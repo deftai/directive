@@ -1,0 +1,885 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6226",
+    "updated": "2026-11-12T21:52:30Z"
+  },
+  "plan": {
+    "title": "bug(check): the cited-skip scan walks git-ignored nested worktrees, so release Step 5 fails in a maintainer checkout that CI passes",
+    "status": "running",
+    "narratives": {
+      "Description": "The #6071 cited-skip scan and the #6072 sanctioned-skip baseline each walk test files with a private walkTestFiles copy that descends into git-ignored linked worktrees under .deft-scratch/worktrees. On a maintainer checkout with swarm worktrees, skips inside those worktrees fail release Step 5 even though CI passes. This story extracts one shared leaf walk helper that skips .deft-scratch and does not descend into subdirectories whose .git entry is a file, and routes both gates through it.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6226",
+      "Overview": "\n\n1. Extract one shared test-file walk helper (leaf walk-enumeration module under `packages/core/src/check/`) and route both `gate-lists.ts` (`evaluateCitedSkipScan` / #6071) and `context.ts` (`runSanctionedSkipCountBaselineGate` / #6072) through it.\n2. That helper skips directory name `.deft-scratch` and does not descend into a subdirectory whose `.git` entry is a **file** (linked worktree).\n3. Keep sanctioned-skip detection and the #6072 baseline ratchet rules unchanged.\n4. Do not switch v1 enumeration to `git ls-files`.\n5. Do not close with twin in-place `walkTestFiles` edits as the Bound mechanism.\n6. Do not merge duplicated inventory/scan/baseline tables as part of this close.\n\n\n",
+      "Labels": "bug, design-critique:ingest-ready, framework-gap",
+      "ImplementationPlan": "1. Add packages/core/src/check/walk-test-files.ts (node:fs/path only) with unit tests in walk-test-files.test.ts.\n2. Delete the private walkTestFiles in gate-lists.ts and context.ts and call the shared helper from both inventoryCitedSkipsInTree copies.\n3. Add a nested-worktree fixture to the #6071 describe in orchestrator.test.ts and the #6072 describe in degraded-skip.test.ts; build skip strings at runtime.\n4. Add a CHANGELOG [Unreleased] Fixed entry.",
+      "UserStory": "As a Directive maintainer, I want the cited-skip and sanctioned-skip gates to ignore linked worktrees under .deft-scratch, so that release Step 5 passes on my checkout whenever CI passes.",
+      "Traces": "#6226; #6071; #6072"
+    },
+    "items": [
+      {
+        "title": "Extract one shared test-file walk helper (leaf walk-enumeration module under `packages/core/src/check/`) and route both `gate-lists.ts` (`evaluateCitedSkipScan` / #6071) and `context.ts` (`runSanctionedSkipCountBaselineGate` / #6072) through it.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When gate-lists.ts and context.ts enumerate test files, both call the one shared helper in packages/core/src/check/walk-test-files.ts and no private walkTestFiles copy remains."
+        }
+      },
+      {
+        "title": "That helper skips directory name `.deft-scratch` and does not descend into a subdirectory whose `.git` entry is a **file** (linked worktree).",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When the tree holds .deft-scratch/worktrees/<x>/ with a .git file and an unrefused describe.skip, the helper returns no files from it and cited-skip-scan and sanctioned-skip-count-baseline both pass."
+        }
+      },
+      {
+        "title": "Keep sanctioned-skip detection and the #6072 baseline ratchet rules unchanged.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When a primary-tree test file holds an unsanctioned describe.skip, the gate still fails with unsanctioned-test-skip, and the baseline ratchet returns the same verdicts as before."
+        }
+      },
+      {
+        "title": "Do not switch v1 enumeration to `git ls-files`.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When the helper enumerates files it walks the filesystem with node:fs, and the diff shows no git ls-files call added to the enumeration path."
+        }
+      },
+      {
+        "title": "Do not close with twin in-place `walkTestFiles` edits as the Bound mechanism.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "When reviewers inspect the diff, both gates import the shared helper; a change that only edits two walkTestFiles copies in place fails this clause."
+        }
+      },
+      {
+        "title": "Do not merge duplicated inventory/scan/baseline tables as part of this close.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "When the change lands, the CITED_SKIP_BASELINE tables in gate-lists.ts and context.ts still exist separately and return the same entries as before."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6226",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6226: bug(check): the cited-skip scan walks git-ignored nested worktrees, so release Step 5 fails in a maintainer checkout that CI passes"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6071",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6071"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(check): the cited-skip scan walks git-ignored nested worktrees, so release Step 5 fails in a maintainer checkout that CI passes",
+        "Extract one shared test-file walk helper (leaf walk-enumeration module under `packages/core/src/check/`) and route both `gate-lists.ts` (`evaluateCitedSkipScan` / #6071) and `context.ts` (`runSanctionedSkipCountBaselineGate` / #6072) through it.",
+        "That helper skips directory name `.deft-scratch` and does not descend into a subdirectory whose `.git` entry is a file (linked worktree).",
+        "Keep sanctioned-skip detection and the #6072 baseline ratchet rules unchanged.",
+        "Do not switch v1 enumeration to `git ls-files`.",
+        "Do not close with twin in-place `walkTestFiles` edits as the Bound mechanism.",
+        "Do not merge duplicated inventory/scan/baseline tables as part of this close."
+      ],
+      "admitted_source_sentences": [
+        "Extract one shared test-file walk helper (leaf walk-enumeration module under `packages/core/src/check/`) and route both `gate-lists.ts` (`evaluateCitedSkipScan` / #6071) and `context.ts` (`runSanctionedSkipCountBaselineGate` / #6072) through it.",
+        "That helper skips directory name `.deft-scratch` and does not descend into a subdirectory whose `.git` entry is a file (linked worktree).",
+        "Keep sanctioned-skip detection and the #6072 baseline ratchet rules unchanged.",
+        "Do not switch v1 enumeration to `git ls-files`.",
+        "Do not close with twin in-place `walkTestFiles` edits as the Bound mechanism.",
+        "Do not merge duplicated inventory/scan/baseline tables as part of this close."
+      ],
+      "admitted_source_digest": "1f3a3016f5e43784507a40a69b1594d7054fff2c9598eb79d6b842d9c623b867",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Extract one shared test-file walk helper (leaf walk-enumeration module under `packages/core/src/check/`) and route both `gate-lists.ts` (`evaluateCitedSkipScan` / #6071) and `context.ts` (`runSanctionedSkipCountBaselineGate` / #6072) through it.",
+          "artifact_path": "packages/core/src/check/walk-test-files.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "That helper skips directory name `.deft-scratch` and does not descend into a subdirectory whose `.git` entry is a file (linked worktree).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Keep sanctioned-skip detection and the #6072 baseline ratchet rules unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Do not switch v1 enumeration to `git ls-files`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Do not close with twin in-place `walkTestFiles` edits as the Bound mechanism.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Do not merge duplicated inventory/scan/baseline tables as part of this close.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/check/walk-test-files.ts",
+          "packages/core/src/check/walk-test-files.test.ts",
+          "packages/core/src/check/gate-lists.ts",
+          "packages/core/src/check/context.ts"
+        ],
+        "module_boundary": "packages/core/src/check",
+        "cohesion_exemption": "orchestrator.test.ts (1272 lines) only gains a fixture inside the existing #6071 describe block; new helper is a node:fs/path-only leaf imported by gate-lists.ts and context.ts."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft\n\nconflict_group: cited-skip-scan-ignores-nested-worktrees\nSpec-path: Prefer-A draft — bound walkTestFiles to commit-relevant trees\nTarget-digest: sha256:f735e8d91e8de6cb2dec3866ef89dde78147864703164d78226de9ee3cc260a7\ndispatch-sha: b9c53c28cb01f334c4a2b5bed8a485371562049c\ndest: .deft-scratch/worktrees/arc-6226\narc-mode: no-ingest\nyolo-standing: on\nspend: N=1\nspend-recommend: N=1\nspend-ask: resolved\nmateriality-bar: open\nmove-forward: yes\nKISS ceiling: Thin Fail-Closed #3265 / #5783 — one walk bound, no sanction-rule change\nDepends-on: #6071 cited-skip scanner (list-on-every-run); this issue owns only walk scope so ignored nested worktrees cannot fail the scan\n\n## Bound remedy\n\nIn `packages/core/src/check/gate-lists.ts` `walkTestFiles`:\n1. Skip the directory name `.deft-scratch` (same early-continue class as `node_modules` / `dist` / `.git`).\n2. Before recursing into a subdirectory, if that subdirectory contains a `.git` **file** (linked worktree), do not descend.\n\nKeep sanctioned-skip detection and #6072 baseline ratchet unchanged. Enumeration stays readdir-based; do not switch the v1 close to `git ls-files` (that would also drop untracked on-disk tests and widen the semantic change).\n\n## Acceptance (issue)\n\n- Checkout with a linked worktree under `.deft-scratch/worktrees/` that contains an unsanctioned skip passes when the primary tree's tracked files have none.\n- An unsanctioned skip in a tracked file is still refused.\n- CHANGELOG `[Unreleased]` entry.\n\n## In plain English\n\nRelease Step 5 failed because `task check` walked into ignored swarm/arc worktrees and treated their test skips as part of this commit. Prefer-A stops the walk at those worktrees and at `.deft-scratch`, so local maintainer checkouts match CI for the same commit.\n\nFiled for @MScottAdams\n\n",
+          "id": 6834555364,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6834555364",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:03:54Z",
+          "updated_at": "2026-11-12T20:03:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: triage\n```\n\n## Stop 1 — Gate\n\narc-mode: no-ingest\nyolo-standing: on\nspend: N=1\nspend-recommend: N=1\nspend-ask: resolved\nmateriality-bar: open\ncharter: open critique\nmechanism-shaped: true\nTarget-digest: sha256:f735e8d91e8de6cb2dec3866ef89dde78147864703164d78226de9ee3cc260a7\ndispatch-sha: b9c53c28cb01f334c4a2b5bed8a485371562049c\ndest: .deft-scratch/worktrees/arc-6226\nverification-path: pin-read .deft-scratch/worktrees/arc-6226 @ b9c53c28cb01f334c4a2b5bed8a485371562049c\nPrefer-A draft: 6834555364\nDepends-on: #6071, #6072\n\npain: P1, P2, P3\n\n- P1: Maintainer checkouts with linked worktrees under `.deft-scratch/worktrees/` fail the cited-skip scan while CI passes the same commit.\n- P2: Release Step 5 / `task check` can refuse skips that are not in the commit under test.\n- P3: An unsanctioned skip in a tracked file must still be refused after the walk bound.\n\ndesign-critique: warranted, because the cited-skip walk (#6071) is mechanism-shaped process gate behavior whose on-disk recursion currently couples release readiness to ignored nested worktrees.\n\nStop 2: drafted bound remedy + narrow solution space → spend N=1 (no panel permission).\nKISS: Thin Fail-Closed #3265 — bound the walk; leave sanction rules alone.\n\nFiled for @MScottAdams\n\r\n\n",
+          "id": 6834557252,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6834557252",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:03:59Z",
+          "updated_at": "2026-11-12T20:03:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast\n```quarantined\nrole: critic\n```\n\n## Method\nRe-verified Prefer-A / Stop 1 anchors via on-pin reads of packages/core/src/check/gate-lists.ts and packages/core/src/check/context.ts at dest cwd for dispatch-sha b9c53c28cb01f334c4a2b5bed8a485371562049c (shell git show blocked by missing dest runtime pin; file bytes match Prefer-A line cites). Inventory: production task check wires evaluateCitedSkipScan from gate-lists.ts (#6071) and runSanctionedSkipCountBaselineGate from context.ts (#6072); both modules define their own walkTestFiles that only early-continue node_modules/dist/.git names and do not stop at linked-worktree .git files.\n\n## Finding census\n- F1 blocks-the-design: Prefer-A Bound remedy names only gate-lists.ts walkTestFiles\n- F2 sharpens-framing: dual-copy inventory is a shared-helper remint note, not a second essay\n- F3 footnote: git ls-files remains correctly declined for v1\n\nclean-result: no\n\n### F1 Prefer-A omits the live #6072 walk twin\nblocks-the-design\n\nEvidence: orchestrator.ts / cached-orchestrator.ts import evaluateCitedSkipScan from ./gate-lists.js and runSanctionedSkipCountBaselineGate from ./context.js. context.ts walkTestFiles (inventoryCitedSkipsInTree ~L567) is a second live walker with the same node_modules/dist/.git-only skip set. Prefer-A Bound remedy lists only packages/core/src/check/gate-lists.ts. After that single patch, cited-skip-scan can go green while verify:sanctioned-skip-count-baseline still inventories skips under .deft-scratch/worktrees/*/ and can refuse the same maintainer checkout (P1/P2 recurrence on the always-on check surface).\n\nFailure mode: Release Step 5 / task check still couples readiness to ignored nested worktrees via the unbound twin.\n\nDisposition consequence: remint ## Bound remedy so both live walks are bounded (shared helper or twin site list). Lean cannot bind as written.\n\nInjection/swarm lens: target is worktree-adjacent shared check state; swarm/design-critique dests under .deft-scratch/worktrees are the injection surface. Bounding only one consumer of that surface leaves the other open.\n\n### F2 Shared helper vs twin edit\nsharpens-framing\n\nEvidence: gate-lists.ts and context.ts already duplicate inventoryCitedSkipsInSource / walkTestFiles / evaluateCitedSkipScan (baseline allowlists already diverge: gate-lists has a fifth orchestrator.test.ts describe.skip slot).\n\nFailure mode: future walk bounds drift again between #6071 and #6072.\n\nDisposition consequence: state in Bound remedy or an implementation note that one shared walk helper is preferred; do not grow Bound remedy into a second design essay.\n\n### F3 git ls-files decline\nfootnote\n\nPrefer-A correctly keeps readdir enumeration and declines git ls-files for v1 (would drop untracked on-disk tests). No disposition weight.\n\n## Road not taken\nSwitching the v1 close to git ls-files (issue option A) would fix ignored-worktree coupling but widens semantics beyond Thin Fail-Closed #3265. Steelman: strongest rejected position is commit-exact enumeration; flip only if untracked test files must never participate in cited-skip inventory.\n\n## In plain English\nPrefer-A correctly stops the cited-skip walk at ignored worktrees for the #6071 gate, but the same broken walk still lives in context.ts for the #6072 baseline gate that also runs on task check. Binding the lean as written would fix one gate and leave the other able to fail release Step 5 on nested worktrees. Remint the bound remedy to cover both live walks.",
+          "id": 6834655182,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6834655182",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:08:22Z",
+          "updated_at": "2026-11-12T20:08:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Recut-1 — bound both live cited-skip walks\n\n## In plain English\n\nThe Round-1 critic is right: fixing only `gate-lists.ts` would leave the #6072 baseline walker in `context.ts` still scanning nested worktrees, so release Step 5 could still fail the same way. This lean remints the bound remedy to cover both live walks (shared helper preferred), keeps the thin fail-closed shape, and still declines `git ls-files` for v1.\n\nconflict_group: cited-skip-scan-ignores-nested-worktrees\nSpec-path: Prefer-A Recut-1 — bound both live cited-skip walks\nTarget-digest: sha256:f735e8d91e8de6cb2dec3866ef89dde78147864703164d78226de9ee3cc260a7\ndispatch-sha: b9c53c28cb01f334c4a2b5bed8a485371562049c\ndest: .deft-scratch/worktrees/arc-6226\narc-mode: no-ingest\nyolo-standing: on\nspend: N=1\nmateriality-bar: open\nmove-forward: yes\nround: 1 critic (siblings: 1)\ncritic: 6834655182\nsupersedes: Prefer-A draft 6834555364 / Stop 1 6834557252\nKISS ceiling: Thin Fail-Closed #3265 / #5783\n\n## Per-heading takes\n\n- F1 (`blocks-the-design`, Prefer-A omits live #6072 walk twin): **accept-into-contract** — remint Bound remedy to bound both live walks.\n- F2 (`sharpens-framing`, shared helper vs twin edit): **accept-into-contract** — prefer one shared walk helper; keep Bound remedy short.\n- F3 (`footnote`, git ls-files decline): **accept-into-contract** as footnote — no disposition weight.\n\n## Bound remedy\n\n1. Introduce one shared test-file walk helper used by both `packages/core/src/check/gate-lists.ts` (`evaluateCitedSkipScan` / #6071) and `packages/core/src/check/context.ts` (`runSanctionedSkipCountBaselineGate` / #6072), **or** apply the same two bounds at both live `walkTestFiles` sites.\n2. Bounds: skip directory name `.deft-scratch`; do not descend into a subdirectory whose `.git` entry is a **file** (linked worktree).\n3. Keep sanctioned-skip detection and the #6072 baseline ratchet rules unchanged.\n4. Do not switch v1 enumeration to `git ls-files`.\n\n## Pain cites\n\n- relieves: P1 — both always-on check surfaces stop inventoring ignored nested worktrees.\n- relieves: P2 — Release Step 5 / `task check` no longer refuse skips outside the commit-relevant tree via either walker.\n- relieves: P3 — unsanctioned skips in tracked primary-tree files remain refused.\n\n## ADR-006\n\nSame parent authored Prefer-A and this remint take-offer. Load-bearing premise (twin walker is live on `task check`) is critic-evidenced at 6834655182, not parent-only.\n\nFiled for @MScottAdams\n\n",
+          "id": 6834669895,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6834669895",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:09:03Z",
+          "updated_at": "2026-11-12T20:09:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n## Disagreement map (Stop 4 input)\n\nround: 2 reiteration\ninput-ceiling: this comment (set after POST)\nprior-ceiling: 6834557252\ncritic-r1: 6834655182\nlean-offer: 6834669895 (unbound — operator chose retry differences)\nPrefer-A: 6834555364\nStop 1: 6834557252\nTarget-digest: sha256:f735e8d91e8de6cb2dec3866ef89dde78147864703164d78226de9ee3cc260a7\ndispatch-sha: b9c53c28cb01f334c4a2b5bed8a485371562049c\ndest: .deft-scratch/worktrees/arc-6226\narc-mode: no-ingest\nyolo-standing: on\nspend: N=1\nmateriality-bar: open\nverification-path: pin-read .deft-scratch/worktrees/arc-6226 @ b9c53c28cb01f334c4a2b5bed8a485371562049c\n\n### Positions in tension\n\n1. **Prefer-A Bound (6834555364):** bound only `gate-lists.ts` `walkTestFiles` (`.deft-scratch` name skip + nested `.git` file non-descend). Declines `git ls-files` for v1.\n2. **Critic R1 F1 (6834655182) `blocks-the-design`:** `context.ts` has a live twin walker on the #6072 baseline path that `task check` also runs; single-site Prefer-A leaves P1/P2 recurrence.\n3. **Critic R1 F2 `sharpens-framing`:** prefer shared walk helper over twin edits; do not grow Bound remedy into a second essay.\n4. **Parent lean Recut-1 (6834669895) take-offer:** accept F1/F2/F3 and remint Bound remedy to cover both live walks (shared helper preferred). Takes are **not bound** — operator selected `retry differences`.\n\n### Still-open residual for fresh critic\n\n- Does F1 still block Prefer-A as written, or is there a sound disagree/defer that keeps a single-site bound?\n- Is shared-helper vs twin-site-edit load-bearing for bind (F2), or footnote-class once both sites are named?\n- Any new `blocks-the-design` / `sharpens-framing` on Recut-1's reminted Bound remedy (both walks + `.deft-scratch` + nested `.git` file stop; no `git ls-files`)?\n\n### Out of scope for this retry\n\n- Implementing the patch\n- Changing sanctioned-skip rules or #6072 ratchet semantics\n- Auto-binding lean 6834669895\n\nFiled for @MScottAdams\n\n",
+          "id": 6834751031,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6834751031",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:12:46Z",
+          "updated_at": "2026-11-12T20:12:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast\n```quarantined\nrole: critic\n```\n\n## Method\nRe-verified twin-walker and Recut-1 against pin-read on-dest files at dispatch-sha b9c53c28cb01f334c4a2b5bed8a485371562049c (shell `git show` / `gh` blocked by missing dest `@deftai/directive-runtime`; on-dest bytes used). Inputs: Prefer-A 6834555364, Stop 1 6834557252, Critic R1 6834655182, unbound lean Recut-1 6834669895, disagreement map 6834751031 (ceiling).\n\nLive wires on `task check`:\n- `orchestrator.ts` / `cached-orchestrator.ts` import `evaluateCitedSkipScan` from `./gate-lists.js` (#6071) and `runSanctionedSkipCountBaselineGate` from `./context.js` (#6072).\n- `gate-lists.ts` `walkTestFiles` (~L324) and `context.ts` `walkTestFiles` (~L567) are separate copies; both early-continue only `node_modules` / `dist` / `.git` and do not stop on `.deft-scratch` or a linked-worktree `.git` **file**.\n- `context.ts` `runSanctionedSkipCountBaselineGate` (~L747) calls local `inventoryCitedSkipsInTree` → that second walker. `index.ts` re-exports the context inventory path; production #6071 scan still uses the gate-lists import directly.\n\n## Finding census\n- F1 blocks-the-design: Prefer-A as written still omits the live #6072 walk twin\n- F2 footnote: shared-helper vs twin-edit is not load-bearing once Recut-1 names both sites\n- F3 sharpens-framing: Recut-1 Acceptance / verify surface should name both always-on gates\n- F4 footnote: `git ls-files` decline and inventory/baseline unification stay out of this Bound\n\nclean-result: no\n\n### F1 Prefer-A single-site Bound still leaves the live #6072 twin open\nblocks-the-design\n\nEvidence: Prefer-A Bound remedy (6834555364) names only `packages/core/src/check/gate-lists.ts` `walkTestFiles`. On-pin, `runSanctionedSkipCountBaselineGate` in `context.ts` still walks via a second `walkTestFiles` with the same unbounded skip set, and both orchestrators call that gate on the always-on check path after the #6071 scan. Nested worktree skips inflate the #6072 inventory/count even if #6071 goes green after a single-site patch.\n\nFailure mode: Release Step 5 / `task check` can still refuse a maintainer checkout that CI passes — P1/P2 recurrence on the unbound twin.\n\nDisposition consequence: Prefer-A as written cannot bind. No sound disagree/defer keeps a single-site bound: the twin is live production wiring, not a dead export. Recut-1's remint (both walks, shared helper preferred or twin-site edit) is the cure for this heading.\n\nInjection/swarm lens: `.deft-scratch/worktrees` is the swarm/design-critique dest surface. Bounding only one always-on consumer of that surface leaves the other open.\n\n### F2 Shared-helper preference after both sites are named\nfootnote\n\nRecut-1 Bound item 1 already names both live walks and prefers one shared walk helper while allowing the same two bounds at both sites. Once both sites are in the Bound, shared-helper vs twin-edit no longer changes bind disposition; it is an implementation preference under Thin Fail-Closed #3265. Demote R1 F2 from sharpens-framing for the Recut-1 residual.\n\n### F3 Recut-1 should state Acceptance for both always-on gates\nsharpens-framing\n\nEvidence: Issue / Prefer-A Acceptance speak of \"the scan\" (cited-skip-scan / #6071). Recut-1 remints Bound remedy to cover `#6071` and `#6072` but does not restate Acceptance that both always-on check surfaces pass with nested worktrees present and still refuse unsanctioned skips in the primary tree.\n\nFailure mode: implementer or `verify:ac` can green only the #6071 listing path and miss a still-red #6072 baseline inventory from the same unbounded walk class.\n\nDisposition consequence: lean can bind on Recut-1 Bound as written; sharpen Acceptance (issue and/or successor lean) to require both `cited-skip-scan` and `sanctioned-skip-count-baseline` green under a nested linked worktree, plus primary-tree unsanctioned-skip refuse. Do not grow Bound remedy into a second essay.\n\n### F4 Declined widenings stay declined\nfootnote\n\nRecut-1 correctly keeps readdir enumeration, declines `git ls-files` for v1, and leaves sanctioned-skip detection / #6072 ratchet rules unchanged. Full unification of duplicated `inventoryCitedSkipsInSource` / `evaluateCitedSkipScan` / `CITED_SKIP_BASELINE` across gate-lists vs context is leftover consolidation, not this issue's Bound. No disposition weight.\n\n## Road not taken\nDisagree F1 to keep Prefer-A single-site (issue body names only gate-lists; observed refuse lines were #6071). Rejected: on-pin wiring shows #6072 baseline is the same always-on `task check` surface and uses the unbound twin walker. Flip only if production stopped calling `runSanctionedSkipCountBaselineGate` from both orchestrators.\n\n## In plain English\nPrefer-A still cannot bind: fixing only `gate-lists.ts` leaves the live #6072 walker in `context.ts` scanning nested worktrees on every `task check`. Recut-1's reminted Bound (both walks, thin bounds, no `git ls-files`) clears that block. Shared-helper vs twin-edit is no longer a bind question once both sites are named. Sharpen Acceptance so both always-on gates are the done bar, not only the #6071 scan.\n\n",
+          "id": 6834839936,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6834839936",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:16:51Z",
+          "updated_at": "2026-11-12T20:16:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Recut-2 — both walks + dual-gate Acceptance\n\n## In plain English\n\nStop 4 agrees Prefer-A cannot bind single-site, confirms Recut-1's dual-walk Bound clears that block, demotes shared-helper preference to footnote, and asks that Acceptance name both always-on gates (`cited-skip-scan` and `sanctioned-skip-count-baseline`). This lean binds those takes.\n\nconflict_group: cited-skip-scan-ignores-nested-worktrees\nSpec-path: Prefer-A Recut-2 — both walks + dual-gate Acceptance\nTarget-digest: sha256:f735e8d91e8de6cb2dec3866ef89dde78147864703164d78226de9ee3cc260a7\ndispatch-sha: b9c53c28cb01f334c4a2b5bed8a485371562049c\ndest: .deft-scratch/worktrees/arc-6226\narc-mode: no-ingest\nyolo-standing: on\nspend: N=1\nmateriality-bar: open\nmove-forward: yes\nround: 2 reiteration (siblings: 1)\ncritic-r1: 6834655182\ncritic-r2: 6834839936\ndisagreement-map: 6834751031\nsupersedes: Prefer-A 6834555364 / lean Recut-1 6834669895\nKISS ceiling: Thin Fail-Closed #3265 / #5783\n\n## Per-heading takes\n\n### From critic R1 6834655182\n- F1 `blocks-the-design`: **accept-into-contract** (cleared by dual-walk Bound; Prefer-A single-site cannot bind)\n- F2 `sharpens-framing`: **accept-into-contract** as **footnote** per R2 demotion once both sites are named\n- F3 `footnote` (git ls-files decline): **accept-into-contract** as footnote\n\n### From critic R2 (Stop 4)\n- F1 `blocks-the-design` (Prefer-A single-site): **accept-into-contract** — agrees R1; no sound single-site disagree\n- F2 `footnote` (shared-helper): **accept-into-contract** as footnote\n- F3 `sharpens-framing` (Acceptance names both gates): **accept-into-contract** — fold into Acceptance below\n- F4 `footnote`: **accept-into-contract** as footnote\n\n## Bound remedy\n\n1. Introduce one shared test-file walk helper used by both `packages/core/src/check/gate-lists.ts` (`evaluateCitedSkipScan` / #6071) and `packages/core/src/check/context.ts` (`runSanctionedSkipCountBaselineGate` / #6072), **or** apply the same two bounds at both live `walkTestFiles` sites.\n2. Bounds: skip directory name `.deft-scratch`; do not descend into a subdirectory whose `.git` entry is a **file** (linked worktree).\n3. Keep sanctioned-skip detection and the #6072 baseline ratchet rules unchanged.\n4. Do not switch v1 enumeration to `git ls-files`.\n\n## Acceptance\n\n- With a linked worktree under `.deft-scratch/worktrees/` that contains an unsanctioned skip, both always-on surfaces pass when the primary tree's tracked files have none: `cited-skip-scan` (#6071) and `sanctioned-skip-count-baseline` (#6072).\n- An unsanctioned skip in a tracked primary-tree file is still refused on those surfaces.\n- CHANGELOG `[Unreleased]` entry.\n\n## Pain cites\n\n- relieves: P1\n- relieves: P2\n- relieves: P3\n\n## ADR-006\n\nSame parent authored Prefer-A and this remint. Twin-walker load-bearing premise is critic-evidenced at R1 6834655182 and R2 (this round); Acceptance sharpen is critic-evidenced at R2 F3.\n\nFiled for @MScottAdams\n\r\n\n",
+          "id": 6834842307,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6834842307",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:16:57Z",
+          "updated_at": "2026-11-12T20:16:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Recut-3 — shared walk helper required\n\n## In plain English\n\nSame as Recut-2, except the Bound remedy no longer offers a twin-site edit alternative. One shared test-file walk helper must serve both the #6071 cited-skip scan and the #6072 baseline gate. Acceptance still names both always-on surfaces.\n\nconflict_group: cited-skip-scan-ignores-nested-worktrees\nSpec-path: Prefer-A Recut-3 — shared walk helper required\nTarget-digest: sha256:f735e8d91e8de6cb2dec3866ef89dde78147864703164d78226de9ee3cc260a7\ndispatch-sha: b9c53c28cb01f334c4a2b5bed8a485371562049c\ndest: .deft-scratch/worktrees/arc-6226\narc-mode: no-ingest\nyolo-standing: on\nspend: N=1\nmateriality-bar: open\nmove-forward: yes\nround: 2 reiteration (amend after Discuss)\ncritic-r1: 6834655182\ncritic-r2: 6834839936\ndisagreement-map: 6834751031\nsupersedes: Prefer-A 6834555364 / lean Recut-1 6834669895 / lean Recut-2 6834842307\noperator-amend: shared helper required (not optional twin edit)\nKISS ceiling: Thin Fail-Closed #3265 / #5783\n\n## Per-heading takes\n\n### From critic R1 6834655182\n- F1 `blocks-the-design`: **accept-into-contract**\n- F2 `sharpens-framing`: **accept-into-contract** — promote back from Recut-2 footnote: shared helper is now the Bound mechanism (operator amend), not an optional preference\n- F3 `footnote` (git ls-files decline): **accept-into-contract** as footnote\n\n### From critic R2 6834839936\n- F1 `blocks-the-design`: **accept-into-contract**\n- F2 `footnote` (shared-helper optional once both named): **disagree** relative to Recut-2 — operator amend makes shared helper required; R2 F2 footnote no longer matches Bound\n- F3 `sharpens-framing` (dual-gate Acceptance): **accept-into-contract**\n- F4 `footnote`: **accept-into-contract** as footnote\n\n## Bound remedy\n\n1. Extract one shared test-file walk helper and route both `packages/core/src/check/gate-lists.ts` (`evaluateCitedSkipScan` / #6071) and `packages/core/src/check/context.ts` (`runSanctionedSkipCountBaselineGate` / #6072) through it.\n2. That helper skips directory name `.deft-scratch` and does not descend into a subdirectory whose `.git` entry is a **file** (linked worktree).\n3. Keep sanctioned-skip detection and the #6072 baseline ratchet rules unchanged.\n4. Do not switch v1 enumeration to `git ls-files`.\n5. Do not close with twin in-place `walkTestFiles` edits as the Bound mechanism (leftover only if the shared helper is already landed).\n\n## Acceptance\n\n- With a linked worktree under `.deft-scratch/worktrees/` that contains an unsanctioned skip, both always-on surfaces pass when the primary tree's tracked files have none: `cited-skip-scan` (#6071) and `sanctioned-skip-count-baseline` (#6072).\n- An unsanctioned skip in a tracked primary-tree file is still refused on those surfaces.\n- CHANGELOG `[Unreleased]` entry.\n\n## Pain cites\n\n- relieves: P1\n- relieves: P2\n- relieves: P3\n\n## ADR-006\n\nOperator amend on Discuss makes shared-helper required. Parent records that amend; twin-walker and dual-gate Acceptance remain critic-evidenced (R1/R2).\n\nFiled for @MScottAdams\n\n",
+          "id": 6835165390,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6835165390",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:31:34Z",
+          "updated_at": "2026-11-12T20:31:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n## Disagreement map (Stop 4 input — second retry)\n\nround: 3 reiteration\ninput-ceiling: this comment (set after POST)\nprior-ceiling: 6834751031\ncritic-r1: 6834655182\ncritic-r2: 6834839936\nlean-recut-2: 6834842307 (superseded)\nlean-offer: 6835165390 (Recut-3 unbound — operator chose retry differences after Discuss amend)\nPrefer-A: 6834555364\nStop 1: 6834557252\nTarget-digest: sha256:f735e8d91e8de6cb2dec3866ef89dde78147864703164d78226de9ee3cc260a7\ndispatch-sha: b9c53c28cb01f334c4a2b5bed8a485371562049c\ndest: .deft-scratch/worktrees/arc-6226\narc-mode: no-ingest\nyolo-standing: on\nspend: N=1\nmateriality-bar: open\nverification-path: pin-read .deft-scratch/worktrees/arc-6226 @ b9c53c28cb01f334c4a2b5bed8a485371562049c\n\n### Positions in tension\n\n1. **Prefer-A (6834555364):** single-site `gate-lists.ts` bound; declines `git ls-files`.\n2. **R1 F1 / R2 F1:** Prefer-A single-site `blocks-the-design` because `context.ts` twin is live on `task check`.\n3. **R2 F2:** once both sites are named, shared-helper vs twin-edit is footnote (not load-bearing for bind).\n4. **R2 F3:** sharpen Acceptance to name both always-on gates (#6071 and #6072).\n5. **Recut-2 (6834842307):** dual-walk Bound with shared helper **or** twin-site edit; dual-gate Acceptance; demoted R1 F2 to footnote.\n6. **Operator Discuss amend → Recut-3 (6835165390):** shared walk helper **required**; twin-site edit is not the Bound mechanism; dual-gate Acceptance kept; R2 F2 footnote **disagreed** relative to Recut-2. Takes **not bound**.\n\n### Still-open residual for fresh critic\n\n- Does requiring a shared helper (Recut-3) introduce any new `blocks-the-design` (wrong module boundary, circular import, check-graph coupling, Thin Fail-Closed violation)?\n- Is disagreeing R2 F2's footnote demotion sound, or should twin-site edit remain a lawful Bound alternative?\n- Any new `sharpens-framing` on Recut-3 Acceptance or Bound wording?\n- Confirm Prefer-A single-site remains blocked (or state a sound disagree).\n\n### Out of scope\n\n- Implementing the patch\n- Auto-binding lean 6835165390\n- Switching v1 to `git ls-files`\n- Unifying allowlist/baseline tables beyond the shared walk\n\nFiled for @MScottAdams\n\n",
+          "id": 6835182033,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6835182033",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:32:18Z",
+          "updated_at": "2026-11-12T20:32:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast\n```quarantined\nrole: critic\n```\n\n## Method\nPin-read at dispatch-sha b9c53c28cb01f334c4a2b5bed8a485371562049c via `git show <sha>:` for `packages/core/src/check/{gate-lists,context,orchestrator,cached-orchestrator,index}.ts`. Ceiling: disagreement map 6835182033. Also in-envelope: Prefer-A 6834555364, Stop 1 6834557252, R1 6834655182, R2 6834839936, Recut-3 lean offer 6835165390.\n\nLive wires on pin:\n- Both orchestrators import `evaluateCitedSkipScan` from `./gate-lists.js` (#6071) and `runSanctionedSkipCountBaselineGate` from `./context.js` (#6072).\n- `gate-lists.ts` and `context.ts` each define a private `walkTestFiles` with the same `node_modules` / `dist` / `.git` early-continue set; neither module imports the other (context: node:fs/path only; gate-lists: node:fs/path + product-first-done-gate types).\n- `index.ts` re-exports the context inventory/scan surface; production #6071 path still uses the gate-lists import directly.\n- `CITED_SKIP_BASELINE` already diverges (gate-lists carries an extra `orchestrator.test.ts` slot context lacks) — walk-bound drift class is live even before this Bound.\n\n## Finding census\n- F1 footnote: Prefer-A single-site Bound remains blocked (confirm R1/R2 F1)\n- F2 footnote: Recut-3 required shared walk helper does not introduce blocks-the-design\n- F3 footnote: Disagreeing R2 F2 relative to Recut-3 is sound; twin-site edit stays leftover, not Bound\n- F4 footnote: Host the helper as a leaf walk-enumeration module; do not widen into inventory/scan/baseline unification\n\nclean-result: yes\n\n### F1 Prefer-A single-site still cannot bind\nfootnote\n\nEvidence: on-pin, both always-on `task check` consumers still call separate unbounded walkers. Prefer-A Bound names only `gate-lists.ts` `walkTestFiles`. No pin evidence that production stopped calling `runSanctionedSkipCountBaselineGate` from both orchestrators.\n\nFailure mode: same P1/P2 recurrence on the #6072 twin if Prefer-A were bound alone.\n\nDisposition consequence: confirm R1/R2 F1; Prefer-A stays superseded by Recut-3. Not a new residual against Recut-3. No evidence-bearing reopen.\n\n### F2 Required shared walk helper is not blocks-the-design\nfootnote\n\nResidual probe: circular import, wrong module boundary, check-graph coupling, Thin Fail-Closed #3265.\n\nEvidence: neither twin imports the other today, so a new leaf under `packages/core/src/check/` (walk-enumeration only) imported by both cannot cycle. Recut-3 Bound item 1 does not force hosting inside `gate-lists.ts` or `context.ts`. The helper is not a check gate / Taskfile edge — check-graph coupling does not fire. Bound remedy stays a short mechanism list (extract + route both sites + two descent bounds); items 3–4 keep detection/ratchet and decline `git ls-files`.\n\nFailure mode if mis-hosted (context→gate-lists or gate-lists→context for the helper): avoidable implementer choice, not a Bound mandate — not a bind block.\n\nDisposition consequence: Recut-3 can bind on the shared-helper mechanism as written. No `blocks-the-design` on this residual.\n\nInjection/swarm lens: target remains nested linked worktrees under `.deft-scratch/worktrees` feeding always-on check state; requiring one walk SoT closes both consumers of that surface rather than leaving twin-edit drift.\n\n### F3 Disagreeing R2 F2 is sound under the operator amend\nfootnote\n\nR2 F2 correctly classified shared-helper vs twin-edit as non-load-bearing for *bind disposition* once Recut-2 named both sites. Recut-3 (operator Discuss amend) changes the Bound *mechanism*: shared helper required; twin-site edit explicitly not the close path (Bound item 5).\n\nEvidence for keeping twin-edit out of Bound: on-pin baseline tables already diverge between the two copies — the drift class R1 F2 warned about is not hypothetical.\n\nFailure mode if twin-edit stayed a lawful Bound alternative: walk bounds can diverge again between #6071 and #6072 after the close.\n\nDisposition consequence: Recut-3's disagree of R2 F2 (relative to Recut-2) is sound. Twin-site edit remains leftover only if the shared helper is already landed — not a competing Bound. Does not reopen Prefer-A.\n\n### F4 Leaf walk-only extract (no inventory unification)\nfootnote\n\nRecut-3 Bound items 3–5 plus disagreement-map out-of-scope already keep sanctioned-skip detection, #6072 ratchet, and allowlist/baseline-table unification out of this Bound. Implementation note only: host a directory-descent helper; do not merge duplicated `inventoryCitedSkipsInSource` / `evaluateCitedSkipScan` / `CITED_SKIP_BASELINE` as part of this close. No disposition weight — wording already sufficient to bind.\n\n## Road not taken\nKeep Recut-2's \"shared helper **or** twin-site edit\" Bound. Steelman: twin early-continues are the thinner diff under #3265. Flip only if single-source walk bounds are not worth a leaf extract — operator already flipped via Discuss amend; on-pin baseline divergence supports that flip. Rejected for Recut-3 residual.\n\n## In plain English\nRecut-3's required shared walk helper does not block the design: a leaf walk module avoids cycles and check-graph coupling, and the Bound stays thin. Prefer-A single-site is still blocked and correctly superseded. Disagreeing R2's \"shared helper is only a footnote\" take is sound once the operator made the shared helper the Bound mechanism; twin-edit stays leftover, not an alternate close. No new sharpen needed — dual-gate Acceptance and walk-only scope are already clear enough to bind.",
+          "id": 6835253462,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6835253462",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:35:24Z",
+          "updated_at": "2026-11-12T20:35:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Recut-3 confirmed — shared walk helper Bound stands\n\n## In plain English\n\nStop 4 round 3 found no blockers against Recut-3. Prefer-A single-site stays superseded. Requiring one shared walk helper does not create a cycle or check-graph problem if hosted as a leaf walk module. Twin-site edit stays leftover, not Bound. Dual-gate Acceptance stays as written. Ready to bind on operator accept.\n\nconflict_group: cited-skip-scan-ignores-nested-worktrees\nSpec-path: Prefer-A Recut-3 — shared walk helper required\nTarget-digest: sha256:f735e8d91e8de6cb2dec3866ef89dde78147864703164d78226de9ee3cc260a7\ndispatch-sha: b9c53c28cb01f334c4a2b5bed8a485371562049c\ndest: .deft-scratch/worktrees/arc-6226\narc-mode: no-ingest\nyolo-standing: on\nspend: N=1\nmateriality-bar: open\nmove-forward: yes\nround: 3 reiteration (siblings: 1)\ncritic-r1: 6834655182\ncritic-r2: 6834839936\ncritic-r3: 6835253462\ndisagreement-map: 6835182033\nsupersedes: Prefer-A 6834555364 / Recut-1 6834669895 / Recut-2 6834842307 / Recut-3 offer 6835165390\nKISS ceiling: Thin Fail-Closed #3265 / #5783\n\n## Per-heading takes (critic R3 6835253462)\n\n- F1 footnote (Prefer-A still blocked): **accept-into-contract** as footnote — Prefer-A remains superseded\n- F2 footnote (shared helper not blocks-the-design): **accept-into-contract** as footnote — Recut-3 Bound stands; prefer leaf walk-enumeration module\n- F3 footnote (disagree R2 F2 sound): **accept-into-contract** as footnote — twin-site edit stays leftover\n- F4 footnote (leaf walk-only; no inventory unification): **accept-into-contract** as footnote — implementation note only\n\nPrior R1/R2 blocking and sharpening takes remain as on Recut-3 offer 6835165390 (dual-walk via required shared helper; dual-gate Acceptance; git ls-files declined).\n\n## Bound remedy\n\n1. Extract one shared test-file walk helper (leaf walk-enumeration module under `packages/core/src/check/`) and route both `gate-lists.ts` (`evaluateCitedSkipScan` / #6071) and `context.ts` (`runSanctionedSkipCountBaselineGate` / #6072) through it.\n2. That helper skips directory name `.deft-scratch` and does not descend into a subdirectory whose `.git` entry is a **file** (linked worktree).\n3. Keep sanctioned-skip detection and the #6072 baseline ratchet rules unchanged.\n4. Do not switch v1 enumeration to `git ls-files`.\n5. Do not close with twin in-place `walkTestFiles` edits as the Bound mechanism (leftover only if the shared helper is already landed).\n6. Do not merge duplicated inventory/scan/baseline tables as part of this close.\n\n## Acceptance\n\n- With a linked worktree under `.deft-scratch/worktrees/` that contains an unsanctioned skip, both always-on surfaces pass when the primary tree's tracked files have none: `cited-skip-scan` (#6071) and `sanctioned-skip-count-baseline` (#6072).\n- An unsanctioned skip in a tracked primary-tree file is still refused on those surfaces.\n- CHANGELOG `[Unreleased]` entry.\n\n## Pain cites\n\n- relieves: P1\n- relieves: P2\n- relieves: P3\n\n## ADR-006\n\nR3 footnotes are critic-evidenced at 6835253462. Bound mechanism unchanged from operator-amended Recut-3.\n\nFiled for @MScottAdams\n\n",
+          "id": 6835262206,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6835262206",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:35:48Z",
+          "updated_at": "2026-11-12T20:35:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Recut-3 bound — total all-accept map\n\n## In plain English\n\nOperator accepted Recut-3 confirmed (6835262206). This lean records a total all-accept disposition map over every blocking and sharpening heading in the arc, with footnotes accepted as footnotes, so Path-1 synthesis can stamp. Shared walk helper Bound and dual-gate Acceptance stand.\n\nconflict_group: cited-skip-scan-ignores-nested-worktrees\nSpec-path: Prefer-A Recut-3 — shared walk helper required\nTarget-digest: sha256:f735e8d91e8de6cb2dec3866ef89dde78147864703164d78226de9ee3cc260a7\ndispatch-sha: b9c53c28cb01f334c4a2b5bed8a485371562049c\ndest: .deft-scratch/worktrees/arc-6226\narc-mode: no-ingest\nyolo-standing: on\nspend: N=1\nmateriality-bar: open\nmove-forward: yes\noperator-accept: 6835262206\ncritic-r1: 6834655182\ncritic-r2: 6834839936\ncritic-r3: 6835253462\nsupersedes: 6835262206 / 6835165390 / 6834842307 / 6834669895 / 6834555364\n\n## Per-heading takes (total; all accept-into-contract)\n\n- R1 F1 `blocks-the-design`: **accept-into-contract**\n- R1 F2 `sharpens-framing`: **accept-into-contract** (shared helper is Bound mechanism)\n- R1 F3 `footnote`: **accept-into-contract** as footnote\n- R2 F1 `blocks-the-design`: **accept-into-contract**\n- R2 F2 `footnote`: **accept-into-contract** as footnote (twin-edit leftover under Recut-3 Bound; supersedes offer-line \"disagree relative to Recut-2\")\n- R2 F3 `sharpens-framing`: **accept-into-contract** (dual-gate Acceptance)\n- R2 F4 `footnote`: **accept-into-contract** as footnote\n- R3 F1–F4 `footnote`: **accept-into-contract** as footnote\n\n## Bound remedy\n\n1. Extract one shared test-file walk helper (leaf walk-enumeration module under `packages/core/src/check/`) and route both `gate-lists.ts` (`evaluateCitedSkipScan` / #6071) and `context.ts` (`runSanctionedSkipCountBaselineGate` / #6072) through it.\n2. That helper skips directory name `.deft-scratch` and does not descend into a subdirectory whose `.git` entry is a **file** (linked worktree).\n3. Keep sanctioned-skip detection and the #6072 baseline ratchet rules unchanged.\n4. Do not switch v1 enumeration to `git ls-files`.\n5. Do not close with twin in-place `walkTestFiles` edits as the Bound mechanism.\n6. Do not merge duplicated inventory/scan/baseline tables as part of this close.\n\n## Acceptance\n\n- With a linked worktree under `.deft-scratch/worktrees/` that contains an unsanctioned skip, both always-on surfaces pass when the primary tree's tracked files have none: `cited-skip-scan` (#6071) and `sanctioned-skip-count-baseline` (#6072).\n- An unsanctioned skip in a tracked primary-tree file is still refused on those surfaces.\n- CHANGELOG `[Unreleased]` entry.\n\n## Pain cites\n\n- relieves: P1\n- relieves: P2\n- relieves: P3\n\nFiled for @MScottAdams\n\n",
+          "id": 6835292257,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6835292257",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:37:10Z",
+          "updated_at": "2026-11-12T20:37:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nNon-self-arbitration: this parent authored Stop 1 triage and Prefer-A; synthesis discloses that and relies on critic primary-source pin-reads for twin-walker and Acceptance sharpen claims.\n\n| Claim | Status | Method |\n| --- | --- | --- |\n| `gate-lists.ts` and `context.ts` each host a live `walkTestFiles` used on `task check` (#6071 scan and #6072 baseline) | verified | Primary-source pin-read of orchestrator/cached-orchestrator imports and both walkers at sha b9c53c28cb01f334c4a2b5bed8a485371562049c (R1/R2/R3) |\n| Prefer-A single-site Bound leaves #6072 twin unbounded | verified | Same pin-read; Prefer-A text names only gate-lists |\n| Nested `.deft-scratch/worktrees` linked worktrees are the observed refuse surface | verified | Issue body refuse lines + swarm/design-critique dest convention |\n| Shared leaf walk helper avoids import cycles between gate-lists and context | verified | Pin-read: neither module imports the other today (R3) |\n| Dual-gate Acceptance (#6071 and #6072) is required for done-bar | verified | R2 F3 failure mode; Recut-3 Acceptance |\n| `git ls-files` declined for v1 | verified | Prefer-A / Recut Bound item; issue option A not selected |\n\nCited lean (pending post id): will be named from synthesis.\n\n",
+          "id": 6835294011,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6835294011",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:37:15Z",
+          "updated_at": "2026-11-12T20:37:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\n`task check` was failing release Step 5 in maintainer checkouts because the cited-skip walkers scanned ignored nested worktrees. The accepted design extracts one shared walk helper for both the #6071 scan and the #6072 baseline gate, stops at `.deft-scratch` and linked-worktree `.git` files, keeps sanction rules unchanged, and requires both always-on surfaces to pass under that fixture.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean: 6835292257\nverified-claims table: 6835294011\nTarget closed under Prefer-A Recut-3 Spec-path (shared walk helper required; dual-gate Acceptance).\npain: P1, P2, P3 relieved on that lean.\nmateriality-bar: open\narc-mode: no-ingest\n\nNon-self-arbitration: parent authored triage; twin-walker and dual-gate claims were critic-derived at 6834655182 / 6834839936 / 6835253462.\n\n",
+          "id": 6835297110,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6835297110",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:37:23Z",
+          "updated_at": "2026-11-12T20:37:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1 pain-P2 pain-P3\nfinding-classes: none\nharvest-changed: false\n\n## Method\n\nRe-read Stop 1 (6834557252) pains P1–P3 and lean 6835292257 Bound remedy + Acceptance + Pain cites. Confirm the Bound relieves all three without harvest change.\n\n- **pain-P1** (linked worktrees under .deft-scratch/worktrees/ fail cited-skip while CI passes): Bound helper skips directory name .deft-scratch and does not descend into a subdirectory whose .git is a file (linked worktree). Primary-tree scan no longer couples to nested worktree content → relieved.\n- **pain-P2** (Release Step 5 / \task check can refuse skips not in the commit under test): Same walk bound routes both #6071 and #6072 through the helper, so nested-worktree skips outside the commit under test are not enumerated → relieved.\n- **pain-P3** (unsanctioned skip in a tracked file must still be refused): Acceptance requires an unsanctioned skip in a tracked primary-tree file is still refused on both surfaces; Bound keeps sanctioned-skip detection and #6072 baseline ratchet unchanged → relieved.\n\nNo new block or sharpening finding. Harvest unchanged.\n\n## In plain English\n\nThe shared walk helper Bound already on the lean covers the three Stop 1 pains: ignore nested scratch worktrees, keep scanning the real tree, and still fail real unsanctioned skips. Nothing new to harvest.",
+          "id": 6835313305,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6835313305",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:38:08Z",
+          "updated_at": "2026-11-12T20:38:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Recut-3 close — pain-audit cleared\n\n## In plain English\n\nPain-audit critic 6835313305 targeted pain-P1–P3 after the bound lean, returned finding-classes none and harvest-changed false, and confirmed the shared walk helper Bound relieves all three Stop 1 pains. This lean accepts that audit and re-states the same Bound for the completed-arc cite.\n\nconflict_group: cited-skip-scan-ignores-nested-worktrees\nSpec-path: Prefer-A Recut-3 — shared walk helper required\nTarget-digest: sha256:f735e8d91e8de6cb2dec3866ef89dde78147864703164d78226de9ee3cc260a7\ndispatch-sha: b9c53c28cb01f334c4a2b5bed8a485371562049c\ndest: .deft-scratch/worktrees/arc-6226\narc-mode: no-ingest\nyolo-standing: on\nspend: N=1\nmateriality-bar: open\nmove-forward: yes\npain-audit: 6835313305\nsupersedes: 6835292257\ncritic-r1: 6834655182\ncritic-r2: 6834839936\ncritic-r3: 6835253462\n\n## Per-heading takes\n\n- Pain-audit 6835313305 (`finding-classes: none`, `harvest-changed: false`): **accept-into-contract**\n- All prior blocking/sharpening headings on lean 6835292257: **accept-into-contract** (unchanged)\n\n## Bound remedy\n\n1. Extract one shared test-file walk helper (leaf walk-enumeration module under `packages/core/src/check/`) and route both `gate-lists.ts` (`evaluateCitedSkipScan` / #6071) and `context.ts` (`runSanctionedSkipCountBaselineGate` / #6072) through it.\n2. That helper skips directory name `.deft-scratch` and does not descend into a subdirectory whose `.git` entry is a **file** (linked worktree).\n3. Keep sanctioned-skip detection and the #6072 baseline ratchet rules unchanged.\n4. Do not switch v1 enumeration to `git ls-files`.\n5. Do not close with twin in-place `walkTestFiles` edits as the Bound mechanism.\n6. Do not merge duplicated inventory/scan/baseline tables as part of this close.\n\n## Acceptance\n\n- With a linked worktree under `.deft-scratch/worktrees/` that contains an unsanctioned skip, both always-on surfaces pass when the primary tree's tracked files have none: `cited-skip-scan` (#6071) and `sanctioned-skip-count-baseline` (#6072).\n- An unsanctioned skip in a tracked primary-tree file is still refused on those surfaces.\n- CHANGELOG `[Unreleased]` entry.\n\n## Pain cites\n\n- relieves: P1\n- relieves: P2\n- relieves: P3\n\nFiled for @MScottAdams\n\n",
+          "id": 6835327303,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6835327303",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:38:47Z",
+          "updated_at": "2026-11-12T20:38:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1 pain-P2 pain-P3\nfinding-classes: none\nharvest-changed: false\n\n## Method\n\nRe-read Stop 1 6834557252 pains P1–P3 and closing lean 6835327303 Bound remedy + Acceptance + Pain cites (same Bound as 6835292257). Prior pain-audit 6835313305 already confirmed relief; this post retargets the new successor lean so the completed-arc cite is covered.\n\n- pain-P1: Bound skips `.deft-scratch` and linked-worktree `.git` files → relieved\n- pain-P2: both #6071 and #6072 route through the helper → relieved\n- pain-P3: Acceptance keeps unsanctioned primary-tree refuse; detection/ratchet unchanged → relieved\n\nNo new block or sharpening finding. Harvest unchanged.\n\n## In plain English\n\nSame shared walk helper Bound still covers all three Stop 1 pains against the closing lean. Nothing new to harvest.\n\n",
+          "id": 6835332216,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6835332216",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:39:01Z",
+          "updated_at": "2026-11-12T20:39:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nNon-self-arbitration: parent authored Stop 1; twin-walker and dual-gate claims critic-derived; pain relief confirmed by pain-audit critic 6835313305 after bound lean.\n\n| Claim | Status | Method |\n| --- | --- | --- |\n| Dual live walkers on `task check` (#6071 and #6072) | verified | Pin-read orchestrator imports + both `walkTestFiles` at b9c53c28c (R1–R3) |\n| Prefer-A single-site Bound insufficient | verified | Prefer-A text + twin walker pin-read |\n| Shared leaf walk helper Bound relieves P1–P3 without harvest change | verified | Pain-audit 6835313305 (`finding-classes: none`, `harvest-changed: false`) |\n| Dual-gate Acceptance required | verified | R2 F3 + Recut-3 Acceptance |\n| `git ls-files` declined for v1 | verified | Bound item 4 |\n\n",
+          "id": 6835334125,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6835334125",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:39:06Z",
+          "updated_at": "2026-11-12T20:39:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\n`task check` was failing release Step 5 in maintainer checkouts because the cited-skip walkers scanned ignored nested worktrees. The accepted design extracts one shared walk helper for both the #6071 scan and the #6072 baseline gate, stops at `.deft-scratch` and linked-worktree `.git` files, keeps sanction rules unchanged, and requires both always-on surfaces to pass under that fixture. Pain-audit after the closing lean confirmed P1–P3 relieved with no harvest change.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean: 6835327303\nverified-claims table: 6835334125\npain-audit: 6835332216\nSpec-path Prefer-A Recut-3 (shared walk helper required; dual-gate Acceptance).\nmateriality-bar: open\narc-mode: no-ingest\n\nNon-self-arbitration: parent authored triage; twin-walker / dual-gate / pain relief critic-derived at 6834655182 / 6834839936 / 6835253462 / 6835332216.\n\n",
+          "id": 6835337548,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6835337548",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:39:16Z",
+          "updated_at": "2026-11-12T20:39:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Recut-3 final — correct Target-digest\n\n## In plain English\n\nSame accepted Bound as the closing lean: one shared walk helper for #6071 and #6072, skip `.deft-scratch` and linked-worktree `.git` files, dual-gate Acceptance, no `git ls-files`. This lean only corrects `Target-digest` to the live REST issue body hash (prior leans used a jq-extra-newline digest).\n\nconflict_group: cited-skip-scan-ignores-nested-worktrees\nSpec-path: Prefer-A Recut-3 — shared walk helper required\nTarget-digest: sha256:47bd1dcd8f74216392206210bd47e8ebe50914ccfb8fd1ad59fff7e2adf81c1b\ndispatch-sha: b9c53c28cb01f334c4a2b5bed8a485371562049c\ndest: .deft-scratch/worktrees/arc-6226\narc-mode: no-ingest\nyolo-standing: on\nspend: N=1\nmateriality-bar: open\nmove-forward: yes\nsupersedes: 6835327303 / 6835292257\ndigest-note: prior Target-digest f735e8d9… was jq `.body` + extra trailing newline; live REST JSON body is 47bd1dcd…\n\n## Per-heading takes\n\n- All prior blocking/sharpening headings: **accept-into-contract** (unchanged Bound)\n- Pain-audits 6835313305 / 6835332216 conclusions: **accept-into-contract** (will retarget after this lean)\n\n## Bound remedy\n\n1. Extract one shared test-file walk helper (leaf walk-enumeration module under `packages/core/src/check/`) and route both `gate-lists.ts` (`evaluateCitedSkipScan` / #6071) and `context.ts` (`runSanctionedSkipCountBaselineGate` / #6072) through it.\n2. That helper skips directory name `.deft-scratch` and does not descend into a subdirectory whose `.git` entry is a **file** (linked worktree).\n3. Keep sanctioned-skip detection and the #6072 baseline ratchet rules unchanged.\n4. Do not switch v1 enumeration to `git ls-files`.\n5. Do not close with twin in-place `walkTestFiles` edits as the Bound mechanism.\n6. Do not merge duplicated inventory/scan/baseline tables as part of this close.\n\n## Acceptance\n\n- With a linked worktree under `.deft-scratch/worktrees/` that contains an unsanctioned skip, both always-on surfaces pass when the primary tree's tracked files have none: `cited-skip-scan` (#6071) and `sanctioned-skip-count-baseline` (#6072).\n- An unsanctioned skip in a tracked primary-tree file is still refused on those surfaces.\n- CHANGELOG `[Unreleased]` entry.\n\n## Pain cites\n\n- relieves: P1\n- relieves: P2\n- relieves: P3\n\nFiled for @MScottAdams\n\n",
+          "id": 6835350173,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6835350173",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:39:49Z",
+          "updated_at": "2026-11-12T20:39:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1 pain-P2 pain-P3\nfinding-classes: none\nharvest-changed: false\n\n## Method\n\nRetarget pain-P1–P3 to the final successor lean (correct Target-digest). Bound remedy unchanged from prior accepted map; confirms relief without harvest change.\n\n- pain-P1: helper skips `.deft-scratch` and linked-worktree `.git` files → relieved\n- pain-P2: #6071 and #6072 both use the helper → relieved\n- pain-P3: primary-tree unsanctioned skips still refused; detection/ratchet unchanged → relieved\n\n## In plain English\n\nThe shared walk helper Bound still covers all three Stop 1 pains on the final lean. Nothing new to harvest.\n\n",
+          "id": 6835355509,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6835355509",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:40:03Z",
+          "updated_at": "2026-11-12T20:40:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nNon-self-arbitration: parent authored Stop 1; twin-walker / dual-gate / pain relief critic-derived.\n\n| Claim | Status | Method |\n| --- | --- | --- |\n| Dual live walkers on `task check` (#6071 and #6072) | verified | Pin-read at b9c53c28c (R1–R3) |\n| Prefer-A single-site Bound insufficient | verified | Prefer-A text + twin walker pin-read |\n| Shared leaf walk helper Bound relieves P1–P3 without harvest change | verified | Pain-audit 6835355509 |\n| Dual-gate Acceptance required | verified | R2 F3 + Recut-3 Acceptance |\n| `git ls-files` declined for v1 | verified | Bound item 4 |\n| Target-digest matches live REST issue body | verified | sha256:47bd1dcd8f74216392206210bd47e8ebe50914ccfb8fd1ad59fff7e2adf81c1b |\n\n",
+          "id": 6835359667,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6835359667",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:40:15Z",
+          "updated_at": "2026-11-12T20:40:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\n`task check` was failing release Step 5 in maintainer checkouts because the cited-skip walkers scanned ignored nested worktrees. The accepted design extracts one shared walk helper for both the #6071 scan and the #6072 baseline gate, stops at `.deft-scratch` and linked-worktree `.git` files, keeps sanction rules unchanged, and requires both always-on surfaces to pass under that fixture.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nsuccessor lean: 6835350173\nverified-claims table: 6835359667\npain-audit: 6835355509\nSpec-path Prefer-A Recut-3 (shared walk helper required; dual-gate Acceptance).\nmateriality-bar: open\narc-mode: no-ingest\n\nNon-self-arbitration: parent authored triage; load-bearing twin-walker / dual-gate / pain claims critic-derived.\n\r\n\n",
+          "id": 6835360118,
+          "html_url": "https://github.com/deftai/directive/issues/6226#issuecomment-6835360118",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T20:40:16Z",
+          "updated_at": "2026-11-12T20:40:16Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\n`task check`'s cited-skip scan (#6071) walks every directory under the project root on disk, including git-ignored ones. In a maintainer checkout that holds linked worktrees under `.deft-scratch/worktrees/`, it scans each worktree's copy of the test tree and refuses their skips. So the release's Step 5 fails on files that are not in the commit being released.\n\n## Seen on this repo (2026-11-12, 0.129.7 cut)\n\n- Release Step 5 ran `task check` in the primary checkout at master b9c53c28c.\n- It refused 23 test skips. All 23 were under `.deft-scratch/worktrees/<name>/packages/core/...` (arc worktrees and story worktrees), for example:\n\n```\ncheck: unsanctioned-test-skip: .deft-scratch/worktrees/arc-5710/packages/core/src/release-e2e/legacy-bridge-leg.test.ts:410 describe.skip refused in v1 (#6071)\n```\n\n- None was outside `.deft-scratch/`.\n- CI's `Merge gate (task check)` passed on the same commit, because CI's clean checkout has no nested worktrees.\n- `.deft-scratch/worktrees` is git-ignored. Directive's own swarm and design-critique flows create worktrees there.\n\nThe workaround was to `git worktree move` the nested worktrees out of the checkout for the cut. Four of them could not move because they were still open as session folders in the desktop app.\n\n## Where\n\n`packages/core/src/check/gate-lists.ts`, `walkTestFiles`: it uses `readdirSync` recursively and skips only `node_modules`, `dist` and `.git`. It does not consult `.gitignore` and does not stop at a nested worktree (a directory whose `.git` is a file).\n\n## Requested behaviour\n\n- The scan covers the files of the commit under test, not whatever else is on disk. Options: enumerate with `git ls-files` (tracked plus staged), or stop descending at a directory whose `.git` entry is a file, and skip `.deft-scratch/`.\n- Same result locally and in CI for the same commit.\n- No change to what counts as a sanctioned skip.\n\n## Acceptance\n\n- A checkout with a linked worktree under `.deft-scratch/worktrees/` that contains an unsanctioned skip passes the scan when the checkout's own tracked files have none.\n- An unsanctioned skip in a tracked file is still refused.\n- CHANGELOG `[Unreleased]` entry.\n\n## Related\n\n#6071 (cited-skip scan), #6072 (skip-count baseline), #5954 (release-skill gaps from the 0.129.1 cut), #5912 (another release-preflight failure from the same cut).\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6357480604,
+        "origin": "deftai/directive#6226",
+        "id": "github.issue.6357480604"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "47bd1dcd8f74216392206210bd47e8ebe50914ccfb8fd1ad59fff7e2adf81c1b"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "cited-skip-scan-ignores-nested-worktrees",
+        "expected_outputs": [
+          "cited-skip-scan (#6071) and sanctioned-skip-count-baseline (#6072) pass when a linked worktree under .deft-scratch/worktrees holds an unrefused describe.skip",
+          "primary-tree describe.skip still refused",
+          "shared leaf walk helper with unit tests; .deft-scratch skipped by literal basename and .git-file subdirs not descended",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/check/walk-test-files.test.ts packages/core/src/check/gate-lists.test.ts packages/core/src/check/orchestrator.test.ts packages/core/src/check/degraded-skip.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/check/walk-test-files.ts",
+          "packages/core/src/check/walk-test-files.test.ts",
+          "packages/core/src/check/gate-lists.ts",
+          "packages/core/src/check/context.ts",
+          "packages/core/src/check/orchestrator.test.ts",
+          "packages/core/src/check/degraded-skip.test.ts",
+          "CHANGELOG.md"
+        ],
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#6226"
+        ],
+        "acceptance_criteria_justification": "Six clauses from the accepted Prefer-A Recut-3 Bound: two positive mechanism clauses plus four locked keep-out clauses (no ratchet change, no git ls-files, no twin in-place edits, no table merge); the keep-outs are guardrails, not separate work."
+      }
+    },
+    "id": "github.issue.6357480604",
+    "updated": "2026-11-12T21:52:30Z"
+  }
+}
