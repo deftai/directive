@@ -64,15 +64,19 @@ function reader(f: FakeForge): ForgeApprovalReader {
     },
     getRaw: (path) => {
       f.calls.push(path);
-      const m = /\?ref=([0-9a-f]{40})$/.exec(path);
+      const m = /\?ref=([0-9a-f]{40}|[0-9a-f]{64})$/.exec(path);
       const text = m !== null ? f.briefs?.[m[1] ?? ""] : undefined;
       return text === undefined ? { ok: false, detail: "HTTP 404" } : { ok: true, value: text };
     },
   };
 }
 
-function gitAt(head: string | null, parents: string[] = []): ForgeApprovalGit {
-  return { headSha: () => head, headParents: () => parents };
+function gitAt(
+  head: string | null,
+  parents: string[] = [],
+  origin: string | null = REPO,
+): ForgeApprovalGit {
+  return { headSha: () => head, headParents: () => parents, originRepo: () => origin };
 }
 
 function pull(overrides: Record<string, unknown> = {}): Record<string, unknown> {
@@ -148,6 +152,15 @@ describe("auth-hash v1 (#6203 clause 2)", () => {
     expect(
       computeAuthHashV1(brief({ narratives: { AcceptanceCriteria: "- new line" } }), REL),
     ).not.toBe(a);
+  });
+
+  it("keeps exact path spelling: NFC and NFD forms of one name hash apart", () => {
+    const nfc = "packages/core/src/café.ts";
+    const nfd = "packages/core/src/café.ts";
+    expect(nfc).not.toBe(nfd);
+    const a = computeAuthHashV1(brief({ metadata: { swarm: { file_scope: [nfc] } } }), REL);
+    const b = computeAuthHashV1(brief({ metadata: { swarm: { file_scope: [nfd] } } }), REL);
+    expect(a).not.toBe(b);
   });
 
   it("hashes concrete file_scope only and returns null without plan.id", () => {
@@ -255,6 +268,33 @@ describe("evaluateForgeHeadBriefApproval (#6203 clause 3)", () => {
   it("rejects a PR whose base repo is another repository", () => {
     const v = evaluate(forge({ pull: pull({ base: { repo: { full_name: "evil/fork" } } }) }));
     expect(v.kind === "reject" && v.reason).toMatch(/base repo/);
+  });
+
+  it("rejects a requested fork repo that is not the checkout's origin, before any call", () => {
+    const f = forge();
+    const v = evaluateForgeHeadBriefApproval({
+      projectRoot: "/tmp/forge-proj",
+      context: { prNumber: PR, repo: "evil/fork", reader: reader(f), git: gitAt(HEAD) },
+      xbriefRelPath: REL,
+      headPayload: brief(),
+    });
+    expect(v.kind === "reject" && v.reason).toMatch(/not the project repo/);
+    expect(f.calls).toEqual([]);
+  });
+
+  it("rejects when the checkout origin cannot be resolved", () => {
+    const v = evaluate(forge(), gitAt(HEAD, [], null));
+    expect(v.kind === "reject" && v.reason).toMatch(/project repo unresolved/);
+  });
+
+  it("admits SHA-256 (64-hex) object ids", () => {
+    const head256 = "c".repeat(64);
+    const f = forge({
+      pull: pull({ head: { sha: head256 } }),
+      reviews: [review("alice", "APPROVED", head256)],
+      briefs: { [head256]: JSON.stringify(brief()) },
+    });
+    expect(evaluate(f, gitAt(head256)).kind).toBe("admit");
   });
 });
 

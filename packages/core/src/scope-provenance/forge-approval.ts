@@ -23,10 +23,9 @@
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { resolveProjectRepo } from "../slice/project-context.js";
+import { parseGitHubRepoSlug } from "../text/redos-safe.js";
 import { isConcreteFileScopeEntry } from "./base-fence.js";
 import { extractFileScope, extractPlanId, normalizeFileScope } from "./digest.js";
-import { sortKeysDeep } from "./intent-digest.js";
 
 export const FORGE_AUTH_HASH_SCHEMA = "deft.scope.forge-auth-hash.v1" as const;
 
@@ -34,7 +33,8 @@ export const FORGE_AUTH_HASH_SCHEMA = "deft.scope.forge-auth-hash.v1" as const;
 const REVIEW_PAGE_SIZE = Number("100");
 const REVIEW_PAGE_CAP = Number("10");
 
-const SHA_RE = /^[0-9a-f]{40}$/;
+/** SHA-1 (40 hex) or SHA-256 (64 hex) object ids. */
+const SHA_RE = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
 const REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 const WRITE_PERMISSIONS = new Set(["admin", "maintain", "write"]);
 
@@ -114,11 +114,30 @@ export function buildAuthHashV1Preimage(
   };
 }
 
+/**
+ * Canonical form for the hash: object keys sorted by UTF-16 code unit, arrays
+ * in order, strings byte-exact. No Unicode normalization: membership compares
+ * paths exactly, so two spellings of one visible name are two files and must
+ * hash apart.
+ */
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalize);
+  if (value !== null && typeof value === "object") {
+    const rec = value as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const key of Object.keys(rec).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))) {
+      out[key] = canonicalize(rec[key]);
+    }
+    return out;
+  }
+  return value;
+}
+
 /** `sha256:<hex>` over canonical JSON of the v1 preimage; null without plan.id. */
 export function computeAuthHashV1(payload: unknown, xbriefRelPath: string): string | null {
   const preimage = buildAuthHashV1Preimage(payload, xbriefRelPath);
   if (preimage === null) return null;
-  const canonical = JSON.stringify(sortKeysDeep(preimage));
+  const canonical = JSON.stringify(canonicalize(preimage));
   return `sha256:${createHash("sha256").update(canonical, "utf8").digest("hex")}`;
 }
 
@@ -142,11 +161,16 @@ export interface ForgeApprovalGit {
   readonly headSha: () => string | null;
   /** Parents of HEAD (empty when unreadable). */
   readonly headParents: () => readonly string[];
+  /** OWNER/NAME of the checkout's `origin` remote, or null. */
+  readonly originRepo: () => string | null;
 }
 
 export interface ForgeApprovalContext {
   readonly prNumber: number;
-  /** OWNER/NAME. Falls back to DEFT_PROJECT_REPO / git remote. */
+  /**
+   * OWNER/NAME the caller expects. It must equal the checkout's `origin`
+   * repo; it never replaces it (a fork approval cannot authorize here).
+   */
   readonly repo?: string | null;
   readonly reader?: ForgeApprovalReader;
   readonly git?: ForgeApprovalGit;
@@ -213,6 +237,10 @@ export function defaultForgeApprovalGit(projectRoot: string): ForgeApprovalGit {
         .split(/\s+/)
         .slice(1)
         .filter((s) => SHA_RE.test(s));
+    },
+    originRepo: () => {
+      const out = run(["remote", "get-url", "origin"]);
+      return out === null ? null : parseGitHubRepoSlug(out);
     },
   };
 }
@@ -356,13 +384,16 @@ function evaluateUnsafe(input: ForgeHeadBriefApprovalInput): ForgeApprovalVerdic
   if (!Number.isInteger(context.prNumber) || context.prNumber <= 0) {
     return deny("no PR number");
   }
-  const repo =
-    context.repo !== undefined && context.repo !== null && context.repo.length > 0
-      ? context.repo
-      : resolveProjectRepo(null, input.projectRoot);
-  if (repo === null || !REPO_RE.test(repo)) return deny("no repo slug");
-  const reader = context.reader ?? defaultForgeApprovalReader;
   const git = context.git ?? defaultForgeApprovalGit(input.projectRoot);
+  // Repo identity comes from the checkout, never from the caller: a supplied
+  // repo may only confirm it, so a fork's approval cannot authorize here.
+  const repo = git.originRepo();
+  if (repo === null || !REPO_RE.test(repo)) return deny("project repo unresolved (origin)");
+  const requested = context.repo ?? "";
+  if (requested.length > 0 && requested.toLowerCase() !== repo.toLowerCase()) {
+    return deny(`requested repo ${requested} is not the project repo ${repo}`);
+  }
+  const reader = context.reader ?? defaultForgeApprovalReader;
 
   const pull = reader.getJson(`repos/${repo}/pulls/${String(context.prNumber)}`);
   if (!pull.ok) return deny(`PR unavailable: ${pull.detail}`);

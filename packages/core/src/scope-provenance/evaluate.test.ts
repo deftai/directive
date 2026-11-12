@@ -2095,7 +2095,7 @@ describe("forge-approved head-brief membership admit (#6203)", () => {
       prNumber: PR,
       repo: REPO,
       reader,
-      git: { headSha: () => HEAD_SHA, headParents: () => [] },
+      git: { headSha: () => HEAD_SHA, headParents: () => [], originRepo: () => REPO },
     };
   }
 
