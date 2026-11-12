@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6203",
-    "updated": "2026-11-12T04:36:26Z"
+    "updated": "2026-11-12T21:02:12Z"
   },
   "plan": {
     "title": "feat(scope): admit a brief and its implementation in one PR under a forge-attested human approval",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "verify:scope-provenance trusts a brief's file_scope only from the merge base, so a PR that carries a new brief plus its code is refused and needs a separate brief-land PR. This story admits the head brief for membership when a qualifying human GitHub approval covers the brief's authorization bytes. A present mint and Path B stay unchanged.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6203",
@@ -19,50 +19,92 @@
     "items": [
       {
         "title": "relieves: P4 — Forge head-brief membership admit runs only when allowlistAuthority is precommitment or missing; a present mint keeps today's mint path.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When a mint is present, membership rejects or admits exactly as today and the forge approval path is never consulted."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75a538684f97c9c4a19d43e7a18b375657af9073",
+          "recorded_at": "2026-11-12T21:02:12Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P2 — Auth-hash v1 covers plan.id, xbrief path, concrete file_scope, and acceptanceCriteria array bytes in canonical JSON order; productPullRequest and other delivery metadata stay out.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "The auth-hash v1 returns the same value when only productPullRequest or other delivery metadata changes, and a different value when plan.id, the xbrief path, file_scope or acceptanceCriteria change."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75a538684f97c9c4a19d43e7a18b375657af9073",
+          "recorded_at": "2026-11-12T21:02:12Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P3 — Qualifying proof is a currently effective APPROVED review by a non-author User with repo write, bound to this repo/PR/plan.id and the immutable candidate head; Bot/App, withdrawn, or hash mismatch selects Path B.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When the PR has an effective APPROVED review by a non-author User with write permission on the candidate head and a matching hash, membership admits the head brief; Bot or App reviews, withdrawn reviews and hash mismatches are rejected."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75a538684f97c9c4a19d43e7a18b375657af9073",
+          "recorded_at": "2026-11-12T21:02:12Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P4 — Missing, invalid, or unavailable forge proof keeps Path B merge-base or mint remediation unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When forge proof is missing, invalid or the forge is unavailable, verify:scope-provenance returns today's Path B or mint remediation unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75a538684f97c9c4a19d43e7a18b375657af9073",
+          "recorded_at": "2026-11-12T21:02:12Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Prefer-A is membership-only; evaluateProductionScopeFence stays merge-base.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When the head brief is admitted for membership, evaluateProductionScopeFence still reads file_scope from the merge base and fails over-budget production paths as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75a538684f97c9c4a19d43e7a18b375657af9073",
+          "recorded_at": "2026-11-12T21:02:12Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "operator-deferred: P1 #6207 — Confused-deputy agent-held second human forge token posture stays on leftover #6207; hash does not claim to close it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When docs/scope-provenance.md describes the forge admit, it records that agent-held second human tokens remain open on #6207 and the hash does not close that risk."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "75a538684f97c9c4a19d43e7a18b375657af9073",
+          "recorded_at": "2026-11-12T21:02:12Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -1385,9 +1427,36 @@
           "#6203"
         ],
         "acceptance_criteria_justification": "Six clauses follow the accepted Recut-4 lean one-to-one; clause 6 records the operator deferral to #6207 so the hash is not claimed to close it."
+      },
+      "productPullRequest": 6211,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "caf38db57d26c40fae97a8581e019b06e6a03ecd",
+        "prNumber": 6211,
+        "prBase": "master",
+        "mergeCommit": "75a538684f97c9c4a19d43e7a18b375657af9073",
+        "deliveryBranch": "master",
+        "deliveryCommit": "cd76d7d752e6a56ed979a4af34b4fc4821072710",
+        "verifiedAt": "2026-11-12T21:02:12Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-12T21:02:12Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-12T21:02:12Z"
       }
     },
     "id": "github.issue.6339727631",
-    "updated": "2026-11-12T01:44:46Z"
+    "updated": "2026-11-12T21:02:12Z"
   }
 }

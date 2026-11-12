@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5710",
-    "updated": "2026-11-12T07:37:19Z"
+    "updated": "2026-11-12T20:58:34Z"
   },
   "plan": {
     "title": "bug(scope): scope:complete has no path for a delivered PR-only brief, and the identity join accepts a post-merge closing link",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "scope:complete refuses a code-bearing brief that has a stamped productPullRequest but no github-issue reference, so shipped PR-only work cannot complete honestly. On the issue-anchored path the identity join checks the PR's current closingIssuesReferences, so a closing link added after merge satisfies it, while a Path B product PR that carries only a deft-story mark cannot complete. This story ships a PR-only completion path, an early preflight warning, association proven at merge time, and a refusal of non-delivery dispositions for a merged stamped PR.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5710",
@@ -20,74 +20,293 @@
     "items": [
       {
         "title": "relieves: P1 — Recut13-PR-only-tuple: when resolvePlanGithubIssueRef is null, delivery identity is (repository, prNumber) from plan.metadata.productPullRequest plus the canonically resolved project remote; require --pr equals that number, PR merged, merge_commit_sha equals --merge-commit; --repo matching assertion only; no invented issue closer on this path; the PR-only path has no merge-time association standard in v1.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "scope:complete on an issue-less brief with stamped productPullRequest succeeds when --pr matches that number, the PR is merged and merge_commit_sha matches, and refuses otherwise."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P1 — Recut13-discovery-same-resolver: discoverDeliveryEvidenceForComplete uses that same PR-only derivation when productPullRequest is stamped and issue ref is null (keep delivery-base / ancestry).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "discoverDeliveryEvidenceForComplete returns the same PR-only identity tuple for a stamped issue-less brief and keeps the delivery-base ancestry check."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P1 — Recut13-github-pr-stamp-match-only: x-xbrief/github-pr is not a standalone delivery-identity mark in v1; when productPullRequest is stamped, a matching same-repo URI is redundant and a different historical PR ref does not override or invalidate the stamp; when productPullRequest is unset, do not admit github-pr as delivery identity — remediate by stamping productPullRequest (issue-less briefs only) or adding an issue origin; \"resolvePlanGithubIssueRef is null\" means today's resolver (first reference whose URI parses as a GitHub issue URL regardless of type).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When productPullRequest is stamped, a matching same-repo x-xbrief/github-pr reference is accepted as redundant, and the identity join rejects a different historical PR reference as a delivery identity."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P2 — Recut13-preflight-warn: at xbrief:preflight for isCodeBearingScope without issue origin, print one remediation naming the PR-only complete contract and the issue-first path; promote/activate stay green; warn population is isCodeBearingScope-true briefs.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When a code-bearing brief has no issue origin, xbrief:preflight emits one remediation line naming the PR-only and issue-first paths, and promote and activate still succeed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P3 — Recut13-merge-time-association: on the issue-anchored path, the (repository, issue, PR) association is effective at merge when one of these holds: (a) the candidate PR is not delivery-brief-land-excluded, its body as of authoritative merged_at carries a sole deft-story: N mark naming that issue in the same repository (sole = exactly one distinct mark per parseAllDeftStoryMarks), AND at verification time no other merged PR in that repository is an established competitor — a competitor is a merged PR that is not delivery-brief-land-excluded and whose body as of its own merged_at carries a sole deft-story: N for that issue; delivery-brief-land-excluded means every changed path (including rename sources and destinations) is under xbrief|vbrief/(proposed|pending|active|completed)/ or is root CHANGELOG.md, with at least one such path for a positive exclusion (CHANGELOG-only and completed-folder renames qualify; empty/deletion-only diffs that only touch those paths are excluded); this delivery exclusion is not identical to activation isBriefLandShapedDiff; a failed changed-file lookup for the candidate or a possible competitor fails closed; uniqueness is observed among merged non-excluded PRs at verification; (b) the PR body as of merged_at contains a GitHub closing keyword (close, closes, closed, fix, fixes, fixed, resolve, resolves, resolved; case-insensitive) naming that issue as #N, owner/repo#N or the issue URL; (c) ConnectedEvent / DisconnectedEvent history reconstructs a connected state at merged_at; the merge-time body is the latest userContentEdits revision with editedAt ≤ merged_at, or the current body when the PR has no edit history; a mark, keyword or Connected link added after merged_at does not count; current-state closingIssuesReferences alone stays insufficient; brief-in-PR-diff identity is unchanged; no silent fallback from a failed issue-anchored check to the PR stamp.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "On the issue-anchored path, the identity join succeeds for a merged PR whose merge-time body carries a unique sole deft-story mark, a closing keyword, or a connected state at merged_at, and fails when the mark or keyword was added only after merged_at."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P3 — Recut13-uniqueness-scan-fail-closed: limb (a) scan shape is: enumerate all merged PRs via paged list; for each, reconstruct the merge-time body via fully paged userContentEdits (or current body when no edits); run parseAllDeftStoryMarks; only for sole-mark hits, fetch changed files via paged pulls/<N>/files (including rename previous_filename) to classify delivery-brief-land. Default budget: attempt that full enumeration. Budget units and caps: (1) wall-clock 20 minutes from scan start; (2) before each GraphQL page, live graphql.remaining must be ≥ 200 else refuse; (3) REST core remaining ≥ 100 else refuse. Supported envelope: repositories where full enumeration finishes under those caps under ordinary rate limits (guide: ≤ ~10k merged PRs). Above that envelope, or on any incomplete page / timeout / rate-limit / truncated files listing (forge 3000-file cap) / unreadable revision or competitor / exhausted budget before every merged PR is classified, fail closed (unknown/refuse, no completion). Do not use current-body search alone as completeness; do not silently weaken to a recent window; marks removed after merge without reconstructable merge-time body are fail-closed unknowns. Fixtures cover competing non-excluded mark removed after merge, duplicate beyond first page, unreadable competitor, truncated files listing, budget-exhaustion refuse, product PR that passes when only delivery-excluded PRs share the mark (including completed-folder rename), two non-excluded sole-mark PRs that both refuse, delivery-excluded candidate that refuses even alone, and multi-story mark PR that is not sole for any story; a later-merged competing non-excluded sole mark refuses a later complete without rewriting stored completion provenance.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "The uniqueness scan refuses completion when a page is incomplete, a files listing is truncated, a competitor is unreadable or the budget is exhausted, and the identity join succeeds for a product PR when only delivery-brief-land-excluded PRs share its mark."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P3 — Recut13-stranded-shape-named: an issue-anchored brief whose product PR carried no unique merge-time sole deft-story mark among non-excluded PRs, no closing keyword and no Connected link at merged_at (including the #6147 shape and other Refs-only / mark-less product PRs) stays fail-closed in v1 with a refusal that names the three accepted bases; recovery is the parked identity-migration.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "When the product PR carried no unique sole deft-story mark, no closing keyword and no connected link at merged_at, scope:complete refuses and the refusal names the three accepted bases."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P3 — Recut13-stamp-conjunct-demoted: plan.metadata.productPullRequest === --pr is not a delivery-identity proof on the issue-anchored path in v1; it may remain as first-write stamp durability of a successful complete only (footnote); activation/lifecycle exclusion from the uniqueness set lives in Recut13-merge-time-association delivery-brief-land filter, not in this demotion limb.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "On the issue-anchored path, the identity join fails when plan.metadata.productPullRequest equals --pr but no merge-time basis exists, and it returns the same result whether or not that stamp is set."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P4 — Recut13-non-delivery-control: scope:complete refuses a non-delivery disposition (cancelled, superseded, experiment_archived, accepted_not_delivered) when plan.metadata.productPullRequest is stamped and that PR is merged in the authoritative repository; resolve that stamped PR before any successful non-delivery early return; if merge state cannot be established (timeout, inaccessible repository, malformed response), fail closed with a retry/repair diagnostic and perform no completion/provenance mutation; a confirmed unmerged stamped PR remains eligible subject to existing disposition checks; merged-to-integration without delivery-ref proof counts as merged for this refuse in v1 (fixture-covered conservative restriction).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "scope:complete refuses a non-delivery disposition when the stamped productPullRequest is merged, refuses with a retry diagnostic when the merge state cannot be established, and records no completion in either case."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "clause.21",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.22",
+        "title": "clause.22",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+          "recorded_at": "2026-11-12T20:58:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -3395,9 +3614,36 @@
           "#6212"
         ],
         "acceptance_criteria_justification": "Nine clauses map one-to-one to the accepted Recut-13 limbs for pains P1-P4; splitting would separate the merge-time association rule from its scan, stranded-shape and stamp limbs."
+      },
+      "productPullRequest": 6223,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "3f5ef3beab935423f99dcdeceb4c5c9dc48e9df1",
+        "prNumber": 6223,
+        "prBase": "master",
+        "mergeCommit": "6cbb2d85f04e0adfec64c7ef5d5538e01925b3fa",
+        "deliveryBranch": "master",
+        "deliveryCommit": "cd76d7d752e6a56ed979a4af34b4fc4821072710",
+        "verifiedAt": "2026-11-12T20:58:34Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-12T20:58:34Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-12T20:58:34Z"
       }
     },
     "id": "github.issue.5910490579",
-    "updated": "2026-11-12T07:37:19Z"
+    "updated": "2026-11-12T20:58:34Z"
   }
 }
