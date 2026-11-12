@@ -22,6 +22,7 @@ import { validateVbriefSchema } from "../vbrief-validate/schema.js";
 import * as specDrift from "../verify-source/spec-drift.js";
 import * as briefIo from "./brief-io.js";
 import { atomicWriteBrief, readBriefForMutation } from "./brief-io.js";
+import type { MergedPrListNode, MergeTimeForge, PrFileEntry } from "./delivery-evidence.js";
 import {
   detectLifecycleFolder,
   publishScopeDestExclusive,
@@ -29,6 +30,33 @@ import {
   unlinkOwnedScopeDest,
 } from "./transition.js";
 import { formatBriefJson } from "./vbrief-json.js";
+
+/**
+ * Offline merge-time forge (#5710): no edit history, no link events, the given
+ * merged-PR listing, and product-code files for every PR unless overridden.
+ */
+function staticMergeTimeForge(opts?: {
+  readonly merged?: readonly MergedPrListNode[];
+  readonly files?: Readonly<Record<number, readonly PrFileEntry[]>>;
+}): MergeTimeForge {
+  const page = <T>(nodes: readonly T[]) => ({
+    ok: true as const,
+    nodes,
+    hasNextPage: false,
+    endCursor: null,
+  });
+  return {
+    listMergedPrsPage: () => page(opts?.merged ?? []),
+    fetchBodyRevisionsPage: () => page([]),
+    fetchConnectionEventsPage: () => page([]),
+    fetchPrFiles: (_repo, n) => ({
+      ok: true,
+      files: opts?.files?.[n] ?? [{ status: "modified", filename: "packages/core/src/x.ts" }],
+    }),
+    probeRateLimit: () => ({ graphqlRemaining: 5000, coreRemaining: 5000 }),
+    nowMs: () => 0,
+  };
+}
 
 const itSymlink = it.skipIf(process.platform === "win32");
 
@@ -1897,12 +1925,15 @@ describe("runTransition complete persist-path merge stamp (#5120)", () => {
           merge_commit_sha: mergeCommitSha,
           base: { ref: "master" },
           head: { sha: "head5120" },
+          // #5710: a merge-time closing keyword (no edit history) proves association.
+          body: `Closes #${issueNumber}`,
         };
       },
       fetchClosingIssueIds: (n: number, repo: string) => {
         if (n !== prNumber || repo !== "deftai/directive") return null;
         return [{ repository: "deftai/directive", issueNumber }];
       },
+      mergeTimeForge: staticMergeTimeForge(),
     };
   }
 
@@ -2594,5 +2625,114 @@ describe("scope dest exclusive-create and owned unlink (#3908)", () => {
     expect(result.ok).toBe(false);
     expect(result.message).toContain("Target already exists");
     expect(existsSync(file)).toBe(true);
+  });
+});
+
+describe("scope:complete merge-time identity and issue-less lifecycle (#5710)", () => {
+  let root = "";
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  const gitAncestry: GitRunner = (_cwd, args) => {
+    const joined = args.join(" ");
+    if (joined.includes("merge-base") && joined.includes("--is-ancestor")) {
+      return { code: 0, stdout: "", stderr: "" };
+    }
+    if (joined.includes("rev-parse") && joined.includes("origin/")) {
+      return { code: 0, stdout: "deliverytip", stderr: "" };
+    }
+    if (joined.includes("symbolic-ref")) {
+      return { code: 0, stdout: "origin/master", stderr: "" };
+    }
+    return { code: 0, stdout: "ok", stderr: "" };
+  };
+
+  const mark = "deft-story: 6212";
+  const markedPr = (number: number): MergedPrListNode => ({
+    number,
+    mergedAt: "2026-11-12T10:00:00Z",
+    body: mark,
+    lastEditedAt: null,
+  });
+
+  it("clause.6: a later-merged competing sole mark refuses a later complete and keeps stored provenance", () => {
+    root = makeRepo();
+    const name = "2026-11-12-6212-story.xbrief.json";
+    const path = join(root, "xbrief", "active", name);
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "operator story",
+        status: "running",
+        references: [
+          { uri: "https://github.com/deftai/directive/issues/6212", type: "x-xbrief/github-issue" },
+        ],
+        metadata: { kind: "story", swarm: { file_scope: ["packages/core/src/x.ts"] } },
+        items: [],
+      },
+    });
+    const complete = (target: string, merged: readonly MergedPrListNode[]) =>
+      runTransition("complete", target, new Date("2026-11-12T12:00:00.000Z"), {
+        runGit: gitAncestry,
+        fetchPrPayload: (n: number, repo: string) =>
+          n === 6215 && repo === "deftai/directive"
+            ? {
+                merged_at: "2026-11-12T10:00:00Z",
+                merge_commit_sha: "mergesha",
+                base: { ref: "master" },
+                head: { sha: "headsha" },
+                body: mark,
+              }
+            : null,
+        mergeTimeForge: staticMergeTimeForge({
+          merged,
+          files: { 6214: [{ status: "added", filename: `xbrief/active/${name}` }] },
+        }),
+        deliveryEvidence: {
+          prNumber: 6215,
+          mergeCommit: "mergesha",
+          mergedAt: "2026-11-12T10:00:00Z",
+        },
+      });
+
+    // Only the brief-land activation PR #6214 shares the mark: the product PR binds.
+    const first = complete(path, [markedPr(6214), markedPr(6215)]);
+    expect(first.ok).toBe(true);
+    const done = join(root, "xbrief", "completed", name);
+    const stored = readFileSync(done, "utf8");
+    const parsed = JSON.parse(stored) as {
+      plan: { metadata: { completionProvenance: { identityBasis?: string } } };
+    };
+    expect(parsed.plan.metadata.completionProvenance.identityBasis).toBe("merge-time-mark");
+
+    // A later non-excluded PR with the same sole mark: restamp refuses, bytes unchanged.
+    const later = complete(done, [markedPr(6214), markedPr(6215), markedPr(6300)]);
+    expect(later.ok).toBe(false);
+    expect(later.message).toMatch(/#6300 also carry a sole/);
+    expect(readFileSync(done, "utf8")).toBe(stored);
+  });
+
+  it("clause.4: promote and activate stay green for a code-bearing brief with no issue origin", () => {
+    root = makeRepo();
+    const name = "2026-11-12-issueless.xbrief.json";
+    const proposed = join(root, "xbrief", "proposed", name);
+    writeFile(proposed, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "issue-less code story",
+        status: "proposed",
+        items: [],
+        acceptance: derivedStamp("The issue-less story ships a product change"),
+        metadata: { delivery: { required: true } },
+      },
+    });
+    expect(runTransition("promote", proposed).ok).toBe(true);
+    const activated = runTransition("activate", join(root, "xbrief", "pending", name));
+    expect(activated.ok).toBe(true);
+    expect(existsSync(join(root, "xbrief", "active", name))).toBe(true);
   });
 });

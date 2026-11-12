@@ -8,11 +8,14 @@ import { getDefaultAppStore } from "../one-pr-unit/simulator.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import type { GitRunner } from "../session/git.js";
 import {
+  bodyHasClosingKeywordFor,
   classifyStoredDeliveryDisposition,
+  connectedAtMergedAt,
   defaultFetchClosingIssueIds,
   defaultFetchClosingPrRefs,
   defaultFetchPrChangedFiles,
   defaultFetchPrPayload,
+  defaultMergeTimeForge,
   discoverDeliveryEvidenceForComplete,
   evaluateDeliveryGate,
   evaluateExperimentArchivedFindingsGate,
@@ -23,12 +26,26 @@ import {
   type FetchPrPayloadFn,
   hasExplicitDeliverySelectors,
   isCodeBearingScope,
+  isDeliveryBriefLandExcluded,
   isEligibleStoredDeliveryDisposition,
+  MERGE_TIME_SCAN_WALL_CLOCK_MS,
+  type MergedPrListNode,
+  type MergeTimeForge,
   NON_DELIVERY_DISPOSITIONS,
+  PR_FILES_LISTING_CAP,
+  type PrBodyRevision,
+  type PrConnectionEvent,
+  type PrFileEntry,
   prDiffAddsBrief,
+  type RateLimitSnapshot,
   refreshRemoteDeliveryRef,
+  resolveCanonicalProjectRepository,
   resolveCompletionSessionId,
   resolvePlanGithubIssueRef,
+  resolvePrOnlyDeliveryIdentity,
+  scanSoleMarkCompetitors,
+  selectMergeTimeBody,
+  soleDeftStoryMark,
   verifyStoryPrMergeIdentity,
 } from "./delivery-evidence.js";
 import { runTransition } from "./transition.js";
@@ -116,7 +133,11 @@ function identityOk(opts?: {
   closingIssueRefs?: { repository: string; issueNumber: number }[] | null;
   lookupFail?: boolean;
   closingLookupFail?: boolean;
-}): { fetchPrPayload: FetchPrPayloadFn; fetchClosingIssueIds: FetchClosingIssueIdsFn } {
+}): {
+  fetchPrPayload: FetchPrPayloadFn;
+  fetchClosingIssueIds: FetchClosingIssueIdsFn;
+  mergeTimeForge: MergeTimeForge;
+} {
   const prNumber = opts?.prNumber ?? 42;
   const issueNumber = opts?.issueNumber ?? 3041;
   const repository = opts?.repository ?? "deftai/directive";
@@ -125,6 +146,17 @@ function identityOk(opts?: {
   const prBase = opts?.prBase ?? "master";
   const mergedAt = opts?.mergedAt === undefined ? "2026-08-02T11:00:00Z" : opts.mergedAt;
   const closingIssues = opts?.closingIssues === undefined ? [issueNumber] : opts.closingIssues;
+  // #5710: the closer fixtures become merge-time closing keywords in the PR body.
+  const closingRefs =
+    opts?.closingIssueRefs ??
+    (closingIssues ?? []).map((issue) => ({ repository, issueNumber: issue }));
+  const body = closingRefs
+    .map((ref) =>
+      ref.repository === repository
+        ? `Closes #${ref.issueNumber}`
+        : `Closes ${ref.repository}#${ref.issueNumber}`,
+    )
+    .join("\n");
 
   const fetchPrPayload: FetchPrPayloadFn = (n, repo) => {
     if (opts?.lookupFail) return null;
@@ -134,6 +166,7 @@ function identityOk(opts?: {
       merge_commit_sha: mergeCommitSha,
       base: { ref: prBase },
       head: { sha: headSha },
+      body,
     };
   };
   const fetchClosingIssueIds: FetchClosingIssueIdsFn = (n, repo) => {
@@ -147,7 +180,92 @@ function identityOk(opts?: {
     }
     return closingIssues.map((issue) => ({ repository, issueNumber: issue }));
   };
-  return { fetchPrPayload, fetchClosingIssueIds };
+  const mergeTimeForge = makeForge(
+    opts?.closingLookupFail ? { revisionsFail: [prNumber], eventsFail: [prNumber] } : {},
+  );
+  return { fetchPrPayload, fetchClosingIssueIds, mergeTimeForge };
+}
+
+/** Offline merge-time forge fixture (#5710). Every read is scripted; no network. */
+interface ForgeFixture {
+  /** Full merged-PR listing, served in pages of `pageSize`. */
+  readonly merged?: readonly MergedPrListNode[];
+  readonly pageSize?: number;
+  /** 0-based page index whose fetch fails. */
+  readonly listFailAtPage?: number;
+  /** Page index served with hasNextPage but no endCursor. */
+  readonly listBrokenCursorAtPage?: number;
+  readonly revisions?: Readonly<Record<number, readonly PrBodyRevision[]>>;
+  readonly revisionsFail?: readonly number[];
+  readonly events?: Readonly<Record<number, readonly PrConnectionEvent[]>>;
+  readonly eventsFail?: readonly number[];
+  /** Per-PR files; default is one product file. */
+  readonly files?: Readonly<Record<number, readonly PrFileEntry[] | "fail">>;
+  /** Rate snapshots served in order; the last repeats. null = probe failure. */
+  readonly rates?: readonly (RateLimitSnapshot | null)[];
+  /** Clock step added after each nowMs() read. */
+  readonly clockStepMs?: number;
+}
+
+function makeForge(fx: ForgeFixture): MergeTimeForge & { readonly calls: string[] } {
+  const calls: string[] = [];
+  const pageSize = fx.pageSize ?? 100;
+  const merged = fx.merged ?? [];
+  let rateIndex = 0;
+  let clock = 0;
+  const single = <T>(nodes: readonly T[]) => ({
+    ok: true as const,
+    nodes,
+    hasNextPage: false,
+    endCursor: null,
+  });
+  return {
+    calls,
+    listMergedPrsPage: (_repo, after) => {
+      const index = after === null ? 0 : Number(after);
+      calls.push(`list:${index}`);
+      if (fx.listFailAtPage === index) return { ok: false, error: "secondary rate limit" };
+      const nodes = merged.slice(index * pageSize, (index + 1) * pageSize);
+      const hasNextPage = (index + 1) * pageSize < merged.length;
+      const broken = fx.listBrokenCursorAtPage === index;
+      return {
+        ok: true,
+        nodes,
+        hasNextPage,
+        endCursor: hasNextPage && !broken ? String(index + 1) : null,
+      };
+    },
+    fetchBodyRevisionsPage: (_repo, n) => {
+      calls.push(`revisions:${n}`);
+      if (fx.revisionsFail?.includes(n)) return { ok: false, error: "revision read failed" };
+      return single(fx.revisions?.[n] ?? []);
+    },
+    fetchConnectionEventsPage: (_repo, n) => {
+      calls.push(`events:${n}`);
+      if (fx.eventsFail?.includes(n)) return { ok: false, error: "timeline read failed" };
+      return single(fx.events?.[n] ?? []);
+    },
+    fetchPrFiles: (_repo, n) => {
+      calls.push(`files:${n}`);
+      const files = fx.files?.[n];
+      if (files === "fail") return { ok: false, error: "files read failed" };
+      return {
+        ok: true,
+        files: files ?? [{ status: "modified", filename: "packages/core/src/x.ts" }],
+      };
+    },
+    probeRateLimit: () => {
+      const rates = fx.rates ?? [{ graphqlRemaining: 5000, coreRemaining: 5000 }];
+      const rate = rates[Math.min(rateIndex, rates.length - 1)] ?? null;
+      rateIndex += 1;
+      return rate;
+    },
+    nowMs: () => {
+      const now = clock;
+      clock += fx.clockStepMs ?? 0;
+      return now;
+    },
+  };
 }
 
 function gitInit(cwd: string): void {
@@ -792,7 +910,7 @@ describe("delivery evidence (#3041)", () => {
       runGit: gitOk(),
     });
     expect(gate.ok).toBe(false);
-    expect(gate.message).toMatch(/closer set|wrong story|absent association/i);
+    expect(gate.message).toMatch(/no merge-time association/);
     expect(gate.provenance).toBeNull();
   });
 
@@ -854,7 +972,7 @@ describe("delivery evidence (#3041)", () => {
       runGit: gitOk(),
     });
     expect(wrongStory.ok).toBe(false);
-    expect(wrongStory.message).toMatch(/closer set|wrong story|absent association/i);
+    expect(wrongStory.message).toMatch(/no merge-time association/);
 
     const wrongRepo = evaluateDeliveryGate({
       projectRoot: root,
@@ -1886,7 +2004,7 @@ describe("brief-in-PR-diff identity fallback (#3675)", () => {
     });
     expect(result.ok).toBe(true);
     expect(result.identityBasis).toBe("brief-in-pr-diff");
-    expect(result.message).toMatch(/brief-in-PR-diff/);
+    expect(result.message).toMatch(/brief-in-pr-diff/);
   });
 
   it("still refuses a closer miss without the fallback inputs, a failed lookup, or an edit-only PR", () => {
@@ -1898,8 +2016,8 @@ describe("brief-in-PR-diff identity fallback (#3675)", () => {
     };
     const noFallback = verifyStoryPrMergeIdentity(base);
     expect(noFallback.ok).toBe(false);
-    expect(noFallback.message).toMatch(/forge closer set does not include/);
-    expect(noFallback.message).not.toMatch(/fallback/);
+    expect(noFallback.message).toMatch(/no merge-time association/);
+    expect(noFallback.message).not.toMatch(/brief-in-PR-diff/);
 
     const lookupFail = verifyStoryPrMergeIdentity({
       ...base,
@@ -1915,7 +2033,7 @@ describe("brief-in-PR-diff identity fallback (#3675)", () => {
       fetchPrChangedFiles: () => [{ status: "modified", filename: `xbrief/active/${brief}` }],
     });
     expect(editOnly.ok).toBe(false);
-    expect(editOnly.message).toMatch(/fallback also failed/);
+    expect(editOnly.message).toMatch(/did not add/);
   });
 
   it("still enforces merge-commit identity on the fallback path", () => {
@@ -1931,7 +2049,7 @@ describe("brief-in-PR-diff identity fallback (#3675)", () => {
     expect(result.message).toMatch(/merge_commit_sha/);
   });
 
-  it("forge-closer joins keep identityBasis out of provenance", () => {
+  it("merge-time keyword joins record their basis and skip the brief-diff read (#5710)", () => {
     root = makeRepo();
     const gate = evaluateDeliveryGate({
       projectRoot: root,
@@ -1947,7 +2065,7 @@ describe("brief-in-PR-diff identity fallback (#3675)", () => {
     });
     expect(gate.ok).toBe(true);
     expect(gate.provenance).not.toBeNull();
-    expect(gate.provenance && "identityBasis" in gate.provenance).toBe(false);
+    expect(gate.provenance?.identityBasis).toBe("merge-time-keyword");
   });
 
   it("scope:complete records identityBasis when completing via the fallback", () => {
@@ -2006,5 +2124,932 @@ describe("brief-in-PR-diff identity fallback (#3675)", () => {
         throw new Error("spawn failed");
       }),
     ).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// #5710 Prefer-A Recut-13: PR-only identity, merge-time association, P4 refuse
+// ---------------------------------------------------------------------------
+
+const REPO = "deftai/directive";
+const MERGED_AT = "2026-11-12T10:00:00Z";
+const BEFORE = "2026-11-12T09:00:00Z";
+const AFTER = "2026-11-12T11:00:00Z";
+const PRODUCT_FILE: PrFileEntry = { status: "modified", filename: "packages/core/src/x.ts" };
+
+/** gitOk plus a canonical `origin` remote (#5710 P1). */
+function gitWithOrigin(url: string | null = `https://github.com/${REPO}.git`): GitRunner {
+  const base = gitOk();
+  return (root, args) => {
+    if (args.join(" ") === "remote get-url origin") {
+      return url === null
+        ? { code: 2, stdout: "", stderr: "No such remote" }
+        : { code: 0, stdout: `${url}\n`, stderr: "" };
+    }
+    return base(root, args);
+  };
+}
+
+function mergedPayload(opts?: {
+  body?: string;
+  mergedAt?: string | null;
+  mergeCommitSha?: string;
+  base?: string;
+}): Record<string, unknown> {
+  const mergedAt = opts?.mergedAt === undefined ? MERGED_AT : opts.mergedAt;
+  return {
+    merged_at: mergedAt,
+    merge_commit_sha: mergedAt === null ? null : (opts?.mergeCommitSha ?? "mergesha"),
+    base: { ref: opts?.base ?? "master" },
+    head: { sha: "headsha" },
+    body: opts?.body ?? "",
+  };
+}
+
+function payloadFor(prs: Record<number, Record<string, unknown>>): FetchPrPayloadFn {
+  return (n, repo) => (repo === REPO ? (prs[n] ?? null) : null);
+}
+
+function issuePlan(issue = 6212, extra?: Record<string, unknown>): Record<string, unknown> {
+  return {
+    title: "issue story",
+    status: "running",
+    references: [
+      { uri: `https://github.com/${REPO}/issues/${issue}`, type: "x-xbrief/github-issue" },
+    ],
+    metadata: { kind: "story", swarm: { file_scope: ["packages/core/src/x.ts"] }, ...extra },
+    items: [],
+  };
+}
+
+function prOnlyPlan(stamp: number | null, refs: unknown[] = []): Record<string, unknown> {
+  return {
+    title: "pr-only story",
+    status: "running",
+    references: refs,
+    metadata: {
+      kind: "story",
+      swarm: { file_scope: ["packages/core/src/x.ts"] },
+      ...(stamp === null ? {} : { productPullRequest: stamp }),
+    },
+    items: [],
+  };
+}
+
+function listed(
+  number: number,
+  body: string,
+  opts?: { mergedAt?: string; lastEditedAt?: string | null },
+): MergedPrListNode {
+  return {
+    number,
+    body,
+    mergedAt: opts?.mergedAt ?? MERGED_AT,
+    lastEditedAt: opts?.lastEditedAt ?? null,
+  };
+}
+
+function joinIssue(opts: {
+  plan?: Record<string, unknown>;
+  pr: number;
+  body: string;
+  forge: MergeTimeForge;
+  mergedAt?: string;
+}) {
+  return verifyStoryPrMergeIdentity({
+    plan: opts.plan ?? issuePlan(),
+    evidence: { prNumber: opts.pr },
+    mergeCommit: "mergesha",
+    fetchPrPayload: payloadFor({
+      [opts.pr]: mergedPayload({ body: opts.body, mergedAt: opts.mergedAt }),
+    }),
+    mergeTimeForge: opts.forge,
+  });
+}
+
+describe("PR-only delivery identity (#5710 P1)", () => {
+  let root = "";
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  const canonical = () => REPO;
+
+  it("clause.1: joins (canonical remote, productPullRequest) when --pr, merge state and merge sha match", () => {
+    const fetchPrPayload = payloadFor({ 6215: mergedPayload() });
+    const ok = verifyStoryPrMergeIdentity({
+      plan: prOnlyPlan(6215),
+      evidence: { prNumber: 6215 },
+      mergeCommit: "MERGESHA",
+      fetchPrPayload,
+      resolveCanonicalRepository: canonical,
+    });
+    expect(ok.ok).toBe(true);
+    expect(ok.identityBasis).toBe("pr-only");
+    expect(ok.repository).toBe(REPO);
+
+    const refuse = (input: Partial<Parameters<typeof verifyStoryPrMergeIdentity>[0]>) =>
+      verifyStoryPrMergeIdentity({
+        plan: prOnlyPlan(6215),
+        evidence: { prNumber: 6215 },
+        mergeCommit: "mergesha",
+        fetchPrPayload,
+        resolveCanonicalRepository: canonical,
+        ...input,
+      });
+    expect(refuse({ evidence: { prNumber: 6214 } }).message).toMatch(
+      /--pr 6214 is not plan.metadata.productPullRequest 6215/,
+    );
+    expect(refuse({ evidence: {} }).message).toMatch(/needs --pr 6215/);
+    expect(refuse({ mergeCommit: "othersha" }).message).toMatch(/merge_commit_sha/);
+    expect(
+      refuse({ fetchPrPayload: payloadFor({ 6215: mergedPayload({ mergedAt: null }) }) }).message,
+    ).toMatch(/is not merged/);
+    expect(refuse({ evidence: { prNumber: 6215, repository: "other/repo" } }).message).toMatch(
+      /matching assertion only/,
+    );
+    expect(refuse({ resolveCanonicalRepository: () => null }).message).toMatch(
+      /canonical project remote/,
+    );
+    expect(refuse({ resolveCanonicalRepository: undefined }).ok).toBe(false);
+    expect(refuse({ plan: prOnlyPlan(null) }).message).toMatch(
+      /no plan.metadata.productPullRequest/,
+    );
+    // --repo that matches is an assertion only; it never supplies the repository.
+    expect(refuse({ evidence: { prNumber: 6215, repository: REPO } }).ok).toBe(true);
+  });
+
+  it("clause.1: scope:complete completes an issue-less stamped brief and refuses a mismatched --pr", () => {
+    root = makeRepo();
+    const name = "pr-only.xbrief.json";
+    const write = () => {
+      const path = join(root, "xbrief", "active", name);
+      writeFileSync(
+        path,
+        JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: prOnlyPlan(6215) }),
+      );
+      return path;
+    };
+    const opts = (pr: number) => ({
+      runGit: gitWithOrigin(),
+      fetchPrPayload: payloadFor({ 6215: mergedPayload(), 6214: mergedPayload() }),
+      deliveryEvidence: { prNumber: pr, mergeCommit: "mergesha", mergedAt: MERGED_AT },
+    });
+    const path = write();
+    const refused = runTransition("complete", path, new Date(AFTER), opts(6214));
+    expect(refused.ok).toBe(false);
+    expect(existsSync(path)).toBe(true);
+
+    const done = runTransition("complete", path, new Date(AFTER), opts(6215));
+    expect(done.ok).toBe(true);
+    const data = JSON.parse(readFileSync(join(root, "xbrief", "completed", name), "utf8")) as {
+      plan: { metadata: { completionProvenance: Record<string, unknown> } };
+    };
+    expect(data.plan.metadata.completionProvenance).toMatchObject({
+      repository: REPO,
+      prNumber: 6215,
+      identityBasis: "pr-only",
+      disposition: "delivered",
+    });
+  });
+
+  it("clause.2: discovery derives the same PR-only tuple and keeps the delivery-base filter", () => {
+    root = makeRepo();
+    const found = discoverDeliveryEvidenceForComplete({
+      projectRoot: root,
+      plan: prOnlyPlan(6215),
+      runGit: gitWithOrigin(),
+      fetchPrPayload: payloadFor({ 6215: mergedPayload() }),
+    });
+    expect(found.ok).toBe(true);
+    if (!found.ok) return;
+    expect(found.discovered).toBe(true);
+    expect(found.evidence).toMatchObject({
+      repository: REPO,
+      prNumber: 6215,
+      mergeCommit: "mergesha",
+    });
+
+    const integration = discoverDeliveryEvidenceForComplete({
+      projectRoot: root,
+      plan: prOnlyPlan(6215),
+      runGit: gitWithOrigin(),
+      fetchPrPayload: payloadFor({ 6215: mergedPayload({ base: "develop" }) }),
+    });
+    expect(integration.ok).toBe(false);
+    if (!integration.ok) expect(integration.message).toMatch(/not a merged delivery-base PR/);
+
+    const noRemote = discoverDeliveryEvidenceForComplete({
+      projectRoot: root,
+      plan: prOnlyPlan(6215),
+      runGit: gitWithOrigin(null),
+      fetchPrPayload: payloadFor({ 6215: mergedPayload() }),
+    });
+    expect(noRemote.ok).toBe(false);
+    if (!noRemote.ok) expect(noRemote.message).toMatch(/canonical project remote/);
+  });
+
+  it("clause.3: x-xbrief/github-pr is redundant when it matches the stamp and never an identity", () => {
+    const fetchPrPayload = payloadFor({ 6214: mergedPayload(), 6215: mergedPayload() });
+    const prRef = (n: number) => ({
+      uri: `https://github.com/${REPO}/pull/${n}`,
+      type: "x-xbrief/github-pr",
+    });
+    const join = (plan: Record<string, unknown>, pr: number) =>
+      verifyStoryPrMergeIdentity({
+        plan,
+        evidence: { prNumber: pr },
+        mergeCommit: "mergesha",
+        fetchPrPayload,
+        resolveCanonicalRepository: canonical,
+      });
+    expect(join(prOnlyPlan(6215, [prRef(6215)]), 6215).ok).toBe(true);
+    // A different historical PR ref neither overrides nor invalidates the stamp.
+    expect(join(prOnlyPlan(6215, [prRef(6214)]), 6215).ok).toBe(true);
+    const historical = join(prOnlyPlan(6215, [prRef(6214)]), 6214);
+    expect(historical.ok).toBe(false);
+    expect(historical.message).toMatch(/does not override/);
+    // Unstamped: github-pr alone is not identity.
+    const unstamped = join(prOnlyPlan(null, [prRef(6215)]), 6215);
+    expect(unstamped.ok).toBe(false);
+    expect(unstamped.message).toMatch(/github-pr reference is not a delivery identity/);
+    // Today's resolver: an issue URL under any reference type makes the brief issue-anchored.
+    const anchored = issuePlan(5710);
+    anchored.references = [
+      { uri: `https://github.com/${REPO}/issues/5710`, type: "x-xbrief/refs" },
+    ];
+    expect(resolvePlanGithubIssueRef(anchored)).toEqual({ repository: REPO, issueNumber: 5710 });
+    expect(resolvePrOnlyDeliveryIdentity(prOnlyPlan(6215), canonical)).toEqual({
+      ok: true,
+      repository: REPO,
+      prNumber: 6215,
+    });
+  });
+
+  it("resolveCanonicalProjectRepository reads the origin remote only", () => {
+    expect(resolveCanonicalProjectRepository("/x", gitWithOrigin())).toBe(REPO);
+    expect(
+      resolveCanonicalProjectRepository("/x", gitWithOrigin(`git@github.com:${REPO}.git`)),
+    ).toBe(REPO);
+    expect(resolveCanonicalProjectRepository("/x", gitWithOrigin(null))).toBeNull();
+    expect(
+      resolveCanonicalProjectRepository("/x", () => {
+        throw new Error("spawn");
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("merge-time association (#5710 P3)", () => {
+  it("clause.5: accepts a merge-time sole mark, closing keyword, or Connected link", () => {
+    expect(
+      joinIssue({ pr: 6215, body: "deft-story: 6212", forge: makeForge({}) }).identityBasis,
+    ).toBe("merge-time-mark");
+    expect(joinIssue({ pr: 6215, body: "Fixes #6212", forge: makeForge({}) }).identityBasis).toBe(
+      "merge-time-keyword",
+    );
+    const connected = makeForge({
+      events: {
+        6215: [
+          {
+            kind: "connected",
+            createdAt: BEFORE,
+            issues: [{ repository: REPO, issueNumber: 6212 }],
+          },
+        ],
+      },
+    });
+    expect(joinIssue({ pr: 6215, body: "Refs #6212", forge: connected }).identityBasis).toBe(
+      "merge-time-connected",
+    );
+  });
+
+  it("clause.5: a mark or keyword added only after merged_at does not count", () => {
+    for (const late of ["Closes #6212", "deft-story: 6212"]) {
+      const forge = makeForge({
+        revisions: {
+          6215: [
+            { editedAt: BEFORE, body: "Refs #6212" },
+            { editedAt: AFTER, body: late },
+          ],
+        },
+      });
+      const result = joinIssue({ pr: 6215, body: late, forge });
+      expect(result.ok).toBe(false);
+      expect(result.message).toMatch(/no merge-time association/);
+    }
+    // A Connected link made after merge, or one disconnected before merge, does not count.
+    const ref = [{ repository: REPO, issueNumber: 6212 }];
+    const lateLink = makeForge({
+      events: { 6215: [{ kind: "connected", createdAt: AFTER, issues: ref }] },
+    });
+    expect(joinIssue({ pr: 6215, body: "", forge: lateLink }).ok).toBe(false);
+    const unlinked = makeForge({
+      events: {
+        6215: [
+          { kind: "connected", createdAt: "2026-11-12T08:00:00Z", issues: ref },
+          { kind: "disconnected", createdAt: BEFORE, issues: ref },
+        ],
+      },
+    });
+    expect(joinIssue({ pr: 6215, body: "", forge: unlinked }).ok).toBe(false);
+    // A keyword removed after merge still counts: the merge-time revision is read.
+    const removed = makeForge({
+      revisions: {
+        6215: [
+          { editedAt: BEFORE, body: "Closes #6212" },
+          { editedAt: AFTER, body: "" },
+        ],
+      },
+    });
+    expect(joinIssue({ pr: 6215, body: "", forge: removed }).identityBasis).toBe(
+      "merge-time-keyword",
+    );
+  });
+
+  it("clause.5: current-state closingIssuesReferences alone is insufficient", () => {
+    const result = evaluateDeliveryGate({
+      projectRoot: makeRepo(),
+      plan: issuePlan(),
+      nowIso: AFTER,
+      evidence: { prNumber: 6215, mergeCommit: "mergesha", mergedAt: MERGED_AT },
+      fetchPrPayload: payloadFor({ 6215: mergedPayload({ body: "" }) }),
+      fetchClosingIssueIds: () => [{ repository: REPO, issueNumber: 6212 }],
+      mergeTimeForge: makeForge({}),
+      runGit: gitOk(),
+      assumeEvidenceValidated: true,
+    } as Parameters<typeof evaluateDeliveryGate>[0]);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/closingIssuesReferences alone is insufficient/);
+  });
+
+  it("clause.5: closing keyword forms and look-alikes", () => {
+    for (const body of [
+      "Closes #6212",
+      "fixed: #6212",
+      "RESOLVES deftai/directive#6212",
+      "close https://github.com/deftai/directive/issues/6212",
+      "Fix DeftAI/Directive#6212.",
+    ]) {
+      expect(bodyHasClosingKeywordFor(body, REPO, 6212)).toBe(true);
+    }
+    for (const body of [
+      "Refs #6212",
+      "Closes #62120",
+      "Closes other/repo#6212",
+      "Closes https://github.com/other/repo/issues/6212",
+      "preclosed #6212",
+      "deft-story: 6212",
+    ]) {
+      expect(bodyHasClosingKeywordFor(body, REPO, 6212)).toBe(false);
+    }
+  });
+
+  it("selectMergeTimeBody and connectedAtMergedAt fail closed on unreadable history", () => {
+    expect(selectMergeTimeBody([], "current", MERGED_AT)).toEqual({ ok: true, body: "current" });
+    expect(selectMergeTimeBody([], null, MERGED_AT)).toEqual({ ok: true, body: "" });
+    expect(selectMergeTimeBody([{ editedAt: AFTER, body: "x" }], "x", MERGED_AT).ok).toBe(false);
+    expect(selectMergeTimeBody([{ editedAt: BEFORE, body: null }], "x", MERGED_AT).ok).toBe(false);
+    expect(selectMergeTimeBody([{ editedAt: "nope", body: "x" }], "x", MERGED_AT).ok).toBe(false);
+    expect(selectMergeTimeBody([], "x", "nope").ok).toBe(false);
+    const ref = [{ repository: REPO, issueNumber: 1 }];
+    expect(
+      connectedAtMergedAt(
+        [{ kind: "connected", createdAt: "bad", issues: ref }],
+        REPO,
+        1,
+        MERGED_AT,
+      ).ok,
+    ).toBe(false);
+    expect(connectedAtMergedAt([], REPO, 1, "bad").ok).toBe(false);
+    expect(
+      connectedAtMergedAt(
+        [{ kind: "connected", createdAt: BEFORE, issues: [{ repository: "o/r", issueNumber: 1 }] }],
+        REPO,
+        1,
+        MERGED_AT,
+      ),
+    ).toEqual({ ok: true, connected: false });
+  });
+
+  it("clause.7: the stranded shape refuses and names the three accepted bases", () => {
+    const stranded = joinIssue({
+      pr: 6148,
+      plan: issuePlan(6147),
+      body: "Refs #6147",
+      forge: makeForge({}),
+    });
+    expect(stranded.ok).toBe(false);
+    expect(stranded.message).toMatch(/\(a\) a unique sole `deft-story: N` mark/);
+    expect(stranded.message).toMatch(/\(b\) a closing keyword/);
+    expect(stranded.message).toMatch(/\(c\) a Connected issue link/);
+    expect(stranded.message).toMatch(/identity-migration/);
+    // No forge at all: still fails closed with the same named bases.
+    const noForge = verifyStoryPrMergeIdentity({
+      plan: issuePlan(6147),
+      evidence: { prNumber: 6148 },
+      mergeCommit: "mergesha",
+      fetchPrPayload: payloadFor({ 6148: mergedPayload({ body: "Closes #6147" }) }),
+    });
+    expect(noForge.ok).toBe(false);
+    expect(noForge.message).toMatch(/Accepted bases: \(a\)/);
+  });
+
+  it("clause.8: productPullRequest === --pr is not an identity proof on the issue-anchored path", () => {
+    const stamped = joinIssue({
+      plan: issuePlan(6212, { productPullRequest: 6215 }),
+      pr: 6215,
+      body: "Refs #6212",
+      forge: makeForge({}),
+    });
+    const unstamped = joinIssue({
+      plan: issuePlan(6212),
+      pr: 6215,
+      body: "Refs #6212",
+      forge: makeForge({}),
+    });
+    expect(stamped.ok).toBe(false);
+    expect(stamped).toEqual(unstamped);
+    // A failed issue-anchored check never falls back to the PR-only path.
+    expect(stamped.message).not.toMatch(/pr-only|canonical project remote/);
+  });
+});
+
+describe("sole-mark uniqueness scan (#5710 P3)", () => {
+  const mark = "deft-story: 6212";
+  const briefOnly: PrFileEntry[] = [
+    { status: "modified", filename: "xbrief/active/2026-11-12-6212-x.xbrief.json" },
+  ];
+  const briefAndChangelog: PrFileEntry[] = [
+    ...briefOnly,
+    { status: "modified", filename: "CHANGELOG.md" },
+  ];
+  const completedRename: PrFileEntry[] = [
+    {
+      status: "renamed",
+      filename: "xbrief/completed/2026-11-12-6212-x.xbrief.json",
+      previousFilename: "xbrief/active/2026-11-12-6212-x.xbrief.json",
+    },
+  ];
+
+  it("clause.6: #6212 shape — product #6215 passes when only brief-land PRs #6214/#6216 share the mark", () => {
+    const forge = makeForge({
+      merged: [listed(6214, mark), listed(6215, mark), listed(6216, mark), listed(6217, mark)],
+      files: { 6214: briefOnly, 6216: briefAndChangelog, 6217: completedRename },
+    });
+    const result = joinIssue({ pr: 6215, body: mark, forge });
+    expect(result.ok).toBe(true);
+    expect(result.identityBasis).toBe("merge-time-mark");
+    // Brief-land PRs are themselves excluded candidates and refuse even alone.
+    const alone = joinIssue({
+      pr: 6214,
+      body: mark,
+      forge: makeForge({ files: { 6214: briefOnly } }),
+    });
+    expect(alone.ok).toBe(false);
+    expect(alone.message).toMatch(/delivery-brief-land excluded/);
+  });
+
+  it("clause.6: two non-excluded sole-mark PRs both refuse", () => {
+    const forge = makeForge({ merged: [listed(10, mark), listed(11, mark)] });
+    for (const [pr, other] of [
+      [10, 11],
+      [11, 10],
+    ] as const) {
+      const result = joinIssue({ pr, body: mark, forge });
+      expect(result.ok).toBe(false);
+      expect(result.message).toMatch(new RegExp(`#${other} also carry a sole`));
+    }
+  });
+
+  it("clause.6: multi-story mark PRs (#6208 / #6213 shape) are sole for no story", () => {
+    const multi = "deft-story: 5710\ndeft-story: 5882\ndeft-story: 6203";
+    expect(soleDeftStoryMark(multi)).toBeNull();
+    expect(soleDeftStoryMark("deft-story: 6212\n deft-story: 6212 ")).toBe(6212);
+    const candidate = joinIssue({
+      pr: 6208,
+      plan: issuePlan(5710),
+      body: multi,
+      forge: makeForge({}),
+    });
+    expect(candidate.ok).toBe(false);
+    // As a would-be competitor it is ignored, so the product PR still passes.
+    const forge = makeForge({
+      merged: [listed(6208, multi), listed(6213, multi), listed(9000, "deft-story: 5710")],
+    });
+    expect(joinIssue({ pr: 9000, plan: issuePlan(5710), body: "deft-story: 5710", forge }).ok).toBe(
+      true,
+    );
+  });
+
+  it("clause.6: a competing mark removed after merge still competes (merge-time body)", () => {
+    const forge = makeForge({
+      merged: [listed(20, "", { lastEditedAt: AFTER })],
+      revisions: {
+        20: [
+          { editedAt: BEFORE, body: mark },
+          { editedAt: AFTER, body: "" },
+        ],
+      },
+    });
+    const result = joinIssue({ pr: 21, body: mark, forge });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/#20 also carry/);
+    // Unreconstructable merge-time body of a listed PR is an unknown: refuse.
+    const hidden = makeForge({
+      merged: [listed(20, "", { lastEditedAt: AFTER })],
+      revisionsFail: [20],
+    });
+    expect(joinIssue({ pr: 21, body: mark, forge: hidden }).message).toMatch(/uniqueness unknown/);
+    // An edit before merge needs no replay: the current body is the merge-time body.
+    const preMerge = makeForge({ merged: [listed(20, "Refs #6212", { lastEditedAt: BEFORE })] });
+    expect(joinIssue({ pr: 21, body: mark, forge: preMerge }).ok).toBe(true);
+    expect(preMerge.calls).not.toContain("revisions:20");
+  });
+
+  it("clause.6: finds a duplicate beyond the first page", () => {
+    const merged = [1, 2, 3, 4, 5].map((n) => listed(n, n === 5 ? mark : ""));
+    const forge = makeForge({ merged, pageSize: 2 });
+    const result = joinIssue({ pr: 99, body: mark, forge });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/#5 also carry/);
+    expect(forge.calls).toEqual(expect.arrayContaining(["list:0", "list:1", "list:2"]));
+  });
+
+  it("clause.6: refuses on an incomplete page, unreadable competitor or truncated listing", () => {
+    const merged = [1, 2, 3].map((n) => listed(n, n === 3 ? mark : ""));
+    const cases: ForgeFixture[] = [
+      { merged, pageSize: 1, listFailAtPage: 1 },
+      { merged, pageSize: 1, listBrokenCursorAtPage: 1 },
+      { merged, files: { 3: "fail" } },
+      {
+        merged,
+        files: {
+          3: Array.from({ length: PR_FILES_LISTING_CAP }, (_, i) => ({
+            status: "added",
+            filename: `src/f${i}.ts`,
+          })),
+        },
+      },
+    ];
+    for (const fixture of cases) {
+      const result = joinIssue({ pr: 99, body: mark, forge: makeForge(fixture) });
+      expect(result.ok).toBe(false);
+      expect(result.message).toMatch(/uniqueness unknown, refusing/);
+    }
+    // A candidate whose own files cannot be read or are truncated also refuses.
+    expect(joinIssue({ pr: 99, body: mark, forge: makeForge({ files: { 99: "fail" } }) }).ok).toBe(
+      false,
+    );
+  });
+
+  it("clause.6: refuses when the budget is exhausted before every merged PR is classified", () => {
+    const merged = [listed(1, ""), listed(2, "")];
+    const budgets: ForgeFixture[] = [
+      { merged, rates: [{ graphqlRemaining: 199, coreRemaining: 5000 }] },
+      { merged, rates: [null] },
+      // Mark hit needs a REST files read: core below 100 refuses.
+      {
+        merged: [listed(1, mark)],
+        rates: [
+          { graphqlRemaining: 5000, coreRemaining: 5000 },
+          { graphqlRemaining: 5000, coreRemaining: 5000 },
+          { graphqlRemaining: 5000, coreRemaining: 5000 },
+          { graphqlRemaining: 5000, coreRemaining: 99 },
+        ],
+      },
+      { merged, clockStepMs: MERGE_TIME_SCAN_WALL_CLOCK_MS },
+    ];
+    for (const fixture of budgets) {
+      const result = joinIssue({ pr: 99, body: mark, forge: makeForge(fixture) });
+      expect(result.ok).toBe(false);
+      expect(result.message).toMatch(/scan budget (exhausted|unknown)/);
+    }
+  });
+
+  it("isDeliveryBriefLandExcluded differs from activation brief-land shape", () => {
+    expect(isDeliveryBriefLandExcluded([{ status: "modified", filename: "CHANGELOG.md" }])).toBe(
+      true,
+    );
+    expect(isDeliveryBriefLandExcluded(completedRename)).toBe(true);
+    expect(
+      isDeliveryBriefLandExcluded([{ status: "removed", filename: "vbrief/pending/a.json" }]),
+    ).toBe(true);
+    expect(isDeliveryBriefLandExcluded([])).toBe(true);
+    expect(isDeliveryBriefLandExcluded([...briefOnly, PRODUCT_FILE])).toBe(false);
+    expect(
+      isDeliveryBriefLandExcluded([
+        { status: "renamed", filename: "xbrief/active/a.json", previousFilename: "docs/a.json" },
+      ]),
+    ).toBe(false);
+    expect(isDeliveryBriefLandExcluded([{ status: "added", filename: "docs/active/a.json" }])).toBe(
+      false,
+    );
+  });
+
+  it("scanSoleMarkCompetitors skips the candidate and reports excluded hits as non-competitors", () => {
+    const forge = makeForge({
+      merged: [listed(1, mark), listed(2, mark), listed(3, "deft-story: 1")],
+      files: { 2: briefOnly },
+    });
+    expect(
+      scanSoleMarkCompetitors({ repository: REPO, issueNumber: 6212, candidatePr: 1, forge }),
+    ).toEqual({
+      ok: true,
+      competitors: [],
+    });
+    expect(
+      scanSoleMarkCompetitors({
+        repository: REPO,
+        issueNumber: 6212,
+        candidatePr: 9,
+        forge: makeForge({ merged: [listed(1, mark)] }),
+      }),
+    ).toEqual({ ok: true, competitors: [1] });
+  });
+});
+
+describe("default merge-time forge (#5710)", () => {
+  function gh(responses: Record<string, unknown>): RunGhFn & { calls: string[][] } {
+    const calls: string[][] = [];
+    const fn = ((cmd: readonly string[]) => {
+      calls.push([...cmd]);
+      const joined = cmd.join(" ");
+      for (const [needle, value] of Object.entries(responses)) {
+        if (joined.includes(needle)) {
+          if (value === "FAIL") return { returncode: 1, stdout: "", stderr: "boom" };
+          return {
+            returncode: 0,
+            stdout: typeof value === "string" ? value : JSON.stringify(value),
+            stderr: "",
+          };
+        }
+      }
+      return { returncode: 1, stdout: "", stderr: `unexpected ${joined}` };
+    }) as RunGhFn & { calls: string[][] };
+    fn.calls = calls;
+    return fn;
+  }
+  const page = (
+    key: string,
+    nodes: unknown[],
+    hasNextPage = false,
+    endCursor: string | null = null,
+  ) => ({
+    data: { repository: { [key]: { pageInfo: { hasNextPage, endCursor }, nodes } } },
+  });
+
+  it("parses merged-PR, revision and connection-event pages", () => {
+    const run = gh({
+      "pullRequests(": page(
+        "pullRequests",
+        [{ number: 1, mergedAt: MERGED_AT, body: null, lastEditedAt: null }],
+        true,
+        "c1",
+      ),
+      userContentEdits: {
+        data: {
+          repository: {
+            pullRequest: {
+              userContentEdits: {
+                pageInfo: { hasNextPage: false, endCursor: null },
+                nodes: [
+                  { editedAt: BEFORE, deletedAt: null, diff: "body" },
+                  { editedAt: AFTER, deletedAt: AFTER, diff: "gone" },
+                ],
+              },
+            },
+          },
+        },
+      },
+      timelineItems: {
+        data: {
+          repository: {
+            pullRequest: {
+              timelineItems: {
+                pageInfo: { hasNextPage: false, endCursor: null },
+                nodes: [
+                  {
+                    __typename: "ConnectedEvent",
+                    createdAt: BEFORE,
+                    source: { __typename: "PullRequest" },
+                    subject: {
+                      __typename: "Issue",
+                      number: 7,
+                      repository: { nameWithOwner: REPO },
+                    },
+                  },
+                  {
+                    __typename: "DisconnectedEvent",
+                    createdAt: AFTER,
+                    source: { __typename: "Issue", number: 7, repository: { nameWithOwner: REPO } },
+                    subject: { __typename: "PullRequest" },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    });
+    const forge = defaultMergeTimeForge(run);
+    expect(forge.listMergedPrsPage(REPO, null)).toEqual({
+      ok: true,
+      nodes: [{ number: 1, mergedAt: MERGED_AT, body: "", lastEditedAt: null }],
+      hasNextPage: true,
+      endCursor: "c1",
+    });
+    expect(forge.fetchBodyRevisionsPage(REPO, 1, "c0")).toMatchObject({
+      ok: true,
+      nodes: [
+        { editedAt: BEFORE, body: "body" },
+        { editedAt: AFTER, body: null },
+      ],
+    });
+    expect(run.calls.at(-1)).toEqual(expect.arrayContaining(["after=c0", "number=1"]));
+    expect(forge.fetchConnectionEventsPage(REPO, 1, null)).toMatchObject({
+      ok: true,
+      nodes: [
+        { kind: "connected", issues: [{ repository: REPO, issueNumber: 7 }] },
+        { kind: "disconnected", issues: [{ repository: REPO, issueNumber: 7 }] },
+      ],
+    });
+    expect(forge.listMergedPrsPage("bad", null).ok).toBe(false);
+    expect(forge.fetchBodyRevisionsPage("bad", 1, null).ok).toBe(false);
+    expect(forge.fetchConnectionEventsPage("bad", 1, null).ok).toBe(false);
+    expect(typeof forge.nowMs()).toBe("number");
+  });
+
+  it("fails closed on GraphQL errors, missing pageInfo, bad nodes and gh failures", () => {
+    const cases: unknown[] = [
+      "FAIL",
+      "not json",
+      { errors: [{ message: "x" }], data: null },
+      { data: null },
+      { data: { repository: { pullRequests: { nodes: [] } } } },
+      page("pullRequests", [{ number: "x" }]),
+    ];
+    for (const value of cases) {
+      expect(
+        defaultMergeTimeForge(gh({ "pullRequests(": value })).listMergedPrsPage(REPO, null).ok,
+      ).toBe(false);
+    }
+    const throws: RunGhFn = () => {
+      throw new Error("spawn");
+    };
+    expect(defaultMergeTimeForge(throws).listMergedPrsPage(REPO, null).ok).toBe(false);
+  });
+
+  it("lists changed files with rename sources and refuses an incomplete listing", () => {
+    const ok = gh({
+      "/files": "renamed\txbrief/completed/a.json\txbrief/active/a.json\nmodified\tsrc/a.ts\t\n",
+      "pulls/5": { changed_files: 2 },
+    });
+    expect(defaultMergeTimeForge(ok).fetchPrFiles(REPO, 5)).toEqual({
+      ok: true,
+      files: [
+        {
+          status: "renamed",
+          filename: "xbrief/completed/a.json",
+          previousFilename: "xbrief/active/a.json",
+        },
+        { status: "modified", filename: "src/a.ts" },
+      ],
+    });
+    const short = gh({ "/files": "modified\tsrc/a.ts\t\n", "pulls/5": { changed_files: 3000 } });
+    expect(defaultMergeTimeForge(short).fetchPrFiles(REPO, 5)).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/truncated/),
+    });
+    expect(defaultMergeTimeForge(gh({ "pulls/5": {} })).fetchPrFiles(REPO, 5).ok).toBe(false);
+    expect(
+      defaultMergeTimeForge(gh({ "/files": "FAIL", "pulls/5": { changed_files: 1 } })).fetchPrFiles(
+        REPO,
+        5,
+      ).ok,
+    ).toBe(false);
+    expect(
+      defaultMergeTimeForge(
+        gh({ "/files": "garbage\n", "pulls/5": { changed_files: 1 } }),
+      ).fetchPrFiles(REPO, 5).ok,
+    ).toBe(false);
+    expect(defaultMergeTimeForge(ok).fetchPrFiles("bad", 5).ok).toBe(false);
+  });
+
+  it("reads the live rate limit and returns null on any failure", () => {
+    const ok = gh({
+      rate_limit: { resources: { core: { remaining: 4000 }, graphql: { remaining: 300 } } },
+    });
+    expect(defaultMergeTimeForge(ok).probeRateLimit()).toEqual({
+      graphqlRemaining: 300,
+      coreRemaining: 4000,
+    });
+    expect(defaultMergeTimeForge(gh({ rate_limit: "FAIL" })).probeRateLimit()).toBeNull();
+    expect(defaultMergeTimeForge(gh({ rate_limit: "nope" })).probeRateLimit()).toBeNull();
+    expect(
+      defaultMergeTimeForge(gh({ rate_limit: { resources: {} } })).probeRateLimit(),
+    ).toBeNull();
+  });
+});
+
+describe("non-delivery refuse for a merged stamped PR (#5710 P4)", () => {
+  let root = "";
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  const gate = (
+    plan: Record<string, unknown>,
+    fetchPrPayload: FetchPrPayloadFn,
+    runGit = gitWithOrigin(),
+  ) =>
+    evaluateDeliveryGate({
+      projectRoot: root,
+      plan,
+      nowIso: AFTER,
+      nonDeliveryDisposition: "cancelled",
+      fetchPrPayload,
+      runGit,
+    });
+
+  it("clause.9: refuses when the stamped PR is merged, including to an integration branch", () => {
+    root = makeRepo();
+    const stamped = issuePlan(6212, { productPullRequest: 6215 });
+    const merged = gate(stamped, payloadFor({ 6215: mergedPayload() }));
+    expect(merged.ok).toBe(false);
+    expect(merged.message).toMatch(
+      /stamped productPullRequest #6215 in deftai\/directive is merged/,
+    );
+    expect(merged.provenance).toBeNull();
+    expect(gate(stamped, payloadFor({ 6215: mergedPayload({ base: "develop" }) })).ok).toBe(false);
+    // PR-only brief resolves the stamp in the canonical remote.
+    expect(gate(prOnlyPlan(6215), payloadFor({ 6215: mergedPayload() })).ok).toBe(false);
+  });
+
+  it("clause.9: fails closed when merge state cannot be established", () => {
+    root = makeRepo();
+    const stamped = issuePlan(6212, { productPullRequest: 6215 });
+    for (const fetch of [
+      payloadFor({}),
+      payloadFor({ 6215: { base: { ref: "master" } } }),
+      payloadFor({ 6215: { merged_at: 12 } }),
+      payloadFor({ 6215: { merged_at: " " } }),
+      (() => {
+        throw new Error("timeout");
+      }) as FetchPrPayloadFn,
+    ]) {
+      const result = gate(stamped, fetch);
+      expect(result.ok).toBe(false);
+      expect(result.message).toMatch(
+        /could not establish whether stamped productPullRequest #6215/,
+      );
+    }
+    const noRemote = gate(
+      prOnlyPlan(6215),
+      payloadFor({ 6215: mergedPayload() }),
+      gitWithOrigin(null),
+    );
+    expect(noRemote.ok).toBe(false);
+    expect(noRemote.message).toMatch(/cannot resolve the repository/);
+  });
+
+  it("clause.9: a confirmed unmerged stamp, or no stamp, keeps the non-delivery path", () => {
+    root = makeRepo();
+    const unmerged = gate(
+      issuePlan(6212, { productPullRequest: 6215 }),
+      payloadFor({ 6215: mergedPayload({ mergedAt: null }) }),
+    );
+    expect(unmerged.ok).toBe(true);
+    expect(unmerged.provenance?.disposition).toBe("cancelled");
+    const unstamped = gate(issuePlan(6212), () => {
+      throw new Error("no lookup without a stamp");
+    });
+    expect(unstamped.ok).toBe(true);
+  });
+
+  it("clause.9: scope:complete records nothing when it refuses a non-delivery disposition", () => {
+    root = makeRepo();
+    const path = join(root, "xbrief", "active", "stamped.xbrief.json");
+    const raw = JSON.stringify({
+      xBRIEFInfo: { version: "0.8" },
+      plan: issuePlan(6212, { productPullRequest: 6215 }),
+    });
+    writeFileSync(path, raw);
+    for (const fetchPrPayload of [payloadFor({ 6215: mergedPayload() }), payloadFor({})]) {
+      const result = runTransition("complete", path, new Date(AFTER), {
+        runGit: gitWithOrigin(),
+        nonDeliveryDisposition: "superseded",
+        fetchPrPayload,
+      });
+      expect(result.ok).toBe(false);
+      expect(readFileSync(path, "utf8")).toBe(raw);
+      expect(existsSync(join(root, "xbrief", "completed", "stamped.xbrief.json"))).toBe(false);
+    }
   });
 });

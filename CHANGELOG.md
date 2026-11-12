@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `verify:scope-provenance` admits a new or widened brief and its code in one PR when a non-author human with repo write approves a commit whose brief has the same auth-hash; without that approval, or with a mint present, behaviour is unchanged. Pass `--pr` / `--repo` or set `GITHUB_PR_NUMBER`. Refs #6203.
 
 ### Fixed
+- `scope:complete` completes an issue-less brief from its stamped `productPullRequest` and the `origin` remote. With an issue origin, it proves the issue-PR link as of merge time (unique sole `deft-story` mark, closing keyword, or Connected link), so a link added after merge no longer counts. `--non-delivery` refuses a merged stamped PR. `xbrief:preflight` notes a code-bearing brief with no issue origin. Refs #5710.
 - `swarm:finalize-cohort --stories N --pr M` now binds a `deft-story: N` mark on merged PR M to an unstamped active brief for N, then stamps `productPullRequest=M` in the sweep. Marks for issues outside `--stories`, briefs stamped to another PR, and brief-plus-CHANGELOG-only PRs still fail with the #4864 error. Refs #6212.
 - Activated the scope brief for #6212 for through-merge. Refs #6212.
 - `swarm:finalize-cohort` installs packages on a pinned lifecycle checkout before the completion sweep, so Taskfile includes from `node_modules` resolve. npm/pnpm install failure is an environment/setup error, not commands-failed; Yarn/Bun skip with a warning. Refs #5882.

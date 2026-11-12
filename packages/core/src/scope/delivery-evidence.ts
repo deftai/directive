@@ -9,7 +9,6 @@
  * Deploy / UAT are separate axes and MUST NOT be inferred from Git alone.
  */
 
-import { closerSetFromIssueIds } from "../one-pr-unit/closer-set.js";
 import { productPullRequestFromPlan } from "../orphan-active/running-briefs.js";
 import {
   assertSafeBranchName,
@@ -19,10 +18,12 @@ import {
   resolveDeliveryBranch,
   trackingFetchArgv,
 } from "../policy/delivery-branch.js";
+import { parseAllDeftStoryMarks } from "../pr-closing-keywords/main.js";
 import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import type { RunGhFn, RunGhResult } from "../pr-protected-issues/types.js";
 import { defaultGitRunner, type GitRunner, gitIsAncestor } from "../session/git.js";
 import { readRitualState } from "../session/ritual-sentinel.js";
+import { parseGitHubRepoSlug } from "../text/redos-safe.js";
 import { LIFECYCLE_FOLDERS } from "./constants.js";
 
 /** Prefer-A #5545: refuse resolver error when branch is empty or unsafe. */
@@ -196,18 +197,22 @@ export interface DeliveryGateOptions {
    * treat this flag as an opaque-string bypass.
    */
   readonly assumeEvidenceValidated?: boolean;
-  /** Optional gh runner for default PR / closing-ref fetchers (#3675). */
+  /** Optional gh runner for default PR / merge-time fetchers (#3675 / #5710). */
   readonly runGh?: RunGhFn;
-  /** Test / inject seam: pulls REST payload fetcher (#3675). */
+  /**
+   * Test / inject seam: pulls REST payload fetcher (#3675). When injected,
+   * the live merge-time forge and changed-files defaults are off, so tests
+   * never fall through to gh.
+   */
   readonly fetchPrPayload?: FetchPrPayloadFn;
-  /** Test / inject seam: authoritative closing issue ids only (#3675). */
-  readonly fetchClosingIssueIds?: FetchClosingIssueIdsFn;
+  /** Test / inject seam: merge-time association reads (#5710 P3). */
+  readonly mergeTimeForge?: MergeTimeForge;
   /**
    * File name of the brief being completed (basename). Enables the
-   * brief-in-PR-diff identity fallback when the forge closer set lacks the story.
+   * brief-in-PR-diff identity basis (#3675).
    */
   readonly briefBasename?: string;
-  /** Test / inject seam: PR changed files for the brief-in-PR-diff fallback. */
+  /** Test / inject seam: PR changed files for the brief-in-PR-diff basis. */
   readonly fetchPrChangedFiles?: FetchPrChangedFilesFn;
 }
 
@@ -578,7 +583,21 @@ export function defaultFetchPrChangedFiles(
   return out;
 }
 
-export type StoryPrIdentityBasis = "forge-closer" | "brief-in-pr-diff";
+/**
+ * How the story→PR identity was proven.
+ * - `forge-closer`: legacy current-state closer set (read-only; no longer written, #5710).
+ * - `brief-in-pr-diff`: the merged PR added this brief alongside code (#3675).
+ * - `pr-only`: issue-less brief bound by `plan.metadata.productPullRequest` (#5710 P1).
+ * - `merge-time-mark` / `merge-time-keyword` / `merge-time-connected`: issue-anchored
+ *   association proven as of `merged_at` (#5710 P3 bases a / b / c).
+ */
+export type StoryPrIdentityBasis =
+  | "forge-closer"
+  | "brief-in-pr-diff"
+  | "pr-only"
+  | "merge-time-mark"
+  | "merge-time-keyword"
+  | "merge-time-connected";
 
 const LIFECYCLE_FOLDER_SET: ReadonlySet<string> = new Set(LIFECYCLE_FOLDERS);
 
@@ -608,6 +627,787 @@ export function prDiffAddsBrief(files: readonly PrChangedFile[], briefBasename: 
   return addsBrief && touchesCode;
 }
 
+// ---------------------------------------------------------------------------
+// Merge-time association (#5710 Prefer-A Recut-13 P3)
+// ---------------------------------------------------------------------------
+
+/** One PR body revision from GraphQL `userContentEdits` (#5710). */
+export interface PrBodyRevision {
+  readonly editedAt: string;
+  /** Body text after this edit; null when the forge hides or deleted the revision. */
+  readonly body: string | null;
+}
+
+/** One merged PR from the paged repository listing (#5710). */
+export interface MergedPrListNode {
+  readonly number: number;
+  readonly mergedAt: string;
+  readonly body: string;
+  /** Last body edit time; null when the body was never edited. */
+  readonly lastEditedAt: string | null;
+}
+
+/** One ConnectedEvent / DisconnectedEvent on a PR timeline (#5710 basis c). */
+export interface PrConnectionEvent {
+  readonly kind: "connected" | "disconnected";
+  readonly createdAt: string;
+  /** Issues named by the event's source or subject, with their own repository. */
+  readonly issues: readonly ClosingIssueRef[];
+}
+
+/** One changed file, with the rename source when GitHub reports one. */
+export interface PrFileEntry extends PrChangedFile {
+  readonly previousFilename?: string;
+}
+
+/** One page of a forge connection; any failure is `ok:false` (fail closed). */
+export type ForgePage<T> =
+  | {
+      readonly ok: true;
+      readonly nodes: readonly T[];
+      readonly hasNextPage: boolean;
+      readonly endCursor: string | null;
+    }
+  | { readonly ok: false; readonly error: string };
+
+/** Complete changed-file list, or `ok:false` on failure or a truncated listing. */
+export type FetchPrFileListResult =
+  | { readonly ok: true; readonly files: readonly PrFileEntry[] }
+  | { readonly ok: false; readonly error: string };
+
+/** Live rate-limit read (`gh api rate_limit`, never the cached proxy). */
+export interface RateLimitSnapshot {
+  readonly graphqlRemaining: number;
+  readonly coreRemaining: number;
+}
+
+/**
+ * Forge reads for merge-time association (#5710). Inject in tests so no
+ * network is used. Page-level primitives: paging and budget live here.
+ */
+export interface MergeTimeForge {
+  readonly listMergedPrsPage: (
+    repository: string,
+    after: string | null,
+  ) => ForgePage<MergedPrListNode>;
+  readonly fetchBodyRevisionsPage: (
+    repository: string,
+    prNumber: number,
+    after: string | null,
+  ) => ForgePage<PrBodyRevision>;
+  readonly fetchConnectionEventsPage: (
+    repository: string,
+    prNumber: number,
+    after: string | null,
+  ) => ForgePage<PrConnectionEvent>;
+  readonly fetchPrFiles: (repository: string, prNumber: number) => FetchPrFileListResult;
+  readonly probeRateLimit: () => RateLimitSnapshot | null;
+  readonly nowMs: () => number;
+}
+
+/** Recut-13 uniqueness-scan budget: units and caps (#5710). */
+export const MERGE_TIME_SCAN_WALL_CLOCK_MS = 20 * 60 * 1000;
+export const MERGE_TIME_SCAN_MIN_GRAPHQL_REMAINING = 200;
+export const MERGE_TIME_SCAN_MIN_CORE_REMAINING = 100;
+/** GitHub `pulls/{n}/files` lists at most 3000 files. */
+export const PR_FILES_LISTING_CAP = 3000;
+
+/** The three accepted merge-time bases, named in every stranded-shape refusal (#5710). */
+export const MERGE_TIME_ASSOCIATION_BASES =
+  "(a) a unique sole `deft-story: N` mark in the PR body as of merged_at, " +
+  "(b) a closing keyword (close/fix/resolve forms) naming the issue in the PR body as of merged_at, " +
+  "(c) a Connected issue link in effect at merged_at";
+
+/** Budget guards for one identity join; each returns null or the refusal reason. */
+export interface ScanBudget {
+  readonly beforeGraphql: () => string | null;
+  readonly beforeRest: () => string | null;
+}
+
+/** Start the Recut-13 scan budget: wall clock from now, live rate limits per call. */
+export function makeScanBudget(forge: MergeTimeForge): ScanBudget {
+  const startMs = forge.nowMs();
+  const wallClock = (): string | null =>
+    forge.nowMs() - startMs > MERGE_TIME_SCAN_WALL_CLOCK_MS
+      ? `scan budget exhausted: wall-clock cap ${MERGE_TIME_SCAN_WALL_CLOCK_MS / 60000} minutes`
+      : null;
+  const remaining = (
+    bucket: "graphqlRemaining" | "coreRemaining",
+    floor: number,
+    label: string,
+  ): string | null => {
+    const clock = wallClock();
+    if (clock !== null) return clock;
+    const rate = forge.probeRateLimit();
+    if (rate === null) return "scan budget unknown: live rate-limit probe failed";
+    return rate[bucket] < floor
+      ? `scan budget exhausted: ${label} remaining ${rate[bucket]} < ${floor}`
+      : null;
+  };
+  return {
+    beforeGraphql: () =>
+      remaining("graphqlRemaining", MERGE_TIME_SCAN_MIN_GRAPHQL_REMAINING, "graphql"),
+    beforeRest: () => remaining("coreRemaining", MERGE_TIME_SCAN_MIN_CORE_REMAINING, "REST core"),
+  };
+}
+
+type Collected<T> = { ok: true; nodes: T[] } | { ok: false; error: string };
+
+/** Next cursor of a page with more nodes, or null when the cursor is missing or stuck. */
+function nextCursor(endCursor: string | null, after: string | null): string | null {
+  const next = endCursor?.trim() ?? "";
+  return next.length === 0 || next === after ? null : next;
+}
+
+/** Walk every page of a connection; any gap, guard refusal or stuck cursor fails closed. */
+function collectAllPages<T>(
+  fetchPage: (after: string | null) => ForgePage<T>,
+  guard: () => string | null,
+  label: string,
+): Collected<T> {
+  const nodes: T[] = [];
+  let after: string | null = null;
+  for (;;) {
+    const refused = guard();
+    if (refused !== null) {
+      return { ok: false, error: `${label}: ${refused}` };
+    }
+    const page = fetchPage(after);
+    if (!page.ok) {
+      return { ok: false, error: `${label}: ${page.error}` };
+    }
+    nodes.push(...page.nodes);
+    if (!page.hasNextPage) {
+      return { ok: true, nodes };
+    }
+    const next = nextCursor(page.endCursor, after);
+    if (next === null) {
+      return {
+        ok: false,
+        error: `${label}: incomplete page (hasNextPage without a new endCursor)`,
+      };
+    }
+    after = next;
+  }
+}
+
+/**
+ * Merge-time body (#5710): the latest `userContentEdits` revision with
+ * editedAt ≤ merged_at, or the current body when the PR has no edit history.
+ * A hidden revision or no revision at or before merged_at is unknown (fail closed).
+ */
+export function selectMergeTimeBody(
+  revisions: readonly PrBodyRevision[],
+  currentBody: string | null,
+  mergedAt: string,
+): { ok: true; body: string } | { ok: false; error: string } {
+  const mergedMs = Date.parse(mergedAt);
+  if (Number.isNaN(mergedMs)) {
+    return { ok: false, error: `unreadable merged_at ${JSON.stringify(mergedAt)}` };
+  }
+  if (revisions.length === 0) {
+    return { ok: true, body: currentBody ?? "" };
+  }
+  let chosen: PrBodyRevision | null = null;
+  let chosenMs = Number.NEGATIVE_INFINITY;
+  for (const revision of revisions) {
+    const editedMs = Date.parse(revision.editedAt);
+    if (Number.isNaN(editedMs)) {
+      return {
+        ok: false,
+        error: `unreadable revision editedAt ${JSON.stringify(revision.editedAt)}`,
+      };
+    }
+    if (editedMs <= mergedMs && editedMs >= chosenMs) {
+      chosen = revision;
+      chosenMs = editedMs;
+    }
+  }
+  if (chosen === null) {
+    return { ok: false, error: "no body revision at or before merged_at" };
+  }
+  if (chosen.body === null) {
+    return { ok: false, error: "merge-time body revision is unreadable" };
+  }
+  return { ok: true, body: chosen.body };
+}
+
+const CLOSING_KEYWORD_REF_RE =
+  /\b(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved):?[ \t]+(?:#(\d+)|([\w.-]+)\/([\w.-]+)#(\d+)|https?:\/\/github\.com\/([\w.-]+)\/([\w.-]+)\/issues\/(\d+))(?![\w-])/gi;
+
+/**
+ * True when the body has a GitHub closing keyword naming the issue as `#N`,
+ * `owner/repo#N` or the issue URL (#5710 basis b). `#N` means the PR's repository.
+ */
+export function bodyHasClosingKeywordFor(
+  body: string,
+  repository: string,
+  issueNumber: number,
+): boolean {
+  const repoKey = repository.trim().toLowerCase();
+  const re = new RegExp(CLOSING_KEYWORD_REF_RE.source, CLOSING_KEYWORD_REF_RE.flags);
+  for (let match = re.exec(body); match !== null; match = re.exec(body)) {
+    const [, bare, owner, name, qualified, urlOwner, urlName, urlNumber] = match;
+    if (bare !== undefined) {
+      if (Number(bare) === issueNumber) return true;
+      continue;
+    }
+    const refRepo = `${owner ?? urlOwner ?? ""}/${name ?? urlName ?? ""}`.toLowerCase();
+    if (refRepo === repoKey && Number(qualified ?? urlNumber) === issueNumber) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Replay Connected / Disconnected events up to merged_at (#5710 basis c).
+ * Events after merged_at do not count.
+ */
+export function connectedAtMergedAt(
+  events: readonly PrConnectionEvent[],
+  repository: string,
+  issueNumber: number,
+  mergedAt: string,
+): { ok: true; connected: boolean } | { ok: false; error: string } {
+  const mergedMs = Date.parse(mergedAt);
+  if (Number.isNaN(mergedMs)) {
+    return { ok: false, error: `unreadable merged_at ${JSON.stringify(mergedAt)}` };
+  }
+  const repoKey = repository.trim().toLowerCase();
+  const relevant: { ms: number; kind: PrConnectionEvent["kind"] }[] = [];
+  for (const event of events) {
+    const names = event.issues.some(
+      (ref) => ref.repository.trim().toLowerCase() === repoKey && ref.issueNumber === issueNumber,
+    );
+    if (!names) continue;
+    const ms = Date.parse(event.createdAt);
+    if (Number.isNaN(ms)) {
+      return { ok: false, error: `unreadable event createdAt ${JSON.stringify(event.createdAt)}` };
+    }
+    if (ms <= mergedMs) {
+      relevant.push({ ms, kind: event.kind });
+    }
+  }
+  relevant.sort((a, b) => a.ms - b.ms);
+  const last = relevant[relevant.length - 1];
+  return { ok: true, connected: last?.kind === "connected" };
+}
+
+const DELIVERY_BRIEF_LAND_RE = /^(?:xbrief|vbrief)\/(?:proposed|pending|active|completed)\//;
+
+function isDeliveryBriefLandPath(path: string): boolean {
+  const p = path.replace(/\\/g, "/");
+  return p === "CHANGELOG.md" || DELIVERY_BRIEF_LAND_RE.test(p);
+}
+
+/**
+ * Delivery-brief-land exclusion (#5710): every changed path, rename sources
+ * included, is a brief under `xbrief|vbrief/(proposed|pending|active|completed)/`
+ * or root `CHANGELOG.md`. CHANGELOG-only, completed-folder renames and
+ * deletion-only or empty diffs on those paths are excluded. Not identical to
+ * activation `isBriefLandShapedDiff`, which denies completed/ and needs a
+ * non-removed nonterminal brief.
+ */
+export function isDeliveryBriefLandExcluded(files: readonly PrFileEntry[]): boolean {
+  return files.every(
+    (file) =>
+      isDeliveryBriefLandPath(file.filename) &&
+      ((file.previousFilename ?? "").length === 0 ||
+        isDeliveryBriefLandPath(file.previousFilename ?? "")),
+  );
+}
+
+/** The single distinct `deft-story` mark in a body, or null when zero or several (#5710). */
+export function soleDeftStoryMark(body: string): number | null {
+  const marks = parseAllDeftStoryMarks(body);
+  return marks.length === 1 ? (marks[0] ?? null) : null;
+}
+
+function reconstructMergeTimeBody(
+  forge: MergeTimeForge,
+  budget: ScanBudget,
+  target: { readonly repository: string; readonly prNumber: number },
+  currentBody: string | null,
+  mergedAt: string,
+): { ok: true; body: string } | { ok: false; error: string } {
+  const { repository, prNumber } = target;
+  const revisions = collectAllPages(
+    (after) => forge.fetchBodyRevisionsPage(repository, prNumber, after),
+    budget.beforeGraphql,
+    `PR #${prNumber} body revisions`,
+  );
+  if (!revisions.ok) {
+    return revisions;
+  }
+  const selected = selectMergeTimeBody(revisions.nodes, currentBody, mergedAt);
+  return selected.ok
+    ? selected
+    : { ok: false, error: `PR #${prNumber} merge-time body: ${selected.error}` };
+}
+
+function classifyDeliveryExclusion(
+  forge: MergeTimeForge,
+  budget: ScanBudget,
+  repository: string,
+  prNumber: number,
+): { ok: true; excluded: boolean } | { ok: false; error: string } {
+  const refused = budget.beforeRest();
+  if (refused !== null) {
+    return { ok: false, error: `PR #${prNumber} changed files: ${refused}` };
+  }
+  const listed = forge.fetchPrFiles(repository, prNumber);
+  if (!listed.ok) {
+    return { ok: false, error: `PR #${prNumber} changed files: ${listed.error}` };
+  }
+  if (listed.files.length >= PR_FILES_LISTING_CAP) {
+    return {
+      ok: false,
+      error: `PR #${prNumber} changed files: listing truncated at the ${PR_FILES_LISTING_CAP}-file cap`,
+    };
+  }
+  return { ok: true, excluded: isDeliveryBriefLandExcluded(listed.files) };
+}
+
+/** Merge-time body of one listed PR; edits only replayed when one landed after merge. */
+function listedMergeTimeBody(
+  forge: MergeTimeForge,
+  budget: ScanBudget,
+  repository: string,
+  node: MergedPrListNode,
+): { ok: true; body: string } | { ok: false; error: string } {
+  const mergedMs = Date.parse(node.mergedAt);
+  const lastEditedMs = node.lastEditedAt === null ? null : Date.parse(node.lastEditedAt);
+  if (Number.isNaN(mergedMs) || (lastEditedMs !== null && Number.isNaN(lastEditedMs))) {
+    return { ok: false, error: `PR #${node.number} has unreadable mergedAt / lastEditedAt` };
+  }
+  // No edit after merge: the latest revision at or before merged_at is the
+  // latest revision, which is the current body.
+  if (lastEditedMs === null || lastEditedMs <= mergedMs) {
+    return { ok: true, body: node.body };
+  }
+  return reconstructMergeTimeBody(
+    forge,
+    budget,
+    { repository, prNumber: node.number },
+    node.body,
+    node.mergedAt,
+  );
+}
+
+/**
+ * Bounded exhaustive uniqueness scan (#5710 basis a). Enumerates every merged
+ * PR, reconstructs each merge-time body, and classifies sole-mark hits for
+ * `issueNumber`. Returns the non-excluded sole-mark PRs other than the
+ * candidate. Any incomplete page, unreadable revision or competitor, truncated
+ * listing, or exhausted budget fails closed. No recent-window shortcut.
+ */
+export function scanSoleMarkCompetitors(input: {
+  readonly repository: string;
+  readonly issueNumber: number;
+  readonly candidatePr: number;
+  readonly forge: MergeTimeForge;
+  readonly budget?: ScanBudget;
+}): { ok: true; competitors: number[] } | { ok: false; error: string } {
+  const { repository, issueNumber, candidatePr, forge } = input;
+  const budget = input.budget ?? makeScanBudget(forge);
+  const competitors: number[] = [];
+  let after: string | null = null;
+  for (;;) {
+    const refused = budget.beforeGraphql();
+    if (refused !== null) {
+      return { ok: false, error: `merged-PR scan: ${refused}` };
+    }
+    const page = forge.listMergedPrsPage(repository, after);
+    if (!page.ok) {
+      return { ok: false, error: `merged-PR scan: ${page.error}` };
+    }
+    for (const node of page.nodes) {
+      if (node.number === candidatePr) continue;
+      const body = listedMergeTimeBody(forge, budget, repository, node);
+      if (!body.ok) {
+        return { ok: false, error: `merged-PR scan: ${body.error}` };
+      }
+      if (soleDeftStoryMark(body.body) !== issueNumber) continue;
+      const exclusion = classifyDeliveryExclusion(forge, budget, repository, node.number);
+      if (!exclusion.ok) {
+        return { ok: false, error: `merged-PR scan: possible competitor ${exclusion.error}` };
+      }
+      if (!exclusion.excluded) {
+        competitors.push(node.number);
+      }
+    }
+    if (!page.hasNextPage) {
+      return { ok: true, competitors };
+    }
+    const next = nextCursor(page.endCursor, after);
+    if (next === null) {
+      return {
+        ok: false,
+        error: "merged-PR scan: incomplete page (hasNextPage without a new endCursor)",
+      };
+    }
+    after = next;
+  }
+}
+
+/** Basis a: unique sole mark among merged non-excluded PRs (#5710). */
+function proveSoleMarkBasis(input: {
+  readonly forge: MergeTimeForge;
+  readonly budget: ScanBudget;
+  readonly repository: string;
+  readonly issueNumber: number;
+  readonly prNumber: number;
+  readonly mergeTimeBody: string;
+}): { ok: true } | { ok: false; reason: string } {
+  const { forge, budget, repository, issueNumber, prNumber } = input;
+  if (soleDeftStoryMark(input.mergeTimeBody) !== issueNumber) {
+    return {
+      ok: false,
+      reason: `(a) PR #${prNumber} body as of merged_at has no sole \`deft-story: ${issueNumber}\` mark`,
+    };
+  }
+  const exclusion = classifyDeliveryExclusion(forge, budget, repository, prNumber);
+  if (!exclusion.ok) {
+    return { ok: false, reason: `(a) ${exclusion.error}` };
+  }
+  if (exclusion.excluded) {
+    return {
+      ok: false,
+      reason:
+        `(a) PR #${prNumber} changes only briefs and CHANGELOG.md ` +
+        `(delivery-brief-land excluded; not delivery)`,
+    };
+  }
+  const scan = scanSoleMarkCompetitors({
+    repository,
+    issueNumber,
+    candidatePr: prNumber,
+    forge,
+    budget,
+  });
+  if (!scan.ok) {
+    return { ok: false, reason: `(a) uniqueness unknown, refusing: ${scan.error}` };
+  }
+  if (scan.competitors.length > 0) {
+    const list = scan.competitors.map((n) => `#${n}`).join(", ");
+    return {
+      ok: false,
+      reason:
+        `(a) mark is not unique: merged non-excluded PR(s) ${list} also carry a sole ` +
+        `\`deft-story: ${issueNumber}\` mark`,
+    };
+  }
+  return { ok: true };
+}
+
+/** One GraphQL call through gh; returns `data` or an error (any `errors` entry fails). */
+function runGhGraphql(
+  runGh: RunGhFn,
+  query: string,
+  vars: Record<string, string | number | null>,
+): { ok: true; data: Record<string, unknown> } | { ok: false; error: string } {
+  const cmd = ["gh", "api", "graphql", "-f", `query=${query}`];
+  for (const [key, value] of Object.entries(vars)) {
+    if (value !== null) {
+      cmd.push("-F", `${key}=${String(value)}`);
+    }
+  }
+  let result: RunGhResult;
+  try {
+    result = runGh(cmd);
+  } catch (exc: unknown) {
+    return { ok: false, error: exc instanceof Error ? exc.message : String(exc) };
+  }
+  if (result.returncode !== 0) {
+    return { ok: false, error: result.stderr.trim() || "gh api graphql non-zero" };
+  }
+  let payload: unknown;
+  try {
+    payload = JSON.parse(result.stdout) as unknown;
+  } catch {
+    return { ok: false, error: "unparseable GraphQL JSON" };
+  }
+  const rec = asRecord(payload);
+  if (rec === null || (Array.isArray(rec.errors) && rec.errors.length > 0)) {
+    return { ok: false, error: "GraphQL response carried errors" };
+  }
+  const data = asRecord(rec.data);
+  return data === null ? { ok: false, error: "GraphQL response missing data" } : { ok: true, data };
+}
+
+function readConnection(
+  value: unknown,
+): { nodes: unknown[]; hasNextPage: boolean; endCursor: string | null } | null {
+  const conn = asRecord(value);
+  const pageInfo = asRecord(conn?.pageInfo);
+  if (conn === null || pageInfo === null || !Array.isArray(conn.nodes)) return null;
+  if (typeof pageInfo.hasNextPage !== "boolean") return null;
+  const endCursor = typeof pageInfo.endCursor === "string" ? pageInfo.endCursor : null;
+  return { nodes: conn.nodes, hasNextPage: pageInfo.hasNextPage, endCursor };
+}
+
+const MERGED_PRS_GRAPHQL =
+  "query($owner:String!,$name:String!,$after:String){repository(owner:$owner,name:$name){" +
+  "pullRequests(states:MERGED,first:100,after:$after,orderBy:{field:CREATED_AT,direction:ASC}){" +
+  "pageInfo{hasNextPage endCursor} nodes{number mergedAt body lastEditedAt}}}}";
+
+const BODY_REVISIONS_GRAPHQL =
+  "query($owner:String!,$name:String!,$number:Int!,$after:String){repository(owner:$owner,name:$name){" +
+  "pullRequest(number:$number){userContentEdits(first:100,after:$after){" +
+  "pageInfo{hasNextPage endCursor} nodes{editedAt deletedAt diff}}}}}";
+
+const SUBJECT_FIELDS = "__typename ... on Issue{number repository{nameWithOwner}}";
+const CONNECTION_EVENTS_GRAPHQL =
+  "query($owner:String!,$name:String!,$number:Int!,$after:String){repository(owner:$owner,name:$name){" +
+  "pullRequest(number:$number){timelineItems(first:100,after:$after," +
+  "itemTypes:[CONNECTED_EVENT,DISCONNECTED_EVENT]){pageInfo{hasNextPage endCursor} nodes{__typename " +
+  `... on ConnectedEvent{createdAt source{${SUBJECT_FIELDS}} subject{${SUBJECT_FIELDS}}} ` +
+  `... on DisconnectedEvent{createdAt source{${SUBJECT_FIELDS}} subject{${SUBJECT_FIELDS}}}}}}}}`;
+
+function parseEventIssue(value: unknown): ClosingIssueRef | null {
+  const rec = asRecord(value);
+  if (rec === null || rec.__typename !== "Issue") return null;
+  const repo = asRecord(rec.repository)?.nameWithOwner;
+  if (typeof rec.number !== "number" || typeof repo !== "string") return null;
+  return { repository: repo, issueNumber: rec.number };
+}
+
+function parseMergedPrNode(value: unknown): MergedPrListNode | null {
+  const rec = asRecord(value);
+  if (rec === null || typeof rec.number !== "number" || typeof rec.mergedAt !== "string") {
+    return null;
+  }
+  if (rec.body !== null && typeof rec.body !== "string") return null;
+  if (rec.lastEditedAt !== null && typeof rec.lastEditedAt !== "string") return null;
+  return {
+    number: rec.number,
+    mergedAt: rec.mergedAt,
+    body: typeof rec.body === "string" ? rec.body : "",
+    lastEditedAt: typeof rec.lastEditedAt === "string" ? rec.lastEditedAt : null,
+  };
+}
+
+function parseRevisionNode(value: unknown): PrBodyRevision | null {
+  const rec = asRecord(value);
+  if (rec === null || typeof rec.editedAt !== "string") return null;
+  const hidden = rec.deletedAt !== null && rec.deletedAt !== undefined;
+  return {
+    editedAt: rec.editedAt,
+    body: !hidden && typeof rec.diff === "string" ? rec.diff : null,
+  };
+}
+
+function parseConnectionEventNode(value: unknown): PrConnectionEvent | null {
+  const rec = asRecord(value);
+  if (rec === null || typeof rec.createdAt !== "string") return null;
+  let kind: PrConnectionEvent["kind"];
+  if (rec.__typename === "ConnectedEvent") {
+    kind = "connected";
+  } else if (rec.__typename === "DisconnectedEvent") {
+    kind = "disconnected";
+  } else {
+    return null;
+  }
+  const issues = [parseEventIssue(rec.source), parseEventIssue(rec.subject)].filter(
+    (ref): ref is ClosingIssueRef => ref !== null,
+  );
+  return { kind, createdAt: rec.createdAt, issues };
+}
+
+function graphqlPage<T>(
+  runGh: RunGhFn,
+  request: { readonly query: string; readonly vars: Record<string, string | number | null> },
+  pick: (data: Record<string, unknown>) => unknown,
+  parseNode: (value: unknown) => T | null,
+): ForgePage<T> {
+  const response = runGhGraphql(runGh, request.query, request.vars);
+  if (!response.ok) return response;
+  const conn = readConnection(pick(response.data));
+  if (conn === null) {
+    return { ok: false, error: "incomplete page (missing connection or pageInfo)" };
+  }
+  const nodes: T[] = [];
+  for (const raw of conn.nodes) {
+    const parsed = parseNode(raw);
+    if (parsed === null) return { ok: false, error: "unreadable node in page" };
+    nodes.push(parsed);
+  }
+  return { ok: true, nodes, hasNextPage: conn.hasNextPage, endCursor: conn.endCursor };
+}
+
+function fetchPrFilesWithRenames(
+  runGh: RunGhFn,
+  repository: string,
+  prNumber: number,
+): FetchPrFileListResult {
+  const parsed = parseOwnerRepo(repository);
+  if (parsed === null) return { ok: false, error: `invalid repository ${repository}` };
+  const payload = defaultFetchPrPayload(prNumber, repository, runGh);
+  const expected = typeof payload?.changed_files === "number" ? payload.changed_files : null;
+  if (expected === null) return { ok: false, error: "could not read changed_files count" };
+  let result: RunGhResult;
+  try {
+    result = runGh([
+      "gh",
+      "api",
+      "--paginate",
+      `repos/${parsed.owner}/${parsed.name}/pulls/${prNumber}/files?per_page=100`,
+      "--jq",
+      '.[] | [.status, .filename, (.previous_filename // "")] | @tsv',
+    ]);
+  } catch (exc: unknown) {
+    return { ok: false, error: exc instanceof Error ? exc.message : String(exc) };
+  }
+  if (result.returncode !== 0) {
+    return { ok: false, error: result.stderr.trim() || "gh api files non-zero" };
+  }
+  const files: PrFileEntry[] = [];
+  for (const line of result.stdout.split("\n")) {
+    if (line.trim().length === 0) continue;
+    const [status, filename, previous] = line.split("\t");
+    if (status === undefined || filename === undefined || filename.length === 0) {
+      return { ok: false, error: "unreadable files line" };
+    }
+    files.push(
+      previous !== undefined && previous.length > 0
+        ? { status, filename, previousFilename: previous }
+        : { status, filename },
+    );
+  }
+  if (files.length !== expected) {
+    return {
+      ok: false,
+      error: `listing truncated or incomplete (${files.length} of ${expected} files)`,
+    };
+  }
+  return { ok: true, files };
+}
+
+function probeLiveRateLimit(runGh: RunGhFn): RateLimitSnapshot | null {
+  const cmd = ["gh", "api", "rate_limit"];
+  let result: RunGhResult;
+  try {
+    // Uncached live read: the cached proxy can report a stale bucket (#954).
+    result = runGh === defaultRunGh ? defaultRunGh(cmd, "gh") : runGh(cmd);
+  } catch {
+    return null;
+  }
+  if (result.returncode !== 0) return null;
+  try {
+    const resources = asRecord(asRecord(JSON.parse(result.stdout))?.resources);
+    const graphql = asRecord(resources?.graphql)?.remaining;
+    const core = asRecord(resources?.core)?.remaining;
+    if (typeof graphql !== "number" || typeof core !== "number") return null;
+    return { graphqlRemaining: graphql, coreRemaining: core };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Live forge reads for merge-time association (#5710): GraphQL pages, REST
+ * changed files with rename sources, and the uncached `gh api rate_limit`.
+ */
+export function defaultMergeTimeForge(runGh: RunGhFn = defaultRunGh): MergeTimeForge {
+  const prVars = (repository: string, prNumber: number, after: string | null) => {
+    const parsed = parseOwnerRepo(repository);
+    return parsed === null
+      ? null
+      : { owner: parsed.owner, name: parsed.name, number: prNumber, after };
+  };
+  const pullRequestOf = (data: Record<string, unknown>) =>
+    asRecord(asRecord(data.repository)?.pullRequest);
+  const invalid = (repository: string) => ({
+    ok: false as const,
+    error: `invalid repository ${repository}`,
+  });
+  return {
+    listMergedPrsPage: (repository, after) => {
+      const parsed = parseOwnerRepo(repository);
+      if (parsed === null) return invalid(repository);
+      return graphqlPage(
+        runGh,
+        { query: MERGED_PRS_GRAPHQL, vars: { owner: parsed.owner, name: parsed.name, after } },
+        (data) => asRecord(data.repository)?.pullRequests,
+        parseMergedPrNode,
+      );
+    },
+    fetchBodyRevisionsPage: (repository, prNumber, after) => {
+      const vars = prVars(repository, prNumber, after);
+      if (vars === null) return invalid(repository);
+      return graphqlPage(
+        runGh,
+        { query: BODY_REVISIONS_GRAPHQL, vars },
+        (data) => pullRequestOf(data)?.userContentEdits,
+        parseRevisionNode,
+      );
+    },
+    fetchConnectionEventsPage: (repository, prNumber, after) => {
+      const vars = prVars(repository, prNumber, after);
+      if (vars === null) return invalid(repository);
+      return graphqlPage(
+        runGh,
+        { query: CONNECTION_EVENTS_GRAPHQL, vars },
+        (data) => pullRequestOf(data)?.timelineItems,
+        parseConnectionEventNode,
+      );
+    },
+    fetchPrFiles: (repository, prNumber) => fetchPrFilesWithRenames(runGh, repository, prNumber),
+    probeRateLimit: () => probeLiveRateLimit(runGh),
+    nowMs: () => Date.now(),
+  };
+}
+
+/**
+ * Canonical project repository (#5710 P1): OWNER/NAME of the `origin` remote.
+ * `--repo` is a matching assertion only and is never the source of it.
+ */
+export function resolveCanonicalProjectRepository(
+  projectRoot: string,
+  runGit: GitRunner = defaultGitRunner,
+): string | null {
+  let result: ReturnType<GitRunner>;
+  try {
+    result = runGit(projectRoot, ["remote", "get-url", "origin"]);
+  } catch {
+    return null;
+  }
+  if (result.code !== 0) return null;
+  return parseGitHubRepoSlug(result.stdout.trim());
+}
+
+/**
+ * PR-only delivery identity (#5710 P1): only when the plan has no GitHub issue
+ * reference (today's resolver). Identity is (canonical remote, stamped
+ * productPullRequest). `x-xbrief/github-pr` references are never identity.
+ */
+export function resolvePrOnlyDeliveryIdentity(
+  plan: Record<string, unknown>,
+  resolveCanonicalRepository: () => string | null,
+): { ok: true; repository: string; prNumber: number } | { ok: false; message: string } {
+  const prNumber = productPullRequestFromPlan(plan);
+  if (prNumber === null) {
+    return {
+      ok: false,
+      message:
+        "Delivery identity join failed: plan has no x-xbrief/github-issue reference and no " +
+        "plan.metadata.productPullRequest stamp. Stamp productPullRequest (issue-less briefs only) " +
+        "or add an issue origin. An x-xbrief/github-pr reference is not a delivery identity (#5710).",
+    };
+  }
+  const repository = resolveCanonicalRepository();
+  if (repository === null) {
+    return {
+      ok: false,
+      message:
+        `Delivery identity join failed: plan has productPullRequest=${prNumber} but the ` +
+        `canonical project remote (git remote get-url origin) did not resolve to OWNER/NAME (#5710).`,
+    };
+  }
+  return { ok: true, repository, prNumber };
+}
+
 export interface StoryPrMergeIdentityResult {
   readonly ok: boolean;
   readonly message: string;
@@ -617,74 +1417,47 @@ export interface StoryPrMergeIdentityResult {
   readonly prBase?: string | null;
   readonly headSha?: string | null;
   readonly identityBasis?: StoryPrIdentityBasis;
+  /** Repository the identity was proven in (issue repository or canonical remote). */
+  readonly repository?: string;
 }
 
-/**
- * Prefer-A story→PR→merge identity join before delivery liveness (#3675).
- *
- * Uses plan-derived expected repo/issue, authoritative closingIssuesReferences
- * with per-issue repository preserved (not reassigned to the plan repo), and
- * merge_commit_sha identity equality. Does not require implementationCommit
- * ancestry (squash-safe).
- */
-export function verifyStoryPrMergeIdentity(input: {
+export interface StoryPrMergeIdentityInput {
   readonly plan: Record<string, unknown>;
   readonly evidence: DeliveryEvidenceInput;
   readonly mergeCommit: string;
   readonly fetchPrPayload: FetchPrPayloadFn;
-  readonly fetchClosingIssueIds: FetchClosingIssueIdsFn;
-  /** Basename of the brief being completed; enables the brief-in-PR-diff fallback. */
+  /** Merge-time association reads (#5710). Absent → issue-anchored join fails closed. */
+  readonly mergeTimeForge?: MergeTimeForge;
+  /** Basename of the brief being completed; enables the brief-in-PR-diff basis. */
   readonly briefBasename?: string;
   readonly fetchPrChangedFiles?: FetchPrChangedFilesFn;
-}): StoryPrMergeIdentityResult {
-  const expected = resolvePlanGithubIssueRef(input.plan);
-  if (expected === null) {
-    return {
-      ok: false,
-      message:
-        "Delivery identity join failed: plan has no x-xbrief/github-issue reference " +
-        "to derive expected repository/issue (#3675).",
-    };
-  }
+  /** Canonical remote for the PR-only path (#5710 P1). Absent → that path fails closed. */
+  readonly resolveCanonicalRepository?: () => string | null;
+}
 
-  const evidenceRepo =
-    typeof input.evidence.repository === "string" && input.evidence.repository.trim().length > 0
-      ? input.evidence.repository.trim()
-      : null;
-  if (evidenceRepo !== null && evidenceRepo !== expected.repository) {
-    return {
-      ok: false,
-      message:
-        `Delivery identity join failed: evidence repository '${evidenceRepo}' does not match ` +
-        `plan-derived expected repository '${expected.repository}' (#3675).`,
-    };
-  }
+type MergedPayload =
+  | {
+      ok: true;
+      payload: Record<string, unknown>;
+      mergedAt: string;
+      mergeCommitSha: string;
+    }
+  | { ok: false; message: string };
 
-  const prNumber =
-    typeof input.evidence.prNumber === "number" &&
-    Number.isInteger(input.evidence.prNumber) &&
-    input.evidence.prNumber > 0
-      ? input.evidence.prNumber
-      : null;
-  if (prNumber === null) {
-    return {
-      ok: false,
-      message:
-        "Delivery identity join failed: missing story-associated PR number. " +
-        "Pass --pr <n> for the PR that forge-closes this story; --pr alone is not identity (#3675).",
-    };
-  }
-
-  const payload = input.fetchPrPayload(prNumber, expected.repository);
+function fetchMergedPayload(
+  fetchPrPayload: FetchPrPayloadFn,
+  prNumber: number,
+  repository: string,
+): MergedPayload {
+  const payload = fetchPrPayload(prNumber, repository);
   if (payload === null) {
     return {
       ok: false,
       message:
         `Delivery identity join failed: could not fetch PR #${prNumber} in ` +
-        `${expected.repository} (lookup failure) (#3675).`,
+        `${repository} (lookup failure) (#3675).`,
     };
   }
-
   const mergedAt =
     typeof payload.merged_at === "string" && payload.merged_at.trim().length > 0
       ? payload.merged_at.trim()
@@ -697,103 +1470,365 @@ export function verifyStoryPrMergeIdentity(input: {
     return {
       ok: false,
       message:
-        `Delivery identity join failed: PR #${prNumber} in ${expected.repository} ` +
+        `Delivery identity join failed: PR #${prNumber} in ${repository} ` +
         `is not merged (missing merged_at / merge_commit_sha) (#3675).`,
     };
   }
+  return { ok: true, payload, mergedAt, mergeCommitSha };
+}
 
-  const linked = input.fetchClosingIssueIds(prNumber, expected.repository);
-  if (linked === null) {
-    return {
-      ok: false,
-      message:
-        `Delivery identity join failed: could not fetch closingIssuesReferences for ` +
-        `PR #${prNumber} in ${expected.repository} (#3675).`,
-    };
-  }
-  const closerSet = linked.flatMap((ref) =>
-    closerSetFromIssueIds(ref.repository, [ref.issueNumber]),
-  );
-  const expectedRepoKey = expected.repository.trim().toLowerCase();
-  const closesStory = closerSet.some(
-    (origin) => origin.repo === expectedRepoKey && origin.issueId === expected.issueNumber,
-  );
-  let identityBasis: StoryPrIdentityBasis = "forge-closer";
-  if (!closesStory) {
-    const closerMiss =
-      `Delivery identity join failed: PR #${prNumber} forge closer set does not include ` +
-      `${expected.repository}#${expected.issueNumber} (wrong story / absent association) (#3675).`;
-    const briefBasename = input.briefBasename?.trim() ?? "";
-    if (briefBasename.length === 0 || input.fetchPrChangedFiles === undefined) {
-      return { ok: false, message: closerMiss };
-    }
-    const files = input.fetchPrChangedFiles(prNumber, expected.repository);
-    if (files === null) {
-      return {
-        ok: false,
-        message:
-          `${closerMiss} Brief-in-PR-diff fallback could not read PR #${prNumber} changed files ` +
-          `(lookup failure).`,
-      };
-    }
-    if (!prDiffAddsBrief(files, briefBasename)) {
-      return {
-        ok: false,
-        message:
-          `${closerMiss} Brief-in-PR-diff fallback also failed: PR #${prNumber} did not add ` +
-          `${briefBasename} alongside code changes.`,
-      };
-    }
-    identityBasis = "brief-in-pr-diff";
-  }
-
-  if (!shasEqual(input.mergeCommit, mergeCommitSha)) {
-    return {
-      ok: false,
-      message:
-        `Delivery identity join failed: supplied merge commit ${input.mergeCommit} does not ` +
-        `equal PR #${prNumber} merge_commit_sha ${mergeCommitSha} (identity, not reachability) (#3675).`,
-    };
-  }
-
-  const base = asRecord(payload.base);
+function payloadHeadSha(payload: Record<string, unknown>): string | null {
   const head = asRecord(payload.head);
-  const prBase = typeof base?.ref === "string" ? base.ref : null;
-  const headSha =
-    typeof head?.sha === "string" && head.sha.trim().length > 0
-      ? head.sha.trim()
-      : typeof payload.head_sha === "string" && payload.head_sha.trim().length > 0
-        ? payload.head_sha.trim()
-        : null;
-
-  const recordedImpl =
-    typeof input.evidence.implementationCommit === "string" &&
-    input.evidence.implementationCommit.trim().length > 0
-      ? input.evidence.implementationCommit.trim()
-      : null;
-  if (recordedImpl !== null) {
-    if (headSha === null || !shasEqual(recordedImpl, headSha)) {
-      return {
-        ok: false,
-        message:
-          `Delivery identity join failed: recorded implementationCommit ${recordedImpl} ` +
-          `does not match PR #${prNumber} head at merge time` +
-          `${headSha !== null ? ` (${headSha})` : ""} (#3675).`,
-      };
-    }
+  if (typeof head?.sha === "string" && head.sha.trim().length > 0) {
+    return head.sha.trim();
   }
+  if (typeof payload.head_sha === "string" && payload.head_sha.trim().length > 0) {
+    return payload.head_sha.trim();
+  }
+  return null;
+}
 
+function mergeCommitMismatch(
+  mergeCommit: string,
+  merged: Extract<MergedPayload, { ok: true }>,
+  prNumber: number,
+): string | null {
+  if (shasEqual(mergeCommit, merged.mergeCommitSha)) {
+    return null;
+  }
+  return (
+    `Delivery identity join failed: supplied merge commit ${mergeCommit} does not ` +
+    `equal PR #${prNumber} merge_commit_sha ${merged.mergeCommitSha} (identity, not reachability) (#3675).`
+  );
+}
+
+function checkRecordedImplementation(
+  evidence: DeliveryEvidenceInput,
+  payload: Record<string, unknown>,
+  prNumber: number,
+): string | null {
+  const recordedImpl =
+    typeof evidence.implementationCommit === "string" &&
+    evidence.implementationCommit.trim().length > 0
+      ? evidence.implementationCommit.trim()
+      : null;
+  if (recordedImpl === null) {
+    return null;
+  }
+  const headSha = payloadHeadSha(payload);
+  if (headSha !== null && shasEqual(recordedImpl, headSha)) {
+    return null;
+  }
+  return (
+    `Delivery identity join failed: recorded implementationCommit ${recordedImpl} ` +
+    `does not match PR #${prNumber} head at merge time` +
+    `${headSha !== null ? ` (${headSha})` : ""} (#3675).`
+  );
+}
+
+/** Shared tail: head check and the success result. */
+function finishIdentityJoin(input: {
+  readonly evidence: DeliveryEvidenceInput;
+  readonly merged: Extract<MergedPayload, { ok: true }>;
+  readonly prNumber: number;
+  readonly repository: string;
+  readonly identityBasis: StoryPrIdentityBasis;
+  readonly subject: string;
+}): StoryPrMergeIdentityResult {
+  const { evidence, merged, prNumber } = input;
+  const headCheck = checkRecordedImplementation(evidence, merged.payload, prNumber);
+  if (headCheck !== null) {
+    return { ok: false, message: headCheck };
+  }
+  const base = asRecord(merged.payload.base);
   return {
     ok: true,
     message:
-      `story→PR→merge identity joined: ${expected.repository}#${expected.issueNumber} via PR #${prNumber}` +
-      (identityBasis === "brief-in-pr-diff" ? " (brief-in-PR-diff)" : ""),
-    mergeCommitSha,
-    mergedAt,
-    prBase,
-    headSha,
-    identityBasis,
+      `story→PR→merge identity joined: ${input.subject} via PR #${prNumber} ` +
+      `(${input.identityBasis})`,
+    mergeCommitSha: merged.mergeCommitSha,
+    mergedAt: merged.mergedAt,
+    prBase: typeof base?.ref === "string" ? base.ref : null,
+    headSha: payloadHeadSha(merged.payload),
+    identityBasis: input.identityBasis,
+    repository: input.repository,
   };
+}
+
+function evidencePrNumber(evidence: DeliveryEvidenceInput): number | null {
+  return typeof evidence.prNumber === "number" &&
+    Number.isInteger(evidence.prNumber) &&
+    evidence.prNumber > 0
+    ? evidence.prNumber
+    : null;
+}
+
+function evidenceRepository(evidence: DeliveryEvidenceInput): string | null {
+  return typeof evidence.repository === "string" && evidence.repository.trim().length > 0
+    ? evidence.repository.trim()
+    : null;
+}
+
+/** PR-only join (#5710 P1): stamp + canonical remote; no issue closer, no merge-time standard. */
+function verifyPrOnlyIdentity(input: StoryPrMergeIdentityInput): StoryPrMergeIdentityResult {
+  const resolved = resolvePrOnlyDeliveryIdentity(
+    input.plan,
+    input.resolveCanonicalRepository ?? (() => null),
+  );
+  if (!resolved.ok) {
+    return { ok: false, message: resolved.message };
+  }
+  const { repository, prNumber: stamped } = resolved;
+  const assertedRepo = evidenceRepository(input.evidence);
+  if (assertedRepo !== null && assertedRepo.toLowerCase() !== repository.toLowerCase()) {
+    return {
+      ok: false,
+      message:
+        `Delivery identity join failed: --repo '${assertedRepo}' does not match the canonical ` +
+        `project remote '${repository}' (matching assertion only) (#5710).`,
+    };
+  }
+  const prNumber = evidencePrNumber(input.evidence);
+  if (prNumber === null) {
+    return {
+      ok: false,
+      message:
+        `Delivery identity join failed: PR-only brief needs --pr ${stamped} ` +
+        `(plan.metadata.productPullRequest) (#5710).`,
+    };
+  }
+  if (prNumber !== stamped) {
+    return {
+      ok: false,
+      message:
+        `Delivery identity join failed: --pr ${prNumber} is not plan.metadata.productPullRequest ` +
+        `${stamped}. On a PR-only brief the stamp is the identity; an x-xbrief/github-pr ` +
+        `reference does not override it (#5710).`,
+    };
+  }
+  const merged = fetchMergedPayload(input.fetchPrPayload, prNumber, repository);
+  if (!merged.ok) {
+    return { ok: false, message: merged.message };
+  }
+  const mismatch = mergeCommitMismatch(input.mergeCommit, merged, prNumber);
+  if (mismatch !== null) {
+    return { ok: false, message: mismatch };
+  }
+  return finishIdentityJoin({
+    evidence: input.evidence,
+    merged,
+    prNumber,
+    repository,
+    identityBasis: "pr-only",
+    subject: `${repository} productPullRequest`,
+  });
+}
+
+/** Brief-in-PR-diff basis (#3675, unchanged). Null = proven; "" = not attempted; else reason. */
+function proveBriefInPrDiff(
+  input: StoryPrMergeIdentityInput,
+  repository: string,
+  prNumber: number,
+): string | null {
+  const briefBasename = input.briefBasename?.trim() ?? "";
+  if (briefBasename.length === 0 || input.fetchPrChangedFiles === undefined) {
+    return "";
+  }
+  const files = input.fetchPrChangedFiles(prNumber, repository);
+  if (files === null) {
+    return `brief-in-PR-diff: could not read PR #${prNumber} changed files (lookup failure)`;
+  }
+  if (!prDiffAddsBrief(files, briefBasename)) {
+    return `brief-in-PR-diff: PR #${prNumber} did not add ${briefBasename} alongside code changes`;
+  }
+  return null;
+}
+
+interface IssueAnchoredTarget {
+  readonly repository: string;
+  readonly issueNumber: number;
+  readonly prNumber: number;
+  readonly mergedAt: string;
+  readonly currentBody: string | null;
+}
+
+/** Bases b and c from forge reads; returns the proven basis or appends reasons. */
+function proveKeywordOrConnected(
+  forge: MergeTimeForge,
+  budget: ScanBudget,
+  target: IssueAnchoredTarget,
+  reasons: string[],
+): { basis: StoryPrIdentityBasis | null; mergeTimeBody: string | null } {
+  const { repository, issueNumber, prNumber, mergedAt } = target;
+  let mergeTimeBody: string | null = null;
+  const body = reconstructMergeTimeBody(
+    forge,
+    budget,
+    { repository, prNumber },
+    target.currentBody,
+    mergedAt,
+  );
+  if (body.ok) {
+    mergeTimeBody = body.body;
+    if (bodyHasClosingKeywordFor(body.body, repository, issueNumber)) {
+      return { basis: "merge-time-keyword", mergeTimeBody };
+    }
+    reasons.push(
+      `(b) PR #${prNumber} body as of merged_at has no closing keyword for #${issueNumber}`,
+    );
+  } else {
+    reasons.push(`(a)/(b) ${body.error}`);
+  }
+
+  const events = collectAllPages(
+    (after) => forge.fetchConnectionEventsPage(repository, prNumber, after),
+    budget.beforeGraphql,
+    `PR #${prNumber} connection events`,
+  );
+  if (!events.ok) {
+    reasons.push(`(c) ${events.error}`);
+    return { basis: null, mergeTimeBody };
+  }
+  const state = connectedAtMergedAt(events.nodes, repository, issueNumber, mergedAt);
+  if (state.ok && state.connected) {
+    return { basis: "merge-time-connected", mergeTimeBody };
+  }
+  reasons.push(
+    state.ok
+      ? `(c) no Connected link to #${issueNumber} in effect at merged_at`
+      : `(c) ${state.error}`,
+  );
+  return { basis: null, mergeTimeBody };
+}
+
+/**
+ * Issue-anchored association as of merged_at (#5710 P3). Cheap bases first
+ * (b, c, brief-in-PR-diff), then the exhaustive sole-mark scan (a). A failed
+ * lookup only removes a basis; success always needs a positive proof.
+ */
+function proveIssueAnchoredAssociation(
+  input: StoryPrMergeIdentityInput,
+  target: IssueAnchoredTarget,
+): { ok: true; basis: StoryPrIdentityBasis } | { ok: false; message: string } {
+  const { repository, issueNumber, prNumber } = target;
+  const reasons: string[] = [];
+  const forge = input.mergeTimeForge;
+  const budget = forge === undefined ? null : makeScanBudget(forge);
+
+  let mergeTimeBody: string | null = null;
+  if (forge !== undefined && budget !== null) {
+    const cheap = proveKeywordOrConnected(forge, budget, target, reasons);
+    if (cheap.basis !== null) {
+      return { ok: true, basis: cheap.basis };
+    }
+    mergeTimeBody = cheap.mergeTimeBody;
+  } else {
+    reasons.push("merge-time association lookups are unavailable");
+  }
+
+  const briefDiff = proveBriefInPrDiff(input, repository, prNumber);
+  if (briefDiff === null) {
+    return { ok: true, basis: "brief-in-pr-diff" };
+  }
+  if (briefDiff.length > 0) {
+    reasons.push(briefDiff);
+  }
+
+  if (forge !== undefined && budget !== null && mergeTimeBody !== null) {
+    const mark = proveSoleMarkBasis({
+      forge,
+      budget,
+      repository,
+      issueNumber,
+      prNumber,
+      mergeTimeBody,
+    });
+    if (mark.ok) {
+      return { ok: true, basis: "merge-time-mark" };
+    }
+    reasons.unshift(mark.reason);
+  }
+
+  return {
+    ok: false,
+    message:
+      `Delivery identity join failed: PR #${prNumber} has no merge-time association with ` +
+      `${repository}#${issueNumber}. Accepted bases: ${MERGE_TIME_ASSOCIATION_BASES}. ` +
+      `A mark, keyword or link added after merged_at does not count, and current ` +
+      `closingIssuesReferences alone is insufficient. Findings: ${reasons.join("; ")}. ` +
+      `Already-merged work with no merge-time basis stays refused until the parked ` +
+      `identity-migration ships (#5710).`,
+  };
+}
+
+/**
+ * Prefer-A story→PR→merge identity join before delivery liveness (#3675 / #5710).
+ *
+ * Issue-anchored briefs (today's `resolvePlanGithubIssueRef`): the association
+ * must hold as of merged_at by (a) a unique sole `deft-story` mark, (b) a
+ * closing keyword in the merge-time body, or (c) a Connected link at merged_at,
+ * or by the unchanged brief-in-PR-diff basis. Current-state
+ * closingIssuesReferences alone is insufficient, and `productPullRequest === --pr`
+ * is not a proof here. A failed issue-anchored check never falls back to the stamp.
+ *
+ * Issue-less briefs use the PR-only identity (#5710 P1). merge_commit_sha must
+ * equal the supplied merge commit on both paths (squash-safe).
+ */
+export function verifyStoryPrMergeIdentity(
+  input: StoryPrMergeIdentityInput,
+): StoryPrMergeIdentityResult {
+  const expected = resolvePlanGithubIssueRef(input.plan);
+  if (expected === null) {
+    return verifyPrOnlyIdentity(input);
+  }
+
+  const evidenceRepo = evidenceRepository(input.evidence);
+  if (evidenceRepo !== null && evidenceRepo !== expected.repository) {
+    return {
+      ok: false,
+      message:
+        `Delivery identity join failed: evidence repository '${evidenceRepo}' does not match ` +
+        `plan-derived expected repository '${expected.repository}' (#3675).`,
+    };
+  }
+
+  const prNumber = evidencePrNumber(input.evidence);
+  if (prNumber === null) {
+    return {
+      ok: false,
+      message:
+        "Delivery identity join failed: missing story-associated PR number. " +
+        "Pass --pr <n> for the PR that delivered this story; --pr alone is not identity (#3675).",
+    };
+  }
+
+  const merged = fetchMergedPayload(input.fetchPrPayload, prNumber, expected.repository);
+  if (!merged.ok) {
+    return { ok: false, message: merged.message };
+  }
+  const mismatch = mergeCommitMismatch(input.mergeCommit, merged, prNumber);
+  if (mismatch !== null) {
+    return { ok: false, message: mismatch };
+  }
+
+  const association = proveIssueAnchoredAssociation(input, {
+    repository: expected.repository,
+    issueNumber: expected.issueNumber,
+    prNumber,
+    mergedAt: merged.mergedAt,
+    currentBody: typeof merged.payload.body === "string" ? merged.payload.body : null,
+  });
+  if (!association.ok) {
+    return { ok: false, message: association.message };
+  }
+  return finishIdentityJoin({
+    evidence: input.evidence,
+    merged,
+    prNumber,
+    repository: expected.repository,
+    identityBasis: association.basis,
+    subject: `${expected.repository}#${expected.issueNumber}`,
+  });
 }
 
 /**
@@ -1124,6 +2159,64 @@ function deliveryEvidenceRemediation(deliveryBranch: string): string {
 }
 
 /**
+ * #5710 P4: refuse a non-delivery disposition when the stamped productPullRequest
+ * is merged in the authoritative repository (the issue repository, else the
+ * canonical remote). Merged to an integration branch counts as merged in v1.
+ * Returns null when no stamp exists or the stamped PR is confirmed unmerged.
+ * Any failure to establish merge state fails closed with a retry diagnostic.
+ */
+function refuseNonDeliveryForMergedStamp(input: {
+  readonly plan: Record<string, unknown>;
+  readonly disposition: NonDeliveryDisposition;
+  readonly fetchPrPayload: FetchPrPayloadFn;
+  readonly resolveCanonicalRepository: () => string | null;
+}): string | null {
+  const productPr = productPullRequestFromPlan(input.plan);
+  if (productPr === null) {
+    return null;
+  }
+  const head = `Refusing scope:complete --non-delivery ${input.disposition}:`;
+  const noWrite = "No completion or provenance was recorded (#5710).";
+  const repository =
+    resolvePlanGithubIssueRef(input.plan)?.repository ?? input.resolveCanonicalRepository();
+  if (repository === null) {
+    return (
+      `${head} cannot resolve the repository of stamped productPullRequest #${productPr} ` +
+      `(no issue origin and no canonical origin remote). Repair the remote or the stamp, ` +
+      `then retry. ${noWrite}`
+    );
+  }
+  let payload: Record<string, unknown> | null;
+  try {
+    payload = input.fetchPrPayload(productPr, repository);
+  } catch {
+    payload = null;
+  }
+  const mergedAt = payload?.merged_at;
+  const unknown =
+    payload === null ||
+    payload === undefined ||
+    !("merged_at" in payload) ||
+    (mergedAt !== null && (typeof mergedAt !== "string" || mergedAt.trim().length === 0));
+  if (unknown) {
+    return (
+      `${head} could not establish whether stamped productPullRequest #${productPr} in ` +
+      `${repository} is merged (lookup failed or malformed response). Retry after fixing gh ` +
+      `auth, rate limit or network, or repair plan.metadata.productPullRequest. ${noWrite}`
+    );
+  }
+  if (mergedAt === null) {
+    return null;
+  }
+  return (
+    `${head} stamped productPullRequest #${productPr} in ${repository} is merged ` +
+    `(merged_at ${String(mergedAt)}). Shipped work completes as delivered: ` +
+    `scope:complete -- --pr ${productPr} --merge-commit <sha>. A merge to an integration ` +
+    `branch also counts as merged here. ${noWrite}`
+  );
+}
+
+/**
  * Gate delivered completion for a code-bearing scope (#3041 / #3380 / #3675).
  *
  * Returns ok=true with provenance when:
@@ -1140,18 +2233,19 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
   const fetchPrPayload =
     options.fetchPrPayload ??
     ((prNumber: number, repository: string) => defaultFetchPrPayload(prNumber, repository, runGh));
-  const fetchClosingIssueIds =
-    options.fetchClosingIssueIds ??
-    ((prNumber: number, repository: string) =>
-      defaultFetchClosingIssueIds(prNumber, repository, runGh));
-  // Default the changed-files fetcher only when closer refs are not injected, so
-  // injected test seams never fall through to a live gh call.
+  // Live defaults only when the PR payload is not injected, so injected test
+  // seams never fall through to a live gh call.
+  const liveForge = options.fetchPrPayload === undefined;
   const fetchPrChangedFiles =
     options.fetchPrChangedFiles ??
-    (options.fetchClosingIssueIds === undefined
+    (liveForge
       ? (prNumber: number, repository: string) =>
           defaultFetchPrChangedFiles(prNumber, repository, runGh)
       : undefined);
+  const mergeTimeForge =
+    options.mergeTimeForge ?? (liveForge ? defaultMergeTimeForge(runGh) : undefined);
+  const resolveCanonicalRepository = () =>
+    resolveCanonicalProjectRepository(options.projectRoot, runGit);
   const verifier = options.verifier ?? "scope:complete";
   const codeBearing = isCodeBearingScope(options.plan);
 
@@ -1189,6 +2283,16 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
         provenance: null,
         codeBearing: true,
       };
+    }
+    // #5710 P4: resolve a stamped productPullRequest before any non-delivery success.
+    const shipped = refuseNonDeliveryForMergedStamp({
+      plan: options.plan,
+      disposition: options.nonDeliveryDisposition,
+      fetchPrPayload,
+      resolveCanonicalRepository,
+    });
+    if (shipped !== null) {
+      return { ok: false, message: shipped, provenance: null, codeBearing: true };
     }
     const branchResult = resolveDeliveryBranch(options.projectRoot, runGit);
     const refused = refuseUnsafeResolvedDelivery(branchResult);
@@ -1300,9 +2404,10 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
     evidence,
     mergeCommit,
     fetchPrPayload,
-    fetchClosingIssueIds,
+    mergeTimeForge,
     briefBasename: options.briefBasename,
     fetchPrChangedFiles,
+    resolveCanonicalRepository,
   });
   if (!identity.ok) {
     return {
@@ -1315,7 +2420,7 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
 
   const boundEvidence: DeliveryEvidenceInput = {
     ...evidence,
-    repository: resolvePlanGithubIssueRef(options.plan)?.repository ?? evidence.repository ?? null,
+    repository: identity.repository ?? evidence.repository ?? null,
     prNumber: evidence.prNumber,
     prBase: identity.prBase ?? prBase,
     mergeCommit: identity.mergeCommitSha ?? mergeCommit,
@@ -1866,22 +2971,29 @@ export function discoverDeliveryEvidenceForComplete(
   const productPr = productPullRequestFromPlan(options.plan);
 
   if (productPr !== null) {
-    if (expected === null) {
-      return {
-        ok: false,
-        message:
-          `Delivery auto-discovery failed: plan has productPullRequest=${productPr} but no ` +
-          `x-xbrief/github-issue reference to derive repository (#3583). ` +
-          deliveryEvidenceRemediation(deliveryBranch),
-      };
+    // #5710 P1: an issue-less brief uses the same PR-only resolver as the identity join.
+    let repository: string;
+    if (expected !== null) {
+      repository = expected.repository;
+    } else {
+      const prOnly = resolvePrOnlyDeliveryIdentity(options.plan, () =>
+        resolveCanonicalProjectRepository(options.projectRoot, runGit),
+      );
+      if (!prOnly.ok) {
+        return {
+          ok: false,
+          message: `Delivery auto-discovery failed: ${prOnly.message} ${deliveryEvidenceRemediation(deliveryBranch)}`,
+        };
+      }
+      repository = prOnly.repository;
     }
-    const payload = fetchPrPayload(productPr, expected.repository);
+    const payload = fetchPrPayload(productPr, repository);
     if (payload === null) {
       return {
         ok: false,
         message:
           `Delivery auto-discovery failed: could not fetch productPullRequest #${productPr} ` +
-          `in ${expected.repository} (#3583). ${deliveryEvidenceRemediation(deliveryBranch)}`,
+          `in ${repository} (#3583). ${deliveryEvidenceRemediation(deliveryBranch)}`,
       };
     }
     if (!candidatePassesDeliveryBaseFilter(payload, deliveryBranch)) {
@@ -1896,7 +3008,7 @@ export function discoverDeliveryEvidenceForComplete(
     const discovered = evidenceFromPrPayload(
       payload,
       productPr,
-      expected.repository,
+      repository,
       deliveryBranch,
       verifier,
     );
