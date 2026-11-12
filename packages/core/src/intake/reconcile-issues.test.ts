@@ -1422,6 +1422,61 @@ describe("deleted issues -- HTTP 410 (#5912)", () => {
     expect(paths.map((p) => readFileSync(p, "utf8"))).toEqual(before);
   });
 
+  it("a parent with a destination collision is not probed and does not fail the run", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-5912-collision-"));
+    const { xbrief } = writeParentAndChild("completed", [issueRef(58)]);
+    writeBrief(xbrief, "completed", "parent.xbrief.json", {
+      status: "completed",
+      references: [issueRef(55)],
+    });
+    const seen = stubGh({
+      55: completed(JSON.stringify({ state: "closed", state_reason: "completed" })),
+      58: completed("", "gh: Server Error (HTTP 502)", 1),
+    });
+    captureStd();
+    expect(
+      reconcileMain({
+        vbriefDir: xbrief,
+        repo: "o/r",
+        projectRoot: root,
+        applyLifecycleFixes: true,
+      }),
+    ).toBe(0);
+    expect(seen).not.toContain("repos/o/r/issues/58");
+  });
+
+  it("re-probes children at write time when an earlier move changed resolution", () => {
+    root = mkdtempSync(join(tmpdir(), "reconcile-5912-rebind-"));
+    const xbrief = join(root, "xbrief");
+    const intended = writeBrief(xbrief, "proposed", "c.xbrief.json", {
+      planRef: "pending/p.xbrief.json",
+      references: [issueRef(80)],
+    });
+    const other = writeBrief(xbrief, "active", "c.xbrief.json", {
+      status: "running",
+      planRef: "pending/p.xbrief.json",
+      references: [issueRef(81)],
+    });
+    const parent = writeBrief(xbrief, "pending", "p.xbrief.json", {
+      references: [issueRef(82), { type: "x-xbrief/plan", uri: "proposed/c.xbrief.json" }],
+    });
+    const before = [readFileSync(parent, "utf8"), readFileSync(other, "utf8")];
+    const states = new Map([
+      [80, new IssueState("CLOSED", "COMPLETED")],
+      [81, new IssueState("DELETED")],
+      [82, new IssueState("CLOSED", "COMPLETED")],
+    ]);
+    const report = buildLifecycleReport(scanLifecycleAnchors(xbrief), states, false);
+    const [moved, , failures, deletedSkips] = applyLifecycleFixes(xbrief, report, root, {
+      issueStates: states,
+    });
+    expect(moved).toBe(1);
+    expect(existsSync(intended)).toBe(false);
+    expect(failures).toEqual([]);
+    expect(deletedSkips.some((d) => d.startsWith("pending/p.xbrief.json:"))).toBe(true);
+    expect([readFileSync(parent, "utf8"), readFileSync(other, "utf8")]).toEqual(before);
+  });
+
   it("issue-less child is not probed; the parent moves and the run exits 0", () => {
     root = mkdtempSync(join(tmpdir(), "reconcile-5912-probe-none-"));
     const { xbrief, child } = writeParentAndChild("active", []);

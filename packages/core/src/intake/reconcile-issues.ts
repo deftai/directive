@@ -1,5 +1,13 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { join, relative, resolve } from "node:path";
 import {
   assertProjectionContained,
@@ -1219,13 +1227,19 @@ export function applyLifecycleFixes(
   // so a path protected by one refused move cannot be moved later in the sweep.
   const refusals = new Map<string, ChildProbeVerdict>();
   const okRelated = new Map<string, string[]>();
-  for (const relPath of relReasons.keys()) {
+  for (const [relPath, stateReason] of relReasons) {
     if (relDeleted.has(relPath)) {
       protectedRels.add(relPath);
       continue;
     }
-    if (!relPath.includes("/") || isTerminalLifecyclePath(relPath)) {
+    const slash = relPath.indexOf("/");
+    if (slash < 0 || isTerminalLifecyclePath(relPath)) {
       continue;
+    }
+    const folder = relPath.slice(0, slash);
+    const destFolder = destinationFolder(stateReason);
+    if (existsSync(join(vbriefDir, destFolder, relPath.slice(slash + 1)))) {
+      continue; // destination collision (#2622): the move pass skips it, so no probe
     }
     let candidate: Record<string, unknown>;
     try {
@@ -1235,6 +1249,14 @@ export function applyLifecycleFixes(
       >;
     } catch {
       continue; // the move pass reports the missing / unparseable file
+    }
+    const candidatePlan = (candidate.plan ?? {}) as Record<string, unknown>;
+    if (
+      folder === "active" &&
+      destFolder === "completed" &&
+      !hasCompleteTransitionWrite(candidatePlan)
+    ) {
+      continue; // #4508 refuse in the move pass; this move cannot happen
     }
     const verdict = probeDecomposedChildren(
       relPath,
@@ -1356,6 +1378,29 @@ export function applyLifecycleFixes(
       failures.push(
         relPath +
           ": unstamped active/ to completed/ (#4508); left source unmutated. leftover-land (#3476) is the land step after leftover-complete, not this refuse.",
+      );
+      continue;
+    }
+
+    // #5912: re-resolve and re-probe the exact children the write path will
+    // visit now (earlier moves may change resolution), before any write.
+    const recheck = probeDecomposedChildren(
+      relPath,
+      data,
+      vbriefDir,
+      known,
+      options.probeIssueState,
+    );
+    if (recheck.kind !== "ok") {
+      for (const rel of recheck.protectedRels) protectedRels.add(rel);
+      (recheck.kind === "deleted" ? deletedSkips : failures).push(recheck.message);
+      continue;
+    }
+    if (recheck.relatedRels.some((r) => protectedRels.has(r))) {
+      protectedRels.add(relPath);
+      for (const rel of recheck.relatedRels) protectedRels.add(rel);
+      deletedSkips.push(
+        `${relPath}: related move refused -- a related brief is protected by a refused move this run; left parent and children unmoved (#5912)`,
       );
       continue;
     }
