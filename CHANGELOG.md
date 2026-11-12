@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Activated scope briefs for #5710, #5882 and #6203 for through-merge. Refs #5710. Refs #5882. Refs #6203.
 - Dropped leftover proposed twin for worktrees-probe ownership after tracked completion. Refs #5735.
 - Recorded tracked completion for pack-drift bound to framework source checkout after product merge. Refs #5853. Refs #5871.
 - Recorded tracked completion for SLizard residual-vs-weather babysit clarity after product merge. Refs #5102. Refs #6190.
