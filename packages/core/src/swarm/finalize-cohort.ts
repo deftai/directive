@@ -1798,6 +1798,8 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   const validatedPrs: number[] = [];
   /** Full-story close intent from PR-body `deft-story: N` (#4864). Not Tracking/Refs scrape. */
   const fullStoryCloseIssues = new Set<number>();
+  /** A refused deft-story mark stops the stamp and sweep in every write mode (#6212). */
+  let deftStoryMarkRefused = false;
   let closingLookupFailed = false;
   // Operator --stories issues: their deft-story marks may bind before the sweep stamp (#6212).
   const operatorResolved = storyTokens.length > 0 ? resolveStories(projectRoot, storyTokens) : null;
@@ -1902,6 +1904,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
             }
           }
           if (!bound) {
+            deftStoryMarkRefused = true;
             errors.push(
               `#${String(issue)}: deft-story mark on PR #${String(prNumber)} does not bind PR delivery ` +
                 `(${reason}) (#4864).`,
@@ -2331,6 +2334,11 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
           }
         }
       }
+    }
+    // --no-commit skips the error stop above, but a refused mark must never let the
+    // single-PR default evidence stamp that PR; a retry would then bind it (#6212).
+    if (!dryRun && deftStoryMarkRefused) {
+      skipSweep = true;
     }
 
     let sweep: SweepResult | null = null;

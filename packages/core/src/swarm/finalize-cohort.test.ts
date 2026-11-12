@@ -1543,7 +1543,7 @@ describe("finalizeCohort", () => {
 
   it("still refuses a deft-story mark for an issue outside --stories (#6212 / #4864)", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-6212-outside-"));
-    writeActiveStory(project, "story-6212", 6212);
+    const storyPath = writeActiveStory(project, "story-6212", 6212);
     writeActiveStory(project, "story-7000", 7000);
     const ghCalls: string[][] = [];
     const runGh = mockRunGh(
@@ -1576,6 +1576,7 @@ describe("finalizeCohort", () => {
         "(need active or completed brief #7000 with metadata.productPullRequest=6300) (#4864).",
     );
     expect(result.result.errors.some((e) => e.startsWith("#6212:"))).toBe(false);
+    expectUnstampedAndNotSwept(storyPath);
     expect(
       ghCalls.some((c) => c.includes("PATCH") && c.some((p) => p.includes("/issues/7000"))),
     ).toBe(false);
@@ -1609,9 +1610,16 @@ describe("finalizeCohort", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
+  const expectUnstampedAndNotSwept = (storyPath: string) => {
+    const plan = (JSON.parse(readFileSync(storyPath, "utf8")) as { plan: Record<string, unknown> })
+      .plan;
+    expect(productPullRequestFromPlan(plan)).toBeNull();
+    expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
+  };
+
   it("does not bind an operator-story mark on a brief-plus-CHANGELOG-only PR (#6212)", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-6212-lifecycle-"));
-    writeActiveStory(project, "story-6212", 6212);
+    const storyPath = writeActiveStory(project, "story-6212", 6212);
     const result = finalizeCohort({
       projectRoot: project,
       storyTokens: ["6212"],
@@ -1633,12 +1641,13 @@ describe("finalizeCohort", () => {
       "#6212: deft-story mark on PR #6214 does not bind PR delivery " +
         "(PR #6214 changes only briefs and CHANGELOG.md) (#4864).",
     );
+    expectUnstampedAndNotSwept(storyPath);
     rmSync(project, { recursive: true, force: true });
   });
 
   it("fails closed on an operator-story mark when the changed-file lookup fails (#6212)", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-6212-lookup-"));
-    writeActiveStory(project, "story-6212", 6212);
+    const storyPath = writeActiveStory(project, "story-6212", 6212);
     const result = finalizeCohort({
       projectRoot: project,
       storyTokens: ["6212"],
@@ -1657,6 +1666,7 @@ describe("finalizeCohort", () => {
       "#6212: deft-story mark on PR #6300 does not bind PR delivery " +
         "(changed-file lookup for PR #6300 failed) (#4864).",
     );
+    expectUnstampedAndNotSwept(storyPath);
     rmSync(project, { recursive: true, force: true });
   });
 
