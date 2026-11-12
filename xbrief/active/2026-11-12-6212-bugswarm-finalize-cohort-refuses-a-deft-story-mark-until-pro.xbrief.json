@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6212",
-    "updated": "2026-11-12T06:17:19Z"
+    "updated": "2026-11-12T06:45:12Z"
   },
   "plan": {
     "title": "bug(swarm): finalize-cohort refuses a deft-story mark until productPullRequest is stamped, but nothing can stamp it first",
@@ -197,6 +197,160 @@
           "artifact_path": null,
           "ambiguous": false,
           "source_kind": "defect-description",
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Problem `swarm:finalize-cohort` cannot complete a Path B story whose product PR carries `deft-story: N`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Seen on this repo, 2026-11-12: cohort #5882 (PR #6210) and #6203 (PR #6211), both merged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Finalize checks every `deft-story: N` mark on a product PR before it does anything else.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "The mark binds only when an active or completed brief for N already has `metadata.productPullRequest` equal to that PR (#4864, `deftStoryMarkBindsDelivery`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Otherwise finalize adds an error and skips the sweep.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Nothing can set that field first: 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Path B activation leaves `productPullRequest` unset (#5387).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "No verb stamps it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "`scope:stamp-evidence` writes evidence only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Finalize stamps it itself (`stampProductPullRequestOnBriefFile`), but only inside the sweep, after the mark check has already failed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "With more than one brief in `active/`, the #4007 write fence and the #5656 prospective scope-cover deny any Write, Edit or commit of an active brief.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "That holds for pinned workers too, because the brief is outside the story's `file_scope`, and for an operator worktree outside the repo root.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "So the check needs the stamp, and only the check's own success leads to the stamp.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Workers cannot use `Closes #N` instead: `pr:check-closing-keywords` refuses it while the brief is active (#3015).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "That makes `deft-story: N` the only full-story mark a product PR can carry.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Evidence `task swarm:finalize-cohort -- --stories 5882 --pr 6210 --repo deftai/directive --dry-run`: The same happens for #6203 / #6211.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Without the mark, the single-PR path (`--stories N --pr M`, no closing refs) would bind the PR's evidence, stamp `productPullRequest` in the lifecycle checkout, and record merge evidence.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "Expected - When the operator pairs `--stories N` with `--pr M`, and M is merged and passes delivery validation, a `deft-story: N` mark on M binds without a prior stamp.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "Finalize then stamps `productPullRequest=M` in the lifecycle checkout, as it does today.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "A mark naming an issue outside `--stories` keeps today's fail-closed behavior, so an unrelated completed issue is never closed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "Acceptance Criteria - `swarm:finalize-cohort -- --stories N --pr M` completes a Path B brief whose PR M carries `deft-story: N` and whose brief has no `productPullRequest`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "Related #4864 (deft-story delivery bind), #5387 (activation leaves the stamp unset), #4007 (multi-active write fence), #5656 (prospective scope-cover), #5710 (delivery identity), #680 (lifecycle PR overhead), #6209 (`swarm:launch` worktree gap).",
+          "artifact_path": null,
+          "ambiguous": false,
           "provenance": "statement"
         }
       ],
