@@ -1,0 +1,769 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6265",
+    "updated": "2026-11-13T15:34:40Z"
+  },
+  "plan": {
+    "title": "bug(ingest): issue:ingest harvests a lean's Reject list, footnotes and arc record-keeping as plan items",
+    "status": "running",
+    "narratives": {
+      "Description": "Ingest of an accepted lean takes every list line after the Bound-remedy heading as a plan item, so the Reject list, footnotes and arc record-keeping become items that need hand-written acceptance. Ingest of a plain issue makes a clause from every body sentence, background included, so each context sentence becomes another false-positive and disposition surface. This story keeps only the remedy limbs and the acceptance surface as items and clauses, stores Reject lines as must-not text, and keeps the rest as unscored background.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6265",
+      "Overview": "\n1. The Bound-remedy slice ends at the next heading of level 2 or higher, or at a whole-line, non-list trailer label from a closed set (`Reject`, `Not proposed`, `Footnote`, `Footnotes`, `takes`, `Residual`, `Notes`, `Coordination`, with an optional parenthesised qualifier before the colon). `hashBoundRemedyBytes` calls that same slicer. relieves: P1\n2. In the cited lean, list lines under a `Reject` or `Not proposed` heading or label go to `plan.narratives.Constraint` as must-not lines. Footnote and take lines go to neither `plan.items` nor clauses. relieves: P1\n3. On a plain issue body that has at least one acceptance-shaped section (every heading `findAcHeading` or `SECTION_HEADING` matches, not only the first), plan items and clauses come from all of those sections plus every explicitly declared acceptance line anywhere in the body (`Done when`, `test:`, `acceptance:` lines, as `collectStatementSurface` reads them today). `plan.narratives.Overview` and the task statement passed to clause stamping hold only that selected surface; the rest of the body is stored as `plan.narratives.Background`, scanned with the existing untrusted-text scanner, and excluded from sentence coverage and from the `collectTaskStatementFromPlan` fall-through. A body without such a section ingests as today. relieves: P2\n4. Fixtures: a #6189-shaped lean gives its 6 limbs as items and its Reject lines in `Constraint`; a colon-intro line, a limb ending in `:`, nested sub-bullets and a limb whose prose names `Reject:` all stay harvested; an issue with Summary plus Acceptance gives clauses only from Acceptance; sibling Acceptance and Test sections and an inline `Done when` line outside them all stay clauses; Overview holds only the selected surface, Background and Constraint text is scanned; an Expected-only body ingests as today; equal lean bodies keep equal harvest digests.\n\n\n",
+      "Labels": "bug, design-critique:ingest-ready, framework-gap",
+      "UserStory": "As a maintainer ingesting an issue or an accepted lean, I want only the work to build to become plan items and clauses, so that I do not hand-write acceptance for Reject lists, footnotes, arc bookkeeping or background sentences.",
+      "ImplementationPlan": "Follow the accepted Prefer-A Bound on #6265 (comment 6857463007, synthesis 6857516008, verified-claims 6857512471). In packages/core/src/intake/markdown-scanners.ts, end the Bound-remedy slice at the next H2 or a closed non-list trailer label (Reject, Not proposed, Footnote(s), takes, Residual, Notes, Coordination, optional parenthesised qualifier) and have hashBoundRemedyBytes in packages/core/src/design-critique/pain-audit-follow-through-gate.ts call the same slicer. In packages/core/src/intake/issue-ingest.ts, route the lean's Reject and Not proposed list lines to plan.narratives.Constraint and keep footnote and take lines out of items and clauses. For a plain body with acceptance-shaped sections, harvest every such section plus declared acceptance lines, set Overview and the clause-stamp task statement to that surface, and store the rest as scanned plan.narratives.Background excluded from sentence coverage (packages/core/src/product-first-done-gate/acceptance.ts) and the task-statement fall-through (packages/core/src/intake/clause-derivation.ts). Bodies without such a section ingest as today. Verify with the new fixture test file packages/core/src/intake/issue-ingest-harvest-trailers.test.ts and the existing markdown-scanners, issue-ingest and pain-audit-follow-through-gate tests.",
+      "Traces": "#6265 Prefer-A Bound 6857463007; synthesis 6857516008; verified-claims 6857512471; Grok R1 6857157117; pain audits 6857273150, 6857454582, 6857511458; Handoff 6857456022; #6189"
+    },
+    "items": [
+      {
+        "title": "The Bound-remedy slice ends at the next heading of level 2 or higher, or at a whole-line, non-list trailer label from a closed set (`Reject`, `Not proposed`, `Footnote`, `Footnotes`, `takes`, `Residual`, `Notes`, `Coordination`, with an optional parenthesised qualifier before the colon). `hashBoundRemedyBytes` calls that same slicer. relieves: P1",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When a lean whose `## Bound remedy` list is followed by a `Reject:`, `Not proposed:`, `Footnotes (…):` or `takes:` label is ingested, plan.items holds only the remedy limbs, and hashBoundRemedyBytes returns the same digest for two leans that differ only below the trailer label."
+        }
+      },
+      {
+        "title": "In the cited lean, list lines under a `Reject` or `Not proposed` heading or label go to `plan.narratives.Constraint` as must-not lines. Footnote and take lines go to neither `plan.items` nor clauses. relieves: P1",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When a #6189-shaped lean is ingested, ingest stores each Reject list line in plan.narratives.Constraint and records no footnote or take line in plan.items or plan.acceptance.clauses."
+        }
+      },
+      {
+        "title": "On a plain issue body that has at least one acceptance-shaped section (every heading `findAcHeading` or `SECTION_HEADING` matches, not only the first), plan items and clauses come from all of those sections plus every explicitly declared acceptance line anywhere in the body (`Done when`, `test:`, `acceptance:` lines, as `collectStatementSurface` reads them today). `plan.narratives.Overview` and the task statement passed to clause stamping hold only that selected surface; the rest of the body is stored as `plan.narratives.Background`, scanned with the existing untrusted-text scanner, and excluded from sentence coverage and from the `collectTaskStatementFromPlan` fall-through. A body without such a section ingests as today. relieves: P2",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When a plain issue with Summary, Acceptance and Test sections plus an inline `Done when` line outside them is ingested, ingest records a clause for every Acceptance, Test and `Done when` line, stores only that surface in Overview, and stores the Summary text in a scanned plan.narratives.Background that yields no statement sentence; when a body has no acceptance-shaped section, ingest returns the same brief as today."
+        }
+      },
+      {
+        "title": "Fixtures: a #6189-shaped lean gives its 6 limbs as items and its Reject lines in `Constraint`; a colon-intro line, a limb ending in `:`, nested sub-bullets and a limb whose prose names `Reject:` all stay harvested; an issue with Summary plus Acceptance gives clauses only from Acceptance; sibling Acceptance and Test sections and an inline `Done when` line outside them all stay clauses; Overview holds only the selected surface, Background and Constraint text is scanned; an Expected-only body ingests as today; equal lean bodies keep equal harvest digests.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When the fixture file packages/core/src/intake/issue-ingest-harvest-trailers.test.ts runs, it passes and covers the #6189 shape, a colon-intro line before the limbs, a limb ending in a colon, nested sub-bullets, a limb whose prose contains `Reject:`, sibling Acceptance and Test sections, an inline `Done when` line, an Expected-only body, and equal digests for leans that differ only below the trailer."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6265",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6265: bug(ingest): issue:ingest harvests a lean's Reject list, footnotes and arc record-keeping as plan items"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6189",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6189"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 14 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(ingest): issue:ingest harvests a lean's Reject list, footnotes and arc record-keeping as plan items",
+        "The Bound-remedy slice ends at the next heading of level 2 or higher, or at a whole-line, non-list trailer label from a closed set (`Reject`, `Not proposed`, `Footnote`, `Footnotes`, `takes`, `Residual`, `Notes`, `Coordination`, with an optional parenthesised qualifier before the colon).",
+        "`hashBoundRemedyBytes` calls that same slicer.",
+        "relieves: P1 2.",
+        "In the cited lean, list lines under a `Reject` or `Not proposed` heading or label go to `plan.narratives.Constraint` as must-not lines.",
+        "Footnote and take lines go to neither `plan.items` nor clauses.",
+        "relieves: P1 3.",
+        "On a plain issue body that has at least one acceptance-shaped section (every heading `findAcHeading` or `SECTION_HEADING` matches, not only the first), plan items and clauses come from all of those sections plus every explicitly declared acceptance line anywhere in the body (`Done when`, `test:`, `acceptance:` lines, as `collectStatementSurface` reads them today).",
+        "`plan.narratives.Overview` and the task statement passed to clause stamping hold only that selected surface; the rest of the body is stored as `plan.narratives.Background`, scanned with the existing untrusted-text scanner, and excluded from sentence coverage and from the `collectTaskStatementFromPlan` fall-through.",
+        "A body without such a section ingests as today.",
+        "relieves: P2 4.",
+        "Fixtures: a #6189-shaped lean gives its 6 limbs as items and its Reject lines in `Constraint`; a colon-intro line, a limb ending in `:`, nested sub-bullets and a limb whose prose names `Reject:` all stay harvested; an issue with Summary plus Acceptance gives clauses only from Acceptance; sibling Acceptance and Test sections and an inline `Done when` line outside them all stay clauses; Overview holds only the selected surface, Background and Constraint text is scanned; an Expected-only body ingests as today; equal lean bodies keep equal harvest digests.",
+        "relieves: P1",
+        "relieves: P2"
+      ],
+      "admitted_source_sentences": [
+        "The Bound-remedy slice ends at the next heading of level 2 or higher, or at a whole-line, non-list trailer label from a closed set (`Reject`, `Not proposed`, `Footnote`, `Footnotes`, `takes`, `Residual`, `Notes`, `Coordination`, with an optional parenthesised qualifier before the colon).",
+        "`hashBoundRemedyBytes` calls that same slicer.",
+        "relieves: P1 2.",
+        "In the cited lean, list lines under a `Reject` or `Not proposed` heading or label go to `plan.narratives.Constraint` as must-not lines.",
+        "Footnote and take lines go to neither `plan.items` nor clauses.",
+        "relieves: P1 3.",
+        "On a plain issue body that has at least one acceptance-shaped section (every heading `findAcHeading` or `SECTION_HEADING` matches, not only the first), plan items and clauses come from all of those sections plus every explicitly declared acceptance line anywhere in the body (`Done when`, `test:`, `acceptance:` lines, as `collectStatementSurface` reads them today).",
+        "`plan.narratives.Overview` and the task statement passed to clause stamping hold only that selected surface; the rest of the body is stored as `plan.narratives.Background`, scanned with the existing untrusted-text scanner, and excluded from sentence coverage and from the `collectTaskStatementFromPlan` fall-through.",
+        "A body without such a section ingests as today.",
+        "relieves: P2 4.",
+        "Fixtures: a #6189-shaped lean gives its 6 limbs as items and its Reject lines in `Constraint`; a colon-intro line, a limb ending in `:`, nested sub-bullets and a limb whose prose names `Reject:` all stay harvested; an issue with Summary plus Acceptance gives clauses only from Acceptance; sibling Acceptance and Test sections and an inline `Done when` line outside them all stay clauses; Overview holds only the selected surface, Background and Constraint text is scanned; an Expected-only body ingests as today; equal lean bodies keep equal harvest digests."
+      ],
+      "admitted_source_digest": "f3d59fff9592ef31c5ac012659029fc1b4be686bb8a457c609409fc3c0c7753a",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The Bound-remedy slice ends at the next heading of level 2 or higher, or at a whole-line, non-list trailer label from a closed set (`Reject`, `Not proposed`, `Footnote`, `Footnotes`, `takes`, `Residual`, `Notes`, `Coordination`, with an optional parenthesised qualifier before the colon). `hashBoundRemedyBytes` calls that same slicer. relieves: P1",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "In the cited lean, list lines under a `Reject` or `Not proposed` heading or label go to `plan.narratives.Constraint` as must-not lines. Footnote and take lines go to neither `plan.items` nor clauses. relieves: P1",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "On a plain issue body that has at least one acceptance-shaped section (every heading `findAcHeading` or `SECTION_HEADING` matches, not only the first), plan items and clauses come from all of those sections plus every explicitly declared acceptance line anywhere in the body (`Done when`, `test:`, `acceptance:` lines, as `collectStatementSurface` reads them today). `plan.narratives.Overview` and the task statement passed to clause stamping hold only that selected surface; the rest of the body is stored as `plan.narratives.Background`, scanned with the existing untrusted-text scanner, and excluded from sentence coverage and from the `collectTaskStatementFromPlan` fall-through. A body without such a section ingests as today. relieves: P2",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Fixtures: a #6189-shaped lean gives its 6 limbs as items and its Reject lines in `Constraint`; a colon-intro line, a limb ending in `:`, nested sub-bullets and a limb whose prose names `Reject:` all stay harvested; an issue with Summary plus Acceptance gives clauses only from Acceptance; sibling Acceptance and Test sections and an inline `Done when` line outside them all stay clauses; Overview holds only the selected surface, Background and Constraint text is scanned; an Expected-only body ingests as today; equal lean bodies keep equal harvest digests.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "The Bound-remedy slice ends at the next heading of level 2 or higher, or at a whole-line, non-list trailer label from a closed set (`Reject`, `Not proposed`, `Footnote`, `Footnotes`, `takes`, `Residual`, `Notes`, `Coordination`, with an optional parenthesised qualifier before the colon).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "`hashBoundRemedyBytes` calls that same slicer.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "In the cited lean, list lines under a `Reject` or `Not proposed` heading or label go to `plan.narratives.Constraint` as must-not lines.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Footnote and take lines go to neither `plan.items` nor clauses.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "On a plain issue body that has at least one acceptance-shaped section (every heading `findAcHeading` or `SECTION_HEADING` matches, not only the first), plan items and clauses come from all of those sections plus every explicitly declared acceptance line anywhere in the body (`Done when`, `test:`, `acceptance:` lines, as `collectStatementSurface` reads them today).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "`plan.narratives.Overview` and the task statement passed to clause stamping hold only that selected surface; the rest of the body is stored as `plan.narratives.Background`, scanned with the existing untrusted-text scanner, and excluded from sentence coverage and from the `collectTaskStatementFromPlan` fall-through.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "A body without such a section ingests as today.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "relieves: P1 2.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "relieves: P1 3.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "relieves: P2 4.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(ingest): issue:ingest harvests a lean's Reject list, footnotes and arc record-keeping as plan items",
+        "relieves: P1",
+        "relieves: P2"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "A related case from a consumer project, same root (ingest takes text that is not acceptance as plan items and clauses):\n\n- Ingest makes a clause from every sentence of the issue body, context and background included. One issue carried 35 clauses. A sibling issue dropped from 30 to 11 once its context moved from the body into a comment.\n- Each extra clause is another place for a false positive (#6269, #6270) and another disposition at completion.\n\nSo the fix here should cover issue bodies as well as leans: take acceptance from the acceptance or goal section and treat the rest as narrative, not clauses. Until then, the workaround is to keep the issue body to goal plus acceptance and put context in a comment.\n\n",
+          "id": 6856476276,
+          "html_url": "https://github.com/deftai/directive/issues/6265#issuecomment-6856476276",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T14:52:08Z",
+          "updated_at": "2026-11-13T14:52:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\nLean: Prefer-A draft\nconflict_group: ingest-harvest-non-acceptance\nTarget-digest: sha256:bc0f7a685b738df4c8358cfedbc46decff7fc94eef6d17621f5df781e993754c\nSpec-path: packages/core/src/intake/markdown-scanners.ts (extractBoundRemedyHarvest) + packages/core/src/intake/issue-ingest.ts (buildIssueVbrief) + packages/core/src/verify-ac/clauses.ts (statement surface)\n\n## In plain English\nIngest turns too much text into work. From a lean it keeps reading past the remedy into the Reject list, footnotes and arc bookkeeping; from a plain issue it makes a clause out of every sentence, background included. Prefer-A: stop the remedy slice at the first label that is not a remedy limb, keep Reject lines as must-not text, and on plain issues take clauses only from the Acceptance, Expected or Goal section when one exists.\n\n## Evidence (pin 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04)\n- [extractBoundRemedyHarvest markdown-scanners.ts L223-236](https://github.com/deftai/directive/blob/1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04/packages/core/src/intake/markdown-scanners.ts#L223-L236) slices with `sliceAcSection` (L340-350), which ends only at the next level-2-or-higher heading. The #6189 lean wrote `Reject:`, `Footnotes …:` and `takes:` as colon labels, so the slice ran to the end of the comment and `parseListItems` (L367) took every bullet: 34 items, 6 real.\n- A label-terminated slicer already exists: `sliceColonLabelSection` / `isSameShapeColonLabelLine` (L286-306).\n- `hashBoundRemedyBytes` (`packages/core/src/design-critique/pain-audit-follow-through-gate.ts:88-89, 211-237`) uses the same slice; it must move in lockstep.\n- Plain body: `deriveAcceptanceClauses` (`packages/core/src/verify-ac/clauses.ts:579-618`) and `statementSentencesOnPlan` (`packages/core/src/product-first-done-gate/acceptance.ts:353-398`) take every sentence of Overview, which holds the whole body; `SECTION_HEADING` (`clauses.ts:79-80`) knows `acceptance`, `done`, `test`, not `expected` or `goal`.\n- Schema has `plan.narratives.Constraint` (`content/vbrief/schemas/xbrief-core-0.8.schema.json:117`), outside the sentence and declared-acceptance key lists.\n\n## Draft remedy\n1. Bound-remedy slice ends at the next level-2-or-higher heading or the next whole-line colon label (reuse `isSameShapeColonLabelLine`); `hashBoundRemedyBytes` uses the same slice.\n2. In the cited lean, list lines under a `Reject` heading or label go to `plan.narratives.Constraint` as must-not lines; footnotes and arc record-keeping stay out of `plan.items` and clauses.\n3. Plain issue body: when an `Acceptance`, `Expected` or `Goal` section exists, plan items and clauses come only from those sections, and the rest of the body is stored as a narrative outside the sentence-coverage keys. Without such a section, behaviour is unchanged.\n4. Fixtures: a #6189-shaped lean gives 6 items and the Reject lines in `Constraint`; an issue with Summary plus Acceptance gives clauses only from Acceptance; a body with no such section ingests as today.\n\n## Not proposed\nNo change to the completed-arc gate, the Spec-path token or story-quality rules. Completed briefs are not re-ingested.\n\n",
+          "id": 6857039379,
+          "html_url": "https://github.com/deftai/directive/issues/6265#issuecomment-6857039379",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:12:14Z",
+          "updated_at": "2026-11-13T15:12:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\ndesign-critique: warranted, because changing what ingest harvests moves every future plan item and clause, and the Bound-remedy slice is shared with the pain-audit follow-through hash.\nmechanism-shaped: true\ncharter: open critique\nrefutation-target: omitted (open critique; the issue's Expected section is the design goal, not a premise under refutation)\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nTarget-kind: issue\nTarget-digest: sha256:bc0f7a685b738df4c8358cfedbc46decff7fc94eef6d17621f5df781e993754c\ndispatch-sha: 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04\ndest: .deft-scratch/worktrees/arc-6276-6265\nverification-path: pin-read git show 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04: ; dest cwd-without-occupy .deft-scratch/worktrees/arc-6276-6265\nseat-families: grok\n\npain:\n- P1\n- P2\n\n## Pains\n- **P1:** Ingest of a lean takes the Reject list, footnotes and arc record-keeping as plan items (34 items for #6189, 6 real), each needing hand-written acceptance.\n- **P2:** Ingest of a plain issue makes a clause from every body sentence, context included (35 clauses on one consumer issue), each a false-positive and disposition surface.\n\nInvariant for every take: the real remedy limbs and real acceptance lines are all still harvested, and an issue without an acceptance-shaped section ingests as today.\n\n## In plain English\nThis short arc checks that ingest keeps only the work to build, and still keeps all of it.\n\nSpend note: recorded `spend-recommend: N=1` through `design-critique:spend-resolve` (utterance `arc 6265 yolo`); one grok seat.",
+          "id": 6857039893,
+          "html_url": "https://github.com/deftai/directive/issues/6265#issuecomment-6857039893",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:12:15Z",
+          "updated_at": "2026-11-13T15:12:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\npanel-deposit: round-1\nround: 1\nsiblings: 1\nseat-families: grok\nspend: N=1\nconsent: standing yolo relayed by the dispatching session; spend-recommend N=1 resolved via design-critique:spend-resolve\nid-ceiling: 6857039893\ninput-ceiling: 6857039893\ndispatch-sha: 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04\narc-mode: no-ingest\nverification-path: pin-read git show 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04: ; dest cwd-without-occupy .deft-scratch/worktrees/arc-6276-6265\naudit-targets: none\nclosed-findings: none\ncharter: open critique\ntarget: https://github.com/deftai/directive/issues/6265\n\nRelay disclosure: the Grok seat runs read-only with no web search, so it reads a parent-written thread snapshot (issue body plus comments up to the ceiling) and returns its body to the parent, which posts it verbatim.\n\n",
+          "id": 6857051207,
+          "html_url": "https://github.com/deftai/directive/issues/6265#issuecomment-6857051207",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:12:43Z",
+          "updated_at": "2026-11-13T15:12:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRound 1, ceiling comment 6857039893, pin `1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04`. Read `.deft-scratch/arc/6265-thread.md` through that ceiling (Prefer-A lean 6857039379; Stop 1 pains P1–P2 + invariant 6857039893) and pin-read `markdown-scanners.ts`, `issue-ingest.ts` (`buildIssueVbrief` / `extractPlanItems` / `ingestOne`), `clauses.ts`, `clause-derivation.ts`, `acceptance.ts`, `pain-audit-follow-through-gate.ts`, `completed-arc-record.ts`, `content/vbrief/schemas/xbrief-core-0.8.schema.json`, and the #6189 brief under `xbrief/completed/`.\n\n## Verdict\n\nPrefer-A correctly names the shared Bound-remedy over-slice (P1) and the whole-body clause scrape (P2), and reusing a label-aware terminator plus `plan.narratives.Constraint` matches inventory. It cannot bind as written: ending the remedy slice at any same-shape colon label can drop real limbs, which breaks the Stop 1 invariant. Expected/Goal as an acceptance source also needs a narrower cut before bind.\n\n## F1 - blocks-the-design: Open colon-label terminator can drop real limbs\n\nEvidence: Prefer-A draft remedy item 1 ends the Bound-remedy slice at the next whole-line colon label via `isSameShapeColonLabelLine` (`markdown-scanners.ts:286-291`, used at `:300` / `:325`). That helper accepts any `Label:` line that is not already a list item. `extractBoundRemedyHarvest` today only stops at the next same-or-higher heading (`:234` → `sliceAcSection` `:340-349`). List-item limbs that end with a colon, and limbs that name `Reject:` in prose, stay safe because `matchListItemLine` (`:393-416`) makes `isSameShapeColonLabelLine` return false. Nested sub-bullets before the first terminator also still parse. The failure mode is a non-list colon intro inside Bound-remedy (`Limb group A:` / `Cases:` / `Implementation notes:`) placed before the real bullets: the slice ends there and `parseListItems` returns fewer limbs than authored, including the empty-item case. That violates the invariant that real remedy limbs stay harvested, and Spec-path ingest already refuses an empty Bound-remedy list (`issue-ingest.ts:2427-2432`). Remedy: terminate on a closed trailer set that matches the #6189 shape (`Reject`, `Footnotes…`, `takes`), or otherwise require the terminator to be a known non-limb trailer; add fixtures for a colon-intro before limbs, a list limb ending in `:`, nested sub-bullets, and a limb whose prose contains `Reject:`.\n\n## F2 - sharpens-framing: Expected/Goal is not a safe acceptance source\n\nEvidence: draft remedy item 3 adds `Expected` and `Goal` beside `Acceptance` as the only plan-item and clause sources when present. `SECTION_HEADING` today knows `acceptance` / `done` / `test` only (`clauses.ts:79-80`); `deriveAcceptanceClauses` falls through to `collectStatementSurface` on the full task statement when `plan.items` are empty (`:579-606`). Ingest stamps clauses from `[title, harvestSource ?? overviewSource]` (`issue-ingest.ts:1704-1707`), so body-normative Overview is still the whole issue body. This issue’s own `## Expected` (thread snapshot) is design-goal prose, not observable acceptance; consumer `Goal` sections are the same class. Treating them as clause sources re-imports narrative as gate surface and undercuts P2. Remedy: drive the plain-body cut from `Acceptance` / existing Done-when / Test (and acceptance-shaped lines already detected by `looksLikeAcceptanceShaped`), and keep Expected/Goal as narrative unless lines pass that acceptance-shaped check; fixture an Expected-only body that must not mint design-goal clauses.\n\n## F3 - sharpens-framing: Bound-remedy hash lockstep and in-flight discharge\n\nEvidence: Prefer-A correctly requires `hashBoundRemedyBytes` to move with the harvest slice. That helper still reimplements an H2-only cut (`pain-audit-follow-through-gate.ts:88-89, 211-237`) and hashes list titles inside it, so Reject / Footnotes / takes titles are in today’s digest for a #6189-shaped lean. Digests are recomputed live on cited and successor bodies (`:293-303`), so deploying a tighter slicer does not desync equal bodies. It does change which lean edits move the digest: scrubbing trailer titles no longer changes harvest identity, so an in-flight `harvest-changed` / `newBindLeanAndAudit` recovery that planned to discharge by deleting Reject/footnote/takes lines under Bound-remedy would stay blocked until a limb-affecting lean lands. Remedy: state that lockstep means one shared slicer (reuse harvest titles rather than a second NEXT_H2 copy), that trailer-only lean edits stop counting as harvest change, and that in-flight recoveries need a limb edit (or an explicit transition note)—not Reject-list churn.\n\n## F4 - footnote: Overview relocation vs Spec-path and statement keys\n\nEvidence: Spec-path Overview is defined as the harvest remainder (`issue-ingest.ts:1590-1602`; `#4524` comments). Shortening `sourceText` shrinks Overview and is consistent with that rule; putting Reject lines into schema `Constraint` (`xbrief-core-0.8.schema.json:117`) keeps them out of `STATEMENT_SENTENCE_NARRATIVE_KEYS` (`acceptance.ts:337-346`). Body-normative “rest of body outside sentence-coverage keys” is underspecified: `collectTaskStatementFromPlan` still appends every remaining narrative after the known key list (`clause-derivation.ts:115-120`), so a Background dump can re-enter clause derivation on activate/promote. Story-quality pressure from junk `plan.items` falls once P1 is fixed; no Spec-path token change is required. Remedy: name the destination key(s) and exclude them from both sentence-coverage and `collectTaskStatementFromPlan` fall-through.\n\n## F5 - footnote: Draft is slightly thicker than P1–P2 need\n\nEvidence: limbs 1–2 plus lean fixtures relieve P1; a narrow Acceptance-section cut relieves P2. Expected/Goal (limb 3) is the extra blast radius called out in F2. Thin Fail-Closed: keep Bound-remedy as the closed trailer terminator, Reject→Constraint, Acceptance-section plain-body cut, and the #6189 / Acceptance / no-section fixtures; leave Expected/Goal shaping as leftover-pain or an implementation note.\n\n",
+          "id": 6857157117,
+          "html_url": "https://github.com/deftai/directive/issues/6265#issuecomment-6857157117",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:17:14Z",
+          "updated_at": "2026-11-13T15:17:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\nLean: Prefer-A Bound\nconflict_group: ingest-harvest-non-acceptance\nTarget-digest: sha256:bc0f7a685b738df4c8358cfedbc46decff7fc94eef6d17621f5df781e993754c\nSpec-path: packages/core/src/intake/markdown-scanners.ts (Bound-remedy slice) + packages/core/src/design-critique/pain-audit-follow-through-gate.ts (hashBoundRemedyBytes) + packages/core/src/intake/issue-ingest.ts (buildIssueVbrief)\nRecut: supersedes Prefer-A draft 6857039379\nStop-1: 6857039893\ndisposes critic: 6857157117\n\n## In plain English\nIngest should turn only the work to build into plan items and clauses. The remedy slice of a lean now ends at the lean's closing sections (Reject, Not proposed, Footnotes, takes and the like), which are a fixed list, so a remedy line that happens to end in a colon is never cut. Reject lines are kept as must-not text. On a plain issue with an Acceptance section, only that section becomes items and clauses, and the rest of the body is kept as background that no gate scores. Issues without such a section ingest as today.\n\n## Takes (one Round-1 seat: Grok 6857157117)\n- accept-into-contract: 6857157117/F1 (a closed trailer set ends the slice, not any colon label)\n- accept-into-contract: 6857157117/F2 (Expected and Goal stay narrative; only the existing acceptance-shaped headings drive the plain-body cut)\n- accept-into-contract: 6857157117/F3 (one shared slicer for harvest and `hashBoundRemedyBytes`; trailer-only lean edits stop counting as a harvest change)\n- accept-into-contract: 6857157117/F4 (name the background key and keep it out of sentence coverage and the task-statement fall-through)\n- accept-into-contract: 6857157117/F5 (thin cut)\n\n## Bound remedy\n1. The Bound-remedy slice ends at the next heading of level 2 or higher, or at a whole-line, non-list trailer label from a closed set (`Reject`, `Not proposed`, `Footnote`, `Footnotes`, `takes`, `Residual`, `Notes`, `Coordination`, with an optional parenthesised qualifier before the colon). `hashBoundRemedyBytes` calls that same slicer. relieves: P1\n2. In the cited lean, list lines under a `Reject` or `Not proposed` heading or label go to `plan.narratives.Constraint` as must-not lines. Footnote and take lines go to neither `plan.items` nor clauses. relieves: P1\n3. On a plain issue body, when an acceptance-shaped section exists (the headings `findAcHeading` and `SECTION_HEADING` already know), plan items and clauses come only from that section, and the rest of the body is stored as `plan.narratives.Background`, which is excluded from sentence coverage and from the `collectTaskStatementFromPlan` fall-through. A body without such a section ingests as today. relieves: P2\n4. Fixtures: a #6189-shaped lean gives its 6 limbs as items and its Reject lines in `Constraint`; a colon-intro line, a limb ending in `:`, nested sub-bullets and a limb whose prose names `Reject:` all stay harvested; an issue with Summary plus Acceptance gives clauses only from Acceptance; an Expected-only body ingests as today; equal lean bodies keep equal harvest digests.\n\n## Not proposed\nNo change to the completed-arc gate, the Spec-path token or story-quality rules. Completed briefs are not re-ingested.\n\n",
+          "id": 6857183797,
+          "html_url": "https://github.com/deftai/directive/issues/6265#issuecomment-6857183797",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:18:23Z",
+          "updated_at": "2026-11-13T15:18:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: blocking, footnote\nharvest-changed: true\n\nCeiling: comment 6857183797; pin: `1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04` (HEAD verified). Read the supplied thread snapshot, required critique-contract sections, and pinned intake scanners, ingest construction, clause derivation, sentence coverage, harvest hashing, schema, and completed #6189 brief. This is a read-only design audit; no tests were run.\n\n- **P1 - relieved.** Limbs 1–2 stop the #6189 harvest at `Reject:`, preserve its six preceding limbs, and retain rejected alternatives as constraints. The archived example uses `Footnotes (dispose-as-footnote):`, covered by the qualifier rule. Replacing the slice at `packages/core/src/intake/markdown-scanners.ts:234` addresses both item extraction and the source remainder. Existing list parsing preserves indented bullets and colon-ending items (`:367–416`); limb 4 expressly tests these. Sharing the slice with `packages/core/src/design-critique/pain-audit-follow-through-gate.ts:211–234` keeps harvest identity aligned. Spec-path Overview remains the harvest remainder as required by `packages/core/src/intake/issue-ingest.ts:1590–1602`. This removes the reported junk-item pressure without weakening story quality.\n\n- **P2 - not relieved.** Limb 3 removes background from sentence coverage and closes the narrative fall-through, but its section-only rule can also remove genuine acceptance. The Stop 1 invariant requires preserving all real acceptance lines. Existing extraction recognizes explicit inline `Done when` statements outside acceptance headings and combines them with section criteria (`packages/core/src/verify-ac/clauses.ts:325–345,543–560`). Moving everything outside the selected section to excluded Background loses that supported acceptance surface.\n\n## F1 - blocking: Section-only harvesting discards explicit acceptance outside headings\n\nConsider an issue containing:\n\n```markdown\n## Acceptance\n- The command returns exit code 0.\n## Requirements\n- Done when invalid input returns exit code 2.\n```\n\nBoth lines state observable acceptance. `collectDoneWhenLines` scans every line for the explicit `Done when` prefix (`packages/core/src/verify-ac/clauses.ts:340–344`), and `collectStatementSurface` deliberately combines those lines with AC/Test criteria (`:545–560`). Bound limb 3 instead makes the second section excluded Background.\n\nThere is also a multiple-section hazard: `findAcHeading` returns the first match (`packages/core/src/intake/markdown-scanners.ts:147–156`), whereas `collectSectionItems` visits every matching heading (`packages/core/src/verify-ac/clauses.ts:213–233`). “Only from that section” must not reduce the latter to the former.\n\nChange limb 3 to preserve all recognized acceptance sections plus explicitly declared acceptance lines, while excluding surrounding context. Add fixtures for sibling Acceptance/Test sections and inline `Done when` acceptance outside them. Ensure both plan items and derived clauses preserve the complete selected set: nonempty item surfaces take precedence over statement extraction (`clauses.ts:591–605`). This is new evidence about explicit acceptance, not a reopening of Expected/Goal narrative harvesting.\n\n## F2 - footnote: Preserve quarantine scanning when relocating text\n\n`Background` and `Constraint` are valid schema keys (`content/vbrief/schemas/xbrief-core-0.8.schema.json:111–118`). Their exclusion from acceptance scoring does not make their contents trusted. Existing Overview persistence scans untrusted text and fails on rejected content (`packages/core/src/intake/issue-ingest.ts:1594–1602`); current-shape persistence uses the same scanning contract (`:1604–1606`). Apply that existing scanner to newly persisted Background and Constraint values. This is an implementation obligation, not an additional harvest mechanism.",
+          "id": 6857273150,
+          "html_url": "https://github.com/deftai/directive/issues/6265#issuecomment-6857273150",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:22:15Z",
+          "updated_at": "2026-11-13T15:22:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\nLean: Prefer-A Bound\nconflict_group: ingest-harvest-non-acceptance\nTarget-digest: sha256:bc0f7a685b738df4c8358cfedbc46decff7fc94eef6d17621f5df781e993754c\nSpec-path: packages/core/src/intake/markdown-scanners.ts (Bound-remedy slice) + packages/core/src/design-critique/pain-audit-follow-through-gate.ts (hashBoundRemedyBytes) + packages/core/src/intake/issue-ingest.ts (buildIssueVbrief)\nRecut: supersedes Prefer-A Bound 6857183797 and draft 6857039379\nStop-1: 6857039893\ndisposes critic: 6857157117, 6857273150\n\n## In plain English\nIngest should turn only the work to build into plan items and clauses. The remedy slice of a lean now ends at the lean's closing sections (Reject, Not proposed, Footnotes, takes and the like), which are a fixed list, so a remedy line that happens to end in a colon is never cut. Reject lines are kept as must-not text. On a plain issue with an Acceptance section, only that section becomes items and clauses, and the rest of the body is kept as background that no gate scores. Issues without such a section ingest as today.\n\n## Takes (one Round-1 seat: Grok 6857157117; pain audit: Codex 6857273150)\n- accept-into-contract: 6857157117/F1 (a closed trailer set ends the slice, not any colon label)\n- accept-into-contract: 6857157117/F2 (Expected and Goal stay narrative; only the existing acceptance-shaped headings drive the plain-body cut)\n- accept-into-contract: 6857157117/F3 (one shared slicer for harvest and `hashBoundRemedyBytes`; trailer-only lean edits stop counting as a harvest change)\n- accept-into-contract: 6857157117/F4 (name the background key and keep it out of sentence coverage and the task-statement fall-through)\n- accept-into-contract: 6857157117/F5 (thin cut)\n- accept-into-contract: 6857273150/F1 (pain audit: keep every acceptance section and every declared acceptance line, not only the first section)\n- accept-into-contract: 6857273150/F2 (footnote: scan Background and Constraint with the existing untrusted-text scanner)\n\n## Bound remedy\n1. The Bound-remedy slice ends at the next heading of level 2 or higher, or at a whole-line, non-list trailer label from a closed set (`Reject`, `Not proposed`, `Footnote`, `Footnotes`, `takes`, `Residual`, `Notes`, `Coordination`, with an optional parenthesised qualifier before the colon). `hashBoundRemedyBytes` calls that same slicer. relieves: P1\n2. In the cited lean, list lines under a `Reject` or `Not proposed` heading or label go to `plan.narratives.Constraint` as must-not lines. Footnote and take lines go to neither `plan.items` nor clauses. relieves: P1\n3. On a plain issue body that has at least one acceptance-shaped section (every heading `findAcHeading` or `SECTION_HEADING` matches, not only the first), plan items and clauses come from all of those sections plus every explicitly declared acceptance line anywhere in the body (`Done when`, `test:`, `acceptance:` lines, as `collectStatementSurface` reads them today). The rest of the body is stored as `plan.narratives.Background`, scanned with the existing untrusted-text scanner like Overview, and excluded from sentence coverage and from the `collectTaskStatementFromPlan` fall-through. A body without such a section ingests as today. relieves: P2\n4. Fixtures: a #6189-shaped lean gives its 6 limbs as items and its Reject lines in `Constraint`; a colon-intro line, a limb ending in `:`, nested sub-bullets and a limb whose prose names `Reject:` all stay harvested; an issue with Summary plus Acceptance gives clauses only from Acceptance; sibling Acceptance and Test sections and an inline `Done when` line outside them all stay clauses; Background and Constraint text is scanned; an Expected-only body ingests as today; equal lean bodies keep equal harvest digests.\n\n## Not proposed\nNo change to the completed-arc gate, the Spec-path token or story-quality rules. Completed briefs are not re-ingested.\n\n",
+          "id": 6857278599,
+          "html_url": "https://github.com/deftai/directive/issues/6265#issuecomment-6857278599",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:22:29Z",
+          "updated_at": "2026-11-13T15:22:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: blocking, footnote\nharvest-changed: true\n\nCeiling: comment 6857278599 (Prefer-A Bound). Pin: `1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04`. Read `.deft-scratch/arc/6265-pa2-thread.md` through that ceiling, `content/contracts/design-critique.md` (Critic method, Comment lead, Pain coverage, Security context), and pin-read `markdown-scanners.ts`, `pain-audit-follow-through-gate.ts` (`hashBoundRemedyBytes`), `issue-ingest.ts` (`buildIssueVbrief` / Overview / clause stamp), `clauses.ts` (`SECTION_HEADING` / `collectStatementSurface` / `collectDoneWhenLines`), `clause-derivation.ts` (`collectTaskStatementFromPlan`), `acceptance.ts` (`STATEMENT_SENTENCE_NARRATIVE_KEYS`), schema narratives, and the #6189 completed brief IngestNote / Overview.\n\n- **P1 — relieved.** Limbs 1–2 end the Bound-remedy slice at the next H2+ heading or a closed non-list trailer (`Reject` / `Not proposed` / `Footnote(s)` / `takes` / …, optional parenthesised qualifier), share that slicer with `hashBoundRemedyBytes`, send Reject / Not proposed list lines to `plan.narratives.Constraint`, and keep footnote / take lines out of `plan.items` and clauses. Today `extractBoundRemedyHarvest` stops only via `sliceAcSection` (`markdown-scanners.ts:234–236,340–350`); #6189’s `Reject:` / `Footnotes (dispose-as-footnote):` / `takes:` are colon labels, so the slice ran to EOF and `parseListItems` kept 34 titles (brief IngestNote). Limb 4’s #6189 / colon-intro / limb-ending-`:` / nested / prose-`Reject:` fixtures close the Stop 1 invariant for real limbs. Spec-path Overview stays the harvest remainder (`issue-ingest.ts:1590–1602`) and shrinks with the tighter `sourceText`.\n\n- **P2 — not relieved.** Limb 3 correctly unions every `findAcHeading` / `SECTION_HEADING` section with declared `Done when` / `test:` / `acceptance:` lines and parks the remainder in `Background` out of fall-through. That still leaves body-normative Overview as the full body: `overviewSource = bodyStr` and non-Spec-path Overview assignment (`issue-ingest.ts:1553,1591–1602`), while `STATEMENT_SENTENCE_NARRATIVE_KEYS` still scores Overview (`acceptance.ts:337–346`) and ingest clause stamp still passes `overviewSource` as task statement (`issue-ingest.ts:1704–1707`). Background exclusion alone does not stop context sentences from remaining on those surfaces, so the Stop 1 P2 path stays open.\n\n## F1 - blocking: Plain-body cut must displace Overview (and the clause-stamp statement)\n\nEvidence: under the acceptance cut, limb 3 names only `plan.narratives.Background` for “the rest,” with scan + sentence-key / fall-through exclusion. Pin shows Overview remains the unscored-elsewhere body copy for non-Spec-path ingest, and `stampDerivedClausesOnAcceptance` still receives that full body when deriving. Failure mode: Summary / context / Expected prose stays in Overview (and the stamp statement), so sentence coverage and empty-itemSurface derivation still see the junk P2 names; sibling Acceptance / Test / inline Done when can be preserved while context still gates. Disposition: lean cannot bind with `relieves: P2` as written. Change limb 3 (and limb 4 fixtures) so that when the cut applies, Overview is omitted or set only to the selected acceptance surface, the clause-stamp task statement is that same surface (or itemSurface∪declared lines with nonempty items), and Background holds the remainder; keep no-section bodies unchanged.\n\n## F2 - footnote: Plain English still says singular Acceptance section\n\n`## In plain English` still says “only that section becomes items and clauses,” while limb 3 and the Takes accept every matching section plus declared lines (6857273150/F1). Align the plain-English sentence with limb 3. Writing-bar only; no mechanism remint on this alone.\n\n",
+          "id": 6857454582,
+          "html_url": "https://github.com/deftai/directive/issues/6265#issuecomment-6857454582",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:30:18Z",
+          "updated_at": "2026-11-13T15:30:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\nLean: retraction map after the second pain audit (not for bind)\nRecut: retracts Prefer-A Bound 6857278599\ndisposes critic: 6857454582\n\n## In plain English\nThe second pain audit found that the plain-issue cut still leaves the whole body in Overview, which sentence coverage scores and which ingest passes as the task statement, so context sentences would still become clause pressure. The lean-harvest half holds. The Bound 6857278599 is withdrawn and will not be ingested.\n\n## Cites\n- relieves: P1\n- does-not-relieve: P2\n\n## Takes\n- accept-into-contract: 6857454582/F1 (when the cut applies, Overview and the clause-stamp task statement hold only the selected acceptance surface; Background holds the rest)\n- accept-into-contract: 6857454582/F2 (footnote: the plain-English summary names every acceptance section, not one)",
+          "id": 6857455294,
+          "html_url": "https://github.com/deftai/directive/issues/6265#issuecomment-6857455294",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:30:20Z",
+          "updated_at": "2026-11-13T15:30:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\nHandoff: after the retraction map 6857455294 (does-not-relieve P2 on a Recut map)\nopen-question: When an acceptance-shaped section exists, can ingest set Overview and the clause-stamp task statement to that surface alone without breaking the no-section path or story quality?\n\n## In plain English\nThe design needs one more cut for plain issues. The parent writes a new Stop 1 and a recut lean that moves the context out of Overview, and a fresh pain audit checks it. The post budget for this arc does not refill.",
+          "id": 6857456022,
+          "html_url": "https://github.com/deftai/directive/issues/6265#issuecomment-6857456022",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:30:22Z",
+          "updated_at": "2026-11-13T15:30:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\ndesign-critique: warranted, because changing what ingest harvests moves every future plan item and clause, and the Bound-remedy slice is shared with the pain-audit follow-through hash.\nmechanism-shaped: true\ncharter: open critique\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nTarget-kind: issue\nTarget-digest: sha256:bc0f7a685b738df4c8358cfedbc46decff7fc94eef6d17621f5df781e993754c\ndispatch-sha: 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04\ndest: .deft-scratch/worktrees/arc-6276-6265\nverification-path: pin-read git show 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04: ; dest cwd-without-occupy .deft-scratch/worktrees/arc-6276-6265\nseat-families: grok\n\npain:\n- P1\n- P2\n\n## Pains\n- **P1:** Ingest of a lean takes the Reject list, footnotes and arc record-keeping as plan items (34 items for #6189, 6 real), each needing hand-written acceptance.\n- **P2:** Ingest of a plain issue makes a clause from every body sentence, context included (35 clauses on one consumer issue), each a false-positive and disposition surface.\n\nInvariant for every take: the real remedy limbs and real acceptance lines are all still harvested, and an issue without an acceptance-shaped section ingests as today.\n\n## In plain English\nThis short arc checks that ingest keeps only the work to build, and still keeps all of it.\n\nPost-handoff Stop 1 after Handoff 6857456022 (charter open critique, no refutation-target). Spend stays N=1; the Dual-stop post count does not refill.",
+          "id": 6857462472,
+          "html_url": "https://github.com/deftai/directive/issues/6265#issuecomment-6857462472",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:30:39Z",
+          "updated_at": "2026-11-13T15:30:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\nLean: Prefer-A Bound\nconflict_group: ingest-harvest-non-acceptance\nTarget-digest: sha256:bc0f7a685b738df4c8358cfedbc46decff7fc94eef6d17621f5df781e993754c\nSpec-path: packages/core/src/intake/markdown-scanners.ts (Bound-remedy slice) + packages/core/src/design-critique/pain-audit-follow-through-gate.ts (hashBoundRemedyBytes) + packages/core/src/intake/issue-ingest.ts (buildIssueVbrief)\nRecut: supersedes retraction map 6857455294, Prefer-A Bound 6857278599, Bound 6857183797 and draft 6857039379\nStop-1: 6857462472\ndisposes critic: 6857157117, 6857273150, 6857454582\n\n## In plain English\nIngest should turn only the work to build into plan items and clauses. The remedy slice of a lean now ends at the lean's closing sections (Reject, Not proposed, Footnotes, takes and the like), which are a fixed list, so a remedy line that happens to end in a colon is never cut. Reject lines are kept as must-not text. On a plain issue with acceptance sections, only those sections and any explicit \"Done when\" or \"test:\" lines become items, clauses and the Overview; the rest of the body is kept as background that no gate scores. Issues without such a section ingest as today.\n\n## Takes (one Round-1 seat: Grok 6857157117; pain audits: Codex 6857273150, Grok 6857454582)\n- accept-into-contract: 6857157117/F1 (a closed trailer set ends the slice, not any colon label)\n- accept-into-contract: 6857157117/F2 (Expected and Goal stay narrative; only the existing acceptance-shaped headings drive the plain-body cut)\n- accept-into-contract: 6857157117/F3 (one shared slicer for harvest and `hashBoundRemedyBytes`; trailer-only lean edits stop counting as a harvest change)\n- accept-into-contract: 6857157117/F4 (name the background key and keep it out of sentence coverage and the task-statement fall-through)\n- accept-into-contract: 6857157117/F5 (thin cut)\n- accept-into-contract: 6857273150/F1 (pain audit: keep every acceptance section and every declared acceptance line, not only the first section)\n- accept-into-contract: 6857273150/F2 (footnote: scan Background and Constraint with the existing untrusted-text scanner)\n- accept-into-contract: 6857454582/F1 (second pain audit: Overview and the clause-stamp statement hold only the selected acceptance surface)\n- accept-into-contract: 6857454582/F2 (footnote: plain-English summary names every acceptance section)\n\n## Bound remedy\n1. The Bound-remedy slice ends at the next heading of level 2 or higher, or at a whole-line, non-list trailer label from a closed set (`Reject`, `Not proposed`, `Footnote`, `Footnotes`, `takes`, `Residual`, `Notes`, `Coordination`, with an optional parenthesised qualifier before the colon). `hashBoundRemedyBytes` calls that same slicer. relieves: P1\n2. In the cited lean, list lines under a `Reject` or `Not proposed` heading or label go to `plan.narratives.Constraint` as must-not lines. Footnote and take lines go to neither `plan.items` nor clauses. relieves: P1\n3. On a plain issue body that has at least one acceptance-shaped section (every heading `findAcHeading` or `SECTION_HEADING` matches, not only the first), plan items and clauses come from all of those sections plus every explicitly declared acceptance line anywhere in the body (`Done when`, `test:`, `acceptance:` lines, as `collectStatementSurface` reads them today). `plan.narratives.Overview` and the task statement passed to clause stamping hold only that selected surface; the rest of the body is stored as `plan.narratives.Background`, scanned with the existing untrusted-text scanner, and excluded from sentence coverage and from the `collectTaskStatementFromPlan` fall-through. A body without such a section ingests as today. relieves: P2\n4. Fixtures: a #6189-shaped lean gives its 6 limbs as items and its Reject lines in `Constraint`; a colon-intro line, a limb ending in `:`, nested sub-bullets and a limb whose prose names `Reject:` all stay harvested; an issue with Summary plus Acceptance gives clauses only from Acceptance; sibling Acceptance and Test sections and an inline `Done when` line outside them all stay clauses; Overview holds only the selected surface, Background and Constraint text is scanned; an Expected-only body ingests as today; equal lean bodies keep equal harvest digests.\n\n## Not proposed\nNo change to the completed-arc gate, the Spec-path token or story-quality rules. Completed briefs are not re-ingested.\n\n",
+          "id": 6857463007,
+          "html_url": "https://github.com/deftai/directive/issues/6265#issuecomment-6857463007",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:30:40Z",
+          "updated_at": "2026-11-13T15:30:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: none\nharvest-changed: false\n\nCeiling: comment 6857463007; pin: `1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04` (HEAD verified). Read the supplied thread snapshot, required critique-contract sections, and pinned harvest, hash, ingest, clause-derivation, sentence-coverage, schema and story-quality sources. Checked the #6189 IngestNote. This is a read-only design audit; no builds or tests were run.\n\n- **P1 - relieved.** Limbs 1–2 cut the remedy before the closed trailer labels, retain rejected alternatives in `Constraint`, and exclude footnotes and takes from items and clauses. The current coupling between items and `sourceText` is visible at `packages/core/src/intake/markdown-scanners.ts:223-235`; changing that slice removes trailer text from both surfaces. The closed set avoids the previously rejected arbitrary-colon cut, while list parsing preserves colon-ending limbs, inline `Reject:` prose and nested bullets (`markdown-scanners.ts:367-416`). Limb 4 explicitly protects those cases and the six real #6189 limbs. Sharing the slicer with `packages/core/src/design-critique/pain-audit-follow-through-gate.ts:211-234` aligns harvest identity. The shorter source remains consistent with Spec-path Overview’s harvest-remainder rule (`packages/core/src/intake/issue-ingest.ts:1590-1602`). `Constraint` is schema-supported (`content/vbrief/schemas/xbrief-core-0.8.schema.json:117`) and outside sentence-coverage keys (`packages/core/src/product-first-done-gate/acceptance.ts:337-346`). Removing bookkeeping items reduces acceptance-padding pressure without relaxing item acceptance requirements (`packages/core/src/vbrief-validation/story-quality.ts:199-225`).\n\n- **P2 - relieved.** Limb 3 now closes both previously identified routes: it replaces full-body Overview and the clause-stamp statement with the selected acceptance surface, and excludes Background from later narrative fall-through. These changes address the actual consumers at `packages/core/src/intake/issue-ingest.ts:1592-1602,1704-1707`, `packages/core/src/product-first-done-gate/acceptance.ts:353-365`, and `packages/core/src/intake/clause-derivation.ts:115-120`. The selected set includes every recognized acceptance section and explicitly declared acceptance line, preserving the union supported by `packages/core/src/verify-ac/clauses.ts:213-233,325-345,543-560`. Requiring that complete set in both items and clauses matters because nonempty item surfaces take precedence over statement scraping (`clauses.ts:591-605`). Limb 4 protects sibling sections and inline Done-when criteria; the explicit no-section branch preserves existing behavior. Background is schema-supported (`content/vbrief/schemas/xbrief-core-0.8.schema.json:111`), and the required untrusted-text scanning preserves quarantine when text moves. I found no new evidence requiring reopening the disposed findings or changing the Bound remedy.",
+          "id": 6857511458,
+          "html_url": "https://github.com/deftai/directive/issues/6265#issuecomment-6857511458",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:32:47Z",
+          "updated_at": "2026-11-13T15:32:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\ntakes:\n- accept-into-contract: 6857511458 (third pain audit: finding-classes none, harvest-changed false; P1 and P2 relieved)\n- accept-into-contract: 6857157117/F1\n- accept-into-contract: 6857157117/F2\n- accept-into-contract: 6857157117/F3\n- accept-into-contract: 6857157117/F4\n- accept-into-contract: 6857157117/F5\n- accept-into-contract: 6857273150/F1\n- accept-into-contract: 6857273150/F2\n- accept-into-contract: 6857454582/F1\n- accept-into-contract: 6857454582/F2\nnote: every Round-1 and earlier pain-audit finding is absorbed in Prefer-A Bound 6857463007 after Handoff 6857456022; the third pain audit found both pains reachable and no new finding.\nyolo-standing: on\nsuccessor lean: 6857463007",
+          "id": 6857511933,
+          "html_url": "https://github.com/deftai/directive/issues/6265#issuecomment-6857511933",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:32:48Z",
+          "updated_at": "2026-11-13T15:32:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n## Verified-claims table\n\n| Claim | Evidence | Disposition |\n|---|---|---|\n| The Bound-remedy slice ends at the next H2 or a closed non-list trailer label, and `hashBoundRemedyBytes` uses the same slicer | Bound 6857463007 limb 1; Grok R1 6857157117 F1/F3; pin `markdown-scanners.ts` L223-236, L340-350; `pain-audit-follow-through-gate.ts` L211-237 | accept |\n| Reject and Not-proposed lines go to `plan.narratives.Constraint`; footnotes and takes stay out of items and clauses | Bound limb 2; schema `xbrief-core-0.8` L117 | accept |\n| A plain body with acceptance sections harvests every such section plus declared acceptance lines; Overview and the clause-stamp statement hold only that surface; the rest goes to scanned `Background` outside sentence coverage | Bound limb 3; Codex PA 6857273150 F1/F2; Grok PA 6857454582 F1; pin `issue-ingest.ts` L1592-1602, L1704-1707; `clauses.ts` L213-233, L325-345, L543-560 | accept |\n| A body without an acceptance-shaped section ingests as today | Bound limb 3; Grok R1 F2 | accept |",
+          "id": 6857512471,
+          "html_url": "https://github.com/deftai/directive/issues/6265#issuecomment-6857512471",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:32:49Z",
+          "updated_at": "2026-11-13T15:32:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\ndesign-critique: synthesis accepted, because Prefer-A Bound 6857463007 (after Handoff 6857456022) absorbs the Round-1 Grok findings 6857157117 and both earlier pain-audit blockers (6857273150 F1: keep every acceptance surface; 6857454582 F1: move context out of Overview and the clause-stamp statement), and the third pain audit 6857511458 returned finding-classes: none with P1 and P2 relieved.\nsuccessor lean: 6857463007\nverified-claims table: 6857512471\n\n## In plain English\nShip an ingest change that keeps only the work to build: a lean's remedy limbs become plan items, its Reject lines become must-not text, and on a plain issue only the acceptance sections and declared acceptance lines become items and clauses, with the rest kept as unscored background. Issues without an acceptance section ingest as today. Ingest is the next, separate step.\n\narc-mode: no-ingest\nyolo-standing: on\nspend: N=1",
+          "id": 6857516008,
+          "html_url": "https://github.com/deftai/directive/issues/6265#issuecomment-6857516008",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:32:59Z",
+          "updated_at": "2026-11-13T15:32:59Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nWhen an issue carries an accepted Prefer-A lean, `issue:ingest` takes every list line in the lean as a plan item, not only the limbs. For #6189 the brief got 34 items:\n\n- items 1-6: the limbs (the real scope);\n- items 7-15: the lean's Reject list;\n- items 16-18: footnotes;\n- items 19-34: arc record-keeping (critic disposals and the operator steer).\n\nOnly items 1-6 describe behaviour to build. The others needed hand-written acceptance text to pass story quality (`OBSERVABLE_TERMS`), and a Greptile P1 on the activation PR (#6245) came from that padding.\n\n## Expected\n\nIngest of a lean takes the limbs as items. Reject lines become must-not constraints (a narrative or a separate field), and footnotes and arc record-keeping stay out of `plan.items`.\n\n## Notes\n\nThe #6189 brief records the split in its `IngestNote` narrative.\n\nRefs #6189.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6365937863,
+        "origin": "deftai/directive#6265",
+        "id": "github.issue.6365937863"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "bc0f7a685b738df4c8358cfedbc46decff7fc94eef6d17621f5df781e993754c"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "ingest-harvest-non-acceptance",
+        "expected_outputs": [
+          "Bound-remedy slice ends at a closed trailer set, shared with hashBoundRemedyBytes",
+          "Reject lines in plan.narratives.Constraint; footnotes and takes out of items",
+          "plain-body acceptance cut with Overview and Background split",
+          "fixture matrix for leans and plain bodies",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/intake/issue-ingest-harvest-trailers.test.ts packages/core/src/intake/markdown-scanners.test.ts packages/core/src/intake/issue-ingest.test.ts packages/core/src/design-critique/pain-audit-follow-through-gate.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/intake/markdown-scanners.ts",
+          "packages/core/src/intake/markdown-scanners.test.ts",
+          "packages/core/src/intake/issue-ingest.ts",
+          "packages/core/src/intake/issue-ingest.test.ts",
+          "packages/core/src/intake/issue-ingest-harvest-trailers.test.ts",
+          "packages/core/src/intake/clause-derivation.ts",
+          "packages/core/src/intake/clause-derivation.test.ts",
+          "packages/core/src/product-first-done-gate/acceptance.ts",
+          "packages/core/src/design-critique/pain-audit-follow-through-gate.ts",
+          "packages/core/src/design-critique/pain-audit-follow-through-gate.test.ts",
+          "packages/core/src/design-critique/completed-arc-record.test.ts",
+          "content/contracts/design-critique.md",
+          "CHANGELOG.md"
+        ],
+        "parallel_safe": true,
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "Traces": [
+          "#6265",
+          "#6189"
+        ]
+      }
+    },
+    "id": "github.issue.6365937863",
+    "updated": "2026-11-13T15:34:40Z"
+  }
+}

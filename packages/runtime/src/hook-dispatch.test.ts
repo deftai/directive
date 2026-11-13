@@ -1,3 +1,7 @@
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { INSTALLATION_RECOVERY_GUIDANCE } from "@deftai/directive-core/dist/install-health/constants.js";
 import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-health/types.js";
 import {
@@ -6,7 +10,12 @@ import {
   HOOK_FIXTURE_CASES,
   mergeHookDispatchEnviron,
 } from "@deftai/directive-core/hooks";
-import { describe, expect, it } from "vitest";
+import {
+  applyWorktreeOccupancy,
+  canonicalHostSessionId,
+  occupancyPath,
+} from "@deftai/directive-core/session";
+import { afterAll, describe, expect, it } from "vitest";
 import { PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE } from "../../core/src/install-health/constants.js";
 import { resolveCanonicalVerb } from "./dispatch.js";
 import {
@@ -771,5 +780,127 @@ describe("hook-dispatch pin≠installed recovery (#6013 / #5893)", () => {
     const wire = JSON.parse(out.join("")) as { decision?: string; reason?: string };
     expect(wire.decision).toBe("deny");
     expect(wire.reason ?? "").toContain(PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE);
+  });
+});
+
+describe("hook-dispatch session.end (#6274)", () => {
+  const RAW = "33333333-aaaa-4bbb-8ccc-000000000003";
+  const OWNER = canonicalHostSessionId("claude", RAW);
+  const okCheap = (): CheapInSyncResult => ({
+    ok: true,
+    pinVersion: null,
+    installedVersion: null,
+    identityMatch: true,
+    readinessValid: true,
+    failClosed: false,
+    allowSetup: false,
+    recoveryGuidance: null,
+  });
+  const roots: string[] = [];
+  afterAll(() => {
+    for (const r of roots.splice(0)) rmSync(r, { recursive: true, force: true });
+  });
+  function leasedRoot(): string {
+    const root = mkdtempSync(join(tmpdir(), "hook-dispatch-session-end-"));
+    roots.push(root);
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    applyWorktreeOccupancy(root, { sessionId: OWNER, now: new Date() });
+    return root;
+  }
+  function end(
+    root: string,
+    seams: {
+      launchingCheckoutRoot?: () => string | null;
+      cheapInSync?: (root: string) => CheapInSyncResult;
+      sessionEndRelease?: () => never;
+    } = {},
+  ) {
+    const out: string[] = [];
+    const err: string[] = [];
+    const code = run(["--host", "claude", "--event", "session.end", `--project-root=${root}`], {
+      readStdin: () =>
+        JSON.stringify({
+          hook_event_name: "SessionEnd",
+          reason: "clear",
+          session_id: RAW,
+          cwd: root,
+        }),
+      writeOut: (text) => out.push(text),
+      writeErr: (text) => err.push(text),
+      cwd: () => root,
+      stdinEmptyRetryMs: 0,
+      launchingCheckoutRoot: seams.launchingCheckoutRoot ?? (() => null),
+      cheapInSync: seams.cheapInSync ?? okCheap,
+      ...(seams.sessionEndRelease !== undefined
+        ? { sessionEndRelease: seams.sessionEndRelease }
+        : {}),
+    });
+    return { code, out: out.join(""), err: err.join("") };
+  }
+
+  it("parses --event session.end", () => {
+    expect(parseArgs(["--host", "claude", "--event", "session.end"]).event).toBe("session.end");
+  });
+
+  it("releases the ending session's own lease, exits 0 and prints nothing on stdout", () => {
+    const root = leasedRoot();
+    const result = end(root);
+    expect(result.code).toBe(0);
+    expect(result.out).toBe("");
+    expect(result.err.trim().split("\n")).toHaveLength(1);
+    expect(existsSync(occupancyPath(root))).toBe(false);
+  });
+
+  it("launch-root mismatch releases nothing and prints one diagnostic line", () => {
+    const root = leasedRoot();
+    const other = mkdtempSync(join(tmpdir(), "hook-dispatch-session-end-other-"));
+    roots.push(other);
+    const before = readFileSync(occupancyPath(root), "utf8");
+    const result = end(root, { launchingCheckoutRoot: () => other });
+    expect(result.code).toBe(0);
+    expect(result.out).toBe("");
+    expect(result.err.trim().split("\n")).toHaveLength(1);
+    expect(result.err).toMatch(/launch root/);
+    expect(readFileSync(occupancyPath(root), "utf8")).toBe(before);
+  });
+
+  it("pin mismatch releases nothing and prints one diagnostic line", () => {
+    const root = leasedRoot();
+    const before = readFileSync(occupancyPath(root), "utf8");
+    const result = end(root, {
+      cheapInSync: () => ({ ...okCheap(), ok: false, identityMatch: false, failClosed: true }),
+    });
+    expect(result.code).toBe(0);
+    expect(result.out).toBe("");
+    expect(result.err.trim().split("\n")).toHaveLength(1);
+    expect(readFileSync(occupancyPath(root), "utf8")).toBe(before);
+  });
+
+  it("a thrown release still exits 0", () => {
+    const root = leasedRoot();
+    const result = end(root, {
+      sessionEndRelease: () => {
+        throw new Error("boom");
+      },
+    });
+    expect(result.code).toBe(0);
+    expect(result.err).toMatch(/release failed/);
+    expect(existsSync(occupancyPath(root))).toBe(true);
+  });
+
+  it("a stdin read failure still exits 0 and never runs policy", () => {
+    const err: string[] = [];
+    const out: string[] = [];
+    const code = run(["--host", "claude", "--event", "session.end"], {
+      readStdin: () => {
+        throw new Error("EAGAIN");
+      },
+      writeOut: (text) => out.push(text),
+      writeErr: (text) => err.push(text),
+      stdinEmptyRetryMs: 0,
+    });
+    expect(code).toBe(0);
+    expect(out.join("")).toBe("");
+    expect(err.join("").trim().split("\n")).toHaveLength(1);
   });
 });
