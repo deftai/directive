@@ -119,8 +119,11 @@ export interface FinalizeOwedArgs {
   /** Test seam: skip live finalizeCohort. */
   readonly runFinalize?: (args: {
     issue: number | null;
-    /** Tip-relative brief path; the story token for issue-less rows (#680 P2). */
-    relPath: string;
+    /**
+     * Tip-relative brief paths: the story tokens for issue-less rows. Rows that share
+     * a product PR share one claim, so they finalize together (#680 P2).
+     */
+    relPaths: readonly string[];
     productPr: number;
     claimRef: string;
     projectRoot: string;
@@ -261,6 +264,11 @@ function issueFromPlan(plan: Record<string, unknown>, expectedRepo: string | nul
     return null;
   }
   return number;
+}
+
+/** Tip path under `xbrief|vbrief/active/` (#680 P2: only active briefs complete). */
+function isActiveTipPath(relPath: string): boolean {
+  return /^(?:xbrief|vbrief)\/active\//.test(relPath.replace(/\\/g, "/"));
 }
 
 /**
@@ -828,8 +836,10 @@ export function discoverFinalizeOwed(
     }
     // Issue-less brief with a stamped productPullRequest and PR-only identity joins
     // the same discovery (#680 P2); a foreign or unreadable issue ref does not.
-    const prOnly =
+    // Only an active brief can complete, so only active/ rows are admitted (#680 P2).
+    const prOnlyIdentity =
       issue === null && unmarkedDetail === null && isPrOnlyOwedPlan(plan, options.repo);
+    const prOnly = prOnlyIdentity && isActiveTipPath(relPath);
     if (issue === null && !prOnly) {
       stories.push({
         issue: null,
@@ -842,7 +852,9 @@ export function discoverFinalizeOwed(
         detail:
           unmarkedDetail !== null
             ? `${unmarkedDetail}; issue ref missing or foreign repo`
-            : "mark present but issue ref missing or foreign repo",
+            : prOnlyIdentity
+              ? "pr-only identity but not in active/; only an active brief can complete"
+              : "mark present but issue ref missing or foreign repo",
         blocks: false,
       });
       continue;
@@ -1423,8 +1435,15 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
     }
   };
   let refusedOwnMark = false;
+  // Issue-less rows that share a product PR share one claim ref and branch, so they
+  // finalize in one call under that claim (#680 P2).
+  const runnable = (s: FinalizeOwedStory): boolean => s.state === "owed" || s.state === "stale";
+  const issuelessGroupDone = new Set<string>();
   for (const story of inventory.stories) {
     const label = owedStoryLabel(story);
+    if (story.issue === null && runnable(story) && issuelessGroupDone.has(story.claimRef)) {
+      continue;
+    }
     if (
       story.state === "in-flight" ||
       story.state === "unverified" ||
@@ -1471,7 +1490,7 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
           projectRoot: input.projectRoot,
           prNumbers: [input.productPr],
           // Issue-less rows select the brief by path; origin-close then has no issue (#680 P2).
-          storyTokens: [input.issue === null ? input.relPath : String(input.issue)],
+          storyTokens: input.issue === null ? [...input.relPaths] : [String(input.issue)],
           repo: repo.trim(),
           deliveryBranch,
           label: null,
@@ -1493,9 +1512,18 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
       });
 
     // Fresh checkout isolation: finalize-cohort prepareLifecycleCheckout owns this.
+    const relPaths =
+      story.issue === null
+        ? inventory.stories
+            .filter((s) => s.issue === null && s.claimRef === story.claimRef && runnable(s))
+            .map((s) => s.relPath)
+        : [story.relPath];
+    if (story.issue === null) {
+      issuelessGroupDone.add(story.claimRef);
+    }
     const outcome = runFinalize({
       issue: story.issue,
-      relPath: story.relPath,
+      relPaths,
       productPr: story.productPr,
       claimRef: story.claimRef,
       projectRoot,

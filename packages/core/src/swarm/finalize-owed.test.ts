@@ -2283,7 +2283,7 @@ describe("finalize-owed issue-less pr-only rows (#680 P2)", () => {
     const root = mkdtempSync(join(tmpdir(), "finalize-owed-680-run-"));
     const rel = "xbrief/active/issue-less.xbrief.json";
     const body = writeIssueLessBrief(root, rel, { productPullRequest: 6240 });
-    const seen: { issue: number | null; relPath: string; productPr: number }[] = [];
+    const seen: { issue: number | null; relPaths: readonly string[]; productPr: number }[] = [];
     const result = finalizeOwed({
       projectRoot: root,
       repo: "deftai/directive",
@@ -2291,15 +2291,62 @@ describe("finalize-owed issue-less pr-only rows (#680 P2)", () => {
       runGit: tipGit(new Map([[rel, body]])),
       runGh: forge([]),
       runFinalize: (input) => {
-        seen.push({ issue: input.issue, relPath: input.relPath, productPr: input.productPr });
+        seen.push({ issue: input.issue, relPaths: input.relPaths, productPr: input.productPr });
         return { exitCode: EXIT_OK, stdout: "ok", result: okFinalizeResult(root, 6240) };
       },
     });
-    expect(seen).toEqual([{ issue: null, relPath: rel, productPr: 6240 }]);
+    expect(seen).toEqual([{ issue: null, relPaths: [rel], productPr: 6240 }]);
     expect(result.result.finalized).toEqual([]);
     expect(result.result.finalized_prs).toEqual([6240]);
     expect(result.exitCode).toBe(EXIT_OK);
     expect(result.stdout).toContain("Finalized: pr #6240");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("finalizes issue-less rows that share a product PR in one call under one claim", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-680-group-"));
+    const relA = "xbrief/active/issue-less-a.xbrief.json";
+    const relB = "xbrief/active/issue-less-b.xbrief.json";
+    const bodyA = writeIssueLessBrief(root, relA, { productPullRequest: 6240 });
+    const bodyB = writeIssueLessBrief(root, relB, { productPullRequest: 6240 });
+    const seen: (readonly string[])[] = [];
+    const result = finalizeOwed({
+      projectRoot: root,
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      runGit: tipGit(
+        new Map([
+          [relA, bodyA],
+          [relB, bodyB],
+        ]),
+      ),
+      runGh: forge([]),
+      runFinalize: (input) => {
+        seen.push(input.relPaths);
+        return { exitCode: EXIT_OK, stdout: "ok", result: okFinalizeResult(root, 6240) };
+      },
+    });
+    expect(seen).toEqual([[relA, relB]]);
+    expect(result.result.finalized_prs).toEqual([6240]);
+    expect(result.result.warnings.some((w) => w.includes("in flight"))).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("keeps a stamped issue-less brief outside active/ unverified: it cannot complete", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-680-pending-"));
+    const rel = "xbrief/pending/issue-less.xbrief.json";
+    const body = writeIssueLessBrief(root, rel, { productPullRequest: 6240, status: "pending" });
+    const inventory = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      runGit: tipGit(new Map([[rel, body]])),
+      runGh: forge([]),
+    });
+    expect(inventory.stories.map((s) => [s.issue, s.state, s.blocks])).toEqual([
+      [null, "unverified", false],
+    ]);
+    expect(inventory.stories[0]?.detail).toContain("not in active/");
     rmSync(root, { recursive: true, force: true });
   });
 

@@ -126,6 +126,16 @@ function isDeliveryBriefLandChangeSet(root: string, mergeBaseSha: string): boole
   return isDeliveryBriefLandExcluded(files.map((filename) => ({ status: "modified", filename })));
 }
 
+/** Merge-base resolves, HEAD has commits past it, and they are lifecycle-only (#680 P4). */
+function isLifecycleOnlyAgainstMergeBase(root: string): boolean {
+  const mergeBase = resolveChangelogMergeBase(root);
+  if ("error" in mergeBase) {
+    return false;
+  }
+  const head = gitText(root, ["rev-parse", "HEAD"])?.trim();
+  return head !== mergeBase.sha && isDeliveryBriefLandChangeSet(root, mergeBase.sha);
+}
+
 function compareUnreleasedAgainstMergeBase(
   root: string,
   currentEntries: readonly string[],
@@ -181,6 +191,14 @@ export function runChangelogCheck(
   }
   const entries = extractUnreleasedDashEntries(text);
   if (entries.length === 0) {
+    // #680 P4: after a release `[Unreleased]` is empty; a lifecycle-only change set
+    // still needs no line. Against-merge-base mode only; the heading stays required.
+    if (options.againstMergeBase === true && isLifecycleOnlyAgainstMergeBase(root)) {
+      io.writeOut(
+        "OK: CHANGELOG.md [Unreleased] section has 0 entries; lifecycle-only change set needs none (#680)\n",
+      );
+      return 0;
+    }
     io.writeOut('FAIL: [Unreleased] section has no entries (no lines starting with "- ")\n');
     return 1;
   }

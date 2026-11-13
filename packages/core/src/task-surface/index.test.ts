@@ -312,6 +312,29 @@ describe("task-surface", () => {
     expect(lines.join("")).toContain('no new "- " entries versus merge-base');
   });
 
+  it("against-merge-base passes a lifecycle-only set after a release empties Unreleased (#680 P4)", () => {
+    const released = "## [Unreleased]\n\n## [0.2.0]\n\n- shipped\n";
+    const project = initChangelogGit(released);
+    execFileSync("git", ["checkout", "-q", "-b", "post-release"], { cwd: project });
+    commitNested(project, "xbrief/active/story.xbrief.json", "{}\n");
+    const { lines, io } = captureIo();
+    expect(runChangelogCheck(project, io, { againstMergeBase: true })).toBe(0);
+    expect(lines.join("")).toContain("lifecycle-only change set needs none");
+    // Presence-only mode is unchanged: an empty section still fails.
+    const presence = captureIo();
+    expect(runChangelogCheck(project, presence.io)).toBe(1);
+  });
+
+  it("against-merge-base still fails a product change after a release empties Unreleased (#680 P4)", () => {
+    const released = "## [Unreleased]\n\n## [0.2.0]\n\n- shipped\n";
+    const project = initChangelogGit(released);
+    execFileSync("git", ["checkout", "-q", "-b", "post-release-product"], { cwd: project });
+    commitNested(project, "packages/core/src/x.ts", "export {};\n");
+    const { lines, io } = captureIo();
+    expect(runChangelogCheck(project, io, { againstMergeBase: true })).toBe(1);
+    expect(lines.join("")).toContain("has no entries");
+  });
+
   it("change-init rejects duplicate directory", () => {
     const project = makeProject();
     const { io } = captureIo();
