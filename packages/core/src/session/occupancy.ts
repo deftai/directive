@@ -2736,6 +2736,7 @@ export function releaseOwnedOccupancyOnSessionEnd(
       if (existing.sessionId !== owner) return untouched("foreign-owner", existing.sessionId);
       removeOccupancyFile(root, fence);
       let applyingHostRemoved = false;
+      let cleanupNote = "";
       const applying = readApplyingHost(root);
       if (
         (applying.status === "ok" || applying.status === "stale") &&
@@ -2745,8 +2746,9 @@ export function releaseOwnedOccupancyOnSessionEnd(
           fence();
           containedRemove({ root, target: applyingHostPath(root) });
           applyingHostRemoved = true;
-        } catch {
-          /* best-effort; the lease release already succeeded */
+        } catch (cause) {
+          // Best-effort: the lease release already succeeded; say so in the one diagnostic.
+          cleanupNote = `; own applying-host record not removed: ${String(cause)}`;
         }
       }
       return {
@@ -2755,7 +2757,7 @@ export function releaseOwnedOccupancyOnSessionEnd(
         leaseSessionId: existing.sessionId,
         path,
         applyingHostRemoved,
-        message: `session end: occupancy released session ${owner}`,
+        message: `session end: occupancy released session ${owner}${cleanupNote}`,
       };
     },
     input.lockDeps,

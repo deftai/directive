@@ -1023,7 +1023,10 @@ function hasNestedSessionEnd(
   if (hooks === null) return false;
   const sessionEnd = Array.isArray(hooks.SessionEnd) ? hooks.SessionEnd : [];
   const endCommand = command(bin, host, "session.end");
-  return sessionEnd.some((entry) => nestedCommands(entry).includes(endCommand));
+  // A matcher would limit which end reasons release; the deposit has none (#6274).
+  return sessionEnd.some(
+    (entry) => object(entry)?.matcher === undefined && nestedCommands(entry).includes(endCommand),
+  );
 }
 
 function isCursorToolBeforeEntry(value: unknown, matcher: string, bin: string): boolean {

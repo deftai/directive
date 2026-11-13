@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- feat(occupancy,hooks): a Claude Code SessionEnd hook frees the checkout lease when the ending session owns it, so the next session after `/clear` or a restart starts without a steal. Refs #6274
+- feat(occupancy,hooks): after `/clear` or a restart, the next Claude Code session can claim the checkout without a steal or manual release, because a SessionEnd hook frees the occupancy lease that the ending session owns. Refs #6274
 
 ### Changed
 - chore(dogfood): pin Directive to 0.129.8.

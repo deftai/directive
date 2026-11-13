@@ -131,6 +131,17 @@ describe("writeAgentHookDeposit", () => {
       sessionEndRegistered: false,
     });
 
+    // A restrictive matcher on the managed entry is not reported as registered.
+    writeAgentHookDeposit(root);
+    const narrowed = JSON.parse(readFileSync(path, "utf8")) as {
+      hooks: { SessionEnd: Array<Record<string, unknown>> };
+    };
+    narrowed.hooks.SessionEnd[0] = { ...narrowed.hooks.SessionEnd[0], matcher: "logout" };
+    writeFileSync(path, `${JSON.stringify(narrowed, null, 2)}\n`, "utf8");
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "claude")).toMatchObject({
+      sessionEndRegistered: false,
+    });
+
     // Redeposit restores exactly one managed SessionEnd entry.
     writeAgentHookDeposit(root);
     writeAgentHookDeposit(root);
