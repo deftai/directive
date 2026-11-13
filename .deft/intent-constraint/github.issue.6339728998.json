@@ -1,0 +1,25 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.6339728998",
+  "xbriefRelPath": "xbrief/active/2026-11-12-6204-featceremony-dial-small-change-lane-scale-brief-size-and-pr.xbrief.json",
+  "approvedAt": "2026-11-13T00:54:02Z",
+  "constraints": [
+    {
+      "value": "5",
+      "unit": "small-change-lane-max-production-files",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "500",
+      "unit": "small-change-lane-max-changed-lines",
+      "rejectionScope": "invocation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-11-13T00:54:02Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "80979435ece5e84e4a5a8e0b1d9c702e29905d9aaf4d6a80d2e71c0e9ec83430"
+}
