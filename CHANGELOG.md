@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - fix(scope): strict acceptance axes (deploy, smoke, UAT) match prose only, not file, job or workflow names such as `deploy-dev` or `smoke-test.ts` (#6270, refs #3240).
+- Issue ingest now keeps rejected alternatives, footnotes and record-keeping out of the plan's work items. Rejected alternatives remain available as constraints. Refs #6265.
 
 ### Removed
 
