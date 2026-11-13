@@ -2117,6 +2117,36 @@ describe("quoted-token removal polarity (#6269)", () => {
     expect(walkText(text, "keeps Old  Phrase\n")?.outcome).toBe("failed");
   });
 
+  it("keeps quoted whitespace through stored and derived clauses", () => {
+    const text = 'Removes  "Old  Phrase"\tfrom docs/x.md';
+    const stored = readAcceptanceClauses({
+      clauses: [{ id: 1, text, artifact_path: DOC, ambiguous: false }],
+    });
+    // Whitespace outside the quotes collapses; inside the literal it is kept.
+    expect(stored[0]?.text).toBe('Removes "Old  Phrase" from docs/x.md');
+    const { clauses: derived } = stampDerivedClausesOnAcceptance(
+      {
+        items: [{ title: text, narrative: {} }],
+        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+      },
+      "Title only",
+    );
+    expect(derived[0]?.text).toBe('Removes "Old  Phrase" from docs/x.md');
+    for (const clauses of [
+      stored,
+      bindClausesToDeclaredScope(derived, [DOC], rootWithDoc("")).clauses,
+    ]) {
+      const failRoot = rootWithDoc("still has Old  Phrase\n");
+      expect(
+        walkAcceptanceClauses(clauses, failRoot, { declaredScope: [DOC] }).clauses[0]?.outcome,
+      ).toBe("failed");
+      const passRoot = rootWithDoc("now says Old Phrase\n");
+      expect(
+        walkAcceptanceClauses(clauses, passRoot, { declaredScope: [DOC] }).clauses[0]?.outcome,
+      ).toBe("verified");
+    }
+  });
+
   it("leaves the #5393 defect-description exemption unchanged", () => {
     const root = rootWithDoc("still says possibly undefined\n");
     const report = walkAcceptanceClauses(

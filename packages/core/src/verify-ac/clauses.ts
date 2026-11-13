@@ -160,8 +160,53 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+/**
+ * Quote pairs on one line, left to right (#6269). A quote pairs with the next
+ * quote of the same kind; the other kind inside it is part of the literal,
+ * and a closing quote never opens a new pair. An apostrophe right after a
+ * letter or digit is a possessive or contraction, not an opener (#4103).
+ */
+function quotePairs(text: string): Array<{ readonly open: number; readonly close: number }> {
+  const pairs: Array<{ readonly open: number; readonly close: number }> = [];
+  let cursor = 0;
+  while (cursor < text.length) {
+    let open = -1;
+    for (let i = cursor; i < text.length; i += 1) {
+      const ch = text[i];
+      if (ch === '"' || (ch === "'" && (i === 0 || !/[A-Za-z0-9]/.test(text[i - 1] ?? "")))) {
+        open = i;
+        break;
+      }
+    }
+    if (open < 0) {
+      break;
+    }
+    const close = text.indexOf(text[open] ?? '"', open + 1);
+    const newline = text.indexOf("\n", open + 1);
+    if (close < 0 || (newline >= 0 && newline < close)) {
+      cursor = open + 1;
+      continue;
+    }
+    pairs.push({ open, close });
+    cursor = close + 1;
+  }
+  return pairs;
+}
+
+/**
+ * Collapse whitespace outside quoted literals and trim. Whitespace inside a
+ * quoted literal is kept: the walk matches literals exactly, so collapsing
+ * `"Old  Phrase"` to `"Old Phrase"` would let a removal verify while the
+ * original literal is still in the file (#6269).
+ */
 function normalizeClauseText(text: string): string {
-  return text.replace(/\s+/g, " ").trim();
+  let out = "";
+  let cursor = 0;
+  for (const { open, close } of quotePairs(text)) {
+    out += text.slice(cursor, open).replace(/\s+/g, " ") + text.slice(open, close + 1);
+    cursor = close + 1;
+  }
+  return (out + text.slice(cursor).replace(/\s+/g, " ")).trim();
 }
 
 function looksLikeFilePath(token: string): boolean {
@@ -1237,37 +1282,13 @@ export interface QuotedSpan {
 export function extractQuotedSpans(clause: AcceptanceClause): QuotedSpan[] {
   const text = clause.text;
   const spans: QuotedSpan[] = [];
-  // One left-to-right pass on each line. A quote pairs with the next quote of
-  // the same kind; the other kind inside it is part of the literal, and a
-  // closing quote never opens a new span. Separate regex passes captured
-  // ` with ` from `"X" with "Y"` and nested `'old'` inside `"the 'old' one"`.
-  let cursor = 0;
-  while (cursor < text.length) {
-    let open = -1;
-    for (let i = cursor; i < text.length; i += 1) {
-      const ch = text[i];
-      if (ch === '"' || (ch === "'" && (i === 0 || !/[A-Za-z0-9]/.test(text[i - 1] ?? "")))) {
-        open = i;
-        break;
-      }
-    }
-    if (open < 0) {
-      break;
-    }
-    const quote = text[open] ?? '"';
-    const close = text.indexOf(quote, open + 1);
-    const newline = text.indexOf("\n", open + 1);
-    if (close < 0 || (newline >= 0 && newline < close)) {
-      cursor = open + 1;
-      continue;
-    }
+  for (const { open, close } of quotePairs(text)) {
     const raw = text.slice(open + 1, close);
     const token = raw.trim();
     if (raw.length >= 3 && raw.length <= 80 && token.length > 0) {
       const pathLike = token === clause.artifact_path || looksLikeFilePath(token);
       spans.push({ token, start: open, end: close + 1, pathLike });
     }
-    cursor = close + 1;
   }
   return spans;
 }
