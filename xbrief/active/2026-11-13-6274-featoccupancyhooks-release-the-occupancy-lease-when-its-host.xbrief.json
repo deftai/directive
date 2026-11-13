@@ -8,12 +8,12 @@
     "title": "feat(occupancy,hooks): release the occupancy lease when its host session ends",
     "status": "running",
     "narratives": {
-      "Description": "feat(occupancy,hooks): release the occupancy lease when its host session ends",
+      "Description": "The occupancy lease that a Claude Code session claims at start stays live after that session ends, so the next session on the same checkout is refused until the TTL claim-over, a manual release or an approved steal. On a consumer project this cost several minutes on every /clear or restart. This story adds a Claude Code SessionEnd hook that releases the lease only when the ending session owns it and leaves every other lease and file untouched.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6274",
       "Overview": "\n1. Deposit `SessionEnd` -> `--event session.end` for Claude Code only (a per-host support list beside the compact lists), add `session.end` to `HOOK_EVENTS`, and have `verify:hooks-installed` report it through a `sessionEndSupport` field beside `compactSupport`. relieves: P2\n2. `hook-dispatch.ts` gives `session.end` its own path: launch-root and pin checks stay (a mismatch releases nothing and prints one bounded diagnostic), setup completion is skipped, every failure is non-blocking, and the exit code is always 0.\n3. A new strict owner-release operation in `occupancy.ts`, under the existing lock and lease-root resolver: it removes the lease only when the owner id derived from the payload `session_id` (never ambient identity) equals `existing.sessionId`, live or expired, with no header enforcement. No id, no lease or another owner leaves every file untouched, applying-host included; on its own release it removes applying-host only when that record belongs to the same session. relieves: P1\n4. Fixtures: own live lease released and the next session claims without a steal; own expired lease released; foreign live and foreign expired leases unchanged; no lease leaves a foreign applying-host record unchanged; own lease plus foreign applying-host keeps that record; own lease with failing header enforcement still released and no file edited; duplicate and delayed end are no-ops; pin and launch-root mismatch release nothing; a thrown release exits 0.\n\n\n",
       "Labels": "bug, consumer-example, design-critique:ingest-ready, framework-gap",
       "UserStory": "As an operator who runs /clear or restarts a Claude Code session, I want the ending session to free its own checkout lease, so that the next session starts without a steal or a manual release.",
-      "ImplementationPlan": "Follow the accepted Prefer-A Bound on #6274 (comment 6857137328, synthesis 6857325641, verified-claims 6857325121). Deposit a Claude Code SessionEnd hook (--event session.end) beside the compact lists in packages/core/src/init-deposit/agent-hooks.ts and add session.end to HOOK_EVENTS in packages/core/src/hooks/dispatcher.ts. Give session.end its own path in packages/runtime/src/hook-dispatch.ts (launch-root and pin checks kept, setup completion skipped, exit 0 always). Add a strict owner-release operation in packages/core/src/session/occupancy.ts under the existing lock and lease-root resolver: release only when the payload-derived owner id equals the lease owner, no header enforcement, and no other file touched. Report SessionEnd through a sessionEndSupport field in verify:hooks-installed. Re-deposit .claude/settings.json in this repo. Record a captured /clear payload check in the PR.",
+      "ImplementationPlan": "Follow the accepted Prefer-A Bound on #6274 (comment 6857137328, synthesis 6857325641, verified-claims 6857325121). Deposit a Claude Code SessionEnd hook (--event session.end) beside the compact lists in packages/core/src/init-deposit/agent-hooks.ts and add session.end to HOOK_EVENTS in packages/core/src/hooks/dispatcher.ts. Give session.end its own path in packages/runtime/src/hook-dispatch.ts (launch-root and pin checks kept, setup completion skipped, exit 0 always). Add a strict owner-release operation in packages/core/src/session/occupancy.ts under the existing lock and lease-root resolver: release only when the payload-derived owner id equals the lease owner, no header enforcement, and no other file touched. Report SessionEnd through a sessionEndSupport field in verify:hooks-installed. Re-deposit .claude/settings.json in this repo. Record a captured /clear payload check in the PR. Verify with the new fixture test file packages/core/src/session/occupancy-session-end.test.ts and the existing agent-hooks, verify-env and hook-dispatch tests.",
       "Traces": "#6274 Prefer-A Bound 6857137328; synthesis 6857325641; verified-claims 6857325121; Codex R1 6857115197; pain audit 6857314384; #4667; #3954"
     },
     "items": [
@@ -22,7 +22,7 @@
         "status": "proposed",
         "id": "clause.1",
         "narrative": {
-          "Acceptance": "After a Claude Code deposit, .claude/settings.json registers a SessionEnd hook that runs the hook with --event session.end, no other host config gains a session-end entry, and verify:hooks-installed reports the SessionEnd registration as present for Claude Code."
+          "Acceptance": "When the Claude Code hooks are deposited, .claude/settings.json records a SessionEnd hook that runs the hook with --event session.end, no other host config gains a session-end entry, and verify:hooks-installed returns the SessionEnd registration as present for Claude Code."
         }
       },
       {
@@ -30,7 +30,7 @@
         "status": "proposed",
         "id": "clause.2",
         "narrative": {
-          "Acceptance": "Running the hook entry with --event session.end exits 0 in every case; with a launch-root or pin mismatch it leaves .deft/occupancy.json unchanged and prints one diagnostic line, and it never runs setup completion."
+          "Acceptance": "When the hook entry runs with --event session.end it returns exit code 0 in every case; with a launch-root or pin mismatch it leaves .deft/occupancy.json unchanged and emits one diagnostic line, and it never runs setup completion."
         }
       },
       {
@@ -38,7 +38,7 @@
         "status": "proposed",
         "id": "clause.3",
         "narrative": {
-          "Acceptance": "With a lease owned by the ending session (live or expired), the session-end hook removes the lease and the next session claims without a steal; with a lease owned by another session, no lease, or no session_id in the payload, .deft/occupancy.json and the applying-host record are byte-identical before and after."
+          "Acceptance": "When the ending session owns the lease (live or expired), the session-end hook deletes the lease and the next session claims without a steal; when another session owns the lease, no lease exists, or the payload has no session_id, the hook leaves .deft/occupancy.json and the applying-host record byte-identical."
         }
       },
       {
@@ -46,7 +46,7 @@
         "status": "proposed",
         "id": "clause.4",
         "narrative": {
-          "Acceptance": "The fixture file packages/core/src/session/occupancy-session-end.test.ts passes and covers own live, own expired, foreign live, foreign expired, no lease with a foreign applying-host record, own lease with a foreign applying-host record, own lease with failing header enforcement, duplicate end, delayed end, pin mismatch, launch-root mismatch and a thrown release."
+          "Acceptance": "When the fixture file packages/core/src/session/occupancy-session-end.test.ts runs, it passes and covers own live, own expired, foreign live, foreign expired, no lease with a foreign applying-host record, own lease with a foreign applying-host record, own lease with failing header enforcement, duplicate end, delayed end, pin mismatch, launch-root mismatch and a thrown release."
         }
       }
     ],
@@ -428,13 +428,14 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "d7bbe7fbfb0c1b00c7e77d40782244bc5c690172258631af793f1503be5d978e"
-      }
+      },
+      "kind": "story"
     },
     "acceptance": {
       "commands": [],
       "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "derived_reason": "derived 9 independently testable clauses from the task statement before product edit (#3323)",
       "sentences": [
         "feat(occupancy,hooks): release the occupancy lease when its host session ends",
         "Deposit `SessionEnd` -> `--event session.end` for Claude Code only (a per-host support list beside the compact lists), add `session.end` to `HOOK_EVENTS`, and have `verify:hooks-installed` report it through a `sessionEndSupport` field beside `compactSupport`.",
