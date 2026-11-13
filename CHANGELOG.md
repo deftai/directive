@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.8.
 
 ### Fixed
+- fix(ingest): a lean's Bound-remedy harvest now stops at its Reject, Footnotes and takes trailers, so only remedy limbs become plan items; Reject lines go to `plan.narratives.Constraint`, and the harvest digest uses the same slice. Refs #6265.
 
 ### Removed
 

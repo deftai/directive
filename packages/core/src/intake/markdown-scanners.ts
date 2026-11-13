@@ -219,20 +219,129 @@ function matchBoundRemedyHeadingLine(line: string): { level: number; end: number
   return { level, end: line.length };
 }
 
+/**
+ * Closed trailer set that ends a Bound-remedy slice (#6265). Whole-line, non-list
+ * label with an optional parenthesised qualifier before the colon, e.g.
+ * `Reject:` / `Footnotes (dispose-as-footnote):` / `takes:`. Closed on purpose: an
+ * open colon-label cut would drop real limbs after a `Cases:` intro (#6265 F1).
+ */
+const LEAN_TRAILER_LABEL_RE =
+  /^(reject|not proposed|footnotes?|takes|residual|notes|coordination)(?:\s*\([^()\n]*\))?\s*:$/i;
+/** Trailers whose list lines are must-not text (`plan.narratives.Constraint`). */
+const LEAN_CONSTRAINT_LABEL_RE = /^(reject|not proposed)(?:\s*\([^()\n]*\))?\s*:?$/i;
+const LEAN_TRAILER_HEADING_RE =
+  /^(reject|not proposed|footnotes?|takes|residual|notes|coordination)(?:\s*\([^()\n]*\))?\s*:?$/i;
+
+function stripBoldMarkers(text: string): string {
+  return text.replace(/\*\*|__/g, "").trim();
+}
+
+/** ATX heading text (no hashes), or null when the line is not a heading. */
+function atxHeadingText(line: string): string | null {
+  if (!isAtxHeadingLine(line)) {
+    return null;
+  }
+  return line
+    .trim()
+    .replace(/^#{1,6}/, "")
+    .replace(/\s#+\s*$/, "")
+    .trim();
+}
+
+/** Whole-line non-list trailer label or a heading whose text is a trailer (#6265). */
+function isLeanTrailerLine(line: string): boolean {
+  const trimmed = line.trim();
+  // `**Reject:**` starts with `*` but is a bold label, not a list item.
+  if (trimmed.startsWith("**") || trimmed.startsWith("__")) {
+    return LEAN_TRAILER_LABEL_RE.test(stripBoldMarkers(trimmed));
+  }
+  if (matchListItemLine(line) !== null) {
+    return false;
+  }
+  const heading = atxHeadingText(line);
+  if (heading !== null) {
+    return LEAN_TRAILER_HEADING_RE.test(stripBoldMarkers(heading));
+  }
+  return LEAN_TRAILER_LABEL_RE.test(stripBoldMarkers(line.trim()));
+}
+
+/**
+ * Bound-remedy slice (#6265): from the `## Bound remedy` heading to the next
+ * heading of level 2 or higher, or the first closed trailer label. One slicer for
+ * intake harvest and `hashBoundRemedyBytes`. Null when the heading is absent.
+ */
+export function sliceBoundRemedySection(text: string): string | null {
+  if (text.length === 0) {
+    return null;
+  }
+  const heading = findBoundRemedyHeading(text);
+  if (heading === null) {
+    return null;
+  }
+  const section = sliceAcSection(text, heading);
+  let offset = 0;
+  for (const line of section.split("\n")) {
+    if (offset > 0 && isLeanTrailerLine(line)) {
+      return section.slice(0, offset);
+    }
+    offset += line.length + 1;
+  }
+  return section;
+}
+
+/**
+ * List lines under a `Reject` / `Not proposed` heading or label in a lean (#6265).
+ * The block ends at the next heading, trailer label or whole-line colon label.
+ */
+export function extractLeanConstraintLines(text: string): string[] {
+  if (text.length === 0) {
+    return [];
+  }
+  const lines: string[] = [];
+  const seen = new Set<string>();
+  let inBlock = false;
+  for (const line of stripFencedCodeBlocks(text).split("\n")) {
+    if (isLeanTrailerLine(line)) {
+      inBlock = LEAN_CONSTRAINT_LABEL_RE.test(stripBoldMarkers(atxHeadingText(line) ?? line));
+      continue;
+    }
+    const listItem = matchListItemLine(line);
+    if (listItem === null) {
+      const label = atxHeadingText(line) ?? (isSameShapeColonLabelLine(line) ? line : null);
+      if (label !== null) {
+        inBlock = LEAN_CONSTRAINT_LABEL_RE.test(stripBoldMarkers(label));
+      }
+      continue;
+    }
+    if (!inBlock) {
+      continue;
+    }
+    const title = listItem.trim();
+    if (title.length === 0 || seen.has(title)) {
+      continue;
+    }
+    seen.add(title);
+    lines.push(title);
+  }
+  return lines;
+}
+
 /** Closed Spec-path harvest: Bound-remedy heading plus parseListItems on that slice only. */
 export function extractBoundRemedyHarvest(text: string): {
   readonly items: CheckboxItem[];
   readonly sourceText: string;
+  /** Reject / Not proposed list lines of the same lean (#6265). */
+  readonly constraintLines: string[];
 } {
-  if (text.length === 0) {
-    return { items: [], sourceText: "" };
+  const sourceText = sliceBoundRemedySection(text);
+  if (sourceText === null) {
+    return { items: [], sourceText: "", constraintLines: [] };
   }
-  const heading = findBoundRemedyHeading(text);
-  if (heading === null) {
-    return { items: [], sourceText: "" };
-  }
-  const sourceText = sliceAcSection(text, heading);
-  return { items: parseListItems(sourceText), sourceText };
+  return {
+    items: parseListItems(sourceText),
+    sourceText,
+    constraintLines: extractLeanConstraintLines(text),
+  };
 }
 
 /**
