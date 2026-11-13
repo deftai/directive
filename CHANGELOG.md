@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `task release:e2e`, `release:publish` and `release:rollback` now pass the operator checkout as `--project-root`, like `task release` (#5805). They no longer act on the pinned runtime package. An operator `--project-root` still wins. A content-contract test locks this on all four tasks. Refs #5942.
 - The cited-skip scan (#6071) and sanctioned-skip count baseline (#6072) now share one test-file walk that skips `.deft-scratch` and linked worktrees, so local `task check` matches CI (#6226).
 - test(windows): release Step 5 tests no longer depend on the host. They clear agent-host env markers, skip symlink and POSIX-mode cases on win32, use temp roots for dispatcher lifecycle identity cases, and pass the npm-pack archive to GNU tar by relative path. Closes #6227.
+- With a story active, Write and Edit to files outside the repository (host memory, temp scratch) are no longer refused by the story `file_scope` or project path globs. The positive-allow check (#5656) is skipped only when every target is outside the repository, so scratch writes also work before the brief reaches master. Project `scopes.edits=false` still denies. Refs #6189.
 
 ### Removed
 
