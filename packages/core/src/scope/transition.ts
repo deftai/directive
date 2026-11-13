@@ -40,6 +40,10 @@ import { getDefaultAppStore } from "../one-pr-unit/simulator.js";
 import { enforceLiveOnePrUnitCheck, resolveProductionAppStore } from "../one-pr-unit/store.js";
 import type { OriginRef } from "../one-pr-unit/types.js";
 import type { IssueRef } from "../orphan-active/refs.js";
+import {
+  evaluateSmallChangeLaneGate,
+  type SmallChangeLaneGateOverrides,
+} from "../policy/small-change-lane.js";
 import { resolveSpecGuard } from "../policy/spec-guard.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
@@ -149,6 +153,8 @@ export interface TransitionOptions {
   readonly skipAcceptanceEvidenceGate?: boolean;
   /** Test-only runner for the complete acceptance walk (#4060). Production leaves this unset. */
   readonly acceptanceRunner?: LiteralAcceptanceRunner;
+  /** Test-only small-change lane overrides (#6204). Production leaves this unset. */
+  readonly smallChangeLane?: SmallChangeLaneGateOverrides;
   /** Optional gh runner for the #5126 cancel shipped-origin refuse. */
   readonly runGh?: RunGhFn;
   /** Offline / fixture: skip live gh for the #5126 cancel refuse. */
@@ -704,6 +710,7 @@ export function runTransition(
 
   // #3041: fail closed before mutating a code-bearing complete without delivery evidence.
   let reuseValidatedDeliveryAncestry = false;
+  let laneDeliveredCommit: string | null = null;
   if (act === "complete") {
     // #3583: auto-discover delivery evidence before the validate-only gate.
     const discovered = discoverDeliveryEvidenceForComplete({
@@ -744,6 +751,20 @@ export function runTransition(
     });
     if (!gate.ok) {
       return { ok: false, message: gate.message };
+    }
+    // #6204: recheck a small-change lane brief. With a delivered merge commit the
+    // lane measures that commit against its first parent; otherwise the worktree
+    // against the lane-admit base. Delivery identity above is unchanged.
+    laneDeliveredCommit =
+      options.smallChangeLane?.deliveredCommit ?? discovered.evidence?.mergeCommit ?? null;
+    const lane = evaluateSmallChangeLaneGate(planObj, {
+      ...options.smallChangeLane,
+      deliveredCommit: laneDeliveredCommit,
+      projectRoot,
+      gate: "scope:complete",
+    });
+    if (!lane.ok) {
+      return { ok: false, message: lane.message };
     }
     if (gate.provenance !== null) {
       const sessionId = resolveCompletionSessionId(projectRoot);
@@ -822,6 +843,7 @@ export function runTransition(
       projectRoot,
       runner: options.acceptanceRunner,
       xbriefPath: resolvedPath,
+      smallChangeLane: { ...options.smallChangeLane, deliveredCommit: laneDeliveredCommit },
     });
     if (!acWalk.ok) {
       return {

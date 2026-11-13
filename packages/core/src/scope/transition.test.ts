@@ -2734,3 +2734,145 @@ describe("scope:complete merge-time identity and issue-less lifecycle (#5710)", 
     expect(existsSync(join(root, "xbrief", "active", name))).toBe(true);
   });
 });
+
+describe("scope:complete admits and rechecks the small-change lane thin shape (#6204)", () => {
+  let root = "";
+  afterEach(() => {
+    if (root.length > 0) rmSync(root, { recursive: true, force: true });
+    root = "";
+  });
+
+  const laneGitCalls: string[] = [];
+  function laneGit(lines: number) {
+    return (args: readonly string[]) => {
+      const joined = args.join(" ");
+      laneGitCalls.push(joined);
+      if (joined.startsWith("rev-parse --show-toplevel")) return { status: 0, stdout: `${root}\n` };
+      if (joined.startsWith("rev-parse --verify")) return { status: 0, stdout: "parent0\n" };
+      if (joined.startsWith("diff --numstat")) {
+        return { status: 0, stdout: `${lines}\t0\tpackages/core/src/x.ts\0` };
+      }
+      if (joined.startsWith("diff -U0")) {
+        return {
+          status: 0,
+          stdout: "diff --git a/packages/core/src/x.ts b/packages/core/src/x.ts\n+const x = 1;\n",
+        };
+      }
+      return { status: 1, stdout: "" };
+    };
+  }
+
+  function writeThin(): string {
+    root = makeRepo();
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        plan: { title: "P", status: "running", policy: { deliveryBranch: "master", wipCap: 20 } },
+      }),
+      "utf8",
+    );
+    const path = join(root, "xbrief", "active", "2026-11-12-thin.xbrief.json");
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "fix x",
+        status: "running",
+        items: [],
+        references: [
+          { uri: "https://github.com/deftai/directive/issues/6204", type: "x-xbrief/github-issue" },
+        ],
+        acceptance: {
+          commands: [{ command: "npx vitest run packages/core/src/x.test.ts" }],
+          none_stated: false,
+          source_rung: "stated",
+        },
+        metadata: {
+          swarm: { file_scope: ["packages/core/src/x.ts"] },
+          "x-directive/smallChangeLane": {
+            schema: "deft.small-change-lane.v1",
+            state: "admitted",
+            admitBase: "admitbase0",
+          },
+        },
+      },
+    });
+    return path;
+  }
+
+  function completeOpts(lines: number) {
+    return {
+      runGit: ((_cwd: string, args: readonly string[]) => {
+        const joined = args.join(" ");
+        if (joined.includes("merge-base") && joined.includes("--is-ancestor")) {
+          return { code: 0, stdout: "", stderr: "" };
+        }
+        if (joined.includes("rev-parse") && joined.includes("origin/")) {
+          return { code: 0, stdout: "abcdef1", stderr: "" };
+        }
+        if (joined.includes("symbolic-ref"))
+          return { code: 0, stdout: "origin/master", stderr: "" };
+        return { code: 0, stdout: "ok", stderr: "" };
+      }) as GitRunner,
+      fetchPrPayload: (n: number, repo: string) =>
+        n === 6250 && repo === "deftai/directive"
+          ? {
+              merged_at: "2026-11-12T11:00:00Z",
+              merge_commit_sha: "abcdef1",
+              base: { ref: "master" },
+              head: { sha: "head6250" },
+              body: "Closes #6204",
+            }
+          : null,
+      fetchClosingIssueIds: (n: number, repo: string) =>
+        n === 6250 && repo === "deftai/directive"
+          ? [{ repository: "deftai/directive", issueNumber: 6204 }]
+          : null,
+      mergeTimeForge: staticMergeTimeForge(),
+      deliveryEvidence: {
+        repository: "deftai/directive",
+        prNumber: 6250,
+        prBase: "master",
+        mergeCommit: "abcdef1",
+        mergedAt: "2026-11-12T11:00:00Z",
+        deliveryBranch: "master",
+      },
+      assumeEvidenceValidated: true,
+      acceptanceRunner: () => ({ exitCode: 0, stdout: "ok", stderr: "" }),
+      smallChangeLane: {
+        depth: "rapid" as const,
+        bound: { maxProductionFiles: 1, maxChangedLines: 5 },
+        runGit: laneGit(lines),
+      },
+    };
+  }
+
+  it("completes a thin brief without narratives, items or clauses, measuring the delivered commit", () => {
+    const path = writeThin();
+    laneGitCalls.length = 0;
+    const result = runTransition(
+      "complete",
+      path,
+      new Date("2026-11-12T12:00:00Z"),
+      completeOpts(3),
+    );
+    expect(result.ok, result.message).toBe(true);
+    expect(existsSync(join(root, "xbrief", "completed", "2026-11-12-thin.xbrief.json"))).toBe(true);
+    expect(laneGitCalls.some((c) => c.includes("abcdef1^1"))).toBe(true);
+  });
+
+  it("refuses past the bound on every retry and leaves the brief in active/", () => {
+    const path = writeThin();
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const result = runTransition(
+        "complete",
+        path,
+        new Date("2026-11-12T12:00:00Z"),
+        completeOpts(50),
+      );
+      expect(result.ok).toBe(false);
+      expect(result.message).toContain("scope:complete refused (#6204)");
+      expect(result.message).toContain("escalate-to-full-shape");
+    }
+    expect(existsSync(path)).toBe(true);
+  });
+});

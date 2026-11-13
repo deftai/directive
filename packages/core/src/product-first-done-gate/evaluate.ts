@@ -34,6 +34,10 @@ import {
   stripLiteralAcceptanceAdvisory,
 } from "../literal-acceptance/index.js";
 import {
+  evaluateSmallChangeLaneGate,
+  type SmallChangeLaneGateOverrides,
+} from "../policy/small-change-lane.js";
+import {
   type AcceptanceRunSummaryOutcome,
   ENV_RUN_SUMMARY_PATH,
   RunSummaryEmitter,
@@ -217,6 +221,11 @@ export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOption
    * xBRIEF; tests may inject. Default: in-memory plan only.
    */
   readonly persistRequirementSourcesAutofix?: (plan: Record<string, unknown>) => void;
+  /**
+   * Small-change lane recheck (#6204). scope:complete passes the delivered
+   * commit so the walk measures the delivered diff. Tests inject depth / bound.
+   */
+  readonly smallChangeLane?: SmallChangeLaneGateOverrides;
   /** Internal: stamped by evaluateVerifyAcFromPlan after the #3920 re-hash. */
   readonly requirementSourcesTelemetry?: {
     readonly sourcesRechecked: number;
@@ -652,6 +661,32 @@ export function evaluateVerifyAcFromPlan(
   options: EvaluateVerifyAcOptions = {},
 ): VerifyAcResult {
   const projectRootEarly = resolve(options.projectRoot ?? process.cwd());
+  // #6204: a small-change lane brief is rechecked against its bound first.
+  // No lane marker → no-op. Refusal names the one lane-exit remediation.
+  const lane = evaluateSmallChangeLaneGate(planInput, {
+    ...options.smallChangeLane,
+    projectRoot: projectRootEarly,
+    gate: "verify:ac",
+  });
+  if (!lane.ok) {
+    const laneAcceptance = readPlanAcceptance(planInput);
+    return applyOracle(
+      {
+        ok: false,
+        code: 1,
+        message: options.quiet === true ? "" : lane.message,
+        commands: [],
+        runs: [],
+        sourceRung: laneAcceptance.source_rung,
+        noneStated: laneAcceptance.none_stated,
+        acceptance: laneAcceptance,
+        resolution: "fail",
+        resolvedCommandCount: 0,
+      },
+      options,
+      planInput,
+    );
+  }
   // Completion / path walks pass xbriefPath — default a persist callback so
   // autofix restamps reach disk and mutate the caller's plan (#3920 Greptile).
   let persistAutofix = options.persistRequirementSourcesAutofix;
