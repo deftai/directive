@@ -387,27 +387,63 @@ export function inferRequiredStrictAxes(item: Record<string, unknown>): StrictAc
       if (typeof narrative[key] === "string") parts.push(narrative[key] as string);
     }
   }
-  const text = parts.join("\n").toLowerCase();
+  const raw = parts.join("\n").toLowerCase();
+  // deploy / smoke / UAT match prose only (#6270); observed_behavior keeps `raw`.
+  const text = splitAxisAlternations(raw);
   const found: StrictAcceptanceAxis[] = [];
   // Order: longer / more specific phrases first so "observed behavior" wins over generic.
   if (
-    /\bobserved[_\s-]?behavior\b/.test(text) ||
-    /\bobserved behaviour\b/.test(text) ||
-    /\brunning behaviour\b/.test(text) ||
-    /\brunning behavior\b/.test(text)
+    /\bobserved[_\s-]?behavior\b/.test(raw) ||
+    /\bobserved behaviour\b/.test(raw) ||
+    /\brunning behaviour\b/.test(raw) ||
+    /\brunning behavior\b/.test(raw)
   ) {
     found.push("observed_behavior");
   }
-  if (/\buat\b/.test(text) || /\buser acceptance\b/.test(text)) {
+  if (PROSE_UAT.test(text) || PROSE_USER_ACCEPTANCE.test(text)) {
     found.push("uat");
   }
-  if (/\bsmoke\b/.test(text)) {
+  if (PROSE_SMOKE.test(text)) {
     found.push("smoke");
   }
-  if (/\bdeploy(?:ment|ed|s)?\b/.test(text)) {
+  if (PROSE_DEPLOY.test(text)) {
     found.push("deploy");
   }
   return found;
+}
+
+/**
+ * Prose-only boundaries for the deploy / smoke / UAT axis words (#6270).
+ * `\b` treats `-`, `.`, `_` and `/` as boundaries, so names such as
+ * `deploy-dev`, `deploy.yml`, `deploy_prod` and `smoke-test.ts` matched.
+ * Left: no word char, `.`, `/` or `-` before the word. Right: no word char or
+ * `-` after it, and no `.` / `/` that joins another word char (`deploy.yml`),
+ * so sentence-final "after deployment." still matches.
+ */
+const PROSE_LEFT = String.raw`(?<![\w./-])`;
+const PROSE_RIGHT = String.raw`(?![\w-]|[./]\w)`;
+function proseWord(body: string): RegExp {
+  return new RegExp(`${PROSE_LEFT}${body}${PROSE_RIGHT}`);
+}
+const PROSE_UAT = proseWord("uat");
+const PROSE_USER_ACCEPTANCE = proseWord(String.raw`user\s+acceptance`);
+const PROSE_SMOKE = proseWord("smoke");
+const PROSE_DEPLOY = proseWord("deploy(?:ment|ed|s)?");
+
+/** One axis word, for slash alternations such as "smoke/UAT" (#6270). */
+const AXIS_WORD = "(?:deploy(?:ment|ed|s)?|smoke|uat)";
+const AXIS_ALTERNATION = new RegExp(
+  `${PROSE_LEFT}${AXIS_WORD}(?:/${AXIS_WORD})+${PROSE_RIGHT}`,
+  "g",
+);
+
+/**
+ * Split a slash list made only of axis words ("smoke/uat", "deploy/smoke")
+ * into prose, so each word keeps its axis. Paths such as `scripts/smoke.sh`
+ * or `.github/workflows/deploy` do not match and stay names (#6270).
+ */
+function splitAxisAlternations(text: string): string {
+  return text.replace(AXIS_ALTERNATION, (run) => run.replaceAll("/", " / "));
 }
 
 /**
