@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #680",
-    "updated": "2026-11-13T01:12:22Z"
+    "updated": "2026-11-13T05:15:34Z"
   },
   "plan": {
     "title": "Reduce overhead for vBRIEF phase lifecycle completion",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Lifecycle completion after a product PR merges costs extra PRs, operator hand-offs and fragile batch runs. This story lands the accepted Prefer-A Recut-3 Bound: completion admission reuses the #5710 merge-time bases, issue-less briefs join the same owed discovery, one refused story no longer fails a batched finalize, lifecycle-only PRs need no new CHANGELOG line, and lifecycle verbs write their own CHANGELOG and spec-drift-ledger output.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/680",
@@ -20,66 +20,398 @@
     "items": [
       {
         "title": "relieves: P1 — Drop Prefer-A's keyword-only close refusal. Admission for issue-tied completion reuses `evaluateDeliveryGate` / `verifyStoryPrMergeIdentity` merge-time bases already shipped by #5710 (a sole `deft-story` mark, b closing keyword, c Connected link as of `merged_at`). Work with no merge-time basis still refuses (`proveIssueAnchoredAssociation`). Prefer-A MUST NOT add a second admission refuse that contradicts those writers.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Completion admission for an issue-tied brief uses the evaluateDeliveryGate / verifyStoryPrMergeIdentity merge-time bases (sole deft-story mark, closing keyword, Connected link at merged_at); work with no merge-time basis still refuses, and no separate keyword-only refuse is added."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P2 — Issue-less briefs are in scope for the same trigger and batched land when PR-only identity proves (`identityBasis: pr-only` / stamped `productPullRequest` + canonical remote). Remint `discoverFinalizeOwed` to admit tip nonterminal briefs with stamped `productPullRequest`, no github-issue origin, and pr-only-proofable identity (same discoverer; no parallel PR-only finalizer). Admitted record shape carries product PR without a forge issue (optional/null issue or explicit issue-less discriminant — not a fake `#0`). Skip origin-issue verify and origin-close for those rows; issue-tied path unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "discoverFinalizeOwed admits a nonterminal brief with a stamped productPullRequest, no github-issue origin and pr-only-proofable identity; its owed record carries the product PR with no fake issue number, and origin-issue verify and origin-close are skipped for it."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P3 — One refused story MUST NOT fail the whole batched finalize. In `finalize-cohort.ts`, a refused `deft-story` mark records on a non-fatal pending/warnings channel (inventory: existing `pending` / `EXIT_INCOMPLETE` pattern) and leaves that story pending; stamp/sweep/commit/land continue for other admitted stories. Refused-mark outcomes MUST NOT alone satisfy fatal `errors.length > 0` for either whole-batch `skipSweep` conjunct, for commit/land gating, or for cohort `ok:false` / `EXIT_GATE_FAILED`. Preserve the #6212 invariant that refused marks never receive single-PR `defaultEvidence` / stamp. Real config/delivery errors stay fail-closed. Control-flow carve in the same writer; no second discoverer.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "In a batched swarm:finalize-cohort, a refused deft-story mark leaves only that story pending on the non-fatal channel while the other admitted stories stamp, sweep, commit and land; refused marks never receive a stamp, and real config or delivery errors still fail closed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P4 — `verify:changelog-unreleased` (against merge-base) exempts a change set that is delivery-brief-land-shaped after the co-extension below. Oracle: feed `git diff --name-only <merge-base>...HEAD` (or the existing delivery-evidence PR changed-files seam) into the extended `isDeliveryBriefLandExcluded`; on true, skip the against-merge-base **new-entry** compare only; product/code-bearing diffs keep today's requirement; empty change-set stays non-exempt (`files.length > 0` fail-closed). Gate change lands through this arc and review (#3156).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "verify:changelog-unreleased skips the new-entry compare for a non-empty delivery-brief-land change set (from git diff --name-only merge-base...HEAD) and keeps it for product or code-bearing change sets and for an empty change set."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P5 — `scope:activate`, `scope:complete`, and `swarm:finalize-cohort` write any still-required CHANGELOG Unreleased line and the completion-time spec-drift-ledger update as verb output (same hook authority as brief moves). Agents MUST NOT free-form those paths on lifecycle PRs. Membership admits exact `xbrief/.audit/spec-drift-ledger.json` only under delivery-brief-land / completion-move shape (#6231 class; not #6235).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "scope:activate, scope:complete and swarm:finalize-cohort write any still-required CHANGELOG Unreleased line and the spec-drift-ledger update as verb output, and scope-provenance membership admits exactly xbrief/.audit/spec-drift-ledger.json only under the completion-move shape."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Co-extension (F1): when ledger is added to the delivery-brief-land family, `isDeliveryBriefLandPath` / `isDeliveryBriefLandExcluded` and `isLifecycleShapedPr` MUST stay co-extensive (shared helper, or an explicit twin update in `finalize-cohort.ts` in the same remint). Silent divergence is a reject.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "isDeliveryBriefLandPath / isDeliveryBriefLandExcluded and isLifecycleShapedPr share one helper, so adding the ledger to the delivery-brief-land family changes both."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Held from Recut-2: post-merge trigger is a second caller of owed-discovery; publication idempotent; fixed FINALIZE_OWED_LABEL-shaped coalesce lane; shared ownership across trigger / finalize-owed / session-start; direct land only under positively typed opt-in AND direct-write policy AND forge permission; pre-land completed-write-guard with baseRef = pre-push remote tip.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "The Recut-2 held limbs still hold: the post-merge trigger is a second caller of owed discovery, publication is idempotent, the coalesce lane is the fixed finalize-owed label, ownership is shared with finalize-owed and session-start, direct land needs typed opt-in plus direct-write policy plus forge permission, and the completed-write guard runs pre-land against the pre-push remote tip."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "operator-deferred: measured ceremony dial / activation collapse remain on #6204 (and any residual of #6203 not already shipped)",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "This story changes no ceremony-dial or activation-collapse behaviour; that stays with #6204."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "clause.21",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.22",
+        "title": "clause.22",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.23",
+        "title": "clause.23",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.24",
+        "title": "clause.24",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.25",
+        "title": "clause.25",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.26",
+        "title": "clause.26",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.27",
+        "title": "clause.27",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.28",
+        "title": "clause.28",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.29",
+        "title": "clause.29",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.30",
+        "title": "clause.30",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.31",
+        "title": "clause.31",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+          "recorded_at": "2026-11-13T05:03:24Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -136,7 +468,8 @@
         "depends_on": [],
         "model_tier": "standard",
         "verify_commands": [
-          "npx vitest run packages/core/src/swarm/finalize-cohort.test.ts packages/core/src/swarm/finalize-owed.test.ts packages/core/src/scope/delivery-evidence.test.ts packages/core/src/lifecycle/completed-write-guard.test.ts packages/core/src/session/session-start.test.ts packages/core/src/platform/changelog-cli.test.ts packages/core/src/verify-source/spec-drift.test.ts packages/core/src/scope/specification-sync.test.ts packages/core/src/scope-provenance/base-fence.test.ts packages/core/src/scope/transition.test.ts packages/core/src/task-surface/index.test.ts"
+          "npx vitest run packages/core/src/swarm/finalize-cohort.test.ts packages/core/src/swarm/finalize-owed.test.ts packages/core/src/scope/delivery-evidence.test.ts packages/core/src/lifecycle/completed-write-guard.test.ts packages/core/src/session/session-start.test.ts packages/core/src/platform/changelog-cli.test.ts",
+          "npx vitest run packages/core/src/verify-source/spec-drift.test.ts packages/core/src/scope/specification-sync.test.ts packages/core/src/scope-provenance/base-fence.test.ts packages/core/src/scope/transition.test.ts packages/core/src/task-surface/index.test.ts"
         ],
         "file_scope": [
           "packages/core/src/swarm/finalize-cohort.ts",
@@ -1188,7 +1521,34 @@
         "algorithm": "sha256",
         "sha256": "3d5e5af5722dfac68625adb4830de2ae34ae6ff0b27462553cfb7df264f011be"
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 6249,
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "c2558d345b7fb64161b1ad0eede10dee2ac3c6fe",
+        "prNumber": 6249,
+        "prBase": "master",
+        "mergeCommit": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d6d30ad073f68a8d1d258804043981a53b2f3aac",
+        "verifiedAt": "2026-11-13T05:15:34Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "completedAt": "2026-11-13T05:15:34Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-13T05:15:34Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -1475,6 +1835,6 @@
       ]
     },
     "id": "github.issue.4328814427",
-    "updated": "2026-11-13T01:12:22Z"
+    "updated": "2026-11-13T05:15:34Z"
   }
 }
