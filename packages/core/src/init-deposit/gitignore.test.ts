@@ -940,3 +940,116 @@ describe("reconstituteLinkedWorktreeDeposit (#4443)", () => {
     expect(readFileSync(join(dest, "VERSION"), "utf8")).toBe(prior);
   });
 });
+
+describe("private pre-PR store + plan-sequence sidecars in the consumer baseline (#6271)", () => {
+  const BASELINE_6271_LINES = [
+    ".deft/pre-pr-execution-private/",
+    ".deft/plan-sequence.json.generation",
+    ".deft/plan-sequence.json.lock",
+    ".deft/plan-sequence.json.lock.claim-*",
+  ] as const;
+  const HMAC_SECRET_REL = ".deft/pre-pr-execution-private/hmac-secret";
+  const SIDECAR_PATHS = [
+    HMAC_SECRET_REL,
+    ".deft/plan-sequence.json.generation",
+    ".deft/plan-sequence.json.lock",
+    ".deft/plan-sequence.json.lock.claim-owner-1",
+  ] as const;
+  const created: string[] = [];
+
+  afterEach(() => {
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function git(root: string, args: readonly string[]): string {
+    return execFileSync("git", [...args], { cwd: root, encoding: "utf8" });
+  }
+
+  /** Git consumer whose .gitignore holds only the baseline (no blanket `.deft/*`). */
+  function refreshedConsumer(prefix: string): string {
+    const root = mkdtempSync(join(tmpdir(), prefix));
+    created.push(root);
+    git(root, ["init", "-q"]);
+    git(root, ["config", "user.email", "t@t.dev"]);
+    git(root, ["config", "user.name", "t"]);
+    ensureInitGitignoreLines(root, { printf: () => {} }, { skipLocalRuntimeUntrack: true });
+    mkdirSync(join(root, ".deft", "pre-pr-execution-private"), { recursive: true });
+    for (const rel of SIDECAR_PATHS) {
+      writeFileSync(join(root, rel), "local\n", "utf8");
+    }
+    writeFileSync(join(root, ".deft", "plan-sequence.json"), "{}\n", "utf8");
+    return root;
+  }
+
+  it("CANONICAL_GITIGNORE_BASELINE contains the four entries and no blanket .deft/", () => {
+    for (const line of BASELINE_6271_LINES) {
+      expect(CANONICAL_GITIGNORE_BASELINE).toContain(line);
+    }
+    expect(CANONICAL_GITIGNORE_BASELINE).not.toContain(".deft/");
+    expect(CANONICAL_GITIGNORE_BASELINE).not.toContain(".deft/*");
+    expect(CANONICAL_GITIGNORE_BASELINE).not.toContain(".deft/plan-sequence.json");
+  });
+
+  it("install writes the four entries", () => {
+    const root = mkdtempSync(join(tmpdir(), "gitignore-6271-install-"));
+    created.push(root);
+    ensureInitGitignoreLines(root, { printf: () => {} }, { skipLocalRuntimeUntrack: true });
+    const lines = readFileSync(join(root, ".gitignore"), "utf8").split("\n");
+    for (const line of BASELINE_6271_LINES) {
+      expect(lines).toContain(line);
+    }
+  });
+
+  it("refresh heals an existing install that lacks the four entries", () => {
+    const root = mkdtempSync(join(tmpdir(), "gitignore-6271-heal-"));
+    created.push(root);
+    const prior = CANONICAL_GITIGNORE_BASELINE.filter(
+      (line) => !(BASELINE_6271_LINES as readonly string[]).includes(line),
+    );
+    writeFileSync(join(root, ".gitignore"), `${prior.join("\n")}\n`, "utf8");
+
+    const first = ensureInitGitignoreLines(
+      root,
+      { printf: () => {} },
+      { skipLocalRuntimeUntrack: true },
+    );
+    expect(first.changed).toBe(true);
+    const healed = readFileSync(join(root, ".gitignore"), "utf8");
+    for (const line of BASELINE_6271_LINES) {
+      expect(healed.split("\n").filter((l) => l === line)).toHaveLength(1);
+    }
+
+    ensureInitGitignoreLines(root, { printf: () => {} }, { skipLocalRuntimeUntrack: true });
+    expect(readFileSync(join(root, ".gitignore"), "utf8")).toBe(healed);
+  });
+
+  it("git check-ignore reports all four paths ignored on a refreshed consumer", () => {
+    const root = refreshedConsumer("gitignore-6271-check-ignore-");
+    for (const rel of SIDECAR_PATHS) {
+      expect(git(root, ["check-ignore", "-v", "--", rel]).length).toBeGreaterThan(0);
+    }
+    // The plan sequence itself stays trackable.
+    expect(() =>
+      execFileSync("git", ["check-ignore", "-q", "--", ".deft/plan-sequence.json"], {
+        cwd: root,
+        stdio: "ignore",
+      }),
+    ).toThrow();
+  });
+
+  it("git status does not list the files and git add -A does not stage the secret", () => {
+    const root = refreshedConsumer("gitignore-6271-status-");
+    const status = git(root, ["status", "--porcelain", "--untracked-files=all"]);
+    for (const rel of SIDECAR_PATHS) {
+      expect(status).not.toContain(rel);
+    }
+    git(root, ["add", "-A"]);
+    const staged = git(root, ["diff", "--cached", "--name-only"]);
+    expect(staged).not.toContain(HMAC_SECRET_REL);
+    expect(staged).not.toContain("plan-sequence.json.lock");
+    expect(staged).not.toContain("plan-sequence.json.generation");
+    expect(staged).toContain(".deft/plan-sequence.json");
+  });
+});

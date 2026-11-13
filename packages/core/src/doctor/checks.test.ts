@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, sep } from "node:path";
@@ -19,6 +20,7 @@ import {
   checkLegacyLayout,
   checkManifestAgreement,
   checkManifestVersionReportable,
+  checkPrePrSecretTracked,
   checkQuickStartResolves,
   checkSkillPathsResolve,
   checkStaleXbriefSchemaDeposit,
@@ -29,6 +31,8 @@ import {
   danglingNodeModulesRecoveryCommand,
   deriveExitCode,
   isDoctorAdvisoryFail,
+  PRE_PR_HMAC_SECRET_REL,
+  PRE_PR_SECRET_TRACKED_CHECK,
   prefixCanonicalVendoredSignpostWarn,
   runChecks,
   runChecksImpl,
@@ -1531,6 +1535,81 @@ describe("checkDanglingNodeModulesLinks (#3749)", () => {
       const dangling = result.checks.find((c) => c.name === DANGLING_NODE_MODULES_LINKS_CHECK);
       expect(dangling?.status).toBe("fail");
       expect(result.exitCode).toBe(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("checkPrePrSecretTracked (#6271)", () => {
+  it("passes when the secret is not tracked", () => {
+    const result = checkPrePrSecretTracked("/proj", { isPathTracked: () => false });
+    expect(result.name).toBe(PRE_PR_SECRET_TRACKED_CHECK);
+    expect(result.status).toBe("pass");
+  });
+
+  it("skips when the git index is not readable", () => {
+    const result = checkPrePrSecretTracked("/proj", { isPathTracked: () => null });
+    expect(result.status).toBe("skip");
+  });
+
+  it("warns, names untrack and rotate, and probes only the secret path", () => {
+    const probed: string[] = [];
+    const result = checkPrePrSecretTracked("/proj", {
+      isPathTracked: (_root, rel) => {
+        probed.push(rel);
+        return true;
+      },
+    });
+    expect(probed).toEqual([PRE_PR_HMAC_SECRET_REL]);
+    expect(PRE_PR_HMAC_SECRET_REL).toBe(".deft/pre-pr-execution-private/hmac-secret");
+    expect(result.status).toBe("fail");
+    expect(result.data?.advisory).toBe(true);
+    expect(isDoctorAdvisoryFail(result.name, result.data)).toBe(true);
+    expect(deriveExitCode([result], [])).toBe(0);
+    expect(result.detail).toContain("forge pre-PR execution records");
+    expect(result.detail).toContain(`git rm --cached -- ${PRE_PR_HMAC_SECRET_REL}`);
+    expect(result.detail).toContain("rotate");
+    expect(result.detail).toContain("Doctor does not untrack it");
+    expect(result.data?.untrack_command).toBe(`git rm --cached -- ${PRE_PR_HMAC_SECRET_REL}`);
+  });
+
+  it("warns on a real tracked secret and leaves the git index unchanged", () => {
+    const root = mkdtempSync(join(tmpdir(), "doctor-6271-tracked-"));
+    try {
+      const git = (args: readonly string[]): string =>
+        execFileSync("git", [...args], { cwd: root, encoding: "utf8" });
+      git(["init", "-q"]);
+      git(["config", "user.email", "t@t.dev"]);
+      git(["config", "user.name", "t"]);
+      mkdirSync(join(root, ".deft", "pre-pr-execution-private"), { recursive: true });
+      writeFileSync(join(root, PRE_PR_HMAC_SECRET_REL), "00ff\n", "utf8");
+      git(["add", "-f", "--", PRE_PR_HMAC_SECRET_REL]);
+      git(["-c", "commit.gpgsign=false", "commit", "-qm", "leak"]);
+      const before = git(["ls-files", "--stage"]);
+
+      const result = checkPrePrSecretTracked(root);
+
+      expect(result.status).toBe("fail");
+      expect(result.detail).toContain("git rm --cached");
+      expect(git(["ls-files", "--stage"])).toBe(before);
+      expect(git(["ls-files", "--", PRE_PR_HMAC_SECRET_REL]).trim()).toBe(PRE_PR_HMAC_SECRET_REL);
+      expect(git(["status", "--porcelain"]).trim()).toBe("");
+
+      const doctor = runChecksImpl(root, { isDir: () => true });
+      const check = doctor.checks.find((c) => c.name === PRE_PR_SECRET_TRACKED_CHECK);
+      expect(check?.status).toBe("fail");
+      expect(git(["ls-files", "--stage"])).toBe(before);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("passes on a real repo where the secret is untracked", () => {
+    const root = mkdtempSync(join(tmpdir(), "doctor-6271-clean-"));
+    try {
+      execFileSync("git", ["init", "-q"], { cwd: root });
+      expect(checkPrePrSecretTracked(root).status).toBe("pass");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

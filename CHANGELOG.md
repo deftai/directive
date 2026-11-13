@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.8.
 
 ### Fixed
+- fix(init,security): the consumer `.gitignore` baseline now ignores the private pre-PR store (`.deft/pre-pr-execution-private/`) and the plan-sequence generation, lock and lock-claim files; refresh heals existing installs, and doctor warns (never untracks) when the pre-PR HMAC secret is already tracked (#6271).
 
 ### Removed
 
