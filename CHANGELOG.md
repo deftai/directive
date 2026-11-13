@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.129.8] - 2026-11-13
+
+> Lifecycle completion needs fewer hand-offs, a small-change lane admits thin command-backed briefs, and the write fence no longer blocks writes outside the repository or unpinned cohort workers.
+
+### Added
 - Small-change lane under the rapid ceremony dial: a thin command-backed brief that the lifecycle gates admit while an operator-set size bound holds, and a lane exit to the full shape once the bound is crossed. Refs #6204.
 
 ### Changed
@@ -8004,7 +8016,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.129.7...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.129.8...HEAD
+[0.129.8]: https://github.com/deftai/directive/compare/v0.129.7...v0.129.8
 [0.129.7]: https://github.com/deftai/directive/compare/v0.129.6...v0.129.7
 [0.129.6]: https://github.com/deftai/directive/compare/v0.129.5...v0.129.6
 [0.129.5]: https://github.com/deftai/directive/compare/v0.129.4...v0.129.5

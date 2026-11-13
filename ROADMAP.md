@@ -5,13 +5,6 @@
 
 # Roadmap
 
-## Active
-
-- **#5710** -- bug(scope): scope:complete has no path for a delivered PR-only brief, and the identity join accepts a post-merge closing link -- `[running]`
-- **#5882** -- BLOCKER: [framework-gap] swarm:finalize-cohort lifecycle checkout skips package install, so Taskfile-based acceptance commands fail in scope:complete -- `[running]`
-- **#6203** -- feat(scope): admit a brief and its implementation in one PR under a forge-attested human approval -- `[running]`
-- **#6212** -- bug(swarm): finalize-cohort refuses a deft-story mark until productPullRequest is stamped, but nothing can stamp it first -- `[running]`
-
 ## Proposed
 
 _Scopes not yet promoted to pending. Orientation only — not a substitute for `task triage:queue`._
@@ -45,8 +38,20 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1917 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1929 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#6189** -- Story write fence refuses Write/Edit to files outside the repository (host memory, temp scratch) -- `[completed]`
+- **#680** -- Reduce overhead for vBRIEF phase lifecycle completion -- `[completed]`
+- **#6226** -- bug(check): the cited-skip scan walks git-ignored nested worktrees, so release Step 5 fails in a maintainer checkout that CI passes -- `[completed]`
+- **#5912** -- reconcile-issues: a deleted issue (HTTP 410) is fatal, so any repo with a brief that references one can't cut a release -- `[completed]`
+- **#6204** -- feat(ceremony-dial): small-change lane - scale brief size and PR count to change size -- `[completed]`
+- **#6233** -- bug(hooks,scope): write fence has no per-worktree story binding, so in-session sub-agents cannot run a multi-story cohort on Claude Code -- `[completed]`
+- **#6227** -- bug(test,release): 39 tests fail release Step 5 on a Windows maintainer checkout that CI passes (agent env, symlink privilege, dispatcher identity) -- `[completed]`
+- **#5942** -- bug(release): release:e2e, release:publish and release:rollback miss the #5805 --project-root fix -- `[completed]`
+- **#6212** -- bug(swarm): finalize-cohort refuses a deft-story mark until productPullRequest is stamped, but nothing can stamp it first -- `[completed]`
+- **#6203** -- feat(scope): admit a brief and its implementation in one PR under a forge-attested human approval -- `[completed]`
+- **#5882** -- BLOCKER: [framework-gap] swarm:finalize-cohort lifecycle checkout skips package install, so Taskfile-based acceptance commands fail in scope:complete -- `[completed]`
+- **#5710** -- bug(scope): scope:complete has no path for a delivered PR-only brief, and the identity join accepts a post-merge closing link -- `[completed]`
 - **#5102** -- process(review-cycle): SLizard babysit re-polls instead of resolving carried fingerprints -- `[completed]`
 - **#6173** -- bug(win32,update): containedDestExec still execFileSync pnpm.CMD without shell — #5383 residual lockfile refresh EINVAL -- `[completed]`
 - **#6172** -- bug(pre-pr): bound push gate refuses every push after a rebase or merge from the delivery branch (outgoing = remoteOid..localOid) -- `[completed]`
@@ -60,16 +65,4 @@ _Showing 25 of 1917 completed scopes (newest first). Full history: lifecycle `co
 - **#6142** -- bug(design-critique): ensureArcDest via stale gitignored packages/core/dist skips guarded-prep, so arc dests launch without runtime -- `[completed]`
 - **#6136** -- bug(hooks,authz): agents can self-serve .deft-directive-disable outside UAT (Write/Shell plant) -- `[completed]`
 - **#6013** -- Pin-mismatch recovery guidance follows the settled failure-shaped map -- `[completed]`
-- **#5995** -- EOL-normalize ownership detection and restore narrow LF gitattributes for managed paths -- `[completed]`
-- **#5997** -- Fix Windows deft-hook bin wiring and move ps1 cleanup to the launcher -- `[completed]`
-- **#5996** -- Let deft check resolve the OVPR pin package root under node_modules -- `[completed]`
-- **#5916** -- Unwrap npm 12 npm view --json single-element arrays in installer registry resolution -- `[completed]`
-- **#6128** -- BLOCKER: pr:wait-mergeable-and-merge freezes on dirty Approach1 babysit xbrief/active parking -- `[completed]`
-- **#6122** -- hardening(hooks): lock operator-override eligibility across host entry points -- `[completed]`
-- **#6021** -- chore(deps): raise `packageManager` pnpm to >= 11.11.0 (upstream pnpm security advisories) -- `[completed]`
-- **#5983** -- [framework-gap] Human-presence mint: agent-shell marker list has no Grok entry -- `[completed]`
-- **#5953** -- feat(release): update the maintainer's local checkout to the new pin after every release -- `[completed]`
-- **#6100** -- [framework-gap] Codex hook root binding blocks linked-worktree reads and dependency bootstrap -- `[completed]`
-- **#6008** -- [framework-gap] finalize-owed probes each claim ref with its own unbounded ls-remote -- `[completed]`
-- **#6099** -- perf(cache): reuse open-issue list payload in drift probe instead of refetching up to 25 issues -- `[completed]`
 
