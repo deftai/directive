@@ -1,0 +1,367 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6271",
+    "updated": "2026-11-13T15:09:10Z"
+  },
+  "plan": {
+    "title": "bug(init,security): the consumer .gitignore baseline misses the private pre-PR store and the plan-sequence lock files",
+    "status": "running",
+    "narratives": {
+      "Description": "The consumer .gitignore baseline written by install and refresh does not cover the private pre-PR store (.deft/pre-pr-execution-private/, which holds the HMAC secret that signs pre-PR execution records) or the plan-sequence generation, lock and lock-claim files. This story adds the four entries to the canonical baseline so refresh heals existing installs, and adds a doctor warning when the secret is already tracked, without untracking it.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6271",
+      "Overview": "## Summary\n\nThe consumer `.gitignore` baseline written by install and refresh (`packages/core/src/init-deposit/gitignore.ts`) does not cover:\n\n- `.deft/pre-pr-execution-private/`: the process-surviving private pre-PR store (`packages/core/src/pre-pr-controller/store.ts`, `PRE_PR_PRIVATE_STORE_DIR`). It holds the MAC secret that signs pre-PR execution records.\n- `.deft/plan-sequence.json.generation`, `.deft/plan-sequence.json.lock` and `.deft/plan-sequence.json.lock.claim-*`.\n\nThe framework repo does not see this because its own `.gitignore` ignores `.deft/*` and lists the plan-sequence files (lines 177-179). Consumers get only the named baseline.\n\n## Impact\n\n- `deft check` fails on a consumer checkout until these files are moved aside, and an agent then leaves a stash it may not drop.\n- A consumer can commit the MAC secret. Anyone with the repository could then forge pre-PR execution records, which the controller trusts as proof that pre-PR ran.\n\n## Expected\n\n- Add `.deft/pre-pr-execution-private/`, `.deft/plan-sequence.json.generation`, `.deft/plan-sequence.json.lock` and `.deft/plan-sequence.json.lock.claim-*` to the canonical baseline, so refresh heals existing installs.\n- If the secret file is already tracked, doctor warns and names the remediation (untrack and rotate). Do not untrack it silently.\n\n## Acceptance\n\n- After `directive upgrade` on a consumer checkout, `git check-ignore` reports all four paths as ignored.\n- A test in `packages/core/src/init-deposit/` asserts the baseline contains them.\n\n",
+      "Labels": "bug, security, consumer-example",
+      "UserStory": "As a consumer project maintainer, I want the Directive .gitignore baseline to cover the private pre-PR store and the plan-sequence lock files, so that the HMAC secret is never committed and deft check does not fail on local runtime files.",
+      "ImplementationPlan": "1. Add .deft/pre-pr-execution-private/, .deft/plan-sequence.json.generation, .deft/plan-sequence.json.lock and .deft/plan-sequence.json.lock.claim-* to CANONICAL_GITIGNORE_BASELINE (packages/core/src/init-deposit/gitignore.ts), so install and refresh write them.\n2. Record the private store as a local-cache writer in runtime-writer-paths.json / runtime-writers.ts so the lockstep test covers it.\n3. Add a doctor check (packages/core/src/doctor/checks.ts) that warns when .deft/pre-pr-execution-private/hmac-secret is tracked and names the remediation (git rm --cached, then rotate the secret). It never untracks.\n4. Tests: baseline contents and refresh heal in gitignore.test.ts; doctor warn and no-index-change in checks.test.ts. CHANGELOG [Unreleased] line.",
+      "Traces": "#6271"
+    },
+    "items": [
+      {
+        "title": "Summary The consumer `.gitignore` baseline written by install and refresh (`packages/core/src/init-deposit/gitignore.ts`) does not cover: - `.deft/pre-pr-execution-private/`: the process-surviving private pre-PR store (`packages/core/src/pre-pr-controller/store.ts`, `PRE_PR_PRIVATE_STORE_DIR`).",
+        "status": "proposed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When install or refresh writes the consumer .gitignore, the file contains .deft/pre-pr-execution-private/; a test in packages/core/src/init-deposit/ asserts it."
+        }
+      },
+      {
+        "title": "It holds the MAC secret that signs pre-PR execution records.",
+        "status": "proposed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a refreshed consumer checkout with .deft/pre-pr-execution-private/hmac-secret on disk, when git check-ignore runs on that path, then it reports the path as ignored."
+        }
+      },
+      {
+        "title": "`.deft/plan-sequence.json.generation`, `.deft/plan-sequence.json.lock` and `.deft/plan-sequence.json.lock.claim-*`.",
+        "status": "proposed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When refresh writes the baseline, the file contains .deft/plan-sequence.json.generation, .deft/plan-sequence.json.lock and .deft/plan-sequence.json.lock.claim-*; a test asserts each entry."
+        }
+      },
+      {
+        "title": "The framework repo does not see this because its own `.gitignore` ignores `.deft/*` and lists the plan-sequence files (lines 177-179).",
+        "status": "proposed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a consumer .gitignore that holds only the canonical baseline (no blanket .deft/* line), when git check-ignore runs on the four paths, then each one is reported as ignored."
+        }
+      },
+      {
+        "title": "Consumers get only the named baseline.",
+        "status": "proposed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When the baseline is computed for a consumer, CANONICAL_GITIGNORE_BASELINE itself contains the four entries; a test asserts it."
+        }
+      },
+      {
+        "title": "Impact - `deft check` fails on a consumer checkout until these files are moved aside, and an agent then leaves a stash it may not drop.",
+        "status": "proposed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a refreshed consumer checkout with these files present, when git status runs, then they are not listed as untracked, so deft check does not fail on them."
+        }
+      },
+      {
+        "title": "A consumer can commit the MAC secret.",
+        "status": "proposed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a refreshed consumer checkout with the secret file present, when git add -A runs, then the secret file is not staged."
+        }
+      },
+      {
+        "title": "Anyone with the repository could then forge pre-PR execution records, which the controller trusts as proof that pre-PR ran.",
+        "status": "proposed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given the secret file is tracked, when doctor runs, then it emits a warning that the secret can forge pre-PR execution records."
+        }
+      },
+      {
+        "title": "Expected - Add `.deft/pre-pr-execution-private/`, `.deft/plan-sequence.json.generation`, `.deft/plan-sequence.json.lock` and `.deft/plan-sequence.json.lock.claim-*` to the canonical baseline, so refresh heals existing installs.",
+        "status": "proposed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given an existing install whose .gitignore lacks the four entries, when refresh runs, then it appends them; a test shows the healed file."
+        }
+      },
+      {
+        "title": "If the secret file is already tracked, doctor warns and names the remediation (untrack and rotate).",
+        "status": "proposed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given .deft/pre-pr-execution-private/hmac-secret is tracked in the index, when doctor runs, then it returns a warning that names untracking with git rm --cached and rotating the secret."
+        }
+      },
+      {
+        "title": "Do not untrack it silently.",
+        "status": "proposed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given the secret file is tracked, when doctor runs, then the git index is unchanged after doctor returns; a test asserts no untrack command runs."
+        }
+      },
+      {
+        "title": "Acceptance - After `directive upgrade` on a consumer checkout, `git check-ignore` reports all four paths as ignored.",
+        "status": "proposed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a consumer checkout after directive upgrade, when git check-ignore runs on all four paths, then it reports each as ignored."
+        }
+      },
+      {
+        "title": "A test in `packages/core/src/init-deposit/` asserts the baseline contains them.",
+        "status": "proposed",
+        "id": "clause.13",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When npx vitest run packages/core/src/init-deposit/gitignore.test.ts runs, then the test that asserts the baseline contains the four entries passes."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "consumer-example"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6271",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6271: bug(init,security): the consumer .gitignore baseline misses the private pre-PR store and the plan-sequence lock files"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 13 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(init,security): the consumer .gitignore baseline misses the private pre-PR store and the plan-sequence lock files",
+        "Summary The consumer `.gitignore` baseline written by install and refresh (`packages/core/src/init-deposit/gitignore.ts`) does not cover: - `.deft/pre-pr-execution-private/`: the process-surviving private pre-PR store (`packages/core/src/pre-pr-controller/store.ts`, `PRE_PR_PRIVATE_STORE_DIR`).",
+        "It holds the MAC secret that signs pre-PR execution records.",
+        "`.deft/plan-sequence.json.generation`, `.deft/plan-sequence.json.lock` and `.deft/plan-sequence.json.lock.claim-*`.",
+        "The framework repo does not see this because its own `.gitignore` ignores `.deft/*` and lists the plan-sequence files (lines 177-179).",
+        "Consumers get only the named baseline.",
+        "Impact - `deft check` fails on a consumer checkout until these files are moved aside, and an agent then leaves a stash it may not drop.",
+        "A consumer can commit the MAC secret.",
+        "Anyone with the repository could then forge pre-PR execution records, which the controller trusts as proof that pre-PR ran.",
+        "Expected - Add `.deft/pre-pr-execution-private/`, `.deft/plan-sequence.json.generation`, `.deft/plan-sequence.json.lock` and `.deft/plan-sequence.json.lock.claim-*` to the canonical baseline, so refresh heals existing installs.",
+        "If the secret file is already tracked, doctor warns and names the remediation (untrack and rotate).",
+        "Do not untrack it silently.",
+        "Acceptance - After `directive upgrade` on a consumer checkout, `git check-ignore` reports all four paths as ignored.",
+        "A test in `packages/core/src/init-deposit/` asserts the baseline contains them."
+      ],
+      "admitted_source_sentences": [
+        "Summary The consumer `.gitignore` baseline written by install and refresh (`packages/core/src/init-deposit/gitignore.ts`) does not cover: - `.deft/pre-pr-execution-private/`: the process-surviving private pre-PR store (`packages/core/src/pre-pr-controller/store.ts`, `PRE_PR_PRIVATE_STORE_DIR`).",
+        "It holds the MAC secret that signs pre-PR execution records.",
+        "`.deft/plan-sequence.json.generation`, `.deft/plan-sequence.json.lock` and `.deft/plan-sequence.json.lock.claim-*`.",
+        "The framework repo does not see this because its own `.gitignore` ignores `.deft/*` and lists the plan-sequence files (lines 177-179).",
+        "Consumers get only the named baseline.",
+        "Impact - `deft check` fails on a consumer checkout until these files are moved aside, and an agent then leaves a stash it may not drop.",
+        "A consumer can commit the MAC secret.",
+        "Anyone with the repository could then forge pre-PR execution records, which the controller trusts as proof that pre-PR ran.",
+        "Expected - Add `.deft/pre-pr-execution-private/`, `.deft/plan-sequence.json.generation`, `.deft/plan-sequence.json.lock` and `.deft/plan-sequence.json.lock.claim-*` to the canonical baseline, so refresh heals existing installs.",
+        "If the secret file is already tracked, doctor warns and names the remediation (untrack and rotate).",
+        "Do not untrack it silently.",
+        "Acceptance - After `directive upgrade` on a consumer checkout, `git check-ignore` reports all four paths as ignored.",
+        "A test in `packages/core/src/init-deposit/` asserts the baseline contains them."
+      ],
+      "admitted_source_digest": "58515ad858d1ddc48883b5299b961c3ee1fbc25203bb0d79143b2420bc5ba4f6",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Summary The consumer `.gitignore` baseline written by install and refresh (`packages/core/src/init-deposit/gitignore.ts`) does not cover: - `.deft/pre-pr-execution-private/`: the process-surviving private pre-PR store (`packages/core/src/pre-pr-controller/store.ts`, `PRE_PR_PRIVATE_STORE_DIR`).",
+          "artifact_path": "packages/core/src/init-deposit/gitignore.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "It holds the MAC secret that signs pre-PR execution records.",
+          "artifact_path": "packages/core/src/init-deposit/gitignore.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`.deft/plan-sequence.json.generation`, `.deft/plan-sequence.json.lock` and `.deft/plan-sequence.json.lock.claim-*`.",
+          "artifact_path": "packages/core/src/init-deposit/gitignore.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The framework repo does not see this because its own `.gitignore` ignores `.deft/*` and lists the plan-sequence files (lines 177-179).",
+          "artifact_path": "packages/core/src/init-deposit/gitignore.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Consumers get only the named baseline.",
+          "artifact_path": "packages/core/src/init-deposit/gitignore.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Impact - `deft check` fails on a consumer checkout until these files are moved aside, and an agent then leaves a stash it may not drop.",
+          "artifact_path": "packages/core/src/init-deposit/gitignore.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "A consumer can commit the MAC secret.",
+          "artifact_path": "packages/core/src/init-deposit/gitignore.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Anyone with the repository could then forge pre-PR execution records, which the controller trusts as proof that pre-PR ran.",
+          "artifact_path": "packages/core/src/doctor/checks.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Expected - Add `.deft/pre-pr-execution-private/`, `.deft/plan-sequence.json.generation`, `.deft/plan-sequence.json.lock` and `.deft/plan-sequence.json.lock.claim-*` to the canonical baseline, so refresh heals existing installs.",
+          "artifact_path": "packages/core/src/init-deposit/gitignore.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "If the secret file is already tracked, doctor warns and names the remediation (untrack and rotate).",
+          "artifact_path": "packages/core/src/doctor/checks.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Do not untrack it silently.",
+          "artifact_path": "packages/core/src/doctor/checks.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Acceptance - After `directive upgrade` on a consumer checkout, `git check-ignore` reports all four paths as ignored.",
+          "artifact_path": "packages/core/src/init-deposit/gitignore.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "A test in `packages/core/src/init-deposit/` asserts the baseline contains them.",
+          "artifact_path": "packages/core/src/init-deposit/gitignore.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(init,security): the consumer .gitignore baseline misses the private pre-PR store and the plan-sequence lock files"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\ndesign-critique: not warranted, because it adds four lines to the consumer .gitignore baseline plus a doctor warning for an already-tracked secret; no new mechanism or authority.\n\nScott added this story to the through-merge pipeline (\"Yes, add them\", relayed by the dispatching session).\n\n",
+          "id": 6856118553,
+          "html_url": "https://github.com/deftai/directive/issues/6271#issuecomment-6856118553",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T14:39:04Z",
+          "updated_at": "2026-11-13T14:39:04Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6373189286,
+        "origin": "deftai/directive#6271",
+        "id": "github.issue.6373189286"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "consumer-gitignore-baseline",
+        "expected_outputs": [
+          "four entries in CANONICAL_GITIGNORE_BASELINE; refresh heals existing installs",
+          "doctor warns when the pre-PR HMAC secret is tracked and names untrack and rotate",
+          "doctor never untracks the secret itself",
+          "tests in init-deposit and doctor",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/init-deposit/gitignore.test.ts packages/core/src/init-deposit/runtime-writers.test.ts packages/core/src/doctor/checks.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/init-deposit/gitignore.ts",
+          "packages/core/src/init-deposit/gitignore.test.ts",
+          "packages/core/src/init-deposit/runtime-writer-paths.json",
+          "packages/core/src/init-deposit/runtime-writers.ts",
+          "packages/core/src/init-deposit/runtime-writers.test.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/doctor/checks.test.ts",
+          "CHANGELOG.md"
+        ],
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "Traces": [
+          "#6271"
+        ],
+        "acceptance_criteria_justification": "The ingest admitted every sentence of the issue body, and verify:ac requires each admitted sentence as a clause (#5055), so the brief has one clause and one item per sentence, each bound to gitignore.ts, gitignore.test.ts or checks.test.ts. The issue title is the one confession."
+      }
+    },
+    "id": "github.issue.6373189286",
+    "updated": "2026-11-13T15:09:10Z"
+  }
+}

@@ -1,0 +1,379 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6272",
+    "updated": "2026-11-13T15:09:14Z"
+  },
+  "plan": {
+    "title": "feat(scope): show which clauses need strict-axis evidence at activation, not after the merge",
+    "status": "running",
+    "narratives": {
+      "Description": "scope:complete decides which clauses need deploy, smoke, UAT or observed-behaviour evidence from the brief text alone, but nothing shows that list until completion, after the product PR has merged. This story prints the strict axes each clause will need at scope:activate, scope:promote and xbrief:preflight, using one helper shared with the completion gate. The print is advisory: no new refusal, and the completion gate is unchanged.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6272",
+      "Overview": "## Summary\n\n`scope:complete` decides which clauses need deploy, smoke, UAT or observed-behaviour evidence (`packages/core/src/scope/acceptance-evidence.ts`, strict axes). That classification is a pure function of the brief text, so it is known when the brief is written. Today nothing shows it until completion, after the product PR has merged. Each surprise then becomes an operator stop.\n\n## Consumer impact\n\nOn a consumer project, completion refused 23 of 35 clauses for deploy evidence after the merge. With the list shown at activation, the clause wording or `x-directive/requires` could have been fixed in the brief PR, which is human-reviewed anyway, at no extra operator cost.\n\n## Expected\n\n- `scope:activate`, `scope:promote` and `xbrief:preflight` print the strict axes each clause will need at completion, using the same classifier `scope:complete` uses (one helper, so they cannot drift).\n- Advisory only at those verbs: no new refusal. The completion gate is unchanged.\n\n## Acceptance\n\n- Given a brief with a clause that needs deploy evidence, when it is activated, then the output names that clause and the deploy axis.\n- A test checks that the activation listing and the completion requirement come from the same function.\n\nRelated: the identifier false positive in the strict-axis regex is filed separately.\n\n",
+      "Labels": "consumer-example, framework-gap",
+      "UserStory": "As an agent writing a brief, I want scope:activate, scope:promote and xbrief:preflight to list the clauses that will need strict-axis evidence, so that I fix the wording or declare x-directive/requires in the reviewed brief PR instead of after the merge.",
+      "ImplementationPlan": "1. Add one exported helper in packages/core/src/scope/acceptance-evidence.ts that returns, per plan item, the strict axes the completion gate will require; make the completion gate call it.\n2. Print its result (clause id and axes, plus a pointer to x-directive/requires) after a successful scope:activate and scope:promote (packages/core/src/scope/main.ts) and xbrief:preflight (packages/runtime/src/vbrief-preflight.ts). Exit codes do not change.\n3. Tests: activation output names a deploy-axis clause; the listing and the completion requirement come from the same function; exit codes unchanged.\n4. CHANGELOG [Unreleased] line. Lands after #6270 (same classifier).",
+      "Traces": "#6272, #6270"
+    },
+    "items": [
+      {
+        "title": "Summary `scope:complete` decides which clauses need deploy, smoke, UAT or observed-behaviour evidence (`packages/core/src/scope/acceptance-evidence.ts`, strict axes).",
+        "status": "proposed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When scope:complete computes which clauses need strict-axis evidence, it calls the shared helper exported from acceptance-evidence.ts; a test shows the gate and the listing return the same axes for one brief."
+        }
+      },
+      {
+        "title": "That classification is a pure function of the brief text, so it is known when the brief is written.",
+        "status": "proposed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a brief plan, when the shared helper runs with no git, network or evidence input, then it returns the per-clause axes; a test calls it on a fixture plan."
+        }
+      },
+      {
+        "title": "Today nothing shows it until completion, after the product PR has merged.",
+        "status": "proposed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a brief with a strict-axis clause, when scope:activate runs, then the output shows that clause and its axis before any product PR exists."
+        }
+      },
+      {
+        "title": "Each surprise then becomes an operator stop.",
+        "status": "proposed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a brief whose clauses need strict axes, when it is activated, then the output lists each such clause, so the wording can be fixed in the brief PR."
+        }
+      },
+      {
+        "title": "Consumer impact On a consumer project, completion refused 23 of 35 clauses for deploy evidence after the merge.",
+        "status": "proposed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a brief with several deploy-axis clauses, when scope:promote runs, then the output names every one of them."
+        }
+      },
+      {
+        "title": "With the list shown at activation, the clause wording or `x-directive/requires` could have been fixed in the brief PR, which is human-reviewed anyway, at no extra operator cost.",
+        "status": "proposed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When the listing prints, it names x-directive/requires as the field that declares the requirement."
+        }
+      },
+      {
+        "title": "Expected - `scope:activate`, `scope:promote` and `xbrief:preflight` print the strict axes each clause will need at completion, using the same classifier `scope:complete` uses (one helper, so they cannot drift).",
+        "status": "proposed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a brief with a strict-axis clause, when scope:activate, scope:promote or xbrief:preflight runs, then the output prints the clause id and its axes; a test covers each verb."
+        }
+      },
+      {
+        "title": "Advisory only at those verbs: no new refusal.",
+        "status": "proposed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a brief with strict-axis clauses, when scope:activate, scope:promote or xbrief:preflight runs, then the exit code equals the exit code without the listing."
+        }
+      },
+      {
+        "title": "The completion gate is unchanged.",
+        "status": "proposed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When scope:complete runs, its refusals and exit codes are unchanged; the existing acceptance-evidence tests pass."
+        }
+      },
+      {
+        "title": "Acceptance - Given a brief with a clause that needs deploy evidence, when it is activated, then the output names that clause and the deploy axis.",
+        "status": "proposed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a brief with a clause that needs deploy evidence, when it is activated, then the output names that clause and the deploy axis."
+        }
+      },
+      {
+        "title": "A test checks that the activation listing and the completion requirement come from the same function.",
+        "status": "proposed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When npx vitest run packages/core/src/scope/acceptance-evidence.test.ts runs, then a test that checks the listing and the completion requirement call the same function passes."
+        }
+      },
+      {
+        "title": "Related: the identifier false positive in the strict-axis regex is filed separately.",
+        "status": "proposed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When this story ships, the listing returns whatever the shared classifier returns; the identifier false positive is fixed by #6270, not here."
+        }
+      }
+    ],
+    "tags": [
+      "consumer-example",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6272",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6272: feat(scope): show which clauses need strict-axis evidence at activation, not after the merge"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 12 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "feat(scope): show which clauses need strict-axis evidence at activation, not after the merge",
+        "Summary `scope:complete` decides which clauses need deploy, smoke, UAT or observed-behaviour evidence (`packages/core/src/scope/acceptance-evidence.ts`, strict axes).",
+        "That classification is a pure function of the brief text, so it is known when the brief is written.",
+        "Today nothing shows it until completion, after the product PR has merged.",
+        "Each surprise then becomes an operator stop.",
+        "Consumer impact On a consumer project, completion refused 23 of 35 clauses for deploy evidence after the merge.",
+        "With the list shown at activation, the clause wording or `x-directive/requires` could have been fixed in the brief PR, which is human-reviewed anyway, at no extra operator cost.",
+        "Expected - `scope:activate`, `scope:promote` and `xbrief:preflight` print the strict axes each clause will need at completion, using the same classifier `scope:complete` uses (one helper, so they cannot drift).",
+        "Advisory only at those verbs: no new refusal.",
+        "The completion gate is unchanged.",
+        "Acceptance - Given a brief with a clause that needs deploy evidence, when it is activated, then the output names that clause and the deploy axis.",
+        "A test checks that the activation listing and the completion requirement come from the same function.",
+        "Related: the identifier false positive in the strict-axis regex is filed separately."
+      ],
+      "admitted_source_sentences": [
+        "Summary `scope:complete` decides which clauses need deploy, smoke, UAT or observed-behaviour evidence (`packages/core/src/scope/acceptance-evidence.ts`, strict axes).",
+        "That classification is a pure function of the brief text, so it is known when the brief is written.",
+        "Today nothing shows it until completion, after the product PR has merged.",
+        "Each surprise then becomes an operator stop.",
+        "Consumer impact On a consumer project, completion refused 23 of 35 clauses for deploy evidence after the merge.",
+        "With the list shown at activation, the clause wording or `x-directive/requires` could have been fixed in the brief PR, which is human-reviewed anyway, at no extra operator cost.",
+        "Expected - `scope:activate`, `scope:promote` and `xbrief:preflight` print the strict axes each clause will need at completion, using the same classifier `scope:complete` uses (one helper, so they cannot drift).",
+        "Advisory only at those verbs: no new refusal.",
+        "The completion gate is unchanged.",
+        "Acceptance - Given a brief with a clause that needs deploy evidence, when it is activated, then the output names that clause and the deploy axis.",
+        "A test checks that the activation listing and the completion requirement come from the same function.",
+        "Related: the identifier false positive in the strict-axis regex is filed separately."
+      ],
+      "admitted_source_digest": "d393e39f3732b6df45ac8c5da37709e217b482ffe155e228664b31bc0a62b560",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Summary `scope:complete` decides which clauses need deploy, smoke, UAT or observed-behaviour evidence (`packages/core/src/scope/acceptance-evidence.ts`, strict axes).",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "That classification is a pure function of the brief text, so it is known when the brief is written.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Today nothing shows it until completion, after the product PR has merged.",
+          "artifact_path": "packages/core/src/scope/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Each surprise then becomes an operator stop.",
+          "artifact_path": "packages/core/src/scope/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Consumer impact On a consumer project, completion refused 23 of 35 clauses for deploy evidence after the merge.",
+          "artifact_path": "packages/core/src/scope/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "With the list shown at activation, the clause wording or `x-directive/requires` could have been fixed in the brief PR, which is human-reviewed anyway, at no extra operator cost.",
+          "artifact_path": "packages/core/src/scope/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Expected - `scope:activate`, `scope:promote` and `xbrief:preflight` print the strict axes each clause will need at completion, using the same classifier `scope:complete` uses (one helper, so they cannot drift).",
+          "artifact_path": "packages/core/src/scope/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Advisory only at those verbs: no new refusal.",
+          "artifact_path": "packages/core/src/scope/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "The completion gate is unchanged.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Acceptance - Given a brief with a clause that needs deploy evidence, when it is activated, then the output names that clause and the deploy axis.",
+          "artifact_path": "packages/core/src/scope/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "A test checks that the activation listing and the completion requirement come from the same function.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Related: the identifier false positive in the strict-axis regex is filed separately.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "feat(scope): show which clauses need strict-axis evidence at activation, not after the merge"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Identifier false positive in the strict-axis regex: #6270.",
+          "id": 6855681746,
+          "html_url": "https://github.com/deftai/directive/issues/6272#issuecomment-6855681746",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T14:22:32Z",
+          "updated_at": "2026-11-13T14:22:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\ndesign-critique: not warranted, because it is an advisory print at activation, promote and preflight that reuses the existing strict-axis classifier scope:complete already uses; no new refusal.\n\nScott added this story to the through-merge pipeline (\"Yes, add them\", relayed by the dispatching session).\n\n",
+          "id": 6856119111,
+          "html_url": "https://github.com/deftai/directive/issues/6272#issuecomment-6856119111",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T14:39:05Z",
+          "updated_at": "2026-11-13T14:39:05Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6373190126,
+        "origin": "deftai/directive#6272",
+        "id": "github.issue.6373190126"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "strict-axis-classifier",
+        "expected_outputs": [
+          "one helper shared by the completion gate and the advisory listing",
+          "scope:activate, scope:promote and xbrief:preflight print clause ids and strict axes",
+          "advisory only: exit codes unchanged; completion gate unchanged",
+          "tests for the listing and the shared-function contract",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [
+          "github.issue.6373188377"
+        ],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/scope/acceptance-evidence.test.ts packages/core/src/scope/main.test.ts packages/runtime/src/vbrief-preflight.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "packages/core/src/scope/main.ts",
+          "packages/core/src/scope/main.test.ts",
+          "packages/runtime/src/vbrief-preflight.ts",
+          "packages/runtime/src/vbrief-preflight.test.ts",
+          "CHANGELOG.md"
+        ],
+        "parallel_safe": true,
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "Traces": [
+          "#6272",
+          "#6270"
+        ],
+        "acceptance_criteria_justification": "The ingest admitted every sentence of the issue body, and verify:ac requires each admitted sentence as a clause (#5055), so the brief has one clause and one item per sentence, each bound to acceptance-evidence.ts, its test, or scope/main.test.ts. The issue title is the one confession."
+      }
+    },
+    "id": "github.issue.6373190126",
+    "updated": "2026-11-13T15:09:14Z"
+  }
+}
