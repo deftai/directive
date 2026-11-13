@@ -1391,12 +1391,20 @@ export function classifyQuotedTokenPolarity(clause: AcceptanceClause): QuotedTok
   if (!REMOVAL_WORD.test(masked)) {
     return present.length > 0 ? { kind: "presence", present } : { kind: "none" };
   }
-  if (objects.length === 0) {
-    return { kind: "none" };
-  }
   const unresolved = (reason: string): QuotedTokenPolarity => ({ kind: "unresolved", reason });
   // One complete sentence: the whole clause, less one trailing period.
   const sentence = normalizeClauseText(markSpans(clause.text, spans)).replace(/\.$/, "").trimEnd();
+  if (objects.length === 0) {
+    // The only quoted literal is the bound path. As a location
+    // (`Removes stale rows from "docs/x.md"`) it carries no token oracle. As
+    // the object of a closed form it would assert file deletion, which a
+    // token check cannot prove, so it blocks rather than escaping as `none`.
+    const governed =
+      REMOVAL_FORM.test(sentence) || NO_LONGER_FORM.test(sentence) || REPLACE_FORM.test(sentence);
+    return governed
+      ? unresolved("the removal object is the bound artifact path, not a literal in it")
+      : { kind: "none" };
+  }
   const removal = REMOVAL_FORM.exec(sentence);
   if (removal !== null) {
     const ref = removal[2];

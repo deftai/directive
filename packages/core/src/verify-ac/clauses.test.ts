@@ -2018,6 +2018,20 @@ describe("quoted-token removal polarity (#6269)", () => {
     // The presence check still skips path-shaped literals, as before.
     expect(extractExpectedTokens(clause('Adds "legacy.ts" to the list'))).toEqual([]);
     expect(classifyQuotedTokenPolarity(clause('Adds "legacy.ts" to the list')).kind).toBe("none");
+    // Single-quoted and plural forms take the same path-literal object.
+    expect(walkText("Delete 'legacy.ts'", "import from legacy.ts\n")?.outcome).toBe("failed");
+    expect(walkText('Drops "src/legacy.ts" from docs/x.md', "nothing\n")?.outcome).toBe("verified");
+  });
+
+  it("blocks a closed form whose only quoted object is the bound path", () => {
+    for (const text of ['Removes "docs/x.md"', 'Deletes "docs/x.md" from docs/x.md']) {
+      for (const body of ["docs/x.md is listed\n", "nothing\n"]) {
+        const row = walkText(text, body);
+        expect(row?.outcome).toBe("unverifiable");
+        expect(row?.adjudicable).toBe(true);
+        expect(row?.detail).toMatch(/object is the bound artifact path/);
+      }
+    }
   });
 
   it("accepts a quoted bound path and refuses a basename-only path", () => {
