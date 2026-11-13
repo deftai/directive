@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6233",
-    "updated": "2026-11-13T03:00:01Z"
+    "updated": "2026-11-13T04:56:15Z"
   },
   "plan": {
     "title": "bug(hooks,scope): write fence has no per-worktree story binding, so in-session sub-agents cannot run a multi-story cohort on Claude Code",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The PreToolUse write fence learns which story a write belongs to only from a spawn-time bound path or from DEFT_ACTIVE_SCOPE in the hook process environment. Workers that share one hook environment cannot each carry their own pin, so a worker worktree that holds more than one active brief is refused every product write as multiple-eligible. This story makes the fence read the story for a dispatch-registered linked worktree from its worker-auth assignment record, with closed refusal rules, and leaves unregistered linked worktrees and the main worktree unchanged.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6233",
@@ -19,58 +19,304 @@
     "items": [
       {
         "title": "Write fence, no spawn bound path, linked worktree: read the worker-auth assignment for the write's worktree through the validated reader. When it returns an assignment, resolve the story by a unique `story_id` match against eligible active briefs. Assignment only. No branch tokens. The check-time `untied` outcome never admits a write.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When a Write or Edit targets a linked worktree that has an assignment record, with two or more eligible active briefs, no environment pin and no spawn bound path, the hook binds the brief whose id equals the story_id in the record: an in-scope path is allowed and an out-of-scope path is denied. A branch named for a different story does not change the result, and no code path admits a write from the check-time untied outcome."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/scope.test.ts",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
         "title": "Linked worktree: refuse when the reader fails for any reason (corrupt index, orphan, duplicate, malformed or missing registered record), because membership is then unknowable or broken. Also refuse when the assigned story is missing, ineligible or ambiguous, when an environment pin names a different story, and when a spawn bound path names a different story. No fall-through to branch or single-eligible selection. The refusal names the failure kind and one repair step.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When the assignment reader returns any failure kind for a linked worktree, the hook denies the write and the message names the failure kind and one repair step. The hook also denies when the assigned story is missing, ineligible or matches more than one active brief, when DEFT_ACTIVE_SCOPE names a different story, and when a spawn bound path names a different story. None of these cases falls through to the single-eligible or branch selection."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/scope.test.ts",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
         "title": "Linked worktree with a validated clean absence (the reader succeeds and reports no assignment for this worktree): today's behaviour, unchanged. The main worktree never consults the registry.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When the reader succeeds and reports no assignment for a linked worktree, every verdict equals the verdict before this change (multiple-eligible deny with no pin, environment pin honoured, single eligible brief bound). When the write targets the main worktree, the reader is not called and a corrupt index does not change the verdict."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/scope.test.ts",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
         "title": "The matcher derives `story_id` the same way launch does, or launch refuses a brief with no `plan.id`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When swarm launch registers a brief that has no plan.id, the story_id it records is the value the write-fence matcher compares, shown by a test that registers such a brief and resolves it; or launch refuses that brief with a message naming the missing plan.id."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/scope.test.ts",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
         "title": "Stated guarantee: destination-scoped cooperative fencing. The trusted writer is dispatch PREP. It is not worker isolation. Coverage is Write/Edit, plus recognized shell destination forms when that policy is set to enforce. Other shell writes are not covered.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When a reader opens host-claude-code.md, it states that the fence is destination-scoped and cooperative, that the trusted writer is dispatch PREP, that it is not worker isolation, and that coverage is Write/Edit plus recognized shell destination forms under the enforce policy."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/scope.test.ts",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
         "title": "Claude adapter text names the in-session sequence: the parent launches through `swarm:launch` so each worker worktree is registered; the parent starts the session ritual in each worker worktree; the parent holds no environment pin; each sub-agent is given its worktree's absolute path. One headless process per story is the named fallback until item 7 passes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When a reader opens host-claude-code.md Step 2g, it lists the in-session sequence (launch through swarm:launch, session ritual in each worker worktree, no environment pin held by the parent, absolute worktree path given to each sub-agent) and names one headless process per story as the fallback. No instruction to set a worktree path without a mechanism remains."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
         "title": "Acceptance: a live two-story run through `swarm:launch` on Claude Code, in nested `.deft-scratch/worktrees/<sid>` destinations, with no environment pin. Each worker makes an admitted in-scope product write and is refused out of scope. The same run records whether the launch-minted lease admits the session's sub-agents. Before the change the same run is refused as multiple-eligible. A product-file write and a lifecycle-brief edit are tested separately. A corrupt-index case is tested for a registered worktree, an unregistered linked worktree and the main worktree.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "When the dispatcher fixture runs against a real temporary repository with two linked worktrees under .deft-scratch/worktrees/, two different stories registered through writeWorkerAuthAssignment and no environment pin: each in-scope product write is allowed, each out-of-scope write is denied, the same fixture without the records is denied as multiple-eligible, a lifecycle-brief edit is tested separately from a product write, and a corrupt index is tested for a registered worktree, an unregistered linked worktree and the main worktree. The live Claude Code run through swarm:launch, including whether the launch-minted lease admits the sub-agents of the session, cannot run before a runtime release that contains this change (session hooks run from the pinned runtime package). It is tracked in #6242 and is not acceptance for this PR."
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/swarm/worker-auth-assignment.test.ts",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "review",
+          "pointer": "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Needs the live two-story host run through swarm:launch on Claude Code, which cannot run before a runtime release that contains PR #6250. Tracked in #6242.",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "59447805+MScottAdams@users.noreply.github.com"
+          },
+          "recorded_at": "2026-11-13T04:53:12Z"
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "clause.21",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.22",
+        "title": "clause.22",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Needs the live two-story host run through swarm:launch on Claude Code, which cannot run before a runtime release that contains PR #6250. Tracked in #6242.",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "59447805+MScottAdams@users.noreply.github.com"
+          },
+          "recorded_at": "2026-11-13T04:53:12Z"
+        }
+      },
+      {
+        "id": "clause.23",
+        "title": "clause.23",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.24",
+        "title": "clause.24",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
+      },
+      {
+        "id": "clause.25",
+        "title": "clause.25",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "recorded_at": "2026-11-13T04:47:02Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       }
     ],
@@ -917,9 +1163,36 @@
           "#6233"
         ],
         "acceptance_criteria_justification": "Each admitted sentence of the accepted Bound remedy (successor lean 6839298535) is one clause bound to a test or doc file in file_scope. The issue title is the only confession. The two sentences that need the live host run through swarm:launch stay as clauses (#5055 refuses a confession in place of an admitted sentence); they cannot be verified before a runtime release that contains this change, and that run is tracked in #6242."
+      },
+      "productPullRequest": 6250,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "6d7b2be9b6ad91aafd0ed2f8fa39ab047e249e9d",
+        "prNumber": 6250,
+        "prBase": "master",
+        "mergeCommit": "daee4cf534e1fe69ed06bc03f4c0b2933357eb1e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "daee4cf534e1fe69ed06bc03f4c0b2933357eb1e",
+        "verifiedAt": "2026-11-13T04:56:15Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:YTQzYjZmZjAtZDdiYi00ZThlLWI2ODMtOGVjODI2NTBhNmIy",
+        "identityBasis": "merge-time-keyword"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-13T04:56:15Z",
+      "completedSessionId": "host:claude:v1:YTQzYjZmZjAtZDdiYi00ZThlLWI2ODMtOGVjODI2NTBhNmIy",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-13T04:56:15Z"
       }
     },
     "id": "github.issue.6360456928",
-    "updated": "2026-11-13T00:07:51Z"
+    "updated": "2026-11-13T04:56:15Z"
   }
 }
