@@ -4,9 +4,10 @@
  * One fail-closed evaluator next to the ceremony dial policy. A thin brief
  * (see `intake/thin-brief.ts`) stays in the lane only while:
  *   - the ceremony dial depth is `rapid`;
- *   - the operator configured the bound at `plan.policy.ceremonyDial.smallChangeLane`
- *     (`maxProductionFiles`, `maxChangedLines`). There is no code default: an
- *     unset bound refuses;
+ *   - the bound holds: `maxProductionFiles` / `maxChangedLines` from
+ *     `plan.policy.ceremonyDial.smallChangeLane`, each field falling back to
+ *     the shipped default (SMALL_CHANGE_LANE_DEFAULT_*) when unset. An invalid
+ *     policy value or an unreadable PROJECT-DEFINITION refuses;
  *   - the measured cumulative product diff against the lane-admit base holds
  *     the bound;
  *   - the public-surface determination is `none`. `unknown` refuses.
@@ -54,7 +55,13 @@ export const SMALL_CHANGE_LANE_REMEDIATION =
   `plan.metadata["${SMALL_CHANGE_LANE_MARKER_KEY}"].state to "escalated". ` +
   "Raising the ceremony dial (escalateCeremonyDial, #3319) does not clear this refusal.";
 
-/** Operator-set bound. Both values are policy values; there is no code default. */
+/** Default production-file cap when the policy field is unset (operator choice, #6204). */
+export const SMALL_CHANGE_LANE_DEFAULT_MAX_PRODUCTION_FILES = 5;
+
+/** Default changed-line cap (added + deleted, tests included) when the policy field is unset. */
+export const SMALL_CHANGE_LANE_DEFAULT_MAX_CHANGED_LINES = 500;
+
+/** Lane bound. Policy overrides each field; unset fields use the shipped defaults. */
 export interface SmallChangeLaneBound {
   readonly maxProductionFiles: number;
   readonly maxChangedLines: number;
@@ -110,8 +117,8 @@ function verdict(
 }
 
 /**
- * Pure fail-closed evaluator. Admits only at depth `rapid`, with a configured
- * bound, a successful measurement, public surface `none`, and counts at or
+ * Pure fail-closed evaluator. Admits only at depth `rapid`, with a valid
+ * bound (null means invalid policy), a successful measurement, public surface `none`, and counts at or
  * under the bound. Every other input refuses.
  */
 export function evaluateSmallChangeLane(
@@ -125,7 +132,7 @@ export function evaluateSmallChangeLane(
     );
   }
   if (input.bound === null) {
-    const why = input.boundError ?? `${FIELD_SMALL_CHANGE_LANE} is not set`;
+    const why = input.boundError ?? `${FIELD_SMALL_CHANGE_LANE} is invalid`;
     return verdict("unconfigured", why, null);
   }
   if (!input.measure.ok) {
@@ -168,18 +175,26 @@ function isNonNegativeInteger(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0;
 }
 
-/** Validate a `plan.policy.ceremonyDial.smallChangeLane` payload. */
+/** The shipped default bound, used for any field the policy leaves unset. */
+export const DEFAULT_SMALL_CHANGE_LANE_BOUND: SmallChangeLaneBound = {
+  maxProductionFiles: SMALL_CHANGE_LANE_DEFAULT_MAX_PRODUCTION_FILES,
+  maxChangedLines: SMALL_CHANGE_LANE_DEFAULT_MAX_CHANGED_LINES,
+};
+
+/**
+ * Validate a `plan.policy.ceremonyDial.smallChangeLane` payload. Each field is
+ * optional; a present field must be a non-negative integer.
+ */
 export function validateSmallChangeLaneBound(value: unknown): string[] {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     return [`${FIELD_SMALL_CHANGE_LANE} must be an object`];
   }
   const rec = value as Record<string, unknown>;
   const errors: string[] = [];
-  if (!isNonNegativeInteger(rec.maxProductionFiles)) {
-    errors.push(`${FIELD_SMALL_CHANGE_LANE}.maxProductionFiles must be a non-negative integer`);
-  }
-  if (!isNonNegativeInteger(rec.maxChangedLines)) {
-    errors.push(`${FIELD_SMALL_CHANGE_LANE}.maxChangedLines must be a non-negative integer`);
+  for (const key of ["maxProductionFiles", "maxChangedLines"] as const) {
+    if (rec[key] !== undefined && !isNonNegativeInteger(rec[key])) {
+      errors.push(`${FIELD_SMALL_CHANGE_LANE}.${key} must be a non-negative integer`);
+    }
   }
   return errors;
 }
@@ -189,28 +204,34 @@ export interface ReadSmallChangeLaneBoundResult {
   readonly error: string | null;
 }
 
-/** Read the bound from a `plan.policy.ceremonyDial` block. Unset or invalid → null. */
+/**
+ * Read the bound from a `plan.policy.ceremonyDial` block. Unset fields use the
+ * shipped defaults; an invalid value refuses (bound null).
+ */
 export function readSmallChangeLaneBound(
   ceremonyDialBlock: unknown,
 ): ReadSmallChangeLaneBoundResult {
-  if (
-    ceremonyDialBlock === null ||
-    typeof ceremonyDialBlock !== "object" ||
-    Array.isArray(ceremonyDialBlock)
-  ) {
-    return { bound: null, error: `${FIELD_SMALL_CHANGE_LANE} is not set` };
-  }
-  const raw = (ceremonyDialBlock as Record<string, unknown>).smallChangeLane;
+  const block =
+    ceremonyDialBlock !== null &&
+    typeof ceremonyDialBlock === "object" &&
+    !Array.isArray(ceremonyDialBlock)
+      ? (ceremonyDialBlock as Record<string, unknown>)
+      : {};
+  const raw = block.smallChangeLane;
   if (raw === undefined || raw === null) {
-    return { bound: null, error: `${FIELD_SMALL_CHANGE_LANE} is not set` };
+    return { bound: { ...DEFAULT_SMALL_CHANGE_LANE_BOUND }, error: null };
   }
   const errors = validateSmallChangeLaneBound(raw);
   if (errors.length > 0) {
     return { bound: null, error: errors.join("; ") };
   }
-  const rec = raw as SmallChangeLaneBound;
+  const rec = raw as Partial<SmallChangeLaneBound>;
   return {
-    bound: { maxProductionFiles: rec.maxProductionFiles, maxChangedLines: rec.maxChangedLines },
+    bound: {
+      maxProductionFiles:
+        rec.maxProductionFiles ?? DEFAULT_SMALL_CHANGE_LANE_BOUND.maxProductionFiles,
+      maxChangedLines: rec.maxChangedLines ?? DEFAULT_SMALL_CHANGE_LANE_BOUND.maxChangedLines,
+    },
     error: null,
   };
 }
@@ -860,7 +881,7 @@ export function evaluateSmallChangeLaneGate(
     options.bound !== undefined
       ? {
           bound: options.bound,
-          error: options.bound === null ? `${FIELD_SMALL_CHANGE_LANE} is not set` : null,
+          error: options.bound === null ? `${FIELD_SMALL_CHANGE_LANE} is invalid` : null,
         }
       : readSmallChangeLaneBoundFromProject(options.projectRoot);
   const measure = measureSmallChangeLaneDiff({

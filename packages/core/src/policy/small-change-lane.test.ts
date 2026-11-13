@@ -15,6 +15,8 @@ import {
   readSmallChangeLaneBound,
   readSmallChangeLaneBoundFromProject,
   readSmallChangeLaneMarker,
+  SMALL_CHANGE_LANE_DEFAULT_MAX_CHANGED_LINES,
+  SMALL_CHANGE_LANE_DEFAULT_MAX_PRODUCTION_FILES,
   SMALL_CHANGE_LANE_MARKER_KEY,
   SMALL_CHANGE_LANE_REMEDIATION,
   type SmallChangeLaneMeasurement,
@@ -108,7 +110,7 @@ describe("evaluateSmallChangeLane (#6204 predicate)", () => {
     expect(ok).toMatchObject({ ok: true, kind: "admitted" });
   });
 
-  it("refuses when the bound is not configured (no code default)", () => {
+  it("refuses when the bound is invalid", () => {
     const v = evaluateSmallChangeLane({
       depth: "rapid",
       bound: null,
@@ -172,11 +174,29 @@ describe("small-change lane bound policy", () => {
       bound: BOUND,
       error: null,
     });
-    expect(readSmallChangeLaneBound({}).bound).toBeNull();
-    expect(readSmallChangeLaneBound(null).bound).toBeNull();
-    const bad = readSmallChangeLaneBound({ smallChangeLane: { maxProductionFiles: 1 } });
+    const bad = readSmallChangeLaneBound({ smallChangeLane: { maxChangedLines: "many" } });
     expect(bad.bound).toBeNull();
     expect(bad.error).toContain("maxChangedLines");
+  });
+
+  it("uses the shipped defaults (5 files, 500 lines) when the policy field is unset", () => {
+    expect(SMALL_CHANGE_LANE_DEFAULT_MAX_PRODUCTION_FILES).toBe(5);
+    expect(SMALL_CHANGE_LANE_DEFAULT_MAX_CHANGED_LINES).toBe(500);
+    const defaults = { maxProductionFiles: 5, maxChangedLines: 500 };
+    expect(readSmallChangeLaneBound({})).toEqual({ bound: defaults, error: null });
+    expect(readSmallChangeLaneBound(null)).toEqual({ bound: defaults, error: null });
+    expect(readSmallChangeLaneBound({ smallChangeLane: null }).bound).toEqual(defaults);
+  });
+
+  it("lets a policy value override each field on its own", () => {
+    expect(readSmallChangeLaneBound({ smallChangeLane: { maxProductionFiles: 1 } }).bound).toEqual({
+      maxProductionFiles: 1,
+      maxChangedLines: 500,
+    });
+    expect(readSmallChangeLaneBound({ smallChangeLane: { maxChangedLines: 40 } }).bound).toEqual({
+      maxProductionFiles: 5,
+      maxChangedLines: 40,
+    });
   });
 
   it("reads the bound from PROJECT-DEFINITION", () => {
@@ -439,6 +459,33 @@ describe("evaluateSmallChangeLaneGate (#6204 recheck + lane exit)", () => {
     write(root, "src/a.ts", "const a = 1;\nconst b = 3;\n");
     const r = evaluateSmallChangeLaneGate(lanePlan(base), { projectRoot: root, gate: "verify:ac" });
     expect(r).toMatchObject({ applies: true, ok: true });
+  });
+
+  it("applies the default bound at the gate when policy leaves it unset, and a policy value tightens it", () => {
+    const { root, base } = initRepo();
+    const writePolicy = (ceremonyDial: Record<string, unknown>) =>
+      write(
+        root,
+        "xbrief/PROJECT-DEFINITION.xbrief.json",
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8" },
+          plan: { title: "P", status: "running", items: [], policy: { ceremonyDial } },
+        }),
+      );
+    write(root, "src/a.ts", `${"const x = 1;\n".repeat(30)}`);
+    writePolicy({ override: "rapid" });
+    const byDefault = evaluateSmallChangeLaneGate(lanePlan(base), {
+      projectRoot: root,
+      gate: "verify:ac",
+    });
+    expect(byDefault).toMatchObject({ applies: true, ok: true });
+    writePolicy({ override: "rapid", smallChangeLane: { maxChangedLines: 10 } });
+    const tightened = evaluateSmallChangeLaneGate(lanePlan(base), {
+      projectRoot: root,
+      gate: "verify:ac",
+    });
+    expect(tightened.verdict?.kind).toBe("bound-crossed");
+    expect(tightened.message).toContain("(max 10)");
   });
 });
 
