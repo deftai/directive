@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.8.
 
 ### Fixed
+- The one-PR scope proof level is now read at the true merge base (`git merge-base <base> HEAD`), not the base branch tip, so a later policy change on the base branch neither refuses nor admits an open PR. Refs #6273.
 - fix(scope): strict acceptance axes (deploy, smoke, UAT) match prose only, not file, job or workflow names such as `deploy-dev` or `smoke-test.ts` (#6270, refs #3240).
 - Issue ingest now keeps rejected alternatives, footnotes and record-keeping out of the plan's work items. Rejected alternatives remain available as constraints. Refs #6265.
 - `verify:ac` no longer fails a clause that removes a quoted phrase once the phrase is gone. Supported sentences: `Removes|Deletes|Drops|Recuts "X" from PATH`, `PATH no longer contains "X"` and `Replaces "X" with "Y"`. Other removal wording around a quoted phrase now blocks as unverifiable, and the message names the supported sentences. Closes #6269.
