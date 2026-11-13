@@ -1,0 +1,536 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6274",
+    "updated": "2026-11-13T15:27:29Z"
+  },
+  "plan": {
+    "title": "feat(occupancy,hooks): release the occupancy lease when its host session ends",
+    "status": "running",
+    "narratives": {
+      "Description": "The occupancy lease that a Claude Code session claims at start stays live after that session ends, so the next session on the same checkout is refused until the TTL claim-over, a manual release or an approved steal. On a consumer project this cost several minutes on every /clear or restart. This story adds a Claude Code SessionEnd hook that releases the lease only when the ending session owns it and leaves every other lease and file untouched.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6274",
+      "Overview": "\n1. Deposit `SessionEnd` -> `--event session.end` for Claude Code only (a per-host support list beside the compact lists), add `session.end` to `HOOK_EVENTS`, and have `verify:hooks-installed` report it through a `sessionEndSupport` field beside `compactSupport`. relieves: P2\n2. `hook-dispatch.ts` gives `session.end` its own path: launch-root and pin checks stay (a mismatch releases nothing and prints one bounded diagnostic), setup completion is skipped, every failure is non-blocking, and the exit code is always 0.\n3. A new strict owner-release operation in `occupancy.ts`, under the existing lock and lease-root resolver: it removes the lease only when the owner id derived from the payload `session_id` (never ambient identity) equals `existing.sessionId`, live or expired, with no header enforcement. No id, no lease or another owner leaves every file untouched, applying-host included; on its own release it removes applying-host only when that record belongs to the same session. relieves: P1\n4. Fixtures: own live lease released and the next session claims without a steal; own expired lease released; foreign live and foreign expired leases unchanged; no lease leaves a foreign applying-host record unchanged; own lease plus foreign applying-host keeps that record; own lease with failing header enforcement still released and no file edited; duplicate and delayed end are no-ops; pin and launch-root mismatch release nothing; a thrown release exits 0.\n\n\n",
+      "Labels": "bug, consumer-example, design-critique:ingest-ready, framework-gap",
+      "UserStory": "As an operator who runs /clear or restarts a Claude Code session, I want the ending session to free its own checkout lease, so that the next session starts without a steal or a manual release.",
+      "ImplementationPlan": "Follow the accepted Prefer-A Bound on #6274 (comment 6857137328, synthesis 6857325641, verified-claims 6857325121). Deposit a Claude Code SessionEnd hook (--event session.end) beside the compact lists in packages/core/src/init-deposit/agent-hooks.ts and add session.end to HOOK_EVENTS in packages/core/src/hooks/dispatcher.ts. Give session.end its own path in packages/runtime/src/hook-dispatch.ts (launch-root and pin checks kept, setup completion skipped, exit 0 always). Add a strict owner-release operation in packages/core/src/session/occupancy.ts under the existing lock and lease-root resolver: release only when the payload-derived owner id equals the lease owner, no header enforcement, and no other file touched. Report SessionEnd through a sessionEndSupport field in verify:hooks-installed. Re-deposit .claude/settings.json in this repo. Record a captured /clear payload check in the PR. Verify with the new fixture test file packages/core/src/session/occupancy-session-end.test.ts and the existing agent-hooks, verify-env and hook-dispatch tests.",
+      "Traces": "#6274 Prefer-A Bound 6857137328; synthesis 6857325641; verified-claims 6857325121; Codex R1 6857115197; pain audit 6857314384; #4667; #3954"
+    },
+    "items": [
+      {
+        "title": "Deposit `SessionEnd` -> `--event session.end` for Claude Code only (a per-host support list beside the compact lists), add `session.end` to `HOOK_EVENTS`, and have `verify:hooks-installed` report it through a `sessionEndSupport` field beside `compactSupport`. relieves: P2",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When the Claude Code hooks are deposited, .claude/settings.json records a SessionEnd hook that runs the hook with --event session.end, no other host config gains a session-end entry, and verify:hooks-installed returns the SessionEnd registration as present for Claude Code."
+        }
+      },
+      {
+        "title": "`hook-dispatch.ts` gives `session.end` its own path: launch-root and pin checks stay (a mismatch releases nothing and prints one bounded diagnostic), setup completion is skipped, every failure is non-blocking, and the exit code is always 0.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When the hook entry runs with --event session.end it returns exit code 0 in every case; with a launch-root or pin mismatch it leaves .deft/occupancy.json unchanged and emits one diagnostic line, and it never runs setup completion."
+        }
+      },
+      {
+        "title": "A new strict owner-release operation in `occupancy.ts`, under the existing lock and lease-root resolver: it removes the lease only when the owner id derived from the payload `session_id` (never ambient identity) equals `existing.sessionId`, live or expired, with no header enforcement. No id, no lease or another owner leaves every file untouched, applying-host included; on its own release it removes applying-host only when that record belongs to the same session. relieves: P1",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When the ending session owns the lease (live or expired), the session-end hook deletes the lease and the next session claims without a steal; when another session owns the lease, no lease exists, or the payload has no session_id, the hook leaves .deft/occupancy.json and the applying-host record byte-identical."
+        }
+      },
+      {
+        "title": "Fixtures: own live lease released and the next session claims without a steal; own expired lease released; foreign live and foreign expired leases unchanged; no lease leaves a foreign applying-host record unchanged; own lease plus foreign applying-host keeps that record; own lease with failing header enforcement still released and no file edited; duplicate and delayed end are no-ops; pin and launch-root mismatch release nothing; a thrown release exits 0.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When the fixture file packages/core/src/session/occupancy-session-end.test.ts runs, it passes and covers own live, own expired, foreign live, foreign expired, no lease with a foreign applying-host record, own lease with a foreign applying-host record, own lease with failing header enforcement, duplicate end, delayed end, pin mismatch, launch-root mismatch and a thrown release."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "consumer-example",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6274",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6274: feat(occupancy,hooks): release the occupancy lease when its host session ends"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4667",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4667"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3954",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3954"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "--event session.end",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "occupancy-session-end-release",
+        "expected_outputs": [
+          "Claude Code SessionEnd hook deposited and reported by verify:hooks-installed",
+          "strict owner-only lease release on session end",
+          "event-specific session.end runtime path that always exits 0",
+          "fixture matrix for own, foreign, expired, missing-id, duplicate and mismatch cases",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/session/occupancy-session-end.test.ts packages/core/src/init-deposit/agent-hooks.test.ts packages/core/src/verify-env/agent-hooks.test.ts packages/runtime/src/hook-dispatch.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/runtime/src/hook-dispatch.ts",
+          "packages/runtime/src/hook-dispatch.test.ts",
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy-session-end.test.ts",
+          "packages/core/src/verify-env/agent-hooks.ts",
+          "packages/core/src/verify-env/agent-hooks.test.ts",
+          ".claude/settings.json",
+          "CHANGELOG.md"
+        ],
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#6274",
+          "#4667",
+          "#3954"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\nLean: Prefer-A draft\nconflict_group: occupancy-session-end-release\nTarget-digest: sha256:d7bbe7fbfb0c1b00c7e77d40782244bc5c690172258631af793f1503be5d978e\nSpec-path: packages/core/src/init-deposit/agent-hooks.ts (nested deposit) + packages/core/src/hooks/dispatcher.ts (session.end) + packages/core/src/session/occupancy.ts (releaseOccupancy)\n\n## In plain English\nWhen a Claude Code session ends, its lease on the checkout stays live, so the next session is refused until the lease times out or someone releases it by hand. Prefer-A: deposit a `SessionEnd` hook on hosts that have one, and when it fires, release the lease only if the ending session is the lease owner. Any other lease, live or expired, is left alone.\n\n## Evidence (pin 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04)\n- [mergeNestedConfig agent-hooks.ts L453](https://github.com/deftai/directive/blob/1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04/packages/core/src/init-deposit/agent-hooks.ts#L453) deposits `SessionStart`, `PreToolUse` and (where supported) `PreCompact`/`PostCompact`; strip keys at L492. No session-end key.\n- [HOOK_EVENTS dispatcher.ts L273-279](https://github.com/deftai/directive/blob/1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04/packages/core/src/hooks/dispatcher.ts#L273-L287) has no `session.end`; the per-host compact lists at L283/L287 are the pattern for a per-host capability list. `decideHook` (L4247) routes on the argv `--event`.\n- [releaseOccupancy occupancy.ts L2558-2599](https://github.com/deftai/directive/blob/1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04/packages/core/src/session/occupancy.ts#L2558-L2599): owner check is `caller === existing.sessionId`, but an **expired** lease is released for any caller. A session-end hook calling it as-is could release a foreign expired lease.\n- Owner id: `resolveHookHostIdentity` (`packages/core/src/hooks/classify/host-session-identity.ts:116`) then `canonicalHostSessionId` (`packages/core/src/session/host-session-owner.ts:109`) gives `host:claude:v1:<base64url>` from the payload `session_id`, the same id the lease is minted with.\n- `verify:hooks-installed` checks per-host `definitions` with a `compactSupport` field (`packages/core/src/init-deposit/agent-hooks.ts:1094-1121`).\n\n## Draft remedy\n1. Deposit `SessionEnd` -> `--event session.end` for Claude Code only (per-host support list beside the compact lists); add `session.end` to `HOOK_EVENTS`. Other hosts keep today's behaviour until their event is verified.\n2. `decideHook` handles `session.end`: derive the owner id with `resolveHookHostIdentity`, call `releaseOccupancy` with a new strict-owner option that releases only when `existing.sessionId` equals that id, whether the lease is live or expired. No id, no lease, or a different owner is a no-op. The hook always exits 0 and never blocks the host.\n3. `verify:hooks-installed` reports the `SessionEnd` registration on hosts in the support list (a `sessionEndSupport` field beside `compactSupport`).\n4. Fixtures: own live lease released and the next session claims without a steal; foreign live lease unchanged; foreign expired lease unchanged; missing `session_id` unchanged; deposit and verify on Claude Code, absent on other hosts.\n\n## Not proposed\nNo anonymous or TTL-based auto-release, no change to the `occupancy:release` / `session:end` verbs, and no release of a lease held by any other identity (#3954, #4667).\n\n",
+          "id": 6857038341,
+          "html_url": "https://github.com/deftai/directive/issues/6274#issuecomment-6857038341",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:12:11Z",
+          "updated_at": "2026-11-13T15:12:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\ndesign-critique: warranted, because the remedy adds a new hook event that writes the occupancy lease, and the existing release path frees an expired lease for any caller; the identity binding needs an independent check.\nmechanism-shaped: true\ncharter: open critique\nrefutation-target: omitted (open critique; the issue's Expected section is the design goal, not a premise under refutation)\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nTarget-kind: issue\nTarget-digest: sha256:d7bbe7fbfb0c1b00c7e77d40782244bc5c690172258631af793f1503be5d978e\ndispatch-sha: 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04\ndest: .deft-scratch/worktrees/arc-6276-6265\nverification-path: pin-read git show 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04: ; dest cwd-without-occupy .deft-scratch/worktrees/arc-6276-6265\nseat-families: codex\n\npain:\n- P1\n- P2\n\n## Pains\n- **P1:** The lease of a host session that has ended stays live, so the next session on the checkout is refused until a TTL claim-over, an explicit release or an approved steal (7 minutes per hand-off on a consumer project).\n- **P2:** `verify:hooks-installed` cannot show whether a session-end release is wired.\n\nInvariant for every take: a lease held by any other identity, live or expired, is never released by the hook (#3954, #4667).\n\n## In plain English\nThis short arc checks one thing: that the new hook frees only the lease of the session that is ending.\n\nSpend note: recorded `spend-recommend: N=1` through `design-critique:spend-resolve` (utterance `arc 6274 yolo`); one codex seat.",
+          "id": 6857038928,
+          "html_url": "https://github.com/deftai/directive/issues/6274#issuecomment-6857038928",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:12:13Z",
+          "updated_at": "2026-11-13T15:12:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\npanel-deposit: round-1\nround: 1\nsiblings: 1\nseat-families: codex\nspend: N=1\nconsent: standing yolo relayed by the dispatching session; spend-recommend N=1 resolved via design-critique:spend-resolve\nid-ceiling: 6857038928\ninput-ceiling: 6857038928\ndispatch-sha: 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04\narc-mode: no-ingest\nverification-path: pin-read git show 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04: ; dest cwd-without-occupy .deft-scratch/worktrees/arc-6276-6265\naudit-targets: none\nclosed-findings: none\ncharter: open critique\ntarget: https://github.com/deftai/directive/issues/6274\n\nRelay disclosure: the Codex seat runs read-only with no network, so it reads a parent-written thread snapshot (issue body plus comments up to the ceiling) and returns its body to the parent, which posts it verbatim.\n\n",
+          "id": 6857050040,
+          "html_url": "https://github.com/deftai/directive/issues/6274#issuecomment-6857050040",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:12:40Z",
+          "updated_at": "2026-11-13T15:12:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRound 1, inclusive ceiling 6857038928, pin `1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04`. I read the supplied thread snapshot, the required design-critique contract sections, and all eight named verification files at the confirmed checkout pin. This was read-only inspection; no network, builds, or host lifecycle experiments.\n\n## Verdict\n\nPrefer-A is directionally sound, but cannot bind as written: strict lease ownership alone does not make the existing release operation a harmless session-end cleanup. The remedy also leaves execution-path failures and the `/clear` lifecycle assumption unresolved. Keep the existing identity resolver, lock, and lease-root resolution; extend their behavior narrowly rather than adding another cleanup subsystem.\n\n## F1 - blocks-the-design: Strict ownership must cover cleanup side effects\n\n`packages/core/src/session/occupancy.ts:2580` deletes the applying-host record when **no lease exists**, before the ownership check at line 2598. Successful release also removes applying-host unconditionally at line 2660. Thus, adding strict ownership only to the expired/live refusal leaves the promised “no lease … is a no-op” false: a delayed SessionEnd from S could erase T’s newer soft claim while no occupancy lease exists.\n\nChange the strict hook mode to return without cleanup when identity or lease is absent, with the check inside the existing occupancy lock. Define applying-host cleanup separately: preserve a record belonging to another session, including when releasing S’s own lease. Add a delayed-S-end/T-soft-claim fixture and an own-lease/foreign-applying-host fixture. Keep manual release behavior unchanged.\n\n## F2 - blocks-the-design: Release reuse includes a second refusal and unrelated mutations\n\n`packages/core/src/session/occupancy.ts:2618` runs `enforceConsumerHeaderPlaceholderWhenProductEvidence`; failure returns before lease deletion. The preceding comments explicitly describe marker/header writes. Consequently, even a correctly identified owner can end its session without releasing its lease, and automatic shutdown cleanup can modify project content.\n\nChange the remedy to specify whether automatic owner release bypasses this manual lifecycle enforcement or deliberately retains it. To satisfy P1 as stated, make the hook’s strict mode a narrow owner-checked cleanup operation using the existing lock and root resolver, without header enforcement; preserve the current CLI behavior shown in `packages/runtime/src/occupancy-release.ts:99`. Test an owned lease with failing header enforcement. Otherwise, narrow the acceptance promise and identify the remaining refusal as unrelieved P1.\n\n## F3 - blocks-the-design: Dispatcher integration does not guarantee execution or a harmless exit\n\n`packages/runtime/src/hook-dispatch.ts:301` rejects launch-root mismatch before `decideHook`; line 321 similarly checks installed/pinned identity. Both return zero without reaching release. Line 343 then invokes setup completion before policy dispatch. Merely adding `session.end` inside `decideHook` therefore neither guarantees cleanup nor limits shutdown side effects.\n\nSpecify an event-specific runtime path: retain checkout authority checks, avoid setup completion during shutdown, and make release failures nonblocking with a bounded diagnostic. Explicitly document pin/root refusal as best-effort cleanup failure rather than equating exit zero with release. Test the runtime entry point with pin mismatch, launch-root mismatch, and release exceptions. Include primary/worktree isolation using the existing lease-root resolution at `packages/core/src/session/occupancy.ts:2570`; do not redirect cleanup to whichever checkout makes the check pass.\n\n## F4 - sharpens-framing: `/clear` relief and identity continuity remain unverified\n\nThe snapshot supplies no host trace proving that `/clear` emits SessionEnd before the replacement SessionStart, or that the replacement receives a different `session_id`. Canonicalization at `packages/core/src/session/host-session-owner.ts:109` proves only deterministic encoding. SessionStart’s visible branch publishes applying-host and invokes bookkeeping (`packages/core/src/hooks/dispatcher.ts:4380`); it does not itself establish the claimed end-to-end lease-mint identity equivalence. Explicit/environment identity precedence also exists at `packages/core/src/session/occupancy.ts:1661`.\n\nRetain Claude-only support as a conservative initial scope, not evidence that other hosts lack the event. Require a representative `/clear` trace and a claim→end→replacement integration fixture before claiming that specific pain is relieved. Confirm payload identity is passed explicitly and unresolved identity never falls back to ambient `DEFT_SESSION_ID`. Include delayed/duplicate end delivery; if IDs are reused across overlapping lifecycle generations, equality alone cannot distinguish the old lease from its replacement. Registration verification remains P2 evidence, not lifecycle proof—the existing verifier itself distinguishes file/shim checks from host interception (`packages/core/src/verify-env/agent-hooks.ts:51`).",
+          "id": 6857115197,
+          "html_url": "https://github.com/deftai/directive/issues/6274#issuecomment-6857115197",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:15:26Z",
+          "updated_at": "2026-11-13T15:15:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\nLean: Prefer-A Bound\nconflict_group: occupancy-session-end-release\nTarget-digest: sha256:d7bbe7fbfb0c1b00c7e77d40782244bc5c690172258631af793f1503be5d978e\nSpec-path: packages/core/src/session/occupancy.ts (strict owner release) + packages/runtime/src/hook-dispatch.ts (session.end path) + packages/core/src/init-deposit/agent-hooks.ts (SessionEnd deposit)\nRecut: supersedes Prefer-A draft 6857038341\nStop-1: 6857038928\ndisposes critic: 6857115197\n\n## In plain English\nWhen a Claude Code session ends (including `/clear`), a new `SessionEnd` hook frees the checkout lease, but only if the ending session owns it, and it touches nothing else. It does not reuse the manual release path, because that path also edits files and frees other sessions' expired leases. If the hook cannot prove the checkout or the owner, it does nothing and the next session falls back to today's behaviour.\n\n## Takes (one Round-1 seat: Codex 6857115197)\n- accept-into-contract: 6857115197/F1 (strict mode touches no file when there is no lease, no id or another owner; applying-host is removed only when it belongs to the ending session)\n- accept-into-contract: 6857115197/F2 (a new narrow owner-release operation; no header enforcement and no project writes at shutdown; the manual `occupancy:release` / `session:end` path is unchanged)\n- accept-into-contract: 6857115197/F3 (event-specific runtime path: keep the launch-root and pin checks, skip setup completion, failures are a bounded diagnostic and exit 0, lease root from the existing resolver)\n- accept-into-contract: 6857115197/F4 (Claude-only scope stays conservative; identity comes only from the payload `session_id`, never ambient `DEFT_SESSION_ID`; a claim, end, next-claim fixture plus a duplicate and a delayed end)\n\n## Bound remedy\n1. Deposit `SessionEnd` -> `--event session.end` for Claude Code only (a per-host support list beside the compact lists), add `session.end` to `HOOK_EVENTS`, and have `verify:hooks-installed` report it through a `sessionEndSupport` field beside `compactSupport`.\n2. `hook-dispatch.ts` gives `session.end` its own path: launch-root and pin checks stay (a mismatch releases nothing and prints one bounded diagnostic), setup completion is skipped, every failure is non-blocking, and the exit code is always 0.\n3. A new strict owner-release operation in `occupancy.ts`, under the existing lock and lease-root resolver: it removes the lease only when the owner id derived from the payload `session_id` (never ambient identity) equals `existing.sessionId`, live or expired, with no header enforcement. No id, no lease or another owner leaves every file untouched, applying-host included; on its own release it removes applying-host only when that record belongs to the same session.\n4. Fixtures: own live lease released and the next session claims without a steal; own expired lease released; foreign live and foreign expired leases unchanged; no lease leaves a foreign applying-host record unchanged; own lease plus foreign applying-host keeps that record; own lease with failing header enforcement still released and no file edited; duplicate and delayed end are no-ops; pin and launch-root mismatch release nothing; a thrown release exits 0.\n\n## Not proposed\nNo anonymous or TTL-based auto-release, no change to the manual release verbs, no other host in this cut.\n\n## Residual\nNone blocking. The live `/clear` ordering (SessionEnd before the new SessionStart, with a new `session_id`) is checked by the implementing worker against a captured Claude Code payload and recorded in the PR.\n\n",
+          "id": 6857123044,
+          "html_url": "https://github.com/deftai/directive/issues/6274#issuecomment-6857123044",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:15:45Z",
+          "updated_at": "2026-11-13T15:15:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\nLean: Prefer-A Bound\nconflict_group: occupancy-session-end-release\nTarget-digest: sha256:d7bbe7fbfb0c1b00c7e77d40782244bc5c690172258631af793f1503be5d978e\nSpec-path: packages/core/src/session/occupancy.ts (strict owner release) + packages/runtime/src/hook-dispatch.ts (session.end path) + packages/core/src/init-deposit/agent-hooks.ts (SessionEnd deposit)\nRecut: supersedes Prefer-A Bound 6857123044 (adds pain cites; same mechanism) and draft 6857038341\nStop-1: 6857038928\ndisposes critic: 6857115197\n\n## In plain English\nWhen a Claude Code session ends (including `/clear`), a new `SessionEnd` hook frees the checkout lease, but only if the ending session owns it, and it touches nothing else. It does not reuse the manual release path, because that path also edits files and frees other sessions' expired leases. If the hook cannot prove the checkout or the owner, it does nothing and the next session falls back to today's behaviour.\n\n## Takes (one Round-1 seat: Codex 6857115197)\n- accept-into-contract: 6857115197/F1 (strict mode touches no file when there is no lease, no id or another owner; applying-host is removed only when it belongs to the ending session)\n- accept-into-contract: 6857115197/F2 (a new narrow owner-release operation; no header enforcement and no project writes at shutdown; the manual `occupancy:release` / `session:end` path is unchanged)\n- accept-into-contract: 6857115197/F3 (event-specific runtime path: keep the launch-root and pin checks, skip setup completion, failures are a bounded diagnostic and exit 0, lease root from the existing resolver)\n- accept-into-contract: 6857115197/F4 (Claude-only scope stays conservative; identity comes only from the payload `session_id`, never ambient `DEFT_SESSION_ID`; a claim, end, next-claim fixture plus a duplicate and a delayed end)\n\n## Bound remedy\n1. Deposit `SessionEnd` -> `--event session.end` for Claude Code only (a per-host support list beside the compact lists), add `session.end` to `HOOK_EVENTS`, and have `verify:hooks-installed` report it through a `sessionEndSupport` field beside `compactSupport`. relieves: P2\n2. `hook-dispatch.ts` gives `session.end` its own path: launch-root and pin checks stay (a mismatch releases nothing and prints one bounded diagnostic), setup completion is skipped, every failure is non-blocking, and the exit code is always 0.\n3. A new strict owner-release operation in `occupancy.ts`, under the existing lock and lease-root resolver: it removes the lease only when the owner id derived from the payload `session_id` (never ambient identity) equals `existing.sessionId`, live or expired, with no header enforcement. No id, no lease or another owner leaves every file untouched, applying-host included; on its own release it removes applying-host only when that record belongs to the same session. relieves: P1\n4. Fixtures: own live lease released and the next session claims without a steal; own expired lease released; foreign live and foreign expired leases unchanged; no lease leaves a foreign applying-host record unchanged; own lease plus foreign applying-host keeps that record; own lease with failing header enforcement still released and no file edited; duplicate and delayed end are no-ops; pin and launch-root mismatch release nothing; a thrown release exits 0.\n\n## Not proposed\nNo anonymous or TTL-based auto-release, no change to the manual release verbs, no other host in this cut.\n\n## Residual\nNone blocking. The live `/clear` ordering (SessionEnd before the new SessionStart, with a new `session_id`) is checked by the implementing worker against a captured Claude Code payload and recorded in the PR.\n\n",
+          "id": 6857137328,
+          "html_url": "https://github.com/deftai/directive/issues/6274#issuecomment-6857137328",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:16:22Z",
+          "updated_at": "2026-11-13T15:16:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: none\nharvest-changed: false\n\nCeiling 6857137328 (Prefer-A Bound); pin `1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04`. Read Stop 1 pains/invariant in 6857038928, Bound remedy limbs in 6857137328, and pin-read `agent-hooks.ts`, `dispatcher.ts`, `occupancy.ts`, `hook-dispatch.ts`, `host-session-identity.ts`, `host-session-owner.ts`, `verify-env/agent-hooks.ts`, `occupancy-release.ts`.\n\n- **P1 — relieved.** Path: limb 1 deposits Claude-only `SessionEnd` → `--event session.end` (today `mergeNestedConfig` writes only `SessionStart`/`PreToolUse`/optional compact at `agent-hooks.ts:453-481`; strip keys omit `SessionEnd` at L492; `HOOK_EVENTS` has no `session.end` at `dispatcher.ts:273-279`) → limb 2 `hook-dispatch.ts` session.end path keeps launch-root/pin fail-closed with exit 0 and no release (`hook-dispatch.ts:301-337`), skips setup (`L343`) → limb 3 new strict owner-release under the existing lock/lease-root (`occupancy.ts:2570-2576`): owner id from payload `session_id` via `resolveHookHostIdentity` (`host-session-identity.ts:116`) + `canonicalHostSessionId` (`host-session-owner.ts:109`), never ambient `DEFT_SESSION_ID` (`resolvePresentedIdentity` at `occupancy.ts:1654-1672`), equality-only on `existing.sessionId` live or expired, no header enforcement (manual path still hits `enforceConsumerHeaderPlaceholderWhenProductEvidence` at L2618 and `occupancy-release.ts:99`) → limb 4 own-live → next claim without steal. Invariant holds on this path: no id / no lease / other owner leaves every file untouched including applying-host; own release clears applying-host only when that record’s session matches (today’s `releaseOccupancy` must not be reused: no-lease clears applying-host at L2580-2584, expired admits any caller at L2597-2599, success clears applying-host unconditionally at L2657-2660).\n\n- **P2 — relieved.** Path: limb 1 adds `sessionEndSupport` beside `compactSupport` on the `inspectAgentHookDeposit` definitions (`AgentHookInspection.compactSupport` at `agent-hooks.ts:315-322`, per-host definitions at L1092-1121) that `verify:hooks-installed` already consumes (`verify-env/agent-hooks.ts:142`); Claude gets deposited SessionEnd in `valid()`, other hosts `unsupported`, matching the compact pattern (`COMPACT_HOOK_HOSTS` at `dispatcher.ts:283-287`).\n\n",
+          "id": 6857314384,
+          "html_url": "https://github.com/deftai/directive/issues/6274#issuecomment-6857314384",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:24:05Z",
+          "updated_at": "2026-11-13T15:24:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\ntakes:\n- accept-into-contract: 6857314384 (pain audit: finding-classes none, harvest-changed false; P1 and P2 relieved)\n- accept-into-contract: 6857115197/F1\n- accept-into-contract: 6857115197/F2\n- accept-into-contract: 6857115197/F3\n- accept-into-contract: 6857115197/F4\nnote: all four Round-1 findings were absorbed into Prefer-A Bound 6857137328 (limbs 2-4); the pain audit found every pain reachable and no new finding.\nyolo-standing: on\nsuccessor lean: 6857137328",
+          "id": 6857324552,
+          "html_url": "https://github.com/deftai/directive/issues/6274#issuecomment-6857324552",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:24:31Z",
+          "updated_at": "2026-11-13T15:24:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n## Verified-claims table\n\n| Claim | Evidence | Disposition |\n|---|---|---|\n| A Claude Code `SessionEnd` hook is deposited and reported by `verify:hooks-installed` | Bound 6857137328 limb 1; pin `agent-hooks.ts` L453/L492, `dispatcher.ts` L273-287; pain audit 6857314384 P2 | accept |\n| The hook releases only a lease whose owner equals the payload-derived id, live or expired, and touches no file otherwise | Bound limb 3; Codex R1 6857115197 F1/F2; pin `occupancy.ts` L2580-2660; pain audit P1 | accept |\n| The session-end path keeps launch-root and pin checks, skips setup completion and always exits 0 | Bound limb 2; Codex R1 F3; pin `hook-dispatch.ts` L301-343 | accept |\n| Identity comes only from the payload `session_id`, never ambient `DEFT_SESSION_ID` | Bound limb 3; Codex R1 F4; pin `occupancy.ts` L1654-1672 | accept |",
+          "id": 6857325121,
+          "html_url": "https://github.com/deftai/directive/issues/6274#issuecomment-6857325121",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:24:33Z",
+          "updated_at": "2026-11-13T15:24:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\ndesign-critique: synthesis accepted, because Prefer-A Bound 6857137328 absorbs all four Round-1 findings from Codex 6857115197 (strict owner-only release that touches no other file, no header enforcement at shutdown, an event-specific runtime path, payload-only identity) and the pain audit 6857314384 returned finding-classes: none with P1 and P2 relieved.\nsuccessor lean: 6857137328\nverified-claims table: 6857325121\n\n## In plain English\nShip a Claude Code `SessionEnd` hook that frees the checkout lease when, and only when, the ending session owns it, without touching anything else. The next session after `/clear` or a restart then starts without a steal. Ingest is the next, separate step.\n\narc-mode: no-ingest\nyolo-standing: on\nspend: N=1",
+          "id": 6857325641,
+          "html_url": "https://github.com/deftai/directive/issues/6274#issuecomment-6857325641",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:24:34Z",
+          "updated_at": "2026-11-13T15:24:34Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nThe occupancy lease (`.deft/occupancy.json`) is claimed at session start and stays live after that host session ends. The next session on the same checkout is refused until the lease's TTL claim-over, or until a human runs `occupancy:release --session-id=<id>` (#4667, `packages/runtime/src/occupancy-release.ts`) or approves a steal. Agent hooks are deposited for `SessionStart` and `PreToolUse` (`packages/core/src/init-deposit/agent-hooks.ts`), but not for a session-end event.\n\n## Consumer impact\n\nOn a consumer project, the session before `/clear` still held the lease, and the hook refused every edit (scratchpad files included) until the operator approved a steal: 7 minutes for one hand-off. That happens again on every `/clear` or restart.\n\n## Expected\n\n- On hosts that have a session-end hook event (Claude Code `SessionEnd`; others where available), deposit a hook that releases the lease when, and only when, the ending session's identity matches the lease owner. This is identity-bound, not anonymous auto-release, so it stays within #3954 and #4667.\n- A foreign lease, or one held by a different identity, is never released by this hook.\n- Hosts without the event keep today's behaviour (TTL and explicit release).\n\n## Acceptance\n\n- Given a lease owned by host session S, when S ends, then `.deft/occupancy.json` no longer has a live owner and the next session claims without a steal.\n- Given a lease owned by session T, when S ends, then the lease is unchanged.\n- `verify:hooks-installed` reports the session-end hook on hosts that support it.\n\nRefs #4667. Refs #3954.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6373751669,
+        "origin": "deftai/directive#6274",
+        "id": "github.issue.6373751669"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "d7bbe7fbfb0c1b00c7e77d40782244bc5c690172258631af793f1503be5d978e"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 9 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "feat(occupancy,hooks): release the occupancy lease when its host session ends",
+        "Deposit `SessionEnd` -> `--event session.end` for Claude Code only (a per-host support list beside the compact lists), add `session.end` to `HOOK_EVENTS`, and have `verify:hooks-installed` report it through a `sessionEndSupport` field beside `compactSupport`.",
+        "relieves: P2 2.",
+        "`hook-dispatch.ts` gives `session.end` its own path: launch-root and pin checks stay (a mismatch releases nothing and prints one bounded diagnostic), setup completion is skipped, every failure is non-blocking, and the exit code is always 0.",
+        "A new strict owner-release operation in `occupancy.ts`, under the existing lock and lease-root resolver: it removes the lease only when the owner id derived from the payload `session_id` (never ambient identity) equals `existing.sessionId`, live or expired, with no header enforcement.",
+        "No id, no lease or another owner leaves every file untouched, applying-host included; on its own release it removes applying-host only when that record belongs to the same session.",
+        "relieves: P1 4.",
+        "Fixtures: own live lease released and the next session claims without a steal; own expired lease released; foreign live and foreign expired leases unchanged; no lease leaves a foreign applying-host record unchanged; own lease plus foreign applying-host keeps that record; own lease with failing header enforcement still released and no file edited; duplicate and delayed end are no-ops; pin and launch-root mismatch release nothing; a thrown release exits 0.",
+        "relieves: P2",
+        "relieves: P1"
+      ],
+      "admitted_source_sentences": [
+        "Deposit `SessionEnd` -> `--event session.end` for Claude Code only (a per-host support list beside the compact lists), add `session.end` to `HOOK_EVENTS`, and have `verify:hooks-installed` report it through a `sessionEndSupport` field beside `compactSupport`.",
+        "relieves: P2 2.",
+        "`hook-dispatch.ts` gives `session.end` its own path: launch-root and pin checks stay (a mismatch releases nothing and prints one bounded diagnostic), setup completion is skipped, every failure is non-blocking, and the exit code is always 0.",
+        "A new strict owner-release operation in `occupancy.ts`, under the existing lock and lease-root resolver: it removes the lease only when the owner id derived from the payload `session_id` (never ambient identity) equals `existing.sessionId`, live or expired, with no header enforcement.",
+        "No id, no lease or another owner leaves every file untouched, applying-host included; on its own release it removes applying-host only when that record belongs to the same session.",
+        "relieves: P1 4.",
+        "Fixtures: own live lease released and the next session claims without a steal; own expired lease released; foreign live and foreign expired leases unchanged; no lease leaves a foreign applying-host record unchanged; own lease plus foreign applying-host keeps that record; own lease with failing header enforcement still released and no file edited; duplicate and delayed end are no-ops; pin and launch-root mismatch release nothing; a thrown release exits 0."
+      ],
+      "admitted_source_digest": "167581a9a0426cd74c66ab95ddd43068b34b6c13a3926585395d68fee97b93e3",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Deposit `SessionEnd` -> `--event session.end` for Claude Code only (a per-host support list beside the compact lists), add `session.end` to `HOOK_EVENTS`, and have `verify:hooks-installed` report it through a `sessionEndSupport` field beside `compactSupport`. relieves: P2",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`hook-dispatch.ts` gives `session.end` its own path: launch-root and pin checks stay (a mismatch releases nothing and prints one bounded diagnostic), setup completion is skipped, every failure is non-blocking, and the exit code is always 0.",
+          "artifact_path": "packages/runtime/src/hook-dispatch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A new strict owner-release operation in `occupancy.ts`, under the existing lock and lease-root resolver: it removes the lease only when the owner id derived from the payload `session_id` (never ambient identity) equals `existing.sessionId`, live or expired, with no header enforcement. No id, no lease or another owner leaves every file untouched, applying-host included; on its own release it removes applying-host only when that record belongs to the same session. relieves: P1",
+          "artifact_path": "packages/core/src/session/occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Fixtures: own live lease released and the next session claims without a steal; own expired lease released; foreign live and foreign expired leases unchanged; no lease leaves a foreign applying-host record unchanged; own lease plus foreign applying-host keeps that record; own lease with failing header enforcement still released and no file edited; duplicate and delayed end are no-ops; pin and launch-root mismatch release nothing; a thrown release exits 0.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Deposit `SessionEnd` -> `--event session.end` for Claude Code only (a per-host support list beside the compact lists), add `session.end` to `HOOK_EVENTS`, and have `verify:hooks-installed` report it through a `sessionEndSupport` field beside `compactSupport`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "A new strict owner-release operation in `occupancy.ts`, under the existing lock and lease-root resolver: it removes the lease only when the owner id derived from the payload `session_id` (never ambient identity) equals `existing.sessionId`, live or expired, with no header enforcement.",
+          "artifact_path": "packages/core/src/session/occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "No id, no lease or another owner leaves every file untouched, applying-host included; on its own release it removes applying-host only when that record belongs to the same session.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "relieves: P2 2.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "relieves: P1 4.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "feat(occupancy,hooks): release the occupancy lease when its host session ends",
+        "relieves: P2",
+        "relieves: P1"
+      ]
+    },
+    "id": "github.issue.6373751669",
+    "updated": "2026-11-13T15:27:29Z"
+  }
+}
