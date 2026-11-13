@@ -142,6 +142,27 @@ describe("writeAgentHookDeposit", () => {
       sessionEndRegistered: false,
     });
 
+    // A user's own SessionEnd command sharing the managed group survives redeposit (Greptile P1).
+    const shared = JSON.parse(readFileSync(path, "utf8")) as {
+      hooks: { SessionEnd: Array<{ hooks: Array<Record<string, unknown>> }> };
+    };
+    shared.hooks.SessionEnd[0]?.hooks.push({ type: "command", command: "node user-cleanup.mjs" });
+    writeFileSync(path, `${JSON.stringify(shared, null, 2)}\n`, "utf8");
+    writeAgentHookDeposit(root);
+    const afterShared = readFileSync(path, "utf8");
+    expect(afterShared).toContain("node user-cleanup.mjs");
+    expect(afterShared.split(expectedOuterCmd("claude", "session.end"))).toHaveLength(2);
+    // Opting Claude out strips only the managed command, never the user's.
+    writeProjectDefinition(root, { claude: false });
+    writeAgentHookDeposit(root);
+    const stripped = readFileSync(path, "utf8");
+    expect(stripped).toContain("node user-cleanup.mjs");
+    expect(stripped).not.toContain("session.end");
+    rmSync(join(root, "xbrief"), { recursive: true, force: true });
+    const reset = JSON.parse(stripped) as { hooks: Record<string, unknown> };
+    delete reset.hooks.SessionEnd;
+    writeFileSync(path, `${JSON.stringify(reset, null, 2)}\n`, "utf8");
+
     // Redeposit restores exactly one managed SessionEnd entry.
     writeAgentHookDeposit(root);
     writeAgentHookDeposit(root);

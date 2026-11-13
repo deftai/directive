@@ -417,6 +417,25 @@ function isManagedNestedGroup(value: unknown): boolean {
   );
 }
 
+/**
+ * Drop only Directive-managed hooks from a nested group, keeping a user's own
+ * commands that share the group (#6274 Greptile P1). Returns null when the
+ * group is left with no hooks.
+ */
+function withoutManagedHooks(
+  value: unknown,
+  isManaged: (commandText: string) => boolean,
+): unknown | null {
+  const group = object(value);
+  if (group === null || !Array.isArray(group.hooks)) return value;
+  const kept = group.hooks.filter((candidate) => {
+    const commandText = object(candidate)?.command;
+    return !(typeof commandText === "string" && isManaged(commandText));
+  });
+  if (kept.length === group.hooks.length) return value;
+  return kept.length === 0 ? null : { ...group, hooks: kept };
+}
+
 function isManagedNestedGroupForHost(value: unknown, host: NestedHookHost): boolean {
   return nestedCommands(value).some((commandText) => {
     if (host === "grok" && isGrokWrapperCommand(commandText)) return true;
@@ -494,9 +513,14 @@ function mergeNestedConfig(
     hooks.PostCompact = [...postCompact, nestedGroup(bin, host, "session.compact")];
   }
   if (options.sessionEnd) {
-    const sessionEnd = eventArray(hooks, "SessionEnd", path).filter(
-      (entry) => !isManagedNestedGroup(entry),
-    );
+    const sessionEnd = eventArray(hooks, "SessionEnd", path)
+      .map((entry) =>
+        withoutManagedHooks(
+          entry,
+          (commandText) => isManagedHookCommand(commandText) || isGrokWrapperCommand(commandText),
+        ),
+      )
+      .filter((entry) => entry !== null);
     // No matcher: every end reason (clear, logout, prompt_input_exit, other) releases.
     hooks.SessionEnd = [...sessionEnd, nestedGroup(bin, host, "session.end")];
   }
@@ -518,9 +542,16 @@ function stripManagedNestedConfig(
     "SessionEnd",
   ] as const) {
     if (!(key in hooks)) continue;
-    const filtered = eventArray(hooks, key, path).filter(
-      (entry) => !isManagedNestedGroupForHost(entry, host),
-    );
+    const filtered =
+      key === "SessionEnd"
+        ? eventArray(hooks, key, path)
+            .map((entry) =>
+              withoutManagedHooks(entry, (commandText) =>
+                isManagedNestedGroupForHost({ hooks: [{ command: commandText }] }, host),
+              ),
+            )
+            .filter((entry) => entry !== null)
+        : eventArray(hooks, key, path).filter((entry) => !isManagedNestedGroupForHost(entry, host));
     if (filtered.length > 0) nextHooks[key] = filtered;
   }
   if (Object.keys(nextHooks).length === 0) {
