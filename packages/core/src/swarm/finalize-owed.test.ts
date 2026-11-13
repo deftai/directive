@@ -2108,3 +2108,272 @@ describe("finalize-owed claim batch (#6008)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 });
+
+describe("finalize-owed issue-less pr-only rows (#680 P2)", () => {
+  function writeIssueLessBrief(
+    root: string,
+    rel: string,
+    opts: { productPullRequest?: number; status?: string; references?: unknown[] } = {},
+  ): string {
+    const full = join(root, ...rel.split("/"));
+    mkdirSync(join(full, ".."), { recursive: true });
+    writeFileSync(
+      full,
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          title: "issue-less story",
+          status: opts.status ?? "running",
+          references: opts.references ?? [],
+          ...(opts.productPullRequest !== undefined
+            ? { metadata: { productPullRequest: opts.productPullRequest } }
+            : {}),
+        },
+      }),
+      "utf8",
+    );
+    return readFileSync(full, "utf8");
+  }
+
+  function tipGit(tipBlobs: Map<string, string>) {
+    return (_projectRoot: string, args: readonly string[]) => {
+      if (args[0] === "fetch") {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      if (args[0] === "rev-parse") {
+        return {
+          code: 0,
+          stdout: args[1]?.includes("^{tree}") ? "TREE\n" : "TIPSHA\n",
+          stderr: "",
+        };
+      }
+      if (args.includes("commit-tree")) {
+        return { code: 0, stdout: "CLAIMSHA\n", stderr: "" };
+      }
+      if (args[0] === "ls-tree") {
+        const dash = args.indexOf("--");
+        const prefixes = dash >= 0 ? args.slice(dash + 1) : [];
+        const matched = [...tipBlobs.keys()].filter((p) =>
+          prefixes.some((pref) => p.startsWith(String(pref))),
+        );
+        return { code: 0, stdout: matched.join("\n"), stderr: "" };
+      }
+      if (args[0] === "show") {
+        const spec = String(args[1] ?? "");
+        const rel = spec.includes(":") ? spec.slice(spec.indexOf(":") + 1) : "";
+        const body = tipBlobs.get(rel);
+        return body !== undefined
+          ? { code: 0, stdout: body, stderr: "" }
+          : { code: 1, stdout: "", stderr: "missing" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+  }
+
+  function forge(ghCalls: string[]) {
+    return (cmd: readonly string[]) => {
+      const joined = cmd.join(" ");
+      ghCalls.push(joined);
+      if (joined.includes("/pulls?")) {
+        return { returncode: 0, stdout: "[]", stderr: "" };
+      }
+      if (joined.includes("/pulls/")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            merged_at: "2026-11-12T00:00:00Z",
+            merge_commit_sha: "abc",
+            base: { ref: "master" },
+          }),
+          stderr: "",
+        };
+      }
+      if (joined.includes("/issues/")) {
+        return { returncode: 0, stdout: JSON.stringify({ state: "open", labels: [] }), stderr: "" };
+      }
+      return { returncode: 1, stdout: "", stderr: "unexpected" };
+    };
+  }
+
+  function okFinalizeResult(root: string, pr: number) {
+    return {
+      project_root: root,
+      dry_run: false,
+      no_commit: false,
+      pr_numbers: [pr],
+      story_paths: [],
+      closing_issues: [],
+      sweep: null,
+      commit_sha: null,
+      branch: null,
+      pr_url: null,
+      delivery_branch: "master",
+      sweep_base: "master",
+      delivery_errors: [],
+      errors: [],
+      warnings: [],
+      ok: true,
+      pending: null,
+    };
+  }
+
+  it("admits a stamped issue-less brief as owed with a null issue and no origin verify", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-680-admit-"));
+    const rel = "xbrief/active/issue-less.xbrief.json";
+    const body = writeIssueLessBrief(root, rel, { productPullRequest: 6240 });
+    const ghCalls: string[] = [];
+    const inventory = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      runGit: tipGit(new Map([[rel, body]])),
+      runGh: forge(ghCalls),
+    });
+    expect(inventory.stories).toHaveLength(1);
+    const story = inventory.stories[0];
+    expect(story?.issue).toBeNull();
+    expect(story?.productPr).toBe(6240);
+    expect(story?.state).toBe("owed");
+    expect(story?.blocks).toBe(true);
+    expect(story?.detail).toContain("pr-only identity");
+    // Origin-issue verify is skipped: no issues/<N> read at all.
+    expect(ghCalls.some((c) => c.includes("/issues/"))).toBe(false);
+    expect(formatFinalizeOwedInventoryLines(inventory).join("\n")).toContain("pr #6240 owed");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("does not list a completed issue-less brief: no origin to close", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-680-completed-"));
+    const rel = "xbrief/completed/issue-less.xbrief.json";
+    const body = writeIssueLessBrief(root, rel, { productPullRequest: 6240, status: "done" });
+    const ghCalls: string[] = [];
+    const inventory = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      runGit: tipGit(new Map([[rel, body]])),
+      runGh: forge(ghCalls),
+    });
+    expect(inventory.stories).toEqual([]);
+    expect(ghCalls.some((c) => c.includes("/issues/"))).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("keeps a foreign-repo issue ref unverified, with a null issue (never #0)", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-680-foreign-"));
+    const rel = "xbrief/active/foreign.xbrief.json";
+    const body = writeIssueLessBrief(root, rel, {
+      productPullRequest: 6240,
+      references: [
+        { uri: "https://github.com/other/repo/issues/12", type: "x-xbrief/github-issue" },
+      ],
+    });
+    const inventory = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      runGit: tipGit(new Map([[rel, body]])),
+      runGh: forge([]),
+    });
+    expect(inventory.stories.map((s) => [s.issue, s.state])).toEqual([[null, "unverified"]]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("finalizes an issue-less row by path and reports it by product PR", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-680-run-"));
+    const rel = "xbrief/active/issue-less.xbrief.json";
+    const body = writeIssueLessBrief(root, rel, { productPullRequest: 6240 });
+    const seen: { issue: number | null; relPaths: readonly string[]; productPr: number }[] = [];
+    const result = finalizeOwed({
+      projectRoot: root,
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      runGit: tipGit(new Map([[rel, body]])),
+      runGh: forge([]),
+      runFinalize: (input) => {
+        seen.push({ issue: input.issue, relPaths: input.relPaths, productPr: input.productPr });
+        return { exitCode: EXIT_OK, stdout: "ok", result: okFinalizeResult(root, 6240) };
+      },
+    });
+    expect(seen).toEqual([{ issue: null, relPaths: [rel], productPr: 6240 }]);
+    expect(result.result.finalized).toEqual([]);
+    expect(result.result.finalized_prs).toEqual([6240]);
+    expect(result.exitCode).toBe(EXIT_OK);
+    expect(result.stdout).toContain("Finalized: pr #6240");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("finalizes issue-less rows that share a product PR in one call under one claim", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-680-group-"));
+    const relA = "xbrief/active/issue-less-a.xbrief.json";
+    const relB = "xbrief/active/issue-less-b.xbrief.json";
+    const bodyA = writeIssueLessBrief(root, relA, { productPullRequest: 6240 });
+    const bodyB = writeIssueLessBrief(root, relB, { productPullRequest: 6240 });
+    const seen: (readonly string[])[] = [];
+    const result = finalizeOwed({
+      projectRoot: root,
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      runGit: tipGit(
+        new Map([
+          [relA, bodyA],
+          [relB, bodyB],
+        ]),
+      ),
+      runGh: forge([]),
+      runFinalize: (input) => {
+        seen.push(input.relPaths);
+        return { exitCode: EXIT_OK, stdout: "ok", result: okFinalizeResult(root, 6240) };
+      },
+    });
+    expect(seen).toEqual([[relA, relB]]);
+    expect(result.result.finalized_prs).toEqual([6240]);
+    expect(result.result.warnings.some((w) => w.includes("in flight"))).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("keeps a stamped issue-less brief outside active/ unverified: it cannot complete", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-680-pending-"));
+    const rel = "xbrief/pending/issue-less.xbrief.json";
+    const body = writeIssueLessBrief(root, rel, { productPullRequest: 6240, status: "pending" });
+    const inventory = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      runGit: tipGit(new Map([[rel, body]])),
+      runGh: forge([]),
+    });
+    expect(inventory.stories.map((s) => [s.issue, s.state, s.blocks])).toEqual([
+      [null, "unverified", false],
+    ]);
+    expect(inventory.stories[0]?.detail).toContain("not in active/");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("leaves an owed story pending when finalize refuses its own mark (#680 P3)", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-680-refused-"));
+    const rel = "xbrief/active/story-a.xbrief.json";
+    writeTipBrief(root, rel, 4919, { productPullRequest: 5100 });
+    const result = finalizeOwed({
+      projectRoot: root,
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      runGit: tipGit(new Map([[rel, readFileSync(join(root, rel), "utf8")]])),
+      runGh: forge([]),
+      runFinalize: () => ({
+        exitCode: EXIT_INCOMPLETE,
+        stdout: "incomplete",
+        result: {
+          ...okFinalizeResult(root, 5100),
+          ok: false,
+          refused_marks: [{ issue: 4919, pr: 5100, detail: "#4919: refused" }],
+        },
+      }),
+    });
+    expect(result.result.finalized).toEqual([]);
+    expect(result.result.skipped).toContain(4919);
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.result.warnings.some((w) => w.includes("story left pending"))).toBe(true);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
