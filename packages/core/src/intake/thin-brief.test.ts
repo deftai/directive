@@ -52,7 +52,7 @@ function laneGit(lines: number): SmallChangeLaneGitRunner {
       return { status: 0, stdout: `${lines}\t0\tpackages/core/src/a.ts\0` };
     }
     if (joined.startsWith("ls-files")) return { status: 0, stdout: "" };
-    if (joined.startsWith("diff -U0")) {
+    if (joined.includes("diff -U0")) {
       return {
         status: 0,
         stdout: "diff --git a/packages/core/src/a.ts b/packages/core/src/a.ts\n+const x = 1;\n",

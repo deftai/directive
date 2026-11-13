@@ -25,6 +25,7 @@ import {
   maybeEmitAcceptanceStampFromChange,
 } from "../intake/clause-derivation.js";
 import { evaluateIssuePlanIdAdmission, planIdIdentityLockPath } from "../intake/issue-ingest.js";
+import { checkCommandBackedAcceptance } from "../intake/thin-brief.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { stampExistingEnvelopes } from "../lifecycle/brief-envelope.js";
 import { evaluateCompletedPlanConsistency } from "../lifecycle/completed-consistency.js";
@@ -679,7 +680,24 @@ export function runTransition(
     // a clauseless acceptance.
     const zeroClauseRefusal = zeroClauseDerivationRefusal(derivation, planObj.acceptance);
     if (zeroClauseRefusal !== null) {
-      return { ok: false, message: zeroClauseRefusal };
+      // #6204: a small-change lane brief carries stated acceptance commands and
+      // no clauses by design. It may promote / activate only while the lane
+      // admits it (rapid, bound holds, public surface none).
+      const lane = evaluateSmallChangeLaneGate(planObj, {
+        ...options.smallChangeLane,
+        projectRoot,
+        gate: act === "promote" ? "scope:promote" : "scope:activate",
+        briefPath: resolvedPath,
+      });
+      const laneAdmitsThin =
+        lane.applies &&
+        lane.ok &&
+        lane.verdict?.kind === "admitted" &&
+        checkCommandBackedAcceptance(planObj.acceptance).ok;
+      if (!laneAdmitsThin) {
+        const laneNote = lane.applies && !lane.ok ? `\n${lane.message}` : "";
+        return { ok: false, message: `${zeroClauseRefusal}${laneNote}` };
+      }
     }
     if (derivation.notice.length > 0) {
       derivationNotice = derivation.notice;
@@ -762,6 +780,7 @@ export function runTransition(
       deliveredCommit: laneDeliveredCommit,
       projectRoot,
       gate: "scope:complete",
+      briefPath: resolvedPath,
     });
     if (!lane.ok) {
       return { ok: false, message: lane.message };

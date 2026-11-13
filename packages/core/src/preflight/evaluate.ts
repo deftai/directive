@@ -314,6 +314,7 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
     ...options.smallChangeLane,
     projectRoot: resolveProjectRootFromBrief(path, options.projectRoot),
     gate: "xbrief:preflight",
+    briefPath: path,
   });
   if (!lane.ok) {
     return outcome(1, lane.message, { parentLineage: lineage });

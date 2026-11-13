@@ -24,8 +24,11 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { basename, extname, join } from "node:path";
+import type * as TS from "typescript";
+import { formatBriefJson } from "../scope/brief-io.js";
 import { isTestOrFixturePath } from "../scope-provenance/base-fence.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { isRecognizedTestBasename } from "../test-boundary/evaluate.js";
@@ -326,21 +329,131 @@ function parseNumstatZ(stdout: string): DiffFileStat[] {
   return out;
 }
 
-/** Map each file in a `-U0` diff to its added/removed lines. */
-function parseUnifiedDiffLines(stdout: string): Map<string, string[]> {
-  const byFile = new Map<string, string[]>();
-  let current: string[] | null = null;
+/** One code file's changed lines, with base / head line numbers and contents. */
+interface CodeFileChange {
+  readonly lines: string[];
+  /** Base-side (old) line numbers removed or changed. */
+  readonly removed: number[];
+  /** Head-side (new) line numbers added or changed. */
+  readonly added: number[];
+  baseText: string | null;
+  headText: string | null;
+}
+
+const HUNK_HEADER = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/;
+
+function lineRange(start: number, count: number): number[] {
+  const out: number[] = [];
+  for (let n = start; n < start + count; n += 1) out.push(n);
+  return out;
+}
+
+/** Map each file in a `-U0` diff to its changed lines and hunk line numbers. */
+function parseUnifiedDiff(stdout: string): Map<string, CodeFileChange> {
+  const byFile = new Map<string, CodeFileChange>();
+  let current: CodeFileChange | null = null;
   for (const line of stdout.split("\n")) {
     if (line.startsWith("diff --git ")) {
       const match = / b\/(.+)$/.exec(line);
-      current = [];
+      current = { lines: [], removed: [], added: [], baseText: null, headText: null };
       if (match?.[1] !== undefined) byFile.set(match[1], current);
       continue;
     }
     if (current === null || line.startsWith("+++") || line.startsWith("---")) continue;
-    if (line.startsWith("+") || line.startsWith("-")) current.push(line);
+    const hunk = HUNK_HEADER.exec(line);
+    if (hunk !== null) {
+      current.removed.push(...lineRange(Number(hunk[1]), Number(hunk[2] ?? "1")));
+      current.added.push(...lineRange(Number(hunk[3]), Number(hunk[4] ?? "1")));
+      continue;
+    }
+    if (line.startsWith("+") || line.startsWith("-")) current.lines.push(line);
   }
   return byFile;
+}
+
+const requireParser = createRequire(import.meta.url);
+let cachedTs: typeof TS | null | undefined;
+
+/** Engine-relative TypeScript parser, or null when it cannot load. */
+function loadTypeScript(): typeof TS | null {
+  if (cachedTs !== undefined) return cachedTs;
+  try {
+    const mod = requireParser("typescript") as typeof TS | { default?: typeof TS };
+    const ts = "createSourceFile" in mod ? mod : mod.default;
+    cachedTs = ts !== undefined && typeof ts.createSourceFile === "function" ? ts : null;
+  } catch {
+    cachedTs = null;
+  }
+  return cachedTs;
+}
+
+function scriptKindFor(ts: typeof TS, path: string): TS.ScriptKind {
+  const ext = extname(path).toLowerCase();
+  if (ext === ".tsx") return ts.ScriptKind.TSX;
+  if (ext === ".jsx") return ts.ScriptKind.JSX;
+  if (ext === ".js" || ext === ".mjs" || ext === ".cjs") return ts.ScriptKind.JS;
+  return ts.ScriptKind.TS;
+}
+
+function isExportSurfaceStatement(ts: typeof TS, stmt: TS.Statement): boolean {
+  if (ts.isExportDeclaration(stmt) || ts.isExportAssignment(stmt)) return true;
+  if (
+    ts.canHaveModifiers(stmt) &&
+    (ts.getModifiers(stmt) ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword)
+  ) {
+    return true;
+  }
+  if (ts.isExpressionStatement(stmt) && ts.isBinaryExpression(stmt.expression)) {
+    const left = stmt.expression.left.getText();
+    return left.startsWith("module.exports") || left.startsWith("exports.");
+  }
+  return false;
+}
+
+function functionBlockBody(ts: typeof TS, node: TS.Node): TS.Block | null {
+  if (
+    ts.isFunctionDeclaration(node) ||
+    ts.isMethodDeclaration(node) ||
+    ts.isConstructorDeclaration(node) ||
+    ts.isGetAccessorDeclaration(node) ||
+    ts.isSetAccessorDeclaration(node) ||
+    ts.isFunctionExpression(node) ||
+    ts.isArrowFunction(node)
+  ) {
+    return node.body !== undefined && ts.isBlock(node.body) ? node.body : null;
+  }
+  return null;
+}
+
+/**
+ * 1-based lines inside top-level export statements (export lists, exported
+ * declarations, CommonJS export assignments), minus the inner lines of
+ * function bodies. A changed line in this set changes public surface.
+ */
+function exportSurfaceLines(ts: typeof TS, text: string, path: string): Set<number> {
+  const sf = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, scriptKindFor(ts, path));
+  const lineOf = (pos: number): number => sf.getLineAndCharacterOfPosition(pos).line + 1;
+  const out = new Set<number>();
+  for (const stmt of sf.statements) {
+    if (!isExportSurfaceStatement(ts, stmt)) continue;
+    const excluded = new Set<number>();
+    const visit = (node: TS.Node): void => {
+      const body = functionBlockBody(ts, node);
+      if (body !== null) {
+        const open = lineOf(body.getStart(sf));
+        const close = lineOf(body.getEnd());
+        for (let n = open + 1; n < close; n += 1) excluded.add(n);
+        return;
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(stmt);
+    const last = lineOf(stmt.getEnd());
+    for (let n = lineOf(stmt.getStart(sf)); n <= last; n += 1) {
+      if (!excluded.has(n)) out.add(n);
+    }
+  }
+  return out;
 }
 
 function countFileLines(text: string): number {
@@ -356,7 +469,7 @@ interface PublicSurfaceResult {
 
 function determinePublicSurface(
   productionFiles: readonly string[],
-  changedLinesByFile: ReadonlyMap<string, readonly string[]>,
+  changesByFile: ReadonlyMap<string, CodeFileChange>,
 ): PublicSurfaceResult {
   for (const path of productionFiles) {
     if (classifyPublicSurfacePath(path) === "surface") {
@@ -372,12 +485,34 @@ function determinePublicSurface(
       };
     }
     if (kind !== "code") continue;
-    const lines = changedLinesByFile.get(path);
-    if (lines === undefined) {
+    const change = changesByFile.get(path);
+    if (change === undefined) {
       return { determination: "unknown", reason: `${path} diff lines could not be read` };
     }
-    if (lines.some((line) => EXPORT_LINE.test(line))) {
+    if (change.lines.some((line) => EXPORT_LINE.test(line))) {
       return { determination: "changed", reason: `${path} adds or removes an export` };
+    }
+    const sides: Array<[readonly number[], string | null, string]> = [
+      [change.removed, change.baseText, "base"],
+      [change.added, change.headText, "head"],
+    ];
+    for (const [lineNos, text, side] of sides) {
+      if (lineNos.length === 0) continue;
+      const ts = loadTypeScript();
+      if (ts === null) {
+        return { determination: "unknown", reason: "the TypeScript parser could not be loaded" };
+      }
+      if (text === null) {
+        return { determination: "unknown", reason: `${path} ${side} contents could not be read` };
+      }
+      const surface = exportSurfaceLines(ts, text, path);
+      const hit = lineNos.find((n) => surface.has(n));
+      if (hit !== undefined) {
+        return {
+          determination: "changed",
+          reason: `${path} changes an export statement (${side} line ${hit})`,
+        };
+      }
     }
   }
   return { determination: "none", reason: "no manifest, entry, task or export change" };
@@ -465,27 +600,54 @@ export function measureSmallChangeLaneDiff(
   const trackedCode = productionFiles.filter(
     (p) => classifyPublicSurfacePath(p) === "code" && !untrackedText.has(p),
   );
-  const changedLinesByFile = new Map<string, readonly string[]>();
+  const changesByFile = new Map<string, CodeFileChange>();
   if (trackedCode.length > 0) {
     const diff = run(
-      ["diff", "-U0", "--no-color", "--no-renames", ...range, "--", ...trackedCode],
+      [
+        "-c",
+        "core.quotePath=false",
+        "diff",
+        "-U0",
+        "--no-color",
+        "--no-renames",
+        ...range,
+        "--",
+        ...trackedCode,
+      ],
       cwd,
     );
     if (diff.status !== 0) {
       return { ok: false, reason: "git diff -U0 failed for production code files" };
     }
-    for (const [path, lines] of parseUnifiedDiffLines(diff.stdout)) {
-      changedLinesByFile.set(path, lines);
+    for (const [path, change] of parseUnifiedDiff(diff.stdout)) {
+      if (change.removed.length > 0) {
+        const shown = run(["show", `${range[0]}:${path}`], cwd);
+        change.baseText = shown.status === 0 ? shown.stdout : null;
+      }
+      if (change.added.length > 0) {
+        if (source === "delivered") {
+          const shown = run(["show", `${delivered}:${path}`], cwd);
+          change.headText = shown.status === 0 ? shown.stdout : null;
+        } else {
+          const abs = join(cwd, path);
+          change.headText = existsSync(abs) ? readFileSync(abs, "utf8") : null;
+        }
+      }
+      changesByFile.set(path, change);
     }
   }
   for (const [path, text] of untrackedText) {
-    changedLinesByFile.set(
-      path,
-      text.split("\n").map((line) => `+${line}`),
-    );
+    const lines = text.split("\n");
+    changesByFile.set(path, {
+      lines: lines.map((line) => `+${line}`),
+      removed: [],
+      added: lineRange(1, lines.length),
+      baseText: null,
+      headText: text,
+    });
   }
 
-  const surface = determinePublicSurface(productionFiles, changedLinesByFile);
+  const surface = determinePublicSurface(productionFiles, changesByFile);
   return {
     ok: true,
     measurement: {
@@ -503,11 +665,21 @@ export function measureSmallChangeLaneDiff(
 // Lane marker + gate
 // ---------------------------------------------------------------------------
 
-export type SmallChangeLaneState = "admitted" | "escalated";
+/**
+ * admitted → in the lane, bound rechecked at each gate.
+ * crossed → the bound was crossed after admit; refused until lane exit,
+ *   even if the diff later shrinks.
+ * escalated → converted to the full shape; the existing gates govern.
+ */
+export type SmallChangeLaneState = "admitted" | "crossed" | "escalated";
+
+const SMALL_CHANGE_LANE_STATES: readonly string[] = ["admitted", "crossed", "escalated"];
 
 export interface SmallChangeLaneMarker {
   readonly state: SmallChangeLaneState;
   readonly admitBase: string;
+  /** Why the bound was crossed (state `crossed`). */
+  readonly crossedReason?: string;
 }
 
 export type ReadSmallChangeLaneMarkerResult =
@@ -543,18 +715,43 @@ export function readSmallChangeLaneMarker(plan: unknown): ReadSmallChangeLaneMar
       reason: `lane marker schema is not ${SMALL_CHANGE_LANE_SCHEMA}`,
     };
   }
-  if (rec.state !== "admitted" && rec.state !== "escalated") {
+  if (typeof rec.state !== "string" || !SMALL_CHANGE_LANE_STATES.includes(rec.state)) {
     return {
       present: true,
       ok: false,
-      reason: 'lane marker state must be "admitted" or "escalated"',
+      reason: 'lane marker state must be "admitted", "crossed" or "escalated"',
     };
   }
   const admitBase = typeof rec.admitBase === "string" ? rec.admitBase.trim() : "";
   if (admitBase.length === 0) {
     return { present: true, ok: false, reason: "lane marker has no admitBase" };
   }
-  return { present: true, ok: true, marker: { state: rec.state, admitBase } };
+  const state = rec.state as SmallChangeLaneState;
+  const crossedReason = typeof rec.crossedReason === "string" ? rec.crossedReason : undefined;
+  return {
+    present: true,
+    ok: true,
+    marker:
+      crossedReason !== undefined ? { state, admitBase, crossedReason } : { state, admitBase },
+  };
+}
+
+/**
+ * Persist a crossing on the brief file so later retries refuse even if the
+ * diff shrinks back under the bound. Returns false when the write fails.
+ */
+export function recordSmallChangeLaneCrossing(briefPath: string, reason: string): boolean {
+  try {
+    const data = JSON.parse(readFileSync(briefPath, "utf8")) as unknown;
+    const meta = asRecord(asRecord(asRecord(data)?.plan)?.metadata);
+    const marker = asRecord(meta?.[SMALL_CHANGE_LANE_MARKER_KEY]);
+    if (meta === null || marker === null) return false;
+    meta[SMALL_CHANGE_LANE_MARKER_KEY] = { ...marker, state: "crossed", crossedReason: reason };
+    writeFileSync(briefPath, formatBriefJson(data), "utf8");
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Full brief representation: at least one narrative with text and at least one plan item. */
@@ -569,7 +766,12 @@ export function isFullBriefShape(plan: unknown): boolean {
   return hasNarrative && hasItems;
 }
 
-export type SmallChangeLaneGateName = "xbrief:preflight" | "verify:ac" | "scope:complete";
+export type SmallChangeLaneGateName =
+  | "scope:promote"
+  | "scope:activate"
+  | "xbrief:preflight"
+  | "verify:ac"
+  | "scope:complete";
 
 /** Test and caller overrides. Production gates pass only `deliveredCommit`. */
 export interface SmallChangeLaneGateOverrides {
@@ -582,7 +784,15 @@ export interface SmallChangeLaneGateOverrides {
 export interface SmallChangeLaneGateOptions extends SmallChangeLaneGateOverrides {
   readonly projectRoot: string;
   readonly gate: SmallChangeLaneGateName;
+  /** Brief file; when set, a crossing is recorded on it (state `crossed`). */
+  readonly briefPath?: string | null;
 }
+
+/** Verdicts that mean the change outgrew the lane after admit. */
+const CROSSING_KINDS: ReadonlySet<SmallChangeLaneVerdictKind> = new Set([
+  "bound-crossed",
+  "public-surface-changed",
+]);
 
 export interface SmallChangeLaneGateResult {
   /** False when the brief is not in the lane (no marker); the gate is a no-op. */
@@ -637,6 +847,14 @@ export function evaluateSmallChangeLaneGate(
       null,
     );
   }
+  if (read.marker.state === "crossed") {
+    const why = read.marker.crossedReason ?? "bound crossed";
+    return refuse(
+      options.gate,
+      `the bound was crossed after admit (${why}); the scope stays refused until lane exit`,
+      null,
+    );
+  }
   const depth = options.depth ?? resolveCeremonyDial(options.projectRoot).depth;
   const boundRead =
     options.bound !== undefined
@@ -658,6 +876,13 @@ export function evaluateSmallChangeLaneGate(
     measure,
   });
   if (!laneVerdict.ok) {
+    if (CROSSING_KINDS.has(laneVerdict.kind) && options.briefPath) {
+      const recorded = recordSmallChangeLaneCrossing(options.briefPath, laneVerdict.reason);
+      const note = recorded
+        ? "recorded on the brief as crossed"
+        : "could not record the crossing on the brief";
+      return refuse(options.gate, `${laneVerdict.reason}; ${note}`, laneVerdict);
+    }
     return refuse(options.gate, laneVerdict.reason, laneVerdict);
   }
   return {

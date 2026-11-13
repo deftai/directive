@@ -667,6 +667,10 @@ export function evaluateVerifyAcFromPlan(
     ...options.smallChangeLane,
     projectRoot: projectRootEarly,
     gate: "verify:ac",
+    briefPath:
+      typeof options.xbriefPath === "string" && options.xbriefPath.trim().length > 0
+        ? resolve(projectRootEarly, options.xbriefPath.trim())
+        : null,
   });
   if (!lane.ok) {
     const laneAcceptance = readPlanAcceptance(planInput);

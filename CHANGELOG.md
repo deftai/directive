@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Small-change lane under the rapid ceremony dial: a thin command-backed brief that `xbrief:preflight`, `verify:ac` and `scope:complete` admit while a measured bound holds (`plan.policy.ceremonyDial.smallChangeLane`), and a lane exit to the full shape when the bound is crossed. Refs #6204.
+- Small-change lane under the rapid ceremony dial: a thin command-backed brief that the lifecycle gates admit while an operator-set size bound holds, and a lane exit to the full shape once the bound is crossed. Refs #6204.
 
 ### Changed
 - chore(dogfood): pin Directive to 0.129.7.

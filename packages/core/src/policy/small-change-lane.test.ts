@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -439,5 +439,104 @@ describe("evaluateSmallChangeLaneGate (#6204 recheck + lane exit)", () => {
     write(root, "src/a.ts", "const a = 1;\nconst b = 3;\n");
     const r = evaluateSmallChangeLaneGate(lanePlan(base), { projectRoot: root, gate: "verify:ac" });
     expect(r).toMatchObject({ applies: true, ok: true });
+  });
+});
+
+describe("export-statement spans (Greptile P1 on #6240)", () => {
+  function repoWith(path: string, text: string): { root: string; base: string } {
+    const { root } = initRepo();
+    write(root, path, text);
+    git(root, "add", ".");
+    git(root, "commit", "-q", "-m", "seed");
+    return { root, base: git(root, "rev-parse", "HEAD") };
+  }
+
+  it("removing a name from a multi-line export list changes public surface", () => {
+    const { root, base } = repoWith(
+      "src/lib.ts",
+      'export {\n  alpha,\n  beta,\n} from "./impl.js";\nconst keep = 1;\n',
+    );
+    write(root, "src/lib.ts", 'export {\n  alpha,\n} from "./impl.js";\nconst keep = 1;\n');
+    const r = measureSmallChangeLaneDiff({ projectRoot: root, admitBase: base });
+    expect(r.ok && r.measurement.publicSurface).toBe("changed");
+    expect(r.ok && r.measurement.publicSurfaceReason).toContain("export statement");
+  });
+
+  it("changing a parameter on a multi-line exported signature changes public surface", () => {
+    const { root, base } = repoWith(
+      "src/fn.ts",
+      "export function run(\n  a: number,\n): number {\n  return a;\n}\n",
+    );
+    write(root, "src/fn.ts", "export function run(\n  a: string,\n): number {\n  return a;\n}\n");
+    const r = measureSmallChangeLaneDiff({ projectRoot: root, admitBase: base });
+    expect(r.ok && r.measurement.publicSurface).toBe("changed");
+  });
+
+  it("changing only an exported function body keeps public surface none", () => {
+    const { root, base } = repoWith(
+      "src/fn.ts",
+      "export function run(a: number): number {\n  const b = a + 1;\n  return b;\n}\n",
+    );
+    write(
+      root,
+      "src/fn.ts",
+      "export function run(a: number): number {\n  const b = a + 2;\n  return b;\n}\n",
+    );
+    const r = measureSmallChangeLaneDiff({ projectRoot: root, admitBase: base });
+    expect(r.ok && r.measurement.publicSurface).toBe("none");
+  });
+});
+
+describe("crossing persistence (Greptile P1 on #6240)", () => {
+  it("records a crossing on the brief and refuses a later retry under the bound", () => {
+    const { root, base } = initRepo();
+    const briefPath = join(root, "xbrief", "active", "thin.xbrief.json");
+    write(
+      root,
+      "xbrief/active/thin.xbrief.json",
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: lanePlan(base) }),
+    );
+    write(root, "src/a.ts", `${"const x = 1;\n".repeat(20)}`);
+    const crossed = evaluateSmallChangeLaneGate(lanePlan(base), {
+      projectRoot: root,
+      gate: "verify:ac",
+      depth: "rapid",
+      bound: BOUND,
+      briefPath,
+    });
+    expect(crossed.ok).toBe(false);
+    expect(crossed.message).toContain("recorded on the brief as crossed");
+    const onDisk = JSON.parse(readFileSync(briefPath, "utf8")) as {
+      plan: Record<string, unknown>;
+    };
+    expect(readSmallChangeLaneMarker(onDisk.plan)).toMatchObject({
+      ok: true,
+      marker: { state: "crossed", admitBase: base },
+    });
+
+    // Shrink the diff back under the bound: still refused until lane exit.
+    git(root, "checkout", "-q", "--", "src/a.ts");
+    const retry = evaluateSmallChangeLaneGate(onDisk.plan, {
+      projectRoot: root,
+      gate: "verify:ac",
+      depth: "rapid",
+      bound: BOUND,
+      briefPath,
+    });
+    expect(retry.ok).toBe(false);
+    expect(retry.message).toContain("crossed after admit");
+  });
+
+  it("reports when the crossing cannot be recorded", () => {
+    const { root, base } = initRepo();
+    write(root, "src/a.ts", `${"const x = 1;\n".repeat(20)}`);
+    const r = evaluateSmallChangeLaneGate(lanePlan(base), {
+      projectRoot: root,
+      gate: "verify:ac",
+      depth: "rapid",
+      bound: BOUND,
+      briefPath: join(root, "missing.xbrief.json"),
+    });
+    expect(r.message).toContain("could not record the crossing");
   });
 });

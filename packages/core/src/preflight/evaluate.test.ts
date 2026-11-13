@@ -699,7 +699,7 @@ describe("small-change lane recheck at preflight (#6204)", () => {
       if (joined.startsWith("diff --numstat"))
         return { status: 0, stdout: `${lines}\t0\tsrc/a.ts\0` };
       if (joined.startsWith("ls-files")) return { status: 0, stdout: "" };
-      if (joined.startsWith("diff -U0")) {
+      if (joined.includes("diff -U0")) {
         return { status: 0, stdout: "diff --git a/src/a.ts b/src/a.ts\n+const x = 1;\n" };
       }
       return { status: 1, stdout: "" };

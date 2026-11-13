@@ -2749,10 +2749,11 @@ describe("scope:complete admits and rechecks the small-change lane thin shape (#
       laneGitCalls.push(joined);
       if (joined.startsWith("rev-parse --show-toplevel")) return { status: 0, stdout: `${root}\n` };
       if (joined.startsWith("rev-parse --verify")) return { status: 0, stdout: "parent0\n" };
+      if (joined.startsWith("ls-files")) return { status: 0, stdout: "" };
       if (joined.startsWith("diff --numstat")) {
         return { status: 0, stdout: `${lines}\t0\tpackages/core/src/x.ts\0` };
       }
-      if (joined.startsWith("diff -U0")) {
+      if (joined.includes("diff -U0")) {
         return {
           status: 0,
           stdout: "diff --git a/packages/core/src/x.ts b/packages/core/src/x.ts\n+const x = 1;\n",
@@ -2762,7 +2763,7 @@ describe("scope:complete admits and rechecks the small-change lane thin shape (#
     };
   }
 
-  function writeThin(): string {
+  function writeThin(folder = "active", status = "running"): string {
     root = makeRepo();
     writeFileSync(
       join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
@@ -2771,12 +2772,12 @@ describe("scope:complete admits and rechecks the small-change lane thin shape (#
       }),
       "utf8",
     );
-    const path = join(root, "xbrief", "active", "2026-11-12-thin.xbrief.json");
+    const path = join(root, "xbrief", folder, "2026-11-12-thin.xbrief.json");
     writeFile(path, {
       xBRIEFInfo: { version: "0.8" },
       plan: {
         title: "fix x",
-        status: "running",
+        status,
         items: [],
         references: [
           { uri: "https://github.com/deftai/directive/issues/6204", type: "x-xbrief/github-issue" },
@@ -2874,5 +2875,39 @@ describe("scope:complete admits and rechecks the small-change lane thin shape (#
       expect(result.message).toContain("escalate-to-full-shape");
     }
     expect(existsSync(path)).toBe(true);
+  });
+  it("promotes and activates a thin brief while the lane admits it (Greptile P1 on #6240)", () => {
+    const proposed = writeThin("proposed", "proposed");
+    const lane = {
+      smallChangeLane: {
+        depth: "rapid" as const,
+        bound: { maxProductionFiles: 1, maxChangedLines: 5 },
+        runGit: laneGit(3),
+      },
+    };
+    const promoted = runTransition("promote", proposed, new Date("2026-11-12T12:00:00Z"), lane);
+    expect(promoted.ok, promoted.message).toBe(true);
+    const pending = join(root, "xbrief", "pending", "2026-11-12-thin.xbrief.json");
+    const activated = runTransition("activate", pending, new Date("2026-11-12T12:00:00Z"), lane);
+    expect(activated.ok, activated.message).toBe(true);
+    expect(existsSync(join(root, "xbrief", "active", "2026-11-12-thin.xbrief.json"))).toBe(true);
+  });
+
+  it("refuses to promote a thin brief past the bound and records the crossing", () => {
+    const proposed = writeThin("proposed", "proposed");
+    const result = runTransition("promote", proposed, new Date("2026-11-12T12:00:00Z"), {
+      smallChangeLane: {
+        depth: "rapid" as const,
+        bound: { maxProductionFiles: 1, maxChangedLines: 5 },
+        runGit: laneGit(50),
+      },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("#4768");
+    expect(result.message).toContain("scope:promote refused (#6204)");
+    const onDisk = JSON.parse(readFileSync(proposed, "utf8")) as {
+      plan: { metadata: Record<string, { state: string }> };
+    };
+    expect(onDisk.plan.metadata["x-directive/smallChangeLane"]?.state).toBe("crossed");
   });
 });

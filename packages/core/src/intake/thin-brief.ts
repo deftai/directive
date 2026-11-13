@@ -246,10 +246,11 @@ export function escalateThinBriefToFullShape(brief: unknown): EscalateThinBriefR
   };
   const metadata = {
     ...(asRecord(plan.metadata) ?? {}),
-    [SMALL_CHANGE_LANE_MARKER_KEY]: buildSmallChangeLaneMarker(
-      marker.marker.admitBase,
-      "escalated",
-    ),
+    // Keep crossedReason (if any) as the record of why the scope left the lane.
+    [SMALL_CHANGE_LANE_MARKER_KEY]: {
+      ...(asRecord(asRecord(plan.metadata)?.[SMALL_CHANGE_LANE_MARKER_KEY]) ?? {}),
+      ...buildSmallChangeLaneMarker(marker.marker.admitBase, "escalated"),
+    },
   };
   const nextPlan = { ...plan, narratives, items, metadata };
   return {
