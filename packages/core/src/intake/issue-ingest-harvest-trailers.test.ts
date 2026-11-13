@@ -116,6 +116,27 @@ describe("Bound-remedy slice ends at the closed trailer set (#6265 limb 1)", () 
     expect(harvest.constraintLines).toEqual(["a rejected alternative"]);
   });
 
+  it("ignores a trailer label inside a fenced example and keeps the limbs after it", () => {
+    const body = [
+      "## Bound remedy",
+      "- Teach the lean shape:",
+      "```md",
+      "Reject:",
+      "- sample rejected line",
+      "```",
+      "- a real limb after the sample",
+      "",
+      "Reject:",
+      "- a rejected alternative",
+    ].join("\n");
+    const harvest = extractBoundRemedyHarvest(body);
+    expect(harvest.items.map((item) => item.title)).toContain("a real limb after the sample");
+    expect(harvest.items.map((item) => item.title)).not.toContain("a rejected alternative");
+    expect(harvest.constraintLines).toEqual(["a rejected alternative"]);
+    const changed = body.replace("a real limb after the sample", "a changed real limb");
+    expect(hashBoundRemedyBytes(changed)).not.toBe(hashBoundRemedyBytes(body));
+  });
+
   it("still ends at the next level-2 heading, and a Not proposed heading is a constraint source", () => {
     const body = "## Bound remedy\n- limb\n\n## Not proposed\n- a non-goal\n- another non-goal\n";
     const harvest = extractBoundRemedyHarvest(body);

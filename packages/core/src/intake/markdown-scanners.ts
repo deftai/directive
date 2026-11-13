@@ -280,8 +280,13 @@ export function sliceBoundRemedySection(text: string): string | null {
   }
   const section = sliceAcSection(text, heading);
   let offset = 0;
+  let fenced = false;
   for (const line of section.split("\n")) {
-    if (offset > 0 && isLeanTrailerLine(line)) {
+    const trimmed = line.trimStart();
+    if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
+      // A trailer label inside a fenced example is sample text, not a trailer.
+      fenced = !fenced;
+    } else if (!fenced && offset > 0 && isLeanTrailerLine(line)) {
       return section.slice(0, offset);
     }
     offset += line.length + 1;
