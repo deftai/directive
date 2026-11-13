@@ -1762,7 +1762,7 @@ describe("finalizeCohort", () => {
     expect(result.exitCode).toBe(EXIT_INCOMPLETE);
     expect(result.exitCode).not.toBe(EXIT_GATE_FAILED);
     expect(result.result.refused_marks?.map((m) => m.issue)).toEqual([7000]);
-    expect(result.stdout).toContain("refused deft-story mark");
+    expect(result.stdout).toContain("Story left pending, not stamped or swept");
     // The refused story is never stamped, and its origin is never closed.
     const plan = (
       JSON.parse(readFileSync(refusedPath, "utf8")) as { plan: Record<string, unknown> }
@@ -1771,6 +1771,139 @@ describe("finalizeCohort", () => {
     expect(
       ghCalls.some((c) => c.includes("PATCH") && c.some((p) => p.includes("/issues/7000"))),
     ).toBe(false);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("lands the admitted --stories brief and leaves the refused --stories brief pending (#680 P3)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-680-both-"));
+    writeActiveStory(project, "story-6212", 6212);
+    // Stamped to another PR, so its mark on #6300 is refused.
+    const refusedPath = writeActiveStory(project, "story-7000", 7000, { productPullRequest: 1111 });
+    let committed = false;
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh(
+      {
+        6300: {
+          merged: true,
+          closingIssues: [],
+          body: "Refs #6212\n\ndeft-story: 6212\ndeft-story: 7000\n",
+        },
+        9999: { merged: true, closingIssues: [], baseRef: "master" },
+      },
+      { 6212: "open", 7000: "open" },
+    );
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: ["6212", "7000"],
+      prNumbers: [6300],
+      label: "story-6212",
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      runGh: (cmd) => {
+        ghCalls.push([...cmd]);
+        return runGh(cmd);
+      },
+      runGit: mockRunGit({
+        onCommit: () => {
+          committed = true;
+        },
+        landedCompleted: ["xbrief/completed/story-6212.xbrief.json"],
+      }),
+      fetchPrChangedFiles: productFiles,
+      landProbeLimit: 1,
+      sleep: () => {},
+    });
+    expect(result.result.errors).toEqual([]);
+    expect(committed).toBe(true);
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    // Admitted #6212 swept with #6300 evidence; refused #7000 never transitioned.
+    const completed = vi
+      .mocked(runTransition)
+      .mock.calls.filter((call) => call[0] === "complete")
+      .map((call) => String(call[1]));
+    expect(completed.some((p) => p.endsWith("story-6212.xbrief.json"))).toBe(true);
+    expect(completed.some((p) => p.endsWith("story-7000.xbrief.json"))).toBe(false);
+    expect(vi.mocked(runTransition)).toHaveBeenCalledWith(
+      "complete",
+      expect.stringMatching(/story-6212\.xbrief\.json$/),
+      expect.any(Date),
+      expect.objectContaining({ deliveryEvidence: expect.objectContaining({ prNumber: 6300 }) }),
+    );
+    expect(result.result.story_paths.some((p) => p.endsWith("story-7000.xbrief.json"))).toBe(false);
+    const plan = (
+      JSON.parse(readFileSync(refusedPath, "utf8")) as { plan: Record<string, unknown> }
+    ).plan;
+    expect(productPullRequestFromPlan(plan)).toBe(1111);
+    expect(
+      ghCalls.some((c) => c.includes("PATCH") && c.some((p) => p.includes("/issues/7000"))),
+    ).toBe(false);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("warns only on a stray mark whose issue has no brief (#680 P3)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-680-stray-"));
+    writeActiveStory(project, "story-6212", 6212);
+    const runGh = mockRunGh(
+      {
+        6300: { merged: true, closingIssues: [], body: "deft-story: 6212\ndeft-story: 9999\n" },
+        9999: { merged: true, closingIssues: [], baseRef: "master" },
+      },
+      { 6212: "open" },
+    );
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: ["6212"],
+      prNumbers: [6300],
+      label: "story-6212",
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      runGh,
+      runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-6212.xbrief.json"] }),
+      fetchPrChangedFiles: productFiles,
+      landProbeLimit: 1,
+      sleep: () => {},
+    });
+    expect(result.result.errors).toEqual([]);
+    expect(result.result.refused_marks?.map((m) => m.issue)).toEqual([9999]);
+    expect(result.result.warnings.some((w) => w.includes("#9999") && w.includes("pending"))).toBe(
+      false,
+    );
+    // Only #6212's origin-close (mocked land window) is pending; the stray mark adds nothing.
+    expect(result.result.pending?.issues).toEqual([6212]);
+    expect(result.stdout).toContain("Result: FINALIZE INCOMPLETE -- origin-close pending.");
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("completes an issue-less brief by path with no origin-close (#680 P2)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-680-issueless-"));
+    const storyPath = writeActiveStory(project, "story-pr-only", 1, { productPullRequest: 6300 });
+    const raw = JSON.parse(readFileSync(storyPath, "utf8")) as { plan: Record<string, unknown> };
+    raw.plan.references = [];
+    writeFileSync(storyPath, JSON.stringify(raw), "utf8");
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh({ 6300: { merged: true, closingIssues: [], body: "pr-only work\n" } });
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      prNumbers: [6300],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: (cmd) => {
+        ghCalls.push([...cmd]);
+        return runGh(cmd);
+      },
+      runGit: mockRunGit(),
+    });
+    expect(result.result.errors).toEqual([]);
+    expect(vi.mocked(runTransition)).toHaveBeenCalledWith(
+      "complete",
+      storyPath,
+      expect.any(Date),
+      expect.objectContaining({ deliveryEvidence: expect.objectContaining({ prNumber: 6300 }) }),
+    );
+    expect(ghCalls.some((c) => c.some((p) => /\/issues\/\d+/.test(p)))).toBe(false);
+    expect(result.result.pending?.issues ?? []).toEqual([]);
     rmSync(project, { recursive: true, force: true });
   });
 
@@ -3433,7 +3566,8 @@ describe("unmarked finalize compose from orphan signature (#3791 P3 / #5122)", (
     });
     expect(bound.kind).toBe("refuse");
     if (bound.kind !== "omit") {
-      expect(bound.issue).toBe(0);
+      // No origin issue is null, never a fake #0 (#680 P2).
+      expect(bound.issue).toBeNull();
       expect(bound.productPr).toBe(0);
       expect(bound.detail).toContain("origin missing");
     }

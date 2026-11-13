@@ -149,9 +149,12 @@ export interface FinalizeOwedResult {
   readonly ok: boolean;
 }
 
-/** `#N`, or `pr #P` for an issue-less row (#680 P2). */
+/** `#N`, or `pr #P` for an issue-less row; never `#0` (#680 P2). */
 export function owedStoryLabel(story: Pick<FinalizeOwedStory, "issue" | "productPr">): string {
-  return story.issue === null ? `pr #${String(story.productPr)}` : `#${String(story.issue)}`;
+  if (story.issue !== null) {
+    return `#${String(story.issue)}`;
+  }
+  return story.productPr > 0 ? `pr #${String(story.productPr)}` : "(no issue, no product PR)";
 }
 
 /**
@@ -324,7 +327,8 @@ export type UnmarkedFinalizeBind =
   | { readonly kind: "omit" }
   | {
       readonly kind: "unverified" | "refuse" | "admit";
-      readonly issue: number;
+      /** Null when the plan has no origin issue; never a fake `#0` (#680 P2). */
+      readonly issue: number | null;
       readonly productPr: number;
       readonly detail: string;
     };
@@ -342,7 +346,7 @@ export function bindUnmarkedFinalizePair(input: {
   if (countPlanGithubIssueReferences(input.plan) > 1) {
     return {
       kind: "refuse",
-      issue: input.issueFromPlan ?? 0,
+      issue: input.issueFromPlan,
       productPr: 0,
       detail: "unmarked refuse: multiple github-issue references",
     };
@@ -361,7 +365,7 @@ export function bindUnmarkedFinalizePair(input: {
   if (input.issueFromPlan === null) {
     return {
       kind: "refuse",
-      issue: 0,
+      issue: null,
       productPr: 0,
       detail: "unmarked refuse: origin missing from issueFromPlan",
     };
@@ -376,7 +380,7 @@ export function bindUnmarkedFinalizePair(input: {
   }
   return {
     kind: "admit",
-    issue: input.admit.issue,
+    issue: input.issueFromPlan,
     productPr: input.admit.productPr,
     detail: input.admit.detail,
   };
@@ -821,7 +825,7 @@ export function discoverFinalizeOwed(
           claimRef: finalizeClaimRef(
             null,
             bound.productPr > 0 ? [bound.productPr] : [],
-            bound.issue > 0 ? [String(bound.issue)] : [],
+            bound.issue !== null ? [String(bound.issue)] : [],
           ),
           pairingKey: briefPairingKey(relPath),
           planIdentity: briefPlanIdentity(plan),
@@ -1547,10 +1551,13 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
         finalized.push(story.issue);
       }
       if (outcome.exitCode === EXIT_INCOMPLETE || outcome.result.pending !== null) {
+        const otherRefused = (outcome.result.refused_marks ?? []).map((m) => `#${String(m.issue)}`);
         warnings.push(
-          story.issue === null
-            ? `${label}: finalize incomplete (lifecycle land pending; no origin issue to close); leftover handed off`
-            : `${label}: finalize incomplete (origin-close pending); leftover handed off`,
+          outcome.result.pending === null && otherRefused.length > 0
+            ? `${label}: finalize incomplete (refused deft-story mark pending: ${otherRefused.join(", ")})`
+            : story.issue === null
+              ? `${label}: finalize incomplete (lifecycle land pending; no origin issue to close); leftover handed off`
+              : `${label}: finalize incomplete (origin-close pending); leftover handed off`,
         );
       }
     } else {
@@ -1569,6 +1576,7 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
       (w) =>
         w.includes("origin-close pending") ||
         w.includes("lifecycle land pending") ||
+        w.includes("refused deft-story mark pending") ||
         w.includes("origin-issue unverified"),
     );
   const failed = errors.length > 0;

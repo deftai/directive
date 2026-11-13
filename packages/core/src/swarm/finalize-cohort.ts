@@ -2091,10 +2091,16 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   // Refused marks (#680 P3): an issue no other PR bound stays pending. Its story
   // leaves the batch before stamp/sweep (#6212: never single-PR defaultEvidence),
   // and its origin is never closed. The other stories go on.
+  // A stray mark with no local brief for its issue warns only; it leaves nothing pending.
   const pendingMarkIssues = new Set(
     refusedMarks
       .map((m) => m.issue)
-      .filter((issue) => !fullStoryCloseIssues.has(issue) && !closingIssues.has(issue)),
+      .filter(
+        (issue) =>
+          !fullStoryCloseIssues.has(issue) &&
+          !closingIssues.has(issue) &&
+          localBriefReferencesIssue(projectRoot, issue),
+      ),
   );
   for (let i = storyPaths.length - 1; i >= 0; i -= 1) {
     const origin = githubIssueFromBrief(storyPaths[i] ?? "");
@@ -2811,10 +2817,10 @@ function buildResponse(input: {
   lines.push(
     input.ok
       ? `Result: FINALIZE CLEAN -- cohort briefs swept to completed/.${skipNote}`
-      : input.errors.length === 0 && (input.refusedMarks ?? []).length > 0
-        ? "Result: FINALIZE INCOMPLETE -- refused deft-story mark(s); see warnings above."
-        : input.pending !== null
-          ? "Result: FINALIZE INCOMPLETE -- origin-close pending."
+      : input.pending !== null
+        ? "Result: FINALIZE INCOMPLETE -- origin-close pending."
+        : input.errors.length === 0 && (input.refusedMarks ?? []).length > 0
+          ? "Result: FINALIZE INCOMPLETE -- refused deft-story mark(s); see warnings above."
           : "Result: FINALIZE INCOMPLETE -- see errors above.",
   );
 
