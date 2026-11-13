@@ -1516,11 +1516,14 @@ export function buildIssueVbrief(
     specPathHarvest?: {
       readonly items: readonly Record<string, string>[];
       readonly sourceText: string;
+      /** Reject / Not proposed list lines of the cited lean (#6265). */
+      readonly constraintLines?: readonly string[];
     };
     /** Permanent alias of specPathHarvest (legacy Recut harvest option). */
     recutHarvest?: {
       readonly items: readonly Record<string, string>[];
       readonly sourceText: string;
+      readonly constraintLines?: readonly string[];
     };
     /** Prefer-A residual mint (#5177): distinct plan.id + lineage to predecessor. */
     residualMint?: {
@@ -1600,6 +1603,15 @@ export function buildIssueVbrief(
       throw new ScannerHardFailError(number, scanResult.flags);
     }
     narratives.Overview = scanResult.transformed_content;
+  }
+  // #6265: Reject / Not proposed lines of the cited lean are must-not text,
+  // scanned like Overview; not plan items and not sentence coverage.
+  const constraintLines = specPathHarvest?.constraintLines ?? [];
+  if (constraintLines.length > 0) {
+    narratives.Constraint = scanUntrustedIngestText(
+      number,
+      constraintLines.map((line) => `- ${line}`).join("\n"),
+    );
   }
   if (currentShape !== null) {
     // Scan shape body under the same fail-closed contract as Overview (#2306).
@@ -2416,7 +2428,11 @@ export function ingestOne(
     });
     let admittedDigest: string | null = null;
     let specPathHarvest:
-      | { readonly items: readonly Record<string, string>[]; readonly sourceText: string }
+      | {
+          readonly items: readonly Record<string, string>[];
+          readonly sourceText: string;
+          readonly constraintLines: readonly string[];
+        }
       | undefined;
     let leanCommentId: number | null = null;
     if (verdict.status === "complete") {
@@ -2434,6 +2450,7 @@ export function ingestOne(
         specPathHarvest = {
           items: harvested.items.map((item) => ({ title: item.title, status: item.status })),
           sourceText: harvested.sourceText,
+          constraintLines: harvested.constraintLines,
         };
       }
       if (hasOperativeTargetDigestLine(citedBody)) {

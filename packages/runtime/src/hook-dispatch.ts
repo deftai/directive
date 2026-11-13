@@ -22,6 +22,8 @@ import {
   parseHookStdin,
   projectRootFromHookPayload,
   renderHostDecision,
+  runSessionEndHook,
+  type SessionEndHookSeams,
 } from "@deftai/directive-core/hooks";
 import { readProjectDataStatus } from "./data-status.js";
 import { maybeSelfCompleteSetup } from "./self-complete.js";
@@ -71,6 +73,8 @@ export interface HookDispatchCliSeams {
    * dual fixture.
    */
   readonly cheapInSync?: (root: string) => CheapInSyncResult;
+  /** Strict session-end release (#6274). Injected in tests to force a throw. */
+  readonly sessionEndRelease?: SessionEndHookSeams["release"];
 }
 
 /**
@@ -275,6 +279,45 @@ export function parsePayload(raw: string): ParsedPayload {
  * paths. Empty-stdin denies still exit `0` with a Cursor JSON body carrying
  * `code: "stdin-empty"`.
  */
+/** session.end CLI path (#6274): every failure is one stderr line; exit 0 always. */
+function runSessionEnd(
+  host: HookHost,
+  projectRootArg: string | undefined,
+  seams: HookDispatchCliSeams,
+  writeErr: (text: string) => void,
+): number {
+  try {
+    const readOnce = seams.readStdin ?? (() => readFileSync(0, "utf8"));
+    const rawStdin = readStdinHardened(readOnce, {
+      emptyRetryMs: seams.stdinEmptyRetryMs,
+      sleepMs: seams.sleepMs,
+      nowMs: seams.nowMs,
+    });
+    const cwd = (seams.cwd ?? process.cwd)();
+    const { payload } = parsePayload(rawStdin);
+    const projectRoot = normalizeHookProjectRoot(
+      projectRootArg ? resolve(projectRootArg) : projectRootFromHookPayload(payload, cwd),
+    );
+    const launchRoot = (seams.launchingCheckoutRoot ?? resolveLaunchingCheckoutRoot)();
+    const ended = runSessionEndHook(
+      { host, projectRoot, payload, environ: process.env, launchRoot },
+      {
+        ...(seams.cheapInSync !== undefined ? { cheapInSync: seams.cheapInSync } : {}),
+        ...(seams.sessionEndRelease !== undefined ? { release: seams.sessionEndRelease } : {}),
+      },
+    );
+    writeErr(`${ended.diagnostic}\n`);
+  } catch (cause) {
+    try {
+      const detail = String(cause).replace(/\s+/g, " ").slice(0, 300);
+      writeErr(`Directive session end: failed on its non-blocking path: ${detail}\n`);
+    } catch {
+      /* never fail shutdown */
+    }
+  }
+  return 0;
+}
+
 export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   const args = parseArgs(argv);
   const writeOut = seams.writeOut ?? ((text: string) => process.stdout.write(text));
@@ -282,6 +325,15 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   if (args.error !== undefined || args.host === undefined || args.event === undefined) {
     writeErr(`${args.error ?? "invalid hook-dispatch arguments"}\n`);
     return 2;
+  }
+
+  // #6274: session.end has its own path, before any stdin/root work can throw.
+  // Launch-root and pin checks stay inside runSessionEndHook (a mismatch
+  // releases nothing); setup completion and policy dispatch are skipped; one
+  // bounded stderr line; exit 0 always. Stdout stays empty: Claude Code
+  // SessionEnd hooks have no decision control.
+  if (args.event === "session.end") {
+    return runSessionEnd(args.host, args.projectRoot, seams, writeErr);
   }
 
   const readOnce = seams.readStdin ?? (() => readFileSync(0, "utf8"));

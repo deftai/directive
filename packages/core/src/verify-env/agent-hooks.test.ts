@@ -36,6 +36,21 @@ describe("evaluateAgentHooks", () => {
     expect(result.message).not.toMatch(/open\s+`\/hooks`/i);
   });
 
+  it("reports the Claude SessionEnd registration as present (#6274)", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+    const result = evaluateAgentHooks(root);
+    expect(result.code).toBe(0);
+    expect(result.registrations.find((entry) => entry.host === "claude")).toMatchObject({
+      sessionEndSupport: "deposited",
+      sessionEndRegistered: true,
+    });
+    expect(result.registrations.find((entry) => entry.host === "codex")).toMatchObject({
+      sessionEndSupport: "unsupported",
+    });
+    expect(result.message).toContain("SessionEnd lease release: Claude registered");
+  });
+
   it("reports missing registrations separately from git hooks", () => {
     const result = evaluateAgentHooks(project());
     expect(result.code).toBe(1);
