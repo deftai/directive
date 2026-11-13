@@ -97,7 +97,11 @@ export interface Child {
   readonly issue_number?: number | null;
 }
 
-export type ForgeIssueState = "open" | "closed";
+/**
+ * Forge state of an issue. `deleted` = REST 410 (#5912): counts as open for
+ * shape, is never treated as closed, and never drives a checklist rewrite.
+ */
+export type ForgeIssueState = "open" | "closed" | "deleted";
 
 export interface UmbrellaChange {
   readonly story_id: string;

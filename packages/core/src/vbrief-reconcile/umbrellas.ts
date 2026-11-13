@@ -8,7 +8,7 @@ import {
   fetchIssueBody,
   GitHubBodyError,
 } from "../intake/github-body.js";
-import { fetchIssueStates, IssueState } from "../intake/reconcile-issues.js";
+import { DELETED_ISSUE_STATE, fetchIssueStates, IssueState } from "../intake/reconcile-issues.js";
 import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
 import { call } from "../scm/call.js";
 import { restCloseIssue } from "../scm/gh-rest.js";
@@ -211,7 +211,9 @@ export function isChildOpen(
     forgeStates != null &&
     forgeStates.has(child.issue_number)
   ) {
-    return forgeStates.get(child.issue_number) === "open";
+    // #5912: a deleted child is never closed by forge state or folder fallback.
+    const state = forgeStates.get(child.issue_number);
+    return state === "open" || state === "deleted";
   }
   if ((CLOSED_FOLDERS as readonly string[]).includes(child.folder)) return false;
   // proposed/pending/active/unknown (and any unexpected folder) → open
@@ -444,6 +446,7 @@ export class ScmUmbrellaClient implements UmbrellaClient {
       const value = state.value.toUpperCase();
       if (value === "OPEN") result.set(num, "open");
       else if (value === "CLOSED") result.set(num, "closed");
+      else if (value === DELETED_ISSUE_STATE) result.set(num, "deleted");
       // NOT_FOUND / other → omit so folder fallback applies
     }
     return result;
@@ -520,15 +523,24 @@ function reconcileChecklistForEpic(
   closedChildren: readonly Child[],
   allChildren: readonly Child[],
   dryRun: boolean,
+  forgeStates?: ReadonlyMap<number, ForgeIssueState> | null,
 ): "edited" | "unchanged" | "skipped" {
   if (typeof client.fetchIssueBody !== "function" || typeof client.editIssueBody !== "function") {
     return "skipped";
   }
   const known = new Set<number>();
+  let deletedCount = 0;
   for (const c of allChildren) {
-    if (typeof c.issue_number === "number") known.add(c.issue_number);
+    if (typeof c.issue_number !== "number") continue;
+    // #5912: deleted children carry no checklist rewrite authority; their
+    // checkbox bytes stay as they are (checked or unchecked).
+    if (forgeStates?.get(c.issue_number) === "deleted") {
+      deletedCount += 1;
+      continue;
+    }
+    known.add(c.issue_number);
   }
-  if (known.size === 0) return "skipped";
+  if (known.size === 0) return deletedCount > 0 ? "unchanged" : "skipped";
   const closed = new Set<number>();
   for (const c of closedChildren) {
     if (typeof c.issue_number === "number") closed.add(c.issue_number);
@@ -589,6 +601,7 @@ function reconcileOneEpic(
       closedChildren,
       allChildren,
       options.dryRun,
+      forgeStates,
     );
   } catch (exc) {
     // Checklist is best-effort relative to comment path: surface as throw so

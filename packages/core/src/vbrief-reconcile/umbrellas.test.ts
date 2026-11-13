@@ -1,7 +1,8 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import * as scm from "../scm/call.js";
 import type { Child, ForgeIssueState, UmbrellaClient } from "./types.js";
 import {
   childrenFromSliceRecord,
@@ -15,6 +16,7 @@ import {
   reconcileUmbrellas,
   renderBody,
   renderUmbrellasReport,
+  ScmUmbrellaClient,
   shouldCloseOnAllChildrenMerged,
 } from "./umbrellas.js";
 
@@ -474,6 +476,116 @@ describe("isChildOpen forge vs folder (#1649)", () => {
     expect(isChildOpen(c, new Map([[7, "open"]]))).toBe(true);
     expect(isChildOpen(child("y", "completed", [], 8), null)).toBe(false);
     expect(isChildOpen(child("z", "unknown", [], 9), null)).toBe(true);
+  });
+});
+
+describe("deleted children -- HTTP 410 (#5912)", () => {
+  it("a deleted child counts open, even in a closed folder, and blocks all-children-merged close", () => {
+    const gone = child("gone", "completed", [], 7);
+    const deleted = new Map<number, ForgeIssueState>([[7, "deleted"]]);
+    expect(isChildOpen(gone, deleted)).toBe(true);
+    expect(
+      shouldCloseOnAllChildrenMerged({
+        signal: "all-children-merged",
+        children: [gone, child("done", "completed", [], 8)],
+        forgeStates: new Map<number, ForgeIssueState>([
+          [7, "deleted"],
+          [8, "closed"],
+        ]),
+        umbrellaState: "open",
+      }),
+    ).toBe(false);
+  });
+
+  it("ScmUmbrellaClient maps a 410 child to deleted", () => {
+    const spy = vi.spyOn(scm, "call").mockImplementation((_src, _verb, args) => {
+      if (args?.[0] === "repos/o/r/issues/7") {
+        return {
+          args: [],
+          returncode: 1,
+          stdout: JSON.stringify({ message: "This issue was deleted", status: "410" }),
+          stderr: "gh: This issue was deleted (HTTP 410)",
+        };
+      }
+      return { args: [], returncode: 0, stdout: JSON.stringify({ state: "open" }), stderr: "" };
+    });
+    try {
+      const states = new ScmUmbrellaClient().fetchIssueStates("o/r", [7, 8]);
+      expect(states.get(7)).toBe("deleted");
+      expect(states.get(8)).toBe("open");
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  function seedEpic(root: string): void {
+    const active = join(root, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    writeFileSync(
+      join(active, "epic.xbrief.json"),
+      `${JSON.stringify({
+        plan: {
+          id: "epic-5912",
+          metadata: { kind: "epic", swarm: { depends_on: [] } },
+          references: [300, 301, 302].map((n) => ({
+            type: "x-vbrief/github-issue",
+            uri: `https://github.com/deftai/directive/issues/${n}`,
+            title: `child ${n}`,
+          })),
+        },
+      })}\n`,
+    );
+  }
+
+  it("leaves checked and unchecked deleted-child checkbox bytes unchanged; no editIssueBody", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-umbrella-5912-"));
+    try {
+      seedEpic(root);
+      const client = new FakeUmbrellaClient();
+      const body = "## Children\n- [x] #301 child 301\n- [ ] #302 child 302\n";
+      client.issueBodies.set("deftai/directive:300", body);
+      client.issueStates.set("deftai/directive:301", "deleted");
+      client.issueStates.set("deftai/directive:302", "deleted");
+      const edit = vi.spyOn(client, "editIssueBody");
+      const [code, outcome] = reconcileUmbrellas(root, {
+        client,
+        now: "2026-11-12T00:00:00Z",
+        repo: "deftai/directive",
+      });
+      expect(code).toBe(0);
+      expect(edit).not.toHaveBeenCalled();
+      expect(client.issueBodies.get("deftai/directive:300")).toBe(body);
+      const change = outcome.changed[0];
+      expect(change?.checklist_action).toBe("unchanged");
+      expect(change?.body).toContain("Child count: 2 (2/0)");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rewrites only non-deleted children when a sibling closes", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-umbrella-5912-mixed-"));
+    try {
+      seedEpic(root);
+      const client = new FakeUmbrellaClient();
+      client.issueBodies.set(
+        "deftai/directive:300",
+        "- [ ] #301 child 301\n- [x] #302 child 302\n",
+      );
+      client.issueStates.set("deftai/directive:301", "closed");
+      client.issueStates.set("deftai/directive:302", "deleted");
+      const [code] = reconcileUmbrellas(root, {
+        client,
+        now: "2026-11-12T00:00:00Z",
+        repo: "deftai/directive",
+      });
+      expect(code).toBe(0);
+      expect(client.issueBodies.get("deftai/directive:300")).toBe(
+        "- [x] #301 child 301\n- [x] #302 child 302\n",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 
