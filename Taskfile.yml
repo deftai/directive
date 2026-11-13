@@ -816,7 +816,9 @@ tasks:
     cmds:
       - task: engine:invoke
         vars:
-          ENGINE_CMD: 'release-publish {{.CLI_ARGS}}'
+          # #5805 / #5942: the pin's default project root is its own package dir, so pass the
+          # operator root explicitly (an operator --project-root in CLI_ARGS still wins).
+          ENGINE_CMD: 'release-publish --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   release:rollback:
     desc: "State-aware release unwind (#716) -- task release:rollback -- <version> [--dry-run] [--allow-low-downloads N] [--allow-data-loss] [--force-strict-0]"
@@ -825,7 +827,9 @@ tasks:
     cmds:
       - task: engine:invoke
         vars:
-          ENGINE_CMD: 'release-rollback {{.CLI_ARGS}}'
+          # #5805 / #5942: the pin's default project root is its own package dir, so pass the
+          # operator root explicitly (an operator --project-root in CLI_ARGS still wins).
+          ENGINE_CMD: 'release-rollback --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   release:e2e:
     desc: "End-to-end release rehearsal against an auto-created temp repo (#716, #2572 keep+report default) -- task release:e2e [-- --dry-run] [--owner OWNER] [--destroy-repo]"
@@ -834,7 +838,9 @@ tasks:
     cmds:
       - task: engine:invoke
         vars:
-          ENGINE_CMD: 'release-e2e {{.CLI_ARGS}}'
+          # #5805 / #5942: the pin's default project root is its own package dir, so pass the
+          # operator root explicitly (an operator --project-root in CLI_ARGS still wins).
+          ENGINE_CMD: 'release-e2e --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   release:wait-npm:
     desc: "Phase 7 wait until both public OVPR packages (@deftai/directive + @deftai/directive-runtime) list the cut version (#4267 / #5490) -- task release:wait-npm -- <version>"

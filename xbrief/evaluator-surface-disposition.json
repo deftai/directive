@@ -5,5 +5,5 @@
     "Taskfile.yml",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for #6163 Phase 7 Cursor deposit association bookend on release:local-update. Disclosure only; not #3164 authorization. Refs #6163."
+  "note": "Renew disclosure for #5942: release:e2e, release:publish and release:rollback ENGINE_CMD pass --project-root \"{{.USER_WORKING_DIR}}\" like release: (#5805). Disclosure only; not #3164 authorization. Refs #5942."
 }
