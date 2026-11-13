@@ -1654,7 +1654,8 @@ function isSentenceTerminator(ch: string): boolean {
 
 /** Drop heading and list markers. The sentence stays text; it does not select a file. */
 function stripSentenceChrome(raw: string): string {
-  let text = stripInlineMarkdownBold(raw).replace(/\s+/g, " ").trim();
+  // Same whitespace rule as clause text: quoted literals keep their spacing (#6269).
+  let text = normalizeClauseText(stripInlineMarkdownBold(raw));
   for (let guard = 0; guard < 4 && text.length > 0; guard += 1) {
     const heading = /^(#{1,6}) (.+)$/.exec(text);
     if (heading !== null) {
@@ -1852,9 +1853,15 @@ export function evaluateStatementSentenceCoverage(
   }
   const confessions =
     rec.confessions === undefined ? [] : (readNonEmptyStringList(rec.confessions) ?? []);
-  const clauseTexts = new Set(clauses.map((clause) => normalizeClauseText(clause.text)));
-  const confessionTexts = new Set(confessions);
-  const unmapped = sentences.filter((text) => !clauseTexts.has(text) && !confessionTexts.has(text));
+  // Coverage is identity, not a literal oracle: compare with all whitespace
+  // collapsed, so a sentence stored before quoted spacing was kept still maps
+  // to its clause (#6269).
+  const coverageKey = (text: string): string => text.replace(/\s+/g, " ").trim();
+  const clauseTexts = new Set(clauses.map((clause) => coverageKey(clause.text)));
+  const confessionTexts = new Set(confessions.map(coverageKey));
+  const unmapped = sentences.filter(
+    (text) => !clauseTexts.has(coverageKey(text)) && !confessionTexts.has(coverageKey(text)),
+  );
   return {
     hasSentenceList: true,
     sentences,

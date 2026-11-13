@@ -14,6 +14,7 @@ import {
   evaluateStatementSentenceCoverage,
   extractExpectedTokens,
   extractQuotedSpans,
+  extractStatementSentences,
   formatClauseWalkMessage,
   formatZeroClauseAcceptanceShapedNotice,
   isBindableMatchAnyFilePointer,
@@ -2145,6 +2146,23 @@ describe("quoted-token removal polarity (#6269)", () => {
         walkAcceptanceClauses(clauses, passRoot, { declaredScope: [DOC] }).clauses[0]?.outcome,
       ).toBe("verified");
     }
+  });
+
+  it("maps a quoted-spacing sentence to its clause in sentence coverage", () => {
+    const clauseText = 'Removes "Old  Phrase" from the guide';
+    // Intake now keeps quoted spacing when it extracts statement sentences.
+    expect(extractStatementSentences(`- ${clauseText}\n`)).toEqual([clauseText]);
+    const clauses = [clause(clauseText)];
+    // A sentence stored by an older intake (spacing collapsed) still maps.
+    for (const sentence of [clauseText, 'Removes "Old Phrase" from the guide']) {
+      const coverage = evaluateStatementSentenceCoverage({ sentences: [sentence] }, clauses);
+      expect(coverage.unmappedSentenceCount).toBe(0);
+    }
+    const confessed = evaluateStatementSentenceCoverage(
+      { sentences: ["Not a  clause"], confessions: ["Not a clause"] },
+      clauses,
+    );
+    expect(confessed.unmappedSentenceCount).toBe(0);
   });
 
   it("leaves the #5393 defect-description exemption unchanged", () => {
