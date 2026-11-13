@@ -10,7 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { writeKillAttestation } from "../orchestration/subagent-kill-attestation.js";
 import { DEFAULT_RUNTIME_AUTHORITY_POLICY } from "../policy/runtime-authority.js";
 import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
@@ -93,6 +93,34 @@ const hookTemps: string[] = [];
 afterEach(() => {
   for (const t of hookTemps.splice(0)) rmSync(t, { recursive: true, force: true });
 });
+
+// Agent-host isolation (#6227): cases without an explicit `environ` fall back to
+// process.env, where an agent session sets CLAUDE_* / DEFT_* / GROK_* markers. Clear
+// them for the suite lifetime so results match a clean process.
+const HOST_ENV_PATTERN = /^(CLAUDE|CURSOR_|GROK_|DEFT_|OPENCLAW|WARP_)/;
+const savedHostEnv: Record<string, string> = {};
+beforeAll(() => {
+  for (const key of Object.keys(process.env)) {
+    if (!HOST_ENV_PATTERN.test(key)) continue;
+    savedHostEnv[key] = process.env[key] as string;
+    delete process.env[key];
+  }
+});
+afterAll(() => {
+  Object.assign(process.env, savedHostEnv);
+});
+
+/**
+ * Fresh lifecycle root with no applying-host or occupancy record (#6227). On Windows
+ * the synthetic "/project" resolves to C:\project, a real writable path that can hold
+ * a stale applying-host record and turn an expected verdict into
+ * occupancy-identity-conflict.
+ */
+function isolatedLifecycleRoot(): string {
+  const root = mkdtempSync(join(tmpdir(), "hook-lifecycle-"));
+  hookTemps.push(root);
+  return root;
+}
 
 function hasDoubledWindowsDrivePrefix(path: string): boolean {
   return /^[A-Za-z]:\\[A-Za-z]:\\/i.test(path.replace(/\//g, "\\"));
@@ -4156,7 +4184,7 @@ describe("provider codecs", () => {
       {
         host: "claude",
         event: "tool.before",
-        projectRoot: "/project",
+        projectRoot: isolatedLifecycleRoot(),
         payload: {
           tool_name: "Bash",
           session_id: "session-a",
@@ -4187,7 +4215,7 @@ describe("provider codecs", () => {
       {
         host: "codex",
         event: "tool.before",
-        projectRoot: "/project",
+        projectRoot: isolatedLifecycleRoot(),
         payload: {
           tool_name: "Shell",
           session_id: "session-a",
@@ -4219,7 +4247,7 @@ describe("provider codecs", () => {
       {
         host: "cursor",
         event: "tool.before",
-        projectRoot: "/project",
+        projectRoot: isolatedLifecycleRoot(),
         payload: {
           tool_name: "Shell",
           conversation_id: "conversation-a",
@@ -4461,7 +4489,7 @@ describe("provider codecs", () => {
       {
         host: "claude",
         event: "tool.before",
-        projectRoot: "/project",
+        projectRoot: isolatedLifecycleRoot(),
         payload: {
           tool_name: "Bash",
           session_id: "session-a",
@@ -4488,7 +4516,7 @@ describe("provider codecs", () => {
       {
         host: "claude",
         event: "tool.before",
-        projectRoot: "/project",
+        projectRoot: isolatedLifecycleRoot(),
         payload: {
           tool_name: "Bash",
           session_id: "session-a",
@@ -4551,7 +4579,7 @@ describe("provider codecs", () => {
       {
         host: "codex",
         event: "tool.before",
-        projectRoot: "/project",
+        projectRoot: isolatedLifecycleRoot(),
         payload: {
           tool_name: "Shell",
           session_id: "session-a",
@@ -4571,15 +4599,16 @@ describe("provider codecs", () => {
   });
 
   it("allows an explicitly project-root-aligned cwd and preserves it in the rewrite", () => {
+    const root = isolatedLifecycleRoot();
     const decision = decideHook(
       {
         host: "cursor",
         event: "tool.before",
-        projectRoot: "/project",
+        projectRoot: root,
         payload: {
           tool_name: "Shell",
           conversation_id: "conversation-a",
-          tool_input: { command: "deft session:ready", cwd: "/project" },
+          tool_input: { command: "deft session:ready", cwd: root },
         },
         environ: {},
       },
@@ -4589,7 +4618,7 @@ describe("provider codecs", () => {
       verdict: "allow",
       updatedInput: {
         command: "deft session:ready --session-id=host:cursor:v1:Y29udmVyc2F0aW9uLWE",
-        cwd: "/project",
+        cwd: root,
       },
     });
   });
@@ -4599,7 +4628,7 @@ describe("provider codecs", () => {
       {
         host: "cursor",
         event: "tool.before",
-        projectRoot: "/project",
+        projectRoot: isolatedLifecycleRoot(),
         payload: {
           tool_name: "Shell",
           conversation_id: "conversation-a",
@@ -6352,7 +6381,7 @@ describe("MCP dest-bearing writes share inspectMutationGates (#3593)", () => {
       {
         host: "cursor",
         event: "tool.before",
-        projectRoot: "/project",
+        projectRoot: isolatedLifecycleRoot(),
         payload: {
           tool_name: "CallMcpTool",
           conversation_id: "conversation-a",
@@ -6727,7 +6756,7 @@ describe("uninspectable lifecycle identity rewrite (#4431)", () => {
       {
         host: "claude",
         event: "tool.before",
-        projectRoot: "/project",
+        projectRoot: isolatedLifecycleRoot(),
         payload: {
           tool_name: "Bash",
           session_id: "session-a",

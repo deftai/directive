@@ -370,7 +370,8 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", { timeout: 30_000 },
     expect(grok).toContain("kill_command_or_subagent");
   });
 
-  it("chmod +x on pre-commit and pre-push", () => {
+  // Windows has no POSIX mode bits: statSync never reports the execute bits, so skip there.
+  it.skipIf(process.platform === "win32")("chmod +x on pre-commit and pre-push", () => {
     const root = tempRoot();
     runSetup({ operation: "install", from: "none", root });
     const mode = statSync(join(root, ".githooks", "pre-commit")).mode & 0o111;
