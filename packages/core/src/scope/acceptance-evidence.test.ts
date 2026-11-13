@@ -245,6 +245,21 @@ describe("strict axes match prose, not identifiers (#6270)", () => {
     expect(axes("The `deploy-dev` job is green; smoke test passes")).toEqual(["smoke"]);
   });
 
+  it("drops fenced blocks inside blockquotes", () => {
+    expect(axes("Example:\n> ```sh\n> npm run deploy\n> ```\nunit tests green")).toEqual([]);
+    expect(axes("> > ```\n> > deploy now\n> > ```\nsmoke test passes")).toEqual(["smoke"]);
+    const gate = evaluateAcceptanceEvidenceGate({
+      items: [
+        withEvidence({
+          title: "Docs show the command",
+          status: "pending",
+          narrative: { Acceptance: "> ```\n> npm run deploy\n> ```\nThe docs page renders" },
+        }),
+      ],
+    });
+    expect(gate.ok).toBe(true);
+  });
+
   it("does not open a fence on backticks inside inline spans", () => {
     expect(
       axes("Render `` ``` `` fences correctly; smoke tests pass; preserve `` ``` `` output"),

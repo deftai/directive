@@ -448,12 +448,17 @@ function splitAxisAlternations(text: string): string {
 
 /**
  * Drop fenced blocks and inline code spans: quoted code names no axis (#6270).
- * A fenced block opens and closes on its own line (a run of 3+ backticks at
- * line start), so backticks inside inline spans never open a fence. An inline
+ * A fenced block opens and closes on its own line: a run of 3+ backticks at
+ * line start, after optional blockquote markers (`> `), with no backtick in
+ * the info string. Backticks inside inline spans never open a fence. An inline
  * span opens with a run of N backticks and closes with a run of exactly N, so
  * ``deploy`` is dropped as a whole. An unclosed fence is kept as text.
  */
-const FENCED_BLOCK = /^[ \t]*(`{3,})[^\n]*\n[\s\S]*?^[ \t]*\1`*[ \t]*$/gm;
+const FENCE_LINE_PREFIX = String.raw`^(?:[ \t]*>)*[ \t]*`;
+const FENCED_BLOCK = new RegExp(
+  String.raw`${FENCE_LINE_PREFIX}(\`{3,})[^\`\n]*\n[\s\S]*?${FENCE_LINE_PREFIX}\1\`*[ \t]*$`,
+  "gm",
+);
 const INLINE_CODE_SPAN = /(?<!`)(`+)(?!`)[^\n]*?(?<!`)\1(?!`)/g;
 function stripBacktickSpans(text: string): string {
   return text.replace(FENCED_BLOCK, " ").replace(INLINE_CODE_SPAN, " ");
