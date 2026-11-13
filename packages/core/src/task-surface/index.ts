@@ -7,6 +7,7 @@ import {
   assertProjectionContained,
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
+import { isDeliveryBriefLandExcluded } from "../scope/delivery-evidence.js";
 
 export interface TaskSurfaceIo {
   writeOut: (text: string) => void;
@@ -105,6 +106,26 @@ function resolveChangelogMergeBase(root: string): { sha: string } | { error: str
   };
 }
 
+/** `git diff --name-only --no-renames <merge-base>...HEAD`, or null on failure. */
+function changeSetAgainstMergeBase(root: string, mergeBaseSha: string): string[] | null {
+  const out = gitText(root, ["diff", "--name-only", "--no-renames", `${mergeBaseSha}...HEAD`]);
+  if (out === null) {
+    return null;
+  }
+  return out
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
+function isDeliveryBriefLandChangeSet(root: string, mergeBaseSha: string): boolean {
+  const files = changeSetAgainstMergeBase(root, mergeBaseSha);
+  if (files === null) {
+    return false;
+  }
+  return isDeliveryBriefLandExcluded(files.map((filename) => ({ status: "modified", filename })));
+}
+
 function compareUnreleasedAgainstMergeBase(
   root: string,
   currentEntries: readonly string[],
@@ -117,6 +138,13 @@ function compareUnreleasedAgainstMergeBase(
   }
   const head = gitText(root, ["rev-parse", "HEAD"])?.trim();
   if (head === mergeBase.sha) {
+    return 0;
+  }
+  // #680 P4: a delivery-brief-land change set (lifecycle briefs, CHANGELOG, the
+  // spec-drift ledger only) needs no new entry. Oracle is the committed change
+  // set vs merge-base; --no-renames lists rename sources too. A failed or empty
+  // diff is not exempt (fail closed). Product/code diffs keep the requirement.
+  if (isDeliveryBriefLandChangeSet(root, mergeBase.sha)) {
     return 0;
   }
   const baseText = gitText(root, ["show", `${mergeBase.sha}:CHANGELOG.md`]);

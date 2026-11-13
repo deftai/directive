@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Small-change lane under the rapid ceremony dial: a thin command-backed brief that the lifecycle gates admit while an operator-set size bound holds, and a lane exit to the full shape once the bound is crossed. Refs #6204.
 
 ### Changed
+- Lifecycle completion needs fewer hand-offs: lifecycle-only PRs (briefs, CHANGELOG, spec-drift ledger) need no new CHANGELOG line, finalize commits the spec-drift ledger with the completed briefs, one refused deft-story mark leaves only that story pending instead of failing the batch, and finalize-owed lists issue-less briefs by product PR. Refs #680.
 - chore(dogfood): pin Directive to 0.129.7.
 - Completed the #5710, #5882, #6203 and #6212 scope briefs after their product PRs merged. Refs #5710. Refs #5882. Refs #6203. Refs #
 6212.

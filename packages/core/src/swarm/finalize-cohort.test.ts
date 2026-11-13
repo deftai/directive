@@ -20,6 +20,7 @@ import { deriveUnmarkedFinalizeAdmit } from "../orphan-active/evaluate.js";
 import { firstMergedPrRef } from "../orphan-active/refs.js";
 import { productPullRequestFromPlan } from "../orphan-active/running-briefs.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
+import { isDeliveryBriefLandExcluded } from "../scope/delivery-evidence.js";
 import { runTransition } from "../scope/transition.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
 import {
@@ -28,6 +29,7 @@ import {
   finalizeClaimRef,
   finalizeCohort,
   isDurableFinalizeHeadRef,
+  isLifecycleShapedPr,
 } from "./finalize-cohort.js";
 import { finalizeCohortMain, parseFinalizeCohortArgv } from "./finalize-cohort-cli.js";
 import {
@@ -262,6 +264,8 @@ interface MockGitOpts {
   readonly checkoutOmitsActive?: boolean;
   readonly worktreeRemoveFail?: boolean;
   readonly landedByRef?: Readonly<Record<string, readonly string[]>>;
+  /** `git status --short` stdout for the lifecycle causal-diff gate (#680 P5). */
+  readonly statusShort?: string;
 }
 
 function mockRunGit(
@@ -359,7 +363,7 @@ function mockRunGit(
     if (joined.includes("git status --short")) {
       // Empty staged set keeps #4714 R7 causal-diff green under mocked transitions
       // (runTransition does not actually move briefs in unit tests).
-      return { returncode: 0, stdout: "", stderr: "" };
+      return { returncode: 0, stdout: opts.statusShort ?? "", stderr: "" };
     }
     if (joined.includes("git fetch") && opts.fetchFail) {
       return { returncode: 1, stdout: "", stderr: "network unreachable" };
@@ -645,6 +649,59 @@ describe("finalizeCohort", () => {
     expect(committed).toBe(true);
     expect(result.result.branch).toBe("swarm/finalize/story-d");
     expect(result.result.pr_url).toContain("9999");
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("carries the spec-drift ledger in the lifecycle commit as verb output (#680 P5)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-680-ledger-"));
+    const storyPath = writeActiveStory(project, "story-l", 2225);
+    let committed = false;
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      label: "story-l",
+      repo: "deftai/directive",
+      runGit: mockRunGit({
+        onCommit: () => {
+          committed = true;
+        },
+        landedCompleted: ["xbrief/completed/story-l.xbrief.json"],
+        statusShort: " M xbrief/.audit/spec-drift-ledger.json\n",
+      }),
+      runGh: mockRunGh({ 9999: { merged: true, closingIssues: [], baseRef: "main" } }),
+      landProbeLimit: 1,
+      sleep: () => {},
+    });
+    expect(result.result.errors).toEqual([]);
+    expect(result.exitCode).toBe(0);
+    expect(committed).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("still refuses other audit paths in the lifecycle commit (#680 P5 / #4714 R7)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-680-audit-"));
+    const storyPath = writeActiveStory(project, "story-m", 2225);
+    let committed = false;
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      label: "story-m",
+      repo: "deftai/directive",
+      runGit: mockRunGit({
+        onCommit: () => {
+          committed = true;
+        },
+        landedCompleted: ["xbrief/completed/story-m.xbrief.json"],
+        statusShort: " M xbrief/.audit/authority-events.jsonl\n",
+      }),
+      runGh: mockRunGh({ 9999: { merged: true, closingIssues: [], baseRef: "main" } }),
+      landProbeLimit: 1,
+      sleep: () => {},
+    });
+    expect(committed).toBe(false);
+    expect(
+      result.result.errors.some((e) => e.includes("xbrief/.audit/authority-events.jsonl")),
+    ).toBe(true);
     rmSync(project, { recursive: true, force: true });
   });
 
@@ -1376,9 +1433,11 @@ describe("finalizeCohort", () => {
       runGh: capturing,
       runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-9999.xbrief.json"] }),
     });
-    expect(result.exitCode).not.toBe(0);
+    // #680 P3: a refused mark is non-fatal; the story stays pending.
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.result.errors.filter((e) => e.includes("does not bind PR delivery"))).toEqual([]);
     expect(
-      result.result.errors.some(
+      result.result.warnings.some(
         (e) => e.includes("does not bind PR delivery") && e.includes("#9999"),
       ),
     ).toBe(true);
@@ -1415,9 +1474,11 @@ describe("finalizeCohort", () => {
       runGh: capturing,
       runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-9999.xbrief.json"] }),
     });
-    expect(result.exitCode).not.toBe(0);
+    // #680 P3: a refused mark is non-fatal; the story stays pending.
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.result.errors.filter((e) => e.includes("does not bind PR delivery"))).toEqual([]);
     expect(
-      result.result.errors.some(
+      result.result.warnings.some(
         (e) => e.includes("does not bind PR delivery") && e.includes("#9999"),
       ),
     ).toBe(true);
@@ -1454,9 +1515,11 @@ describe("finalizeCohort", () => {
       runGh: capturing,
       runGit: mockRunGit(),
     });
-    expect(result.exitCode).not.toBe(0);
+    // #680 P3: a refused mark is non-fatal; the story stays pending.
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.result.errors.filter((e) => e.includes("does not bind PR delivery"))).toEqual([]);
     expect(
-      result.result.errors.some(
+      result.result.warnings.some(
         (e) => e.includes("does not bind PR delivery") && e.includes("#4864"),
       ),
     ).toBe(true);
@@ -1541,7 +1604,7 @@ describe("finalizeCohort", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
-  it("still refuses a deft-story mark for an issue outside --stories (#6212 / #4864)", () => {
+  it("leaves a refused mark pending while the admitted story stamps and sweeps (#680 P3 / #6212)", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-6212-outside-"));
     const storyPath = writeActiveStory(project, "story-6212", 6212);
     writeActiveStory(project, "story-7000", 7000);
@@ -1570,16 +1633,172 @@ describe("finalizeCohort", () => {
       runGit: mockRunGit(),
       fetchPrChangedFiles: productFiles,
     });
-    expect(result.exitCode).not.toBe(0);
-    expect(result.result.errors).toContain(
-      "#7000: deft-story mark on PR #6300 does not bind PR delivery " +
-        "(need active or completed brief #7000 with metadata.productPullRequest=6300) (#4864).",
+    // Refused #7000 is non-fatal: no error, exit INCOMPLETE, pending on refused_marks.
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.result.errors).toEqual([]);
+    expect(result.result.refused_marks).toEqual([
+      {
+        issue: 7000,
+        pr: 6300,
+        detail:
+          "#7000: deft-story mark on PR #6300 does not bind PR delivery " +
+          "(need active or completed brief #7000 with metadata.productPullRequest=6300) (#4864).",
+      },
+    ]);
+    expect(result.result.warnings.some((w) => w.includes("#7000") && w.includes("pending"))).toBe(
+      true,
     );
-    expect(result.result.errors.some((e) => e.startsWith("#6212:"))).toBe(false);
-    expectUnstampedAndNotSwept(storyPath);
+    // Admitted #6212 still stamps and sweeps in the same batch.
+    expect(result.result.story_paths).toEqual([storyPath]);
+    const plan = (JSON.parse(readFileSync(storyPath, "utf8")) as { plan: Record<string, unknown> })
+      .plan;
+    expect(productPullRequestFromPlan(plan)).toBe(6300);
+    expect(vi.mocked(runTransition)).toHaveBeenCalledWith(
+      "complete",
+      storyPath,
+      expect.any(Date),
+      expect.objectContaining({ deliveryEvidence: expect.objectContaining({ prNumber: 6300 }) }),
+    );
     expect(
       ghCalls.some((c) => c.includes("PATCH") && c.some((p) => p.includes("/issues/7000"))),
     ).toBe(false);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("keeps isLifecycleShapedPr co-extensive with delivery-brief-land (#680 F1)", () => {
+    const samples: { status: string; filename: string }[][] = [
+      [{ status: "modified", filename: "CHANGELOG.md" }],
+      [{ status: "modified", filename: "xbrief/.audit/spec-drift-ledger.json" }],
+      [
+        { status: "added", filename: "xbrief/completed/a.json" },
+        { status: "removed", filename: "xbrief/active/a.json" },
+        { status: "modified", filename: "xbrief/.audit/spec-drift-ledger.json" },
+      ],
+      [{ status: "added", filename: "xbrief/cancelled/a.json" }],
+      [{ status: "added", filename: "xbrief/active/nested/a.json" }],
+      [{ status: "modified", filename: "xbrief/.audit/authority-events.jsonl" }],
+      [{ status: "modified", filename: "docs/active/a.json" }],
+      [
+        { status: "added", filename: "xbrief/active/a.json" },
+        { status: "modified", filename: "packages/core/src/a.ts" },
+      ],
+    ];
+    for (const files of samples) {
+      expect(isLifecycleShapedPr(files)).toBe(isDeliveryBriefLandExcluded(files));
+    }
+  });
+
+  it("does not bind an operator-story mark on a brief-plus-ledger-only PR (#680 F1)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-680-ledger-mark-"));
+    const storyPath = writeActiveStory(project, "story-6212", 6212);
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: ["6212"],
+      prNumbers: [6230],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({
+        6230: { merged: true, closingIssues: [], body: "deft-story: 6212\n" },
+      }),
+      runGit: mockRunGit(),
+      fetchPrChangedFiles: () => [
+        { status: "added", filename: "xbrief/completed/story-6212.xbrief.json" },
+        { status: "modified", filename: "xbrief/.audit/spec-drift-ledger.json" },
+      ],
+    });
+    expect(result.result.refused_marks?.map((m) => m.detail)).toEqual([
+      "#6212: deft-story mark on PR #6230 does not bind PR delivery " +
+        "(PR #6230 changes only lifecycle paths: briefs, CHANGELOG.md, spec-drift ledger) (#4864).",
+    ]);
+    const plan = (JSON.parse(readFileSync(storyPath, "utf8")) as { plan: Record<string, unknown> })
+      .plan;
+    expect(productPullRequestFromPlan(plan)).toBeNull();
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("commits and lands the admitted story while a refused mark stays pending (#680 P3)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-680-batch-"));
+    writeActiveStory(project, "story-6212", 6212);
+    const refusedPath = writeActiveStory(project, "story-7000", 7000);
+    let committed = false;
+    const ghCalls: string[][] = [];
+    const runGh = mockRunGh(
+      {
+        6300: {
+          merged: true,
+          closingIssues: [],
+          body: "Refs #6212\n\ndeft-story: 6212\ndeft-story: 7000\n",
+        },
+        9999: { merged: true, closingIssues: [], baseRef: "master" },
+      },
+      { 6212: "open", 7000: "open" },
+    );
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: ["6212"],
+      prNumbers: [6300],
+      label: "story-6212",
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      runGh: (cmd) => {
+        ghCalls.push([...cmd]);
+        return runGh(cmd);
+      },
+      runGit: mockRunGit({
+        onCommit: () => {
+          committed = true;
+        },
+        landedCompleted: ["xbrief/completed/story-6212.xbrief.json"],
+      }),
+      fetchPrChangedFiles: productFiles,
+      landProbeLimit: 1,
+      sleep: () => {},
+    });
+    // Neither whole-batch skipSweep stop nor commit/land fires on the refused mark alone.
+    expect(result.result.errors).toEqual([]);
+    expect(committed).toBe(true);
+    expect(result.result.pr_url).toContain("9999");
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.exitCode).not.toBe(EXIT_GATE_FAILED);
+    expect(result.result.refused_marks?.map((m) => m.issue)).toEqual([7000]);
+    expect(result.stdout).toContain("refused deft-story mark");
+    // The refused story is never stamped, and its origin is never closed.
+    const plan = (
+      JSON.parse(readFileSync(refusedPath, "utf8")) as { plan: Record<string, unknown> }
+    ).plan;
+    expect(productPullRequestFromPlan(plan)).toBeNull();
+    expect(
+      ghCalls.some((c) => c.includes("PATCH") && c.some((p) => p.includes("/issues/7000"))),
+    ).toBe(false);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("still fails closed on a real delivery error beside a refused mark (#680 P3)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-680-delivery-"));
+    const storyPath = writeActiveStory(project, "story-6212", 6212);
+    writeActiveStory(project, "story-7000", 7000);
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: ["6212"],
+      prNumbers: [6300, 6301],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({
+        6300: { merged: true, closingIssues: [], body: "deft-story: 6212\ndeft-story: 7000\n" },
+        6301: { merged: true, closingIssues: [], baseRef: "develop" },
+      }),
+      runGit: mockRunGit(),
+      fetchPrChangedFiles: productFiles,
+    });
+    expect(result.exitCode).toBe(EXIT_GATE_FAILED);
+    expect(result.result.errors.some((e) => e.includes("is not the delivery branch"))).toBe(true);
+    expect(result.result.refused_marks?.map((m) => m.issue)).toEqual([7000]);
+    const plan = (JSON.parse(readFileSync(storyPath, "utf8")) as { plan: Record<string, unknown> })
+      .plan;
+    expect(productPullRequestFromPlan(plan)).toBeNull();
+    expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
     rmSync(project, { recursive: true, force: true });
   });
 
@@ -1599,11 +1818,14 @@ describe("finalizeCohort", () => {
       runGit: mockRunGit(),
       fetchPrChangedFiles: productFiles,
     });
-    expect(result.exitCode).not.toBe(0);
-    expect(result.result.errors).toContain(
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.result.errors).toEqual([]);
+    expect(result.result.refused_marks?.map((m) => m.detail)).toEqual([
       "#6212: deft-story mark on PR #6300 does not bind PR delivery " +
         "(brief #6212 is already stamped metadata.productPullRequest=1111) (#4864).",
-    );
+    ]);
+    expect(result.result.story_paths).toEqual([]);
+    expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
     const plan = (JSON.parse(readFileSync(storyPath, "utf8")) as { plan: Record<string, unknown> })
       .plan;
     expect(productPullRequestFromPlan(plan)).toBe(1111);
@@ -1636,11 +1858,11 @@ describe("finalizeCohort", () => {
         { status: "modified", filename: "CHANGELOG.md" },
       ],
     });
-    expect(result.exitCode).not.toBe(0);
-    expect(result.result.errors).toContain(
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.result.refused_marks?.map((m) => m.detail)).toEqual([
       "#6212: deft-story mark on PR #6214 does not bind PR delivery " +
-        "(PR #6214 changes only briefs and CHANGELOG.md) (#4864).",
-    );
+        "(PR #6214 changes only lifecycle paths: briefs, CHANGELOG.md, spec-drift ledger) (#4864).",
+    ]);
     expectUnstampedAndNotSwept(storyPath);
     rmSync(project, { recursive: true, force: true });
   });

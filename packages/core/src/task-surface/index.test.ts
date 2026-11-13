@@ -1,7 +1,15 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { LEGACY_VBRIEF_VERSION } from "@deftai/directive-types";
 import { afterEach, describe, expect, it } from "vitest";
 import { runChangeInit, runChangelogCheck, runCommitLint, runInstallUninstall } from "./index.js";
@@ -232,6 +240,76 @@ describe("task-surface", () => {
     const { lines, io } = captureIo();
     expect(runChangelogCheck(project, io, { againstMergeBase: true })).toBe(2);
     expect(lines.join("")).toContain("no merge-base");
+  });
+
+  function commitNested(project: string, rel: string, contents: string): void {
+    mkdirSync(dirname(join(project, rel)), { recursive: true });
+    commitFile(project, rel, contents, `chore: ${rel}`);
+  }
+
+  it("against-merge-base exempts a delivery-brief-land change set from the new entry (#680 P4)", () => {
+    const existing = "## [Unreleased]\n\n- pre-existing\n\n## [0.1.0]\n";
+    const project = initChangelogGit(existing);
+    execFileSync("git", ["checkout", "-q", "-b", "lifecycle"], { cwd: project });
+    commitNested(project, "xbrief/completed/story.xbrief.json", "{}\n");
+    commitNested(project, "xbrief/.audit/spec-drift-ledger.json", "{}\n");
+    const { lines, io } = captureIo();
+    expect(runChangelogCheck(project, io, { againstMergeBase: true })).toBe(0);
+    expect(lines.join("")).toContain("1 entries");
+  });
+
+  it("against-merge-base keeps the new entry for a brief plus product change (#680 P4)", () => {
+    const existing = "## [Unreleased]\n\n- pre-existing\n\n## [0.1.0]\n";
+    const project = initChangelogGit(existing);
+    execFileSync("git", ["checkout", "-q", "-b", "mixed"], { cwd: project });
+    commitNested(project, "xbrief/active/story.xbrief.json", "{}\n");
+    commitNested(project, "packages/core/src/x.ts", "export {};\n");
+    const { lines, io } = captureIo();
+    expect(runChangelogCheck(project, io, { againstMergeBase: true })).toBe(1);
+    expect(lines.join("")).toContain('no new "- " entries versus merge-base');
+  });
+
+  it("against-merge-base does not exempt a brief renamed in from a product path (#680 P4)", () => {
+    const existing = "## [Unreleased]\n\n- pre-existing\n\n## [0.1.0]\n";
+    const project = initChangelogGit(existing);
+    commitNested(project, "docs/story.xbrief.json", "{}\n");
+    execFileSync("git", ["update-ref", "refs/remotes/origin/master", "HEAD"], { cwd: project });
+    execFileSync("git", ["checkout", "-q", "-b", "rename"], { cwd: project });
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    execFileSync("git", ["mv", "docs/story.xbrief.json", "xbrief/active/story.xbrief.json"], {
+      cwd: project,
+    });
+    execFileSync(
+      "git",
+      ["-c", "user.email=ci@test", "-c", "user.name=ci", "commit", "-q", "-m", "mv"],
+      { cwd: project },
+    );
+    const { io } = captureIo();
+    expect(runChangelogCheck(project, io, { againstMergeBase: true })).toBe(1);
+  });
+
+  it("against-merge-base keeps the new entry for an empty change set (#680 P4)", () => {
+    const existing = "## [Unreleased]\n\n- pre-existing\n\n## [0.1.0]\n";
+    const project = initChangelogGit(existing);
+    execFileSync("git", ["checkout", "-q", "-b", "empty"], { cwd: project });
+    execFileSync(
+      "git",
+      [
+        "-c",
+        "user.email=ci@test",
+        "-c",
+        "user.name=ci",
+        "commit",
+        "-q",
+        "--allow-empty",
+        "-m",
+        "e",
+      ],
+      { cwd: project },
+    );
+    const { lines, io } = captureIo();
+    expect(runChangelogCheck(project, io, { againstMergeBase: true })).toBe(1);
+    expect(lines.join("")).toContain('no new "- " entries versus merge-base');
   });
 
   it("change-init rejects duplicate directory", () => {

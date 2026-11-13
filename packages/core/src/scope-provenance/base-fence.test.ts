@@ -107,6 +107,66 @@ describe("evaluateProductionScopeFence (#4956)", () => {
   });
 });
 
+describe("spec-drift ledger membership under the completion-move shape (#680 P5 / #6231)", () => {
+  const LEDGER = "xbrief/.audit/spec-drift-ledger.json";
+  const base = {
+    xbriefRelPath: "xbrief/active/story.xbrief.json",
+    planId: "story-1",
+    xbriefModifiedInChangeSet: true,
+    baseApprovedFileScope: ["packages/core/src/a.ts"],
+    allowlistAuthority: "precommitment" as const,
+    exemptRelPaths: ["xbrief/completed/story.xbrief.json"],
+  };
+
+  it("admits the ledger beside the completed brief move", () => {
+    const hit = evaluateApprovedScopeMembership({
+      ...base,
+      changedFiles: [
+        "xbrief/active/story.xbrief.json",
+        "xbrief/completed/story.xbrief.json",
+        LEDGER,
+        "CHANGELOG.md",
+      ],
+    });
+    expect(hit).toBeNull();
+  });
+
+  it("refuses the ledger beside an unrelated production file", () => {
+    const hit = evaluateApprovedScopeMembership({
+      ...base,
+      changedFiles: [
+        "xbrief/active/story.xbrief.json",
+        "xbrief/completed/story.xbrief.json",
+        LEDGER,
+        "packages/core/src/a.ts",
+      ],
+    });
+    expect(hit?.kind).toBe("change-set-outside-approved-scope");
+    expect(hit?.expandedPaths).toEqual([LEDGER]);
+  });
+
+  it("refuses the ledger when no brief moves to completed/", () => {
+    const hit = evaluateApprovedScopeMembership({
+      ...base,
+      exemptRelPaths: [],
+      changedFiles: ["xbrief/active/story.xbrief.json", LEDGER],
+    });
+    expect(hit?.expandedPaths).toEqual([LEDGER]);
+  });
+
+  it("admits only the exact ledger path, not a sibling audit file", () => {
+    const hit = evaluateApprovedScopeMembership({
+      ...base,
+      changedFiles: [
+        "xbrief/active/story.xbrief.json",
+        "xbrief/completed/story.xbrief.json",
+        "xbrief/.audit/authority-events.jsonl",
+      ],
+    });
+    expect(hit?.expandedPaths).toEqual(["xbrief/.audit/authority-events.jsonl"]);
+  });
+});
+
 describe("evaluateApprovedScopeMembership (#4774)", () => {
   it("allows first-story when declared file_scope covers the change set", () => {
     const hit = evaluateApprovedScopeMembership({

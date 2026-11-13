@@ -27,7 +27,9 @@ import {
   type FetchPrPayloadFn,
   hasExplicitDeliverySelectors,
   isCodeBearingScope,
+  isCompletionMoveShaped,
   isDeliveryBriefLandExcluded,
+  isDeliveryBriefLandPath,
   isEligibleStoredDeliveryDisposition,
   liveRunGh,
   MERGE_TIME_SCAN_WALL_CLOCK_MS,
@@ -45,6 +47,7 @@ import {
   resolveCompletionSessionId,
   resolvePlanGithubIssueRef,
   resolvePrOnlyDeliveryIdentity,
+  SPEC_DRIFT_LEDGER_REL,
   scanSoleMarkCompetitors,
   selectMergeTimeBody,
   soleDeftStoryMark,
@@ -2793,6 +2796,36 @@ describe("sole-mark uniqueness scan (#5710 P3)", () => {
     expect(refused.message).toMatch(/changed files: scan budget exhausted: REST core remaining 99/);
     expect(low.calls).toContain("files:99");
     expect(low.calls).not.toContain("files:99:1");
+  });
+
+  it("delivery-brief-land family carries the exact spec-drift ledger (#680 F1 / P5)", () => {
+    const ledger = { status: "modified", filename: SPEC_DRIFT_LEDGER_REL };
+    expect(SPEC_DRIFT_LEDGER_REL).toBe("xbrief/.audit/spec-drift-ledger.json");
+    expect(isDeliveryBriefLandPath(SPEC_DRIFT_LEDGER_REL)).toBe(true);
+    expect(isDeliveryBriefLandPath("xbrief\\.audit\\spec-drift-ledger.json")).toBe(true);
+    expect(isDeliveryBriefLandPath("xbrief/.audit/authority-events.jsonl")).toBe(false);
+    expect(isDeliveryBriefLandPath("vbrief/.audit/spec-drift-ledger.json")).toBe(false);
+    expect(isDeliveryBriefLandPath("xbrief/cancelled/a.json")).toBe(true);
+    expect(isDeliveryBriefLandPath("xbrief/active/")).toBe(false);
+    expect(isDeliveryBriefLandExcluded([...completedRename, ledger])).toBe(true);
+    expect(isDeliveryBriefLandExcluded([ledger])).toBe(true);
+    expect(isDeliveryBriefLandExcluded([ledger, PRODUCT_FILE])).toBe(false);
+  });
+
+  it("isCompletionMoveShaped needs a completed/ brief and only brief-land paths (#680 P5)", () => {
+    expect(
+      isCompletionMoveShaped([
+        "xbrief/active/a.json",
+        "xbrief/completed/a.json",
+        SPEC_DRIFT_LEDGER_REL,
+        "CHANGELOG.md",
+      ]),
+    ).toBe(true);
+    expect(isCompletionMoveShaped(["xbrief/active/a.json", SPEC_DRIFT_LEDGER_REL])).toBe(false);
+    expect(
+      isCompletionMoveShaped(["xbrief/completed/a.json", SPEC_DRIFT_LEDGER_REL, "src/x.ts"]),
+    ).toBe(false);
+    expect(isCompletionMoveShaped([])).toBe(false);
   });
 
   it("isDeliveryBriefLandExcluded differs from activation brief-land shape", () => {
