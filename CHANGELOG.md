@@ -13,8 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Lifecycle completion needs fewer hand-offs: lifecycle-only PRs (briefs, CHANGELOG, spec-drift ledger) need no new CHANGELOG line, finalize commits the spec-drift ledger with the completed briefs, one refused deft-story mark leaves only that story pending instead of failing the batch, and finalize-owed lists active issue-less briefs by product PR. The shared lifecycle path family now also covers `cancelled/` briefs and the ledger, so the #5710 sole-mark basis (a) also excludes PRs that only touch those. Refs #680.
 - chore(dogfood): pin Directive to 0.129.7.
-- Completed the #5710, #5882, #6203 and #6212 scope briefs after their product PRs merged. Refs #5710. Refs #5882. Refs #6203. Refs #
-6212.
+- Completed the #6189 scope brief after its product PR merged, and removed a duplicate, line-split completion entry. Refs #6189. Refs #6261.
 - Activated the #6204 scope brief for through-merge. Refs #6204.
 - Activated the #6233 scope brief for through-merge. Refs #6233.
 - Restored the two live-run acceptance sentences of the #6233 scope brief as clauses. Refs #6233.
