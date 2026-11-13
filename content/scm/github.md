@@ -721,6 +721,11 @@ Up-to-date-required branch protection plus a required `Merge gate (task check)` 
 
 ⊗ Mutate GitHub `mergeable_state` to encode semantic/policy readiness — forge enrollment + local probe are the dispositioned alternatives (#4888 Prefer-A Bound Reject E).
 
+### Lifecycle PRs: CHANGELOG and spec-drift ledger (#680)
+
+- `verify:changelog-unreleased` skips the new-entry compare when the change set versus merge-base (`git diff --name-only --no-renames`) is non-empty and every path is a lifecycle brief (`xbrief|vbrief/<lifecycle>/`), `CHANGELOG.md`, or `xbrief/.audit/spec-drift-ledger.json`. Activation and completion PRs need no operator CHANGELOG line. Product changes and an empty change set keep the requirement.
+- `scope:complete` writes the spec-drift ledger; `swarm:finalize-cohort` commits it with the completed briefs. Membership admits exactly that ledger path only when the whole change set is a completion move. The verbs own these writes, so agents do not hand-write CHANGELOG or ledger lines on a lifecycle PR.
+
 ### Before flipping (operator)
 
 1. Confirm the required context name is exactly `Merge gate (task check)` (the aggregator). Do not require primary or failover lane names.

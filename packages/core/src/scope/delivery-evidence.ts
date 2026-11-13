@@ -894,17 +894,47 @@ export function connectedAtMergedAt(
   return { ok: true, connected: last?.kind === "connected" };
 }
 
-const DELIVERY_BRIEF_LAND_RE = /^(?:xbrief|vbrief)\/(?:proposed|pending|active|completed)\//;
+/** Ledger that scope completion writes beside the brief moves (#6231 / #680 P5). */
+export const SPEC_DRIFT_LEDGER_REL = "xbrief/.audit/spec-drift-ledger.json";
 
-function isDeliveryBriefLandPath(path: string): boolean {
+/**
+ * Delivery-brief-land path family (#5710 / #680 F1): a brief under an
+ * `xbrief|vbrief/<lifecycle>/` folder, root `CHANGELOG.md`, or the exact
+ * spec-drift ledger. One helper for the delivery gate, the CHANGELOG
+ * exemption, membership and finalize's lifecycle-shaped PR check, so the
+ * family cannot drift between them.
+ */
+export function isDeliveryBriefLandPath(path: string): boolean {
   const p = path.replace(/\\/g, "/");
-  return p === "CHANGELOG.md" || DELIVERY_BRIEF_LAND_RE.test(p);
+  if (p === "CHANGELOG.md" || p === SPEC_DRIFT_LEDGER_REL) {
+    return true;
+  }
+  const parts = p.split("/");
+  return (
+    parts.length >= 3 &&
+    (parts[0] === "xbrief" || parts[0] === "vbrief") &&
+    LIFECYCLE_FOLDER_SET.has(parts[1] ?? "") &&
+    (parts[parts.length - 1] ?? "").length > 0
+  );
+}
+
+/**
+ * Completion-move shape (#680 P5): a non-empty change set of delivery-brief-land
+ * paths with at least one brief under `completed/`. Membership admits the
+ * ledger only under this shape.
+ */
+export function isCompletionMoveShaped(paths: readonly string[]): boolean {
+  return (
+    paths.length > 0 &&
+    paths.every((p) => isDeliveryBriefLandPath(p)) &&
+    paths.some((p) => /^(?:xbrief|vbrief)\/completed\/./.test(p.replace(/\\/g, "/")))
+  );
 }
 
 /**
  * Delivery-brief-land exclusion (#5710): every changed path, rename sources
- * included, is a brief under `xbrief|vbrief/(proposed|pending|active|completed)/`
- * or root `CHANGELOG.md`, with at least one such path for a positive
+ * included, is in the delivery-brief-land family (`isDeliveryBriefLandPath`),
+ * with at least one such path for a positive
  * exclusion. CHANGELOG-only, completed-folder renames and deletion-only diffs
  * on those paths are excluded. A zero-file diff is not a positive exclusion:
  * as a competitor it still counts (fail closed), and as a candidate it is

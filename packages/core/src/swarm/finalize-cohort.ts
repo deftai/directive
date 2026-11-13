@@ -26,14 +26,15 @@ import {
 import { parseAllDeftStoryMarks } from "../pr-closing-keywords/main.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
-import { LIFECYCLE_FOLDERS } from "../scope/constants.js";
 import {
   classifyStoredDeliveryDisposition,
   type DeliveryEvidenceInput,
   defaultFetchPrChangedFiles,
   evidenceFromPrPayload,
   type FetchPrChangedFilesFn,
+  isDeliveryBriefLandPath,
   type PrChangedFile,
+  SPEC_DRIFT_LEDGER_REL,
   verifyDeliveryAncestry,
 } from "../scope/delivery-evidence.js";
 import type { GitRunner } from "../session/git.js";
@@ -67,6 +68,17 @@ export interface FinalizeOriginClosePending {
   readonly detail: string;
 }
 
+/**
+ * A refused `deft-story` mark (#680 P3). Non-fatal: the story stays pending,
+ * unstamped and unswept, while the rest of the batch lands. The run exits
+ * EXIT_INCOMPLETE, never EXIT_GATE_FAILED, for refused marks alone.
+ */
+export interface FinalizeRefusedMark {
+  readonly issue: number;
+  readonly pr: number;
+  readonly detail: string;
+}
+
 export interface FinalizeCohortResult {
   readonly project_root: string;
   readonly dry_run: boolean;
@@ -86,6 +98,8 @@ export interface FinalizeCohortResult {
   readonly ok: boolean;
   /** Present when origin-close awaits delivery-branch land (#4919). */
   readonly pending: FinalizeOriginClosePending | null;
+  /** Refused `deft-story` marks whose stories stay pending (#680 P3). Always set by finalize. */
+  readonly refused_marks?: readonly FinalizeRefusedMark[];
 }
 
 export interface FinalizeCohortArgs {
@@ -583,24 +597,13 @@ function deftStoryMarkBindsDelivery(
 }
 
 /**
- * Lifecycle-shaped PR (#6212): every changed path is a brief under an
- * `xbrief|vbrief/<lifecycle>/` folder or root `CHANGELOG.md`. Activation and
- * lifecycle PRs carry `deft-story` marks too, so they never bind as delivery.
+ * Lifecycle-shaped PR (#6212): every changed path is in the delivery-brief-land
+ * family (`isDeliveryBriefLandPath`, shared with the delivery gate, #680 F1).
+ * Activation and lifecycle PRs carry `deft-story` marks too, so they never bind
+ * as delivery. An empty list stays lifecycle-shaped, so it never binds either.
  */
-function isLifecycleShapedPr(files: readonly PrChangedFile[]): boolean {
-  const folders: ReadonlySet<string> = new Set(LIFECYCLE_FOLDERS);
-  return files.every((f) => {
-    const path = f.filename.replace(/\\/g, "/");
-    if (path === "CHANGELOG.md") {
-      return true;
-    }
-    const parts = path.split("/");
-    return (
-      parts.length === 3 &&
-      (parts[0] === "xbrief" || parts[0] === "vbrief") &&
-      folders.has(parts[1] ?? "")
-    );
-  });
+export function isLifecycleShapedPr(files: readonly PrChangedFile[]): boolean {
+  return files.every((f) => isDeliveryBriefLandPath(f.filename));
 }
 
 /**
@@ -1093,6 +1096,11 @@ function derivedLifecycleRelsFromSweep(
     out.push(posixProjectRel(projectRoot, resolvedPath));
   };
   if (sweep !== null) {
+    // scope:complete writes the spec-drift ledger as verb output; it travels in
+    // the same lifecycle commit as the completed briefs (#680 P5 / #6231).
+    if (sweep.stories.some((rec) => rec.ok)) {
+      out.push(SPEC_DRIFT_LEDGER_REL);
+    }
     for (const rec of [...sweep.stories, ...sweep.parents]) {
       if (!rec.ok || rec.path.trim().length === 0) {
         continue;
@@ -1798,8 +1806,13 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   const validatedPrs: number[] = [];
   /** Full-story close intent from PR-body `deft-story: N` (#4864). Not Tracking/Refs scrape. */
   const fullStoryCloseIssues = new Set<number>();
-  /** A refused deft-story mark stops the stamp and sweep in every write mode (#6212). */
-  let deftStoryMarkRefused = false;
+  /**
+   * A failed changed-file lookup for a mark is a real forge error: it still stops
+   * the stamp and sweep for the whole batch in every write mode (#6212).
+   */
+  let deftStoryMarkLookupFailed = false;
+  /** Refused marks: non-fatal; only that story stays pending (#680 P3). */
+  const refusedMarks: FinalizeRefusedMark[] = [];
   let closingLookupFailed = false;
   // Operator --stories issues: their deft-story marks may bind before the sweep stamp (#6212).
   const operatorResolved = storyTokens.length > 0 ? resolveStories(projectRoot, storyTokens) : null;
@@ -1880,6 +1893,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
         for (const issue of parseAllDeftStoryMarks(prBody)) {
           const mark = deftStoryMarkBindsDelivery(projectRoot, issue, prNumber);
           let bound = mark.stampMatch;
+          let lookupFailed = false;
           let reason =
             `need active or completed brief #${String(issue)} with ` +
             `metadata.productPullRequest=${String(prNumber)}`;
@@ -1896,19 +1910,24 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
               }
               if (prFiles === null) {
                 reason = `changed-file lookup for PR #${String(prNumber)} failed`;
+                lookupFailed = true;
               } else if (isLifecycleShapedPr(prFiles)) {
-                reason = `PR #${String(prNumber)} changes only briefs and CHANGELOG.md`;
+                reason = `PR #${String(prNumber)} changes only lifecycle paths: briefs, CHANGELOG.md, spec-drift ledger`;
               } else {
                 bound = true;
               }
             }
           }
           if (!bound) {
-            deftStoryMarkRefused = true;
-            errors.push(
+            const detail =
               `#${String(issue)}: deft-story mark on PR #${String(prNumber)} does not bind PR delivery ` +
-                `(${reason}) (#4864).`,
-            );
+              `(${reason}) (#4864).`;
+            if (lookupFailed) {
+              deftStoryMarkLookupFailed = true;
+              errors.push(detail);
+            } else {
+              refusedMarks.push({ issue, pr: prNumber, detail });
+            }
             continue;
           }
           fullStoryCloseIssues.add(issue);
@@ -1931,7 +1950,12 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     }
   }
 
-  if (storyTokens.length === 0 && closingIssues.size === 0 && fullStoryCloseIssues.size === 0) {
+  if (
+    storyTokens.length === 0 &&
+    closingIssues.size === 0 &&
+    fullStoryCloseIssues.size === 0 &&
+    refusedMarks.length === 0
+  ) {
     errors.push(
       "empty cohort: pass --pr <numbers> and/or --stories <ids|paths> " +
         "(or record full-story close intent via deft-story: N / productPullRequest).",
@@ -2064,9 +2088,40 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     }
   }
 
+  // Refused marks (#680 P3): an issue no other PR bound stays pending. Its story
+  // leaves the batch before stamp/sweep (#6212: never single-PR defaultEvidence),
+  // and its origin is never closed. The other stories go on.
+  // A stray mark with no brief for its issue warns only; it leaves nothing pending.
+  // Selected story paths count too, so a nested brief path is never missed.
+  const pendingMarkIssues = new Set(
+    refusedMarks
+      .map((m) => m.issue)
+      .filter(
+        (issue) =>
+          !fullStoryCloseIssues.has(issue) &&
+          !closingIssues.has(issue) &&
+          (storyPaths.some((p) => githubIssueFromBrief(p) === issue) ||
+            localBriefReferencesIssue(projectRoot, issue)),
+      ),
+  );
+  for (let i = storyPaths.length - 1; i >= 0; i -= 1) {
+    const origin = githubIssueFromBrief(storyPaths[i] ?? "");
+    if (origin !== null && pendingMarkIssues.has(origin)) {
+      storyPaths.splice(i, 1);
+    }
+  }
+  for (const mark of refusedMarks) {
+    warnings.push(
+      pendingMarkIssues.has(mark.issue)
+        ? `${mark.detail} Story left pending, not stamped or swept (#680).`
+        : mark.detail,
+    );
+  }
+  const markPending = pendingMarkIssues.size > 0;
+
   const originIssues = collectOriginIssueNumbers(storyPaths, storyTokens, [
     ...fullStoryCloseIssues,
-  ]);
+  ]).filter((issue) => !pendingMarkIssues.has(issue));
 
   if (storyPaths.length === 0) {
     if (errors.length === 0 && originIssues.length > 0) {
@@ -2087,7 +2142,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
           ? originClosePendingState(originClose.pendingIssues, deliveryBranch)
           : null;
       const originFailed = errors.length > 0;
-      const originPending = !originFailed && pending !== null;
+      const originPending = !originFailed && (pending !== null || markPending);
       return buildResponse({
         projectRoot,
         dryRun,
@@ -2105,6 +2160,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
         errors,
         warnings,
         pending,
+        refusedMarks,
         ok: !originFailed && !originPending,
         emitJson: args.emitJson ?? false,
         exitCode: originFailed ? EXIT_GATE_FAILED : originPending ? EXIT_INCOMPLETE : EXIT_OK,
@@ -2130,10 +2186,13 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       errors,
       warnings,
       pending: null,
-      ok: cleanNoop,
+      refusedMarks,
+      ok: cleanNoop && !markPending,
       emitJson: args.emitJson ?? false,
       exitCode: cleanNoop
-        ? EXIT_OK
+        ? markPending
+          ? EXIT_INCOMPLETE
+          : EXIT_OK
         : errors.some((e) => e.includes("not merged") || e.includes("delivery"))
           ? EXIT_GATE_FAILED
           : EXIT_CONFIG_ERROR,
@@ -2159,6 +2218,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       errors,
       warnings,
       pending: null,
+      refusedMarks,
       ok: false,
       emitJson: args.emitJson ?? false,
       exitCode: EXIT_GATE_FAILED,
@@ -2260,6 +2320,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       errors,
       warnings,
       pending: partial.pending ?? null,
+      refusedMarks,
       emitJson: args.emitJson ?? false,
       ...partial,
     });
@@ -2335,9 +2396,10 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
         }
       }
     }
-    // --no-commit skips the error stop above, but a refused mark must never let the
-    // single-PR default evidence stamp that PR; a retry would then bind it (#6212).
-    if (!dryRun && deftStoryMarkRefused) {
+    // --no-commit skips the error stop above, but a mark whose lookup failed must
+    // never let the single-PR default evidence stamp that PR; a retry would then
+    // bind it (#6212). Refused marks already left the batch above (#680 P3).
+    if (!dryRun && deftStoryMarkLookupFailed) {
       skipSweep = true;
     }
 
@@ -2562,7 +2624,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
     }
 
     const failed = errors.length > 0;
-    const incomplete = !failed && pendingOrigin !== null;
+    const incomplete = !failed && (pendingOrigin !== null || markPending);
     return respond({
       sweep,
       commitSha,
@@ -2624,6 +2686,7 @@ function withReportedFailure(
     errors: [...result.errors, error],
     warnings: [...result.warnings],
     pending: result.pending,
+    refusedMarks: result.refused_marks ?? [],
     ok: false,
     emitJson,
     exitCode: EXIT_GATE_FAILED,
@@ -2647,6 +2710,7 @@ function buildResponse(input: {
   errors: readonly string[];
   warnings: readonly string[];
   pending: FinalizeOriginClosePending | null;
+  refusedMarks?: readonly FinalizeRefusedMark[];
   ok: boolean;
   emitJson: boolean;
   exitCode: number;
@@ -2668,6 +2732,7 @@ function buildResponse(input: {
     errors: input.errors,
     warnings: input.warnings,
     pending: input.pending,
+    refused_marks: input.refusedMarks ?? [],
     ok: input.ok,
   };
 
@@ -2756,7 +2821,9 @@ function buildResponse(input: {
       ? `Result: FINALIZE CLEAN -- cohort briefs swept to completed/.${skipNote}`
       : input.pending !== null
         ? "Result: FINALIZE INCOMPLETE -- origin-close pending."
-        : "Result: FINALIZE INCOMPLETE -- see errors above.",
+        : input.errors.length === 0 && (input.refusedMarks ?? []).length > 0
+          ? "Result: FINALIZE INCOMPLETE -- refused deft-story mark(s); see warnings above."
+          : "Result: FINALIZE INCOMPLETE -- see errors above.",
   );
 
   return {

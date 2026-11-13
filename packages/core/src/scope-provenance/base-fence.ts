@@ -13,7 +13,8 @@
  * continuity-resolved story, else the merge-base brief's **concrete**
  * file_scope entries as agent precommitment. Empty mint is authoritative.
  * Glob entries admit only under a mint (F4). Free paths are the bound brief,
- * verified peers, CHANGELOG, and caller-supplied lifecycle exempts. Production
+ * verified peers, CHANGELOG, caller-supplied lifecycle exempts, and the exact
+ * spec-drift ledger under the completion-move shape only (#680 P5). Production
  * allowance applies only to concrete source-root extras; test/fixture and all
  * other undeclared paths must match the allowlist. Peer coverage never clears
  * a missing own allowlist. Missing-mint remediation is split or land a widened
@@ -26,6 +27,7 @@
  */
 
 import { matchAny, matchPath } from "../orchestration/pathspec.js";
+import { isCompletionMoveShaped, SPEC_DRIFT_LEDGER_REL } from "../scope/delivery-evidence.js";
 import {
   DEFAULT_FIXTURE_ROOTS,
   DEFAULT_SOURCE_ROOTS,
@@ -352,11 +354,19 @@ export function evaluateApprovedScopeMembership(
     (input.exemptRelPaths ?? []).map((p) => normalizeMembershipRel(p)).filter((p) => p.length > 0),
   );
 
+  // #680 P5 / #6231: the spec-drift ledger is scope:complete verb output. It is
+  // free only when the whole change set is a completion move (delivery-brief-land
+  // paths with a completed/ brief), so it never carries other paths past membership.
+  const ledgerFree = isCompletionMoveShaped(
+    input.changedFiles.map((raw) => normalizeMembershipRel(raw)).filter((rel) => rel.length > 0),
+  );
+
   const isFreePath = (rel: string): boolean => {
     if (rel === xbriefRel) return true;
     if (rel === CHANGELOG_REL) return true;
     if (peerXbriefs.has(rel)) return true;
     if (lifecycleExempt.has(rel)) return true;
+    if (ledgerFree && rel === SPEC_DRIFT_LEDGER_REL) return true;
     return false;
   };
 
