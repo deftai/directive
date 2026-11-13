@@ -801,6 +801,19 @@ function applyPatchBodyUnclassified(payload: unknown): boolean {
   return text !== null && hookApplyPatchBodyPaths(payload).length === 0;
 }
 
+/**
+ * True only when the harvest is non-empty, fully classified, and every target
+ * is outside fenceRoot (#6189 limb 5). Empty, unclassified, or unsupported-URI
+ * harvests return false so the #5656 positive-allow check stays fail-closed.
+ */
+function allMutationTargetsOutsideFenceRoot(payload: unknown, effectiveRoot: string): boolean {
+  if (applyPatchBodyUnclassified(payload)) return false;
+  const normalized = normalizeMutationTargetPaths(hookMutationTargetPaths(payload));
+  if (!normalized.ok || normalized.paths.length === 0) return false;
+  const fenceRoot = resolve(effectiveRoot);
+  return normalized.paths.every((target) => isOutsideProjectRootWrite(fenceRoot, target));
+}
+
 const APPLY_PATCH_UNCLASSIFIED_BODY_MESSAGE =
   "Directive denied this direct write: apply_patch body named no classifiable mutation target, so the write fence cannot authorize it.";
 
@@ -1514,7 +1527,15 @@ function runtimeAuthorityForDirectWrite(
     );
   }
   for (const target of normalized.paths) {
-    const relPath = toProjectRelativePosix(fenceRoot, target);
+    // #6189 Prefer-A Bound limbs 1 + 4: the story fence and project path globs
+    // govern the repository, not host memory or temp scratch. A target outside
+    // fenceRoot (the same root this loop relativises against; the #2885
+    // carve-out stays on payloadRoot) skips the path layer only. A null relPath
+    // still runs the non-path checks, so project scopes.edits=false keeps
+    // denying. The unclassified-target deny above stays ahead of this skip.
+    const relPath = isOutsideProjectRootWrite(fenceRoot, target)
+      ? null
+      : toProjectRelativePosix(fenceRoot, target);
     const verdict = evaluateRuntimeAuthorityDirectWrite({
       policy: fence.policy,
       relPathPosix: relPath,
@@ -2722,7 +2743,15 @@ function inspectMutationGates(
       pendingConsumeOut: pendingGrantConsume,
     });
     if (authzDeny !== null) return authzDeny;
-    const positiveDeny = requirePositiveGoverningAllow();
+    // #6189 Prefer-A Bound limb 5: a Write whose every harvested target is
+    // outside fenceRoot (limb 1's anchor) does not need positive story allow,
+    // so the activation-PR window (empty merge-base file_scope) can still
+    // write scratch. Any in-repo target, an empty or unclassified harvest, and
+    // implement-class spawn keep the #5656 requirement. runtimeAuthority below
+    // still applies project scopes.edits=false (limb 4).
+    const positiveDeny = allMutationTargetsOutsideFenceRoot(input.payload, effectiveRoot)
+      ? null
+      : requirePositiveGoverningAllow();
     if (positiveDeny !== null) return positiveDeny;
     const runtimeDeny = runtimeAuthorityForDirectWrite(
       input,
