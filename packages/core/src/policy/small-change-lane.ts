@@ -25,14 +25,15 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { basename, extname, join } from "node:path";
+import { basename, dirname, extname, join } from "node:path";
 import type * as TS from "typescript";
-import { formatBriefJson } from "../scope/brief-io.js";
+import { atomicWriteBrief } from "../scope/brief-io.js";
 import { isTestOrFixturePath } from "../scope-provenance/base-fence.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { isRecognizedTestBasename } from "../test-boundary/evaluate.js";
+import type { JsonObject } from "../vbrief-build/types.js";
 import { type CeremonyDepth, resolveCeremonyDial } from "./ceremony-dial.js";
 import { readPlanPolicy } from "./plan-extensions.js";
 import { loadProjectDefinition } from "./resolve.js";
@@ -761,15 +762,23 @@ export function readSmallChangeLaneMarker(plan: unknown): ReadSmallChangeLaneMar
  * Persist a crossing on the brief file so later retries refuse even if the
  * diff shrinks back under the bound. Returns false when the write fails.
  */
-export function recordSmallChangeLaneCrossing(briefPath: string, reason: string): boolean {
+export function recordSmallChangeLaneCrossing(
+  briefPath: string,
+  reason: string,
+  projectRoot?: string,
+): boolean {
   try {
     const data = JSON.parse(readFileSync(briefPath, "utf8")) as unknown;
-    const meta = asRecord(asRecord(asRecord(data)?.plan)?.metadata);
+    const root = asRecord(data);
+    const meta = asRecord(asRecord(root?.plan)?.metadata);
     const marker = asRecord(meta?.[SMALL_CHANGE_LANE_MARKER_KEY]);
-    if (meta === null || marker === null) return false;
+    if (root === null || meta === null || marker === null) return false;
     meta[SMALL_CHANGE_LANE_MARKER_KEY] = { ...marker, state: "crossed", crossedReason: reason };
-    writeFileSync(briefPath, formatBriefJson(data), "utf8");
-    return true;
+    // Contained temp-then-rename write: a failed save never truncates the brief.
+    const written = atomicWriteBrief(briefPath, root as JsonObject, dirname(dirname(briefPath)), {
+      ...(projectRoot !== undefined ? { projectRoot } : {}),
+    });
+    return written.ok;
   } catch {
     return false;
   }
@@ -898,7 +907,11 @@ export function evaluateSmallChangeLaneGate(
   });
   if (!laneVerdict.ok) {
     if (CROSSING_KINDS.has(laneVerdict.kind) && options.briefPath) {
-      const recorded = recordSmallChangeLaneCrossing(options.briefPath, laneVerdict.reason);
+      const recorded = recordSmallChangeLaneCrossing(
+        options.briefPath,
+        laneVerdict.reason,
+        options.projectRoot,
+      );
       const note = recorded
         ? "recorded on the brief as crossed"
         : "could not record the crossing on the brief";

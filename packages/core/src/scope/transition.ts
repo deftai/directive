@@ -353,6 +353,37 @@ function advanceNonTerminalOwnItems(items: unknown, targetStatus: string): void 
  * `applied: false` with a clauseless post-call acceptance is the no-op,
  * including a quality-strip that reports clauses but restores the floor.
  */
+/**
+ * #6204: a small-change lane brief carries stated acceptance commands and no
+ * clauses by design. Promote / activate (including the already-active recheck)
+ * may admit it past the clause refusals only while the lane admits it (rapid,
+ * bound holds, public surface none). Returns null when admitted, else a note
+ * to append to the refusal (empty when the brief is not in the lane).
+ */
+function smallChangeLaneThinRefusalNote(
+  planObj: Record<string, unknown>,
+  act: string,
+  projectRoot: string,
+  briefPath: string,
+  overrides: TransitionOptions["smallChangeLane"],
+): string | null {
+  const lane = evaluateSmallChangeLaneGate(planObj, {
+    ...overrides,
+    projectRoot,
+    gate: act === "promote" ? "scope:promote" : "scope:activate",
+    briefPath,
+  });
+  if (
+    lane.applies &&
+    lane.ok &&
+    lane.verdict?.kind === "admitted" &&
+    checkCommandBackedAcceptance(planObj.acceptance).ok
+  ) {
+    return null;
+  }
+  return lane.applies && !lane.ok ? `\n${lane.message}` : "";
+}
+
 function zeroClauseDerivationRefusal(
   derivation: { readonly applied: boolean; readonly notice: string },
   acceptance: unknown,
@@ -614,7 +645,16 @@ export function runTransition(
     }
     const ingress = prepareActiveIngressAcceptance(planObj, { projectRoot });
     if (!ingress.ok) {
-      return { ok: false, message: ingress.message };
+      const laneNote = smallChangeLaneThinRefusalNote(
+        planObj,
+        act,
+        projectRoot,
+        resolvedPath,
+        options.smallChangeLane,
+      );
+      if (laneNote !== null) {
+        return { ok: false, message: `${ingress.message}${laneNote}` };
+      }
     }
     if (ingress.applied) {
       const written = atomicWriteBrief(resolvedPath, data, vbriefRoot, { projectRoot });
@@ -633,7 +673,16 @@ export function runTransition(
     if (act === "activate" || act === "promote") {
       const ingress = prepareActiveIngressAcceptance(planObj, { projectRoot });
       if (!ingress.ok) {
-        return { ok: false, message: ingress.message };
+        const laneNote = smallChangeLaneThinRefusalNote(
+          planObj,
+          act,
+          projectRoot,
+          resolvedPath,
+          options.smallChangeLane,
+        );
+        if (laneNote !== null) {
+          return { ok: false, message: `${ingress.message}${laneNote}` };
+        }
       }
       if (ingress.applied) {
         const written = atomicWriteBrief(resolvedPath, data, vbriefRoot, { projectRoot });
@@ -680,22 +729,14 @@ export function runTransition(
     // a clauseless acceptance.
     const zeroClauseRefusal = zeroClauseDerivationRefusal(derivation, planObj.acceptance);
     if (zeroClauseRefusal !== null) {
-      // #6204: a small-change lane brief carries stated acceptance commands and
-      // no clauses by design. It may promote / activate only while the lane
-      // admits it (rapid, bound holds, public surface none).
-      const lane = evaluateSmallChangeLaneGate(planObj, {
-        ...options.smallChangeLane,
+      const laneNote = smallChangeLaneThinRefusalNote(
+        planObj,
+        act,
         projectRoot,
-        gate: act === "promote" ? "scope:promote" : "scope:activate",
-        briefPath: resolvedPath,
-      });
-      const laneAdmitsThin =
-        lane.applies &&
-        lane.ok &&
-        lane.verdict?.kind === "admitted" &&
-        checkCommandBackedAcceptance(planObj.acceptance).ok;
-      if (!laneAdmitsThin) {
-        const laneNote = lane.applies && !lane.ok ? `\n${lane.message}` : "";
+        resolvedPath,
+        options.smallChangeLane,
+      );
+      if (laneNote !== null) {
         return { ok: false, message: `${zeroClauseRefusal}${laneNote}` };
       }
     }

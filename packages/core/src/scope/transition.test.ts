@@ -2891,6 +2891,11 @@ describe("scope:complete admits and rechecks the small-change lane thin shape (#
     const activated = runTransition("activate", pending, new Date("2026-11-12T12:00:00Z"), lane);
     expect(activated.ok, activated.message).toBe(true);
     expect(existsSync(join(root, "xbrief", "active", "2026-11-12-thin.xbrief.json"))).toBe(true);
+    // Greptile P1 on c10d2f75b: retrying activate on the active thin brief stays a no-op.
+    const active = join(root, "xbrief", "active", "2026-11-12-thin.xbrief.json");
+    const retried = runTransition("activate", active, new Date("2026-11-12T12:00:00Z"), lane);
+    expect(retried.ok, retried.message).toBe(true);
+    expect(retried.message).toContain("already in active/");
   });
 
   it("refuses to promote a thin brief past the bound and records the crossing", () => {
