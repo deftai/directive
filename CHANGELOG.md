@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Small-change lane under the rapid ceremony dial: a thin command-backed brief that the lifecycle gates admit while an operator-set size bound holds, and a lane exit to the full shape once the bound is crossed. Refs #6204.
 
 ### Changed
+- Lifecycle completion needs fewer hand-offs: lifecycle-only PRs (briefs, CHANGELOG, spec-drift ledger) need no new CHANGELOG line, finalize commits the spec-drift ledger with the completed briefs, one refused deft-story mark leaves only that story pending instead of failing the batch, and finalize-owed lists active issue-less briefs by product PR. The shared lifecycle path family now also covers `cancelled/` briefs and the ledger, so the #5710 sole-mark basis (a) also excludes PRs that only touch those. Refs #680.
 - chore(dogfood): pin Directive to 0.129.7.
 - Completed the #5710, #5882, #6203 and #6212 scope briefs after their product PRs merged. Refs #5710. Refs #5882. Refs #6203. Refs #
 6212.
@@ -24,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Minted the intent-constraint record for the #6204 small-change lane defaults (5 production files, 500 changed lines). Refs #6204.
 - Activated the #680 scope brief for through-merge. Refs #680.
 - Activated the #6189 scope brief for through-merge. Refs #6189.
+- Completed the #5942 and #6227 scope briefs after their product PRs merged. Refs #5942. Refs #6227.
 
 ### Fixed
 - `reconcile-issues` no longer fails when a brief references a deleted issue (HTTP 410). The report names deleted (410) apart from missing (404) and exits 0. `--apply-lifecycle-fixes` leaves briefs anchored to a deleted issue in place, and refuses to move a parent whose decomposed child is deleted; a child whose state cannot be fetched fails the run. Umbrella reconcile counts a deleted child as open and does not rewrite its checkbox. Refs #5912.

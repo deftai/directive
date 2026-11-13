@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6227",
-    "updated": "2026-11-13T04:53:36Z"
+    "updated": "2026-11-13T04:50:44Z"
   },
   "plan": {
     "title": "bug(test,release): 39 tests fail release Step 5 on a Windows maintainer checkout that CI passes (agent env, symlink privilege, dispatcher identity)",
@@ -24,11 +24,12 @@
         "narrative": {
           "Acceptance": "When CLAUDE_*, DEFT_*, CURSOR_*, GROK_* or DEFT_MONITOR_* are set in the host, the pr-watch/main, verify-review-monitor and dispatcher-grok-identity suites return the same results as with them unset."
         },
+        "x-directive/requires": "merge",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/pr-watch/main.test.ts",
-          "recorded_at": "2026-11-13T04:52:02Z",
-          "recorded_by": "scope:stamp-evidence"
+          "kind": "merge",
+          "pointer": "192f99930f82e63edcf38bfde0a0eafa669ab926",
+          "recorded_at": "2026-11-13T04:50:44Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
@@ -38,11 +39,12 @@
         "narrative": {
           "Acceptance": "When tests run on win32, symlink-creating cases report as skipped via a local itSymlink gate with a cited reason, and on Linux CI they still run and pass."
         },
+        "x-directive/requires": "merge",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/coverage-hotspots/evaluate.test.ts",
-          "recorded_at": "2026-11-13T04:52:02Z",
-          "recorded_by": "scope:stamp-evidence"
+          "kind": "merge",
+          "pointer": "192f99930f82e63edcf38bfde0a0eafa669ab926",
+          "recorded_at": "2026-11-13T04:50:44Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
@@ -52,11 +54,12 @@
         "narrative": {
           "Acceptance": "When coverage-hotspots/evaluate.test.ts runs on win32, its two symlinkSync cases report as skipped, and on Linux they still run and pass."
         },
+        "x-directive/requires": "merge",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/coverage-hotspots/evaluate.test.ts",
-          "recorded_at": "2026-11-13T04:52:02Z",
-          "recorded_by": "scope:stamp-evidence"
+          "kind": "merge",
+          "pointer": "192f99930f82e63edcf38bfde0a0eafa669ab926",
+          "recorded_at": "2026-11-13T04:50:44Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
@@ -66,11 +69,12 @@
         "narrative": {
           "Acceptance": "When read-regular-file-no-follow.test.ts runs on win32, the parent-directory symlink case reports as skipped, and on Linux it still runs and passes."
         },
+        "x-directive/requires": "merge",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/fs/read-regular-file-no-follow.test.ts",
-          "recorded_at": "2026-11-13T04:52:02Z",
-          "recorded_by": "scope:stamp-evidence"
+          "kind": "merge",
+          "pointer": "192f99930f82e63edcf38bfde0a0eafa669ab926",
+          "recorded_at": "2026-11-13T04:50:44Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
@@ -80,11 +84,12 @@
         "narrative": {
           "Acceptance": "When setup-wiring.test.ts runs on win32, the chmod +x case reports as skipped, and on Linux it still runs and passes."
         },
+        "x-directive/requires": "merge",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/runtime/src/setup-wiring.test.ts",
-          "recorded_at": "2026-11-13T04:52:02Z",
-          "recorded_by": "scope:stamp-evidence"
+          "kind": "merge",
+          "pointer": "192f99930f82e63edcf38bfde0a0eafa669ab926",
+          "recorded_at": "2026-11-13T04:50:44Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
@@ -94,11 +99,12 @@
         "narrative": {
           "Acceptance": "When dispatcher.test.ts runs on the Windows maintainer checkout, all occupancy-identity-unavailable cases return that verdict and none fails with occupancy-identity-conflict."
         },
+        "x-directive/requires": "merge",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/hooks/dispatcher.test.ts",
-          "recorded_at": "2026-11-13T04:52:02Z",
-          "recorded_by": "scope:stamp-evidence"
+          "kind": "merge",
+          "pointer": "192f99930f82e63edcf38bfde0a0eafa669ab926",
+          "recorded_at": "2026-11-13T04:50:44Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
@@ -108,77 +114,84 @@
         "narrative": {
           "Acceptance": "When launcher-bundle-d43 runs on Windows, npm pack and tar exits are checked in order and the test returns jsEntries exactly [package/dist/bin.js]; AC3.2 is not weakened."
         },
+        "x-directive/requires": "merge",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/cli/src/launcher-bundle-d43.test.ts",
-          "recorded_at": "2026-11-13T04:52:02Z",
-          "recorded_by": "scope:stamp-evidence"
+          "kind": "merge",
+          "pointer": "192f99930f82e63edcf38bfde0a0eafa669ab926",
+          "recorded_at": "2026-11-13T04:50:44Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.8",
         "title": "clause.8",
         "status": "completed",
+        "x-directive/requires": "merge",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/fs/read-regular-file-no-follow.test.ts",
-          "recorded_at": "2026-11-13T04:52:02Z",
-          "recorded_by": "scope:stamp-evidence"
+          "kind": "merge",
+          "pointer": "192f99930f82e63edcf38bfde0a0eafa669ab926",
+          "recorded_at": "2026-11-13T04:50:44Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.9",
         "title": "clause.9",
         "status": "completed",
+        "x-directive/requires": "merge",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/coverage-hotspots/evaluate.test.ts",
-          "recorded_at": "2026-11-13T04:52:02Z",
-          "recorded_by": "scope:stamp-evidence"
+          "kind": "merge",
+          "pointer": "192f99930f82e63edcf38bfde0a0eafa669ab926",
+          "recorded_at": "2026-11-13T04:50:44Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.10",
         "title": "clause.10",
         "status": "completed",
+        "x-directive/requires": "merge",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/hooks/dispatcher.test.ts",
-          "recorded_at": "2026-11-13T04:52:02Z",
-          "recorded_by": "scope:stamp-evidence"
+          "kind": "merge",
+          "pointer": "192f99930f82e63edcf38bfde0a0eafa669ab926",
+          "recorded_at": "2026-11-13T04:50:44Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.11",
         "title": "clause.11",
         "status": "completed",
+        "x-directive/requires": "merge",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/hooks/dispatcher.ts",
-          "recorded_at": "2026-11-13T04:52:02Z",
-          "recorded_by": "scope:stamp-evidence"
+          "kind": "merge",
+          "pointer": "192f99930f82e63edcf38bfde0a0eafa669ab926",
+          "recorded_at": "2026-11-13T04:50:44Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.12",
         "title": "clause.12",
         "status": "completed",
+        "x-directive/requires": "merge",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/cli/src/launcher-bundle-d43.test.ts",
-          "recorded_at": "2026-11-13T04:52:02Z",
-          "recorded_by": "scope:stamp-evidence"
+          "kind": "merge",
+          "pointer": "192f99930f82e63edcf38bfde0a0eafa669ab926",
+          "recorded_at": "2026-11-13T04:50:44Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.13",
         "title": "clause.13",
         "status": "completed",
+        "x-directive/requires": "merge",
         "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/cli/src/launcher-bundle-d43.test.ts",
-          "recorded_at": "2026-11-13T04:52:02Z",
-          "recorded_by": "scope:stamp-evidence"
+          "kind": "merge",
+          "pointer": "192f99930f82e63edcf38bfde0a0eafa669ab926",
+          "recorded_at": "2026-11-13T04:50:44Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -1140,26 +1153,26 @@
         "mergeCommit": "192f99930f82e63edcf38bfde0a0eafa669ab926",
         "deliveryBranch": "master",
         "deliveryCommit": "daee4cf534e1fe69ed06bc03f4c0b2933357eb1e",
-        "verifiedAt": "2026-11-13T04:53:36Z",
+        "verifiedAt": "2026-11-13T04:50:44Z",
         "verifier": "swarm:finalize-cohort",
         "disposition": "delivered",
         "handoffState": "delivered",
         "deployed": null,
         "uatVerified": null,
-        "completedSessionId": "host:claude:v1:YTQzYjZmZjAtZDdiYi00ZThlLWI2ODMtOGVjODI2NTBhNmIy",
+        "completedSessionId": "host:claude:v1:ODg0OTU4NmUtMjkxMi00MWE3LTliYmYtZmM1NDQyOTE0ZDg1",
         "identityBasis": "merge-time-mark"
       },
       "deliveryDisposition": "delivered",
       "handoffState": "delivered",
-      "completedAt": "2026-11-13T04:53:36Z",
-      "completedSessionId": "host:claude:v1:YTQzYjZmZjAtZDdiYi00ZThlLWI2ODMtOGVjODI2NTBhNmIy",
+      "completedAt": "2026-11-13T04:50:44Z",
+      "completedSessionId": "host:claude:v1:ODg0OTU4NmUtMjkxMi00MWE3LTliYmYtZmM1NDQyOTE0ZDg1",
       "capacityBucket": "technical-debt",
       "lifecycleWrite": {
         "action": "complete",
-        "writtenAt": "2026-11-13T04:53:36Z"
+        "writtenAt": "2026-11-13T04:50:44Z"
       }
     },
     "id": "github.issue.6358014246",
-    "updated": "2026-11-13T04:53:36Z"
+    "updated": "2026-11-13T04:50:44Z"
   }
 }
