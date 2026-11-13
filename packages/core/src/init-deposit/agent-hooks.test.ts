@@ -92,6 +92,54 @@ function expectedOuterCmd(host: "claude" | "grok" | "cursor" | "codex", event: s
 }
 
 describe("writeAgentHookDeposit", () => {
+  it("deposits a Claude-only SessionEnd -> session.end hook and reports it (#6274)", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+    const claude = JSON.parse(readFileSync(join(root, ".claude/settings.json"), "utf8")) as {
+      hooks: { SessionEnd?: Array<{ matcher?: string; hooks: Array<{ command: string }> }> };
+    };
+    expect(claude.hooks.SessionEnd).toHaveLength(1);
+    expect(claude.hooks.SessionEnd?.[0]?.matcher).toBeUndefined();
+    expect(claude.hooks.SessionEnd?.[0]?.hooks[0]?.command).toBe(
+      expectedOuterCmd("claude", "session.end"),
+    );
+    for (const path of [".grok/hooks/deft.json", ".cursor/hooks.json", ".codex/hooks.json"]) {
+      const text = readFileSync(join(root, path), "utf8");
+      expect(text).not.toContain("session.end");
+      expect(text).not.toContain("SessionEnd");
+    }
+    const inspected = inspectAgentHookDeposit(root);
+    expect(inspected.find((entry) => entry.host === "claude")).toMatchObject({
+      status: "healthy",
+      sessionEndSupport: "deposited",
+      sessionEndRegistered: true,
+    });
+    for (const host of ["grok", "cursor", "codex"] as const) {
+      expect(inspected.find((entry) => entry.host === host)).toMatchObject({
+        sessionEndSupport: "unsupported",
+        sessionEndRegistered: null,
+      });
+    }
+
+    // Absence is best-effort: reported, but the registration stays healthy.
+    const path = join(root, ".claude/settings.json");
+    const parsed = JSON.parse(readFileSync(path, "utf8")) as { hooks: Record<string, unknown> };
+    delete parsed.hooks.SessionEnd;
+    writeFileSync(path, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "claude")).toMatchObject({
+      status: "healthy",
+      sessionEndRegistered: false,
+    });
+
+    // Redeposit restores exactly one managed SessionEnd entry.
+    writeAgentHookDeposit(root);
+    writeAgentHookDeposit(root);
+    const again = JSON.parse(readFileSync(path, "utf8")) as {
+      hooks: { SessionEnd?: unknown[] };
+    };
+    expect(again.hooks.SessionEnd).toHaveLength(1);
+  });
+
   it("deposits native Claude, Grok, Cursor, and Codex SessionStart/direct-write hooks", () => {
     const root = project();
     const lines: string[] = [];

@@ -275,7 +275,10 @@ export const CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS = 30;
  */
 export const NESTED_TOOL_BEFORE_TIMEOUT_SECONDS = CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS;
 
-/** Nested Claude/Grok/Codex session.start / session.compact timeout (seconds). */
+/**
+ * Nested Claude/Grok/Codex session.start / session.compact / session.end timeout (seconds).
+ * For Claude SessionEnd this also raises the host's 1.5s default shutdown budget (#6274).
+ */
 export const NESTED_HOOK_TIMEOUT_SECONDS = 5;
 
 export type AgentHookPath = (typeof AGENT_HOOK_PATHS)[number];
@@ -314,12 +317,23 @@ export type AgentHookRegistrationStatus = "healthy" | "disabled" | "missing" | "
 /** Whether the host receives a compact/resume hook deposit (#2113). */
 export type AgentHookCompactSupport = "deposited" | "unsupported";
 
+/** Whether the host receives a SessionEnd lease-release hook deposit (#6274). */
+export type AgentHookSessionEndSupport = "deposited" | "unsupported";
+
 export interface AgentHookInspection {
   readonly host: HookHost;
   readonly path: AgentHookPath;
   readonly status: AgentHookRegistrationStatus;
   readonly detail: string;
   readonly compactSupport: AgentHookCompactSupport;
+  readonly sessionEndSupport: AgentHookSessionEndSupport;
+  /**
+   * True when the SessionEnd registration is present; null when the host has no
+   * session-end support or the file could not be read (#6274). Best-effort
+   * cleanup: absence does not change `status` (the next session falls back to
+   * TTL / manual release).
+   */
+  readonly sessionEndRegistered: boolean | null;
 }
 
 /** Per-host SessionStart registration only (not PreToolUse/compact health). */
@@ -455,7 +469,7 @@ function mergeNestedConfig(
   path: string,
   host: NestedHookHost,
   bin: string,
-  options: { compact?: boolean } = {},
+  options: { compact?: boolean; sessionEnd?: boolean } = {},
 ): Record<string, unknown> {
   const hooks = hooksObject(config, path);
   const session = eventArray(hooks, "SessionStart", path).filter(
@@ -479,6 +493,13 @@ function mergeNestedConfig(
     hooks.PreCompact = [...preCompact, nestedGroup(bin, host, "session.compact")];
     hooks.PostCompact = [...postCompact, nestedGroup(bin, host, "session.compact")];
   }
+  if (options.sessionEnd) {
+    const sessionEnd = eventArray(hooks, "SessionEnd", path).filter(
+      (entry) => !isManagedNestedGroup(entry),
+    );
+    // No matcher: every end reason (clear, logout, prompt_input_exit, other) releases.
+    hooks.SessionEnd = [...sessionEnd, nestedGroup(bin, host, "session.end")];
+  }
   return { ...config, hooks };
 }
 
@@ -489,7 +510,13 @@ function stripManagedNestedConfig(
 ): Record<string, unknown> {
   const hooks = hooksObject(config, path);
   const nextHooks: Record<string, unknown> = {};
-  for (const key of ["SessionStart", "PreToolUse", "PreCompact", "PostCompact"] as const) {
+  for (const key of [
+    "SessionStart",
+    "PreToolUse",
+    "PreCompact",
+    "PostCompact",
+    "SessionEnd",
+  ] as const) {
     if (!(key in hooks)) continue;
     const filtered = eventArray(hooks, key, path).filter(
       (entry) => !isManagedNestedGroupForHost(entry, host),
@@ -715,7 +742,10 @@ export function writeAgentHookDeposit(
       host: "claude",
       path: AGENT_HOOK_PATHS[0],
       merge: (config, path) =>
-        mergeNestedConfig(config, path, "claude", binFor("claude"), { compact: true }),
+        mergeNestedConfig(config, path, "claude", binFor("claude"), {
+          compact: true,
+          sessionEnd: true,
+        }),
       strip: (config, path) => stripManagedNestedConfig(config, path, "claude"),
     },
     {
@@ -983,6 +1013,19 @@ function hasNestedRegistration(
   );
 }
 
+/** SessionEnd -> `--event session.end` registration (#6274). */
+function hasNestedSessionEnd(
+  config: Record<string, unknown>,
+  host: NestedHookHost,
+  bin: string,
+): boolean {
+  const hooks = object(config.hooks);
+  if (hooks === null) return false;
+  const sessionEnd = Array.isArray(hooks.SessionEnd) ? hooks.SessionEnd : [];
+  const endCommand = command(bin, host, "session.end");
+  return sessionEnd.some((entry) => nestedCommands(entry).includes(endCommand));
+}
+
 function isCursorToolBeforeEntry(value: unknown, matcher: string, bin: string): boolean {
   const hook = object(value);
   return (
@@ -1090,31 +1133,38 @@ export function inspectAgentHookDeposit(
     host: HookHost;
     path: AgentHookPath;
     compactSupport: AgentHookCompactSupport;
+    sessionEndSupport: AgentHookSessionEndSupport;
     valid: (config: Record<string, unknown>) => boolean;
+    sessionEnd?: (config: Record<string, unknown>) => boolean;
   }> = [
     {
       host: "claude",
       path: AGENT_HOOK_PATHS[0],
       compactSupport: "deposited",
+      sessionEndSupport: "deposited",
       valid: (config) =>
         hasNestedRegistration(config, "claude", binFor("claude"), { compact: true }),
+      sessionEnd: (config) => hasNestedSessionEnd(config, "claude", binFor("claude")),
     },
     {
       host: "grok",
       path: AGENT_HOOK_PATHS[1],
       compactSupport: "deposited",
+      sessionEndSupport: "unsupported",
       valid: (config) => hasNestedRegistration(config, "grok", binFor("grok"), { compact: true }),
     },
     {
       host: "cursor",
       path: AGENT_HOOK_PATHS[2],
       compactSupport: "deposited",
+      sessionEndSupport: "unsupported",
       valid: (config) => hasCursorRegistration(config, binFor("cursor")),
     },
     {
       host: "codex",
       path: AGENT_HOOK_PATHS[3],
       compactSupport: "unsupported",
+      sessionEndSupport: "unsupported",
       valid: (config) =>
         hasNestedRegistration(config, "codex", binFor("codex"), { compact: false }),
     },
@@ -1132,6 +1182,8 @@ export function inspectAgentHookDeposit(
         path: definition.path,
         status: "disabled",
         compactSupport: definition.compactSupport,
+        sessionEndSupport: definition.sessionEndSupport,
+        sessionEndRegistered: null,
         detail: `plan.policy.hostHooks.${definition.host} is false — Directive hook deposit is skipped for this host.`,
       };
     }
@@ -1141,11 +1193,15 @@ export function inspectAgentHookDeposit(
         path: definition.path,
         status: "missing",
         compactSupport: definition.compactSupport,
+        sessionEndSupport: definition.sessionEndSupport,
+        sessionEndRegistered: null,
         detail: `${definition.path} is missing.${compactNote}`,
       };
     }
     try {
       const config = readConfig(absolute);
+      const sessionEndRegistered =
+        definition.sessionEnd === undefined ? null : definition.sessionEnd(config);
       // #5994 / F2: host commands must be deft-hook-<sha8>.mjs; .sh and direct hook-bin are legacy.
       {
         const hooks = object(config.hooks);
@@ -1171,6 +1227,8 @@ export function inspectAgentHookDeposit(
             path: definition.path,
             status: "drifted",
             compactSupport: definition.compactSupport,
+            sessionEndSupport: definition.sessionEndSupport,
+            sessionEndRegistered,
             detail:
               `Host hooks still register legacy form (expected node …/deft-hook-<sha8>.mjs — #5994 / AC9.1). ` +
               "Recovery: run `directive install --repair` / redeposit, then start a new agent session." +
@@ -1184,9 +1242,16 @@ export function inspectAgentHookDeposit(
           path: definition.path,
           status: "healthy",
           compactSupport: definition.compactSupport,
+          sessionEndSupport: definition.sessionEndSupport,
+          sessionEndRegistered,
           detail:
             "SessionStart, direct-write + spawn PreToolUse, compact re-arm, and Cursor planning-choice prompt/response registrations are current." +
-            (definition.compactSupport === "unsupported" ? compactNote : ""),
+            (definition.compactSupport === "unsupported" ? compactNote : "") +
+            (sessionEndRegistered === null
+              ? ""
+              : sessionEndRegistered
+                ? " SessionEnd lease release is registered."
+                : " SessionEnd lease release is not registered (best-effort; redeposit to add it)."),
         };
       }
       return {
@@ -1194,6 +1259,8 @@ export function inspectAgentHookDeposit(
         path: definition.path,
         status: "drifted",
         compactSupport: definition.compactSupport,
+        sessionEndSupport: definition.sessionEndSupport,
+        sessionEndRegistered,
         detail:
           "Directive SessionStart, direct-write/spawn PreToolUse, or compact re-arm registration is missing/drifted." +
           compactNote,
@@ -1204,6 +1271,8 @@ export function inspectAgentHookDeposit(
         path: definition.path,
         status: "drifted",
         compactSupport: definition.compactSupport,
+        sessionEndSupport: definition.sessionEndSupport,
+        sessionEndRegistered: null,
         detail: `${String(cause)}${compactNote}`,
       };
     }
