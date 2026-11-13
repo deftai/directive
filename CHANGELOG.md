@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.129.9] - 2026-11-13
+
+> verify:ac checks that removed text is gone, deploy and smoke checks ignore file and job names, consumer installs ignore the pre-PR secret, and a single maintainer can land a brief with its code.
+
+### Added
 - feat(occupancy,hooks): after `/clear` or a restart, the next Claude Code session can claim the checkout without a steal or manual release, because a SessionEnd hook frees the occupancy lease that the ending session owns. Refs #6274
 - One-PR scope proof level `plan.policy.onePrScopeProof` (`off` by default, `mint`; `signed` is reserved for #5862), read from the merge base with `requireHumanMerge`. At the mint level a single maintainer can land a new or widened brief, its human mint record and its code in one PR: `scope:record-approved-scope` stamps the brief's auth-hash, and `verify:scope-provenance` admits only an exact scope match and prints the admitted scope with the line that CI cannot tell a real mint from a forged one. Set it with `deft policy:set-one-pr-scope-proof -- --set mint --confirm`. Refs #6273.
 
@@ -8025,7 +8037,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.129.8...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.129.9...HEAD
+[0.129.9]: https://github.com/deftai/directive/compare/v0.129.8...v0.129.9
 [0.129.8]: https://github.com/deftai/directive/compare/v0.129.7...v0.129.8
 [0.129.7]: https://github.com/deftai/directive/compare/v0.129.6...v0.129.7
 [0.129.6]: https://github.com/deftai/directive/compare/v0.129.5...v0.129.6
