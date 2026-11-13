@@ -37,6 +37,7 @@ import {
 } from "./launch.js";
 import {
   ENV_WORKER_CREDENTIAL_DELIVERY_ID,
+  storyIdForBrief,
   WORKER_AUTH_LOCK_NAME,
   writeWorkerAuthAssignment,
 } from "./worker-auth-assignment.js";
@@ -545,6 +546,42 @@ describe("swarmLaunch identity-bound injection (#1351)", { timeout: 20_000 }, ()
       const index = JSON.parse(readFileSync(store, "utf8")) as { entries: unknown[] };
       expect(index.entries).toEqual([]);
     }
+  });
+
+  it("records the shared story-id derivation for a brief with no plan.id (#6233)", () => {
+    const project = launchProject();
+    const rel = join("xbrief", "active", "2026-11-13-6234-no-id.xbrief.json");
+    const plan = {
+      title: "no plan id",
+      status: "running",
+      references: [
+        { uri: "https://github.com/deftai/directive/issues/6234", type: "x-vbrief/github-issue" },
+      ],
+      metadata: { kind: "story", swarm: { readiness: "ready" } },
+    };
+    writeFileSync(
+      join(project, rel),
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan })}\n`,
+    );
+    const recorded: string[] = [];
+    const result = swarmLaunch({
+      stories: ["6234"],
+      projectRoot: project,
+      autonomous: true,
+      preflightGate: () => ({ exitCode: 0, message: "" }),
+      readinessGate: () => ({ exitCode: 0, report: "" }),
+      runtimeAuthProbe: () => ["local-unsandboxed", "host-gh"],
+      environ: { CURSOR_AGENT: "1" },
+      sessionId: "test-session",
+      writeWorkerAuthAssignmentFn: (input) => {
+        recorded.push(input.storyId);
+        return writeWorkerAuthAssignment(input);
+      },
+      ...LAUNCH_HOST_AUTH,
+    });
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(recorded).toEqual([storyIdForBrief(join(project, rel), plan)]);
+    expect(recorded).toEqual(["2026-11-13-6234-no-id"]);
   });
 
   it("rolls back dest 1 when dest 2 assignment persist fails", () => {

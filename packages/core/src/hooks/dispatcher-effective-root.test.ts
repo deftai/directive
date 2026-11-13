@@ -8,10 +8,15 @@ import { defaultGitRunner } from "../session/git.js";
 import { canonicalHostSessionId } from "../session/host-session-owner.js";
 import { applyWorktreeOccupancy, occupancyPath } from "../session/occupancy.js";
 import {
+  type ReadWorkerAuthAssignmentResult,
+  readWorkerAuthAssignment,
+} from "../swarm/worker-auth-assignment.js";
+import {
   admitEffectiveHookRoot,
   decideHook,
   formatHookRootNote,
   type HookPolicySeams,
+  type InspectActiveScopeOptions,
 } from "./index.js";
 import { isInRepoShellWritePath } from "./shell-write-targets.js";
 
@@ -1102,5 +1107,135 @@ describe("no-toplevel targets keep payloadRoot gating (#4013)", () => {
     );
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
     expect(ritualRoots).toEqual([resolve(primary)]);
+  });
+});
+
+describe("worker-auth story binding by effective root (#6233)", () => {
+  function bindingSeams(
+    readyRoot: string | null,
+    read: (cwd: string) => ReadWorkerAuthAssignmentResult,
+  ): {
+    readerRoots: string[];
+    scopeCalls: { root: string; options: InspectActiveScopeOptions | undefined }[];
+    seams: HookPolicySeams;
+  } {
+    const readerRoots: string[] = [];
+    const scopeCalls: { root: string; options: InspectActiveScopeOptions | undefined }[] = [];
+    const base = scopeSeams(readyRoot).seams;
+    return {
+      readerRoots,
+      scopeCalls,
+      seams: {
+        ...base,
+        inspectScope: (root, options) => {
+          scopeCalls.push({ root: resolve(root), options });
+          return base.inspectScope?.(root, options) ?? READY_SCOPE;
+        },
+        readWorkerAuthAssignment: (cwd) => {
+          readerRoots.push(resolve(cwd));
+          return read(cwd);
+        },
+      },
+    };
+  }
+
+  function writeTo(primary: string, target: string, seams: HookPolicySeams) {
+    return decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { toolName: "Write", file_path: target },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      seams,
+    );
+  }
+
+  it("keeps today's verdicts for a linked worktree with a validated clean absence", () => {
+    const { primary, nested } = nestedWorktreeFixture();
+    const target = join(nested, "packages", "core", "a.ts");
+    const before = writeTo(primary, target, scopeSeams(nested).seams);
+    const beforeDeny = writeTo(primary, target, scopeSeams(primary).seams);
+
+    const allow = bindingSeams(nested, readWorkerAuthAssignment);
+    const after = writeTo(primary, target, allow.seams);
+    expect(allow.readerRoots).toEqual([resolve(nested)]);
+    expect({ verdict: after.verdict, code: after.code }).toEqual({
+      verdict: before.verdict,
+      code: before.code,
+    });
+    // No bound path is invented: selection runs exactly as before.
+    expect(allow.scopeCalls).toEqual([
+      { root: resolve(nested), options: { env: expect.any(Object) } },
+    ]);
+
+    const deny = bindingSeams(primary, readWorkerAuthAssignment);
+    const afterDeny = writeTo(primary, target, deny.seams);
+    expect({ verdict: afterDeny.verdict, code: afterDeny.code }).toEqual({
+      verdict: beforeDeny.verdict,
+      code: beforeDeny.code,
+    });
+  });
+
+  it("never reads the registry for a main-worktree write, even when the reader would fail", () => {
+    const { primary } = nestedWorktreeFixture();
+    const failing = bindingSeams(primary, () => ({
+      ok: false,
+      failureKind: "registry_corruption",
+      detail: "would refuse",
+      dispatchId: null,
+      expectedLogin: null,
+      observedLogin: null,
+    }));
+    const decision = writeTo(primary, join(primary, "packages", "core", "a.ts"), failing.seams);
+    expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
+    expect(failing.readerRoots).toEqual([]);
+  });
+
+  it("does read the registry for the linked worktree and refuses on the same failing reader", () => {
+    const { primary, nested } = nestedWorktreeFixture();
+    const failing = bindingSeams(nested, () => ({
+      ok: false,
+      failureKind: "registry_corruption",
+      detail: "would refuse",
+      dispatchId: null,
+      expectedLogin: null,
+      observedLogin: null,
+    }));
+    const decision = writeTo(primary, join(nested, "packages", "core", "a.ts"), failing.seams);
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toContain("(registry_corruption)");
+    expect(failing.readerRoots).toEqual([resolve(nested)]);
+    expect(failing.scopeCalls).toEqual([]);
+  });
+
+  const corruptRead = (): ReadWorkerAuthAssignmentResult => ({
+    ok: false,
+    failureKind: "registry_corruption",
+    detail: "would refuse",
+    dispatchId: null,
+    expectedLogin: null,
+    observedLogin: null,
+  });
+
+  it("refuses a write into a sibling worktree outside the payload root when its binding refuses", () => {
+    // Greptile P1 on #6250: the #2885 outside-root skip must not swallow a
+    // binding refusal for a registered worktree that sits beside the checkout.
+    const { primary, wtA } = linkedFixture();
+    const failing = bindingSeams(wtA, corruptRead);
+    const decision = writeTo(primary, join(wtA, "packages", "core", "a.ts"), failing.seams);
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toContain("(registry_corruption)");
+    expect(failing.readerRoots).toEqual([resolve(wtA)]);
+  });
+
+  it("keeps the #2885 skip for an external file when the binding refuses", () => {
+    const { primary } = linkedFixture();
+    const external = mkdtempSync(join(tmpdir(), "hook-6233-external-"));
+    ephemeralTemps.push(external);
+    const failing = bindingSeams(null, corruptRead);
+    const decision = writeTo(primary, join(external, "note.md"), failing.seams);
+    expect(decision.verdict).toBe("allow");
   });
 });
