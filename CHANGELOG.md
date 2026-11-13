@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.8.
 
 ### Fixed
+- fix(scope): strict acceptance axes (deploy, smoke, UAT) match prose only, not file, job or workflow names such as `deploy-dev` or `smoke-test.ts` (#6270, refs #3240).
 
 ### Removed
 
