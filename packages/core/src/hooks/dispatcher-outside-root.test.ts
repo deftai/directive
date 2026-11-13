@@ -255,7 +255,8 @@ describe("#6189 (g) linked worktrees", () => {
     git(primary, ["init", "-q"]);
     git(primary, ["config", "user.email", "t@t.dev"]);
     git(primary, ["config", "user.name", "t"]);
-    git(primary, ["commit", "--allow-empty", "-q", "-m", "base"]);
+    // Ignore host signing settings (commit.gpgsign) in the throwaway fixture repo.
+    git(primary, ["-c", "commit.gpgsign=false", "commit", "--allow-empty", "-q", "-m", "base"]);
     const nested = join(primary, ".deft-scratch", "worktrees", "story");
     mkdirSync(join(primary, ".deft-scratch", "worktrees"), { recursive: true });
     git(primary, ["worktree", "add", "--detach", "-q", nested]);
