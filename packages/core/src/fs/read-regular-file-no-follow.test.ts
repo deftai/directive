@@ -32,6 +32,8 @@ vi.mock("node:fs", async (importOriginal) => {
 const realFs = await vi.importActual<typeof import("node:fs")>("node:fs");
 
 const hasNoFollow = typeof (constants as { O_NOFOLLOW?: number }).O_NOFOLLOW === "number";
+// Symlinks require elevated privileges on Windows (SeCreateSymbolicLink); skip there.
+const itSymlink = it.skipIf(process.platform === "win32");
 
 let dir: string;
 beforeEach(() => {
@@ -89,7 +91,7 @@ describe("readRegularFileNoFollow", () => {
     expect(readRegularFileNoFollow(link)).toBeNull();
   });
 
-  it("covers the final component only: a symlinked parent directory is followed", () => {
+  itSymlink("covers the final component only: a symlinked parent directory is followed", () => {
     const real = join(dir, "real");
     mkdirSync(real);
     writeFileSync(join(real, "report.json"), "via-parent");

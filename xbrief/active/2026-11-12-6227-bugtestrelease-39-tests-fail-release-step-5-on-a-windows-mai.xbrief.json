@@ -137,7 +137,7 @@
         {
           "id": 2,
           "text": "Symlink skip (locked) — Gate symlink-creating cases with `const itSymlink = it.skipIf(process.platform === \"win32\")` plus the SeCreateSymbolicLink comment:",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/coverage-hotspots/evaluate.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
@@ -164,18 +164,63 @@
         },
         {
           "id": 6,
-          "text": "Dispatcher identity isolation — For `packages/core/src/hooks/dispatcher.test.ts` cases that expect `occupancy-identity-unavailable`, isolate applying-host / occupancy admission for synthetic fixture roots (temp `projectRoot` with no applying-host/occupancy record, or seam those reads). Empty `environ` is a precondition, not the remedy. No product-behavior change.",
+          "text": "Dispatcher identity isolation — For `packages/core/src/hooks/dispatcher.test.ts` cases that expect `occupancy-identity-unavailable`, isolate applying-host / occupancy admission for synthetic fixture roots (temp `projectRoot` with no applying-host/occupancy record, or seam those reads).",
           "artifact_path": "packages/core/src/hooks/dispatcher.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 7,
-          "text": "launcher-bundle one-.js — Keep AC3.2. Diagnose in order: `npm pack` exit, `tar -tzf` listing exit, then `jsEntries`. Do not weaken the one-`.js` allowlist.",
+          "text": "launcher-bundle one-.js — Keep AC3.2.",
+          "artifact_path": "packages/cli/src/launcher-bundle-d43.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Symlink skip (locked) — Gate symlink-creating cases with `const itSymlink = it.skipIf(process.platform === \"win32\")` plus the SeCreateSymbolicLink comment: - `packages/core/src/coverage-hotspots/evaluate.test.ts` (two `symlinkSync` cases) - `packages/core/src/fs/read-regular-file-no-follow.test.ts` (parent-directory symlink case) Do not invent a third helper.",
+          "artifact_path": "packages/core/src/fs/read-regular-file-no-follow.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Do not mix EPERM soft-skip into these two files in this Bound.",
+          "artifact_path": "packages/core/src/coverage-hotspots/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Empty `environ` is a precondition, not the remedy.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "No product-behavior change.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Diagnose in order: `npm pack` exit, `tar -tzf` listing exit, then `jsEntries`.",
+          "artifact_path": "packages/cli/src/launcher-bundle-d43.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Do not weaken the one-`.js` allowlist.",
           "artifact_path": "packages/cli/src/launcher-bundle-d43.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         }
+      ],
+      "confessions": [
+        "bug(test,release): 39 tests fail release Step 5 on a Windows maintainer checkout that CI passes (agent env, symlink privilege, dispatcher identity)"
       ],
       "ambiguity_attestation": "none_found"
     },
@@ -937,6 +982,7 @@
         "sha256": "679d08c994355a8fe173462616b97c57bb6a07ca30eef60cee59a14c55c9bc1f"
       },
       "kind": "story",
+      "productPullRequest": 6238,
       "swarm": {
         "readiness": "ready",
         "conflict_group": "windows-step5-test-isolation-env-symlink-occupancy",
