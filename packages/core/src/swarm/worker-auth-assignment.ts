@@ -15,7 +15,7 @@ import {
   realpathSync,
   renameSync,
 } from "node:fs";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { ContainedWriteError, containedRemove, containedWrite } from "../fs/contained-write.js";
 import {
   type ExpectedGithubWorkerPrincipal,
@@ -23,6 +23,7 @@ import {
   GITHUB_AUTH_MODE_INJECTED_TOKEN,
   PRINCIPAL_KIND_USER,
 } from "../intake/github-auth-modes.js";
+import { hasArtifactSuffix, stripArtifactSuffix } from "../layout/resolve.js";
 import {
   defaultGitRunner,
   type GitRunner,
@@ -124,6 +125,21 @@ function fail(
     expectedLogin: extras.expectedLogin ?? null,
     observedLogin: extras.observedLogin ?? null,
   };
+}
+
+/**
+ * Story id a brief carries in a worker-auth assignment (#6233). Swarm launch
+ * records this value and the write-fence matcher compares against it, so both
+ * use this one derivation: a non-empty `plan.id`, else the brief filename
+ * without its lifecycle artifact suffix.
+ */
+export function storyIdForBrief(path: string, plan: Record<string, unknown> | null): string {
+  const value = plan?.id;
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value.trim();
+  }
+  const name = basename(path);
+  return hasArtifactSuffix(name) ? stripArtifactSuffix(name) : name.replace(/\.[^.]+$/, "");
 }
 
 export function mintCredentialDeliveryId(): string {

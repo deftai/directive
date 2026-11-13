@@ -46,7 +46,17 @@ Probe order (must match engine `probeMonitoringTier` / `resolveDispatchProvider`
 
 1. The canonical `templates/agent-prompt-preamble.md` content as the preamble (AGENTS.md read mandate, #810 xBRIEF gate, #798 PowerShell UTF-8, pre-PR + review-cycle mandates).
 2. The standard worktree prompt (STEP 1-6 from the Prompt Template in `references/core-ops.md`).
-3. The worktree path set to the agent's isolated git worktree.
+3. ! **Per-worktree story binding (#6233).** Claude Code sub-agents share the parent's hook environment, so a per-worker `DEFT_ACTIVE_SCOPE` pin is not possible. Use this in-session sequence:
+   1. The parent launches the cohort through `deft swarm:launch`, so dispatch PREP registers each worker worktree with its story in the worker-auth assignment record.
+   2. The parent starts the session ritual in each worker worktree (`deft session:start`, then `deft verify:session-ritual -- --tier=gated`).
+   3. The parent holds no `DEFT_ACTIVE_SCOPE` pin. A pin that names a different story than the worktree's assignment is refused.
+   4. The parent gives each sub-agent the absolute path of its worktree, and the sub-agent writes only inside it.
+
+   The write fence then reads the story for a registered linked worktree from its assignment record. A reader failure, or an assigned story that is missing, ineligible or ambiguous, refuses the write with the failure kind and one repair step. An unregistered linked worktree and the main worktree keep the earlier selection.
+
+   ! **Fallback:** one headless Claude Code process per story, each with its own `DEFT_ACTIVE_SCOPE`, until the live two-story run in #6242 passes.
+
+   ! **Guarantee and limits:** this is destination-scoped cooperative fencing. The trusted writer is dispatch PREP (`swarm:launch`). It is not worker isolation: a worker process can still change the record. Coverage is Write/Edit, plus recognized shell destination forms when that policy is set to `enforce`. Other shell writes are not covered.
 4. ! **`run_in_background: true` (or host equivalent)** for any worker or poller whose loop runs longer than a short task (~3 min) — implementation, fix, and review-cycle workers — so the monitor conversation pane stays interactive (#1880 Gap D). The parent is notified on completion.
 5. ! **Deliberate model routing (#1739):** resolve `(dispatch_provider=claude, worker_role)` via `task verify:routing` / `task swarm:routing-set` and pass `resolved_model` into the spawn when non-null — stamping the C2 manifest is prep; the recorded model MUST reach the actual spawn call.
 
