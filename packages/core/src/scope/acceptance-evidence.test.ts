@@ -245,6 +245,14 @@ describe("strict axes match prose, not identifiers (#6270)", () => {
     expect(axes("The `deploy-dev` job is green; smoke test passes")).toEqual(["smoke"]);
   });
 
+  it("does not open a fence on backticks inside inline spans", () => {
+    expect(
+      axes("Render `` ``` `` fences correctly; smoke tests pass; preserve `` ``` `` output"),
+    ).toEqual(["smoke"]);
+    expect(axes("Notes:\n```ts\nconst x = 'deploy';\n```\nsmoke test passes")).toEqual(["smoke"]);
+    expect(axes("Unclosed:\n```\nsmoke test passes")).toEqual(["smoke"]);
+  });
+
   it("keeps each axis in a slash list of axis words", () => {
     expect(axes("Smoke/UAT must pass")).toEqual(["uat", "smoke"]);
     expect(axes("deploy/smoke/uat green")).toEqual(["uat", "smoke", "deploy"]);
