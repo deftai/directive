@@ -1840,6 +1840,36 @@ describe("finalizeCohort", () => {
     rmSync(project, { recursive: true, force: true });
   });
 
+  it("leaves a refused brief at a nested path pending, not a stamp failure (#680 P3)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-680-nested-"));
+    writeActiveStory(project, "story-6212", 6212);
+    const flat = writeActiveStory(project, "story-7000", 7000, { productPullRequest: 1111 });
+    const nested = join(project, "xbrief", "active", "group", "story-7000.xbrief.json");
+    mkdirSync(dirname(nested), { recursive: true });
+    writeFileSync(nested, readFileSync(flat, "utf8"), "utf8");
+    rmSync(flat);
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: ["6212", nested],
+      prNumbers: [6300],
+      repo: "deftai/directive",
+      noCommit: true,
+      deliveryBranch: "master",
+      runGh: mockRunGh({
+        6300: { merged: true, closingIssues: [], body: "deft-story: 6212\ndeft-story: 7000\n" },
+      }),
+      runGit: mockRunGit(),
+      fetchPrChangedFiles: productFiles,
+    });
+    expect(result.result.errors).toEqual([]);
+    expect(result.exitCode).toBe(EXIT_INCOMPLETE);
+    expect(result.result.story_paths.some((p) => p.endsWith("story-7000.xbrief.json"))).toBe(false);
+    const plan = (JSON.parse(readFileSync(nested, "utf8")) as { plan: Record<string, unknown> })
+      .plan;
+    expect(productPullRequestFromPlan(plan)).toBe(1111);
+    rmSync(project, { recursive: true, force: true });
+  });
+
   it("warns only on a stray mark whose issue has no brief (#680 P3)", () => {
     const project = mkdtempSync(join(tmpdir(), "sw-finalize-680-stray-"));
     writeActiveStory(project, "story-6212", 6212);

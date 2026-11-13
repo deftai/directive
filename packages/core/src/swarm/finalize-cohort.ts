@@ -2091,7 +2091,8 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   // Refused marks (#680 P3): an issue no other PR bound stays pending. Its story
   // leaves the batch before stamp/sweep (#6212: never single-PR defaultEvidence),
   // and its origin is never closed. The other stories go on.
-  // A stray mark with no local brief for its issue warns only; it leaves nothing pending.
+  // A stray mark with no brief for its issue warns only; it leaves nothing pending.
+  // Selected story paths count too, so a nested brief path is never missed.
   const pendingMarkIssues = new Set(
     refusedMarks
       .map((m) => m.issue)
@@ -2099,7 +2100,8 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
         (issue) =>
           !fullStoryCloseIssues.has(issue) &&
           !closingIssues.has(issue) &&
-          localBriefReferencesIssue(projectRoot, issue),
+          (storyPaths.some((p) => githubIssueFromBrief(p) === issue) ||
+            localBriefReferencesIssue(projectRoot, issue)),
       ),
   );
   for (let i = storyPaths.length - 1; i >= 0; i -= 1) {
