@@ -278,20 +278,29 @@ export function sliceBoundRemedySection(text: string): string | null {
   if (heading === null) {
     return null;
   }
-  const section = sliceAcSection(text, heading);
+  const section = text.slice(heading.sectionStart);
   let offset = 0;
   let fenced = false;
   for (const line of section.split("\n")) {
     const trimmed = line.trimStart();
     if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
-      // A trailer label inside a fenced example is sample text, not a trailer.
+      // A heading or trailer label inside a fenced example is sample text.
       fenced = !fenced;
-    } else if (!fenced && offset > 0 && isLeanTrailerLine(line)) {
+    } else if (
+      !fenced &&
+      offset > 0 &&
+      (isHeadingAtOrAbove(line, heading.level) || isLeanTrailerLine(line))
+    ) {
       return section.slice(0, offset);
     }
     offset += line.length + 1;
   }
   return section;
+}
+
+/** Bound-remedy limb titles: list items of the slice outside fenced examples. */
+export function boundRemedyLimbItems(sourceText: string): CheckboxItem[] {
+  return parseListItems(stripFencedCodeBlocks(sourceText));
 }
 
 /**
@@ -343,7 +352,7 @@ export function extractBoundRemedyHarvest(text: string): {
     return { items: [], sourceText: "", constraintLines: [] };
   }
   return {
-    items: parseListItems(sourceText),
+    items: boundRemedyLimbItems(sourceText),
     sourceText,
     constraintLines: extractLeanConstraintLines(text),
   };

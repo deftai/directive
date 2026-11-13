@@ -130,11 +130,36 @@ describe("Bound-remedy slice ends at the closed trailer set (#6265 limb 1)", () 
       "- a rejected alternative",
     ].join("\n");
     const harvest = extractBoundRemedyHarvest(body);
-    expect(harvest.items.map((item) => item.title)).toContain("a real limb after the sample");
-    expect(harvest.items.map((item) => item.title)).not.toContain("a rejected alternative");
+    expect(harvest.items.map((item) => item.title)).toEqual([
+      "Teach the lean shape:",
+      "a real limb after the sample",
+    ]);
     expect(harvest.constraintLines).toEqual(["a rejected alternative"]);
+    expect(hashBoundRemedyBytes(body)).toBe(
+      sha(["Teach the lean shape:", "a real limb after the sample"]),
+    );
     const changed = body.replace("a real limb after the sample", "a changed real limb");
     expect(hashBoundRemedyBytes(changed)).not.toBe(hashBoundRemedyBytes(body));
+  });
+
+  it("ignores a level-2 heading inside a fenced example", () => {
+    const body = [
+      "## Bound remedy",
+      "- limb one",
+      "~~~md",
+      "## Reject",
+      "- sample line",
+      "~~~",
+      "- limb two",
+      "",
+      "## Not proposed",
+      "- a non-goal",
+    ].join("\n");
+    expect(extractBoundRemedyHarvest(body).items.map((item) => item.title)).toEqual([
+      "limb one",
+      "limb two",
+    ]);
+    expect(hashBoundRemedyBytes(body)).toBe(sha(["limb one", "limb two"]));
   });
 
   it("still ends at the next level-2 heading, and a Not proposed heading is a constraint source", () => {

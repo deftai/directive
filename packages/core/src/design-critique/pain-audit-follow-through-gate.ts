@@ -9,7 +9,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { sliceBoundRemedySection } from "../intake/markdown-scanners.js";
+import { sliceBoundRemedySection, stripFencedCodeBlocks } from "../intake/markdown-scanners.js";
 import { classifyPosition } from "./citation-grammar.js";
 import { extractOperativeAuditTargets, painMarkerId } from "./parent-audit.js";
 
@@ -212,7 +212,8 @@ export function hashBoundRemedyBytes(body: string): string {
   const slice = sliceBoundRemedySection(body);
   const titles: string[] = [];
   const seen = new Set<string>();
-  for (const line of (slice ?? "").split(/\r?\n/)) {
+  // Fenced examples inside the remedy are sample text, not limbs (same as intake).
+  for (const line of stripFencedCodeBlocks(slice ?? "").split(/\r?\n/)) {
     const item = LIST_ITEM_LINE_RE.exec(line);
     if (item === null) continue;
     // Match intake parseListItems: strip leading checkbox markers from titles.
