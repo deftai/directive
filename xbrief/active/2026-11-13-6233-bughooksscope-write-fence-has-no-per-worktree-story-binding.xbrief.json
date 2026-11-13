@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6233",
-    "updated": "2026-11-13T00:35:05Z"
+    "updated": "2026-11-13T03:00:01Z"
   },
   "plan": {
     "title": "bug(hooks,scope): write fence has no per-worktree story binding, so in-session sub-agents cannot run a multi-story cohort on Claude Code",
@@ -91,7 +91,7 @@
       "commands": [],
       "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "derived 23 independently testable clauses from the task statement before product edit (#3323)",
+      "derived_reason": "derived 25 independently testable clauses from the task statement before product edit (#3323)",
       "sentences": [
         "bug(hooks,scope): write fence has no per-worktree story binding, so in-session sub-agents cannot run a multi-story cohort on Claude Code",
         "Write fence, no spawn bound path, linked worktree: read the worker-auth assignment for the write's worktree through the validated reader.",
@@ -284,27 +284,41 @@
         },
         {
           "id": 20,
-          "text": "Each worker makes an admitted in-scope product write and is refused out of scope.",
+          "text": "Acceptance: a live two-story run through `swarm:launch` on Claude Code, in nested `.deft-scratch/worktrees/<sid>` destinations, with no environment pin.",
           "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 21,
-          "text": "Before the change the same run is refused as multiple-eligible.",
+          "text": "Each worker makes an admitted in-scope product write and is refused out of scope.",
           "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 22,
-          "text": "A product-file write and a lifecycle-brief edit are tested separately.",
+          "text": "The same run records whether the launch-minted lease admits the session's sub-agents.",
           "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 23,
+          "text": "Before the change the same run is refused as multiple-eligible.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "A product-file write and a lifecycle-brief edit are tested separately.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
           "text": "A corrupt-index case is tested for a registered worktree, an unregistered linked worktree and the main worktree.",
           "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
           "ambiguous": false,
@@ -313,9 +327,7 @@
       ],
       "ambiguity_attestation": "none_found",
       "confessions": [
-        "bug(hooks,scope): write fence has no per-worktree story binding, so in-session sub-agents cannot run a multi-story cohort on Claude Code",
-        "Acceptance: a live two-story run through `swarm:launch` on Claude Code, in nested `.deft-scratch/worktrees/<sid>` destinations, with no environment pin.",
-        "The same run records whether the launch-minted lease admits the session's sub-agents."
+        "bug(hooks,scope): write fence has no per-worktree story binding, so in-session sub-agents cannot run a multi-story cohort on Claude Code"
       ]
     },
     "metadata": {
@@ -904,7 +916,7 @@
         "Traces": [
           "#6233"
         ],
-        "acceptance_criteria_justification": "Each admitted sentence of the accepted Bound remedy (successor lean 6839298535) is one clause bound to a test or doc file in file_scope. Three sentences are confessions: the issue title, and the two sentences that require the live host run through swarm:launch. That run cannot happen before a runtime release that contains this change, and is tracked in #6242."
+        "acceptance_criteria_justification": "Each admitted sentence of the accepted Bound remedy (successor lean 6839298535) is one clause bound to a test or doc file in file_scope. The issue title is the only confession. The two sentences that need the live host run through swarm:launch stay as clauses (#5055 refuses a confession in place of an admitted sentence); they cannot be verified before a runtime release that contains this change, and that run is tracked in #6242."
       }
     },
     "id": "github.issue.6360456928",
