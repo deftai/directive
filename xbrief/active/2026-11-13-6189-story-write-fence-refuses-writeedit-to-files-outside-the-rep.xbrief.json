@@ -31,7 +31,7 @@
         "status": "proposed",
         "id": "clause.2",
         "narrative": {
-          "Acceptance": "Outside-root Write and Edit get the same admit path as limb 1, so out-of-repo scratch writes no longer need a shell workaround."
+          "Acceptance": "When an agent writes outside the repository, Write and Edit take the same admit path as limb 1, so an out-of-repo scratch write returns allow without a shell workaround."
         }
       },
       {
@@ -39,7 +39,7 @@
         "status": "proposed",
         "id": "clause.3",
         "narrative": {
-          "Acceptance": "With a positive governing allow present, ordinary out-of-repo scratch Write is admitted by limb 1; the activation-PR case with an empty merge-base allow is covered by limb 5."
+          "Acceptance": "When the story has a positive governing allow, an ordinary out-of-repo scratch Write returns allow through limb 1; the activation-PR case with an empty merge-base allow is limb 5."
         }
       },
       {
@@ -63,7 +63,7 @@
         "status": "proposed",
         "id": "clause.6",
         "narrative": {
-          "Acceptance": "Fixtures (a) to (h) pass, including (h): a ready story with an empty merge-base file_scope admits an outside-root Write, still denies an in-repo Write with the #5656 message, and still denies an outside-root Write under scopes.edits=false."
+          "Acceptance": "Fixtures (a) to (h) pass: given a ready story with an empty merge-base file_scope (fixture h), an outside-root Write returns allow, an in-repo Write fails with the #5656 message, and an outside-root Write under scopes.edits=false fails with runtime-policy-deny-scope."
         }
       },
       {
@@ -71,7 +71,7 @@
         "status": "proposed",
         "id": "clause.7",
         "narrative": {
-          "Acceptance": "Must not: Widening file_scope globs to match ../** or absolute host paths"
+          "Acceptance": "Review rejects any change that does this: Widening file_scope globs to match ../** or absolute host paths"
         }
       },
       {
@@ -79,7 +79,7 @@
         "status": "proposed",
         "id": "clause.8",
         "narrative": {
-          "Acceptance": "Must not: Removing story fence for in-repo writes under an active brief"
+          "Acceptance": "Review rejects any change that does this: Removing story fence for in-repo writes under an active brief"
         }
       },
       {
@@ -87,7 +87,7 @@
         "status": "proposed",
         "id": "clause.9",
         "narrative": {
-          "Acceptance": "Must not: Prescribing Bash redirection / python -c as the supported outside-root write path"
+          "Acceptance": "Review rejects any change that does this: Prescribing Bash redirection / python -c as the supported outside-root write path"
         }
       },
       {
@@ -95,7 +95,7 @@
         "status": "proposed",
         "id": "clause.10",
         "narrative": {
-          "Acceptance": "Must not: Collapsing #6185 (launch root) or #6187 (commit-shape heredoc) into this Bound"
+          "Acceptance": "Review rejects any change that does this: Collapsing #6185 (launch root) or #6187 (commit-shape heredoc) into this Bound"
         }
       },
       {
@@ -103,7 +103,7 @@
         "status": "proposed",
         "id": "clause.11",
         "narrative": {
-          "Acceptance": "Must not: Softening authz / protected-store for outside-root targets"
+          "Acceptance": "Review rejects any change that does this: Softening authz / protected-store for outside-root targets"
         }
       },
       {
@@ -111,7 +111,7 @@
         "status": "proposed",
         "id": "clause.12",
         "narrative": {
-          "Acceptance": "Must not: Unconditional skip of evaluateRuntimeAuthorityDirectWrite that also bypasses scopes.edits=false"
+          "Acceptance": "Review rejects any change that does this: Unconditional skip of evaluateRuntimeAuthorityDirectWrite that also bypasses scopes.edits=false"
         }
       },
       {
@@ -119,7 +119,7 @@
         "status": "proposed",
         "id": "clause.13",
         "narrative": {
-          "Acceptance": "Must not: Skipping requirePositiveGoverningAllow for implement-class spawn"
+          "Acceptance": "Review rejects any change that does this: Skipping requirePositiveGoverningAllow for implement-class spawn"
         }
       },
       {
@@ -127,7 +127,7 @@
         "status": "proposed",
         "id": "clause.14",
         "narrative": {
-          "Acceptance": "Must not: Skipping requirePositiveGoverningAllow when any harvested Write target is in-repo"
+          "Acceptance": "Review rejects any change that does this: Skipping requirePositiveGoverningAllow when any harvested Write target is in-repo"
         }
       },
       {
@@ -135,7 +135,7 @@
         "status": "proposed",
         "id": "clause.15",
         "narrative": {
-          "Acceptance": "Must not: Skipping requirePositiveGoverningAllow on empty/unclassified harvest"
+          "Acceptance": "Review rejects any change that does this: Skipping requirePositiveGoverningAllow on empty/unclassified harvest"
         }
       },
       {
@@ -143,7 +143,7 @@
         "status": "proposed",
         "id": "clause.16",
         "narrative": {
-          "Acceptance": "P2 relief is Write/Edit parity (pressure off shell); Shell-outside-root remaining unfenced under shellDestForms off is intentional residual (Grok F3)."
+          "Acceptance": "When implemented, this footnote holds: P2 relief is Write/Edit parity (pressure off shell); Shell-outside-root remaining unfenced under shellDestForms off is intentional residual (Grok F3)."
         }
       },
       {
@@ -151,7 +151,7 @@
         "status": "proposed",
         "id": "clause.17",
         "narrative": {
-          "Acceptance": "authzForMutationTargets / protected-store stay upstream of this skip (Grok F4)."
+          "Acceptance": "When implemented, this footnote holds: authzForMutationTargets / protected-store stay upstream of this skip (Grok F4)."
         }
       },
       {
@@ -159,7 +159,7 @@
         "status": "proposed",
         "id": "clause.18",
         "narrative": {
-          "Acceptance": "F2 root anchor: limb 1 and limb 5 both pin fenceRoot (ready-path / toProjectRelativePosix loop root), not payloadRoot/projectRoot used by the #2885 carve-out; fixture (g) discriminates linked-worktree under payload; confirmed per cue 6839167710 / late Claude audit 6807968568 F2 / Round-1 6840717484 F3."
+          "Acceptance": "When implemented, this footnote holds: F2 root anchor: limb 1 and limb 5 both pin fenceRoot (ready-path / toProjectRelativePosix loop root), not payloadRoot/projectRoot used by the #2885 carve-out; fixture (g) discriminates linked-worktree under payload; confirmed per cue 6839167710 / late Claude audit 6807968568 F2 / Round-1 6840717484 F3."
         }
       },
       {
@@ -167,7 +167,7 @@
         "status": "proposed",
         "id": "clause.19",
         "narrative": {
-          "Acceptance": "Arc record-keeping (critic disposal or operator steer); no behaviour beyond items 1-6."
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
         }
       },
       {
@@ -175,7 +175,7 @@
         "status": "proposed",
         "id": "clause.20",
         "narrative": {
-          "Acceptance": "Arc record-keeping (critic disposal or operator steer); no behaviour beyond items 1-6."
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
         }
       },
       {
@@ -183,7 +183,7 @@
         "status": "proposed",
         "id": "clause.21",
         "narrative": {
-          "Acceptance": "Arc record-keeping (critic disposal or operator steer); no behaviour beyond items 1-6."
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
         }
       },
       {
@@ -191,7 +191,7 @@
         "status": "proposed",
         "id": "clause.22",
         "narrative": {
-          "Acceptance": "Arc record-keeping (critic disposal or operator steer); no behaviour beyond items 1-6."
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
         }
       },
       {
@@ -199,7 +199,7 @@
         "status": "proposed",
         "id": "clause.23",
         "narrative": {
-          "Acceptance": "Arc record-keeping (critic disposal or operator steer); no behaviour beyond items 1-6."
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
         }
       },
       {
@@ -207,7 +207,7 @@
         "status": "proposed",
         "id": "clause.24",
         "narrative": {
-          "Acceptance": "Arc record-keeping (critic disposal or operator steer); no behaviour beyond items 1-6."
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
         }
       },
       {
@@ -215,7 +215,7 @@
         "status": "proposed",
         "id": "clause.25",
         "narrative": {
-          "Acceptance": "Arc record-keeping (critic disposal or operator steer); no behaviour beyond items 1-6."
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
         }
       },
       {
@@ -223,7 +223,7 @@
         "status": "proposed",
         "id": "clause.26",
         "narrative": {
-          "Acceptance": "Arc record-keeping (critic disposal or operator steer); no behaviour beyond items 1-6."
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
         }
       },
       {
@@ -231,7 +231,7 @@
         "status": "proposed",
         "id": "clause.27",
         "narrative": {
-          "Acceptance": "Arc record-keeping (critic disposal or operator steer); no behaviour beyond items 1-6."
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
         }
       },
       {
@@ -239,7 +239,7 @@
         "status": "proposed",
         "id": "clause.28",
         "narrative": {
-          "Acceptance": "Arc record-keeping (critic disposal or operator steer); no behaviour beyond items 1-6."
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
         }
       },
       {
@@ -247,7 +247,7 @@
         "status": "proposed",
         "id": "clause.29",
         "narrative": {
-          "Acceptance": "Arc record-keeping (critic disposal or operator steer); no behaviour beyond items 1-6."
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
         }
       },
       {
@@ -255,7 +255,7 @@
         "status": "proposed",
         "id": "clause.30",
         "narrative": {
-          "Acceptance": "Arc record-keeping (critic disposal or operator steer); no behaviour beyond items 1-6."
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
         }
       },
       {
@@ -263,7 +263,7 @@
         "status": "proposed",
         "id": "clause.31",
         "narrative": {
-          "Acceptance": "Arc record-keeping (critic disposal or operator steer); no behaviour beyond items 1-6."
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
         }
       },
       {
@@ -271,7 +271,7 @@
         "status": "proposed",
         "id": "clause.32",
         "narrative": {
-          "Acceptance": "Arc record-keeping (critic disposal or operator steer); no behaviour beyond items 1-6."
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
         }
       },
       {
@@ -279,7 +279,7 @@
         "status": "proposed",
         "id": "clause.33",
         "narrative": {
-          "Acceptance": "Arc record-keeping (critic disposal or operator steer); no behaviour beyond items 1-6."
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
         }
       },
       {
@@ -287,7 +287,7 @@
         "status": "proposed",
         "id": "clause.34",
         "narrative": {
-          "Acceptance": "Arc record-keeping (critic disposal or operator steer); no behaviour beyond items 1-6."
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
         }
       }
     ],
