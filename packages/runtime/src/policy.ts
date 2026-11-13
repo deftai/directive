@@ -32,6 +32,7 @@ import {
   NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
   NO_DEFT_DIRECTIVE_FLAG_NAME,
   NO_DEFT_DIRECTIVE_INCONSISTENT_MESSAGE,
+  ONE_PR_SCOPE_PROOF_LEVELS,
   POLICY_AUDIT_NOOP_STDOUT,
   parseHookHost,
   policyColonInvocation,
@@ -51,6 +52,7 @@ import {
   setAllowDestructiveGhVerbs,
   setCeremonyDial,
   setCoverageMode,
+  setOnePrScopeProof,
   setPolicy,
   setRequireHumanMerge,
 } from "@deftai/directive-core/policy";
@@ -90,6 +92,7 @@ interface SetArgs {
     | "set-ceremony-dial"
     | "set-coverage-mode"
     | "set-spec-guard-enforcement"
+    | "set-one-pr-scope-proof"
     | "disable-host-hooks"
     | "disable-directive"
     | "enable-directive"
@@ -110,6 +113,8 @@ interface SetArgs {
   coverageMode?: CoverageMode;
   /** #5350 driftGuard.enforcement target for set-spec-guard-enforcement. */
   specGuardEnforcement?: SpecGuardEnforcement;
+  /** #6273 onePrScopeProof target for set-one-pr-scope-proof (signed is refused later). */
+  onePrScopeProof?: string;
   /** #4375 audited setter for valueFeedback.upstreamPrompt. */
   upstreamPrompt?: boolean;
   error?: string;
@@ -201,11 +206,78 @@ export function parseShowArgs(argv: string[]): ShowArgs {
   return parsed;
 }
 
+const ONE_PR_SCOPE_PROOF_EXPECTED = "expected off|mint (signed is reserved for #5862)";
+
+function parseOnePrScopeProofValue(v: string | undefined): string | { error: string } {
+  if (v === undefined) return { error: `argument --set: ${ONE_PR_SCOPE_PROOF_EXPECTED}` };
+  if (!(ONE_PR_SCOPE_PROOF_LEVELS as readonly string[]).includes(v)) {
+    return { error: `argument --set: ${ONE_PR_SCOPE_PROOF_EXPECTED}, got ${JSON.stringify(v)}` };
+  }
+  return v;
+}
+
+/** Parse `policy set-one-pr-scope-proof -- --set off|mint --confirm` (#6273). */
+function parseSetOnePrScopeProof(argv: string[]): SetArgs {
+  let confirm = false;
+  let actor = policyColonInvocation("set-one-pr-scope-proof");
+  let note = "";
+  let projectRoot = ".";
+  let onePrScopeProof: string | undefined;
+  for (let i = 1; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--confirm") {
+      confirm = true;
+    } else if (
+      arg === "--actor" ||
+      arg === "--note" ||
+      arg === "--project-root" ||
+      arg === "--set"
+    ) {
+      const v = argv[i + 1];
+      if (v === undefined) return makeSetError(`argument ${arg}: expected one argument`);
+      i += 1;
+      if (arg === "--actor") actor = v;
+      else if (arg === "--note") note = v;
+      else if (arg === "--project-root") projectRoot = v;
+      else {
+        const parsed = parseOnePrScopeProofValue(v);
+        if (typeof parsed !== "string") return makeSetError(parsed.error);
+        onePrScopeProof = parsed;
+      }
+    } else if (arg?.startsWith("--actor=")) {
+      actor = arg.slice("--actor=".length);
+    } else if (arg?.startsWith("--note=")) {
+      note = arg.slice("--note=".length);
+    } else if (arg?.startsWith("--project-root=")) {
+      projectRoot = arg.slice("--project-root=".length);
+    } else if (arg?.startsWith("--set=")) {
+      const parsed = parseOnePrScopeProofValue(arg.slice("--set=".length));
+      if (typeof parsed !== "string") return makeSetError(parsed.error);
+      onePrScopeProof = parsed;
+    } else if (arg === "--") {
+      // pass-through separator
+    } else {
+      return makeSetError(`unrecognized argument: ${arg}`);
+    }
+  }
+  return {
+    cmd: "set-one-pr-scope-proof",
+    confirm,
+    actor,
+    note,
+    projectRoot,
+    format: "text",
+    changedOnly: false,
+    field: null,
+    onePrScopeProof,
+  };
+}
+
 /** Parse argv for the policy CLI (show + set subcommands). */
 export function parseArgs(argv: string[]): SetArgs {
   if (argv.length === 0) {
     const usage =
-      "usage: policy [show|enforce-branches|allow-direct-commits|allow-destructive-gh-verbs|enforce-destructive-gh-verbs|allow-bot-merge|enable-value-feedback|clear-value-feedback|set-ceremony-dial|set-coverage-mode|set-spec-guard-enforcement|disable-host-hooks|disable-directive|enable-directive|resolve] ...";
+      "usage: policy [show|enforce-branches|allow-direct-commits|allow-destructive-gh-verbs|enforce-destructive-gh-verbs|allow-bot-merge|enable-value-feedback|clear-value-feedback|set-ceremony-dial|set-coverage-mode|set-spec-guard-enforcement|set-one-pr-scope-proof|disable-host-hooks|disable-directive|enable-directive|resolve] ...";
     return makeSetError(usage);
   }
 
@@ -345,6 +417,9 @@ export function parseArgs(argv: string[]): SetArgs {
       field: null,
       specGuardEnforcement,
     };
+  }
+  if (cmd === "set-one-pr-scope-proof") {
+    return parseSetOnePrScopeProof(argv);
   }
   if (cmd === "show") {
     const show = parseShowArgs(argv.slice(1));
@@ -867,6 +942,9 @@ export function run(argv: string[]): number {
   if (args.cmd === "set-spec-guard-enforcement") {
     return runSetSpecGuardEnforcement(args);
   }
+  if (args.cmd === "set-one-pr-scope-proof") {
+    return runSetOnePrScopeProof(args);
+  }
   if (args.cmd === "disable-directive") {
     return runDisableDirective(args);
   }
@@ -889,6 +967,27 @@ function runSetSpecGuardEnforcement(args: SetArgs): number {
   }
   const result = promoteSpecGuardDriftEnforcement(root, {
     to: args.specGuardEnforcement,
+    confirm: args.confirm,
+    actor: args.actor,
+    note: args.note,
+  });
+  process.stdout.write(result.stdout);
+  return result.exitCode;
+}
+
+/** Persist plan.policy.onePrScopeProof (#6273); `signed` is refused (#5862). */
+function runSetOnePrScopeProof(args: SetArgs): number {
+  const root = pathResolve(args.projectRoot);
+  if (args.onePrScopeProof === undefined) {
+    process.stdout.write(
+      "usage: policy set-one-pr-scope-proof -- --set off|mint [--confirm] [--project-root PATH]\n" +
+        "  mint needs requireHumanMerge=true; signed is reserved for #5862.\n" +
+        `  Inspect: ${policyColonInvocation("show", " --field=onePrScopeProof")}\n`,
+    );
+    return 1;
+  }
+  const result = setOnePrScopeProof(root, {
+    level: args.onePrScopeProof,
     confirm: args.confirm,
     actor: args.actor,
     note: args.note,

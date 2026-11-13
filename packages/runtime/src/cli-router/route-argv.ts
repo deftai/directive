@@ -109,6 +109,7 @@ export const SUBCOMMAND_ROUTES: Readonly<Record<string, readonly [string, string
   "policy:set-ceremony-dial": ["policy", "set-ceremony-dial"],
   "policy:set-coverage-mode": ["policy", "set-coverage-mode"],
   "policy:set-spec-guard-enforcement": ["policy", "set-spec-guard-enforcement"],
+  "policy:set-one-pr-scope-proof": ["policy", "set-one-pr-scope-proof"],
   "policy:clear-value-feedback": ["policy", "clear-value-feedback"],
   "authz:show": ["authz", "show"],
   "authz:uat-start": ["authz", "uat-start"],

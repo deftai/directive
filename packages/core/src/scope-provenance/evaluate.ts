@@ -30,6 +30,14 @@
  * qualifying human forge approval covers its auth-hash v1. Membership only;
  * the production fence still reads the merge-base brief.
  *
+ * One-PR mint level (#6273): when the merge-base PROJECT-DEFINITION sets
+ * `onePrScopeProof: mint` with `requireHumanMerge: true` and the change set
+ * edits neither field, a same-PR human mint record that names exactly the head
+ * brief's scope (auth-hash v1, plan id, path, concrete file_scope, digest,
+ * intent preimage) is admitted as `mint` membership authority. CI cannot tell
+ * that mint from a file an agent wrote; the human merge is the control. The
+ * production fence still reads the merge-base brief.
+ *
  * Intent-pin checks (#3385) remain for existing base-committed records.
  *
  * Three-state exit: 0 clean / 1 fence violation / 2 config.
@@ -40,8 +48,16 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { GitCommandError, GitNotFoundError } from "../encoding/git.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
+import {
+  evaluateMintLevelRecord,
+  evaluateOnePrScopeProofGate,
+  type MintLevelAdmit,
+  type OnePrScopeProofGate,
+} from "../policy/one-pr-scope-proof.js";
+import { PROJECT_DEFINITION_REL_PATH } from "../policy/resolve.js";
 import { loadTestBoundaryPolicy } from "../test-boundary/policy.js";
 import {
+  concreteProductionScopeEntries,
   evaluateApprovedScopeMembership,
   evaluateProductionScopeFence,
   isConcreteFileScopeEntry,
@@ -104,6 +120,8 @@ export interface ScopeProvenanceResult {
   readonly exitCode: 0 | 1 | 2;
   readonly findings: readonly ScopeProvenanceFinding[];
   readonly message: string;
+  /** Same-PR mint records admitted at the one-PR mint level (#6273). */
+  readonly mintLevelAdmits?: readonly MintLevelAdmit[];
 }
 
 export interface ScopeProvenanceOptions {
@@ -147,6 +165,13 @@ export interface ScopeProvenanceOptions {
    * authority (never under a present mint). Absent → today's Path B.
    */
   readonly forgeApproval?: ForgeApprovalContext;
+  /**
+   * Head PROJECT-DEFINITION text for the one-PR level check (#6273 test seam).
+   * Absent: read the working tree. The level itself comes from the merge base.
+   */
+  readonly headProjectDefinition?: string | null;
+  /** Same-PR `.intent.json` text keyed by planId (#6273 test seam; skips disk). */
+  readonly headApprovedIntents?: ReadonlyMap<string, string>;
 }
 
 function git(args: string[], projectRoot: string): { status: number; stdout: string } {
@@ -949,6 +974,46 @@ export function evaluateScopeProvenance(
   let reportedPeerFailure = false;
   /** Forge-approval admit / reject notes appended to the result message (#6203). */
   const forgeNotes: string[] = [];
+  /** One-PR mint-level admits and reject notes (#6273). */
+  const mintLevelAdmits: MintLevelAdmit[] = [];
+  const onePrNotes: string[] = [];
+  // The level and requireHumanMerge come from the merge base only (#6273).
+  let onePrGate: OnePrScopeProofGate | null = null;
+  const resolveOnePrGate = (): OnePrScopeProofGate => {
+    if (onePrGate !== null) return onePrGate;
+    const baseRead = readAtBase(PROJECT_DEFINITION_REL_PATH);
+    let headRaw: string | null = null;
+    if (options.headProjectDefinition !== undefined) {
+      headRaw = options.headProjectDefinition;
+    } else {
+      try {
+        headRaw = readFileSync(join(root, PROJECT_DEFINITION_REL_PATH), "utf8");
+      } catch {
+        headRaw = null;
+      }
+    }
+    onePrGate =
+      baseRead.kind === "error"
+        ? {
+            kind: "refuse",
+            reason: `merge-base PROJECT-DEFINITION read failed: ${baseRead.message}`,
+          }
+        : evaluateOnePrScopeProofGate({
+            baseRaw: baseRead.kind === "text" ? baseRead.text : null,
+            headRaw,
+          });
+    return onePrGate;
+  };
+  const readHeadIntent = (intentPlanId: string): string | null => {
+    if (options.headApprovedIntents !== undefined) {
+      return options.headApprovedIntents.get(intentPlanId) ?? null;
+    }
+    try {
+      return readFileSync(join(root, ...approvedScopeIntentRel(intentPlanId).split("/")), "utf8");
+    } catch {
+      return null;
+    }
+  };
   for (const { rel, raw } of activeEntries) {
     const modifiedEarly = changedSetHasPath(changedSet, rel);
     let payload: unknown;
@@ -1051,8 +1116,36 @@ export function evaluateScopeProvenance(
 
     // Same-PR approved-scope rewrite still fails closed when a digest file is
     // co-changed (legacy anti-forgery). Remediation does not schedule a proceed
-    // mint ceremony (#4956).
-    if (approvalRecordRewritten && modified && renewed === null) {
+    // mint ceremony (#4956). Only carve-out: the merge-base one-PR mint level
+    // with an exact same-PR human mint record (#6273).
+    let mintLevelScope: readonly string[] | null = null;
+    if (approvalRecordRewritten && modified && renewed === null && planId !== null) {
+      const gate = resolveOnePrGate();
+      if (gate.kind === "mint") {
+        const verdict = evaluateMintLevelRecord({
+          record: approvedCandidate,
+          intentRaw: readHeadIntent(planId),
+          xbriefRelPath: rel,
+          headPayload: payload,
+          headRaw: raw,
+          changedFiles: changed,
+          extract: { projectRoot: root, approvedReposSeed: options.approvedReposSeed },
+          decisionExists: (decisionRel) =>
+            readAtBase(decisionRel).kind === "text" ||
+            existsSync(join(root, ...decisionRel.split("/"))),
+        });
+        if (verdict.kind === "admit") {
+          mintLevelScope = verdict.fileScope;
+        } else {
+          onePrNotes.push(
+            `one-PR scope proof (#6273): ${rel} not admitted at the mint level -- ${verdict.reason}`,
+          );
+        }
+      } else if (gate.kind === "refuse") {
+        onePrNotes.push(`one-PR scope proof (#6273): ${rel} not admitted -- ${gate.reason}`);
+      }
+    }
+    if (approvalRecordRewritten && modified && renewed === null && mintLevelScope === null) {
       const currentScope = normalizeFileScope(extractFileScope(payload));
       findings.push({
         xbriefRelPath: rel,
@@ -1280,7 +1373,17 @@ export function evaluateScopeProvenance(
     let membershipAllowlist: readonly string[] | null = null;
     let allowlistAuthority: MembershipAllowlistAuthority = "missing";
 
-    if (mintLookup.kind === "mint") {
+    if (mintLevelScope !== null) {
+      // Same-PR mint record admitted at the merge-base mint level (#6273).
+      membershipAllowlist = mintLevelScope;
+      allowlistAuthority = "mint";
+      mintLevelAdmits.push({
+        planId: planId ?? rel,
+        xbriefRelPath: rel,
+        fileScope: mintLevelScope,
+        productionFileCount: concreteProductionScopeEntries(mintLevelScope, boundary).length,
+      });
+    } else if (mintLookup.kind === "mint") {
       membershipAllowlist = mintLookup.fileScope;
       allowlistAuthority = "mint";
     } else if (modified) {
@@ -1596,7 +1699,9 @@ export function evaluateScopeProvenance(
     }
 
     // Intent pin (#3385) only when a digest already exists / is rewritten —
-    // never demands a first mint for proceed (#4956).
+    // never demands a first mint for proceed (#4956). A mint-level admit
+    // already checked the head brief against the same-PR preimage (#6273).
+    if (mintLevelScope !== null) continue;
     const intentHits = evaluateIntentForXbrief({
       projectRoot: root,
       xbriefRelPath: rel,
@@ -1639,7 +1744,9 @@ export function evaluateScopeProvenance(
     }
   }
 
-  const forgeTail = forgeNotes.length > 0 ? `\n${forgeNotes.join("\n")}` : "";
+  const notes = [...forgeNotes, ...onePrNotes];
+  const forgeTail = notes.length > 0 ? `\n${notes.join("\n")}` : "";
+  const admits = mintLevelAdmits.length > 0 ? { mintLevelAdmits } : {};
 
   if (findings.length === 0 && softFindings.length === 0) {
     return {
@@ -1648,6 +1755,7 @@ export function evaluateScopeProvenance(
       message:
         `verify_scope_provenance: clean (${activeEntries.length} active xBRIEF(s), ` +
         `${changed.length} changed file(s)) (#3145).${forgeTail}`,
+      ...admits,
     };
   }
 
@@ -1664,6 +1772,7 @@ export function evaluateScopeProvenance(
       message:
         `verify_scope_provenance: WARN ${softFindings.length} intent-pin finding(s) ` +
         `(intent edit on a brief with no intent pin (advisory; not failing)) (#3385).\n${body}${forgeTail}`,
+      ...admits,
     };
   }
 
@@ -1683,6 +1792,7 @@ export function evaluateScopeProvenance(
     exitCode: 1,
     findings: all,
     message: `verify_scope_provenance: ${findings.length} self-authorization violation(s) (#3145).\n${body}${forgeTail}`,
+    ...admits,
   };
 }
 
