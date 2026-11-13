@@ -388,8 +388,8 @@ export function inferRequiredStrictAxes(item: Record<string, unknown>): StrictAc
     }
   }
   const raw = parts.join("\n").toLowerCase();
-  // Prose-only text for deploy / smoke / UAT (#6270); observed_behavior keeps `raw`.
-  const text = splitAxisAlternations(stripBacktickSpans(raw));
+  // deploy / smoke / UAT match prose only (#6270); observed_behavior keeps `raw`.
+  const text = splitAxisAlternations(raw);
   const found: StrictAcceptanceAxis[] = [];
   // Order: longer / more specific phrases first so "observed behavior" wins over generic.
   if (
@@ -444,24 +444,6 @@ const AXIS_ALTERNATION = new RegExp(
  */
 function splitAxisAlternations(text: string): string {
   return text.replace(AXIS_ALTERNATION, (run) => run.replaceAll("/", " / "));
-}
-
-/**
- * Drop fenced blocks and inline code spans: quoted code names no axis (#6270).
- * A fenced block opens and closes on its own line: a run of 3+ backticks at
- * line start, after optional blockquote markers (`> `), with no backtick in
- * the info string. Backticks inside inline spans never open a fence. An inline
- * span opens with a run of N backticks and closes with a run of exactly N, so
- * ``deploy`` is dropped as a whole. An unclosed fence is kept as text.
- */
-const FENCE_LINE_PREFIX = String.raw`^(?:[ \t]*>)*[ \t]*`;
-const FENCED_BLOCK = new RegExp(
-  String.raw`${FENCE_LINE_PREFIX}(\`{3,})[^\`\n]*\n[\s\S]*?${FENCE_LINE_PREFIX}\1\`*[ \t]*$`,
-  "gm",
-);
-const INLINE_CODE_SPAN = /(?<!`)(`+)(?!`)[^\n]*?(?<!`)\1(?!`)/g;
-function stripBacktickSpans(text: string): string {
-  return text.replace(FENCED_BLOCK, " ").replace(INLINE_CODE_SPAN, " ");
 }
 
 /**

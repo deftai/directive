@@ -237,35 +237,11 @@ describe("strict axes match prose, not identifiers (#6270)", () => {
     }
   });
 
-  it("returns no axis for text inside backticks", () => {
-    expect(axes("Adds `deploys to prod` to the docs")).toEqual([]);
-    expect(axes("Runs `smoke test` script")).toEqual([]);
-    expect(axes("The ``deploy`` job is green")).toEqual([]);
-    expect(axes("Notes:\n```\nuat sign-off\n```\nunit tests green")).toEqual([]);
+  it("treats backtick-quoted names like bare names and never drops prose", () => {
     expect(axes("The `deploy-dev` job is green; smoke test passes")).toEqual(["smoke"]);
-  });
-
-  it("drops fenced blocks inside blockquotes", () => {
-    expect(axes("Example:\n> ```sh\n> npm run deploy\n> ```\nunit tests green")).toEqual([]);
-    expect(axes("> > ```\n> > deploy now\n> > ```\nsmoke test passes")).toEqual(["smoke"]);
-    const gate = evaluateAcceptanceEvidenceGate({
-      items: [
-        withEvidence({
-          title: "Docs show the command",
-          status: "pending",
-          narrative: { Acceptance: "> ```\n> npm run deploy\n> ```\nThe docs page renders" },
-        }),
-      ],
-    });
-    expect(gate.ok).toBe(true);
-  });
-
-  it("does not open a fence on backticks inside inline spans", () => {
-    expect(
-      axes("Render `` ``` `` fences correctly; smoke tests pass; preserve `` ``` `` output"),
-    ).toEqual(["smoke"]);
-    expect(axes("Notes:\n```ts\nconst x = 'deploy';\n```\nsmoke test passes")).toEqual(["smoke"]);
-    expect(axes("Unclosed:\n```\nsmoke test passes")).toEqual(["smoke"]);
+    expect(axes("> ```sh\n> echo example\n\nSmoke tests pass\n\n```sh\necho example\n```")).toEqual(
+      ["smoke"],
+    );
   });
 
   it("keeps each axis in a slash list of axis words", () => {
