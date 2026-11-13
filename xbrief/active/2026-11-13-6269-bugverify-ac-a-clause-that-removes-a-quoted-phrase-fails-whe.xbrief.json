@@ -1,0 +1,615 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6269",
+    "updated": "2026-11-13T15:08:59Z"
+  },
+  "plan": {
+    "title": "bug(verify-ac): a clause that removes a quoted phrase fails when the phrase is removed",
+    "status": "running",
+    "narratives": {
+      "Description": "verify:ac treats every quoted phrase in an acceptance clause as text that must be present in the bound file, so a clause that says a change removes a phrase fails exactly when the work is done right. This story adds a small closed grammar (remove, delete, drop or recut a quoted phrase from a file; a file no longer contains a phrase; replace one phrase with another) that flips polarity per quoted span, and keeps every other ambiguous shape as a blocking adjudicable unverifiable row. The guarantee is exact literal absence in an existing readable file.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6269",
+      "Overview": "\n1. Keep quoted spans with their position in the clause until polarity is assigned. Do not dedupe tokens before polarity.\n2. Closed absence forms, each a complete sentence: `Removes|Deletes|Drops|Recuts \"X\" from PATH` (singular or plural verb, PATH optional when the clause is bound) and `PATH no longer contains \"X\"`. Closed replace form: `Replaces \"X\" with \"Y\"` (optional PATH suffix): X absent, Y present. Spans that no closed form governs keep today's presence check.\n3. Unresolved polarity (a negated removal verb, two governing verbs over one span, the same literal under both polarities, `replaces \"X\"` with no `with`, X equal to Y, or a removal verb whose object is not exactly the quoted span) returns `unverifiable` with `adjudicable: true`. So it counts in `countUnverifiedAdjudicableClauses` and keeps `ok` false. It never returns `verified`. The detail names the supported forms.\n4. Token-absence classification runs before the bound-artifact absence branch (`isBoundArtifactAbsenceClaim`). Path-absence clauses with no quoted span keep today's behaviour. The declared-scope, containment, existence and file-type guards stay ahead of every token check, so a missing, renamed or non-file artifact still fails.\n5. Absence is exact literal absence (`!body.includes(X)`) in an existing readable file. Case, inner whitespace and inner quote characters stay significant. The #5393 defect-description exemption and the #3826 `plan.items` path are unchanged. The same classifier feeds `walkOne` and `isExistenceOrQuotedTokenClause`.\n6. Tests in `packages/core/src/verify-ac/clauses.test.ts`: removal pairs (absent → verified, present → failed) for each verb; all four replace combinations; each unresolved shape → `unverifiable` + adjudicable; walk `ok` false when an unresolved row has a verified sibling; path-absence regression; one case through the `plan.items` derivation.\n\n\n",
+      "Labels": "bug, consumer-example, design-critique:ingest-ready, framework-gap",
+      "UserStory": "As an agent completing a story whose acceptance says a phrase is removed, I want verify:ac to check that the phrase is absent, so that correct removal work passes the push gate without an operator mint or a clause rebind.",
+      "ImplementationPlan": "1. In packages/core/src/verify-ac/clauses.ts, keep each quoted span with its position until polarity is assigned (no dedupe before polarity).\n2. Add a closed span classifier: the removes/deletes/drops/recuts-from form and the no-longer-contains form mean absent; the replaces-with form means first span absent, second present; any other span keeps the presence check.\n3. Unresolved shapes return unverifiable with adjudicable true and a detail that names the supported forms.\n4. Run token-absence classification before isBoundArtifactAbsenceClaim; keep the declared-scope, containment, existence and file-type guards first.\n5. Feed the same classifier to walkOne and isExistenceOrQuotedTokenClause.\n6. Tests in clauses.test.ts for every pair, combination and unresolved shape, plus the path-absence regression and one plan.items case. CHANGELOG [Unreleased] line.\nMust-not (lean Reject list): no clause-wide polarity flip; no non-adjudicable unverifiable for ambiguous rows; no widening of ABSENCE_ALTERNATION; no rewrite, revise, deprecate, disable or bare replaces in the absence set; no brief schema field; no case- or whitespace-insensitive matching, and no claim that absence proves the surrounding docs were kept.",
+      "Traces": "#6269, #5393, #3826"
+    },
+    "items": [
+      {
+        "title": "Keep quoted spans with their position in the clause until polarity is assigned.",
+        "status": "proposed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a clause that quotes the same literal twice, when verify:ac walks it, then each quoted span keeps its own position and polarity; a test in clauses.test.ts shows the second span is still evaluated."
+        }
+      },
+      {
+        "title": "Do not dedupe tokens before polarity.",
+        "status": "proposed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a clause that quotes one literal under a removal form and again as a plain presence span, when verify:ac walks it, then the row returns unverifiable with adjudicable true instead of collapsing the two spans into one token."
+        }
+      },
+      {
+        "title": "Closed absence forms, each a complete sentence: `Removes|Deletes|Drops|Recuts \"X\" from PATH` (singular or plural verb, PATH optional when the clause is bound) and `PATH no longer contains \"X\"`.",
+        "status": "proposed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a clause in each removal form (removes, deletes, drops, recuts, singular or plural, and PATH no longer contains) bound to a file, when the literal is absent the walk returns verified, and when it is present the walk returns failed."
+        }
+      },
+      {
+        "title": "Closed replace form: `Replaces \"X\" with \"Y\"` (optional PATH suffix): X absent, Y present.",
+        "status": "proposed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a replace-form clause, when the first literal is absent and the second present the walk returns verified; each of the other three combinations returns failed."
+        }
+      },
+      {
+        "title": "Spans that no closed form governs keep today's presence check.",
+        "status": "proposed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a presence clause such as an Adds form, when the literal is present the walk returns verified and when it is absent it returns failed, as before this change."
+        }
+      },
+      {
+        "title": "Unresolved polarity (a negated removal verb, two governing verbs over one span, the same literal under both polarities, `replaces \"X\"` with no `with`, X equal to Y, or a removal verb whose object is not exactly the quoted span) returns `unverifiable` with `adjudicable: true`.",
+        "status": "proposed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given each unresolved shape (negated removal verb, two governing verbs over one span, the same literal under both polarities, replace with no with, first literal equal to second, removal object not exactly the quoted span), when the walk runs, then it returns unverifiable with adjudicable true."
+        }
+      },
+      {
+        "title": "So it counts in `countUnverifiedAdjudicableClauses` and keeps `ok` false.",
+        "status": "proposed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given an unresolved row next to a verified sibling, when verify:ac runs, then ok is false and the command exits non-zero."
+        }
+      },
+      {
+        "title": "It never returns `verified`.",
+        "status": "proposed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given any unresolved shape, when the literal is absent or present, then the walk never returns verified; a test asserts both cases."
+        }
+      },
+      {
+        "title": "The detail names the supported forms.",
+        "status": "proposed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When the walk returns an unresolved row, then its detail text names the supported removal, no-longer-contains and replace forms."
+        }
+      },
+      {
+        "title": "Token-absence classification runs before the bound-artifact absence branch (`isBoundArtifactAbsenceClaim`).",
+        "status": "proposed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a removal clause with a quoted span that also names the bound path, when the walk runs, then it returns the token-absence outcome and not the path-absence failed row."
+        }
+      },
+      {
+        "title": "Path-absence clauses with no quoted span keep today's behaviour.",
+        "status": "proposed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a path-absence clause with no quoted span bound to an existing file, when the walk runs, then it returns failed exactly as before; a regression test passes."
+        }
+      },
+      {
+        "title": "The declared-scope, containment, existence and file-type guards stay ahead of every token check, so a missing, renamed or non-file artifact still fails.",
+        "status": "proposed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a removal clause bound to a missing, renamed or non-file artifact, when the walk runs, then it returns failed (or unverifiable for an undeclared path) before any token check runs."
+        }
+      },
+      {
+        "title": "Absence is exact literal absence (`!body.includes(X)`) in an existing readable file.",
+        "status": "proposed",
+        "id": "clause.13",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a removal clause whose literal is absent from an existing readable file, when the walk runs, then it returns verified; given the exact literal in the file, then it returns failed."
+        }
+      },
+      {
+        "title": "Case, inner whitespace and inner quote characters stay significant.",
+        "status": "proposed",
+        "id": "clause.14",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a file that holds the literal only with different case or inner whitespace, when a removal clause is walked, then it returns verified; given the exact literal, then it returns failed."
+        }
+      },
+      {
+        "title": "The #5393 defect-description exemption and the #3826 `plan.items` path are unchanged.",
+        "status": "proposed",
+        "id": "clause.15",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a defect-description clause or a clause derived from plan.items, when the walk runs, then it returns the same outcome as before this change; the existing tests pass."
+        }
+      },
+      {
+        "title": "The same classifier feeds `walkOne` and `isExistenceOrQuotedTokenClause`.",
+        "status": "proposed",
+        "id": "clause.16",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a removal-only clause, when verify:ac counts behavioural clauses and walks rows, then both read the same span classification; a test shows the clause is counted as a token clause."
+        }
+      },
+      {
+        "title": "Tests in `packages/core/src/verify-ac/clauses.test.ts`: removal pairs (absent → verified, present → failed) for each verb; all four replace combinations; each unresolved shape → `unverifiable` + adjudicable; walk `ok` false when an unresolved row has a verified sibling; path-absence regression; one case through the `plan.items` derivation.",
+        "status": "proposed",
+        "id": "clause.17",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When npx vitest run packages/core/src/verify-ac/clauses.test.ts runs, then the removal, replace, unresolved, verified-sibling, path-absence and plan.items cases pass."
+        }
+      },
+      {
+        "title": "Must-not constraints from the lean Reject list hold: no clause-wide polarity flip from a removal word, no non-adjudicable unverifiable row for ambiguous polarity, no new words in ABSENCE_ALTERNATION, no rewrite, revise, deprecate, disable or bare replaces in the absence set, no new brief schema field, and no case- or whitespace-insensitive matching.",
+        "status": "proposed",
+        "id": "clause.18",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Given a replace clause whose two literals are both absent, when the walk runs, then it returns failed, not verified; ABSENCE_ALTERNATION and the brief schema are unchanged, and matching stays case- and whitespace-sensitive."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "consumer-example",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6269",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6269: bug(verify-ac): a clause that removes a quoted phrase fails when the phrase is removed"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5393",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5393"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3826",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3826"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 18 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(verify-ac): a clause that removes a quoted phrase fails when the phrase is removed",
+        "Keep quoted spans with their position in the clause until polarity is assigned.",
+        "Do not dedupe tokens before polarity.",
+        "Closed absence forms, each a complete sentence: `Removes|Deletes|Drops|Recuts \"X\" from PATH` (singular or plural verb, PATH optional when the clause is bound) and `PATH no longer contains \"X\"`.",
+        "Closed replace form: `Replaces \"X\" with \"Y\"` (optional PATH suffix): X absent, Y present.",
+        "Spans that no closed form governs keep today's presence check.",
+        "Unresolved polarity (a negated removal verb, two governing verbs over one span, the same literal under both polarities, `replaces \"X\"` with no `with`, X equal to Y, or a removal verb whose object is not exactly the quoted span) returns `unverifiable` with `adjudicable: true`.",
+        "So it counts in `countUnverifiedAdjudicableClauses` and keeps `ok` false.",
+        "It never returns `verified`.",
+        "The detail names the supported forms.",
+        "Token-absence classification runs before the bound-artifact absence branch (`isBoundArtifactAbsenceClaim`).",
+        "Path-absence clauses with no quoted span keep today's behaviour.",
+        "The declared-scope, containment, existence and file-type guards stay ahead of every token check, so a missing, renamed or non-file artifact still fails.",
+        "Absence is exact literal absence (`!body.includes(X)`) in an existing readable file.",
+        "Case, inner whitespace and inner quote characters stay significant.",
+        "The #5393 defect-description exemption and the #3826 `plan.items` path are unchanged.",
+        "The same classifier feeds `walkOne` and `isExistenceOrQuotedTokenClause`.",
+        "Tests in `packages/core/src/verify-ac/clauses.test.ts`: removal pairs (absent → verified, present → failed) for each verb; all four replace combinations; each unresolved shape → `unverifiable` + adjudicable; walk `ok` false when an unresolved row has a verified sibling; path-absence regression; one case through the `plan.items` derivation."
+      ],
+      "admitted_source_sentences": [
+        "Keep quoted spans with their position in the clause until polarity is assigned.",
+        "Do not dedupe tokens before polarity.",
+        "Closed absence forms, each a complete sentence: `Removes|Deletes|Drops|Recuts \"X\" from PATH` (singular or plural verb, PATH optional when the clause is bound) and `PATH no longer contains \"X\"`.",
+        "Closed replace form: `Replaces \"X\" with \"Y\"` (optional PATH suffix): X absent, Y present.",
+        "Spans that no closed form governs keep today's presence check.",
+        "Unresolved polarity (a negated removal verb, two governing verbs over one span, the same literal under both polarities, `replaces \"X\"` with no `with`, X equal to Y, or a removal verb whose object is not exactly the quoted span) returns `unverifiable` with `adjudicable: true`.",
+        "So it counts in `countUnverifiedAdjudicableClauses` and keeps `ok` false.",
+        "It never returns `verified`.",
+        "The detail names the supported forms.",
+        "Token-absence classification runs before the bound-artifact absence branch (`isBoundArtifactAbsenceClaim`).",
+        "Path-absence clauses with no quoted span keep today's behaviour.",
+        "The declared-scope, containment, existence and file-type guards stay ahead of every token check, so a missing, renamed or non-file artifact still fails.",
+        "Absence is exact literal absence (`!body.includes(X)`) in an existing readable file.",
+        "Case, inner whitespace and inner quote characters stay significant.",
+        "The #5393 defect-description exemption and the #3826 `plan.items` path are unchanged.",
+        "The same classifier feeds `walkOne` and `isExistenceOrQuotedTokenClause`.",
+        "Tests in `packages/core/src/verify-ac/clauses.test.ts`: removal pairs (absent → verified, present → failed) for each verb; all four replace combinations; each unresolved shape → `unverifiable` + adjudicable; walk `ok` false when an unresolved row has a verified sibling; path-absence regression; one case through the `plan.items` derivation."
+      ],
+      "admitted_source_digest": "6fc8079fb33c63061062434a1b09155a87ca0beeac864f459a14f54dd97fd6cc",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Keep quoted spans with their position in the clause until polarity is assigned.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Do not dedupe tokens before polarity.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Closed absence forms, each a complete sentence: `Removes|Deletes|Drops|Recuts \"X\" from PATH` (singular or plural verb, PATH optional when the clause is bound) and `PATH no longer contains \"X\"`.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Closed replace form: `Replaces \"X\" with \"Y\"` (optional PATH suffix): X absent, Y present.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Spans that no closed form governs keep today's presence check.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Unresolved polarity (a negated removal verb, two governing verbs over one span, the same literal under both polarities, `replaces \"X\"` with no `with`, X equal to Y, or a removal verb whose object is not exactly the quoted span) returns `unverifiable` with `adjudicable: true`.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "So it counts in `countUnverifiedAdjudicableClauses` and keeps `ok` false.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "It never returns `verified`.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "The detail names the supported forms.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Token-absence classification runs before the bound-artifact absence branch (`isBoundArtifactAbsenceClaim`).",
+          "artifact_path": "packages/core/src/verify-ac/clauses.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Path-absence clauses with no quoted span keep today's behaviour.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "The declared-scope, containment, existence and file-type guards stay ahead of every token check, so a missing, renamed or non-file artifact still fails.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Absence is exact literal absence (`!body.includes(X)`) in an existing readable file.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Case, inner whitespace and inner quote characters stay significant.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "The #5393 defect-description exemption and the #3826 `plan.items` path are unchanged.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "The same classifier feeds `walkOne` and `isExistenceOrQuotedTokenClause`.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Tests in `packages/core/src/verify-ac/clauses.test.ts`: removal pairs (absent → verified, present → failed) for each verb; all four replace combinations; each unresolved shape → `unverifiable` + adjudicable; walk `ok` false when an unresolved row has a verified sibling; path-absence regression; one case through the `plan.items` derivation.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Must-not constraints from the lean Reject list hold: no clause-wide polarity flip from a removal word, no non-adjudicable unverifiable row for ambiguous polarity, no new words in ABSENCE_ALTERNATION, no rewrite, revise, deprecate, disable or bare replaces in the absence set, no new brief schema field, and no case- or whitespace-insensitive matching.",
+          "artifact_path": "packages/core/src/verify-ac/clauses.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(verify-ac): a clause that removes a quoted phrase fails when the phrase is removed"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6269; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes verify:ac token polarity, and a wrong verb set or a wrong ambiguity rule opens a false `verified` path on the push gate.\n\nTarget-digest: sha256:85c373392c35f83bed9d4d481a5a61a675e2f364c9e00c7eea8972ac4d9d9cd4\ndispatch-sha: 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04\ndest: .deft-scratch/worktrees/arc-6269 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\ncharter: refutation\nrefutation-target: When a removal verb governs a quoted token in a clause, verify:ac can flip that token to an absence check (present → failed, absent → verified) without opening a false-verified path, and an ambiguous clause can be held at `unverifiable`.\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one bounded polarity change in one module; the issue names the mechanism.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04: + dest cwd-without-occupy\npain: P1, P2\n\n## In plain English\n`verify:ac` treats every quoted phrase in an acceptance clause as text that must be present. A clause that says the change removes a quoted phrase therefore fails exactly when the work is done right, and the push gate refuses. The arc tests whether a removal verb can flip that token to \"must be absent\" without letting a badly worded clause pass as verified.\n\n## Pains\n- P1 — A clause that says a change removes or recuts a quoted phrase fails `verify:ac` once the phrase is correctly removed, and the push gate refuses the push.\n- P2 — The only recovery today is an active-brief clause rebind, which needs an operator mint and a separate record PR (about 96 minutes on the reported run).\n\nOperator confirm: Scott confirms or steers the lean in chat. This session posts the lean and stops: no auto-stamp, no ingest.\n\n",
+          "id": 6856001007,
+          "html_url": "https://github.com/deftai/directive/issues/6269#issuecomment-6856001007",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T14:34:36Z",
+          "updated_at": "2026-11-13T14:34:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6-astra\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe reported bug is real, but a removal-word detector followed by inverted substring matching is not safe enough. The target is supportable for a small, explicit literal-token grammar, with ambiguity handled before either presence or absence evaluation. It does not establish semantic removal or document preservation. Findings below come from source reads at pinned SHA `1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04`; no tests or mutations were run.\n\n### 1. blocks-the-design — Polarity needs quote occurrences and a complete grammar\n\n**Evidence:** `packages/core/src/verify-ac/clauses.ts:1205–1225` extracts strings, processes double and single quotes separately, and deduplicates tokens. It retains neither occurrence positions nor governing text. Lines 1340–1347 then treat every token as positive evidence.\n\n**Failure mode:** A clause-wide flip makes `Replaces \"old phrase\" with \"new phrase\"` verify when both strings are absent. Assigning polarity after deduplication loses the contradiction in `Removes \"old phrase\" and retains \"old phrase\"`. Searching for removal words also misreads `Does not remove \"old phrase\"` or `Removes the prefix from \"old phrase\"`: the latter names something only partly removed. These can falsely verify absence or wrongly fail retained text.\n\n**Disposition consequence:** Do not bind a global word-set inversion. Preserve quote spans and occurrence order until polarity assignment; recognize complete supported forms. Contradictory occurrences, unsupported negation, partial-removal objects, and multiple governing verbs must produce `unverifiable` before token evaluation. Bare `replaces \"old phrase\"` is incomplete, not a sufficient absence oracle.\n\n### 2. blocks-the-design — Existing path absence can preempt token absence\n\n**Evidence:** `clauses.ts:101–103,137–149` recognizes absence anywhere in the clause plus a mention of the bound path. Lines 1314–1315 fail an existing file before reaching quoted-token checks.\n\n**Failure mode:** `\"old phrase\" must be absent from docs/x.md`, bound to an existing `docs/x.md` without that phrase, returns `failed`: the current check interprets the file as the absent subject. A new token check below it never runs. Extending `ABSENCE_ALTERNATION` with token-removal language would enlarge this collision.\n\n**Disposition consequence:** Keep artifact absence and token absence separate. Classify the supported token shape before the whole-clause artifact-absence branch, while retaining scope and filesystem guards. Unsupported token-absence wording must reach `unverifiable`, not fall through to the existing file-absence failure. Preserve genuine `docs/x.md must be absent` behavior.\n\n### 3. blocks-the-design — `unverifiable` alone does not close the aggregate pass path\n\n**Evidence:** `clauses.ts:1385–1386,1636–1640` blocks unverified rows only when `adjudicable` is true. `packages/core/src/product-first-done-gate/evaluate.ts:1222–1244` passes failed counts and adjudicable-unverified counts to the gate and can promote an empty pass when another clause verifies. The push consumer checks recorded AC disposition in `packages/core/src/preflight-gh/pre-push.ts:435–468`.\n\n**Failure mode:** If contradictory removal prose returns the existing behavioral fallback’s `unverifiable, adjudicable:false`, it contributes no blocking count. A sibling verified clause can leave the aggregate successful. The ambiguous row is not falsely labeled verified, but “ambiguity stays unverifiable” has not established a fail-closed gate.\n\n**Disposition consequence:** Specify both the row outcome and aggregate policy. For declared, bound acceptance tokens whose polarity is unresolved, retain an adjudicable obligation and test the consumer result, including its executable-run policy. Do not conflate this with #5393: defect descriptions deliberately remain non-adjudicable (`clauses.ts:1319–1332`; tests at `clauses.test.ts:1778–1856`).\n\n### 4. sharpens-framing — Literal absence is narrower than successful removal\n\n**Evidence:** `clauses.ts:1279–1312,1334–1347` checks file existence/type/readability, then uses exact `body.includes(token)`. Extraction trims tokens and accepts only 3–80-character straight-quoted spans (`1208–1217`). Quote-pairing regressions are covered at `clauses.test.ts:1400–1432`.\n\n**Failure mode:** A naive absence inversion verifies an empty file. It also verifies against `Old phrase` or `old\\nphrase` for the token `\"old phrase\"`. Those are correct literal-absence results but false evidence for a broader claim that the wording was removed while useful documentation remained. Deleting or renaming the bound file does **not** pass if current filesystem guards remain ahead of token evaluation.\n\n**Disposition consequence:** State the guarantee as exact literal absence in an existing readable file. Empty content cannot prove preservation; require separate acceptance evidence when preservation matters. Outer single versus double quote delimiters should identify the same literal; case, internal whitespace, and quote characters inside the literal remain significant. Unsupported quoting or token lengths must not silently disappear and expose an existence-only success.\n\n### Proposed mechanism\n\n- **Closed verb set:** initially `remove/removes`, `delete/deletes`, `drop/drops`, only in anchored direct-object forms such as `Removes \"TOKEN\" from PATH`. Admit `PATH no longer contains \"TOKEN\"` as a separate exact form. Exclude `recut`, `rewrite`, `revise`, `deprecate`, `disable`, and `replace` from the simple absence set. Reject negated, conditional, passive, partial-object, and compound forms until explicitly supported.\n- **Replace rule:** recognize only complete `Replace(s) \"X\" with \"Y\"` forms, with optional bound-path suffix. Source spans determine X and Y; require X absent and Y present. Missing `with`, identical X/Y, or extra governing material is unverifiable.\n- **Ambiguity rule:** return explicit unresolved polarity before token or existence success. Preserve declared-scope read protection and #5393 exclusions. Use one classifier across walking and oracle classification (`clauses.ts:1552–1560`).\n- **Tests:** table-driven present/absent removal pairs; all four replacement combinations; conflicting polarity, negation, partial removal, unsupported quotes; missing/renamed/empty files; whitespace/case; artifact-absence collisions; defect descriptions; aggregate outcomes with a verified sibling. Exercise the #3826 `plan.items` derivation path (`clauses.ts:584–615`), not only manually constructed clauses.\n\n### Road not taken\n\nExplicit structured presence/absence assertions would avoid grammatical inference and provide stronger scope control, but require schema and authoring changes for this bounded repair. A small complete grammar is preferable here. I would favor structured assertions if the required scope includes free-form “recuts” prose, partial removals, or semantic matching: those exceed what literal polarity can safely prove.",
+          "id": 6856124176,
+          "html_url": "https://github.com/deftai/directive/issues/6269#issuecomment-6856124176",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T14:39:16Z",
+          "updated_at": "2026-11-13T14:39:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean after round 1 (1 of 1 sibling posted: comment 6856124176)\n\n## In plain English\nProblem: `verify:ac` treats every quoted phrase in an acceptance clause as text that must be present in the bound file. A clause that says a change removes a phrase therefore fails exactly when the work is done right, and the push gate refuses the push. Fixing the clause then costs an operator mint and a record PR.\n\nSolution this lean proposes: recognise a small, closed set of complete sentence forms, and check polarity per quoted span instead of per clause. `Removes \"X\" from PATH` (and the same form with delete, drop, recut) and `PATH no longer contains \"X\"` mean X must be absent. `Replaces \"X\" with \"Y\"` means X absent and Y present. Anything else that mixes polarities, or negates or only partly names the removal, stays a blocking `unverifiable` row, never `verified`. The guarantee is stated narrowly: exact literal absence in a file that exists and is readable. Path-absence (`docs/x.md must be absent`) keeps its own branch and stops pre-empting token absence. The critic's four findings are all accepted. One parent premise is added: `recut` joins the verb set, because the reported clauses used it. That premise needs a later critic check. If confirmed, the synthesis would assert the per-span closed grammar above. There is no leftover next-build.\n\nTarget-digest: sha256:85c373392c35f83bed9d4d481a5a61a675e2f364c9e00c7eea8972ac4d9d9cd4\n**Spec-path:** Bound remedy on this lean\nSupersedes Stop 1 write-back comment 6856001007. Sibling count: 1 (comment 6856124176).\n\n## Bound remedy\n1. Keep quoted spans with their position in the clause until polarity is assigned. Do not dedupe tokens before polarity.\n2. Closed absence forms, each a complete sentence: `Removes|Deletes|Drops|Recuts \"X\" from PATH` (singular or plural verb, PATH optional when the clause is bound) and `PATH no longer contains \"X\"`. Closed replace form: `Replaces \"X\" with \"Y\"` (optional PATH suffix): X absent, Y present. Spans that no closed form governs keep today's presence check.\n3. Unresolved polarity (a negated removal verb, two governing verbs over one span, the same literal under both polarities, `replaces \"X\"` with no `with`, X equal to Y, or a removal verb whose object is not exactly the quoted span) returns `unverifiable` with `adjudicable: true`. So it counts in `countUnverifiedAdjudicableClauses` and keeps `ok` false. It never returns `verified`. The detail names the supported forms.\n4. Token-absence classification runs before the bound-artifact absence branch (`isBoundArtifactAbsenceClaim`). Path-absence clauses with no quoted span keep today's behaviour. The declared-scope, containment, existence and file-type guards stay ahead of every token check, so a missing, renamed or non-file artifact still fails.\n5. Absence is exact literal absence (`!body.includes(X)`) in an existing readable file. Case, inner whitespace and inner quote characters stay significant. The #5393 defect-description exemption and the #3826 `plan.items` path are unchanged. The same classifier feeds `walkOne` and `isExistenceOrQuotedTokenClause`.\n6. Tests in `packages/core/src/verify-ac/clauses.test.ts`: removal pairs (absent → verified, present → failed) for each verb; all four replace combinations; each unresolved shape → `unverifiable` + adjudicable; walk `ok` false when an unresolved row has a verified sibling; path-absence regression; one case through the `plan.items` derivation.\n\n## Reject\n- Clause-wide polarity flip from a removal word anywhere in the text (critic finding 1: `Replaces \"a\" with \"b\"` would verify with both absent).\n- Non-adjudicable `unverifiable` for ambiguous rows (critic finding 3: a verified sibling would leave `ok` true).\n- Widening `ABSENCE_ALTERNATION` with token-removal words (critic finding 2: enlarges the path-absence collision).\n- `rewrite`, `revise`, `deprecate`, `disable` and bare `replaces \"X\"` in the absence set (they do not assert exact absence).\n- Structured presence/absence assertion fields in the brief schema (critic road not taken: a schema change is out of proportion to this bug).\n- Case- or whitespace-insensitive matching, and any claim that absence proves the surrounding docs were preserved.\n\n## Pain coverage\nrelieves: P1\nrelieves: P2\n\nReadings: `P1`: supported removal wording verifies once the phrase is gone. `P2`: a correctly removed phrase no longer forces a clause rebind, so no mint or record PR is needed; unsupported wording now gets a detail naming the supported forms at the first verify run, so a fix lands in the brief before activation.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6856124176 | 1. Polarity needs quote occurrences and a complete grammar | blocks-the-design | accept-into-contract |\n| comment 6856124176 | 2. Existing path absence can preempt token absence | blocks-the-design | accept-into-contract |\n| comment 6856124176 | 3. `unverifiable` alone does not close the aggregate pass path | blocks-the-design | accept-into-contract |\n| comment 6856124176 | 4. Literal absence is narrower than successful removal | sharpens-framing | accept-into-contract |\n\n## Parent premises\naudit:A1 sha=1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04 pointer=comment:6856001007 reading=asserted\nA1: `recut` belongs in the anchored `\"X\" from PATH` absence form (the critic excluded it). The reported consumer clauses used \"recut\"; in the anchored form the clause asserts X was cut from PATH.\n\nParent verification of critic anchors (pin-read at 1fa8ab9): `clauses.ts` 1636-1640 (`ok = failed.length === 0 && countUnverifiedAdjudicableClauses(walked) === 0`) and 1385-1386 confirm finding 3; 148-150 and 1314-1315 confirm finding 2; 1205-1225 and 1340 confirm finding 1.\n\n## Operator steer\nScott, relayed verbatim by the dispatching session (\"Lifecycle PR overhead analysis\"): \"you can yolo them and start implementation when they land\". This parent reads that as yolo standing for this all-accept map. It confirms the map only. It does not waive the pain-audit of `relieves` or marker A1, which runs next.\n\n",
+          "id": 6856180817,
+          "html_url": "https://github.com/deftai/directive/issues/6269#issuecomment-6856180817",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T14:41:24Z",
+          "updated_at": "2026-11-13T14:41:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, A1\nfinding-classes: footnote\nharvest-changed: false\n\n## In plain English\nThe Bound remedy as written relieves both named pains and the `recut` premise holds inside the closed anchored form. Pin-reads of `packages/core/src/verify-ac/clauses.ts` at the dispatch tip still show every quoted span forced present (`extractExpectedTokens` dedupes then `body.includes`), path-absence preempting tokens (`isBoundArtifactAbsenceClaim` before the token check), and aggregate `ok` requiring zero adjudicable-unverified rows — so the remedy’s polarity grammar, reorder, and adjudicable-unresolved rule are the right thin fix. No Bound-remedy change is required.\n\npain-P1: holds — Closed forms (`Removes|Deletes|Drops|Recuts \"X\" from PATH`, `PATH no longer contains \"X\"`, complete `Replaces \"X\" with \"Y\"`) flip those spans to absence (or X-absent/Y-present); correct removal then verifies and the push gate no longer refuses the done work.\npain-P2: holds — Supported wording needs no clause rebind after a correct removal; near-miss or mixed polarity stays `unverifiable` with `adjudicable: true` and a detail that names the supported forms, so the mint-plus-record-PR recovery path is no longer the only way out.\nA1: holds — In the anchored `Recuts \"X\" from PATH` frame, the clause asserts X is cut from PATH; the same complete-form and unresolved rules that cover remove/delete/drop keep the false-verified paths from round-1 finding 1 closed. Free-form “recuts” prose remains outside the absence set.\n\n1. footnote — The motive half of A1 (“reported consumer clauses used recut”) is asserted from issue/Stop 1 prose; those consumer clause strings were not measured on this pin. That does not weaken the anchored-form reading or change the mechanism list.\n\n",
+          "id": 6856373749,
+          "html_url": "https://github.com/deftai/directive/issues/6269#issuecomment-6856373749",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T14:48:26Z",
+          "updated_at": "2026-11-13T14:48:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence | Method | Disposition |\n|---|---|---|---|\n| Every quoted 3-80 char span is extracted with no governing-verb check, deduped, and required present | `clauses.ts` 1205-1225, 1340-1347 at 1fa8ab9 | parent pin-read; Codex R1 6856124176 F1; Grok PA 6856373749 (cross-family) | accept |\n| Path-absence branch fails an existing bound file before any token check | `clauses.ts` 148-150, 1314-1315 | parent pin-read; Codex R1 F2; Grok PA | accept |\n| Walk `ok` needs zero failed and zero adjudicable-unverified rows, so ambiguity must stay adjudicable | `clauses.ts` 1385-1386, 1636-1640 | parent pin-read; Codex R1 F3; Grok PA | accept |\n| Absence is literal absence in an existing readable file, not proof of preservation | `clauses.ts` 1279-1312 guards precede token read | Codex R1 F4; Grok PA | accept |\n| `recut` belongs in the anchored `\"X\" from PATH` form (marker A1) | lean 6856180817 | Grok PA 6856373749 targeted A1: holds; motive half footnote (consumer strings not measured) | accept |\n| P1 and P2 relieved by the Bound remedy | lean 6856180817 pain coverage | Grok PA 6856373749: `finding-classes: footnote`, `harvest-changed: false` | accept |\n\nCited successor lean: 6856180817. Pain-audit: comment 6856373749.\n\n",
+          "id": 6856393193,
+          "html_url": "https://github.com/deftai/directive/issues/6269#issuecomment-6856393193",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T14:49:08Z",
+          "updated_at": "2026-11-13T14:49:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: verify:ac treated every quoted phrase in an acceptance clause as text that must be present, so a clause saying a change removes a phrase failed exactly when the work was done right, and the push gate refused the push. Accepted solution: a small closed set of complete sentence forms (remove, delete, drop or recut a quoted phrase from a file; a file no longer contains a phrase; replace one phrase with another) flips polarity per quoted span. Anything ambiguous stays a blocking unverifiable row and is never verified. The guarantee is exact literal absence in an existing readable file.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6856180817.\nverified-claims table 6856393193\n\nConfirm conjunct: yolo standing from Scott, relayed verbatim by the dispatching session: \"you can yolo them and start implementation when they land\". Pain-audit 6856373749 (grok, footnote-only, harvest-changed false) targeted pain-P1, pain-P2 and A1.\n\n",
+          "id": 6856401220,
+          "html_url": "https://github.com/deftai/directive/issues/6269#issuecomment-6856401220",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T14:49:25Z",
+          "updated_at": "2026-11-13T14:49:25Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\n`verify:ac` treats every quoted phrase in a clause as text that must be present in the bound artifact. A clause that says a change removes or recuts a quoted phrase can therefore only fail once the work is done correctly.\n\n## Evidence\n\n- `packages/core/src/verify-ac/clauses.ts` `extractExpectedTokens` (about line 1205) takes every `\"…\"` or `'…'` span of 3-80 characters as an expected token, with no check of the verb that governs it.\n- The bound check (about lines 1338-1345) is `expected.filter((token) => !body.includes(token))`; any missing token returns `failed`.\n- The only token exemption is #5393 (defect-description source). The file already has an absence polarity (`ABSENCE_ALTERNATION`, #3826), but only for whole artifact paths, never for tokens.\n\n## Consumer impact\n\nOn a consumer project (0.129.6), three clauses said the docs recut a quoted old phrase. The implementation removed the phrases, `verify:ac` failed the three clauses, and the push gate refused the push. Rebinding the clauses was an active-brief edit that needed an operator mint, a separate record PR and a second mint after the first rebinding hit a file that still held one phrase. Cost: about 96 minutes. The consumer reports a second issue hit the same trap two days earlier.\n\n## Expected\n\nWhen a removal verb governs the quoted token (for example removes, drops, deletes, recuts, replaces, no longer contains), the token must be absent from the bound artifact. Present → `failed`, absent → `verified`. The check stays fail-closed; only the polarity changes. An ambiguous clause (token under both polarities) stays `unverifiable`, not `verified`.\n\n## Acceptance\n\n- Given a clause `Removes \"old phrase\" from docs/x.md` bound to `docs/x.md`, when the file no longer contains the phrase, then `verify:ac` returns verified; when it still does, then it returns failed.\n- Presence clauses (`Adds \"new phrase\"`) keep today's behaviour.\n- Tests in `packages/core/src/verify-ac/clauses.test.ts`.\n\nRefs #5393. Refs #3826.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6373187519,
+        "origin": "deftai/directive#6269",
+        "id": "github.issue.6373187519"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "85c373392c35f83bed9d4d481a5a61a675e2f364c9e00c7eea8972ac4d9d9cd4"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "verify-ac-token-polarity",
+        "expected_outputs": [
+          "closed per-span polarity grammar for removal and replace forms in clauses.ts",
+          "unresolved polarity returns unverifiable with adjudicable true and names the supported forms",
+          "token-absence runs before the path-absence branch; guards stay first",
+          "tests in clauses.test.ts for every form, combination and unresolved shape",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/verify-ac/clauses.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/verify-ac/clauses.ts",
+          "packages/core/src/verify-ac/clauses.test.ts",
+          "content/docs/plan-acceptance.md",
+          "CHANGELOG.md"
+        ],
+        "parallel_safe": true,
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#6269",
+          "#5393",
+          "#3826"
+        ],
+        "acceptance_criteria_justification": "One clause per admitted sentence of the accepted Bound remedy (successor lean 6856180817), each bound to clauses.ts or clauses.test.ts; clause 18 carries the lean's Reject list as must-not constraints. The issue title is the one confession."
+      }
+    },
+    "id": "github.issue.6373187519",
+    "updated": "2026-11-13T15:08:59Z"
+  }
+}
