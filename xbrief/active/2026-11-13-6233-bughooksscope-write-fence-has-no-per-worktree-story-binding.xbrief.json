@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6233",
-    "updated": "2026-11-13T00:07:51Z"
+    "updated": "2026-11-13T00:35:05Z"
   },
   "plan": {
     "title": "bug(hooks,scope): write fence has no per-worktree story binding, so in-session sub-agents cannot run a multi-story cohort on Claude Code",
@@ -70,7 +70,7 @@
         "status": "proposed",
         "id": "clause.7",
         "narrative": {
-          "Acceptance": "When the dispatcher fixture runs against a real temporary repository with two linked worktrees under .deft-scratch/worktrees/, two different stories registered through writeWorkerAuthAssignment and no environment pin: each in-scope product write is allowed, each out-of-scope write is denied, the same fixture without the records is denied as multiple-eligible, a lifecycle-brief edit is tested separately from a product write, and a corrupt index is tested for a registered worktree, an unregistered linked worktree and the main worktree. The live Claude Code run through swarm:launch, including whether the launch-minted lease admits the sub-agents of the session, cannot run before a runtime release that contains this change (session hooks run from the pinned runtime package). It is tracked in a follow-up issue filed before the PR for this story opens, and is not acceptance for this PR."
+          "Acceptance": "When the dispatcher fixture runs against a real temporary repository with two linked worktrees under .deft-scratch/worktrees/, two different stories registered through writeWorkerAuthAssignment and no environment pin: each in-scope product write is allowed, each out-of-scope write is denied, the same fixture without the records is denied as multiple-eligible, a lifecycle-brief edit is tested separately from a product write, and a corrupt index is tested for a registered worktree, an unregistered linked worktree and the main worktree. The live Claude Code run through swarm:launch, including whether the launch-minted lease admits the sub-agents of the session, cannot run before a runtime release that contains this change (session hooks run from the pinned runtime package). It is tracked in #6242 and is not acceptance for this PR."
         }
       }
     ],
@@ -91,7 +91,7 @@
       "commands": [],
       "none_stated": true,
       "source_rung": "derived",
-      "derived_reason": "derived 7 independently testable clauses from the task statement before product edit (#3323)",
+      "derived_reason": "derived 23 independently testable clauses from the task statement before product edit (#3323)",
       "sentences": [
         "bug(hooks,scope): write fence has no per-worktree story binding, so in-session sub-agents cannot run a multi-story cohort on Claude Code",
         "Write fence, no spawn bound path, linked worktree: read the worker-auth assignment for the write's worktree through the validated reader.",
@@ -151,55 +151,172 @@
       "clauses": [
         {
           "id": 1,
-          "text": "Write fence, no spawn bound path, linked worktree: read the worker-auth assignment for the write's worktree through the validated reader. When it returns an assignment, resolve the story by a unique `story_id` match against eligible active briefs. Assignment only. No branch tokens. The check-time `untied` outcome never admits a write.",
+          "text": "Write fence, no spawn bound path, linked worktree: read the worker-auth assignment for the write's worktree through the validated reader.",
           "artifact_path": "packages/core/src/hooks/scope.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
-          "text": "Linked worktree: refuse when the reader fails for any reason (corrupt index, orphan, duplicate, malformed or missing registered record), because membership is then unknowable or broken. Also refuse when the assigned story is missing, ineligible or ambiguous, when an environment pin names a different story, and when a spawn bound path names a different story. No fall-through to branch or single-eligible selection. The refusal names the failure kind and one repair step.",
-          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "text": "When it returns an assignment, resolve the story by a unique `story_id` match against eligible active briefs.",
+          "artifact_path": "packages/core/src/hooks/scope.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
-          "text": "Linked worktree with a validated clean absence (the reader succeeds and reports no assignment for this worktree): today's behaviour, unchanged. The main worktree never consults the registry.",
-          "artifact_path": "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "text": "Assignment only.",
+          "artifact_path": "packages/core/src/hooks/scope.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
+          "text": "No branch tokens.",
+          "artifact_path": "packages/core/src/hooks/scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "The check-time `untied` outcome never admits a write.",
+          "artifact_path": "packages/core/src/hooks/scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Linked worktree: refuse when the reader fails for any reason (corrupt index, orphan, duplicate, malformed or missing registered record), because membership is then unknowable or broken.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Also refuse when the assigned story is missing, ineligible or ambiguous, when an environment pin names a different story, and when a spawn bound path names a different story.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "No fall-through to branch or single-eligible selection.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "The refusal names the failure kind and one repair step.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Linked worktree with a validated clean absence (the reader succeeds and reports no assignment for this worktree): today's behaviour, unchanged.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "The main worktree never consults the registry.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
           "text": "The matcher derives `story_id` the same way launch does, or launch refuses a brief with no `plan.id`.",
           "artifact_path": "packages/core/src/swarm/worker-auth-assignment.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
-          "id": 5,
-          "text": "Stated guarantee: destination-scoped cooperative fencing. The trusted writer is dispatch PREP. It is not worker isolation. Coverage is Write/Edit, plus recognized shell destination forms when that policy is set to enforce. Other shell writes are not covered.",
+          "id": 13,
+          "text": "Stated guarantee: destination-scoped cooperative fencing.",
           "artifact_path": "content/skills/deft-directive-swarm/references/host-claude-code.md",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
-          "id": 6,
-          "text": "Claude adapter text names the in-session sequence: the parent launches through `swarm:launch` so each worker worktree is registered; the parent starts the session ritual in each worker worktree; the parent holds no environment pin; each sub-agent is given its worktree's absolute path. One headless process per story is the named fallback until item 7 passes.",
+          "id": 14,
+          "text": "The trusted writer is dispatch PREP.",
           "artifact_path": "content/skills/deft-directive-swarm/references/host-claude-code.md",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
-          "id": 7,
-          "text": "Acceptance: a live two-story run through `swarm:launch` on Claude Code, in nested `.deft-scratch/worktrees/<sid>` destinations, with no environment pin. Each worker makes an admitted in-scope product write and is refused out of scope. The same run records whether the launch-minted lease admits the session's sub-agents. Before the change the same run is refused as multiple-eligible. A product-file write and a lifecycle-brief edit are tested separately. A corrupt-index case is tested for a registered worktree, an unregistered linked worktree and the main worktree.",
+          "id": 15,
+          "text": "It is not worker isolation.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Coverage is Write/Edit, plus recognized shell destination forms when that policy is set to enforce.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Other shell writes are not covered.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Claude adapter text names the in-session sequence: the parent launches through `swarm:launch` so each worker worktree is registered; the parent starts the session ritual in each worker worktree; the parent holds no environment pin; each sub-agent is given its worktree's absolute path.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "One headless process per story is the named fallback until item 7 passes.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Each worker makes an admitted in-scope product write and is refused out of scope.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "Before the change the same run is refused as multiple-eligible.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "A product-file write and a lifecycle-brief edit are tested separately.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "A corrupt-index case is tested for a registered worktree, an unregistered linked worktree and the main worktree.",
           "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(hooks,scope): write fence has no per-worktree story binding, so in-session sub-agents cannot run a multi-story cohort on Claude Code",
+        "Acceptance: a live two-story run through `swarm:launch` on Claude Code, in nested `.deft-scratch/worktrees/<sid>` destinations, with no environment pin.",
+        "The same run records whether the launch-minted lease admits the session's sub-agents."
+      ]
     },
     "metadata": {
       "intended_placement": {
@@ -787,7 +904,7 @@
         "Traces": [
           "#6233"
         ],
-        "acceptance_criteria_justification": "Seven clauses harvested from the accepted Bound remedy (successor lean 6839298535). Clauses 1 to 4 are mechanism; 5 and 6 are adapter text; 7 is the acceptance fixture. The live host run named in the Bound cannot run before a runtime release, so clause 7 binds the pre-merge fixture and defers the live run to a follow-up issue."
+        "acceptance_criteria_justification": "Each admitted sentence of the accepted Bound remedy (successor lean 6839298535) is one clause bound to a test or doc file in file_scope. Three sentences are confessions: the issue title, and the two sentences that require the live host run through swarm:launch. That run cannot happen before a runtime release that contains this change, and is tracked in #6242."
       }
     },
     "id": "github.issue.6360456928",
