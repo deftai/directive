@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5942",
-    "updated": "2026-11-12T21:51:33Z"
+    "updated": "2026-11-13T04:49:02Z"
   },
   "plan": {
     "title": "bug(release): release:e2e, release:publish and release:rollback miss the #5805 --project-root fix",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "#5805 fixed release: to pass --project-root \"{{.USER_WORKING_DIR}}\" so the engine resolves the operator checkout, but release:e2e, release:publish and release:rollback still resolve the runtime package as project root. This story copies the #5805 ENGINE_CMD pattern to those three tasks and adds a static content-contract that locks the fragment on all four release tasks.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5942",
@@ -19,26 +19,131 @@
     "items": [
       {
         "title": "`release:e2e` → `ENGINE_CMD: 'release-e2e --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When an operator runs task release:e2e from the checkout, the ENGINE_CMD passes --project-root \"{{.USER_WORKING_DIR}}\" and the new content-contract test fails if the fragment is removed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f49a80aea6b73d3e735535ae7a54c09319c4d48f",
+          "recorded_at": "2026-11-13T04:49:02Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`release:publish` → `ENGINE_CMD: 'release-publish --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When an operator runs task release:publish from the checkout, the ENGINE_CMD passes --project-root \"{{.USER_WORKING_DIR}}\" and the content-contract test fails if the fragment is removed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f49a80aea6b73d3e735535ae7a54c09319c4d48f",
+          "recorded_at": "2026-11-13T04:49:02Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`release:rollback` → `ENGINE_CMD: 'release-rollback --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When an operator runs task release:rollback from the checkout, the ENGINE_CMD passes --project-root \"{{.USER_WORKING_DIR}}\" and the content-contract test fails if the fragment is removed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f49a80aea6b73d3e735535ae7a54c09319c4d48f",
+          "recorded_at": "2026-11-13T04:49:02Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f49a80aea6b73d3e735535ae7a54c09319c4d48f",
+          "recorded_at": "2026-11-13T04:49:02Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f49a80aea6b73d3e735535ae7a54c09319c4d48f",
+          "recorded_at": "2026-11-13T04:49:02Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f49a80aea6b73d3e735535ae7a54c09319c4d48f",
+          "recorded_at": "2026-11-13T04:49:02Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f49a80aea6b73d3e735535ae7a54c09319c4d48f",
+          "recorded_at": "2026-11-13T04:49:02Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f49a80aea6b73d3e735535ae7a54c09319c4d48f",
+          "recorded_at": "2026-11-13T04:49:02Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f49a80aea6b73d3e735535ae7a54c09319c4d48f",
+          "recorded_at": "2026-11-13T04:49:02Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f49a80aea6b73d3e735535ae7a54c09319c4d48f",
+          "recorded_at": "2026-11-13T04:49:02Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -539,9 +644,35 @@
         "Traces": [
           "#5942"
         ]
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "b492410ce7a6870238623f70d18638046220164a",
+        "prNumber": 6246,
+        "prBase": "master",
+        "mergeCommit": "f49a80aea6b73d3e735535ae7a54c09319c4d48f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "daee4cf534e1fe69ed06bc03f4c0b2933357eb1e",
+        "verifiedAt": "2026-11-13T04:49:02Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ODg0OTU4NmUtMjkxMi00MWE3LTliYmYtZmM1NDQyOTE0ZDg1",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-13T04:49:02Z",
+      "completedSessionId": "host:claude:v1:ODg0OTU4NmUtMjkxMi00MWE3LTliYmYtZmM1NDQyOTE0ZDg1",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-13T04:49:02Z"
       }
     },
     "id": "github.issue.6046051491",
-    "updated": "2026-11-12T21:51:33Z"
+    "updated": "2026-11-13T04:49:02Z"
   }
 }
