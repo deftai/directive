@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   detectLifecycleFolder,
+  resolveDecomposedChildTargets,
   updateDecomposedChildBackReferences,
   updateDecomposedParentBackReferences,
 } from "./decomposed-refs.js";
@@ -98,6 +99,30 @@ describe("decomposed-refs branches", () => {
     const updated = updateDecomposedChildBackReferences(parentData, parent, newParent, vbrief);
     expect(updated).toContain(child);
     expect(JSON.parse(readFileSync(child, "utf8")).plan.planRef).toContain("active/");
+  });
+
+  it("resolveDecomposedChildTargets is read-only and finds terminal children (#5912)", () => {
+    root = mkdtempSync(join(tmpdir(), "decomp-targets-"));
+    const vbrief = join(root, "xbrief");
+    mkdirSync(join(vbrief, "completed"), { recursive: true });
+    mkdirSync(join(vbrief, "active"), { recursive: true });
+    const child = join(vbrief, "completed", "c.xbrief.json");
+    const childBytes = formatBriefJson({ plan: { planRef: "active/p.xbrief.json", items: [] } });
+    writeFileSync(child, childBytes);
+    const parentData = {
+      plan: {
+        references: [
+          // Stale folder: resolves across lifecycle folders, like the write path.
+          { type: "x-vbrief/plan", uri: "active/c.xbrief.json" },
+          { type: "x-vbrief/plan", uri: "completed/c.xbrief.json" },
+          { type: "x-vbrief/plan", uri: "active/missing.xbrief.json" },
+          { type: "x-vbrief/github-issue", uri: "https://github.com/o/r/issues/1" },
+        ],
+      },
+    };
+    expect(resolveDecomposedChildTargets(parentData, vbrief)).toEqual([child]);
+    expect(resolveDecomposedChildTargets({ plan: [] }, vbrief)).toEqual([]);
+    expect(readFileSync(child, "utf8")).toBe(childBytes);
   });
 
   it("detectLifecycleFolder returns null outside lifecycle dirs", () => {

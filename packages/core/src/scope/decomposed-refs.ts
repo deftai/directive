@@ -181,6 +181,36 @@ function rewriteChildParentReference(
   return changed;
 }
 
+/**
+ * Read-only: the existing child paths that `updateDecomposedChildBackReferences`
+ * would visit for this parent (#5912). Same resolution (all lifecycle folders,
+ * including terminal ones), same de-dup, no writes. May throw on an escaping ref,
+ * exactly like the write path.
+ */
+export function resolveDecomposedChildTargets(
+  parentData: Record<string, unknown>,
+  vbriefDir: string,
+): string[] {
+  const plan = parentData.plan;
+  if (typeof plan !== "object" || plan === null || Array.isArray(plan)) {
+    return [];
+  }
+  const targets: string[] = [];
+  const seen = new Set<string>();
+  for (const childUri of collectChildUris(plan as Record<string, unknown>)) {
+    const childPath = resolveVbriefRef(childUri, vbriefDir);
+    if (childPath === null || seen.has(childPath)) {
+      continue;
+    }
+    seen.add(childPath);
+    if (!existsSync(childPath)) {
+      continue;
+    }
+    targets.push(childPath);
+  }
+  return targets;
+}
+
 /** Sync decomposed children's planRefs after a parent move (#1487). */
 export function updateDecomposedChildBackReferences(
   parentData: Record<string, unknown>,
@@ -200,16 +230,7 @@ export function updateDecomposedChildBackReferences(
     return [];
   }
   const updated: string[] = [];
-  const seen = new Set<string>();
-  for (const childUri of collectChildUris(plan as Record<string, unknown>)) {
-    const childPath = resolveVbriefRef(childUri, vbriefDir);
-    if (childPath === null || seen.has(childPath)) {
-      continue;
-    }
-    seen.add(childPath);
-    if (!existsSync(childPath)) {
-      continue;
-    }
+  for (const childPath of resolveDecomposedChildTargets(parentData, vbriefDir)) {
     if (rewriteChildParentReference(childPath, oldResolved, newRel, vbriefDir)) {
       updated.push(childPath);
     }

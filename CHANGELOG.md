@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(scope): widen file_scope on the #5942, #6226, #5912 and #6227 briefs so pinned workers can write PR-process files.
 
 ### Fixed
+- `reconcile-issues` no longer fails when a brief references a deleted issue (HTTP 410). The report names deleted (410) apart from missing (404) and exits 0. `--apply-lifecycle-fixes` leaves briefs anchored to a deleted issue in place, and refuses to move a parent whose decomposed child is deleted; a child whose state cannot be fetched fails the run. Umbrella reconcile counts a deleted child as open and does not rewrite its checkbox. Refs #5912.
 
 ### Removed
 
