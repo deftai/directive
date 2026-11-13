@@ -1714,6 +1714,17 @@ export function checkTypescript7SideBySide(
 }
 
 /**
+ * #6271: escape when `directive update` refuses `dirty_tree` because local
+ * runtime files the missing entries would ignore are still untracked.
+ */
+export const GITIGNORE_DIRTY_TREE_FIX = "directive update --allow-dirty-no-stage" as const;
+
+const GITIGNORE_DIRTY_TREE_RECOVERY =
+  "If update refuses with dirty_tree because untracked local runtime files " +
+  "(for example under .deft/) are present, run " +
+  `\`${GITIGNORE_DIRTY_TREE_FIX}\`, then commit .gitignore.`;
+
+/**
  * #2206: check that the consumer `.gitignore` carries the canonical Deft baseline
  * entries. Advisory (exit-exempt) because missing entries are an adoption risk, not
  * a broken install.
@@ -1761,11 +1772,13 @@ export function checkGitignoreCoverage(projectRoot: string, seams: CheckSeams = 
       `Deft .gitignore coverage incomplete: ${missing.length} canonical entr${missing.length === 1 ? "y" : "ies"} ` +
       `missing (${missing.slice(0, 3).join(", ")}${missing.length > 3 ? ", …" : ""}). ` +
       "Run `directive update` to add the missing entries (idempotent, safe on re-run). " +
+      `${GITIGNORE_DIRTY_TREE_RECOVERY} ` +
       `Full missing list: ${JSON.stringify(missing)}.`,
     data: stampAdvisory({
       gitignore_path: gitignorePath,
       missing,
       suggested_fix: "directive update",
+      dirty_tree_fix: GITIGNORE_DIRTY_TREE_FIX,
     }),
   };
 }
@@ -1822,13 +1835,15 @@ export function checkPrePrSecretTracked(projectRoot: string, seams: CheckSeams =
     detail:
       `The pre-PR HMAC secret ${PRE_PR_HMAC_SECRET_REL} is tracked in git. ` +
       "Anyone with the repository can forge pre-PR execution records. " +
-      "Doctor does not untrack it. Fix: run `directive update` to refresh the .gitignore baseline, " +
+      "Doctor does not untrack it. Fix: run `directive update` to refresh the .gitignore baseline " +
+      `(\`${GITIGNORE_DIRTY_TREE_FIX}\` if it refuses with dirty_tree), ` +
       `untrack the secret with \`${untrack}\` and commit, ` +
       `then rotate it (${rotate}) and re-run pre-PR.`,
     data: stampAdvisory({
       secret_path: PRE_PR_HMAC_SECRET_REL,
       tracked: true,
       untrack_command: untrack,
+      dirty_tree_fix: GITIGNORE_DIRTY_TREE_FIX,
       rotate,
       suggested_fix: untrack,
     }),
