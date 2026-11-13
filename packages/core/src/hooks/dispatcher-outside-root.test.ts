@@ -11,7 +11,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_RUNTIME_AUTHORITY_POLICY } from "../policy/runtime-authority.js";
 import {
   decideHook,
@@ -26,6 +26,17 @@ const sharedTemps: string[] = [];
 afterEach(() => {
   for (const t of temps.splice(0)) rmSync(t, { recursive: true, force: true });
 });
+/**
+ * Fresh project root per test. A fixed `/project` would read real on-disk
+ * occupancy or authz state on a host that has that directory.
+ */
+let P = "";
+beforeEach(() => {
+  P = mkdtempSync(join(tmpdir(), "hook-6189-root-"));
+  temps.push(P);
+});
+const inRepo = (...parts: string[]): string => join(P, ...parts);
+
 afterAll(() => {
   for (const t of sharedTemps.splice(0)) rmSync(t, { recursive: true, force: true });
 });
@@ -110,53 +121,53 @@ function twoFilePatch(first: string, second: string): string {
 
 describe("#6189 (a) absolute outside-root target, ready story with file_scope", () => {
   it.each(["Write", "Edit"])("allows %s through the path fence", (tool) => {
-    const decision = decideHook(write("/project", OUTSIDE_ABS, tool), seams());
+    const decision = decideHook(write(P, OUTSIDE_ABS, tool), seams());
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
   });
 
   it("still denies an in-repo file_scope miss (control)", () => {
-    const decision = decideHook(write("/project", "/project/docs/readme.md"), seams());
+    const decision = decideHook(write(P, inRepo("docs", "readme.md")), seams());
     expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
     expect(decision.message).toContain("story file_scope");
   });
 
   it("allows an in-repo file_scope hit (control)", () => {
-    const decision = decideHook(write("/project", "/project/src/a.ts"), seams());
+    const decision = decideHook(write(P, inRepo("src", "a.ts")), seams());
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
   });
 });
 
 describe("#6189 (b) lexical ../ outside-root target", () => {
   it("allows a ../ relative target through the path fence", () => {
-    expect(isOutsideProjectRootWrite("/project", "../scratch/note.md")).toBe(true);
-    const decision = decideHook(write("/project", "../scratch/note.md"), seams());
+    expect(isOutsideProjectRootWrite(P, "../scratch/note.md")).toBe(true);
+    const decision = decideHook(write(P, "../scratch/note.md"), seams());
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
   });
 
   it("keeps an in-repo ..-prefixed filename fenced", () => {
-    expect(isOutsideProjectRootWrite("/project", "..notes/x.md")).toBe(false);
-    const decision = decideHook(write("/project", "/project/..notes/x.md"), seams());
+    expect(isOutsideProjectRootWrite(P, "..notes/x.md")).toBe(false);
+    const decision = decideHook(write(P, inRepo("..notes", "x.md")), seams());
     expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
     expect(decision.message).toContain("story file_scope");
   });
 });
 
 describe("#6189 (c) mixed harvest", () => {
-  const inRepoMiss = "/project/docs/b.md";
-
   it.each([
-    ["outside first", OUTSIDE_ABS, inRepoMiss],
-    ["in-repo first", inRepoMiss, OUTSIDE_ABS],
-  ])("skips the outside member and still denies the in-repo miss (%s)", (_label, a, b) => {
-    const decision = decideHook(applyPatch("/project", twoFilePatch(a, b)), seams());
+    "outside first",
+    "in-repo first",
+  ])("skips the outside member and still denies the in-repo miss (%s)", (order) => {
+    const miss = inRepo("docs", "b.md");
+    const [a, b] = order === "outside first" ? [OUTSIDE_ABS, miss] : [miss, OUTSIDE_ABS];
+    const decision = decideHook(applyPatch(P, twoFilePatch(a, b)), seams());
     expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
     expect(decision.message).toContain("docs/b.md");
     expect(decision.message).toContain("story file_scope");
   });
 
   it("allows outside plus an in-repo file_scope hit", () => {
-    const body = twoFilePatch(OUTSIDE_ABS, "/project/src/a.ts");
-    const decision = decideHook(applyPatch("/project", body), seams());
+    const body = twoFilePatch(OUTSIDE_ABS, inRepo("src", "a.ts"));
+    const decision = decideHook(applyPatch(P, body), seams());
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
   });
 });
@@ -186,7 +197,7 @@ describe("#6189 (d) symlink that re-enters the project", () => {
 describe("#6189 (e) project scopes.edits=false (limb 4)", () => {
   it("still denies an outside-root Write with runtime-policy-deny-scope", () => {
     const decision = decideHook(
-      write("/project", OUTSIDE_ABS),
+      write(P, OUTSIDE_ABS),
       seams({ loadRuntimeAuthority: () => EDITS_OFF }),
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-scope" });
@@ -195,7 +206,7 @@ describe("#6189 (e) project scopes.edits=false (limb 4)", () => {
 
   it("does not let project allowPaths deny an outside-root Write", () => {
     const decision = decideHook(
-      write("/project", OUTSIDE_ABS),
+      write(P, OUTSIDE_ABS),
       seams({
         loadRuntimeAuthority: () => ({
           ...DEFAULT_RUNTIME_AUTHORITY_POLICY,
@@ -212,7 +223,7 @@ describe("#6189 (e) project scopes.edits=false (limb 4)", () => {
 describe("#6189 (f) #2885 scope-not-ready carve-out unchanged", () => {
   it("allows an outside-root Write when no scope is ready", () => {
     const decision = decideHook(
-      write("/project", OUTSIDE_ABS),
+      write(P, OUTSIDE_ABS),
       seams({ inspectScope: () => NOT_READY_SCOPE }),
     );
     expect(decision.verdict).toBe("allow");
@@ -221,7 +232,7 @@ describe("#6189 (f) #2885 scope-not-ready carve-out unchanged", () => {
 
   it("denies an in-repo Write when no scope is ready", () => {
     const decision = decideHook(
-      write("/project", "/project/src/a.ts"),
+      write(P, inRepo("src", "a.ts")),
       seams({ inspectScope: () => NOT_READY_SCOPE }),
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
@@ -321,22 +332,22 @@ describe("#6189 (h) ready story with empty merge-base file_scope (activation-PR 
   }
 
   it("admits an absolute outside-root Write past #5656 positive-allow", () => {
-    const decision = decideHook(write("/project", OUTSIDE_ABS), emptyScope());
+    const decision = decideHook(write(P, OUTSIDE_ABS), emptyScope());
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
   });
 
   it("still denies an in-repo Write with the #5656 message", () => {
-    expectPositiveAllowDeny(decideHook(write("/project", "/project/src/a.ts"), emptyScope()));
+    expectPositiveAllowDeny(decideHook(write(P, inRepo("src", "a.ts")), emptyScope()));
   });
 
   it("still denies a mixed outside + in-repo harvest with the #5656 message", () => {
-    const body = twoFilePatch(OUTSIDE_ABS, "/project/src/a.ts");
-    expectPositiveAllowDeny(decideHook(applyPatch("/project", body), emptyScope()));
+    const body = twoFilePatch(OUTSIDE_ABS, inRepo("src", "a.ts"));
+    expectPositiveAllowDeny(decideHook(applyPatch(P, body), emptyScope()));
   });
 
   it("still denies an outside-root Write under project scopes.edits=false", () => {
     const decision = decideHook(
-      write("/project", OUTSIDE_ABS),
+      write(P, OUTSIDE_ABS),
       emptyScope({ loadRuntimeAuthority: () => EDITS_OFF }),
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-scope" });
@@ -347,8 +358,8 @@ describe("#6189 (h) ready story with empty merge-base file_scope (activation-PR 
       {
         host: "claude",
         event: "tool.before",
-        projectRoot: "/project",
-        payload: { tool_name: "Write", cwd: "/project", tool_input: { content: "x" } },
+        projectRoot: P,
+        payload: { tool_name: "Write", cwd: P, tool_input: { content: "x" } },
         environ: ENV,
       },
       emptyScope(),
@@ -358,10 +369,7 @@ describe("#6189 (h) ready story with empty merge-base file_scope (activation-PR 
 
   it("still denies an unclassified apply_patch body with the #5656 message", () => {
     // Declared path is outside the root, but the body names no mutation header.
-    const decision = decideHook(
-      applyPatch("/project", "not a patch body", OUTSIDE_ABS),
-      emptyScope(),
-    );
+    const decision = decideHook(applyPatch(P, "not a patch body", OUTSIDE_ABS), emptyScope());
     expectPositiveAllowDeny(decision);
   });
 
@@ -370,7 +378,7 @@ describe("#6189 (h) ready story with empty merge-base file_scope (activation-PR 
       {
         host: "claude",
         event: "tool.before",
-        projectRoot: "/project",
+        projectRoot: P,
         payload: {
           tool_name: "Task",
           tool_input: {
