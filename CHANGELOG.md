@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- Minted the intent-constraint record for the #6274 session-end diagnostic cap (400 characters). Refs #6274.
 - chore(dogfood): pin Directive to 0.129.8.
 
 ### Fixed
