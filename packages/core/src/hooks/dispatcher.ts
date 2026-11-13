@@ -2533,6 +2533,7 @@ function inspectMutationGates(
   }
 
   let scope: ActiveScopeInspection;
+  let worktreeBindingRefused = false;
   try {
     // #3794 commit 2: a write is governed by the active scope of the worktree it
     // lands in, not the primary checkout's. Admission has already proved
@@ -2555,6 +2556,7 @@ function inspectMutationGates(
         : {}),
     });
     if (worktreeBinding.kind === "refuse") {
+      worktreeBindingRefused = true;
       scope = {
         ready: false,
         path: null,
@@ -2587,7 +2589,13 @@ function inspectMutationGates(
     const outsideRoot =
       mutationTargets.length > 0 &&
       mutationTargets.every((target) => isOutsideProjectRootWrite(projectRoot, target));
-    if (!outsideRoot || isSpawnTool(toolName)) {
+    // #6233: a worktree binding refusal governs writes into the bound worktree
+    // even when that worktree lives outside the payload root; the #2885 skip
+    // stays for targets outside both roots.
+    const bindingRefusalGoverns =
+      worktreeBindingRefused &&
+      mutationTargets.some((target) => !isOutsideProjectRootWrite(effectiveRoot, target));
+    if (!outsideRoot || isSpawnTool(toolName) || bindingRefusalGoverns) {
       let proposedPathHint: string;
       if (isSpawnTool(toolName) && scope.denyKind === "multiple-eligible") {
         // #4880 Prefer-A B': do not emit promote-then-activate on multiple-eligible.

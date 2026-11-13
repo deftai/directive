@@ -1209,4 +1209,33 @@ describe("worker-auth story binding by effective root (#6233)", () => {
     expect(failing.readerRoots).toEqual([resolve(nested)]);
     expect(failing.scopeCalls).toEqual([]);
   });
+
+  const corruptRead = (): ReadWorkerAuthAssignmentResult => ({
+    ok: false,
+    failureKind: "registry_corruption",
+    detail: "would refuse",
+    dispatchId: null,
+    expectedLogin: null,
+    observedLogin: null,
+  });
+
+  it("refuses a write into a sibling worktree outside the payload root when its binding refuses", () => {
+    // Greptile P1 on #6250: the #2885 outside-root skip must not swallow a
+    // binding refusal for a registered worktree that sits beside the checkout.
+    const { primary, wtA } = linkedFixture();
+    const failing = bindingSeams(wtA, corruptRead);
+    const decision = writeTo(primary, join(wtA, "packages", "core", "a.ts"), failing.seams);
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toContain("(registry_corruption)");
+    expect(failing.readerRoots).toEqual([resolve(wtA)]);
+  });
+
+  it("keeps the #2885 skip for an external file when the binding refuses", () => {
+    const { primary } = linkedFixture();
+    const external = mkdtempSync(join(tmpdir(), "hook-6233-external-"));
+    ephemeralTemps.push(external);
+    const failing = bindingSeams(null, corruptRead);
+    const decision = writeTo(primary, join(external, "note.md"), failing.seams);
+    expect(decision.verdict).toBe("allow");
+  });
 });

@@ -20,6 +20,8 @@ import {
   occupancyAdmission,
 } from "../session/occupancy.js";
 import {
+  FAILURE_DUPLICATE_ASSIGNMENT,
+  FAILURE_REGISTRY_CORRUPTION,
   type ReadWorkerAuthAssignmentResult,
   readWorkerAuthAssignment,
   resolveWorkerAuthDestPath,
@@ -929,6 +931,23 @@ function refuseBinding(failureKind: string, detail: string, repair: string): Wor
   };
 }
 
+/**
+ * Repair step for a reader failure. The registry writer refuses a corrupt index
+ * and duplicate index entries before it rewrites anything, so re-registration
+ * alone cannot clear those two kinds: the index has to be repaired first (#6233).
+ */
+export function registryFailureRepair(failureKind: string, reRegister: string): string {
+  if (failureKind === FAILURE_REGISTRY_CORRUPTION || failureKind === FAILURE_DUPLICATE_ASSIGNMENT) {
+    return (
+      "the operator repairs `<git-common-dir>/deft-worker-auth/index.json` by hand " +
+      "(remove the duplicate entries for this worktree, or move a corrupt index aside; " +
+      "remove an `index.lock` that has no live owner), then " +
+      reRegister
+    );
+  }
+  return reRegister;
+}
+
 function defaultEligible(briefPath: string): { ok: boolean; message: string } {
   const result = evaluate(briefPath, { skipOriginFreshness: true });
   return { ok: result.exitCode === 0, message: result.message };
@@ -948,7 +967,7 @@ export function resolveWorktreeStoryBinding(
     return refuseBinding(
       read.failureKind,
       `the worker-auth registry cannot say which story this linked worktree belongs to: ${fenceUntrustedAcceptanceText(read.detail)}.`,
-      reRegister,
+      registryFailureRepair(read.failureKind, reRegister),
     );
   }
   if (read.commonDir === null) {

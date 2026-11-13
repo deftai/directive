@@ -852,6 +852,11 @@ describe("linked-worktree story binding from worker-auth (#6233)", () => {
     expect(result.message).toContain(`(${failureKind})`);
     expect(result.message.match(/Repair:/g)).toHaveLength(1);
     expect(result.message).toContain("swarm:launch");
+    // Greptile P2 on #6250: the writer refuses a corrupt index and duplicate
+    // entries before rewriting, so those kinds repair the index first.
+    const needsIndexRepair =
+      failureKind === "registry_corruption" || failureKind === "duplicate_assignment";
+    expect(result.message.includes("deft-worker-auth/index.json")).toBe(needsIndexRepair);
   });
 
   it("refuses when the Git common directory of a linked worktree is unresolved", () => {
