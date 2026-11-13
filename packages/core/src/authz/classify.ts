@@ -2322,6 +2322,10 @@ const READ_ONLY_PROOF_BINS = new Set([
   "diff",
   "get-content",
   "gc",
+  "head",
+  "tail",
+  "wc",
+  "pwd",
   "sha256sum",
   "shasum",
   "md5sum",
@@ -2351,6 +2355,27 @@ const EXISTENCE_PROBE_READ_ONLY_BINS = new Set([
 const EXISTENCE_PROBE_IGNORE_OUTPUT_DEST_FLAGS = new Set(["test", "["]);
 
 const READ_ONLY_PROOF_OUTPUT_DEST_FLAGS = new Set(["-o", "--output", "--pretty-print"]);
+const GIT_READ_PROOF_OUTPUT_FLAGS = new Set(["-o", "--output"]);
+const GIT_VALUE_FLAGS = new Set([
+  "-C",
+  "-c",
+  "--attr-source",
+  "--config-env",
+  "--exec-path",
+  "--git-dir",
+  "--namespace",
+  "--super-prefix",
+  "--work-tree",
+]);
+const GIT_READ_PROOF_WRITE_SUBCOMMANDS = new Set([
+  "clone",
+  "fetch",
+  "pull",
+  "push",
+  "reset",
+  "worktree",
+  "submodule",
+]);
 
 function argvHasOutputDestFlag(words: readonly string[], execIndex: number): boolean {
   for (let i = execIndex + 1; i < words.length; i++) {
@@ -2363,6 +2388,18 @@ function argvHasOutputDestFlag(words: readonly string[], execIndex: number): boo
     }
   }
   return false;
+}
+
+function awkPayloadHasWrite(words: readonly string[], execIndex: number): boolean {
+  let payload = "";
+  for (let i = execIndex + 1; i < words.length; i++) {
+    const raw = words[i] as string;
+    const flag = normalizeToken(raw);
+    if (flag === "-f" || flag === "--file") return true;
+    const literal = zipShellWordLiteral(raw);
+    if (literal !== null) payload += ` ${literal}`;
+  }
+  return /\bsystem\s*\(/i.test(payload) || /\b(?:print|printf)\s*(?:>>|>)/i.test(payload);
 }
 
 function wrapperBinName(raw: string): string | null {
@@ -2445,7 +2482,7 @@ function isProvenReadOnlyArgv(words: readonly string[], execIndex: number): bool
     const mode = normalizeToken(rawMode).replace(/^-/, "");
     return (
       /^[abcdfilmnpqrstuvx]+$/.test(mode) &&
-      ![...mode].some((letter) => ARCHIVE_WRITE_OPERATIONS.has(letter))
+      ![...mode].some((letter) => ARCHIVE_WRITE_OPERATIONS.has(letter) || letter === "x")
     );
   }
   if (EXISTENCE_PROBE_READ_ONLY_BINS.has(name)) {
@@ -2456,12 +2493,19 @@ function isProvenReadOnlyArgv(words: readonly string[], execIndex: number): bool
   }
   if (READ_ONLY_PROOF_BINS.has(name)) {
     if (name === "sort" || name === "awk" || name === "gawk" || name === "nawk") {
+      if (
+        (name === "awk" || name === "gawk" || name === "nawk") &&
+        awkPayloadHasWrite(words, execIndex)
+      ) {
+        return false;
+      }
       return !argvHasOutputDestFlag(words, execIndex);
     }
     return true;
   }
   if (name === "git") {
     let i = execIndex + 1;
+    let subcommand: string | null = null;
     while (i < words.length) {
       const n = normalizeToken(words[i] as string);
       if (n === "--") {
@@ -2469,12 +2513,251 @@ function isProvenReadOnlyArgv(words: readonly string[], execIndex: number): bool
         break;
       }
       if (n.startsWith("-")) {
+        if (
+          GIT_READ_PROOF_OUTPUT_FLAGS.has(n) ||
+          n.startsWith("--output=") ||
+          (n.startsWith("-o") && n.length > 2)
+        ) {
+          return false;
+        }
+        if (GIT_VALUE_FLAGS.has(n) && !n.includes("=")) i++;
         i++;
         continue;
       }
-      return n === "log";
+      if (subcommand === null) {
+        subcommand = n;
+      } else if (GIT_READ_PROOF_WRITE_SUBCOMMANDS.has(n)) {
+        return false;
+      }
+      i++;
     }
+    return (
+      subcommand !== null && new Set(["diff", "log", "rev-parse", "show", "status"]).has(subcommand)
+    );
+  }
+  return false;
+}
+
+/** A shell command is read-only only when every command segment has a proof. */
+function isClosedReadOnlyShellCommand(command: string): boolean {
+  const segments = zipStyleCommandSegments(command);
+  return (
+    segments.length > 0 &&
+    segments.every((segment) => isProvenReadOnlyArgv(segment.words, segment.execIndex))
+  );
+}
+
+function isRelativeLiteralShellPath(raw: string): boolean {
+  if (zipShellWordHasExpansion(raw)) return false;
+  const literal = zipShellWordLiteral(raw);
+  if (literal === null || literal.length === 0 || literal.startsWith("-")) return false;
+  if (literal.startsWith("/") || literal.startsWith("~/") || literal.startsWith("~\\")) {
     return false;
+  }
+  if (/^[A-Za-z]:[\\/]/.test(literal)) return false;
+  return true;
+}
+
+function segmentHasRelativeWriterTarget(words: readonly string[], execIndex: number): boolean {
+  const name = argv0BareName(words, execIndex);
+  if (
+    name === null ||
+    (!INDIRECT_WRITE_BINS.has(name) &&
+      !ARCHIVE_ALT_WRITE_BINS.has(name) &&
+      !SYMLINK_PLANT_BINS.has(name))
+  ) {
+    return false;
+  }
+
+  let lastOperand: string | null = null;
+  for (let i = execIndex + 1; i < words.length; i++) {
+    const raw = words[i] as string;
+    if (isShellSegmentBreak(raw)) break;
+    const normalized = normalizeToken(raw);
+    if (normalized === "--" || normalized.startsWith("-")) continue;
+    if (!isEnvAssign(raw)) lastOperand = raw;
+  }
+  return lastOperand !== null && isRelativeLiteralShellPath(lastOperand);
+}
+
+function hasProtectedCwdRelativeWriter(command: string): boolean {
+  let protectedCwd = false;
+  for (const segment of zipStyleCommandSegments(command)) {
+    const name = argv0BareName(segment.words, segment.execIndex);
+    if (name === "cd" || name === "pushd" || name === "set-location") {
+      let target: string | undefined;
+      let i = segment.execIndex + 1;
+      while (i < segment.words.length) {
+        const raw = segment.words[i] as string;
+        if (isShellSegmentBreak(raw)) break;
+        const normalized = normalizeToken(raw);
+        if (normalized === "--") {
+          i++;
+          continue;
+        }
+        if (name === "set-location" && (normalized === "-path" || normalized === "-literalpath")) {
+          target = segment.words[i + 1];
+          break;
+        }
+        if (normalized.startsWith("-")) {
+          i++;
+          continue;
+        }
+        target = raw;
+        break;
+      }
+      protectedCwd = target !== undefined && pathishIsSettingsStoreDir(pathishToken(target));
+      continue;
+    }
+    if (!protectedCwd || isProvenReadOnlyArgv(segment.words, segment.execIndex)) continue;
+    if (segmentHasRelativeWriterTarget(segment.words, segment.execIndex)) return true;
+  }
+  return false;
+}
+
+const XARGS_VALUE_FLAGS = new Set([
+  "-a",
+  "-d",
+  "-e",
+  "-i",
+  "-l",
+  "-n",
+  "-p",
+  "-p1",
+  "-p0",
+  "-P",
+  "-s",
+  "-E",
+  "--arg-file",
+  "--delimiter",
+  "--eof",
+  "--max-args",
+  "--max-chars",
+  "--max-procs",
+  "--replace",
+  "--max-lines",
+]);
+
+function xargsWriterStart(tokens: readonly string[], xargsIndex: number): number | null {
+  let i = xargsIndex + 1;
+  while (i < tokens.length) {
+    const raw = tokens[i] as string;
+    if (isShellSegmentBreak(raw)) return null;
+    const normalized = normalizeToken(raw);
+    if (normalized === "--") return i + 1 < tokens.length ? i + 1 : null;
+    if (!normalized.startsWith("-")) return i;
+    if (XARGS_VALUE_FLAGS.has(normalized) && !normalized.includes("=")) i++;
+    i++;
+  }
+  return null;
+}
+
+function xargsWriterHasProtectedDest(tokens: readonly string[], xargsIndex: number): boolean {
+  const start = xargsWriterStart(tokens, xargsIndex);
+  if (start === null || start >= tokens.length) return false;
+  const name = writeBinName(tokens[start] as string);
+  if (
+    !INDIRECT_WRITE_BINS.has(name) &&
+    !ARCHIVE_ALT_WRITE_BINS.has(name) &&
+    !SYMLINK_PLANT_BINS.has(name)
+  ) {
+    return false;
+  }
+
+  const destination = new Set(["cp", "mv", "rsync", "install", "xcopy", "robocopy"]);
+  if (!destination.has(name)) return true;
+
+  const operands: string[] = [];
+  let optionsEnded = false;
+  for (let i = start + 1; i < tokens.length; i++) {
+    const raw = tokens[i] as string;
+    if (isShellSegmentBreak(raw)) break;
+    const normalized = normalizeToken(raw);
+    if (!optionsEnded && normalized === "--") {
+      optionsEnded = true;
+      continue;
+    }
+    if (!optionsEnded && normalized.startsWith("-")) continue;
+    if (!isEnvAssign(raw)) operands.push(raw);
+  }
+  if (operands.length === 0) return false;
+  return pathishIsProtectedMutationDest(pathishToken(operands[operands.length - 1] as string));
+}
+
+function hasProtectedInputToXargs(tokens: readonly string[]): boolean {
+  for (let i = 0; i < tokens.length; i++) {
+    if (normalizeToken(tokens[i] as string) !== "|") continue;
+    let leftHasProtectedPath = false;
+    for (let j = i - 1; j >= 0 && !isShellSegmentBreak(tokens[j] as string); j--) {
+      if (pathishIsProtectedMutationDest(pathishToken(tokens[j] as string))) {
+        leftHasProtectedPath = true;
+        break;
+      }
+    }
+    if (!leftHasProtectedPath) continue;
+    let xargsIndex = i + 1;
+    while (xargsIndex < tokens.length && isEnvAssign(tokens[xargsIndex] as string)) xargsIndex++;
+    if (normalizeToken(tokens[xargsIndex] as string) === "xargs") return true;
+  }
+  return false;
+}
+
+function hasProtectedInputToXargsWriter(tokens: readonly string[]): boolean {
+  for (let i = 0; i < tokens.length; i++) {
+    if (normalizeToken(tokens[i] as string) !== "|") continue;
+    let leftHasProtectedPath = false;
+    for (let j = i - 1; j >= 0 && !isShellSegmentBreak(tokens[j] as string); j--) {
+      const pathish = pathishToken(tokens[j] as string);
+      if (pathishIsProtectedMutationDest(pathish)) {
+        leftHasProtectedPath = true;
+        break;
+      }
+    }
+    if (!leftHasProtectedPath) continue;
+
+    let xargsIndex = i + 1;
+    while (xargsIndex < tokens.length && isEnvAssign(tokens[xargsIndex] as string)) xargsIndex++;
+    if (normalizeToken(tokens[xargsIndex] as string) !== "xargs") continue;
+    if (xargsWriterHasProtectedDest(tokens, xargsIndex)) return true;
+  }
+  return false;
+}
+
+function hasAwkProtectedWrite(command: string): boolean {
+  for (const segment of zipStyleCommandSegments(command)) {
+    const name = argv0BareName(segment.words, segment.execIndex);
+    if (name !== "awk" && name !== "gawk" && name !== "nawk") continue;
+    const payload = segment.words.slice(segment.execIndex + 1).join(" ");
+    const mentionsStore = unquotedPayloadPathTokens(payload).some((token) =>
+      pathishIsSettingsStoreDir(pathishToken(token)),
+    );
+    if (!mentionsStore) continue;
+    const lowerPayload = payload.toLowerCase();
+    if (/\bsystem\s*\(/.test(lowerPayload) || /\b(?:print|printf)\s*(?:>>|>)/.test(lowerPayload)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function hasProtectedArchiveExtract(command: string): boolean {
+  for (const segment of zipStyleCommandSegments(command)) {
+    const name = argv0BareName(segment.words, segment.execIndex);
+    if (name === null || !isArStyleArchiveBin(name)) continue;
+    const rawMode = segment.words[segment.execIndex + 1];
+    if (
+      rawMode === undefined ||
+      zipShellWordLiteral(rawMode) === null ||
+      !normalizeToken(rawMode).replace(/^-/, "").includes("x")
+    ) {
+      continue;
+    }
+    // The first operand after the mode is the archive input; only later
+    // operands name members that are extracted into the current directory.
+    for (let i = segment.execIndex + 3; i < segment.words.length; i++) {
+      const pathish = pathishToken(segment.words[i] as string);
+      if (pathishIsProtectedMutationDest(pathish)) return true;
+    }
   }
   return false;
 }
@@ -3092,6 +3375,16 @@ function hasProtectedUnprovenReadOnlyDestOfWrite(command: string): boolean {
     const literal = argv0Literal(segment.words, segment.execIndex);
     const name = argv0BareName(segment.words, segment.execIndex);
     if (name === null) continue;
+    if (isArStyleArchiveBin(name)) {
+      const rawMode = segment.words[segment.execIndex + 1];
+      if (
+        rawMode !== undefined &&
+        zipShellWordLiteral(rawMode) !== null &&
+        normalizeToken(rawMode).replace(/^-/, "").includes("x")
+      ) {
+        continue;
+      }
+    }
     const jarDest = jarCreateArchiveDest(segment.words, segment.execIndex);
     if (jarDest !== null && isRelativePayloadProtectedDest(jarDest)) return true;
     const archiveDest = firstArchiveOperandDest(segment.words, segment.execIndex);
@@ -3620,15 +3913,15 @@ function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]
     }
   }
   if (!mentionsKill) return false;
+  if (isClosedReadOnlyShellCommand(command)) return false;
+  if (hasProtectedArchiveExtract(command)) return true;
 
   // Redirect dest region after each `>` operator, including noclobber forms (#4199).
   for (const hay of [lower, stripped]) {
     for (let i = 0; i < hay.length; i++) {
       if (hay[i] !== ">") continue;
       const dest = redirectDestSlice(hay, i);
-      for (const name of KILL_SWITCH_BASENAMES) {
-        if (dest.includes(name)) return true;
-      }
+      if (pathishMentionsKillSwitch(dest)) return true;
     }
   }
 
@@ -4161,6 +4454,12 @@ function commandHasAuthzDirShellWrite(command: string, tokens: readonly string[]
   // Quote-stripped contiguous form for redirect dest checks (#3213).
   const stripped = lower.replace(/['"]/g, "");
 
+  if (isClosedReadOnlyShellCommand(command)) return false;
+  if (hasProtectedArchiveExtract(command)) return true;
+  if (hasProtectedCwdRelativeWriter(command)) return true;
+  if (hasProtectedInputToXargsWriter(tokens)) return true;
+  if (hasAwkProtectedWrite(command)) return true;
+
   // Redirect dest region after each `>` operator, including `>|` / `>&` / `>&!` / `>!` (#4199).
   // Check both raw and quote-stripped so quote-split dests still match.
   for (const hay of [lower, stripped]) {
@@ -4532,6 +4831,7 @@ function hasProgrammaticAuthzEnvWrite(command: string, tokens: readonly string[]
  * O(n) walks — no polynomial regex on input.
  */
 function hasIndirectAuthzStoreWrite(command: string, tokens: readonly string[]): boolean {
+  if (hasProtectedInputToXargs(tokens) && !hasProtectedInputToXargsWriter(tokens)) return false;
   if (hasProgrammaticAuthzEnvWrite(command, tokens)) return true;
   if (!hasWriteShape(command, tokens)) return false;
   const lower = command.toLowerCase().replace(/\\/g, "/");
