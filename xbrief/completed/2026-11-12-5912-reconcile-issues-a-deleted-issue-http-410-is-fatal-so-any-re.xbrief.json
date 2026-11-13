@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5912",
-    "updated": "2026-11-12T21:51:42Z"
+    "updated": "2026-11-13T05:13:41Z"
   },
   "plan": {
     "title": "reconcile-issues: a deleted issue (HTTP 410) is fatal, so any repo with a brief that references one can't cut a release",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "reconcile-issues treats a REST 410 (deleted issue) like any other gh failure, so a single brief that references a deleted issue makes the run exit non-zero and blocks a release cut. This story maps 410 to a DELETED issue state, reports it distinctly from 404, and makes --apply-lifecycle-fixes and the umbrella reconcile leave briefs and checklists anchored to deleted issues untouched.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5912",
@@ -19,66 +19,122 @@
     "items": [
       {
         "title": "relieves: P1 — Distinct DELETED fetch continue: fetchOneIssueStateRest maps REST 410 (JSON stdout status string preferred, stderr HTTP 410 / This issue was deleted fallback) to IssueState(\"DELETED\"), never NOT_FOUND-plus-marker, and fetchIssueStates stays non-null so reconcile-issues can exit 0 absent other failures.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When gh returns REST 410 for an issue, fetchOneIssueStateRest returns DELETED, the report shows deleted (410) separately from missing (404), and report mode exits 0."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "858a0d47c5b641b446a36c58ce43719ccbf3217d",
+          "recorded_at": "2026-11-13T05:13:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P2 — DELETED-wins skip authority: when any no_open_issue entry naming a relPath carries state DELETED, applyLifecycleFixes skips that brief in place regardless of entry order and regardless of any sibling entry state or state_reason, and only when no entry for the relPath is DELETED does the existing first-wins state_reason pick apply.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When any no_open_issue entry for a relPath carries DELETED, applyLifecycleFixes leaves that brief byte-identical in place and never consults destinationFolder, even if a CLOSED entry is ordered first."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "858a0d47c5b641b446a36c58ce43719ccbf3217d",
+          "recorded_at": "2026-11-13T05:13:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P2 — Prospective probe refuse DELETED and unresolved: before any parent write or gitMv, applyLifecycleFixes resolves prospective updateDecomposedChildBackReferences targets across all lifecycle folders including terminal paths, live-GETs those child issue numbers when absent from the apply mover map, refuses the related move when any probed target is DELETED or when a GET was attempted and did not resolve (null, CLI_MISSING, or no map entry after the GET), and leaves parent and child byte-identical and unmoved.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When a related child is DELETED or its GET does not resolve, the pre-write probe rejects the related move before any parent write or gitMv, and parent and child stay byte-identical."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "858a0d47c5b641b446a36c58ce43719ccbf3217d",
+          "recorded_at": "2026-11-13T05:13:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P2 — Issue-less child not a probe subject: a prospective child that carries no GitHub issue reference is not probed and does not refuse or exit 1; the no-map-entry-after-GET refuse applies only after a number was resolved and a GET was attempted.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When a prospective child carries no GitHub issue reference, the probe does not fetch it and the run returns exit 0."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "858a0d47c5b641b446a36c58ce43719ccbf3217d",
+          "recorded_at": "2026-11-13T05:13:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P2 — Non-fatal confirmed-DELETED vs fatal unresolved: confirmed DELETED mover skips and confirmed-DELETED related-move refuses are counted and listed on stderr (not pushed into failures) so reconcile-issues --apply-lifecycle-fixes exits 0 absent other failures, while unresolved probe refuses are other-gh-failures pushed to failures so the run exits 1; pending, proposed, and active DELETED-anchored briefs stay byte-identical and never consult destinationFolder; release Step 3 remains the cut refuse for non-terminal DELETED anchors.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When skips are confirmed DELETED the run records them on stderr but not in failures and exits 0; when a probe is unresolved the run fails with exit 1."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "858a0d47c5b641b446a36c58ce43719ccbf3217d",
+          "recorded_at": "2026-11-13T05:13:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P2 — Non-terminal DELETED leftover clear: this Bound names that scope:cancel today hits the #5126 could-not-resolve-closed-state refuse on a deleted origin so there is no in-band clearing path here, and files that cancel/DELETED gap as leftover rather than widening resolveIssueCloseKind.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When a non-terminal brief is anchored to a DELETED issue, the report names the #5126 scope:cancel leftover and the run does not attempt to cancel or move the brief."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "858a0d47c5b641b446a36c58ce43719ccbf3217d",
+          "recorded_at": "2026-11-13T05:13:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P3 — Report plus umbrella DELETED no-checklist-rewrite: reconcile and buildLifecycleReport markdown and JSON name each fetched brief and deleted issue number as deleted (410) versus missing (404), ForgeIssueState widens to carry DELETED, isChildOpen treats DELETED as open for shape and closure eligibility, and DELETED children are excluded from reconcileBodyChecklist rewrite authority so existing checkbox bytes stay unchanged (checked or unchecked) and deletion alone never calls editIssueBody.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "When an umbrella child is DELETED, the forge map records deleted, the child counts as open, checklist bytes stay unchanged, and editIssueBody is not called."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "858a0d47c5b641b446a36c58ce43719ccbf3217d",
+          "recorded_at": "2026-11-13T05:13:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P4 — Fail-closed DELETED never closed with split multi-ref proof: DELETED is never coerced to closed and never resolved by folder fallback at isChildOpen, shouldCloseOnAllChildrenMerged, or reconcileBodyChecklist; any unhandled DELETED at reconcile, buildLifecycleReport, applyLifecycleFixes, fetchIssueStatesForApply, or umbrella reconcile fails closed with skip-and-report and never falls through to a move; other gh failures stay null/exit 1; unit tests cover 410, 404, other failures, pending/proposed/active byte-identical apply with exit 0 on confirmed DELETED, a synthetic exported-contract unit where applyLifecycleFixes given a CLOSED entry ordered ahead of a DELETED entry for the same relPath skips in place, an end-to-end multi-ref non-terminal brief anchored to DELETED that also references a lower-numbered CLOSED issue stays byte-identical with exit 0, mixed CLOSED-parent/DELETED-child refuse including terminal DELETED child via the prospective probe, unresolved probe GET leaving parent and child byte-identical with exit 1, issue-less child mover exit 0, and umbrella body unchanged for both initially checked and unchecked DELETED children; consumer task reconcile:issues works without maintainer-only flags; CHANGELOG entry lands.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "When tests run the synthetic CLOSED-before-DELETED case and the end-to-end multi-ref case, DELETED is never coerced to closed and the brief returns unmoved."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "858a0d47c5b641b446a36c58ce43719ccbf3217d",
+          "recorded_at": "2026-11-13T05:13:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -95,6 +151,9 @@
       }
     ],
     "acceptance": {
+      "confessions": [
+        "reconcile-issues: a deleted issue (HTTP 410) is fatal, so any repo with a brief that references one can't cut a release"
+      ],
       "commands": [],
       "none_stated": true,
       "source_rung": "derived",
@@ -1637,9 +1696,36 @@
           "#5912"
         ],
         "acceptance_criteria_justification": "Eight clauses mirror the accepted Prefer-A Recut-6 Bound word for word (410 mapping, report output, apply-mode skip, DELETED-wins, pre-write probe, umbrella handling, and two required test shapes); merging them would lose the locked per-surface acceptance."
+      },
+      "productPullRequest": 6236,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "718de7bce555d81a78e812529f7e0ccc9c23e875",
+        "prNumber": 6236,
+        "prBase": "master",
+        "mergeCommit": "858a0d47c5b641b446a36c58ce43719ccbf3217d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d6d30ad073f68a8d1d258804043981a53b2f3aac",
+        "verifiedAt": "2026-11-13T05:13:41Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:NTFhZmZlMTctMDExZC00NWRmLTgzOTUtZTI1MThlODViMzkx",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-13T05:13:41Z",
+      "completedSessionId": "host:claude:v1:NTFhZmZlMTctMDExZC00NWRmLTgzOTUtZTI1MThlODViMzkx",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-13T05:13:41Z"
       }
     },
     "id": "github.issue.6027777150",
-    "updated": "2026-11-12T21:51:42Z"
+    "updated": "2026-11-13T05:13:41Z"
   }
 }
