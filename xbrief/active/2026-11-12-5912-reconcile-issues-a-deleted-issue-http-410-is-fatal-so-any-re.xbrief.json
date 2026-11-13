@@ -1625,7 +1625,10 @@
           "packages/core/src/vbrief-reconcile/types.ts",
           "packages/core/src/scope/decomposed-refs.ts",
           "packages/core/src/scope/decomposed-refs.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "xbrief/active/2026-11-12-5912-reconcile-issues-a-deleted-issue-http-410-is-fatal-so-any-re.xbrief.json",
+          ".deft-scratch/pr-body/story-5912.md",
+          ".deft-scratch/subagent-status/story-5912.json"
         ],
         "parallel_safe": true,
         "size": "medium",

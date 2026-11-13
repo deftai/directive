@@ -1,0 +1,925 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6233",
+    "updated": "2026-11-13T03:00:01Z"
+  },
+  "plan": {
+    "title": "bug(hooks,scope): write fence has no per-worktree story binding, so in-session sub-agents cannot run a multi-story cohort on Claude Code",
+    "status": "running",
+    "narratives": {
+      "Description": "The PreToolUse write fence learns which story a write belongs to only from a spawn-time bound path or from DEFT_ACTIVE_SCOPE in the hook process environment. Workers that share one hook environment cannot each carry their own pin, so a worker worktree that holds more than one active brief is refused every product write as multiple-eligible. This story makes the fence read the story for a dispatch-registered linked worktree from its worker-auth assignment record, with closed refusal rules, and leaves unregistered linked worktrees and the main worktree unchanged.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6233",
+      "Overview": "\n\n1. Write fence, no spawn bound path, linked worktree: read the worker-auth assignment for the write's worktree through the validated reader. When it returns an assignment, resolve the story by a unique `story_id` match against eligible active briefs. Assignment only. No branch tokens. The check-time `untied` outcome never admits a write.\n2. Linked worktree: refuse when the reader fails for any reason (corrupt index, orphan, duplicate, malformed or missing registered record), because membership is then unknowable or broken. Also refuse when the assigned story is missing, ineligible or ambiguous, when an environment pin names a different story, and when a spawn bound path names a different story. No fall-through to branch or single-eligible selection. The refusal names the failure kind and one repair step.\n3. Linked worktree with a validated clean absence (the reader succeeds and reports no assignment for this worktree): today's behaviour, unchanged. The main worktree never consults the registry.\n4. The matcher derives `story_id` the same way launch does, or launch refuses a brief with no `plan.id`.\n5. Stated guarantee: destination-scoped cooperative fencing. The trusted writer is dispatch PREP. It is not worker isolation. Coverage is Write/Edit, plus recognized shell destination forms when that policy is set to enforce. Other shell writes are not covered.\n6. Claude adapter text names the in-session sequence: the parent launches through `swarm:launch` so each worker worktree is registered; the parent starts the session ritual in each worker worktree; the parent holds no environment pin; each sub-agent is given its worktree's absolute path. One headless process per story is the named fallback until item 7 passes.\n7. Acceptance: a live two-story run through `swarm:launch` on Claude Code, in nested `.deft-scratch/worktrees/<sid>` destinations, with no environment pin. Each worker makes an admitted in-scope product write and is refused out of scope. The same run records whether the launch-minted lease admits the session's sub-agents. Before the change the same run is refused as multiple-eligible. A product-file write and a lifecycle-brief edit are tested separately. A corrupt-index case is tested for a registered worktree, an unregistered linked worktree and the main worktree.\n\n\n",
+      "Labels": "bug, swarm, harness, design-critique:ingest-ready",
+      "UserStory": "As an operator running several stories at once, I want the write fence to take the story of a worker worktree from the assignment record that dispatch wrote for it, so that workers that share one hook environment can each write inside their own story without a session-wide pin.",
+      "ImplementationPlan": "1. Move the story-id derivation that swarm launch uses into worker-auth-assignment.ts (exported), and call it from launch.ts so the record and the matcher share one derivation.\n2. In scope.ts add one resolver for the write fence: given a linked worktree root, call readWorkerAuthAssignment; map reader failure to refuse, clean absence to no-binding, and an assignment to a unique story_id match against eligible active briefs (missing, ineligible or ambiguous refuses). No branch tokens. No untied outcome.\n3. In dispatcher.ts, on the direct-write path for a linked worktree effectiveRoot, call the resolver before inspectActiveScope. A resolved story becomes the bound path. An environment pin or spawn bound path that names a different story refuses. Refusals name the failure kind and one repair step. The main worktree does not call the reader.\n4. Tests: unit tests for the resolver in scope.test.ts; dispatcher fixtures with a real temporary repository and two linked worktrees under .deft-scratch/worktrees/ in dispatcher-active-scope.test.ts and dispatcher-effective-root.test.ts; derivation tests in worker-auth-assignment.test.ts and launch.test.ts.\n5. Rewrite host-claude-code.md Step 2g item 3 as the four-step in-session sequence with the headless per-story fallback, and state the guarantee and its limits there.\n6. Add a CHANGELOG [Unreleased] entry.",
+      "Traces": "#6233; #6185; #5894; #5855; #4880; #4007; #3663"
+    },
+    "items": [
+      {
+        "title": "Write fence, no spawn bound path, linked worktree: read the worker-auth assignment for the write's worktree through the validated reader. When it returns an assignment, resolve the story by a unique `story_id` match against eligible active briefs. Assignment only. No branch tokens. The check-time `untied` outcome never admits a write.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When a Write or Edit targets a linked worktree that has an assignment record, with two or more eligible active briefs, no environment pin and no spawn bound path, the hook binds the brief whose id equals the story_id in the record: an in-scope path is allowed and an out-of-scope path is denied. A branch named for a different story does not change the result, and no code path admits a write from the check-time untied outcome."
+        }
+      },
+      {
+        "title": "Linked worktree: refuse when the reader fails for any reason (corrupt index, orphan, duplicate, malformed or missing registered record), because membership is then unknowable or broken. Also refuse when the assigned story is missing, ineligible or ambiguous, when an environment pin names a different story, and when a spawn bound path names a different story. No fall-through to branch or single-eligible selection. The refusal names the failure kind and one repair step.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When the assignment reader returns any failure kind for a linked worktree, the hook denies the write and the message names the failure kind and one repair step. The hook also denies when the assigned story is missing, ineligible or matches more than one active brief, when DEFT_ACTIVE_SCOPE names a different story, and when a spawn bound path names a different story. None of these cases falls through to the single-eligible or branch selection."
+        }
+      },
+      {
+        "title": "Linked worktree with a validated clean absence (the reader succeeds and reports no assignment for this worktree): today's behaviour, unchanged. The main worktree never consults the registry.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When the reader succeeds and reports no assignment for a linked worktree, every verdict equals the verdict before this change (multiple-eligible deny with no pin, environment pin honoured, single eligible brief bound). When the write targets the main worktree, the reader is not called and a corrupt index does not change the verdict."
+        }
+      },
+      {
+        "title": "The matcher derives `story_id` the same way launch does, or launch refuses a brief with no `plan.id`.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When swarm launch registers a brief that has no plan.id, the story_id it records is the value the write-fence matcher compares, shown by a test that registers such a brief and resolves it; or launch refuses that brief with a message naming the missing plan.id."
+        }
+      },
+      {
+        "title": "Stated guarantee: destination-scoped cooperative fencing. The trusted writer is dispatch PREP. It is not worker isolation. Coverage is Write/Edit, plus recognized shell destination forms when that policy is set to enforce. Other shell writes are not covered.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "When a reader opens host-claude-code.md, it states that the fence is destination-scoped and cooperative, that the trusted writer is dispatch PREP, that it is not worker isolation, and that coverage is Write/Edit plus recognized shell destination forms under the enforce policy."
+        }
+      },
+      {
+        "title": "Claude adapter text names the in-session sequence: the parent launches through `swarm:launch` so each worker worktree is registered; the parent starts the session ritual in each worker worktree; the parent holds no environment pin; each sub-agent is given its worktree's absolute path. One headless process per story is the named fallback until item 7 passes.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "When a reader opens host-claude-code.md Step 2g, it lists the in-session sequence (launch through swarm:launch, session ritual in each worker worktree, no environment pin held by the parent, absolute worktree path given to each sub-agent) and names one headless process per story as the fallback. No instruction to set a worktree path without a mechanism remains."
+        }
+      },
+      {
+        "title": "Acceptance: a live two-story run through `swarm:launch` on Claude Code, in nested `.deft-scratch/worktrees/<sid>` destinations, with no environment pin. Each worker makes an admitted in-scope product write and is refused out of scope. The same run records whether the launch-minted lease admits the session's sub-agents. Before the change the same run is refused as multiple-eligible. A product-file write and a lifecycle-brief edit are tested separately. A corrupt-index case is tested for a registered worktree, an unregistered linked worktree and the main worktree.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "When the dispatcher fixture runs against a real temporary repository with two linked worktrees under .deft-scratch/worktrees/, two different stories registered through writeWorkerAuthAssignment and no environment pin: each in-scope product write is allowed, each out-of-scope write is denied, the same fixture without the records is denied as multiple-eligible, a lifecycle-brief edit is tested separately from a product write, and a corrupt index is tested for a registered worktree, an unregistered linked worktree and the main worktree. The live Claude Code run through swarm:launch, including whether the launch-minted lease admits the sub-agents of the session, cannot run before a runtime release that contains this change (session hooks run from the pinned runtime package). It is tracked in #6242 and is not acceptance for this PR."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "harness",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6233",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6233: bug(hooks,scope): write fence has no per-worktree story binding, so in-session sub-agents cannot run a multi-story cohort on Claude Code"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 25 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "bug(hooks,scope): write fence has no per-worktree story binding, so in-session sub-agents cannot run a multi-story cohort on Claude Code",
+        "Write fence, no spawn bound path, linked worktree: read the worker-auth assignment for the write's worktree through the validated reader.",
+        "When it returns an assignment, resolve the story by a unique `story_id` match against eligible active briefs.",
+        "Assignment only.",
+        "No branch tokens.",
+        "The check-time `untied` outcome never admits a write.",
+        "Linked worktree: refuse when the reader fails for any reason (corrupt index, orphan, duplicate, malformed or missing registered record), because membership is then unknowable or broken.",
+        "Also refuse when the assigned story is missing, ineligible or ambiguous, when an environment pin names a different story, and when a spawn bound path names a different story.",
+        "No fall-through to branch or single-eligible selection.",
+        "The refusal names the failure kind and one repair step.",
+        "Linked worktree with a validated clean absence (the reader succeeds and reports no assignment for this worktree): today's behaviour, unchanged.",
+        "The main worktree never consults the registry.",
+        "The matcher derives `story_id` the same way launch does, or launch refuses a brief with no `plan.id`.",
+        "Stated guarantee: destination-scoped cooperative fencing.",
+        "The trusted writer is dispatch PREP.",
+        "It is not worker isolation.",
+        "Coverage is Write/Edit, plus recognized shell destination forms when that policy is set to enforce.",
+        "Other shell writes are not covered.",
+        "Claude adapter text names the in-session sequence: the parent launches through `swarm:launch` so each worker worktree is registered; the parent starts the session ritual in each worker worktree; the parent holds no environment pin; each sub-agent is given its worktree's absolute path.",
+        "One headless process per story is the named fallback until item 7 passes.",
+        "Acceptance: a live two-story run through `swarm:launch` on Claude Code, in nested `.deft-scratch/worktrees/<sid>` destinations, with no environment pin.",
+        "Each worker makes an admitted in-scope product write and is refused out of scope.",
+        "The same run records whether the launch-minted lease admits the session's sub-agents.",
+        "Before the change the same run is refused as multiple-eligible.",
+        "A product-file write and a lifecycle-brief edit are tested separately.",
+        "A corrupt-index case is tested for a registered worktree, an unregistered linked worktree and the main worktree."
+      ],
+      "admitted_source_sentences": [
+        "Write fence, no spawn bound path, linked worktree: read the worker-auth assignment for the write's worktree through the validated reader.",
+        "When it returns an assignment, resolve the story by a unique `story_id` match against eligible active briefs.",
+        "Assignment only.",
+        "No branch tokens.",
+        "The check-time `untied` outcome never admits a write.",
+        "Linked worktree: refuse when the reader fails for any reason (corrupt index, orphan, duplicate, malformed or missing registered record), because membership is then unknowable or broken.",
+        "Also refuse when the assigned story is missing, ineligible or ambiguous, when an environment pin names a different story, and when a spawn bound path names a different story.",
+        "No fall-through to branch or single-eligible selection.",
+        "The refusal names the failure kind and one repair step.",
+        "Linked worktree with a validated clean absence (the reader succeeds and reports no assignment for this worktree): today's behaviour, unchanged.",
+        "The main worktree never consults the registry.",
+        "The matcher derives `story_id` the same way launch does, or launch refuses a brief with no `plan.id`.",
+        "Stated guarantee: destination-scoped cooperative fencing.",
+        "The trusted writer is dispatch PREP.",
+        "It is not worker isolation.",
+        "Coverage is Write/Edit, plus recognized shell destination forms when that policy is set to enforce.",
+        "Other shell writes are not covered.",
+        "Claude adapter text names the in-session sequence: the parent launches through `swarm:launch` so each worker worktree is registered; the parent starts the session ritual in each worker worktree; the parent holds no environment pin; each sub-agent is given its worktree's absolute path.",
+        "One headless process per story is the named fallback until item 7 passes.",
+        "Acceptance: a live two-story run through `swarm:launch` on Claude Code, in nested `.deft-scratch/worktrees/<sid>` destinations, with no environment pin.",
+        "Each worker makes an admitted in-scope product write and is refused out of scope.",
+        "The same run records whether the launch-minted lease admits the session's sub-agents.",
+        "Before the change the same run is refused as multiple-eligible.",
+        "A product-file write and a lifecycle-brief edit are tested separately.",
+        "A corrupt-index case is tested for a registered worktree, an unregistered linked worktree and the main worktree."
+      ],
+      "admitted_source_digest": "455671e17a17401a54adb1fe718fd65df46216d590093bbb6376b20628465262",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Write fence, no spawn bound path, linked worktree: read the worker-auth assignment for the write's worktree through the validated reader.",
+          "artifact_path": "packages/core/src/hooks/scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When it returns an assignment, resolve the story by a unique `story_id` match against eligible active briefs.",
+          "artifact_path": "packages/core/src/hooks/scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Assignment only.",
+          "artifact_path": "packages/core/src/hooks/scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "No branch tokens.",
+          "artifact_path": "packages/core/src/hooks/scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "The check-time `untied` outcome never admits a write.",
+          "artifact_path": "packages/core/src/hooks/scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Linked worktree: refuse when the reader fails for any reason (corrupt index, orphan, duplicate, malformed or missing registered record), because membership is then unknowable or broken.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Also refuse when the assigned story is missing, ineligible or ambiguous, when an environment pin names a different story, and when a spawn bound path names a different story.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "No fall-through to branch or single-eligible selection.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "The refusal names the failure kind and one repair step.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Linked worktree with a validated clean absence (the reader succeeds and reports no assignment for this worktree): today's behaviour, unchanged.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "The main worktree never consults the registry.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "The matcher derives `story_id` the same way launch does, or launch refuses a brief with no `plan.id`.",
+          "artifact_path": "packages/core/src/swarm/worker-auth-assignment.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Stated guarantee: destination-scoped cooperative fencing.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "The trusted writer is dispatch PREP.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "It is not worker isolation.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Coverage is Write/Edit, plus recognized shell destination forms when that policy is set to enforce.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Other shell writes are not covered.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Claude adapter text names the in-session sequence: the parent launches through `swarm:launch` so each worker worktree is registered; the parent starts the session ritual in each worker worktree; the parent holds no environment pin; each sub-agent is given its worktree's absolute path.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "One headless process per story is the named fallback until item 7 passes.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Acceptance: a live two-story run through `swarm:launch` on Claude Code, in nested `.deft-scratch/worktrees/<sid>` destinations, with no environment pin.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "Each worker makes an admitted in-scope product write and is refused out of scope.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "The same run records whether the launch-minted lease admits the session's sub-agents.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "Before the change the same run is refused as multiple-eligible.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "A product-file write and a lifecycle-brief edit are tested separately.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "A corrupt-index case is tested for a registered worktree, an unregistered linked worktree and the main worktree.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(hooks,scope): write fence has no per-worktree story binding, so in-session sub-agents cannot run a multi-story cohort on Claude Code"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/scope.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/swarm/worker-auth-assignment.ts",
+          "packages/core/src/swarm/launch.ts",
+          "content/skills/deft-directive-swarm/references/host-claude-code.md"
+        ],
+        "module_boundary": "packages/core/src/hooks",
+        "cohesion_exemption": "dispatcher.ts (5442 lines) gains one call site on the existing direct-write path; the resolver itself lives in scope.ts beside the existing assignment matcher. worker-auth-assignment.ts and launch.ts change only to share one story-id derivation."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate\n\ndesign-critique: warranted, because the proposal changes write-fence admission, which is fail-closed authority for every dispatched worker, and an earlier filing of the same claim (#6185) was withdrawn as unreproduced.\nmechanism-shaped: true\ncharter: open critique\nrefutation-target: none (open critique; the body offers a direction for critique, not a defended presumption)\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: panel permission used; high blast radius (hook write-fence binding authority, worker identity, multi-worktree cohorts) and an open remedy space\ndispatch-sha: 82a53abab79e5c513b3a4c582075db70205a301b\ndest: .deft-scratch/worktrees/arc-6233 (pinKind origin-default, install mode process-only-no-install)\nverification-path: pin-read git show 82a53abab79e5c513b3a4c582075db70205a301b:; dest cwd-without-occupy\ntarget-kind: issue\nceiling-kind: comment-id\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\npain: P1, P2\n\n## In plain English\n\nProblem: the write hook must know which story a write belongs to. It reads that from a spawn-time path or from one process environment variable. Claude Code sub-agents share the parent's environment, so a cohort of several stories cannot run as in-session sub-agents there. The issue proposes that the hook read the story from a per-worktree record that dispatch already writes.\n\nThis arc asks three independent critics whether that problem statement holds at the pinned code, and whether the proposed direction is safe and sufficient. It does not ingest, and it does not start implementation.\n\n## Pains\n\n| Id | Pain |\n| --- | --- |\n| `P1` | On Claude Code, a multi-story cohort cannot run as in-session sub-agents: with more than one fencing active brief the write fence needs a pin, and the only pin sources are a spawn-time bound path and one session-wide environment variable. |\n| `P2` | The Claude Code swarm adapter text tells the parent to set each worker's worktree path, but names no mechanism, so the documented implement path and the working path (one headless process per story) differ. |\n\n## Notes for critics\n\n- Evidence SHA differs from the dispatch SHA. The issue's evaluator reproduction ran at `cd76d7d75`, where four cohort briefs were active. Commit `82a53abab` (the dispatch SHA) completed those four briefs, so `xbrief/active/` differs at the pin. Code paths are read at the dispatch SHA.\n- Non-self-arbitration disclosure: the same agent session filed the issue, wrote this Stop 1, and acts as parent. Its own claims need independent re-derivation before they count as verified.\n- Launch probe: the critic-argv-class pong (bypass flags) was refused by the parent host's permission classifier for the Claude and Codex launchers, and passed for Grok. The read-only launcher pong passed for all three families. Seats use read-only launchers; the parent relays each critic body verbatim. The panel-deposit records the launchers.\n\n",
+          "id": 6838143150,
+          "html_url": "https://github.com/deftai/directive/issues/6233#issuecomment-6838143150",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T22:52:08Z",
+          "updated_at": "2026-11-12T22:52:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 6838150346\nseat: claude launcher: claude-code-native-subagent (process-only plan class, model opus)\nseat: codex launcher: codex (exec, --sandbox read-only, -C dest)\nseat: grok launcher: grok (--cwd dest, --prompt-file, --permission-mode auto, no web search, no sub-agents)\n\ncharter: open critique\nspend: N≥3\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndispatch-sha: 82a53abab79e5c513b3a4c582075db70205a301b\ndest: .deft-scratch/worktrees/arc-6233\nverification-path: pin-read git show 82a53abab79e5c513b3a4c582075db70205a301b:; dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: #issuecomment-6838143150\n\nRelay disclosure: the Codex seat has no network in its sandbox, so all three seats read one parent-written snapshot of the issue body and thread through this ceiling. Each seat returns its comment body to the parent, and the parent posts it unedited.\n\nLaunch probe: read-only launcher pong passed for claude, codex and grok. The bypass-flag pong was refused by the parent host for claude and codex and passed for grok; no seat uses bypass flags.\n\n",
+          "id": 6838150346,
+          "html_url": "https://github.com/deftai/directive/issues/6233#issuecomment-6838150346",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T22:52:28Z",
+          "updated_at": "2026-11-12T22:52:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe missing worktree binding is real in the pinned code. Reading the existing assignment record is a reasonable direction, but it does not yet establish a working Claude Code cohort path or isolate one worker from another. The design needs an explicit authority boundary, refusal behavior, and a demonstrated launch-to-write path before it can claim to resolve the reported problem.\n\n1. **blocks-the-design — Target-worktree binding is not worker-to-story binding.**\n\n   **Evidence:** `dispatcher.ts:1220–1282` selects `effectiveRoot` from mutation targets and accepts linked worktrees sharing the repository’s Git common directory. `host-session-identity.ts` identifies Claude actors by `session_id`, not `agent_id`. `worker-auth-assignment.ts:645–724` validates the destination record and index, but does not compare its `dispatch_id` with the calling worker.\n\n   **Failure mode:** Worker A can name a file in worker B’s worktree. With a shared session identity and no environment pin, the proposed lookup selects B’s assignment and B’s fence. It answers “which story governs this destination?” without proving “is this worker assigned to that story?” This requires neither a branch rename nor registry tampering.\n\n   **Disposition:** Before binding, explicitly choose the guarantee. Destination-scoped cooperative fencing is defensible, but must not be presented as worker isolation or as satisfying an unverified #5894 binding contract. If worker isolation is required, a caller-to-assignment check is missing. Resolve that dependency rather than leaving it simultaneously required and out of scope.\n\n2. **blocks-the-design — The assignment resolver needs closed failure semantics, not just a successful lookup.**\n\n   **Evidence:** `readWorkerAuthAssignment` already distinguishes clean absence from corrupt indexes, orphan records, duplicate registrations, missing registered records, and malformed assignments. `scope.ts:415–460` currently permits an unmatched environment pin to fall back to the sole eligible brief. Its branch resolver checks branch tokens before consulting worker-auth.\n\n   **Failure mode:** Treating registry errors as absence, or applying the existing single-eligible fallback after an assignment conflict, could admit a different story when the assigned story has disappeared or become ineligible. Reusing `bindBranchToActiveStory` wholesale would also retain branch-first authority.\n\n   **Disposition:** Require the existing validated assignment reader, unique `story_id` matching against eligible active briefs, and explicit refusal for corrupt records, missing/ineligible assigned stories, and conflicting environment pins. Those failures must not fall through to branch or single-candidate selection. Clean absence can retain current behavior. Define how explicit spawn binding interacts with this rule without comparing a child destination’s story against an unrelated parent-root assignment.\n\n3. **blocks-the-design — A later-write fix does not establish the in-session launch path.**\n\n   **Evidence:** `dispatcher.ts:2536–2543` derives spawn binding from `spawnConsult.destPath`, then inspects scope at `effectiveRoot`. The Claude adapter’s Step 2g requires an isolated worktree path but supplies no concrete transport for it. `dest-place.ts` documents a Grok `tool_input.cwd` path and explicitly says destination preparation itself does not mint reservations or child occupancy.\n\n   **Failure mode:** A valid worker assignment can resolve subsequent file writes while implementation spawn still fails at the parent root, or the child starts without the required destination preparation and admission. The proposed four outcomes therefore do not yet demonstrate relief of the Claude cohort pain.\n\n   **Disposition:** Require a concrete supported launch sequence and a two-story acceptance scenario covering spawn, destination preparation, occupancy/ritual admission, and subsequent product-file writes without a shared story pin. Alternatively, narrow this change to destination scope resolution and retain the in-session cohort problem as unresolved. Do not claim the headless workaround is verified by this critique.\n\n4. **sharpens-framing — The evaluator reproduction proves ambiguity, not universal live-hook refusal.**\n\n   **Evidence:** `scope.ts:134–139` and `inspectActiveScope` confirm the two pin sources and multiple-candidate refusal. However, `dispatcher.ts:2555–2565` preserves the outside-payload-root carve-out when scope is not ready. Its earlier lifecycle exemptions cover proposed and completed briefs; those excerpts do not establish a blanket active-brief exemption.\n\n   **Failure mode:** A reproduction using external sibling worktrees can allow writes despite evaluator ambiguity, while the usual nested `.deft-scratch/worktrees/` layout denies them. Calling the cohort categorically impossible hides this layout-dependent behavior and leaves the earlier four successful Edits unexplained.\n\n   **Disposition:** State the confirmed defect as missing assignment-based resolution on the gated write path. Include nested and external worktree layouts in the verification matrix, and distinguish product writes from lifecycle-brief edits. The existing carve-out is a plausible explanation, not a verified reconstruction of #6185.\n\n5. **sharpens-framing — Shell coverage must remain an explicit limitation.**\n\n   **Evidence:** `dispatcher.ts:1295–1328` states that shell destination-form enforcement defaults to off. When enabled, coverage is limited to recognized forms such as `git restore`, `git checkout --`, and `rm/rmdir`; unresolved shell targets remain outside this deny.\n\n   **Failure mode:** A successful Write/Edit demonstration could be reported as covering worker writes generally, while shell mutations do not consult the new binding.\n\n   **Disposition:** Specify coverage by tool surface and policy mode. Exercise recognized shell forms with enforcement enabled, and do not claim arbitrary shell-write isolation. Expanding shell parsing is not necessary to fix assignment lookup.\n\nI favor reusing the validated assignment reader over branch-name inference: it already provides destination canonicalization and registry-consistency checks. Branch inference has the advantage of requiring no new record, but its branch-first behavior does not meet this proposal’s stated resistance to branch-name sidesteps.\n\n**Verification:** I used read-only `git show` and `git grep` at dispatch SHA `82a53abab79e5c513b3a4c582075db70205a301b` for scope resolution, dispatcher root admission and exemptions, host identity, worker-auth assignment reading, destination preparation, and the Claude adapter. `git diff cd76d7d75 82a53abab --` showed no changes to `scope.ts` or `dispatcher.ts`; `git ls-tree` confirmed the four named active briefs at the earlier SHA.\n\nI did not execute the evaluator reproduction, tests, or a live Claude hook/Agent session. The host’s actual tool schema, environment behavior, occupancy behavior across concurrent children, and the full #5894 contract remain unverified. I read only the supplied thread snapshot through comment `6838150346`; no network access, file edits, or agent dispatch occurred.",
+          "id": 6838210902,
+          "html_url": "https://github.com/deftai/directive/issues/6233#issuecomment-6838210902",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T22:55:20Z",
+          "updated_at": "2026-11-12T22:55:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe core problem is real. When more than one story brief is active, the write hook can only learn which story a write belongs to from a spawn-time path or from one environment variable. Claude Code sub-agents share the parent's environment, so they cannot each carry a different story. Reading the story from the per-worktree record that `swarm:launch` already writes is a sound direction, and it fits the existing code well. The record is keyed by worktree root, and the hook already works out the worktree root of every Write/Edit target.\n\nThe issue still needs four corrections before it can bind:\n\n- **The Grok contrast does not hold in the code.** The Grok spawn-time pin only exists when the destination has exactly one active brief. That is not the multi-brief cohort case the issue describes, so the problem is probably not specific to Claude.\n- **The record only exists for worktrees made by `swarm:launch`.** That command writes the record only when it is given the GitHub-auth flags. Worktrees that Claude creates itself have no record, so the fix does nothing for them unless the dispatch path is stated.\n- **Reuse the assignment matcher, not the whole check-time binder.** Reusing `bindBranchToActiveStory` as-is would let the branch name decide first, which is the #5894 sidestep. It would also bring in an \"untied\" outcome that must never admit a write.\n- **Story ids can disagree.** When a brief has no `plan.id`, launch records a filename-based `story_id`, but the matcher only compares against `plan.id`.\n\nNone of these needs a new mechanism. Each one changes how the lean must be stated or scoped.\n\n## Findings\n\n### F1 — sharpens-framing: the \"works on Grok Build\" contrast is not supported by the code; the problem is likely not host-specific\n\nEvidence:\n- `git show 82a53abab:packages/core/src/hooks/dispatcher.ts`, around L2537–2543: `spawnBoundPath` is computed only when `isSpawnTool(toolName)` is true. A child's later Write/Edit is not a spawn tool, so it falls back to `env`.\n- Same file, `uniqueActiveBasenameFromDestPath` (around L2841–2856): it returns a pin only when the destination's `xbrief/active` + `vbrief/active` hold exactly one artifact name.\n- The issue's own \"Worktree alone\" paragraph, citing #4714, says each worker branch carries every cohort brief in `xbrief/active/`. In that case the Grok spawn-time `boundPath` is `null`, and the Grok spawn itself goes through the unpinned `multiple-eligible` path.\n\nFailure mode: the lean is scoped and tested as a Claude-only gap, and item 4 claims a Grok benefit (\"stops depending on the spawn-time pin surviving\") for a dependency the code does not have. Grok multi-brief cohorts stay untested. The headline was already withdrawn once on #6185 as not reproduced, and its four allowed Edits are still unexplained. Without an end-to-end repro, the fix may target a path that is not firing where people think it is.\n\nDisposition consequence: state P1 host-neutrally: any cohort whose workers share a hook environment, or whose destination holds more than one active brief. Replace item 4 with a statement of what Grok actually does today. Require an end-to-end hook repro before and after the fix, run in a `.deft-scratch/worktrees/<sid>` destination (which is under the payload root, so the #2885 outside-root carve-out does not apply), on Claude Code and on Grok.\n\n### F2 — sharpens-framing: the binding record exists only for `swarm:launch`-created worktrees; the lean must name that as the Claude dispatch path (this also answers Q3 and P2)\n\nEvidence:\n- `git grep writeWorkerAuthAssignment 82a53abab -- packages/core/src ':!*.test.ts'`: the only production writer is `packages/core/src/swarm/launch.ts` (around L2014–2028), one record per `dest.worktreePath`.\n- `resolveAssignedWorkerAuth` (around L1546–1580) refuses unless `--worker-github-auth-mode` and `--expected-worker-login` are both supplied.\n- The default worktree is `.deft-scratch/worktrees/<sid>` (`defaultWorktree`, around L1104).\n- `packages/core/src/swarm/dest-place.ts` neither writes nor reads the registry.\n- `admitEffectiveHookRoot` (`dispatcher.ts` around L1221–1249) resolves `effectiveRoot` from the write target's git toplevel when it shares `--git-common-dir`.\n- `readWorkerAuthAssignment` keys records by `resolveWorkerAuthDestPath`, which is the worktree root.\n\nFailure mode: if Claude creates the worktree itself (`isolation: \"worktree\"`), or anything else makes a worktree outside `swarm:launch`, there is no record. Item 3 then keeps `multiple-eligible`, and P1 is not relieved on exactly the host the issue targets. Story-write authority also becomes conditional on the GitHub-auth assignment flags, and the issue does not mention that coupling.\n\nDisposition consequence: the lean should name the Claude path explicitly:\n1. The parent runs `swarm:launch`. It creates the worktrees and writes the records.\n2. The parent spawns `Agent` without `isolation`, and the prompt carries each worker's absolute worktree path.\n3. The worker's Write/Edit calls with absolute paths resolve to that worktree as `effectiveRoot`.\n\nThis needs no host hook for worktree creation (Q3), and it gives `host-claude-code.md` Step 2g item 3 a real mechanism (P2). Two further requirements:\n- State that a worktree without a record stays fail-closed by design.\n- Either accept the auth-flag coupling explicitly, or note that a separate story-binding record is the road not taken (see below).\n\n### F3 — sharpens-framing: specify the write-fence source as assignment-only; do not reuse `bindBranchToActiveStory`\n\nEvidence: `git show 82a53abab:packages/core/src/hooks/scope.ts`:\n- `bindBranchToActiveStory` (around L737–785) binds on the branch `plan.id` token, then on the branch issue token. Only after those does it call `admitUntiedWithWorkerAuth`.\n- `admitUntiedWithWorkerAuth` (around L823–880) returns `{ kind: \"untied\" }` when there is no assignment and no foreign live lease. In the check path, `untied` means \"skip AC\", not \"refuse\" (`resolveSoftMissingAcTargets`, around L603–615).\n- #6185 originally proposed `bindBranchToActiveStory` in the write hook, and the issue cites it as \"prior art for the binding\".\n\nFailure mode: an implementer reuses the named helper. A branch rename, the #5894 sidestep, then selects the write-fence story ahead of the parent-written record. And because there is no `untied` arm in write admission, the write would be admitted or left undefined instead of failing closed. Either way, a new admission path is added to fail-closed write authority.\n\nDisposition consequence: the lean names `readWorkerAuthAssignment(effectiveRoot)` → `matchStoryIdToActive` as the only new source. It must also forbid branch tokens and the `untied` outcome as write-fence admission.\n\n### F4 — sharpens-framing: the issue does not say what happens when the shared registry cannot be read\n\nEvidence: `readWorkerAuthAssignment` (`worker-auth-assignment.ts` around L645–720) returns `ok:false` for `registry_corruption`, `orphan_assignment`, `duplicate_assignment`, `missing_assignment` and `malformed_assignment`. The index is one file under the Git common dir and is shared by every linked worktree. Proposed item 2 (an env pin that disagrees refuses) means the record is read on the pinned path too, not only on the unpinned `multiple-eligible` path.\n\nFailure mode: if every read failure is fail-closed on every path, one corrupt shared index denies all pinned writes in every linked worktree, including the headless `claude -p` workaround that works today. If read failures are instead ignored on the pinned path, item 2's disagreement check can be bypassed by corrupting the registry.\n\nDisposition consequence: the lean states a rule per arm:\n- Unpinned multi-eligible: a read failure refuses, as today.\n- Env-pinned: a read failure refuses only when that worktree is registered in the index; otherwise the pin stands.\n- Main worktree: the registry is never consulted.\n\nIt should also say what happens when a spawn-time `boundPath` disagrees with the record, which item 2 leaves out.\n\n### F5 — sharpens-framing: `story_id` and `plan.id` can disagree\n\nEvidence:\n- `launch.ts` `storyId` (around L760–767) uses `plan.id`, or falls back to the file basename without its suffix when `plan.id` is absent. That value becomes the record's `story_id`.\n- `scope.ts` `matchStoryIdToActive` compares only against `briefPlanId` (`plan.id`), and otherwise returns `pin-miss`.\n\nFailure mode: a cohort brief without `plan.id` gets a record, but every worker write is denied as `pin-miss` with \"lost pin?\" text that points the operator at the wrong cause.\n\nDisposition consequence: matching must use the same derivation as launch, or launch must refuse briefs that have no `plan.id`. This is one line in the lean.\n\n### F6 — sharpens-framing: Claude `Agent` is not a spawn tool to the hook, so on Claude there is no spawn-time gate at all\n\nEvidence: `git show 82a53abab:packages/core/src/hooks/tools.ts` L25–31: `SPAWN_TOOL_NAMES = [\"Task\", \"SubagentStart\", \"spawn_subagent\", \"start_agent\", \"CreateAgent\"]`. `SPAWN_HOOK_MATCHER` is that list joined, and `init-deposit/agent-hooks.ts` uses it. `Agent` does not appear anywhere in `packages/core/src/hooks/*.ts` outside tests.\n\nFailure mode: the issue's dispatcher bullet treats the spawn as a place where a binding could be carried. On Claude, the spawn is never seen, so `spawn-ready`, the intent ceiling and the positive-governing-allow check never run at spawn. The write-time binding is therefore the only fence point on Claude. Acceptance tests that assume a spawn-time deny or pin will pass vacuously.\n\nDisposition consequence: the lean states that the Claude relief is write-time only. Whether to add `Agent` to `SPAWN_TOOL_NAMES` is a separate decision; I recommend a separate issue, because it changes spawn admission for every Claude sub-agent.\n\n### F7 — footnote: trust is the same as the env pin, not a regression\n\nThe registry calls itself cooperative (`worker-auth-assignment.ts` header), and `scope.ts` (around L180) already treats env and `boundPath` pin values as untrusted (#5386 S2). The existing check that the index, record and `worktree_path` agree refuses a partial forgery. A full rewrite by a same-user process is out of model for both sources. Q1 can be answered as \"equal to today's env pin, with a parent-written provenance the env pin lacks\". No new deterministic control is claimed; a worker shell rewriting `<commonDir>/deft-worker-auth/` stays unguarded, as it is today.\n\n### F8 — footnote: item 2 constrains the parent\n\nWith a shared environment, a parent that keeps `DEFT_ACTIVE_SCOPE` set for its own story would have every sub-agent write into a worker worktree refused. The Claude adapter text should say the parent must not hold a pin while it runs an in-session cohort.\n\n### F9 — footnote: Q2 (shell) and Q4 (occupancy) are not verified here\n\nI did not trace how a Claude sub-agent's `Bash` targets map to `effectiveRoot` from the parent cwd. I also did not check whether the occupancy lease minted by `swarm:launch` (`occupancy.sessionId`) matches the hook-resolved `host:claude:v1:` identity that parent and sub-agents share. Both still need an answer before ingest.\n\n### F10 — footnote: hook cost\n\n`readWorkerAuthAssignment` runs `gitCommonDir` and `worktreePathOrNull` itself, and `admitEffectiveHookRoot` has already computed both. Passing them through avoids two extra git spawns per write.\n\n## Road not taken and steelman\n\nThe alternative is a separate story-binding record, written by `swarm:launch` next to the auth record but not conditional on the auth flags. Its strongest case: write-fence authority would not depend on GitHub-auth configuration, and `dest-place` or other dispatchers could write it too. I prefer reusing the existing assignment, because it is already written atomically per destination with `story_id`, is already keyed by worktree root, and is already read by the check path. That avoids a second registry with its own corruption cases.\n\nThat verdict would flip if a supported cohort dispatch path creates worker worktrees without `swarm:launch`, for example Grok `dest-place` on worktrees `swarm:launch` did not make. I could not establish that either way at this SHA.\n\n## Injection / swarm lens\n\nThis target changes write authority, worker identity, worktrees and shared state, so the lens applies. The thread snapshot held no embedded instructions aimed at critics. Issue text and triage claims were treated as claims and re-derived above. The shared-state risks are F4 (shared index), F3 (branch-name authority) and F7 (cooperative registry).\n\n## What I verified and how\n\nAll reads were pin-reads with `git -C <dest> show 82a53abab79e5c513b3a4c582075db70205a301b:<path>` and `git grep <pattern> 82a53abab… -- <path>`:\n- `packages/core/src/hooks/scope.ts`: `pinFrom`, `inspectActiveScope`, `resolveSoftMissingAcTargets`, `bindBranchToActiveStory`, `matchStoryIdToActive`, `admitUntiedWithWorkerAuth`.\n- `packages/core/src/hooks/dispatcher.ts`: `admitEffectiveHookRoot`, the scope-inspect block, the #2885 carve-out, `uniqueActiveBasenameFromDestPath`, post-scope admission.\n- `packages/core/src/hooks/tools.ts`: the spawn tool list.\n- `packages/core/src/swarm/worker-auth-assignment.ts`: read/write and keying.\n- `packages/core/src/swarm/launch.ts`: `storyId`, `defaultWorktree`, `resolveAssignedWorkerAuth`, the assignment write loop.\n- `packages/core/src/swarm/dest-place.ts`: no registry use.\n- `content/skills/deft-directive-swarm/references/host-claude-code.md`: Step 2g.\n\n`git diff --stat cd76d7d75 82a53abab` over `scope.ts`, `dispatcher.ts`, `tools.ts` and `worker-auth-assignment.ts` is empty, so the issue's evidence SHA and the dispatch SHA agree on these code paths. `git ls-tree cd76d7d75 xbrief/active/` shows the four cited briefs (5710, 5882, 6203, 6212). At `82a53abab` only `.gitkeep` remains (commit `chore(xbrief): complete #5710 #5882 #6203 #6212`).\n\nNot verified: I executed nothing, so the issue's `tsx` evaluator repro was not re-run. Also not verified: any live hook run on any host, the cause of the four allowed Edits on #6185, Grok runtime env-pin behaviour per child, shell-target root resolution (Q2), and occupancy identity matching (Q4).\n\n**Census:** 0 `blocks-the-design`, 6 `sharpens-framing`, 4 `footnote`.",
+          "id": 6838294056,
+          "html_url": "https://github.com/deftai/directive/issues/6233#issuecomment-6838294056",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T22:59:01Z",
+          "updated_at": "2026-11-12T22:59:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe write fence really does learn the story only from a spawn-time `boundPath` or from `DEFT_ACTIVE_SCOPE`, and Claude Code in-session sub-agents share one environment, so a multi-story cohort cannot pin per worker that way. The proposed fix — bind the write’s worktree to the dispatch-written worker-auth `story_id` — is the right class of remedy, but it is not bindable as written: the Claude Agent / `isolation: \"worktree\"` path the issue cares about does not deposit that assignment today, and naively reusing the soft-missing `bindBranchToActiveStory` helper would let a wrong parent env pin win over the worktree record. Trust, shell coverage, and same-session occupancy still have to be part of any Prefer-A, not leftover open questions.\n\n## 1. Claude path has no worker-auth deposit, so worktree→story_id alone does not relieve P1\nblocks-the-design\n\nEvidence: At `82a53abab`, `inspectActiveScope` / `pinFrom` only take `boundPath` then `env[DEFT_ACTIVE_SCOPE]` (`packages/core/src/hooks/scope.ts`). The dispatcher sets `boundPath` only for spawn tools via `uniqueActiveBasenameFromDestPath` (`dispatcher.ts` ~2537–2542); later Write/Edit calls pass `{ env: environ }` only. `writeWorkerAuthAssignment` is persisted from `swarm:launch` PREP (`packages/core/src/swarm/launch.ts` ~2014–2040). `dest-place.ts` is documented as interactive Grok implement (`tool_input.cwd` before `spawn_subagent`) and has no Claude path. `host-claude-code.md` Step 2g item 3 names “the worktree path” with no deposit/assignment step; the issue’s own open question 3 notes Claude `isolation: \"worktree\"` skips dest-place and reservation mint.\n\nFailure mode: A Prefer-A that only wires `readWorkerAuthAssignment(effectiveRoot)` into the write fence still returns `multiple-eligible` for in-session Claude workers whose worktrees never received a PREP assignment. P1 stays red on the host the issue targets; operators keep headless `claude -p` per story.\n\nDisposition: Do not bind “consult worker-auth when unbound” as sufficient. Any bound remedy must also name the Claude (or host-neutral) writer that deposits `story_id`↔worktree before the first child write, or name a different per-worktree authority that that path actually creates.\n\n## 2. Reusing soft-missing `bindBranchToActiveStory` would invert proposed direction point 2\nblocks-the-design\n\nEvidence: `resolveSoftMissingAcTargets` runs `pinFrom` first; only if the pin is empty does it call `bindBranchToActiveStory` / `admitUntiedWithWorkerAuth` (`scope.ts` ~584–620). A nonempty `DEFT_ACTIVE_SCOPE` that matches any scanned active wins and never consults the worktree assignment. The write dispatcher today never passes `branchBind` into `inspectActiveScope` at all.\n\nFailure mode: “Call the existing #5855 helper from the write fence” looks like inventory reuse, but on Claude the parent session’s one shared env pin would silently select one story’s `file_scope` for every sub-agent — the exact over-permit / under-permit failure #4007 closed. That is the opposite of proposed direction item 2 (“env that disagrees with the worktree record refuses”).\n\nDisposition: Prefer-A must specify conflict order for write admission: worktree assignment vs env vs `boundPath`, including refuse-on-disagree. Do not bind “reuse `bindBranchToActiveStory` as-is.”\n\n## 3. Cooperative assignment as fence authority needs an explicit writer trust story\nsharpens-framing\n\nEvidence: `worker-auth-assignment.ts` header: cooperative local registry; “not protection against a same-user process deleting the files.” Occupancy and host-session identity use the same cooperating-process posture (`occupancy.ts`, `host-session-identity.ts`, hooks fixtures README). `admitUntiedWithWorkerAuth` already treats a present `story_id` as a bind for check/pre-PR. The issue cites #5894 (pin provenance / branch-rename sidestep); that issue body is not in this worktree snapshot, so its exact binding contract was not re-read here.\n\nFailure mode: Elevating the same on-disk record to fail-closed Write/`file_scope` selection without stating who may mint or rewrite it lets a same-user worker retarget `story_id` and inherit another story’s allow list — a quieter sidestep than branch rename, with higher blast radius than soft-missing AC selection.\n\nDisposition: Keep worker-auth as the candidate source (better than branch name), but Prefer-A must state the trusted writer (dispatch/PREP), refuse worker self-mint as fence authority, and keep refuse-on-disagree with env. Do not treat “cooperative is already the model” as a complete answer to open question 1.\n\n## 4. Grok “spawn-time pin survives” claim conflicts with multi-active dest mechanics\nsharpens-framing\n\nEvidence: `uniqueActiveBasenameFromDestPath` returns a basename only when the dest’s `xbrief|vbrief/active` has exactly one artifact (`dispatcher.ts` ~2841–2855); otherwise spawn gets no `boundPath`. CHANGELOG #4393 describes that unique-basename pin. The issue also claims each worker tree still carries every cohort brief (so unique basename is false). `git grep DEFT_ACTIVE_SCOPE` under `packages/core/src/swarm/` at `82a53abab` shows no launcher that sets the env pin. Hook/`scope`/`dispatcher`/`dest-place`/`host-claude-code` paths are byte-identical between evidence SHA `cd76d7d75` and dispatch SHA `82a53abab` (`git diff --stat` empty); only `xbrief/active/` content differs (four briefs at evidence, `.gitkeep` only at dispatch).\n\nFailure mode: Framing P1 as Claude-only because “Grok already binds at spawn” overstates a path that, under the issue’s own multi-active worktree premise, also yields a null spawn pin. A Claude-only Prefer-A can leave the same later-write gap on Grok multi-active dests, or miss that Grok success depends on a different unstated precondition (sole active in dest, stdin env bag, etc.).\n\nDisposition: Re-derive how a multi-story Grok cohort clears later Write without `DEFT_ACTIVE_SCOPE` before scoping the remedy to Claude. Proposed direction item 4 stays desirable once the real Grok pin channel is named.\n\n## 5. Shell and same-session occupancy are in-scope for this fence change\nsharpens-framing\n\nEvidence: Default `shellDestForms` is `off`; the scope-not-ready hint says no Shell command is covered by that deny unless enforce is on (`dispatcher.ts` ~1293–1320). Recognized dest-forms under enforce share `inspectMutationGates`; unrecognized shell stays fail-open for active-scope. Claude identity is payload `session_id`; `agent_id` is not the owner key (`host-session-identity.ts` ~108–110). Occupancy admits owner or granted member per worktree lease (#3755 / commands.md); grants need distinct child ids.\n\nFailure mode: Binding only Edit/Write→worker-auth leaves Shell as a default bypass around the new story bind, and leaves several in-session Claude workers sharing one `session_id` without a stated member-grant story — either mutual lockout on one lease or unsafe sharing if one lease is reused.\n\nDisposition: Prefer-A for write-fence admission must dispose open questions 2 and 4 (cover / non-cover of shell forms; per-worktree lease + member grant under one session family), not park them as host footnotes.\n\n## 6. #6185 “four allowed Edits” candidates are uneven; standard swarm layout is still unexplained\nfootnote\n\nEvidence: Lifecycle exempt allows only `xbrief|vbrief/proposed/**` and completed lifecycle writes (`dispatcher.ts` ~2513–2520) — not `active/`. The #2885/#3794 outside-root skip is real, but the same comments say `.deft-scratch/worktrees/` under the payload root is inside the root and gated on its own active scope. So candidate “outside-root” explains allows only for worktrees outside payloadRoot; candidate “lifecycle for own brief” does not match the exempt predicates.\n\nFailure mode: Treating #6185’s unreproduced allows as a deep mystery can distract Prefer-A; for the normal swarm layout the evaluator-level `multiple-eligible` claim is the one that holds.\n\nDisposition: Keep #6185 as historical context; do not block #6233 on explaining those four Edits.\n\n## 7. Adapter gap (P2) is real and separate from fence authority\nfootnote\n\nEvidence: `host-claude-code.md` Step 2g item 3 requires setting the worktree path and names no field, env, or dest-place call. `dest-place.ts` is Grok-cwd only. Headless per-story `claude -p` is an operational workaround, not a documented implement path.\n\nDisposition: Until a bound fence+deposit remedy lands, Prefer-A may footnote adapter text to name the headless workaround; that is docs honesty, not the write-fence mechanism.\n\n## Injection / swarm lens\n\nThis target changes fail-closed write-fence admission, story identity, worktree-shared state, and cohort concurrency. The dangerous shape is a shared parent env plus a forgeable or missing per-worktree record: either every worker inherits one `file_scope`, or a worker rewrites the record and steals another story’s allow list. Inventory already has pieces (`pinFrom`, spawn unique-basename, worker-auth registry, #5855 branch/untied bind, occupancy member grants, shell dest-forms). The missing composition is write-time conflict order plus a Claude-reachable deposit, not a new pin env.\n\n## Road not taken\n\nSteelman rejected: “Document headless `claude -p` only; leave the fence alone.” That relieves P2’s doc lie and preserves #4007 fail-closed, but it permanently forbids in-session multi-story on Claude and leaves Grok later-write pinning on the fragile unique-basename/env story. What would flip that verdict: proof that Claude Agent can never present a distinct worktree `effectiveRoot` or never receive a dispatch-authored assignment. No such proof in-tree; dest-place / launch already show the assignment channel on other hosts.\n\n## What I verified and how\n\n- Dispatch SHA `82a53abab` = HEAD of this dest; evidence SHA `cd76d7d75` present.\n- `git show 82a53abab:packages/core/src/hooks/scope.ts` — `pinFrom`, `inspectActiveScope`, `resolveSoftMissingAcTargets` pin-before-`branchBind`, `bindBranchToActiveStory`, `admitUntiedWithWorkerAuth`.\n- `git show 82a53abab:packages/core/src/hooks/dispatcher.ts` — spawn-only `boundPath`, outside-root skip, lifecycle exempts, shellDestForms default hint, `uniqueActiveBasenameFromDestPath`.\n- `git show 82a53abab:packages/core/src/hooks/classify/host-session-identity.ts` — Claude `session_id` owner key.\n- `git show 82a53abab:packages/core/src/swarm/worker-auth-assignment.ts`, `launch.ts`, `dest-place.ts` — cooperative registry; PREP writer; Grok-only dest-place.\n- `git show 82a53abab:content/skills/deft-directive-swarm/references/host-claude-code.md` — Step 2g item 3.\n- `git ls-tree` active briefs: four at `cd76d7d75`, only `.gitkeep` at `82a53abab`.\n- `git diff --stat cd76d7d75 82a53abab` on the cited hook/swarm adapter paths: empty (code unchanged; active set changed).\n\n## What I could not verify\n\n- Live evaluator run of `inspectActiveScope` against a four-brief tree (process-only; no fixture execution).\n- End-to-end Edit through the hook in a worker worktree (issue also did not).\n- Claude Code `Agent` JSON schema (no `cwd` / `isolation: \"worktree\"` host behavior) from this repository.\n- Issue #5894 body/thread (not in the ceiling snapshot; only cited).\n- How a real multi-story Grok cohort clears post-spawn Write when dest `active/` has more than one brief.\n\n",
+          "id": 6838311779,
+          "html_url": "https://github.com/deftai/directive/issues/6233#issuecomment-6838311779",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T22:59:51Z",
+          "updated_at": "2026-11-12T22:59:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean after round 1 (3 of 3 siblings posted). Take-offer, not for bind as written.\n\n## In plain English\n\nProblem: the write hook learns which story a write belongs to from a spawn-time path or from one environment variable. Workers that share one environment cannot each carry their own story, so a cohort of several stories is refused. The issue proposed reading the story from the per-worktree assignment record that dispatch already writes.\n\nWhat the three critics found: the gap is real in the pinned code, and the assignment record is the right kind of source. But the issue claimed more than it showed. The record exists only for worktrees that `swarm:launch` made, so a Claude sub-agent whose worktree was made another way has no record. Nobody has shown a Claude in-session worker getting from launch to an admitted product write. The contrast with Grok Build is not supported by the code: the Grok spawn-time pin exists only when the destination holds exactly one active brief. Reusing the existing check-time helper as it stands would let a branch name or a parent environment pin decide first. And the record says which story governs a destination, not that the calling worker is assigned to it.\n\nWhat this lean proposes: accept every classified finding. Narrow the remedy to the part that is shown to be sound: resolve the story from the assignment record for registered worktrees, with closed refusal rules and a stated, limited guarantee. Make the Claude adapter text name the headless per-story path until an in-session path is proven. The in-session cohort pain itself is not relieved by this lean, because the launch-to-write path and occupancy under one session identity are unverified. Confirming this map would record those takes; it would not bind a design.\n\nNon-self-arbitration: the same session filed the issue, wrote Stop 1 and writes this lean. No take below overrides a critic. The reconciliation of two critics' refusal rules (item 2 of the remedy) is a reading of both findings, not a new premise.\n\nTarget-digest: sha256:f014d0d561557ef1cda10e1455527cca9b60b7f1fbd0a330a3c8cfed7f17060a\nSpec-path: narrowed remedy below (destination story resolution from the assignment record); the issue body is not the next-build contract\n\nRound 1: 3 siblings dispatched, 3 posted. Codex comment 6838210902; Claude comment 6838294056; Grok comment 6838311779. Panel-deposit and input ceiling: comment 6838150346. Supersedes Stop 1 write-back comment 6838143150 as the operator surface.\n\n## Takes\n\n| Critic | Heading | Class | Take |\n| --- | --- | --- | --- |\n| Codex 6838210902 | 1. Target-worktree binding is not worker-to-story binding | blocks-the-design | accept-into-contract |\n| Codex 6838210902 | 2. Assignment resolver needs closed failure semantics | blocks-the-design | accept-into-contract |\n| Codex 6838210902 | 3. A later-write fix does not establish the in-session launch path | blocks-the-design | accept-into-contract |\n| Codex 6838210902 | 4. Evaluator reproduction proves ambiguity, not universal live-hook refusal | sharpens-framing | accept-into-contract |\n| Codex 6838210902 | 5. Shell coverage must remain an explicit limitation | sharpens-framing | accept-into-contract |\n| Claude 6838294056 | F1. Grok contrast not supported; problem likely not host-specific | sharpens-framing | accept-into-contract |\n| Claude 6838294056 | F2. Record exists only for `swarm:launch` worktrees | sharpens-framing | accept-into-contract |\n| Claude 6838294056 | F3. Assignment-only source; do not reuse the check-time binder | sharpens-framing | accept-into-contract |\n| Claude 6838294056 | F4. Behaviour when the shared registry cannot be read | sharpens-framing | accept-into-contract |\n| Claude 6838294056 | F5. `story_id` and `plan.id` can disagree | sharpens-framing | accept-into-contract |\n| Claude 6838294056 | F6. Claude `Agent` is not a spawn tool to the hook | sharpens-framing | accept-into-contract |\n| Grok 6838311779 | 1. Claude path has no worker-auth deposit | blocks-the-design | accept-into-contract |\n| Grok 6838311779 | 2. Reusing the soft-missing helper inverts refuse-on-disagree | blocks-the-design | accept-into-contract |\n| Grok 6838311779 | 3. Cooperative assignment needs an explicit writer trust story | sharpens-framing | accept-into-contract |\n| Grok 6838311779 | 4. Grok spawn-time pin claim conflicts with multi-active mechanics | sharpens-framing | accept-into-contract |\n| Grok 6838311779 | 5. Shell and same-session occupancy are in scope | sharpens-framing | accept-into-contract |\n\nFootnotes (census only, no take): Claude F7 to F10; Grok 6 and 7.\n\nHow accepted findings change the statement of the problem: pain `P1` reads host-neutrally (any cohort whose workers share a hook environment, or whose destination holds more than one active brief). The issue body item on Grok is withdrawn. The evaluator reproduction shows ambiguity on the gated path; it is not proof of refusal in every worktree layout.\n\n## Bound remedy\n\n1. Write fence, no spawn bound path: when the write's worktree is registered in the worker-auth index, resolve the story from that record through the validated reader, then a unique `story_id` match against eligible active briefs. Assignment only. No branch tokens. The check-time `untied` outcome never admits a write.\n2. Registered worktree: refuse on a registry read failure, on an assigned story that is missing, ineligible or ambiguous, on an environment pin that names a different story, and on a spawn bound path that names a different story. No fall-through to branch or single-eligible selection.\n3. Unregistered linked worktrees and the main worktree keep today's behaviour: the registry is not authority there, and more than one eligible brief without a pin stays fail-closed.\n4. The matcher derives `story_id` the same way launch does, or launch refuses a brief with no `plan.id`.\n5. Stated guarantee: destination-scoped cooperative fencing. The trusted writer is dispatch PREP. It is not worker isolation. Coverage is Write/Edit, plus recognized shell destination forms when that policy is set to enforce. Other shell writes are not covered.\n6. The Claude adapter text names one headless process per story as the implement path for a multi-story cohort, until an in-session path has an end-to-end proof.\n7. Acceptance: live hook runs before and after, in a nested `.deft-scratch/worktrees/<sid>` destination, two stories, no environment pin, with a product-file Write and a lifecycle-brief Edit tested separately.\n\n## Pain\n\ndoes-not-relieve: P1\nrelieves: P2\n\nWhy `P1` is not relieved: the remedy fixes story resolution for a registered destination. It does not show a Claude in-session worker reaching an admitted write. Open at the pin: no production path deposits the record for a worktree Claude creates; `Agent` is not in the hook's spawn tool list, so no spawn-time gate runs; and occupancy admission for several workers under one session identity is unread. The Grok later-write channel in a multi-active destination is also unnamed.\n\n## Still open\n\n- Residual headings: none (every classified heading has a take).\n- Unrelieved pain: `P1`, as above.\n- Markers: the `P2` relief cite is an asserted premise. No critic has targeted it.",
+          "id": 6838337814,
+          "html_url": "https://github.com/deftai/directive/issues/6233#issuecomment-6838337814",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T23:01:02Z",
+          "updated_at": "2026-11-12T23:01:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nHandoff (after first successor lean, comment 6838337814)\n\nopen-question: Can one Claude Code session run two in-session workers that each reach an admitted product-file write in their own swarm-launch worktree, with no environment pin, given that parent and workers share one session identity for occupancy and that the hook sees no spawn?\n\n## In plain English\n\nRound 1 agreed on what is wrong and on the safe part of the fix. It did not establish that the fix makes an in-session cohort work, because nobody has run one. Three things are unread or unproven at the pin: which production path writes the assignment record for a worktree the Claude host uses, how occupancy admits several workers under one shared session identity, and how a multi-story Grok cohort clears later writes today. The next step is evidence from a live session, then a new candidate, then an independent check of that candidate.\n\n## State\n\n- Open pain: `P1`. Asserted, unaudited: `P2` relief on lean 6838337814.\n- Takes: 16 of 16 classified headings accepted on that lean; no residual heading.\n- Dual-stop: spend N≥3, three round-1 posts used. A further critic post needs an operator raise, except the reserved slot for the first pain-audit of asserted coverage.\n- Launch record for this arc: seats used read-only launchers and the parent relayed each body. The Claude seat's body was transcribed by the parent from the sub-agent hand-back, because the host left no transcript file to copy from. The Grok body had 524 bytes of progress narration before its model line and a harness exit marker after it; both were removed and nothing else was changed.\n\nNothing is bound, nothing is stamped, and ingest is not cleared.",
+          "id": 6838341993,
+          "html_url": "https://github.com/deftai/directive/issues/6233#issuecomment-6838341993",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T23:01:13Z",
+          "updated_at": "2026-11-12T23:01:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nHost evidence for the Handoff open question (comment 6838341993)\n\n## In plain English\n\nI ran a contained live test in one Claude Code session with the real Directive hook. With several active briefs in a worker worktree and no pin, the hook refuses a product edit, as the issue claimed. With exactly one implementation-ready brief in each worker worktree, two in-session sub-agents each made an admitted product edit in their own worktree, and the hook refused their out-of-scope edits. A sub-agent that was pointed at the other worker's worktree was also admitted there, under that worktree's story. So the in-session route is not blocked by occupancy or by the missing spawn gate; what it lacks is a way to resolve the story when the worktree holds more than one brief. The test did not use `swarm:launch`, so the assignment record and a launch-minted lease remain untested.\n\n## Setup\n\n- Claude Code session, Directive 0.129.7, hooks from the primary checkout at `cd76d7d75`. No `DEFT_ACTIVE_SCOPE` in the session.\n- Two throwaway linked worktrees under `.deft-scratch/worktrees/` (nested under the payload root), made with plain `git worktree add --detach`. Not made by `swarm:launch`, so no worker-auth assignment record exists for them.\n- Workers were native `Agent` sub-agents (general-purpose). They used the Edit tool with absolute paths. Their tools start in the primary checkout.\n- Mutation ritual: `session:start` with the session's own id, on the primary and on each worktree, with finalize-owed deferred by a recorded reason. The lease was released and both worktrees removed afterwards. Nothing was committed.\n\n## Results\n\n| # | Actor | Worktree state | Target | Result |\n| --- | --- | --- | --- | --- |\n| 1 | parent | 4 active briefs (`cd76d7d75`), no ritual state in the worktree | product file | denied: ritual state missing for that worktree |\n| 2 | parent | 4 active briefs, ritual started in the worktree | product file in one brief's `file_scope` | denied: `multiple-eligible`, names all four briefs |\n| 3 | sub-agents A and B | worktrees moved to other commits after ritual | any | denied: ritual state stale, HEAD changed discontinuously |\n| 4 | sub-agent B | worktree b at `a4cf59092`, one ready brief (#4966) | in-scope product file | allowed |\n| 5 | sub-agent B | same | out-of-scope product file | denied: outside write fence story `file_scope` |\n| 6 | sub-agent A | worktree a at `c60b6aab7`, one brief (#6173) that fails preflight | in-scope and out-of-scope files | denied: preflight (`intended_placement is not an object`) |\n| 7 | sub-agent A | writes into worktree b (not its own) | file in b's story scope | allowed |\n| 8 | sub-agents A and B, concurrent | a and b both at `a4cf59092`, one ready brief each | A: in-scope file in a; B: in-scope file in b | both allowed |\n| 9 | sub-agent A | same | out-of-scope file in a | denied: outside write fence story `file_scope` |\n\n## What this shows\n\n- Row 2 is the end-to-end form of the issue's evaluator reproduction, in the nested worktree layout. The outside-root carve-out does not apply there.\n- Rows 4, 8 and 9: one session identity can hold the lease on several worktrees, and sub-agents write under it. `session:start` reported `occupancy=claimed` for each worktree under the same session id. Occupancy under one session identity does not block an in-session cohort.\n- Row 7 is the live form of Codex finding 1: the fence follows the destination, not the worker.\n- Rows 1 and 3: every worker worktree needs its own ritual state, and it goes stale when the worktree's HEAD moves discontinuously. Someone must run `session:start` per worktree; a sub-agent cannot inherit the parent's.\n- No spawn-time gate ran for any `Agent` dispatch, consistent with Claude finding F6.\n\n## Limits\n\n- Each worktree held one brief because of the commit chosen, not because a fix resolved the story. This stands in for the remedy's effect; it does not test the remedy.\n- Both worktrees in rows 8 and 9 carried the same story (#4966). Only one other single-brief commit was available and its brief fails preflight (row 6). Two different stories were not run side by side.\n- No `swarm:launch`: the assignment record, the launch-minted lease and its session id, and deposit reconstitution are untested. A launch-minted lease under a different session id could still refuse the session's writes.\n- Shell writes were not tested. Grok Build was not tested.\n- A parent Edit with a non-matching `old_string` returned \"string not found\" without a hook message; the tool appears to validate before the hook runs, so that probe proves nothing and is not counted.\n\nThis comment is parent-gathered evidence. It is measured, not independently checked. It binds nothing and changes no take.",
+          "id": 6839114978,
+          "html_url": "https://github.com/deftai/directive/issues/6233#issuecomment-6839114978",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T23:35:05Z",
+          "updated_at": "2026-11-12T23:35:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (post-Handoff, after host evidence)\n\ndesign-critique: warranted, because the Handoff question now has measured host evidence (comment 6839114978), and the candidate that follows changes write-fence admission, which is fail-closed authority for every dispatched worker.\nmechanism-shaped: true\ncharter: open critique\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one independent checking critic for the candidate lean; round 1 already spent the panel\ndispatch-sha: 82a53abab79e5c513b3a4c582075db70205a301b\ndest: .deft-scratch/worktrees/arc-6233\nverification-path: pin-read git show 82a53abab79e5c513b3a4c582075db70205a301b:; dest cwd-without-occupy\ntarget-kind: issue\nceiling-kind: comment-id\npain: P1, P2\n\n## In plain English\n\nRound 1 agreed on the defect and on the safe part of the fix, and left one question: whether in-session workers can reach admitted writes at all on Claude Code. A live test in one session answered most of it. With one resolvable story per worker worktree, two sub-agents each made an admitted product edit in their own worktree, and out-of-scope edits were refused. With several briefs and no pin, the edit was refused. A candidate lean follows, then one independent critic checks it.\n\n## Pains (unchanged from the first Stop 1, comment 6838143150)\n\n| Id | Pain |\n| --- | --- |\n| `P1` | A multi-story cohort cannot run as in-session sub-agents: with more than one fencing active brief the write fence needs a pin, and the only pin sources are a spawn-time bound path and one session-wide environment variable. Round 1 found this is not specific to one host. |\n| `P2` | The Claude Code swarm adapter text tells the parent to set each worker's worktree path, but names no mechanism, so the documented implement path and the working path differ. |\n\n## Notes\n\n- Dual-stop: three round-1 critic posts are spent, and the count does not refill at Handoff. The operator approved one checking critic post in chat after the evidence comment. Any further post needs another raise.\n- Non-self-arbitration: the same session filed the issue, wrote both Stop 1 comments, gathered the evidence and writes the candidate. The evidence is measured by the parent and is not independently reproduced.",
+          "id": 6839185562,
+          "html_url": "https://github.com/deftai/directive/issues/6233#issuecomment-6839185562",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T23:38:54Z",
+          "updated_at": "2026-11-12T23:38:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** candidate after Handoff and host evidence. Supersedes Stop 1 write-back comment 6839185562. Recuts the remedy on the earlier lean, comment 6838337814.\n\n## In plain English\n\nProblem: the write hook learns which story a write belongs to from a spawn-time path or from one environment variable. Workers that share one environment cannot each carry their own story. When a worker's worktree holds more than one active brief, every product edit is refused. A live test confirmed that refusal, and also showed the rest of the in-session route works: one session can hold the lease on several worktrees, sub-agents write under it, and the fence still refuses out-of-scope edits.\n\nSolution this lean proposes: when a worker's worktree is registered by dispatch, the hook reads the story from that registration instead of needing a pin. If the registration is unreadable, points at a story that is missing or not ready, or disagrees with a pin, the hook refuses. Worktrees that dispatch did not register behave as they do today. The guarantee is stated plainly: the fence follows the worktree, not the worker, and the registry is cooperative. The Claude adapter text names the steps a parent must take: launch through the swarm launcher so the registration exists, start the session ritual in each worker worktree, hold no pin, and give each sub-agent its worktree's absolute path. One headless process per story stays the documented fallback until a two-story acceptance run passes.\n\nIf this map is confirmed and the checking critic finds nothing blocking, the synthesis would assert that this narrowed remedy is the next-build contract for the issue. It would not assert worker isolation, shell-write coverage, or anything about Grok Build beyond the shared resolution rule.\n\nNon-self-arbitration: the same session filed the issue, wrote Stop 1, gathered the evidence and writes this lean. The two premises below are the parent's own measurements and carry markers for the checking critic.\n\nTarget-digest: sha256:f014d0d561557ef1cda10e1455527cca9b60b7f1fbd0a330a3c8cfed7f17060a\nSpec-path: Bound remedy below; the issue body is not the next-build contract\n\n## Takes\n\nAll 16 classified round-1 headings stay `accept-into-contract`, as recorded per heading on comment 6838337814 (Codex comment 6838210902 headings 1 to 5; Claude comment 6838294056 headings F1 to F6; Grok comment 6838311779 headings 1 to 5). No heading is `disagree` or `defer`. No new critic heading has been posted since.\n\nWhere the evidence changes how an accepted finding is carried:\n\n- Codex 3 and Grok 1 (no shown launch-to-write path): carried by remedy items 6 and 7. The launcher is the named writer of the registration, and the acceptance run goes through it.\n- Grok 5 (occupancy in scope): disposed by measurement for the same-session case; the launch-minted lease is carried by item 7.\n- Codex 1 (destination, not worker): observed live; carried by item 5 as the stated guarantee.\n\n## Premises introduced by the parent\n\naudit:E-multi-eligible sha=cd76d7d752e6a56ed979a4af34b4fc4821072710 pointer=comment:6839114978 reading=measured\naudit:E-occupancy sha=cd76d7d752e6a56ed979a4af34b4fc4821072710 pointer=comment:6839114978 reading=measured\n\n- `E-multi-eligible`: in a nested worker worktree with four active briefs and no pin, the live hook refuses a product edit as multiple-eligible.\n- `E-occupancy`: one Claude Code session identity can hold the lease on several linked worktrees at once, and in-session sub-agents make admitted in-scope edits under it.\n\n## Bound remedy\n\n1. Write fence, no spawn bound path: when the write's worktree is registered in the worker-auth index, resolve the story from that record through the validated reader, then a unique `story_id` match against eligible active briefs. Assignment only. No branch tokens. The check-time `untied` outcome never admits a write.\n2. Registered worktree: refuse on a registry read failure, on an assigned story that is missing, ineligible or ambiguous, on an environment pin that names a different story, and on a spawn bound path that names a different story. No fall-through to branch or single-eligible selection.\n3. Unregistered linked worktrees and the main worktree keep today's behaviour: the registry is not authority there, and more than one eligible brief without a pin stays fail-closed.\n4. The matcher derives `story_id` the same way launch does, or launch refuses a brief with no `plan.id`.\n5. Stated guarantee: destination-scoped cooperative fencing. The trusted writer is dispatch PREP. It is not worker isolation. Coverage is Write/Edit, plus recognized shell destination forms when that policy is set to enforce. Other shell writes are not covered.\n6. Claude adapter text names the in-session sequence: the parent launches through `swarm:launch` so each worker worktree is registered; the parent starts the session ritual in each worker worktree; the parent holds no environment pin; each sub-agent is given its worktree's absolute path. One headless process per story is the named fallback until item 7 passes.\n7. Acceptance: a live two-story run through `swarm:launch` on Claude Code, in nested `.deft-scratch/worktrees/<sid>` destinations, with no environment pin. Each worker makes an admitted in-scope product write and is refused out of scope. The same run records whether the launch-minted lease admits the session's sub-agents. Before the change the same run is refused as multiple-eligible. A product-file write and a lifecycle-brief edit are tested separately.\n\n## Pain\n\nrelieves: P1\nrelieves: P2\n\nReading of those cites: `P1` is relieved for workers in dispatch-registered worktrees, by items 1 to 4 with the sequence in item 6; item 7 is the proof the implementation owes. `P2` is relieved by item 6, which gives the adapter text a mechanism.\n\n## Still open\n\n- Residual headings: none.\n- Markers awaiting an independent critic: `pain-P1`, `pain-P2`, `E-multi-eligible`, `E-occupancy`.\n- Not claimed: worker isolation, arbitrary shell writes, the Grok Build later-write channel in a multi-brief destination, and whether `Agent` should become a spawn tool to the hook.",
+          "id": 6839194116,
+          "html_url": "https://github.com/deftai/directive/issues/6233#issuecomment-6839194116",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T23:39:22Z",
+          "updated_at": "2026-11-12T23:39:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, E-multi-eligible, E-occupancy\nfinding-classes: blocking, footnote\nharvest-changed: true\n\n## In plain English\n\nThe proposed worktree registration resolves the cited story-selection pain, and the adapter sequence supplies the missing mechanism. The parent’s measurements are consistent with the pinned code and fairly qualified. They establish neither a working two-story swarm-launch run nor independent reproduction.\n\nOne failure case prevents binding the remedy as written: an unreadable shared index prevents the hook from knowing whether a worktree is registered. Items 2 and 3 require different behavior based on information the validated reader cannot supply in that case.\n\npain-P1: holds — For valid dispatch-registered destinations, assignment-based selection removes the shared environment pin dependency; this is prospective design coverage, with end-to-end proof still owed by item 7.\npain-P2: holds — Item 6 names the registration writer, per-worktree ritual, pin posture and absolute-path transport, while retaining the headless fallback.\nE-multi-eligible: holds — The reported nested-worktree refusal matches the pinned scope resolver and dispatcher, although I could not independently reproduce the live event.\nE-occupancy: holds — Destination-local leases and session-based Claude identity support the reported same-session admissions, within the evidence comment’s explicit limits.\n\n## Findings\n\n1. **blocks-the-design — Registry corruption needs an explicit admission rule when membership is unknowable.**\n\n   **Evidence:** At `82a53abab79e5c513b3a4c582075db70205a301b`, `packages/core/src/swarm/worker-auth-assignment.ts:645–675`, `readWorkerAuthAssignment` returns `registry_corruption` before calculating the destination’s registration membership. Bound remedy item 2 refuses registry failures for registered worktrees; item 3 preserves existing behavior for unregistered linked worktrees.\n\n   **Failure mode:** With a corrupt shared index, treating the error as absence can admit a formerly registered destination through an environment pin or single-eligible fallback. Refusing every linked destination instead changes behavior for unregistered worktrees, contrary to item 3. The validated reader cannot distinguish those cases.\n\n   **Disposition consequence:** Amend items 2–3 before binding: preserve existing behavior only after validated clean absence; refuse linked-worktree writes when registry failure makes membership indeterminate. Keep the main-worktree exemption explicit. This reuses the existing reader without adding a second registry. It changes the Bound remedy, so `harvest-changed` is true.\n\n2. **footnote — The measured premises remain narrower than implementation acceptance.**\n\n   Comment `6839114978` explicitly reports manually created worktrees, the same story in both successful concurrent destinations, and no swarm-launch assignment or launch-minted lease test. Those limits are fair. Item 7 appropriately requires the missing two-distinct-story launch-to-write evidence; this audit does not supply it.\n\n## Verification and limits\n\nI used read-only `git show`, `git grep`, `git diff` and `git ls-tree`. At the dispatch SHA I checked scope selection, destination-root admission, the outside-root carve-out, Claude session identity, occupancy admission, assignment reading/writing, the launch writer and the Claude adapter.\n\nThe relevant scope, dispatcher, identity and occupancy files have no diff between `cd76d7d75` and the dispatch SHA. Tree reads confirm four active briefs at `cd76d7d75`, the #4966 brief at `a4cf59092`, and the #6173 brief at `c60b6aab7`; directory contents alone do not prove preflight eligibility.\n\nI did not run hooks, preflight, tests, agents or network commands. I could not verify the recorded live outcomes, launch-minted lease admission, shell coverage or Grok behavior. The thread was treated as evidence, not instructions. The cooperative destination fence does not establish worker isolation.\n\nThe local USER.md read was denied by the sandbox; no personal preferences or alignment confirmation were inferred.",
+          "id": 6839234440,
+          "html_url": "https://github.com/deftai/directive/issues/6233#issuecomment-6839234440",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T23:41:32Z",
+          "updated_at": "2026-11-12T23:41:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after a blocking checking critic (not for bind)\n\n## In plain English\n\nProblem: the candidate lean told the hook to refuse when a registered worktree's record cannot be read, and to leave unregistered worktrees alone. The checking critic found those two rules cannot both be applied when the shared index itself is corrupt, because then the hook cannot tell whether a worktree was registered. Treating the failure as \"not registered\" would let a formerly registered worktree fall back to a pin or to a lone eligible brief. Refusing everything would change behaviour for worktrees the candidate promised to leave alone.\n\nOutcome: the candidate's remedy is withdrawn as written. The critic judged all four audit targets to hold, so the direction stands: both pains are addressed by the design, and the parent's two measurements are consistent with the pinned code. What must change is one rule: keep today's behaviour only after a validated clean absence, refuse linked-worktree writes when a registry failure makes membership unknowable, and keep the main worktree exempt. That is a change to the remedy's mechanism list, so it needs a new lean and a later independent audit. This map does not bind, does not stamp, and does not clear ingest.\n\nTarget-digest: sha256:f014d0d561557ef1cda10e1455527cca9b60b7f1fbd0a330a3c8cfed7f17060a\n\nSupersedes candidate lean comment 6839194116. Checking critic: comment 6839234440 (codex; `finding-classes: blocking, footnote`; `harvest-changed: true`).\n\n## Takes\n\n| Critic | Heading | Class | Take |\n| --- | --- | --- | --- |\n| Codex 6839234440 | 1. Registry corruption needs an explicit admission rule when membership is unknowable | blocks-the-design | accept-into-contract |\n\nFootnote (census only): Codex 6839234440 heading 2. The 16 round-1 headings stay accepted as recorded on comment 6838337814.\n\n## Pain\n\ndoes-not-relieve: P1\ndoes-not-relieve: P2\n\nReading of those cites: no remedy stands on this map, so nothing is relieved by it. The critic's per-target lines (`pain-P1: holds`, `pain-P2: holds`) apply to the withdrawn remedy with the amendment still owed.\n\n## Markers\n\n- `E-multi-eligible` and `E-occupancy`: targeted by critic comment 6839234440, both reported as holding within the stated limits.\n- The relief cites on the withdrawn candidate are not cleared: the audit was blocking.",
+          "id": 6839239698,
+          "html_url": "https://github.com/deftai/directive/issues/6233#issuecomment-6839239698",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T23:41:49Z",
+          "updated_at": "2026-11-12T23:41:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nHandoff (after retraction map, comment 6839239698)\n\nopen-question: Does amending the remedy so that today's behaviour is kept only after a validated clean absence, linked-worktree writes are refused when a registry failure makes membership unknowable, and the main worktree stays exempt, close the corrupt-index case without denying worktrees that were never registered while the index is healthy?\n\n## In plain English\n\nOne rule in the remedy needs rewriting, and the critic gave the rewrite. The parent can draft the amended lean now. It then needs one more independent audit, because the mechanism list changes.\n\n## State\n\n- Open pains: `P1`, `P2` (design direction judged sound; remedy withdrawn pending the amendment).\n- Dual-stop: three round-1 posts and one operator-approved checking post are spent. The next audit needs another operator raise.\n- Not bound, not stamped, ingest not cleared.",
+          "id": 6839240126,
+          "html_url": "https://github.com/deftai/directive/issues/6233#issuecomment-6839240126",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T23:41:51Z",
+          "updated_at": "2026-11-12T23:41:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nDual-stop cap raise (operator, in chat)\n\nThe operator raised the Dual-stop cap for this arc by one critic post, after the Handoff in comment 6839240126. The post is for an independent checking critic of the amended lean that follows (seat: grok, read-only launcher, parent posts the body unedited). Any further post needs another raise.",
+          "id": 6839298124,
+          "html_url": "https://github.com/deftai/directive/issues/6233#issuecomment-6839298124",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T23:45:13Z",
+          "updated_at": "2026-11-12T23:45:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** amended candidate after the retraction map. Supersedes retraction map comment 6839239698.\n\n## In plain English\n\nProblem: the write hook learns which story a write belongs to from a spawn-time path or from one environment variable. Workers that share one environment cannot each carry their own story, so when a worker's worktree holds more than one active brief, every product edit is refused. The earlier candidate fixed that by reading the story from the registration that dispatch writes for each worker worktree. It was withdrawn because it did not say what happens when the shared registration index is itself unreadable: the hook then cannot tell a registered worktree from an unregistered one.\n\nSolution this lean proposes: the same remedy with that rule made explicit. In a linked worktree, the hook keeps today's behaviour only when the registration reader succeeds and reports that this worktree has no registration. Any reader failure refuses the write and names the failure and the repair. The main worktree never consults the registry. Everything else is unchanged: registered worktrees take their story from the registration, disagreement with a pin refuses, the guarantee is stated as cooperative and per worktree, and the Claude adapter text names the in-session steps with headless per-story as the fallback until a two-story acceptance run passes.\n\nA stated cost: while the shared index is unreadable, every linked-worktree write in that repository is refused, including the headless per-story route. That is the fail-closed choice, with one repair step.\n\nIf this map is confirmed and the checking critic finds nothing blocking, the synthesis would assert that this remedy is the next-build contract for the issue. It would not assert worker isolation, shell-write coverage, or anything specific to Grok Build.\n\nNon-self-arbitration: the same session filed the issue, wrote Stop 1, gathered the evidence and writes this lean. The amended rule is the checking critic's own disposition (comment 6839234440, heading 1), restated as remedy text.\n\nTarget-digest: sha256:f014d0d561557ef1cda10e1455527cca9b60b7f1fbd0a330a3c8cfed7f17060a\nSpec-path: Bound remedy below; the issue body is not the next-build contract\n\n## Takes\n\nAll 17 classified headings are `accept-into-contract`: the 16 round-1 headings as recorded on comment 6838337814 (Codex comment 6838210902, Claude comment 6838294056, Grok comment 6838311779), and Codex comment 6839234440 heading 1 as recorded on comment 6839239698. No heading is `disagree` or `defer`.\n\nParent measurements `E-multi-eligible` and `E-occupancy` (evidence comment 6839114978) were targeted by critic comment 6839234440 and reported as holding within their stated limits.\n\n## Bound remedy\n\n1. Write fence, no spawn bound path, linked worktree: read the worker-auth assignment for the write's worktree through the validated reader. When it returns an assignment, resolve the story by a unique `story_id` match against eligible active briefs. Assignment only. No branch tokens. The check-time `untied` outcome never admits a write.\n2. Linked worktree: refuse when the reader fails for any reason (corrupt index, orphan, duplicate, malformed or missing registered record), because membership is then unknowable or broken. Also refuse when the assigned story is missing, ineligible or ambiguous, when an environment pin names a different story, and when a spawn bound path names a different story. No fall-through to branch or single-eligible selection. The refusal names the failure kind and one repair step.\n3. Linked worktree with a validated clean absence (the reader succeeds and reports no assignment for this worktree): today's behaviour, unchanged. The main worktree never consults the registry.\n4. The matcher derives `story_id` the same way launch does, or launch refuses a brief with no `plan.id`.\n5. Stated guarantee: destination-scoped cooperative fencing. The trusted writer is dispatch PREP. It is not worker isolation. Coverage is Write/Edit, plus recognized shell destination forms when that policy is set to enforce. Other shell writes are not covered.\n6. Claude adapter text names the in-session sequence: the parent launches through `swarm:launch` so each worker worktree is registered; the parent starts the session ritual in each worker worktree; the parent holds no environment pin; each sub-agent is given its worktree's absolute path. One headless process per story is the named fallback until item 7 passes.\n7. Acceptance: a live two-story run through `swarm:launch` on Claude Code, in nested `.deft-scratch/worktrees/<sid>` destinations, with no environment pin. Each worker makes an admitted in-scope product write and is refused out of scope. The same run records whether the launch-minted lease admits the session's sub-agents. Before the change the same run is refused as multiple-eligible. A product-file write and a lifecycle-brief edit are tested separately. A corrupt-index case is tested for a registered worktree, an unregistered linked worktree and the main worktree.\n\n## Pain\n\nrelieves: P1\nrelieves: P2\n\nReading of those cites: `P1` is relieved for workers in dispatch-registered worktrees by items 1 to 4 with the sequence in item 6; item 7 is the proof the implementation owes. `P2` is relieved by item 6.\n\n## Still open\n\n- Residual headings: none.\n- Markers awaiting an independent critic: `pain-P1`, `pain-P2` on this lean.\n- Not claimed: worker isolation, arbitrary shell writes, the Grok Build later-write channel in a multi-brief destination, and whether `Agent` should become a spawn tool to the hook.",
+          "id": 6839298535,
+          "html_url": "https://github.com/deftai/directive/issues/6233#issuecomment-6839298535",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T23:45:15Z",
+          "updated_at": "2026-11-12T23:45:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: none\nharvest-changed: false\n\n## In plain English\n\nBoth pain cites on the amended lean hold. Items 1–4 plus the adapter sequence in item 6 still give dispatch-registered worktrees a story without a shared environment pin, and item 6 still names the missing Claude mechanism with headless fallback. Amended Bound remedy items 2 and 3 close comment 6839234440 heading 1 without a new defect: they key admission on the validated reader’s outcome (failure refuses; clean absence keeps today; main worktree stays exempt), which matches what `readWorkerAuthAssignment` already returns, and the lean states the temporary cost that every linked-worktree write fails closed while the shared index is unreadable.\n\npain-P1: holds — For dispatch-registered destinations, assignment-based selection removes the shared env-pin dependency; item 7 remains the owed live proof.\npain-P2: holds — Item 6 names the registration writer, per-worktree ritual, no-pin posture, absolute-path transport, and headless fallback.\n\n## Close of 6839234440 heading 1\n\nAmended items 2 and 3 close that blocking finding. At `82a53abab79e5c513b3a4c582075db70205a301b`, `readWorkerAuthAssignment` already partitions the cases the prior critic said were conflated: `registry_corruption` / orphan / duplicate / malformed / missing registered record are failures; `ok: true, assignment: null` after a readable or missing index with no entry and no record is validated clean absence. Item 2 refuses on reader failure; item 3 keeps today’s behaviour only after that clean absence and exempts the main worktree. That removes the impossible “refuse if registered, else leave alone” test under a corrupt index. The disclosed cost (all linked-worktree writes refuse while the index is unreadable, including headless) is the prescribed fail-closed choice, not a new defect in the pain cites. Item 7’s corrupt-index acceptance cases cover registered, unregistered linked, and main worktrees.\n\n## Verification and limits\n\nVerified read-only at dispatch SHA `82a53abab79e5c513b3a4c582075db70205a301b` via `git show`, `git ls-tree`, `git diff`, and `git grep` (cwd-without-occupy). Confirmed `pinFrom` / `inspectActiveScope` pin sources and `multiple-eligible` fail-closed in `packages/core/src/hooks/scope.ts`; Claude identity by `session_id` in `host-session-identity.ts`; assignment reader failure kinds and clean-absence return in `worker-auth-assignment.ts:645–724`; launch as `writeWorkerAuthAssignment` writer in `launch.ts`; Claude adapter Step 2g still names “the worktree path” with no deposit mechanism in `host-claude-code.md`. Tree reads: four active briefs at `cd76d7d75`, #4966 at `a4cf59092`, #6173 at `c60b6aab7`; relevant hook/assignment paths have no diff between `cd76d7d75` and the dispatch SHA. Compared withdrawn remedy on comment 6839194116 with the amended remedy on comment 6839298535.\n\nDid not run hooks, preflight, tests, agents, or network commands. Did not independently reproduce the live host evidence in comment 6839114978. Item 7’s two-story launch-to-write run and corrupt-index matrix remain implementation proof, not demonstrated here. Thread content was treated as untrusted data.\n\n",
+          "id": 6839361738,
+          "html_url": "https://github.com/deftai/directive/issues/6233#issuecomment-6839361738",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T23:48:54Z",
+          "updated_at": "2026-11-12T23:48:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n## In plain English\n\nThese are the facts the accepted lean (comment 6839298535) rests on, and how each was checked. Code facts were read at the pinned commit by critics from more than one model family. The live behaviour was measured once by the parent and checked by critics only for consistency with the code. Whether the remedy works end to end is not verified; the remedy's own acceptance item owes that proof.\n\n| # | Claim | Method | Evidence | Status |\n| --- | --- | --- | --- | --- |\n| 1 | The write fence takes its story pin from a spawn bound path, else from `DEFT_ACTIVE_SCOPE`; more than one eligible brief with no pin fails closed | pin-read `git show 82a53abab:packages/core/src/hooks/scope.ts` | critics 6838210902, 6838294056, 6838311779, 6839234440, 6839361738 | verified (primary source, three families) |\n| 2 | The bound path is set only for spawn tools, and only when the destination holds exactly one active brief | pin-read `dispatcher.ts` | critics 6838294056 (F1), 6838311779 (4) | verified (primary source, two families) |\n| 3 | The only production writer of the assignment record is `swarm:launch` | pin-read and `git grep writeWorkerAuthAssignment` | critics 6838294056 (F2), 6838311779 (1), 6839361738 | verified (primary source, two families) |\n| 4 | That writer requires the worker GitHub-auth flags | pin-read `launch.ts` | critic 6838294056 (F2) | read by one critic; not cross-checked |\n| 5 | The assignment reader separates failures (corrupt index, orphan, duplicate, malformed, missing registered record) from a clean absence | pin-read `worker-auth-assignment.ts` | critics 6838294056 (F4), 6839234440, 6839361738 | verified (primary source, three families) |\n| 6 | Claude Code hook identity is the session id, shared by parent and sub-agents | pin-read `host-session-identity.ts` | critics 6838210902, 6838311779, 6839234440, 6839361738 | verified (primary source, two families) |\n| 7 | `Agent` is not in the hook's spawn tool list | pin-read `tools.ts` | critic 6838294056 (F6); no spawn gate observed in evidence 6839114978 | read by one critic; consistent with one parent measurement |\n| 8 | The check-time binder puts branch tokens first and has an `untied` outcome | pin-read `scope.ts` | critics 6838210902 (2), 6838294056 (F3), 6838311779 (2) | verified (primary source, three families) |\n| 9 | A brief with no `plan.id` gets a filename-based `story_id` that the matcher does not compare | pin-read `launch.ts`, `scope.ts` | critic 6838294056 (F5) | read by one critic; not cross-checked |\n| 10 | Live: in a nested worktree with four active briefs and no pin, a product edit is refused as multiple-eligible | one live run, parent session, Directive 0.129.7 | evidence 6839114978 row 2; consistency checked by critics 6839234440, 6839361738 | measured by parent; not independently reproduced |\n| 11 | Live: one session holds leases on several worktrees and two sub-agents each make an admitted in-scope edit; out-of-scope edits are refused | one live run, both worktrees on the same story | evidence 6839114978 rows 4, 5, 8, 9; consistency checked by critic 6839234440 | measured by parent; not independently reproduced |\n| 12 | Live: a sub-agent writing into another worker's worktree is admitted under that worktree's story | one live run | evidence 6839114978 row 7; predicted by critic 6838210902 (1) | measured by parent; not independently reproduced |\n| 13 | The Bound remedy relieves both pains as cited | two independent pain-audits of the design | critic 6839234440 (holds, one blocking rule, since amended); critic 6839361738 (holds, no findings) | endorsed by two families; not demonstrated |\n| 14 | A launch-minted lease admits the session's sub-agents; a two-story run through `swarm:launch` works | none | remedy item 7 | not verified |\n\nRows 10 to 12 were gathered by the same session that filed the issue and wrote the leans. No row is marked verified on critic agreement alone.",
+          "id": 6839375219,
+          "html_url": "https://github.com/deftai/directive/issues/6233#issuecomment-6839375219",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T23:49:42Z",
+          "updated_at": "2026-11-12T23:49:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n## In plain English\n\nProblem: when a worker's worktree holds more than one active brief, the write hook cannot tell which story a write belongs to unless a session-wide pin is set. Workers that share one environment cannot each carry their own pin, so an in-session cohort of several stories is refused. A live run confirmed the refusal, and also showed that the rest of the in-session route works on Claude Code.\n\nAccepted solution: for worktrees that dispatch registered, the hook reads the story from that registration. It refuses on any registry failure and on any disagreement with a pin or a spawn path. It keeps today's behaviour only after a validated clean absence, and it never consults the registry in the main worktree. The guarantee is stated as cooperative and per worktree, not worker isolation. The Claude adapter text names the in-session steps, with one headless process per story as the fallback until a two-story acceptance run passes.\n\nWhat this does not establish: that the remedy works end to end. No run went through the swarm launcher, both workers in the live run carried the same story, and shell writes and Grok Build were not tested. Those are owed by the remedy's acceptance item.\n\nBound contract: successor lean 6839298535, with verified-claims table 6839375219.\n\n## Arc record\n\n- Round 1: three critics, comments 6838210902, 6838294056, 6838311779. Checking critics: comments 6839234440 (blocking, led to retraction 6839239698) and 6839361738 (no findings).\n- 17 of 17 classified headings accepted. No heading disagreed or deferred. Audit markers were each targeted by a later critic.\n- Confirm conjunct: yolo standing, which defaulted on for this arc. The operator approved each dispatch step in chat (the experiment, the checking critic, the cap raise). The operator did not separately confirm the final lean in chat.\n- Non-self-arbitration: one session filed the issue, wrote both gate comments and every lean, gathered the live evidence, and posts this record.\n- Relay: every critic ran with a read-only launcher and returned its body to the parent, which posted it. The Claude round-1 body was transcribed from the sub-agent hand-back. Progress narration and a harness exit marker were stripped from both Grok bodies. The panel-delivery fixture therefore reports the seats as unverified hand-backs; the bodies are on the thread.\n- Run posture: no-ingest. This record does not ingest and does not start implementation.",
+          "id": 6839375589,
+          "html_url": "https://github.com/deftai/directive/issues/6233#issuecomment-6839375589",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T23:49:43Z",
+          "updated_at": "2026-11-12T23:49:43Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nThe PreToolUse write fence learns which story a write belongs to from two sources only: a spawn-time `boundPath`, or `DEFT_ACTIVE_SCOPE` in the hook process environment. With more than one fencing active brief and no pin, it fails closed as `multiple-eligible` (#4007).\n\nOn Claude Code, in-session sub-agents (`Agent`) run inside the parent process and share its environment. One environment means one pin for the whole cohort. So a multi-story cohort cannot run as in-session sub-agents on Claude Code. It works on Grok Build, where `spawn_subagent` takes a `cwd` and the pin is bound at spawn.\n\nThe runtime already holds a per-worktree story record (the worker-auth assignment, #3663, and `bindBranchToActiveStory`, #5855). The write fence does not read it.\n\n## Evidence\n\nEvaluator-level reproduction at `cd76d7d75` (v0.129.7), on a delivery-branch checkout with four active briefs (#5710, #5882, #6203, #6212):\n\n- `inspectActiveScope(root, { env })` with no `DEFT_ACTIVE_SCOPE`: `ready=false`, `denyKind=multiple-eligible`, message names all four briefs.\n- Same call with `DEFT_ACTIVE_SCOPE` set to one brief's basename: `ready=true`, bound to that brief.\n\nRun with `tsx` against `packages/core/src/hooks/scope.ts`. This is the evaluator, not a live hook run. I did not run an end-to-end Edit through the hook in a worker worktree.\n\nCode at that SHA:\n\n- `packages/core/src/hooks/scope.ts` `pinFrom`: `boundPath`, else `env[DEFT_ACTIVE_SCOPE]`.\n- `packages/core/src/hooks/dispatcher.ts` (about L2537): `boundPath` is set only when the tool is a spawn tool. Later direct writes by the child fall back to the environment.\n- `packages/core/src/hooks/classify/host-session-identity.ts`: Claude Code identity is the payload `session_id`; `agent_id` is not the owner key. Parent and sub-agents are one actor.\n- `packages/core/src/hooks/scope.ts` `bindBranchToActiveStory` and `admitUntiedWithWorkerAuth`: bind by branch token, then by the worker-auth assignment `story_id`. Called from `resolveSoftMissingAcTargets` (check / pre-PR), not from `inspectActiveScope`.\n- `content/skills/deft-directive-swarm/references/host-claude-code.md` Step 2g item 3 says \"the worktree path set to the agent's isolated git worktree\". It names no mechanism, and `packages/core/src/swarm/dest-place.ts` has no Claude path. The Claude `Agent` tool has no `cwd` field.\n\n## Why the listed recoveries do not work on this host\n\n- **Environment pin.** One value for every sub-agent. A parent pin gives every worker the same story's `file_scope`.\n- **Worktree alone.** Each worker branch is cut from the delivery branch, which has every cohort brief in `xbrief/active/` (#4714 requires that). The worktree still has more than one eligible brief.\n- **Move the other briefs out of `active/` on each worker branch.** Those moves ride into every PR and conflict at merge.\n\nCurrent workaround: one headless `claude -p` process per story. Each process has its own environment, so its own pin. It works, but the workers are not visible or steerable from the parent session.\n\n## Relation to open issues\n\n- **#6185.** Its original body made this same claim and proposed `bindBranchToActiveStory` in the write hook. Its first comment withdrew the headline as not reproduced (a worker made four Edits to its own active brief, with two fencing briefs and no pin, and all were allowed). The issue was then retargeted to the launch-root lockout, and its arc kept `multiple-eligible` out of scope. This issue supplies the evaluator-level reproduction above and asks for that part to be decided on its own. I have not explained the four allowed Edits. Two candidates, both unverified: an exempt lifecycle-write path for the brief itself, or the outside-payload-root carve-out (#2885 / #3794) when the worktree is not under the payload root.\n- **#5894.** Shows that a branch rename can sidestep branch-token binding, and that an environment pin has no provenance. A fix here must not add a new sidestep. That argues for the parent-written assignment record over the branch name as the binding source.\n- **#5855, #4880, #4007.** Prior art for the binding, the recovery text and the fail-closed rule.\n\n## Proposed direction (for design critique, not a bound design)\n\nWhen there is no `boundPath`, let the write fence bind the write's worktree (`effectiveRoot`) to its story from the dispatch-written worker-auth assignment for that worktree. Then:\n\n1. A write in worker A's worktree resolves to story A with no environment involved.\n2. An environment pin that disagrees with the worktree record refuses. It does not silently win.\n3. No record and more than one eligible brief stays fail-closed as today.\n4. Grok Build stops depending on the spawn-time pin surviving into later writes.\n\n## Open questions\n\n1. Trust. The assignment registry is described as cooperative, not protection against a same-user process. Is that acceptable as write-fence authority, and how does it meet the #5894 binding contract?\n2. Shell writes. Claude sub-agent shell commands start from the parent cwd. Does the fence cover recognized shell forms by target path, or only Write/Edit?\n3. Destination. Claude `Agent` has no `cwd`. `isolation: \"worktree\"` lets the host create the worktree, which skips dest-place deposit reconstitution and the reservation mint. Is there a host hook that can hand worktree creation to `destPlaceImplementSpawn`? Not verified.\n4. Occupancy. With one session identity for parent and sub-agents, does a per-worktree lease admit several workers of the same session family?\n5. Adapter text. Until this is decided, should `host-claude-code.md` name headless per-story processes as the implement path for a multi-story cohort?\n\n## Not in scope\n\n- The launch-root lockout (#6185, #6206).\n- Pin provenance and the other sidesteps (#5894).\n- Host-side support for visible, steerable per-story worker sessions. That is a separate host request, tracked privately.\n\ndesign-critique: warranted, because this changes write-fence admission, which is fail-closed authority for every dispatched worker.",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6360456928,
+        "origin": "deftai/directive#6233",
+        "id": "github.issue.6360456928"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "f014d0d561557ef1cda10e1455527cca9b60b7f1fbd0a330a3c8cfed7f17060a"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "write-fence-worktree-story-binding",
+        "expected_outputs": [
+          "write fence binds a registered linked worktree to its assigned story with no environment pin",
+          "closed refusal on reader failure, missing or ineligible story, and pin or bound-path disagreement",
+          "unregistered linked worktrees and the main worktree behave as before",
+          "one shared story-id derivation for launch and the matcher",
+          "host-claude-code.md names the in-session sequence, the fallback and the guarantee",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/hooks/scope.test.ts packages/core/src/hooks/dispatcher-active-scope.test.ts packages/core/src/hooks/dispatcher-effective-root.test.ts packages/core/src/swarm/worker-auth-assignment.test.ts packages/core/src/swarm/launch.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/hooks/scope.ts",
+          "packages/core/src/hooks/scope.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "packages/core/src/swarm/worker-auth-assignment.ts",
+          "packages/core/src/swarm/worker-auth-assignment.test.ts",
+          "packages/core/src/swarm/launch.ts",
+          "packages/core/src/swarm/launch.test.ts",
+          "content/skills/deft-directive-swarm/references/host-claude-code.md",
+          "CHANGELOG.md"
+        ],
+        "parallel_safe": true,
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "Traces": [
+          "#6233"
+        ],
+        "acceptance_criteria_justification": "Each admitted sentence of the accepted Bound remedy (successor lean 6839298535) is one clause bound to a test or doc file in file_scope. The issue title is the only confession. The two sentences that need the live host run through swarm:launch stay as clauses (#5055 refuses a confession in place of an admitted sentence); they cannot be verified before a runtime release that contains this change, and that run is tracked in #6242."
+      }
+    },
+    "id": "github.issue.6360456928",
+    "updated": "2026-11-13T00:07:51Z"
+  }
+}

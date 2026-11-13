@@ -1269,4 +1269,27 @@ describe("cited-skip scanner (#6071)", () => {
       ),
     ).toBe(true);
   });
+
+  it("ignores skips inside a linked worktree under .deft-scratch but refuses primary-tree skips (#6226)", () => {
+    const root = mkdtempSync(join(tmpdir(), "cited-skip-nested-wt-"));
+    tempDirs.push(root);
+    // Build skip strings at runtime so the repo-root inventory does not see them.
+    const unsanctioned = ["describe", '.skip("nested worktree suite", () => {});', "\n"].join("");
+    const wt = join(root, ".deft-scratch", "worktrees", "story-x");
+    mkdirSync(join(wt, "packages"), { recursive: true });
+    writeFileSync(join(wt, ".git"), "gitdir: ../../../.git/worktrees/story-x\n", "utf8");
+    writeFileSync(join(wt, "packages", "nested.test.ts"), unsanctioned, "utf8");
+
+    const clean = evaluateCitedSkipScan({ projectRoot: root, changedFiles: [] });
+    expect(clean.ok).toBe(true);
+    expect(clean.inventory).toHaveLength(0);
+
+    const rel = "packages/primary.test.ts";
+    mkdirSync(join(root, "packages"), { recursive: true });
+    writeFileSync(join(root, rel), unsanctioned, "utf8");
+    const refused = evaluateCitedSkipScan({ projectRoot: root, changedFiles: [rel] });
+    expect(refused.ok).toBe(false);
+    expect(refused.inventory.map((s) => s.file)).toEqual([rel]);
+    expect(refused.failures.some((f) => f.startsWith("unsanctioned-test-skip:"))).toBe(true);
+  });
 });

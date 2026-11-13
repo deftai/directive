@@ -150,9 +150,13 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(check): the cited-skip scan walks git-ignored nested worktrees, so release Step 5 fails in a maintainer checkout that CI passes"
+      ]
     },
     "metadata": {
+      "productPullRequest": 6237,
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
         "files": [
@@ -868,7 +872,11 @@
           "packages/core/src/check/context.ts",
           "packages/core/src/check/orchestrator.test.ts",
           "packages/core/src/check/degraded-skip.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "xbrief/active/2026-11-12-6226-bugcheck-the-cited-skip-scan-walks-git-ignored-nested-worktr.xbrief.json",
+          ".deft-scratch/pr-body/story-6226.md",
+          "xbrief/evaluator-surface-disposition.json",
+          ".deft-scratch/subagent-status/story-6226.json"
         ],
         "parallel_safe": true,
         "size": "small",

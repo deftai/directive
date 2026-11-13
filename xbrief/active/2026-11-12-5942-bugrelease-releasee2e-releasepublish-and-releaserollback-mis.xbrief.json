@@ -91,26 +91,78 @@
         {
           "id": 1,
           "text": "`release:e2e` → `ENGINE_CMD: 'release-e2e --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`",
-          "artifact_path": null,
+          "artifact_path": "Taskfile.yml",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "`release:publish` → `ENGINE_CMD: 'release-publish --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`",
-          "artifact_path": null,
+          "artifact_path": "Taskfile.yml",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "`release:rollback` → `ENGINE_CMD: 'release-rollback --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'`",
-          "artifact_path": null,
+          "artifact_path": "Taskfile.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Add a content-contract test (static Taskfile parse via `_taskfile-helpers.ts`) that asserts the same `--project-root \"{{.USER_WORKING_DIR}}\"` ENGINE_CMD fragment on `release:` plus `release:e2e`, `release:publish`, and `release:rollback`.",
+          "artifact_path": "packages/core/src/content-contracts/standards/taskfile_release_project_root.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "In `Taskfile.yml`, change these three ENGINE_CMD lines to match `release:`: 1.",
+          "artifact_path": "Taskfile.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "`release:e2e` → `ENGINE_CMD: 'release-e2e --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'` 2.",
+          "artifact_path": "Taskfile.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "`release:publish` → `ENGINE_CMD: 'release-publish --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'` 3.",
+          "artifact_path": "Taskfile.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "`release:rollback` → `ENGINE_CMD: 'release-rollback --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}'` Keep the #5805 comment class (pin default root is the package dir; operator `--project-root` in CLI_ARGS still wins).",
+          "artifact_path": "Taskfile.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Out of Bound (follow-up): `release:wait-npm`.",
+          "artifact_path": "Taskfile.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Out of Bound: `release:local-update` (no `engine:invoke`).",
+          "artifact_path": "Taskfile.yml",
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(release): release:e2e, release:publish and release:rollback miss the #5805 --project-root fix"
+      ]
     },
     "metadata": {
       "intended_placement": {
@@ -457,6 +509,7 @@
         "sha256": "4a4878b6049f7d70001a67ab9c0fb7b41e23beebdde10655a994759f3370ce78"
       },
       "kind": "story",
+      "productPullRequest": 6246,
       "swarm": {
         "readiness": "ready",
         "conflict_group": "release-family-taskfile-misses-5805-project-root",
@@ -474,7 +527,11 @@
         "file_scope": [
           "Taskfile.yml",
           "packages/core/src/content-contracts/standards/taskfile_release_project_root.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "xbrief/active/2026-11-12-5942-bugrelease-releasee2e-releasepublish-and-releaserollback-mis.xbrief.json",
+          ".deft-scratch/pr-body/story-5942.md",
+          "xbrief/evaluator-surface-disposition.json",
+          ".deft-scratch/subagent-status/story-5942.json"
         ],
         "parallel_safe": true,
         "size": "small",
