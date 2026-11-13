@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6204",
-    "updated": "2026-11-12T23:17:28Z"
+    "updated": "2026-11-13T05:01:33Z"
   },
   "plan": {
     "title": "feat(ceremony-dial): small-change lane - scale brief size and PR count to change size",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Small changes pay the same lifecycle ceremony as large ones: a full brief, narratives and clause scaffolding, whatever the size of the diff. This story adds a small-change lane under the rapid ceremony dial: a measured, fail-closed bound on the change, a thin command-backed brief that the existing gates admit, and a lane exit that converts the scope to the full brief shape when the bound is crossed. Multi-PR relief (P2) stays with #6203 and #680.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6204",
@@ -20,34 +20,350 @@
     "items": [
       {
         "title": "Small-change predicate under rapid — Admit only when ceremony dial depth is rapid and one fail-closed evaluator next to ceremonyDial policy holds on a typed bound: cumulative production-file count and changed-line count against a named comparison base (worktree product diff vs lane-admit base), rechecked at the same gate points that can refuse, plus an authoritative public-surface determination (unknown refuses / escalates). Provisional dial estimators are not proof. Numerical N/M defaults are policy constants. relieves: P1. disposes critic 6811480236 C1; disposes critic 6811570274 public-surface sharpen.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Under the rapid dial, the small-change lane admits a scope only while one fail-closed evaluator next to the ceremony dial policy holds on cumulative production-file and changed-line counts against the lane-admit base, rechecked at each gate that can refuse; an unknown public surface refuses or escalates, and provisional dial estimators never count as proof."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Command-backed minimal brief — Emitter writes title, issue ref, file_scope, and acceptance commands only inside xBRIEF 0.8. First lane admits only when a valid supported command-based acceptance record already exists; otherwise keep/escalate to full shape (preserve derived acceptance representation). Named admit surfaces for this lane: preflight/verify:ac/scope:complete accept command-backed thin shape without requiring narrative/plan/clause scaffolding. Delivery identity (#3041 / #3675) unchanged. relieves: P1. relieves: P4. disposes critic 6811480236 C2; disposes critic 6811570274 gate-surface sharpen.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "The thin-brief emitter writes only title, issue ref, file_scope and acceptance commands inside xBRIEF 0.8, and only when a supported command-backed acceptance record already exists; preflight, verify:ac and scope:complete admit that shape without narrative, plan or clause scaffolding, and delivery identity is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Mid-flight escalate-once (lane exit) — When the bound is crossed after admit, refuse the current scope on every retry until its full brief representation passes existing gates; remediation vocabulary is one escalate-to-full-shape conversion that preserves scope identity and AC evidence and is scope-local. Distinct from #3319 escalateCeremonyDial depth-only raise. No silent keep-minimal. relieves: P3. disposes critic 6811480236 C3; disposes critic 6811570274 escalate-name sharpen.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Once the bound is crossed after admit, every retry on that scope is refused until its full brief representation passes the existing gates; the one remediation is a scope-local escalate-to-full-shape conversion that keeps scope identity and acceptance evidence, distinct from the #3319 dial-depth raise."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "One-PR composition residual — PR-count reduction composes Prefer-A outcomes of #6203 and #680. This limb does not invent forge-approval. Path B brief-first remains lawful until those Prefer-A records provide a one-PR path. operator-deferred: P2 #6203. Completion-path ownership may also cite #680 in prose. Remint this limb if #6203/#680 Prefer-A drops or replaces the one-PR admit. disposes critic 6811480236 C4; disposes critic 6811570274 P2 cite block.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "PR-count reduction composes the #6203 and #680 outcomes only: this story adds no forge-approval path, and Path B brief-first stays lawful."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "clause.21",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.22",
+        "title": "clause.22",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.23",
+        "title": "clause.23",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.24",
+        "title": "clause.24",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.25",
+        "title": "clause.25",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.26",
+        "title": "clause.26",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.27",
+        "title": "clause.27",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.28",
+        "title": "clause.28",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+          "recorded_at": "2026-11-13T05:01:33Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -808,9 +1124,36 @@
           "#680"
         ],
         "acceptance_criteria_justification": "Four clauses map one-to-one to the four limbs of the accepted Prefer-A Bound; the bound, the thin brief and the lane exit share one evaluator, so splitting them would ship an unbounded thin brief."
+      },
+      "productPullRequest": 6240,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "339aca51de8d0dde85242af2b9a67055ab21da21",
+        "prNumber": 6240,
+        "prBase": "master",
+        "mergeCommit": "ad29cb999824f2209e6954de5e8906cc4b08ca8e",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e93d4bb07e6653b099c7491ad3e8e5e8dad3a8f1",
+        "verifiedAt": "2026-11-13T05:01:33Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-13T05:01:33Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-13T05:01:33Z"
       }
     },
     "id": "github.issue.6339728998",
-    "updated": "2026-11-12T23:17:28Z"
+    "updated": "2026-11-13T05:01:33Z"
   }
 }

@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Minted the intent-constraint record for the #6204 small-change lane defaults (5 production files, 500 changed lines). Refs #6204.
 - Activated the #680 scope brief for through-merge. Refs #680.
 - Activated the #6189 scope brief for through-merge. Refs #6189.
+- Completed the #6204 and #680 scope briefs after their product PRs merged. Refs #6204. Refs #680.
 - Completed the #5942 and #6227 scope briefs after their product PRs merged. Refs #5942. Refs #6227.
 - Completed the #5912 and #6226 scope briefs after their product PRs merged. Refs #5912. Refs #6226.
 
