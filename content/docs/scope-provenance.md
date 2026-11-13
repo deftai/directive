@@ -1,6 +1,6 @@
 # Scope provenance (`verify:scope-provenance`)
 
-Refs: #3145 · #3205 · #4956 · #4774 · #5192 · #3715 · #6203 · #6273 · Related: #1310, #2944 human-origin grants, #516 file scope · class checks: #4980 · generalizes under [gate-integrity.md](./gate-integrity.md) (#3156) · UI structure: [observable-scope.md](./observable-scope.md) (#4495)
+Refs: #3145 · #3205 · #4956 · #4774 · #5192 · #3715 · Related: #1310, #2944 human-origin grants, #516 file scope · class checks: #4980 · generalizes under [gate-integrity.md](./gate-integrity.md) (#3156) · UI structure: [observable-scope.md](./observable-scope.md) (#4495)
 
 ## Problem
 
