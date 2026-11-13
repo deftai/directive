@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
 import { SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE } from "../scope/transition-hint.js";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
+import { writeWorkerAuthAssignment } from "../swarm/worker-auth-assignment.js";
 import { ACTIVE_SCOPE_PIN_ENV, decideHook, type HookPolicySeams } from "./index.js";
 
 const originFreshness = vi.hoisted(() => ({
@@ -278,5 +279,205 @@ describe("spawn multiple-eligible recovery (#4880 Prefer-A B')", () => {
     expect(decision.message).toContain("DEFT_ACTIVE_SCOPE");
     expect(decision.message).not.toContain(SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE);
     expect(decision.message).not.toMatch(/scope:promote -- .* then .*scope:activate/);
+  });
+});
+
+/**
+ * #6233 acceptance fixture: a real repository with two linked worktrees under
+ * `.deft-scratch/worktrees/`, each registered for a different story through
+ * writeWorkerAuthAssignment, and no DEFT_ACTIVE_SCOPE pin.
+ */
+describe("registered linked worktree story binding (#6233)", { timeout: 60_000 }, () => {
+  type Cohort = { primary: string; wtA: string; wtB: string; wtC: string };
+
+  function git(cwd: string, args: readonly string[]): void {
+    execFileSync("git", [...args], { cwd, encoding: "utf8" });
+  }
+
+  function seedBriefs(root: string): void {
+    writeRunning(root, "a-story.xbrief.json", ["packages/a/**"]);
+    writeRunning(root, "b-story.xbrief.json", ["packages/b/**"]);
+  }
+
+  function register(primary: string, worktree: string, storyId: string): void {
+    const written = writeWorkerAuthAssignment({
+      projectRoot: primary,
+      worktreePath: worktree,
+      dispatchId: `dispatch-${storyId}`,
+      storyId,
+      githubAuthMode: "host-gh",
+      expectedPrincipal: { kind: "user", login: "worker" },
+      credentialDeliveryId: null,
+    });
+    expect(written.ok).toBe(true);
+  }
+
+  /** wt-a / wt-b registered for a-story / b-story; wt-c is an unregistered linked worktree. */
+  function cohort(registered = true): Cohort {
+    const primary = mkdtempSync(join(tmpdir(), "hook-6233-"));
+    temps.push(primary);
+    git(primary, ["init", "-q"]);
+    git(primary, ["config", "user.email", "t@t.local"]);
+    git(primary, ["config", "user.name", "T"]);
+    git(primary, ["commit", "--allow-empty", "-q", "-m", "init"]);
+    const nest = join(primary, ".deft-scratch", "worktrees");
+    mkdirSync(nest, { recursive: true });
+    const wtA = join(nest, "story-a");
+    const wtB = join(nest, "story-b");
+    const wtC = join(nest, "story-c");
+    for (const wt of [wtA, wtB, wtC]) git(primary, ["worktree", "add", "--detach", "-q", wt]);
+    for (const root of [primary, wtA, wtB, wtC]) seedBriefs(root);
+    // Launch records the shared derivation: the filename stem when plan.id is absent.
+    if (registered) {
+      register(primary, wtA, "a-story");
+      register(primary, wtB, "b-story");
+    }
+    return { primary, wtA, wtB, wtC };
+  }
+
+  function write(primary: string, target: string, environ: NodeJS.ProcessEnv = {}) {
+    return decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: { toolName: "Write", file_path: target },
+        environ: { DEFT_SESSION_ID: "owner", ...environ },
+      },
+      liveScopeSeams(),
+    );
+  }
+
+  function corruptIndex(primary: string): void {
+    const store = join(primary, ".git", "deft-worker-auth");
+    mkdirSync(store, { recursive: true });
+    writeFileSync(join(store, "index.json"), "{ not json", "utf8");
+  }
+
+  it("admits each worker's in-scope product write and refuses out of scope, with no env pin", () => {
+    const { primary, wtA, wtB } = cohort();
+    const inA = write(primary, join(wtA, "packages", "a", "index.ts"));
+    expect(inA).toMatchObject({ verdict: "allow", code: "write-ready" });
+    expect(resolve(inA.scopePath ?? "")).toBe(
+      resolve(wtA, "xbrief", "active", "a-story.xbrief.json"),
+    );
+    const outA = write(primary, join(wtA, "packages", "b", "index.ts"));
+    expect(outA).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
+    expect(outA.message).toMatch(/story file_scope/);
+
+    const inB = write(primary, join(wtB, "packages", "b", "index.ts"));
+    expect(inB).toMatchObject({ verdict: "allow", code: "write-ready" });
+    expect(resolve(inB.scopePath ?? "")).toBe(
+      resolve(wtB, "xbrief", "active", "b-story.xbrief.json"),
+    );
+    const outB = write(primary, join(wtB, "packages", "a", "index.ts"));
+    expect(outB).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
+  });
+
+  it("refuses the same writes as multiple-eligible when the worktrees are not registered", () => {
+    const { primary, wtA, wtB } = cohort(false);
+    for (const target of [
+      join(wtA, "packages", "a", "index.ts"),
+      join(wtB, "packages", "b", "index.ts"),
+    ]) {
+      const decision = write(primary, target);
+      expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+      expect(decision.message).toContain("Multiple active xBRIEF artifacts");
+    }
+  });
+
+  it("tests a lifecycle-brief edit separately from a product write", () => {
+    const { primary, wtA } = cohort();
+    const product = write(primary, join(wtA, "packages", "a", "index.ts"));
+    expect(product).toMatchObject({ verdict: "allow", code: "write-ready" });
+    const briefEdit = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: primary,
+        payload: {
+          toolName: "Edit",
+          file_path: join(wtA, "xbrief", "active", "a-story.xbrief.json"),
+          old_string: '"running"',
+          new_string: '"running"',
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      liveScopeSeams(),
+    );
+    // The lifecycle edit binds the same story, then meets that story's fence on its
+    // own path: the brief is outside file_scope, as with an agreeing env pin.
+    expect(briefEdit).toMatchObject({ verdict: "deny", code: "runtime-policy-deny-path" });
+    expect(briefEdit.message).toContain("xbrief/active/a-story.xbrief.json");
+    expect(briefEdit.message).toMatch(/story file_scope/);
+    expect(briefEdit.message).not.toContain("Multiple active xBRIEF artifacts");
+  });
+
+  it("refuses with the reader failure kind and one repair step on a corrupt index", () => {
+    const { primary, wtA, wtC } = cohort();
+    const baselineMain = write(primary, join(primary, "packages", "a", "index.ts"));
+    const baselineMainPinned = write(primary, join(primary, "packages", "a", "index.ts"), {
+      [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/a-story.xbrief.json",
+    });
+    corruptIndex(primary);
+
+    // Registered linked worktree.
+    const registered = write(primary, join(wtA, "packages", "a", "index.ts"));
+    expect(registered).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(registered.message).toContain("(registry_corruption)");
+    expect(registered.message.match(/Repair:/g)).toHaveLength(1);
+    expect(registered.message).not.toContain("Multiple active xBRIEF artifacts");
+
+    // Unregistered linked worktree: membership is unknowable, so it refuses too.
+    const unregistered = write(primary, join(wtC, "packages", "a", "index.ts"), {
+      [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/a-story.xbrief.json",
+    });
+    expect(unregistered).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(unregistered.message).toContain("(registry_corruption)");
+
+    // Main worktree: the registry is never read, so the verdict is unchanged.
+    const main = write(primary, join(primary, "packages", "a", "index.ts"));
+    expect({ verdict: main.verdict, code: main.code }).toEqual({
+      verdict: baselineMain.verdict,
+      code: baselineMain.code,
+    });
+    expect(main.message).not.toContain("Worktree story binding");
+    const mainPinned = write(primary, join(primary, "packages", "a", "index.ts"), {
+      [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/a-story.xbrief.json",
+    });
+    expect(mainPinned).toMatchObject({ verdict: baselineMainPinned.verdict, code: "write-ready" });
+  });
+
+  it("refuses an env pin that names a different story and admits one that agrees", () => {
+    const { primary, wtA } = cohort();
+    const conflict = write(primary, join(wtA, "packages", "a", "index.ts"), {
+      [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/b-story.xbrief.json",
+    });
+    expect(conflict).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(conflict.message).toContain("(env_pin_conflict)");
+    expect(conflict.message.match(/Repair:/g)).toHaveLength(1);
+    const agrees = write(primary, join(wtA, "packages", "a", "index.ts"), {
+      [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/a-story.xbrief.json",
+    });
+    expect(agrees).toMatchObject({ verdict: "allow", code: "write-ready" });
+  });
+
+  it("refuses a missing or ineligible assigned story without falling through to single-eligible", () => {
+    const { primary, wtA, wtC } = cohort();
+    // wt-c keeps one eligible brief only; its record names a story that is not active.
+    rmSync(join(wtC, "xbrief", "active", "b-story.xbrief.json"));
+    register(primary, wtC, "gone-story");
+    const missing = write(primary, join(wtC, "packages", "a", "index.ts"));
+    expect(missing).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(missing.message).toContain("(assigned_story_missing)");
+
+    writeFileSync(
+      join(wtA, "xbrief", "active", "a-story.xbrief.json"),
+      JSON.stringify({ plan: { ...runningPlacement, status: "blocked" } }),
+      "utf8",
+    );
+    const ineligible = write(primary, join(wtA, "packages", "a", "index.ts"));
+    expect(ineligible).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(ineligible.message).toContain("(assigned_story_ineligible)");
   });
 });

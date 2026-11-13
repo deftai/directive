@@ -17,11 +17,7 @@ import {
   validateGithubAuthForWorker,
 } from "../intake/github-auth-modes.js";
 import { getPlatformCapabilities } from "../intake/platform-capabilities.js";
-import {
-  hasArtifactSuffix,
-  resolveLifecycleFolder,
-  stripArtifactSuffix,
-} from "../layout/resolve.js";
+import { hasArtifactSuffix, resolveLifecycleFolder } from "../layout/resolve.js";
 import { evaluateWorkerInstallationPermissions } from "../one-pr-unit/dest-token.js";
 import {
   buildReport,
@@ -71,6 +67,7 @@ import {
   type RemoveWorkerAuthAssignmentInput,
   type RemoveWorkerAuthAssignmentResult,
   removeWorkerAuthAssignment,
+  storyIdForBrief,
   type WriteWorkerAuthAssignmentInput,
   type WriteWorkerAuthAssignmentResult,
   writeWorkerAuthAssignment,
@@ -757,13 +754,9 @@ function planOf(data: Record<string, unknown>): Record<string, unknown> {
     : {};
 }
 
+/** Same derivation the write-fence matcher compares (#6233). */
 function storyId(path: string, plan: Record<string, unknown>): string {
-  const value = plan.id;
-  if (typeof value === "string" && value.trim().length > 0) {
-    return value.trim();
-  }
-  const name = basename(path);
-  return hasArtifactSuffix(name) ? stripArtifactSuffix(name) : name.replace(/\.[^.]+$/, "");
+  return storyIdForBrief(path, plan);
 }
 
 function extractHashNumbers(text: string): number[] {

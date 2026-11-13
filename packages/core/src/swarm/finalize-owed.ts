@@ -30,6 +30,10 @@ import {
 import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import {
+  resolvePlanGithubIssueRef,
+  resolvePrOnlyDeliveryIdentity,
+} from "../scope/delivery-evidence.js";
+import {
   defaultGitRunner,
   envGitRunner,
   type GitRunner,
@@ -75,7 +79,11 @@ export type FinalizeOwedState =
   | "unknown";
 
 export interface FinalizeOwedStory {
-  readonly issue: number;
+  /**
+   * Origin issue, or null for an issue-less brief whose identity is the stamped
+   * product PR (`pr-only`, #5710 / #680 P2). Never a fake `#0`.
+   */
+  readonly issue: number | null;
   readonly productPr: number;
   readonly relPath: string;
   readonly state: FinalizeOwedState;
@@ -110,7 +118,12 @@ export interface FinalizeOwedArgs {
   readonly now?: () => number;
   /** Test seam: skip live finalizeCohort. */
   readonly runFinalize?: (args: {
-    issue: number;
+    issue: number | null;
+    /**
+     * Tip-relative brief paths: the story tokens for issue-less rows. Rows that share
+     * a product PR share one claim, so they finalize together (#680 P2).
+     */
+    relPaths: readonly string[];
     productPr: number;
     claimRef: string;
     projectRoot: string;
@@ -127,11 +140,32 @@ export interface FinalizeOwedResult {
   readonly stories: readonly FinalizeOwedStory[];
   readonly finalized: readonly number[];
   readonly skipped: readonly number[];
+  /** Issue-less rows, by product PR (#680 P2). */
+  readonly finalized_prs: readonly number[];
+  readonly skipped_prs: readonly number[];
   readonly errors: readonly string[];
   readonly warnings: readonly string[];
   readonly fetch_error: string | null;
   readonly ok: boolean;
 }
+
+/** `#N`, or `pr #P` for an issue-less row; never `#0` (#680 P2). */
+export function owedStoryLabel(story: Pick<FinalizeOwedStory, "issue" | "productPr">): string {
+  if (story.issue !== null) {
+    return `#${String(story.issue)}`;
+  }
+  return story.productPr > 0 ? `pr #${String(story.productPr)}` : "(no issue, no product PR)";
+}
+
+/**
+ * Issue-less owed rows have no origin issue to verify or close (#680 P2): they
+ * stay owed until the brief completes on the delivery tip.
+ */
+const ISSUELESS_ORIGIN_STATE = {
+  state: "open",
+  protectedUmbrella: false,
+  error: null,
+} as const;
 
 const NONTERMINAL_PREFIXES: string[] = (() => {
   const out: string[] = [];
@@ -235,6 +269,27 @@ function issueFromPlan(plan: Record<string, unknown>, expectedRepo: string | nul
   return number;
 }
 
+/** Tip path under `xbrief|vbrief/active/` (#680 P2: only active briefs complete). */
+function isActiveTipPath(relPath: string): boolean {
+  return /^(?:xbrief|vbrief)\/active\//.test(relPath.replace(/\\/g, "/"));
+}
+
+/**
+ * Issue-less brief with PR-only identity (#5710 P1 / #680 P2): no github-issue
+ * origin at all, a stamped productPullRequest, and the configured repo as the
+ * canonical remote. The same predicate the delivery gate's PR-only join reads.
+ */
+function isPrOnlyOwedPlan(plan: Record<string, unknown>, repo: string): boolean {
+  if (resolvePlanGithubIssueRef(plan) !== null || extractIssueRef(plan)[1] !== null) {
+    return false;
+  }
+  if (countPlanGithubIssueReferences(plan) > 0) {
+    return false;
+  }
+  return resolvePrOnlyDeliveryIdentity(plan, () => (repo.trim().length > 0 ? repo.trim() : null))
+    .ok;
+}
+
 /**
  * Count distinct `references[]` github-issue origins — never `x-tracking` (#5122).
  * Origin key is repo+number; duplicate URIs for one origin stay one; two
@@ -272,7 +327,8 @@ export type UnmarkedFinalizeBind =
   | { readonly kind: "omit" }
   | {
       readonly kind: "unverified" | "refuse" | "admit";
-      readonly issue: number;
+      /** Null when the plan has no origin issue; never a fake `#0` (#680 P2). */
+      readonly issue: number | null;
       readonly productPr: number;
       readonly detail: string;
     };
@@ -290,7 +346,7 @@ export function bindUnmarkedFinalizePair(input: {
   if (countPlanGithubIssueReferences(input.plan) > 1) {
     return {
       kind: "refuse",
-      issue: input.issueFromPlan ?? 0,
+      issue: input.issueFromPlan,
       productPr: 0,
       detail: "unmarked refuse: multiple github-issue references",
     };
@@ -309,7 +365,7 @@ export function bindUnmarkedFinalizePair(input: {
   if (input.issueFromPlan === null) {
     return {
       kind: "refuse",
-      issue: 0,
+      issue: null,
       productPr: 0,
       detail: "unmarked refuse: origin missing from issueFromPlan",
     };
@@ -324,7 +380,7 @@ export function bindUnmarkedFinalizePair(input: {
   }
   return {
     kind: "admit",
-    issue: input.admit.issue,
+    issue: input.issueFromPlan,
     productPr: input.admit.productPr,
     detail: input.admit.detail,
   };
@@ -769,7 +825,7 @@ export function discoverFinalizeOwed(
           claimRef: finalizeClaimRef(
             null,
             bound.productPr > 0 ? [bound.productPr] : [],
-            bound.issue > 0 ? [String(bound.issue)] : [],
+            bound.issue !== null ? [String(bound.issue)] : [],
           ),
           pairingKey: briefPairingKey(relPath),
           planIdentity: briefPlanIdentity(plan),
@@ -782,9 +838,15 @@ export function discoverFinalizeOwed(
       issue = bound.issue;
       unmarkedDetail = bound.detail;
     }
-    if (issue === null) {
+    // Issue-less brief with a stamped productPullRequest and PR-only identity joins
+    // the same discovery (#680 P2); a foreign or unreadable issue ref does not.
+    // Only an active brief can complete, so only active/ rows are admitted (#680 P2).
+    const prOnlyIdentity =
+      issue === null && unmarkedDetail === null && isPrOnlyOwedPlan(plan, options.repo);
+    const prOnly = prOnlyIdentity && isActiveTipPath(relPath);
+    if (issue === null && !prOnly) {
       stories.push({
-        issue: 0,
+        issue: null,
         productPr,
         relPath,
         state: "unverified",
@@ -794,12 +856,14 @@ export function discoverFinalizeOwed(
         detail:
           unmarkedDetail !== null
             ? `${unmarkedDetail}; issue ref missing or foreign repo`
-            : "mark present but issue ref missing or foreign repo",
+            : prOnlyIdentity
+              ? "pr-only identity but not in active/; only an active brief can complete"
+              : "mark present but issue ref missing or foreign repo",
         blocks: false,
       });
       continue;
     }
-    const claimRef = finalizeClaimRef(null, [productPr], [String(issue)]);
+    const claimRef = finalizeClaimRef(null, [productPr], issue === null ? [] : [String(issue)]);
     const snap = snapshotAccepts(
       productPr,
       options.repo,
@@ -867,7 +931,8 @@ export function discoverFinalizeOwed(
       });
       continue;
     }
-    const issueState = fetchIssueState(issue, options.repo, runGh);
+    const issueState =
+      issue === null ? ISSUELESS_ORIGIN_STATE : fetchIssueState(issue, options.repo, runGh);
     if (claim.kind === "unknown") {
       // Unverifiable issue-state stays unknown+blocking; closed / unmarked protected exempt (#6008).
       if (issueState.error !== null || issueState.state === null) {
@@ -967,11 +1032,14 @@ export function discoverFinalizeOwed(
       detail:
         unmarkedDetail !== null
           ? `${unmarkedDetail}; snapshot accepted; no twin`
-          : "marked nonterminal; snapshot accepted; no twin",
+          : prOnly
+            ? "pr-only identity (no origin issue); snapshot accepted; no twin"
+            : "marked nonterminal; snapshot accepted; no twin",
       blocks: true,
     });
   }
 
+  // Completed issue-less briefs are done: no origin issue to close (#680 P2).
   for (const relPath of completed) {
     const plan = readTipPlan(projectRoot, options.tip, relPath, runGit, tipBodies);
     if (plan === null) {
@@ -1125,7 +1193,7 @@ export function discoverFinalizeOwed(
     });
   }
 
-  stories.sort((a, b) => a.issue - b.issue || a.relPath.localeCompare(b.relPath));
+  stories.sort((a, b) => (a.issue ?? 0) - (b.issue ?? 0) || a.relPath.localeCompare(b.relPath));
   return {
     deliveryBranch: options.deliveryBranch,
     tip: options.tip,
@@ -1345,7 +1413,8 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
       tip: fetched.tip,
       stories: inventory.stories,
       finalized: [],
-      skipped: inventory.stories.map((s) => s.issue),
+      skipped: inventory.stories.flatMap((s) => (s.issue === null ? [] : [s.issue])),
+      skippedPrs: inventory.stories.flatMap((s) => (s.issue === null ? [s.productPr] : [])),
       errors,
       warnings,
       fetch_error: null,
@@ -1359,7 +1428,26 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
     });
   }
 
+  // Issue-less rows report by product PR (#680 P2); never a fake issue number.
+  const finalizedPrs: number[] = [];
+  const skippedPrs: number[] = [];
+  const skip = (story: FinalizeOwedStory): void => {
+    if (story.issue === null) {
+      skippedPrs.push(story.productPr);
+    } else {
+      skipped.push(story.issue);
+    }
+  };
+  let refusedOwnMark = false;
+  // Issue-less rows that share a product PR share one claim ref and branch, so they
+  // finalize in one call under that claim (#680 P2).
+  const runnable = (s: FinalizeOwedStory): boolean => s.state === "owed" || s.state === "stale";
+  const issuelessGroupDone = new Set<string>();
   for (const story of inventory.stories) {
+    const label = owedStoryLabel(story);
+    if (story.issue === null && runnable(story) && issuelessGroupDone.has(story.claimRef)) {
+      continue;
+    }
     if (
       story.state === "in-flight" ||
       story.state === "unverified" ||
@@ -1367,37 +1455,35 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
       story.state === "unknown"
     ) {
       if (story.state === "unknown") {
-        warnings.push(`#${String(story.issue)}: ${CLAIM_PROBE_UNKNOWN_DETAIL}`);
+        warnings.push(`${label}: ${CLAIM_PROBE_UNKNOWN_DETAIL}`);
       }
-      skipped.push(story.issue);
+      skip(story);
       continue;
     }
     if (story.state === "stale-unverified") {
       // Keep claim; block remains until issue verify succeeds (#4919).
-      warnings.push(
-        `#${String(story.issue)}: origin-issue unverified; claim still blocking (stale-unverified)`,
-      );
-      skipped.push(story.issue);
+      warnings.push(`${label}: origin-issue unverified; claim still blocking (stale-unverified)`);
+      skip(story);
       continue;
     }
     if (story.state === "stale") {
       const deleted = deleteStaleClaim(projectRoot, story.claimRef, runGit);
       if (!deleted.ok) {
-        warnings.push(`#${String(story.issue)}: stale reclaim failed: ${deleted.detail}`);
-        skipped.push(story.issue);
+        warnings.push(`${label}: stale reclaim failed: ${deleted.detail}`);
+        skip(story);
         continue;
       }
     }
     if (story.state !== "owed" && story.state !== "close-owed" && story.state !== "stale") {
-      skipped.push(story.issue);
+      skip(story);
       continue;
     }
 
     const claim = tryClaimRef(projectRoot, story.claimRef, fetched.tip, runGit);
     if (!claim.claimed) {
       // Close-owed also requires the create-only claim; another live owner must win (#4919).
-      warnings.push(`#${String(story.issue)}: in flight (${claim.detail})`);
-      skipped.push(story.issue);
+      warnings.push(`${label}: in flight (${claim.detail})`);
+      skip(story);
       continue;
     }
 
@@ -1407,7 +1493,8 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
         const result = finalizeCohort({
           projectRoot: input.projectRoot,
           prNumbers: [input.productPr],
-          storyTokens: [String(input.issue)],
+          // Issue-less rows select the brief by path; origin-close then has no issue (#680 P2).
+          storyTokens: input.issue === null ? [...input.relPaths] : [String(input.issue)],
           repo: repo.trim(),
           deliveryBranch,
           label: null,
@@ -1429,36 +1516,69 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
       });
 
     // Fresh checkout isolation: finalize-cohort prepareLifecycleCheckout owns this.
+    const relPaths =
+      story.issue === null
+        ? inventory.stories
+            .filter((s) => s.issue === null && s.claimRef === story.claimRef && runnable(s))
+            .map((s) => s.relPath)
+        : [story.relPath];
+    if (story.issue === null) {
+      issuelessGroupDone.add(story.claimRef);
+    }
     const outcome = runFinalize({
       issue: story.issue,
+      relPaths,
       productPr: story.productPr,
       claimRef: story.claimRef,
       projectRoot,
     });
-    if (
+    const ownMarkRefused =
+      story.issue !== null &&
+      (outcome.result.refused_marks ?? []).some((mark) => mark.issue === story.issue);
+    if (ownMarkRefused) {
+      // A refused mark leaves the story pending, not finalized (#680 P3).
+      refusedOwnMark = true;
+      warnings.push(`${label}: deft-story mark refused; story left pending`);
+      skip(story);
+    } else if (
       outcome.exitCode === EXIT_OK ||
       outcome.exitCode === EXIT_INCOMPLETE ||
       outcome.result.pending !== null
     ) {
-      finalized.push(story.issue);
+      if (story.issue === null) {
+        finalizedPrs.push(story.productPr);
+      } else {
+        finalized.push(story.issue);
+      }
       if (outcome.exitCode === EXIT_INCOMPLETE || outcome.result.pending !== null) {
+        const otherRefused = (outcome.result.refused_marks ?? []).map((m) => `#${String(m.issue)}`);
         warnings.push(
-          `#${String(story.issue)}: finalize incomplete (origin-close pending); leftover handed off`,
+          outcome.result.pending === null && otherRefused.length > 0
+            ? `${label}: finalize incomplete (refused deft-story mark pending: ${otherRefused.join(", ")})`
+            : story.issue === null
+              ? `${label}: finalize incomplete (lifecycle land pending; no origin issue to close); leftover handed off`
+              : `${label}: finalize incomplete (origin-close pending); leftover handed off`,
         );
       }
     } else {
       errors.push(
-        `#${String(story.issue)}: finalize failed (exit ${String(outcome.exitCode)}): ${
+        `${label}: finalize failed (exit ${String(outcome.exitCode)}): ${
           outcome.result.errors[0] ?? outcome.stdout.trim().split("\n").pop() ?? "unknown"
         }`,
       );
-      skipped.push(story.issue);
+      skip(story);
     }
   }
 
-  const incomplete = warnings.some(
-    (w) => w.includes("origin-close pending") || w.includes("origin-issue unverified"),
-  );
+  const incomplete =
+    refusedOwnMark ||
+    warnings.some(
+      (w) =>
+        w.includes("origin-close pending") ||
+        w.includes("lifecycle land pending") ||
+        w.includes("refused deft-story mark pending") ||
+        w.includes("origin-issue unverified"),
+    );
   const failed = errors.length > 0;
   // Ordinary path: unknown stories force non-zero so session gate cannot stay blocked while exit 0 (#6008).
   const hasUnknown = inventory.stories.some((s) => s.state === "unknown");
@@ -1469,6 +1589,8 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
     stories: inventory.stories,
     finalized,
     skipped,
+    finalizedPrs,
+    skippedPrs,
     errors,
     warnings,
     fetch_error: null,
@@ -1484,6 +1606,8 @@ function respondFinalizeOwed(input: {
   stories: readonly FinalizeOwedStory[];
   finalized: readonly number[];
   skipped: readonly number[];
+  finalizedPrs?: readonly number[];
+  skippedPrs?: readonly number[];
   errors: readonly string[];
   warnings: readonly string[];
   fetch_error: string | null;
@@ -1505,6 +1629,8 @@ function respondFinalizeOwed(input: {
     stories: input.stories,
     finalized: input.finalized,
     skipped: input.skipped,
+    finalized_prs: input.finalizedPrs ?? [],
+    skipped_prs: input.skippedPrs ?? [],
     errors: input.errors,
     warnings: input.warnings,
     fetch_error: input.fetch_error,
@@ -1535,15 +1661,19 @@ function respondFinalizeOwed(input: {
     lines.push("  Inventory:");
     for (const story of input.stories) {
       lines.push(
-        `    #${String(story.issue)} pr=#${String(story.productPr)} state=${story.state}` +
+        `    ${owedStoryLabel(story)} pr=#${String(story.productPr)} state=${story.state}` +
           `${story.blocks ? " [blocks]" : ""} -- ${story.detail}`,
       );
     }
   } else if (input.fetch_error === null) {
     lines.push("  Inventory: (empty)");
   }
-  if (input.finalized.length > 0) {
-    lines.push(`  Finalized: ${input.finalized.map((n) => `#${String(n)}`).join(", ")}`);
+  const finalizedLabels = [
+    ...input.finalized.map((n) => `#${String(n)}`),
+    ...(input.finalizedPrs ?? []).map((n) => `pr #${String(n)}`),
+  ];
+  if (finalizedLabels.length > 0) {
+    lines.push(`  Finalized: ${finalizedLabels.join(", ")}`);
   }
   if (input.warnings.length > 0) {
     lines.push("  Warnings:");
@@ -1591,7 +1721,7 @@ export function formatFinalizeOwedInventoryLines(inventory: FinalizeOwedInventor
   const lines = ["finalize owed inventory:"];
   for (const story of nonBacklog) {
     lines.push(
-      `  #${String(story.issue)} ${story.state}${story.blocks ? " [blocks]" : ""}` +
+      `  ${owedStoryLabel(story)} ${story.state}${story.blocks ? " [blocks]" : ""}` +
         ` pr=#${String(story.productPr)} ${story.relPath}`,
     );
   }

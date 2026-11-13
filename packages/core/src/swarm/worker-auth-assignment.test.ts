@@ -5,6 +5,7 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   rmSync,
   utimesSync,
   writeFileSync,
@@ -12,6 +13,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { resolveWorktreeStoryBinding } from "../hooks/scope.js";
 import {
   cleanupWorkerAuthAssignmentsForDispatch,
   FAILURE_MALFORMED_ASSIGNMENT,
@@ -21,6 +23,7 @@ import {
   readWorkerAuthAssignment,
   removeWorkerAuthAssignment,
   setWorkerAuthLockTestHooks,
+  storyIdForBrief,
   WORKER_AUTH_INDEX_NAME,
   WORKER_AUTH_LOCK_NAME,
   WORKER_AUTH_LOCK_STALE_MS,
@@ -613,4 +616,45 @@ describe("worker-auth-assignment (#3663)", { timeout: 60_000 }, () => {
     const dropped = readWorkerAuthAssignment(other);
     expect(dropped).toEqual({ ok: true, assignment: null, commonDir: expect.any(String) });
   }, 60_000 /* #5084 suite-load testTimeout */);
+});
+
+describe("shared story-id derivation (#6233)", { timeout: 60_000 }, () => {
+  it("uses plan.id when present, else the brief filename without its artifact suffix", () => {
+    expect(storyIdForBrief("/x/xbrief/active/a.xbrief.json", { id: " story-a " })).toBe("story-a");
+    expect(storyIdForBrief("/x/xbrief/active/2026-11-13-42-no-id.xbrief.json", {})).toBe(
+      "2026-11-13-42-no-id",
+    );
+    expect(storyIdForBrief("/x/vbrief/active/legacy.vbrief.json", null)).toBe("legacy");
+    expect(storyIdForBrief("/x/xbrief/active/blank.xbrief.json", { id: "  " })).toBe("blank");
+  });
+
+  it("registers a brief with no plan.id and the write-fence matcher resolves it", () => {
+    const { main, worktree } = linkedPair();
+    const active = join(worktree, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    const brief = join(active, "2026-11-13-42-no-id.xbrief.json");
+    writeFileSync(brief, JSON.stringify({ plan: { status: "running" } }), "utf8");
+    writeFileSync(
+      join(active, "other.xbrief.json"),
+      JSON.stringify({ plan: { id: "other", status: "running" } }),
+      "utf8",
+    );
+    const written = writeWorkerAuthAssignment({
+      projectRoot: main,
+      worktreePath: worktree,
+      dispatchId: "dispatch-6233",
+      storyId: storyIdForBrief(brief, { status: "running" }),
+      githubAuthMode: "host-gh",
+      expectedPrincipal: { kind: "user", login: "worker-a" },
+      credentialDeliveryId: null,
+    });
+    expect(written.ok).toBe(true);
+    const binding = resolveWorktreeStoryBinding(worktree, {
+      env: {},
+      isEligible: () => ({ ok: true, message: "" }),
+    });
+    expect(binding).toMatchObject({ kind: "bound", storyId: "2026-11-13-42-no-id" });
+    if (binding.kind !== "bound") return;
+    expect(realpathSync(binding.path)).toBe(realpathSync(brief));
+  });
 });

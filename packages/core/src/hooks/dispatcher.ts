@@ -127,6 +127,7 @@ import {
   type RoutingHonorSurface,
   type RoutingSpawnClass,
 } from "../swarm/routing-honor.js";
+import type { ReadWorkerAuthAssignmentResult } from "../swarm/worker-auth-assignment.js";
 import {
   formatLauncherCorrectLifecycleRecovery,
   UNRESOLVED_HOST_OWNER,
@@ -199,6 +200,7 @@ import {
   type InspectActiveScopeOptions,
   inspectActiveScope,
   POSITIVE_GOVERNING_ALLOW_REQUIRED,
+  resolveWorktreeStoryBinding,
 } from "./scope.js";
 import {
   classifyShellWriteTargets,
@@ -677,6 +679,11 @@ export interface HookPolicySeams {
     projectRoot: string,
     options?: InspectActiveScopeOptions,
   ) => ActiveScopeInspection;
+  /**
+   * Test seam for the #6233 linked-worktree story binding (worker-auth reader).
+   * Defaults to the validated `readWorkerAuthAssignment`.
+   */
+  readonly readWorkerAuthAssignment?: (cwd: string) => ReadWorkerAuthAssignmentResult;
   readonly sessionStart?: (projectRoot: string) => { code: number; stdout: string; stderr: string };
   /** Test seam for #2926 root opt-out on SessionStart. */
   readonly detectNoDeftDirective?: typeof detectNoDeftDirective;
@@ -2547,6 +2554,7 @@ function inspectMutationGates(
   }
 
   let scope: ActiveScopeInspection;
+  let worktreeBindingRefused = false;
   try {
     // #3794 commit 2: a write is governed by the active scope of the worktree it
     // lands in, not the primary checkout's. Admission has already proved
@@ -2558,10 +2566,31 @@ function inspectMutationGates(
     const spawnBoundPath = isSpawnTool(toolName)
       ? uniqueActiveBasenameFromDestPath(spawnConsult?.destPath ?? null)
       : null;
-    scope = (seams.inspectScope ?? inspectActiveScope)(effectiveRoot, {
+    // #6233: a dispatch-registered linked worktree binds its story from the
+    // worker-auth assignment record. The main worktree never reads the registry
+    // (the resolver returns `none` there); a clean absence keeps today's path.
+    const worktreeBinding = resolveWorktreeStoryBinding(effectiveRoot, {
       env: environ,
-      ...(spawnBoundPath !== null ? { boundPath: spawnBoundPath } : {}),
+      boundPath: spawnBoundPath,
+      ...(seams.readWorkerAuthAssignment !== undefined
+        ? { readWorkerAuthAssignment: seams.readWorkerAuthAssignment }
+        : {}),
     });
+    if (worktreeBinding.kind === "refuse") {
+      worktreeBindingRefused = true;
+      scope = {
+        ready: false,
+        path: null,
+        message: worktreeBinding.message,
+        denyKind: "pin-miss",
+      };
+    } else {
+      const boundPath = worktreeBinding.kind === "bound" ? worktreeBinding.path : spawnBoundPath;
+      scope = (seams.inspectScope ?? inspectActiveScope)(effectiveRoot, {
+        env: environ,
+        ...(boundPath !== null ? { boundPath } : {}),
+      });
+    }
   } catch (cause) {
     scope = { ready: false, path: null, message: String(cause) };
   }
@@ -2581,7 +2610,13 @@ function inspectMutationGates(
     const outsideRoot =
       mutationTargets.length > 0 &&
       mutationTargets.every((target) => isOutsideProjectRootWrite(projectRoot, target));
-    if (!outsideRoot || isSpawnTool(toolName)) {
+    // #6233: a worktree binding refusal governs writes into the bound worktree
+    // even when that worktree lives outside the payload root; the #2885 skip
+    // stays for targets outside both roots.
+    const bindingRefusalGoverns =
+      worktreeBindingRefused &&
+      mutationTargets.some((target) => !isOutsideProjectRootWrite(effectiveRoot, target));
+    if (!outsideRoot || isSpawnTool(toolName) || bindingRefusalGoverns) {
       let proposedPathHint: string;
       if (isSpawnTool(toolName) && scope.denyKind === "multiple-eligible") {
         // #4880 Prefer-A B': do not emit promote-then-activate on multiple-eligible.
