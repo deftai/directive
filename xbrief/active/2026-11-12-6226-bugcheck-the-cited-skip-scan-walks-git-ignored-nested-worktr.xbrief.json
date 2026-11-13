@@ -868,7 +868,11 @@
           "packages/core/src/check/context.ts",
           "packages/core/src/check/orchestrator.test.ts",
           "packages/core/src/check/degraded-skip.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "xbrief/active/2026-11-12-6226-bugcheck-the-cited-skip-scan-walks-git-ignored-nested-worktr.xbrief.json",
+          ".deft-scratch/pr-body/story-6226.md",
+          "xbrief/evaluator-surface-disposition.json",
+          ".deft-scratch/subagent-status/story-6226.json"
         ],
         "parallel_safe": true,
         "size": "small",
