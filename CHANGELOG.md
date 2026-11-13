@@ -22,11 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(scope): widen file_scope on the #5942, #6226, #5912 and #6227 briefs so pinned workers can write PR-process files.
 - Minted the intent-constraint record for the #6204 small-change lane defaults (5 production files, 500 changed lines). Refs #6204.
 - Activated the #680 scope brief for through-merge. Refs #680.
+- Activated the #6189 scope brief for through-merge. Refs #6189.
 
 ### Fixed
 - `reconcile-issues` no longer fails when a brief references a deleted issue (HTTP 410). The report names deleted (410) apart from missing (404) and exits 0. `--apply-lifecycle-fixes` leaves briefs anchored to a deleted issue in place, and refuses to move a parent whose decomposed child is deleted; a child whose state cannot be fetched fails the run. Umbrella reconcile counts a deleted child as open and does not rewrite its checkbox. Refs #5912.
 - The write fence binds a linked worktree registered by `swarm:launch` to its assigned story, so in-session Claude Code sub-agents can run a multi-story cohort with no `DEFT_ACTIVE_SCOPE` pin. A broken registry, a missing, ineligible or ambiguous story, or a pin that names a different story refuses the write. Unregistered worktrees and the main worktree are unchanged. Refs #6233.
 - `task release:e2e`, `release:publish` and `release:rollback` now pass the operator checkout as `--project-root`, like `task release` (#5805). They no longer act on the pinned runtime package. An operator `--project-root` still wins. A content-contract test locks this on all four tasks. Refs #5942.
+- The cited-skip scan (#6071) and sanctioned-skip count baseline (#6072) now share one test-file walk that skips `.deft-scratch` and linked worktrees, so local `task check` matches CI (#6226).
 
 ### Removed
 

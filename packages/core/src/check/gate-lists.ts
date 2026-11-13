@@ -1,8 +1,9 @@
 /** Gate execution order mirrors Taskfile.yml check targets (#1713 dogfood). */
 
-import { readdirSync, readFileSync as readFileSyncFs, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { readFileSync as readFileSyncFs } from "node:fs";
+import { relative } from "node:path";
 import { PRODUCT_AC_GATE_ID } from "../product-first-done-gate/types.js";
+import { walkTestFiles } from "./walk-test-files.js";
 
 /**
  * A check gate is either a bare Taskfile task name, or a public task plus CLI
@@ -321,35 +322,8 @@ export function inventoryCitedSkipsInSource(source: string, file: string): Cited
   return sites;
 }
 
-function walkTestFiles(root: string, dir: string, out: string[]): void {
-  let entries: string[] = [];
-  try {
-    entries = readdirSync(dir);
-  } catch {
-    return;
-  }
-  for (const name of entries) {
-    if (name === "node_modules" || name === "dist" || name === ".git") continue;
-    const full = join(dir, name);
-    let st: ReturnType<typeof statSync>;
-    try {
-      st = statSync(full);
-    } catch {
-      continue;
-    }
-    if (st.isDirectory()) {
-      walkTestFiles(root, full, out);
-      continue;
-    }
-    if (/\.(test|spec)\.(ts|tsx|js|mjs|cjs)$/.test(name)) {
-      out.push(full);
-    }
-  }
-}
-
 export function inventoryCitedSkipsInTree(projectRoot: string): CitedSkipSite[] {
-  const files: string[] = [];
-  walkTestFiles(projectRoot, projectRoot, files);
+  const files = walkTestFiles(projectRoot);
   const sites: CitedSkipSite[] = [];
   for (const abs of files) {
     let source = "";

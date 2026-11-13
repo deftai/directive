@@ -1,0 +1,1573 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6189",
+    "updated": "2026-11-13T02:32:00Z"
+  },
+  "plan": {
+    "title": "Story write fence refuses Write/Edit to files outside the repository (host memory, temp scratch)",
+    "status": "running",
+    "narratives": {
+      "Description": "With a story active, the write fence refuses Write and Edit to files outside the repository, such as host memory or a session temp scratchpad. When the active story has no positive governing allow on the merge base (activated on a branch, not yet on master), the #5656 check refuses every Write, wherever the target is. This story makes the fence govern the repository only: outside-root targets skip the path layer and the positive-allow check, while project scopes.edits=false still denies.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6189",
+      "Overview": "\n- Outside-root path-fence skip — In runtimeAuthorityForDirectWrite, for each harvested mutation target where isOutsideProjectRootWrite(fenceRoot, target) is true, skip path-layer evaluation (project allowPaths/denyPaths and story file_scope / deny-story-scope) for that target. Ready-path skip uses fenceRoot (same root as toProjectRelativePosix in this loop); #2885 scope-not-ready carve-out stays on payloadRoot. If every target is skipped at the path layer and no project-authority deny fires, return null. relieves: P1\n- Outside-root path-fence skip also relieves Bash-push and scratch Write friction — same admit path as limb 1. relieves: P2\n- Outside-root path-fence skip also relieves ordinary out-of-repo scratch Write when positive governing allow is already present (non-empty file_scope / path-fence parity). Activation-PR empty merge-base P3 is limb 5. relieves: P3\n- Preserve project edit authority on outside-root — Before path-layer skip (or when skipping path evaluation for an outside-root target), still apply enabled project runtimeAuthority scopes.edits: when scopes.edits is false, keep runtime-policy-deny-scope. Do not treat authz/protected-store alone as that authority.\n- Positive-allow arm skips outside-root Write — In the ready-path direct-write arm, omit requirePositiveGoverningAllow() only when harvested.length > 0 && harvested.every(t => isOutsideProjectRootWrite(fenceRoot, t)), using the same fenceRoot anchor as limb 1 (#2885 dual). Any in-repo harvested target keeps positive-allow required. Empty or unclassified harvest keeps #5656 fail-closed. A qualifying outside-root Write proceeds to runtimeAuthorityForDirectWrite, where limb 4 (project scopes.edits=false) still denies. Implement-class spawn keeps the positive-allow requirement unchanged. disposes critic 6807968568 F3 and 6840717484 F1; operator cue 6839167710. relieves: P3\n- Fixture matrix — Ready story + non-empty file_scope: (a) absolute outside-root Write/Edit allows through path fence; (b) lexical ../ outside allows through path fence; (c) mixed harvest: outside member skipped + in-repo miss still deny-story-scope (both orders); (d) symlink re-enter still fenced; (e) enabled project policy + scopes.edits=false + outside-root still deny-scope; (f) #2885 scope-not-ready outside carve-out unchanged; (g) linked worktree under payload: absolute host/temp outside allows; in-repo worktree path with file_scope miss still deny-story-scope. (h) ready story activated on a branch but not yet on master (empty merge-base file_scope on origin/master): absolute outside-root Write admitted past #5656 positive-allow; same story with an in-repo Write still denied with the #5656 positive-allow message; same story with project scopes.edits=false and an outside-root Write still denied; empty/unclassified Write harvest under that same ready empty-file_scope story still denied with the #5656 positive-allow message. disposes critic 6807874908 F1 F2; disposes critic 6807968568 F2 F3; disposes critic 6840717484 F1; operator cue 6839167710.\n\nReject:\n- Widening file_scope globs to match ../** or absolute host paths\n- Removing story fence for in-repo writes under an active brief\n- Prescribing Bash redirection / python -c as the supported outside-root write path\n- Collapsing #6185 (launch root) or #6187 (commit-shape heredoc) into this Bound\n- Softening authz / protected-store for outside-root targets\n- Unconditional skip of evaluateRuntimeAuthorityDirectWrite that also bypasses scopes.edits=false\n- Skipping requirePositiveGoverningAllow for implement-class spawn\n- Skipping requirePositiveGoverningAllow when any harvested Write target is in-repo\n- Skipping requirePositiveGoverningAllow on empty/unclassified harvest\n\nFootnotes (dispose-as-footnote):\n- P2 relief is Write/Edit parity (pressure off shell); Shell-outside-root remaining unfenced under shellDestForms off is intentional residual (Grok F3).\n- authzForMutationTargets / protected-store stay upstream of this skip (Grok F4).\n- F2 root anchor: limb 1 and limb 5 both pin fenceRoot (ready-path / toProjectRelativePosix loop root), not payloadRoot/projectRoot used by the #2885 carve-out; fixture (g) discriminates linked-worktree under payload; confirmed per cue 6839167710 / late Claude audit 6807968568 F2 / Round-1 6840717484 F3.\n\ntakes:\n- accept-into-contract: 6840717484/F1\n- accept-into-contract: 6840717484/F2\n- accept-into-contract: 6840717484/F3 (footnote)\n- accept-into-contract: 6840717484/F4 (footnote)\n- accept-into-contract: 6807858710/C1\n- accept-into-contract: 6807858710/C2\n- accept-into-contract: 6807874908/F1\n- accept-into-contract: 6807874908/F2\n- accept-into-contract: 6807874908/F3 (footnote)\n- accept-into-contract: 6807874908/F4 (footnote)\n- accept-into-contract: 6807968568/F1 (already limb 4)\n- accept-into-contract: 6807968568/F2 (fenceRoot + fixture g; confirmed)\n- accept-into-contract: 6807968568/F3 (limb 5 + fixture h)\n- accept-into-contract: 6807968568/F4 (footnote)\n- accept-into-contract: 6807968568/F5 (footnote)\n- operator-steer: 6839167710\n\n",
+      "Labels": "bug, agent-experience, process, harness, urgent, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates",
+      "UserStory": "As an agent working under an active story, I want to write my own scratch and memory files outside the repository, so that the fence protects the repository without blocking work that never touches it.",
+      "ImplementationPlan": "Follow the accepted Prefer-A Bound on #6189 (comment 6840737588, synthesis 6840815911). In packages/core/src/hooks/dispatcher.ts runtimeAuthorityForDirectWrite, skip the path layer for each target where isOutsideProjectRootWrite(fenceRoot, target) holds, and in the ready-path direct-write arm omit requirePositiveGoverningAllow() only when every harvested target is outside the root (same fenceRoot anchor). Keep project scopes.edits=false, the #2885 carve-out, authz and protected-store unchanged, and keep the positive-allow requirement for implement-class spawn and for empty or unclassified harvests. Put the fixture matrix (a) to (h) in a new test file, packages/core/src/hooks/dispatcher-outside-root.test.ts, so it does not collide with packages/core/src/hooks/dispatcher.test.ts, which another cohort is changing. Add a CHANGELOG Unreleased entry.",
+      "Traces": "#6189 Prefer-A Bound 6840737588; synthesis 6840815911; verified-claims 6840805957; operator cue 6839167710; #5656; #2885; #4007",
+      "IngestNote": "Ingest harvested the whole lean: items 1-6 are the limbs and govern; items 7-15 are the Reject list, kept as must-not constraints; items 16-18 are footnotes; items 19-34 are arc record-keeping (critic disposals and the operator steer) with no behaviour of their own. The arc ran with Grok seats only; the parent session's implementation review is the cross-family read."
+    },
+    "items": [
+      {
+        "title": "Outside-root path-fence skip — In runtimeAuthorityForDirectWrite, for each harvested mutation target where isOutsideProjectRootWrite(fenceRoot, target) is true, skip path-layer evaluation (project allowPaths/denyPaths and story file_scope / deny-story-scope) for that target. Ready-path skip uses fenceRoot (same root as toProjectRelativePosix in this loop); #2885 scope-not-ready carve-out stays on payloadRoot. If every target is skipped at the path layer and no project-authority deny fires, return null. relieves: P1",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "In runtimeAuthorityForDirectWrite, each harvested target outside the project root (isOutsideProjectRootWrite against fenceRoot) skips the path layer (project allowPaths and denyPaths, story file_scope and deny-story-scope); when every target is skipped and no project-authority deny fires, the function returns null."
+        }
+      },
+      {
+        "title": "Outside-root path-fence skip also relieves Bash-push and scratch Write friction — same admit path as limb 1. relieves: P2",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When an agent writes outside the repository, Write and Edit take the same admit path as limb 1, so an out-of-repo scratch write returns allow without a shell workaround."
+        }
+      },
+      {
+        "title": "Outside-root path-fence skip also relieves ordinary out-of-repo scratch Write when positive governing allow is already present (non-empty file_scope / path-fence parity). Activation-PR empty merge-base P3 is limb 5. relieves: P3",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When the story has a positive governing allow, an ordinary out-of-repo scratch Write returns allow through limb 1; the activation-PR case with an empty merge-base allow is limb 5."
+        }
+      },
+      {
+        "title": "Preserve project edit authority on outside-root — Before path-layer skip (or when skipping path evaluation for an outside-root target), still apply enabled project runtimeAuthority scopes.edits: when scopes.edits is false, keep runtime-policy-deny-scope. Do not treat authz/protected-store alone as that authority.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When project runtimeAuthority is enabled with scopes.edits=false, an outside-root Write is still denied with runtime-policy-deny-scope; authz or protected-store alone never stands in for that authority."
+        }
+      },
+      {
+        "title": "Positive-allow arm skips outside-root Write — In the ready-path direct-write arm, omit requirePositiveGoverningAllow() only when harvested.length > 0 && harvested.every(t => isOutsideProjectRootWrite(fenceRoot, t)), using the same fenceRoot anchor as limb 1 (#2885 dual). Any in-repo harvested target keeps positive-allow required. Empty or unclassified harvest keeps #5656 fail-closed. A qualifying outside-root Write proceeds to runtimeAuthorityForDirectWrite, where limb 4 (project scopes.edits=false) still denies. Implement-class spawn keeps the positive-allow requirement unchanged. disposes critic 6807968568 F3 and 6840717484 F1; operator cue 6839167710. relieves: P3",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "In the ready-path direct-write arm, requirePositiveGoverningAllow() is skipped only when the harvest is non-empty and every target is outside the root by the same fenceRoot anchor; any in-repo target, an empty or unclassified harvest, and implement-class spawn keep the #5656 requirement."
+        }
+      },
+      {
+        "title": "Fixture matrix — Ready story + non-empty file_scope: (a) absolute outside-root Write/Edit allows through path fence; (b) lexical ../ outside allows through path fence; (c) mixed harvest: outside member skipped + in-repo miss still deny-story-scope (both orders); (d) symlink re-enter still fenced; (e) enabled project policy + scopes.edits=false + outside-root still deny-scope; (f) #2885 scope-not-ready outside carve-out unchanged; (g) linked worktree under payload: absolute host/temp outside allows; in-repo worktree path with file_scope miss still deny-story-scope. (h) ready story activated on a branch but not yet on master (empty merge-base file_scope on origin/master): absolute outside-root Write admitted past #5656 positive-allow; same story with an in-repo Write still denied with the #5656 positive-allow message; same story with project scopes.edits=false and an outside-root Write still denied; empty/unclassified Write harvest under that same ready empty-file_scope story still denied with the #5656 positive-allow message. disposes critic 6807874908 F1 F2; disposes critic 6807968568 F2 F3; disposes critic 6840717484 F1; operator cue 6839167710.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Fixtures (a) to (h) pass: given a ready story with an empty merge-base file_scope (fixture h), an outside-root Write returns allow, an in-repo Write fails with the #5656 message, and an outside-root Write under scopes.edits=false fails with runtime-policy-deny-scope."
+        }
+      },
+      {
+        "title": "Widening file_scope globs to match ../** or absolute host paths",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Review rejects any change that does this: Widening file_scope globs to match ../** or absolute host paths"
+        }
+      },
+      {
+        "title": "Removing story fence for in-repo writes under an active brief",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Review rejects any change that does this: Removing story fence for in-repo writes under an active brief"
+        }
+      },
+      {
+        "title": "Prescribing Bash redirection / python -c as the supported outside-root write path",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Review rejects any change that does this: Prescribing Bash redirection / python -c as the supported outside-root write path"
+        }
+      },
+      {
+        "title": "Collapsing #6185 (launch root) or #6187 (commit-shape heredoc) into this Bound",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Review rejects any change that does this: Collapsing #6185 (launch root) or #6187 (commit-shape heredoc) into this Bound"
+        }
+      },
+      {
+        "title": "Softening authz / protected-store for outside-root targets",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Review rejects any change that does this: Softening authz / protected-store for outside-root targets"
+        }
+      },
+      {
+        "title": "Unconditional skip of evaluateRuntimeAuthorityDirectWrite that also bypasses scopes.edits=false",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Review rejects any change that does this: Unconditional skip of evaluateRuntimeAuthorityDirectWrite that also bypasses scopes.edits=false"
+        }
+      },
+      {
+        "title": "Skipping requirePositiveGoverningAllow for implement-class spawn",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Review rejects any change that does this: Skipping requirePositiveGoverningAllow for implement-class spawn"
+        }
+      },
+      {
+        "title": "Skipping requirePositiveGoverningAllow when any harvested Write target is in-repo",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Review rejects any change that does this: Skipping requirePositiveGoverningAllow when any harvested Write target is in-repo"
+        }
+      },
+      {
+        "title": "Skipping requirePositiveGoverningAllow on empty/unclassified harvest",
+        "status": "proposed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Review rejects any change that does this: Skipping requirePositiveGoverningAllow on empty/unclassified harvest"
+        }
+      },
+      {
+        "title": "P2 relief is Write/Edit parity (pressure off shell); Shell-outside-root remaining unfenced under shellDestForms off is intentional residual (Grok F3).",
+        "status": "proposed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "When implemented, this footnote holds: P2 relief is Write/Edit parity (pressure off shell); Shell-outside-root remaining unfenced under shellDestForms off is intentional residual (Grok F3)."
+        }
+      },
+      {
+        "title": "authzForMutationTargets / protected-store stay upstream of this skip (Grok F4).",
+        "status": "proposed",
+        "id": "clause.17",
+        "narrative": {
+          "Acceptance": "When implemented, this footnote holds: authzForMutationTargets / protected-store stay upstream of this skip (Grok F4)."
+        }
+      },
+      {
+        "title": "F2 root anchor: limb 1 and limb 5 both pin fenceRoot (ready-path / toProjectRelativePosix loop root), not payloadRoot/projectRoot used by the #2885 carve-out; fixture (g) discriminates linked-worktree under payload; confirmed per cue 6839167710 / late Claude audit 6807968568 F2 / Round-1 6840717484 F3.",
+        "status": "proposed",
+        "id": "clause.18",
+        "narrative": {
+          "Acceptance": "When implemented, this footnote holds: F2 root anchor: limb 1 and limb 5 both pin fenceRoot (ready-path / toProjectRelativePosix loop root), not payloadRoot/projectRoot used by the #2885 carve-out; fixture (g) discriminates linked-worktree under payload; confirmed per cue 6839167710 / late Claude audit 6807968568 F2 / Round-1 6840717484 F3."
+        }
+      },
+      {
+        "title": "accept-into-contract: 6840717484/F1",
+        "status": "proposed",
+        "id": "clause.19",
+        "narrative": {
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        }
+      },
+      {
+        "title": "accept-into-contract: 6840717484/F2",
+        "status": "proposed",
+        "id": "clause.20",
+        "narrative": {
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        }
+      },
+      {
+        "title": "accept-into-contract: 6840717484/F3 (footnote)",
+        "status": "proposed",
+        "id": "clause.21",
+        "narrative": {
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        }
+      },
+      {
+        "title": "accept-into-contract: 6840717484/F4 (footnote)",
+        "status": "proposed",
+        "id": "clause.22",
+        "narrative": {
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        }
+      },
+      {
+        "title": "accept-into-contract: 6807858710/C1",
+        "status": "proposed",
+        "id": "clause.23",
+        "narrative": {
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        }
+      },
+      {
+        "title": "accept-into-contract: 6807858710/C2",
+        "status": "proposed",
+        "id": "clause.24",
+        "narrative": {
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        }
+      },
+      {
+        "title": "accept-into-contract: 6807874908/F1",
+        "status": "proposed",
+        "id": "clause.25",
+        "narrative": {
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        }
+      },
+      {
+        "title": "accept-into-contract: 6807874908/F2",
+        "status": "proposed",
+        "id": "clause.26",
+        "narrative": {
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        }
+      },
+      {
+        "title": "accept-into-contract: 6807874908/F3 (footnote)",
+        "status": "proposed",
+        "id": "clause.27",
+        "narrative": {
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        }
+      },
+      {
+        "title": "accept-into-contract: 6807874908/F4 (footnote)",
+        "status": "proposed",
+        "id": "clause.28",
+        "narrative": {
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        }
+      },
+      {
+        "title": "accept-into-contract: 6807968568/F1 (already limb 4)",
+        "status": "proposed",
+        "id": "clause.29",
+        "narrative": {
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        }
+      },
+      {
+        "title": "accept-into-contract: 6807968568/F2 (fenceRoot + fixture g; confirmed)",
+        "status": "proposed",
+        "id": "clause.30",
+        "narrative": {
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        }
+      },
+      {
+        "title": "accept-into-contract: 6807968568/F3 (limb 5 + fixture h)",
+        "status": "proposed",
+        "id": "clause.31",
+        "narrative": {
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        }
+      },
+      {
+        "title": "accept-into-contract: 6807968568/F4 (footnote)",
+        "status": "proposed",
+        "id": "clause.32",
+        "narrative": {
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        }
+      },
+      {
+        "title": "accept-into-contract: 6807968568/F5 (footnote)",
+        "status": "proposed",
+        "id": "clause.33",
+        "narrative": {
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        }
+      },
+      {
+        "title": "operator-steer: 6839167710",
+        "status": "proposed",
+        "id": "clause.34",
+        "narrative": {
+          "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "harness",
+      "urgent",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6189",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6189: Story write fence refuses Write/Edit to files outside the repository (host memory, temp scratch)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6185",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6185"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 34 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "Story write fence refuses Write/Edit to files outside the repository (host memory, temp scratch)",
+        "Outside-root path-fence skip — In runtimeAuthorityForDirectWrite, for each harvested mutation target where isOutsideProjectRootWrite(fenceRoot, target) is true, skip path-layer evaluation (project allowPaths/denyPaths and story file_scope / deny-story-scope) for that target.",
+        "Ready-path skip uses fenceRoot (same root as toProjectRelativePosix in this loop); #2885 scope-not-ready carve-out stays on payloadRoot.",
+        "If every target is skipped at the path layer and no project-authority deny fires, return null.",
+        "relieves: P1 - Outside-root path-fence skip also relieves Bash-push and scratch Write friction — same admit path as limb 1.",
+        "relieves: P2 - Outside-root path-fence skip also relieves ordinary out-of-repo scratch Write when positive governing allow is already present (non-empty file_scope / path-fence parity).",
+        "Activation-PR empty merge-base P3 is limb 5.",
+        "relieves: P3 - Preserve project edit authority on outside-root — Before path-layer skip (or when skipping path evaluation for an outside-root target), still apply enabled project runtimeAuthority scopes.edits: when scopes.edits is false, keep runtime-policy-deny-scope.",
+        "Do not treat authz/protected-store alone as that authority.",
+        "Positive-allow arm skips outside-root Write — In the ready-path direct-write arm, omit requirePositiveGoverningAllow() only when harvested.length > 0 && harvested.every(t => isOutsideProjectRootWrite(fenceRoot, t)), using the same fenceRoot anchor as limb 1 (#2885 dual).",
+        "Any in-repo harvested target keeps positive-allow required.",
+        "Empty or unclassified harvest keeps #5656 fail-closed.",
+        "A qualifying outside-root Write proceeds to runtimeAuthorityForDirectWrite, where limb 4 (project scopes.edits=false) still denies.",
+        "Implement-class spawn keeps the positive-allow requirement unchanged.",
+        "disposes critic 6807968568 F3 and 6840717484 F1; operator cue 6839167710.",
+        "relieves: P3 - Fixture matrix — Ready story + non-empty file_scope: (a) absolute outside-root Write/Edit allows through path fence; (b) lexical ../ outside allows through path fence; (c) mixed harvest: outside member skipped + in-repo miss still deny-story-scope (both orders); (d) symlink re-enter still fenced; (e) enabled project policy + scopes.edits=false + outside-root still deny-scope; (f) #2885 scope-not-ready outside carve-out unchanged; (g) linked worktree under payload: absolute host/temp outside allows; in-repo worktree path with file_scope miss still deny-story-scope.",
+        "(h) ready story activated on a branch but not yet on master (empty merge-base file_scope on origin/master): absolute outside-root Write admitted past #5656 positive-allow; same story with an in-repo Write still denied with the #5656 positive-allow message; same story with project scopes.edits=false and an outside-root Write still denied; empty/unclassified Write harvest under that same ready empty-file_scope story still denied with the #5656 positive-allow message.",
+        "disposes critic 6807874908 F1 F2; disposes critic 6807968568 F2 F3; disposes critic 6840717484 F1; operator cue 6839167710.",
+        "Reject: - Widening file_scope globs to match ../ or absolute host paths - Removing story fence for in-repo writes under an active brief - Prescribing Bash redirection / python -c as the supported outside-root write path - Collapsing #6185 (launch root) or #6187 (commit-shape heredoc) into this Bound - Softening authz / protected-store for outside-root targets - Unconditional skip of evaluateRuntimeAuthorityDirectWrite that also bypasses scopes.edits=false - Skipping requirePositiveGoverningAllow for implement-class spawn - Skipping requirePositiveGoverningAllow when any harvested Write target is in-repo - Skipping requirePositiveGoverningAllow on empty/unclassified harvest Footnotes (dispose-as-footnote): - P2 relief is Write/Edit parity (pressure off shell); Shell-outside-root remaining unfenced under shellDestForms off is intentional residual (Grok F3).",
+        "authzForMutationTargets / protected-store stay upstream of this skip (Grok F4).",
+        "F2 root anchor: limb 1 and limb 5 both pin fenceRoot (ready-path / toProjectRelativePosix loop root), not payloadRoot/projectRoot used by the #2885 carve-out; fixture (g) discriminates linked-worktree under payload; confirmed per cue 6839167710 / late Claude audit 6807968568 F2 / Round-1 6840717484 F3.",
+        "takes:",
+        "accept-into-contract: 6840717484/F1",
+        "accept-into-contract: 6840717484/F2",
+        "accept-into-contract: 6840717484/F3 (footnote)",
+        "accept-into-contract: 6840717484/F4 (footnote)",
+        "accept-into-contract: 6807858710/C1",
+        "accept-into-contract: 6807858710/C2",
+        "accept-into-contract: 6807874908/F1",
+        "accept-into-contract: 6807874908/F2",
+        "accept-into-contract: 6807874908/F3 (footnote)",
+        "accept-into-contract: 6807874908/F4 (footnote)",
+        "accept-into-contract: 6807968568/F1 (already limb 4)",
+        "accept-into-contract: 6807968568/F2 (fenceRoot + fixture g; confirmed)",
+        "accept-into-contract: 6807968568/F3 (limb 5 + fixture h)",
+        "accept-into-contract: 6807968568/F4 (footnote)",
+        "accept-into-contract: 6807968568/F5 (footnote)",
+        "operator-steer: 6839167710",
+        "relieves: P1",
+        "Outside-root path-fence skip also relieves Bash-push and scratch Write friction — same admit path as limb 1.",
+        "relieves: P2",
+        "Outside-root path-fence skip also relieves ordinary out-of-repo scratch Write when positive governing allow is already present (non-empty file_scope / path-fence parity).",
+        "relieves: P3",
+        "Preserve project edit authority on outside-root — Before path-layer skip (or when skipping path evaluation for an outside-root target), still apply enabled project runtimeAuthority scopes.edits: when scopes.edits is false, keep runtime-policy-deny-scope.",
+        "Fixture matrix — Ready story + non-empty file_scope: (a) absolute outside-root Write/Edit allows through path fence; (b) lexical ../ outside allows through path fence; (c) mixed harvest: outside member skipped + in-repo miss still deny-story-scope (both orders); (d) symlink re-enter still fenced; (e) enabled project policy + scopes.edits=false + outside-root still deny-scope; (f) #2885 scope-not-ready outside carve-out unchanged; (g) linked worktree under payload: absolute host/temp outside allows; in-repo worktree path with file_scope miss still deny-story-scope.",
+        "Widening file_scope globs to match ../ or absolute host paths",
+        "Removing story fence for in-repo writes under an active brief",
+        "Prescribing Bash redirection / python -c as the supported outside-root write path",
+        "Collapsing #6185 (launch root) or #6187 (commit-shape heredoc) into this Bound",
+        "Softening authz / protected-store for outside-root targets",
+        "Unconditional skip of evaluateRuntimeAuthorityDirectWrite that also bypasses scopes.edits=false",
+        "Skipping requirePositiveGoverningAllow for implement-class spawn",
+        "Skipping requirePositiveGoverningAllow when any harvested Write target is in-repo",
+        "Skipping requirePositiveGoverningAllow on empty/unclassified harvest",
+        "P2 relief is Write/Edit parity (pressure off shell); Shell-outside-root remaining unfenced under shellDestForms off is intentional residual (Grok F3)."
+      ],
+      "admitted_source_sentences": [
+        "Outside-root path-fence skip — In runtimeAuthorityForDirectWrite, for each harvested mutation target where isOutsideProjectRootWrite(fenceRoot, target) is true, skip path-layer evaluation (project allowPaths/denyPaths and story file_scope / deny-story-scope) for that target.",
+        "Ready-path skip uses fenceRoot (same root as toProjectRelativePosix in this loop); #2885 scope-not-ready carve-out stays on payloadRoot.",
+        "If every target is skipped at the path layer and no project-authority deny fires, return null.",
+        "relieves: P1 - Outside-root path-fence skip also relieves Bash-push and scratch Write friction — same admit path as limb 1.",
+        "relieves: P2 - Outside-root path-fence skip also relieves ordinary out-of-repo scratch Write when positive governing allow is already present (non-empty file_scope / path-fence parity).",
+        "Activation-PR empty merge-base P3 is limb 5.",
+        "relieves: P3 - Preserve project edit authority on outside-root — Before path-layer skip (or when skipping path evaluation for an outside-root target), still apply enabled project runtimeAuthority scopes.edits: when scopes.edits is false, keep runtime-policy-deny-scope.",
+        "Do not treat authz/protected-store alone as that authority.",
+        "Positive-allow arm skips outside-root Write — In the ready-path direct-write arm, omit requirePositiveGoverningAllow() only when harvested.length > 0 && harvested.every(t => isOutsideProjectRootWrite(fenceRoot, t)), using the same fenceRoot anchor as limb 1 (#2885 dual).",
+        "Any in-repo harvested target keeps positive-allow required.",
+        "Empty or unclassified harvest keeps #5656 fail-closed.",
+        "A qualifying outside-root Write proceeds to runtimeAuthorityForDirectWrite, where limb 4 (project scopes.edits=false) still denies.",
+        "Implement-class spawn keeps the positive-allow requirement unchanged.",
+        "disposes critic 6807968568 F3 and 6840717484 F1; operator cue 6839167710.",
+        "relieves: P3 - Fixture matrix — Ready story + non-empty file_scope: (a) absolute outside-root Write/Edit allows through path fence; (b) lexical ../ outside allows through path fence; (c) mixed harvest: outside member skipped + in-repo miss still deny-story-scope (both orders); (d) symlink re-enter still fenced; (e) enabled project policy + scopes.edits=false + outside-root still deny-scope; (f) #2885 scope-not-ready outside carve-out unchanged; (g) linked worktree under payload: absolute host/temp outside allows; in-repo worktree path with file_scope miss still deny-story-scope.",
+        "(h) ready story activated on a branch but not yet on master (empty merge-base file_scope on origin/master): absolute outside-root Write admitted past #5656 positive-allow; same story with an in-repo Write still denied with the #5656 positive-allow message; same story with project scopes.edits=false and an outside-root Write still denied; empty/unclassified Write harvest under that same ready empty-file_scope story still denied with the #5656 positive-allow message.",
+        "disposes critic 6807874908 F1 F2; disposes critic 6807968568 F2 F3; disposes critic 6840717484 F1; operator cue 6839167710.",
+        "Reject: - Widening file_scope globs to match ../ or absolute host paths - Removing story fence for in-repo writes under an active brief - Prescribing Bash redirection / python -c as the supported outside-root write path - Collapsing #6185 (launch root) or #6187 (commit-shape heredoc) into this Bound - Softening authz / protected-store for outside-root targets - Unconditional skip of evaluateRuntimeAuthorityDirectWrite that also bypasses scopes.edits=false - Skipping requirePositiveGoverningAllow for implement-class spawn - Skipping requirePositiveGoverningAllow when any harvested Write target is in-repo - Skipping requirePositiveGoverningAllow on empty/unclassified harvest Footnotes (dispose-as-footnote): - P2 relief is Write/Edit parity (pressure off shell); Shell-outside-root remaining unfenced under shellDestForms off is intentional residual (Grok F3).",
+        "authzForMutationTargets / protected-store stay upstream of this skip (Grok F4).",
+        "F2 root anchor: limb 1 and limb 5 both pin fenceRoot (ready-path / toProjectRelativePosix loop root), not payloadRoot/projectRoot used by the #2885 carve-out; fixture (g) discriminates linked-worktree under payload; confirmed per cue 6839167710 / late Claude audit 6807968568 F2 / Round-1 6840717484 F3.",
+        "takes:",
+        "accept-into-contract: 6840717484/F1",
+        "accept-into-contract: 6840717484/F2",
+        "accept-into-contract: 6840717484/F3 (footnote)",
+        "accept-into-contract: 6840717484/F4 (footnote)",
+        "accept-into-contract: 6807858710/C1",
+        "accept-into-contract: 6807858710/C2",
+        "accept-into-contract: 6807874908/F1",
+        "accept-into-contract: 6807874908/F2",
+        "accept-into-contract: 6807874908/F3 (footnote)",
+        "accept-into-contract: 6807874908/F4 (footnote)",
+        "accept-into-contract: 6807968568/F1 (already limb 4)",
+        "accept-into-contract: 6807968568/F2 (fenceRoot + fixture g; confirmed)",
+        "accept-into-contract: 6807968568/F3 (limb 5 + fixture h)",
+        "accept-into-contract: 6807968568/F4 (footnote)",
+        "accept-into-contract: 6807968568/F5 (footnote)",
+        "operator-steer: 6839167710"
+      ],
+      "admitted_source_digest": "ed45d5f75e16f2ecc84363b4ccae839e84449c26e9ee5b0dc5ce7ad357dd2689",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Outside-root path-fence skip — In runtimeAuthorityForDirectWrite, for each harvested mutation target where isOutsideProjectRootWrite(fenceRoot, target) is true, skip path-layer evaluation (project allowPaths/denyPaths and story file_scope / deny-story-scope) for that target. Ready-path skip uses fenceRoot (same root as toProjectRelativePosix in this loop); #2885 scope-not-ready carve-out stays on payloadRoot. If every target is skipped at the path layer and no project-authority deny fires, return null. relieves: P1",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Outside-root path-fence skip also relieves Bash-push and scratch Write friction — same admit path as limb 1. relieves: P2",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Outside-root path-fence skip also relieves ordinary out-of-repo scratch Write when positive governing allow is already present (non-empty file_scope / path-fence parity). Activation-PR empty merge-base P3 is limb 5. relieves: P3",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Preserve project edit authority on outside-root — Before path-layer skip (or when skipping path evaluation for an outside-root target), still apply enabled project runtimeAuthority scopes.edits: when scopes.edits is false, keep runtime-policy-deny-scope. Do not treat authz/protected-store alone as that authority.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Positive-allow arm skips outside-root Write — In the ready-path direct-write arm, omit requirePositiveGoverningAllow() only when harvested.length > 0 && harvested.every(t => isOutsideProjectRootWrite(fenceRoot, t)), using the same fenceRoot anchor as limb 1 (#2885 dual). Any in-repo harvested target keeps positive-allow required. Empty or unclassified harvest keeps #5656 fail-closed. A qualifying outside-root Write proceeds to runtimeAuthorityForDirectWrite, where limb 4 (project scopes.edits=false) still denies. Implement-class spawn keeps the positive-allow requirement unchanged. disposes critic 6807968568 F3 and 6840717484 F1; operator cue 6839167710. relieves: P3",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Fixture matrix — Ready story + non-empty file_scope: (a) absolute outside-root Write/Edit allows through path fence; (b) lexical ../ outside allows through path fence; (c) mixed harvest: outside member skipped + in-repo miss still deny-story-scope (both orders); (d) symlink re-enter still fenced; (e) enabled project policy + scopes.edits=false + outside-root still deny-scope; (f) #2885 scope-not-ready outside carve-out unchanged; (g) linked worktree under payload: absolute host/temp outside allows; in-repo worktree path with file_scope miss still deny-story-scope. (h) ready story activated on a branch but not yet on master (empty merge-base file_scope on origin/master): absolute outside-root Write admitted past #5656 positive-allow; same story with an in-repo Write still denied with the #5656 positive-allow message; same story with project scopes.edits=false and an outside-root Write still denied; empty/unclassified Write harvest under that same ready empty-file_scope story still denied with the #5656 positive-allow message. disposes critic 6807874908 F1 F2; disposes critic 6807968568 F2 F3; disposes critic 6840717484 F1; operator cue 6839167710.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Widening file_scope globs to match ../ or absolute host paths",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Removing story fence for in-repo writes under an active brief",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Prescribing Bash redirection / python -c as the supported outside-root write path",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Collapsing #6185 (launch root) or #6187 (commit-shape heredoc) into this Bound",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Softening authz / protected-store for outside-root targets",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Unconditional skip of evaluateRuntimeAuthorityDirectWrite that also bypasses scopes.edits=false",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Skipping requirePositiveGoverningAllow for implement-class spawn",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Skipping requirePositiveGoverningAllow when any harvested Write target is in-repo",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Skipping requirePositiveGoverningAllow on empty/unclassified harvest",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "P2 relief is Write/Edit parity (pressure off shell); Shell-outside-root remaining unfenced under shellDestForms off is intentional residual (Grok F3).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "authzForMutationTargets / protected-store stay upstream of this skip (Grok F4).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "F2 root anchor: limb 1 and limb 5 both pin fenceRoot (ready-path / toProjectRelativePosix loop root), not payloadRoot/projectRoot used by the #2885 carve-out; fixture (g) discriminates linked-worktree under payload; confirmed per cue 6839167710 / late Claude audit 6807968568 F2 / Round-1 6840717484 F3.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "accept-into-contract: 6840717484/F1",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "accept-into-contract: 6840717484/F2",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "accept-into-contract: 6840717484/F3 (footnote)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "accept-into-contract: 6840717484/F4 (footnote)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "accept-into-contract: 6807858710/C1",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "accept-into-contract: 6807858710/C2",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "accept-into-contract: 6807874908/F1",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "accept-into-contract: 6807874908/F2",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 27,
+          "text": "accept-into-contract: 6807874908/F3 (footnote)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 28,
+          "text": "accept-into-contract: 6807874908/F4 (footnote)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 29,
+          "text": "accept-into-contract: 6807968568/F1 (already limb 4)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 30,
+          "text": "accept-into-contract: 6807968568/F2 (fenceRoot + fixture g; confirmed)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 31,
+          "text": "accept-into-contract: 6807968568/F3 (limb 5 + fixture h)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 32,
+          "text": "accept-into-contract: 6807968568/F4 (footnote)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 33,
+          "text": "accept-into-contract: 6807968568/F5 (footnote)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 34,
+          "text": "operator-steer: 6839167710",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 35,
+          "text": "Outside-root path-fence skip — In runtimeAuthorityForDirectWrite, for each harvested mutation target where isOutsideProjectRootWrite(fenceRoot, target) is true, skip path-layer evaluation (project allowPaths/denyPaths and story file_scope / deny-story-scope) for that target.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 36,
+          "text": "Ready-path skip uses fenceRoot (same root as toProjectRelativePosix in this loop); #2885 scope-not-ready carve-out stays on payloadRoot.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 37,
+          "text": "If every target is skipped at the path layer and no project-authority deny fires, return null.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 38,
+          "text": "relieves: P1 - Outside-root path-fence skip also relieves Bash-push and scratch Write friction — same admit path as limb 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 39,
+          "text": "relieves: P2 - Outside-root path-fence skip also relieves ordinary out-of-repo scratch Write when positive governing allow is already present (non-empty file_scope / path-fence parity).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 40,
+          "text": "Activation-PR empty merge-base P3 is limb 5.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 41,
+          "text": "relieves: P3 - Preserve project edit authority on outside-root — Before path-layer skip (or when skipping path evaluation for an outside-root target), still apply enabled project runtimeAuthority scopes.edits: when scopes.edits is false, keep runtime-policy-deny-scope.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 42,
+          "text": "Do not treat authz/protected-store alone as that authority.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 43,
+          "text": "Positive-allow arm skips outside-root Write — In the ready-path direct-write arm, omit requirePositiveGoverningAllow() only when harvested.length > 0 && harvested.every(t => isOutsideProjectRootWrite(fenceRoot, t)), using the same fenceRoot anchor as limb 1 (#2885 dual).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 44,
+          "text": "Any in-repo harvested target keeps positive-allow required.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 45,
+          "text": "Empty or unclassified harvest keeps #5656 fail-closed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 46,
+          "text": "A qualifying outside-root Write proceeds to runtimeAuthorityForDirectWrite, where limb 4 (project scopes.edits=false) still denies.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 47,
+          "text": "Implement-class spawn keeps the positive-allow requirement unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 48,
+          "text": "disposes critic 6807968568 F3 and 6840717484 F1; operator cue 6839167710.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 49,
+          "text": "relieves: P3 - Fixture matrix — Ready story + non-empty file_scope: (a) absolute outside-root Write/Edit allows through path fence; (b) lexical ../ outside allows through path fence; (c) mixed harvest: outside member skipped + in-repo miss still deny-story-scope (both orders); (d) symlink re-enter still fenced; (e) enabled project policy + scopes.edits=false + outside-root still deny-scope; (f) #2885 scope-not-ready outside carve-out unchanged; (g) linked worktree under payload: absolute host/temp outside allows; in-repo worktree path with file_scope miss still deny-story-scope.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 50,
+          "text": "(h) ready story activated on a branch but not yet on master (empty merge-base file_scope on origin/master): absolute outside-root Write admitted past #5656 positive-allow; same story with an in-repo Write still denied with the #5656 positive-allow message; same story with project scopes.edits=false and an outside-root Write still denied; empty/unclassified Write harvest under that same ready empty-file_scope story still denied with the #5656 positive-allow message.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 51,
+          "text": "disposes critic 6807874908 F1 F2; disposes critic 6807968568 F2 F3; disposes critic 6840717484 F1; operator cue 6839167710.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 52,
+          "text": "Reject: - Widening file_scope globs to match ../ or absolute host paths - Removing story fence for in-repo writes under an active brief - Prescribing Bash redirection / python -c as the supported outside-root write path - Collapsing #6185 (launch root) or #6187 (commit-shape heredoc) into this Bound - Softening authz / protected-store for outside-root targets - Unconditional skip of evaluateRuntimeAuthorityDirectWrite that also bypasses scopes.edits=false - Skipping requirePositiveGoverningAllow for implement-class spawn - Skipping requirePositiveGoverningAllow when any harvested Write target is in-repo - Skipping requirePositiveGoverningAllow on empty/unclassified harvest Footnotes (dispose-as-footnote): - P2 relief is Write/Edit parity (pressure off shell); Shell-outside-root remaining unfenced under shellDestForms off is intentional residual (Grok F3).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 53,
+          "text": "takes:",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 54,
+          "text": "relieves: P1",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 55,
+          "text": "Outside-root path-fence skip also relieves Bash-push and scratch Write friction — same admit path as limb 1.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 56,
+          "text": "relieves: P2",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 57,
+          "text": "Outside-root path-fence skip also relieves ordinary out-of-repo scratch Write when positive governing allow is already present (non-empty file_scope / path-fence parity).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 58,
+          "text": "relieves: P3",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 59,
+          "text": "Preserve project edit authority on outside-root — Before path-layer skip (or when skipping path evaluation for an outside-root target), still apply enabled project runtimeAuthority scopes.edits: when scopes.edits is false, keep runtime-policy-deny-scope.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 60,
+          "text": "Fixture matrix — Ready story + non-empty file_scope: (a) absolute outside-root Write/Edit allows through path fence; (b) lexical ../ outside allows through path fence; (c) mixed harvest: outside member skipped + in-repo miss still deny-story-scope (both orders); (d) symlink re-enter still fenced; (e) enabled project policy + scopes.edits=false + outside-root still deny-scope; (f) #2885 scope-not-ready outside carve-out unchanged; (g) linked worktree under payload: absolute host/temp outside allows; in-repo worktree path with file_scope miss still deny-story-scope.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "Story write fence refuses Write/Edit to files outside the repository (host memory, temp scratch)"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\nLean: Prefer-A draft\nconflict_group: story-write-fence-outside-repo-refuse\nTarget-digest: sha256:7ed34374b7c5c96a9b1f28256ca8eea457926021d7daf2d7ffd6c8b1c59f3870\nSpec-path: packages/core/src/hooks/dispatcher.ts (runtimeAuthorityForDirectWrite) + packages/core/src/hooks/outside-project-root.ts\n\n## In plain English\nWhen a story is active, Write/Edit to host memory or temp scratch is refused because the hook turns absolute outside-repo paths into ../ relatives and fails them against file_scope. Prefer-A: reuse the existing outside-root predicate so those paths skip the write-fence path check. In-repo story fencing stays. Authz and protected-store stay.\n\n## Draft remedy (pre-panel)\n- Outside-root skip in write-fence path loop — In runtimeAuthorityForDirectWrite, for each harvested mutation target, if isOutsideProjectRootWrite(fenceRoot, target) then skip evaluateRuntimeAuthorityDirectWrite for that target; if all targets skip, return null (no fence deny). Reuse #2885/#3997 lexical+realpath predicate. relieves: P1, P2, P3\n- Fixtures — Ready story + non-empty file_scope: absolute outside-root Write/Edit allows through fence; in-repo miss still deny-story-scope; symlink re-enter still fenced; #2885 scope-not-ready outside carve-out unchanged. relieves: P1\n\nReject:\n- Widening file_scope globs to match ../** or absolute host paths\n- Removing story fence for in-repo writes under an active brief\n- Prescribing Bash redirection / python -c as the supported outside-root write path\n- Collapsing #6185 (launch root) or #6187 (commit-shape heredoc) into this Bound\n- Softening authz / protected-store for outside-root targets",
+          "id": 6807741345,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6807741345",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T21:43:27Z",
+          "updated_at": "2026-11-11T21:43:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: triage\n```\ndesign-critique: warranted, because active story write fence refuses absolute outside-repo Write/Edit after toProjectRelativePosix produces ../ relatives — mechanism-shaped PreToolUse fail-closed gap with high blast radius across hosts.\nmechanism-shaped: true\ncharter: open critique\nrefutation-target: omitted (open critique; Expected in issue body is design goal, not a presumption under refutation)\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: Stop 2 panel permission — harness write-fence blast radius across every active-story session; open mechanism siting (dispatcher skip vs path evaluator vs fence resolve)\ndual-stop-reserved: 1\npain:\n- P1\n- P2\n- P3\n\nPain descriptions (non-operative):\n- P1: Active ready story with non-empty file_scope refuses Write/Edit to absolute paths outside the repository (host memory, session temp scratch) because toProjectRelativePosix yields ../… and evaluateRuntimeAuthorityDirectWrite returns deny-story-scope\n- P2: The same absolute outside-root destinations written via Bash redirection are not refused by the story fence, so agents are pushed off the inspectable Write/Edit tools onto shell\n- P3: Workers cannot use Write for ordinary out-of-repo scratch (PR body files, CLI --file JSON, temp plans) while a story is active without workarounds\nTarget-kind: issue\ndispatch-sha: e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a\nverification-path: pin-read git show e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a: ; dest cwd-without-occupy .deft-scratch/worktrees/arc-6189\nseat-families: grok, claude, codex\nPrefer-A draft cite: #issuecomment-6807741345\nkeep-outs: #6185 launch-root rebind; #6187 commit-shape heredoc mention; #2885 outside-root scope-not-ready carve-out stays; #4956 unreadable fence fail-closed stays; #5656 positive governing allow for in-repo stays",
+          "id": 6807749632,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6807749632",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T21:43:53Z",
+          "updated_at": "2026-11-11T21:57:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\npanel-deposit: round-1\nround: 1\nsiblings: 3\nseat-families: grok, claude, codex\nspend: N≥3\nconsent: operator bare arc 6189 + spend-recommend N≥3 resolved\nid-ceiling: 6807750013\ninput-ceiling: 6807750013\ndispatch-sha: e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a\narc-mode: no-ingest\nverification-path: pin-read git show e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a: ; dest cwd-without-occupy .deft-scratch/worktrees/arc-6189\naudit-targets: none\nclosed-findings: none\ncharter: open critique\ntarget: https://github.com/deftai/directive/issues/6189\ninput-ceiling-note: Prefer-A draft #issuecomment-6807741345 + Stop 1 #issuecomment-6807749632 + this panel-deposit are in envelope; issue body; pin-read dispatcher.ts runtimeAuthorityForDirectWrite + outside-project-root.ts + runtime-authority.ts\nlauncher: spawn_subagent / dest-rooted grok|claude|codex after native deny",
+          "id": 6807750013,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6807750013",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T21:43:54Z",
+          "updated_at": "2026-11-11T21:46:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: codex\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRound 1; fresh critic; input ceiling 6807750013; pin e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a. Read issue body and the three in-ceiling comments only; no sibling critic posts. Verification: pin-read source inspection, not executed fixtures.\n\n## C1 - blocks-the-design: the proposed skip bypasses project edit authority too\n\nEvidence: [dispatcher.ts:1416](https://github.com/deftai/directive/blob/e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a/packages/core/src/hooks/dispatcher.ts#L1416) loads project runtimeAuthority independently, combines it with the story fence, and calls the direct-write evaluator inside the target loop. [resolveWriteFence:598](https://github.com/deftai/directive/blob/e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a/packages/core/src/policy/write-fence.ts#L598) preserves project scopes when enabled. [evaluateRuntimeAuthorityDirectWrite:275](https://github.com/deftai/directive/blob/e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a/packages/core/src/policy/runtime-authority.ts#L275) denies scopes.edits=false before evaluating any path. This is a distinct control from authz/protected-store.\n\nConcrete failure: configure enabled runtimeAuthority with scopes.edits=false, a ready story with non-empty file_scope, and an otherwise admissible absolute external Write target. Today this evaluator returns runtime-policy-deny-scope. The draft's unconditional continue skips that check and returns null for an external-only payload. It also skips project allowPaths/denyPaths evaluation, not merely deny-story-scope. The helper is shared by more than the ready-story branch, so the change is not inherently limited to the stated repro.\n\nDisposition consequence: Prefer-A cannot bind as written. Keep the outside-root classification in the dispatcher, but distinguish exemption from story/path fencing from exemption from project edit authority. At minimum preserve the enabled project scopes.edits denial before skipping external path evaluation, and explicitly decide whether project path restrictions are repository-local or retained for external targets. Add a regression with enabled project policy + edits=false + external target. This relieves P1-P3 under ordinary permitted edits without silently expanding authority.\n\nStrongest case for the draft: a repository fence should not govern unrelated host scratch, and reusing the existing predicate is the smallest correction. I agree with that placement. What changes the verdict is a narrow statement and deterministic check preserving project edit authority; keeping authz/protected-store alone does not establish it. Moving this into the pure path evaluator is less attractive because that evaluator lacks root/realpath context.\n\n## C2 - footnote: exercise mixed-target payloads\n\nThe loop is correctly per-target. Add an external scratch target plus an in-repo scope miss in the same harvested mutation payload, in both orders, and require denial. This catches an accidental early return on the first external target. The existing proposed single-path fixtures do not establish that property; it does not require a different mechanism.\n\nAuthority/worktree lens: retain normalized-target validation and unreadable-fence denial before the skip; use fenceRoot as drafted and retain the lexical-plus-realpath re-entry predicate. Outside aliases that re-enter the checkout must still reach the fence. Preserve authz/protected-store and positive governing allow ordering. No proposed change to #6185/#6187 or the scope-not-ready #2885 carve-out.\r\n\n",
+          "id": 6807858710,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6807858710",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T21:49:35Z",
+          "updated_at": "2026-11-11T21:49:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRound-1 critic on Prefer-A draft lean #issuecomment-6807741345 vs Stop 1 #issuecomment-6807749632 (P1–P3). Pin-read `packages/core/src/hooks/dispatcher.ts` `runtimeAuthorityForDirectWrite` + `outside-project-root.ts` at e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a. Charter open; materiality-bar open.\n\n## Verdict\nPrefer-A is the right siting: extend the existing #2885/#3997 `isOutsideProjectRootWrite` predicate into the ready-scope write-fence path loop so absolute (and lexical) outside-root Write/Edit skip `evaluateRuntimeAuthorityDirectWrite`, while in-repo story fencing, symlink re-enter, authz, and protected-store stay. That directly relieves P1/P3 and removes the Write→Bash push in P2 without fencing Shell or prescribing it. Reject list is correct. No blocks-the-design.\n\n## Findings\n\n### F1 — sharpens-framing\n**Anatomy:** Fixture limb as drafted names only \"absolute outside-root Write/Edit\". The production loop feeds `toProjectRelativePosix(fenceRoot, target)` then `evaluateRuntimeAuthorityDirectWrite`; agents also emit lexical `../…` relatives and multi-path / ApplyPatch harvests. Prefer-A's per-target skip + \"if all skip, return null\" already implies mixed harvest must still evaluate in-repo members, but the fixture limb does not lock that.\n**Ask:** Expand fixtures to (a) absolute outside allow, (b) lexical `../` outside allow, (c) mixed harvest: outside member skipped + in-repo miss still `deny-story-scope`, (d) symlink re-enter still fenced, (e) #2885 scope-not-ready carve-out unchanged.\n\n### F2 — sharpens-framing\n**Anatomy:** #2885 not-ready carve-out measures `isOutsideProjectRootWrite(projectRoot, …)` from payloadRoot (#3794 comment). Prefer-A ready-path skip must use `fenceRoot` (same root as `toProjectRelativePosix` in the path loop) so linked-worktree sessions stay consistent with #3794 fence relativisation. Draft says \"fenceRoot\" in the envelope mechanism note but the draft remedy bullet does not one-line the dual-root split.\n**Ask:** Bound limb 1 state explicitly: ready-path skip uses `fenceRoot`; #2885 not-ready stays on payloadRoot. Fixture: linked worktree under payload + absolute host/temp outside → allow through fence; in-repo path under that worktree with file_scope miss → still deny-story-scope.\n\n### F3 — footnote\n**Anatomy:** P2 is \"Bash redirection to the same outside-root dest is not refused, so agents are pushed onto shell.\" Prefer-A relieves P2 by restoring inspectable Write/Edit parity; it does not add Shell dest-form refusal for those redirections. Reject already forbids prescribing Bash and collapsing #6187.\n**Ask:** On Bound mint, cite `relieves: P2` as Write/Edit parity (pressure removed), with Shell-outside-root unfenced left as intentional residual under the Reject list — not a new limb.\n\n### F4 — footnote\n**Anatomy:** Call site still runs `authzForMutationTargets` + `requirePositiveGoverningAllow` before `runtimeAuthorityForDirectWrite`. Prefer-A skip inside the path loop therefore cannot soften authz/protected-store; Reject line is already honest. Occupancy/ritual on effectiveRoot for no-git-toplevel outsides stays per #4013 — out of this Bound.\n\n## clean-result\nNo. Three non-blocking items (F1–F2 sharpen fixtures/root wording; F3–F4 footnotes). Prefer-A draft may proceed to Bound mint after absorbing F1–F2 into limbs/fixtures; F3–F4 are dispose-as-footnote.\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6807874908,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6807874908",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T21:50:26Z",
+          "updated_at": "2026-11-11T21:50:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\nspend-amend: N=2\nprior-spend: N≥3\nreason: Claude Round-1 seat zero-byte log past progress window (#5478 containment); PATH-resolved claude launched dest-rooted with short pointer; no first stdout byte. Recorded native Grok spawn_subagent deny (no active xBRIEF / host schema omits process_only) then CLI last-resort. Seated families delivered: codex 6807858710, grok 6807874908. Claude pid left running pending operator kill confirm.\nseat-families: grok, codex\nround: 1\nid-ceiling: 6807750013",
+          "id": 6807910028,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6807910028",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T21:52:15Z",
+          "updated_at": "2026-11-11T21:52:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\nLean: Prefer-A Bound\nconflict_group: story-write-fence-outside-repo-refuse\nTarget-digest: sha256:7ed34374b7c5c96a9b1f28256ca8eea457926021d7daf2d7ffd6c8b1c59f3870\nSpec-path: packages/core/src/hooks/dispatcher.ts (runtimeAuthorityForDirectWrite) + packages/core/src/hooks/outside-project-root.ts\ndisposes critic: 6807858710, 6807874908\n\n## In plain English\nActive stories should fence repository writes, not host memory or temp scratch. Prefer-A skips story/path fencing for outside-root Write/Edit targets using the existing outside-root check, while still honoring project edit-authority (scopes.edits=false). Authz and protected-store stay upstream.\n\n## Bound remedy\n- Outside-root path-fence skip — In runtimeAuthorityForDirectWrite, for each harvested mutation target where isOutsideProjectRootWrite(fenceRoot, target) is true, skip path-layer evaluation (project allowPaths/denyPaths and story file_scope / deny-story-scope) for that target. Ready-path skip uses fenceRoot (same root as toProjectRelativePosix in this loop); #2885 scope-not-ready carve-out stays on payloadRoot. If every target is skipped at the path layer and no project-authority deny fires, return null. relieves: P1\n- Outside-root path-fence skip also relieves Bash-push and scratch Write friction — same admit path as limb 1. relieves: P2\n- Outside-root path-fence skip also relieves ordinary out-of-repo scratch Write — same admit path as limb 1. relieves: P3\n- Preserve project edit authority on outside-root — Before path-layer skip (or when skipping path evaluation for an outside-root target), still apply enabled project runtimeAuthority scopes.edits: when scopes.edits is false, keep runtime-policy-deny-scope. Do not treat authz/protected-store alone as that authority. disposes critic 6807858710 C1\n- Fixture matrix — Ready story + non-empty file_scope: (a) absolute outside-root Write/Edit allows through path fence; (b) lexical ../ outside allows through path fence; (c) mixed harvest: outside member skipped + in-repo miss still deny-story-scope (both orders); (d) symlink re-enter still fenced; (e) enabled project policy + scopes.edits=false + outside-root still deny-scope; (f) #2885 scope-not-ready outside carve-out unchanged; (g) linked worktree under payload: absolute host/temp outside allows; in-repo worktree path with file_scope miss still deny-story-scope. disposes critic 6807874908 F1 F2; disposes critic 6807858710 C2\n\nReject:\n- Widening file_scope globs to match ../** or absolute host paths\n- Removing story fence for in-repo writes under an active brief\n- Prescribing Bash redirection / python -c as the supported outside-root write path\n- Collapsing #6185 (launch root) or #6187 (commit-shape heredoc) into this Bound\n- Softening authz / protected-store for outside-root targets\n- Unconditional skip of evaluateRuntimeAuthorityDirectWrite that also bypasses scopes.edits=false\n\nFootnotes (dispose-as-footnote):\n- P2 relief is Write/Edit parity (pressure off shell); Shell-outside-root remaining unfenced under shellDestForms off is intentional residual (Grok F3).\n- authzForMutationTargets / protected-store stay upstream of this skip (Grok F4).\n\ntakes:\n- accept-into-contract: 6807858710/C1\n- accept-into-contract: 6807858710/C2\n- accept-into-contract: 6807874908/F1\n- accept-into-contract: 6807874908/F2\n- accept-into-contract: 6807874908/F3 (footnote)\n- accept-into-contract: 6807874908/F4 (footnote)",
+          "id": 6807917088,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6807917088",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T21:52:36Z",
+          "updated_at": "2026-11-11T21:57:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\nAudit of [Prefer-A Bound](https://github.com/deftai/directive/issues/6189#issuecomment-6807917088) against [Stop 1](https://github.com/deftai/directive/issues/6189#issuecomment-6807749632): all three pains have a reachable remedy under the stated ready-story conditions. No blocking or harvest-changing finding.\n\n- **P1 — relieved.** An ordinary absolute host-memory/temp target outside Git repositories retains payloadRoot at admission. A ready story with non-empty governing file_scope passes the positive-governing-allow check. The proposed per-target skip removes the path evaluation currently producing deny-story-scope. With project edits permitted and existing authorization, ritual, and occupancy gates satisfied, runtimeAuthorityForDirectWrite returns null and the caller reaches write-ready. This is live admission, not recovery prose. The explicit scopes.edits=false limb preserves project edit denial.\n- **P2 — relieved in the stated sense.** Write/Edit becomes usable for the same ordinary outside-root destination, removing the pressure to use Bash. Universal Shell/Write policy equivalence is not established or required: the Bound already names the shellDestForms-off residual.\n- **P3 — relieved.** PR-body files, CLI JSON, and temp plans use that same Write admission path without file_scope widening or a shell workaround. The helper walks to an existing ancestor, allowing ordinary not-yet-created scratch files to qualify.\n\nAuthority/worktree check: per-target skipping preserves fencing of an in-repository member in a mixed harvest. The existing helper rejects outside symlink re-entry. Using fenceRoot aligns the ready-path predicate with path evaluation, while retaining the separate payloadRoot scope-not-ready carve-out. Foreign-repository/worktree-span admission refusals, unreadable-fence failures, authorization, and occupancy constraints remain; this audit does not claim those states are admitted. They do not obstruct the stated ordinary host-memory/temp reproductions.\n\nEvidence pin-read at e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a: [root admission](https://github.com/deftai/directive/blob/e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a/packages/core/src/hooks/dispatcher.ts#L1221), [path-fence evaluation](https://github.com/deftai/directive/blob/e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a/packages/core/src/hooks/dispatcher.ts#L1416), [positive allow and final write gates](https://github.com/deftai/directive/blob/e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a/packages/core/src/hooks/dispatcher.ts#L2662), and [outside-root helper](https://github.com/deftai/directive/blob/e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a/packages/core/src/hooks/outside-project-root.ts). Source-level verification of the proposed design only; no claim that the unimplemented Bound passed runtime tests. No sibling PA posts or comments after the ceiling were read.",
+          "id": 6807955126,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6807955126",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T21:54:35Z",
+          "updated_at": "2026-11-11T21:54:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\nPin: e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a. Target Prefer-A Bound 6807917088 vs Stop 1 pains 6807749632. Ceiling inclusive; no later thread / sibling PA reads.\n\n## pain-P1\nRelieved. Live admit after Prefer-A: ready story + non-empty file_scope Write/Edit absolute outside-root (or lexical ../) hits runtimeAuthorityForDirectWrite; scopes.edits still evaluated (limb 2); isOutsideProjectRootWrite(fenceRoot, target) true skips path-layer allowPaths/denyPaths/story file_scope so deny-story-scope on ../ relatives no longer fires; all-outside harvest returns null. Pin already exports isOutsideProjectRootWrite and measures relPath from fenceRoot=resolve(effectiveRoot) in that loop — insertion site is the per-target evaluateRuntimeAuthorityDirectWrite call. #2885 scope-not-ready carve-out stays on payloadRoot (fixture f). Symlink re-enter stays fenced via existing helper (fixture d). Mixed harvest still path-evaluates in-repo members (fixture c).\n\n## pain-P2\nRelieved as Write/Edit parity. Same admit path removes the push onto Bash redirection for outside-root destinations. Bound footnote correctly keeps Shell-outside-root unfenced under shellDestForms off as intentional residual — that is residual naming, not false-relief of P2.\n\n## pain-P3\nRelieved. Ordinary out-of-repo scratch (PR body files, CLI --file JSON, temp plans) uses the same Write admit path; fixture (a)/(g) lock absolute host/temp outside allow under ready fence / linked worktree.\n\n## Reachability\nNot recovery-only / --no-verify / borrow. Prefer-A ships a ready-path skip beside the existing #2885 not-ready carve-out, reusing the shared outside-root predicate. Upstream authz and protected-store stay before the skip (Reject list + footnote). Positive governing allow (#5656) already passes under Stop 1 non-empty file_scope premise and is keep-out.\n\nFiled for @MScottAdams",
+          "id": 6807968012,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6807968012",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T21:55:14Z",
+          "updated_at": "2026-11-11T21:55:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude\n```quarantined\nrole: critic\n```\nlate-round1-after-bound: audit-targets omitted so post-lean PA deposit ignores this Round-1 seat\n\nRound-1 critic, fresh. Charter open critique. Input ceiling 6807750013 observed; no sibling Round-1 post read.\n\n**Verification (pin-read at `e514bc81`, not line-cite):** `packages/core/src/hooks/dispatcher.ts` (`runtimeAuthorityForDirectWrite` L1416-1533, `admitEffectiveHookRoot` L1224-1253, `admitMutationTargetSet`, #2885 carve-out L2556-2563, ready-arm ordering L2662-2700), `packages/core/src/hooks/outside-project-root.ts`, `packages/core/src/policy/write-fence.ts` (`resolveWriteFence`), `packages/core/src/policy/runtime-authority.ts` (`evaluateRuntimeAuthorityDirectWrite` L275-320, defaults L61-74), `packages/core/src/session/git.ts` (`worktreePathOrNull`, `existingAncestorDir`, `gitCommonDir`).\n\n**Triage anchor holds.** With a ready scope and non-empty `file_scope`, the loop at `dispatcher.ts:1509-1527` relativises every harvested target via `toProjectRelativePosix(fenceRoot, target)`; an absolute outside-repo target yields `../…`, and `evaluateRuntimeAuthorityPath` returns `deny-story-scope`. P1 is real and sited where Stop 1 says it is. I also confirmed nothing downstream independently refuses these targets in the ready arm — `assertWriteTargetSafe` is reached only from `requirementsPathAllowed` and the protected-store path — so the fence is the single blocker and limb 1 is aimed at the right gate.\n\n### F1 — Skipping the whole evaluator drops project runtimeAuthority, not just the story fence\n\nblocks-the-design\n\n**Evidence.** Limb 1 says \"skip `evaluateRuntimeAuthorityDirectWrite` for that target\". That function is not the story fence; it is the single evaluation SoT for the *resolved* fence. `resolveWriteFence` (write-fence.ts) hands it `denyPaths = [...projectPolicy.denyPaths, ...storyDeny]`, `allowPaths = projectPolicy.allowPaths`, `scopes = projectPolicy.scopes` when the project layer is enabled, and `storyAllowPaths = storyAllow`. `evaluateRuntimeAuthorityDirectWrite` tests `!policy.scopes.edits` → `runtime-policy-deny-scope` at runtime-authority.ts:282, *before* it looks at any path.\n\n**Failure mode.** A repository with `plan.policy.runtimeAuthority.enabled: true, scopes.edits: false` today denies every direct Write/Edit, in-repo or not. After limb 1 a single-target absolute outside-root Write skips the evaluator, the loop completes, `runtimeAuthorityForDirectWrite` returns null, and that project switch no longer governs the write. Project `denyPaths` lose the same class of target. The draft's reject list deliberately preserves authz and protected-store, so this omission reads as unnoticed rather than decided — the third authority layer is inside the very evaluator being skipped.\n\n**Disposition consequence.** The Bound cannot bind as a whole-evaluator skip. Make it a *layer* skip: for outside-root targets evaluate with `storyAllowPaths: []` and `allowPaths: []` — the two path-shaped layers the issue's Expected actually disowns, and project `allowPaths` fails outside-root relatives for the same incoherent reason `file_scope` does — while leaving `scopes.edits` and `denyPaths` in force. Or state outright that #6189 retires the project layer for outside-root writes; that is a second design decision and is not in this issue's Expected.\n\n### F2 — The outside-root anchor is unpinned, and no fixture distinguishes the two candidate roots\n\nblocks-the-design\n\n**Evidence.** Limb 1 writes `isOutsideProjectRootWrite(fenceRoot, target)` but justifies it as \"reuse #2885/#3997 lexical+realpath predicate\". The sited #2885 call anchors on `projectRoot`, not `fenceRoot` (`dispatcher.ts:2562`), under an explicit #3794 comment that the carve-out \"is measured from payloadRoot\". The two roots are not interchangeable: `fenceRoot = effectiveRoot = admission.root`, and `admitEffectiveHookRoot` re-roots to the *target's own* worktree toplevel whenever that toplevel shares `--git-common-dir` with payloadRoot (`dispatcher.ts:1243-1247`).\n\n**Failure mode.** Implemented with `projectRoot` — the anchor the cited precedent actually uses — a Write to a linked worktree living outside payloadRoot (`git worktree add /tmp/wt`, same common-dir, admitted with `effectiveRoot=/tmp/wt`) is lexically `../…` from payloadRoot and realpath does not re-enter, so `isOutsideProjectRootWrite` returns true and the write skips the story fence entirely. That is a tracked product file in this repository escaping `file_scope`. Implemented with `fenceRoot` the same write stays fenced. The draft's fixture list — ready-story allow, in-repo miss, symlink re-enter, #2885 unchanged — contains no cross-tree case, so both implementations pass the stated acceptance identically. A Bound whose correct and incorrect implementations are indistinguishable under its own fixtures is not yet bound.\n\n**Disposition consequence.** Pin the anchor normatively in the Bound, say why it is not the #2885 anchor, and add the discriminating fixture (external linked worktree target under a ready story stays fenced). Better siting is already computed: `admitEffectiveHookRoot` returns `candidate === null` for exactly the #4013 case — \"a target whose nearest existing ancestor has no Git toplevel at all (OS temp, a home file, anything outside every checkout)\". Key the skip on `admission.candidate === null` **conjoined with** the lexical+realpath predicate; `candidate` is also null when `git rev-parse --show-toplevel` merely fails (`worktreePathOrNull` returns null on non-zero exit, including git-missing), so that signal alone fails open. The conjunction says \"outside every checkout\" rather than \"outside this one root\", which is what the issue's Expected claims.\n\n### F3 — Relief is conditional on a non-empty file_scope; #5656 denies first and the Bound is silent there\n\nsharpens-framing\n\n**Evidence.** In the ready-scope direct-write arm, `requirePositiveGoverningAllow()` runs at `dispatcher.ts:2690`, *before* `runtimeAuthorityForDirectWrite` at 2692. It denies with `scope-not-ready` + `POSITIVE_GOVERNING_ALLOW_REQUIRED` whenever `hasPositiveGoverningStoryAllow(fence)` is false — i.e. whenever the ready story's `file_scope` is empty, deny-only included.\n\n**Failure mode.** The issue repro pins \"non-empty `file_scope`\", so P1 is relieved. P3 is stated generally: \"workers cannot use Write for ordinary out-of-repo scratch while a story is active\". Under a ready story with an empty or deny-only `file_scope`, the same `~/.claude/projects/<p>/memory/<note>.md` Write still denies after this Bound ships — different code, different message, identical worker-visible symptom — and #6189 returns as \"not fixed\". The keep-out \"#5656 positive governing allow for in-repo stays\" scopes the in-repo side only and leaves the outside-root side undecided.\n\n**Disposition consequence.** The lean binds, but the Bound must answer that arm — either #5656 also skips outside-root targets, or P3 relief is explicitly bounded to non-empty `file_scope` with the remainder recorded as leftover-pain — and the fixture set needs \"ready story, empty `file_scope`, absolute outside-root Write\" to pin whichever answer is taken. Without it the `relieves: P3` claim on limb 1 is unqualified and partly untrue.\n\n### F4 — \"if all skip, return null\" is redundant and invites a reordering that swallows the #5366 fail-closed deny\n\nfootnote\n\nThe existing loop already returns null when every target is skipped, so limb 1's second clause adds nothing. Stated as its own step it invites `const remaining = normalized.paths.filter(notOutside); if (remaining.length === 0) return null;` hoisted above the `normalized.paths.length === 0` → `ACTIVE_FENCE_UNCLASSIFIED_TARGET_MESSAGE` deny at `dispatcher.ts:1500-1507` (#5366 Prefer-A P4). Drop the clause, or state that the unclassified-target deny stays strictly ahead of the skip.\n\n### F5 — Mixed out-of-tree + in-worktree target sets never reach the fence\n\nfootnote\n\n`admitMutationTargetSet` refuses a set whose members resolve to two admitted roots as `worktree-span`. An out-of-tree member contributes `root = payloadRoot` (via the `candidateRaw === null` arm at `dispatcher.ts:1231`) while an in-worktree member contributes the candidate root, so an apply_patch-class payload mixing host-temp and in-worktree targets denies at admission regardless of limb 1. Not a defect of this Bound — noting it so no fixture claims relief for that shape.\n\n### Injection / swarm lens\n\nFires: the target changes an authority gate, and worktrees plus shared state are in the mechanism. Two surfaces.\n\n**Target text is attacker-influenceable.** `hookMutationTargetPaths` harvests paths from tool payloads; on an apply_patch-class payload those paths come from patch text that may be model- or content-derived. Limb 1 converts \"this path looks outside the root\" into \"no fence evaluation\", making path *shape* an authority-selection input. `admitEffectiveHookRoot`'s own doc comment already names that hazard for root selection — \"an untrusted patch path would become an authority-selection input\" — and answers it by refusing rather than inferring. Limb 1 reintroduces the shape one gate later. The realpath re-entry guard inside `isOutsideProjectRootWrite` is the control that stops symlink aliasing from laundering an in-repo path into a skip; keep it, and keep F2's conjunction so a bare `../` string is never sufficient on its own.\n\n**Swarm concurrency.** Under `.deft-scratch/worktrees/<arc>/`, sibling arc worktrees are the normal case and each carries its own story fence. F2's anchor question is precisely \"may arc-A's session write into arc-B's tree without arc-B's `file_scope`\". `admitMutationTargetSet`'s worktree-span refusal covers the mixed-set case; the single-target case is governed only by whichever root limb 1 anchors on. That is why F2 is blocking rather than editorial.\n\n### Road not taken\n\nThree sitings were available: (a) skip in the dispatcher fence loop, as drafted; (b) teach `toProjectRelativePosix` / `evaluateRuntimeAuthorityPath` to classify outside-root relatives as not-governed; (c) key off the admission result. I rejected (b): `toProjectRelativePosix` has nine call sites in `dispatcher.ts` at this SHA, including `requirementsPathAllowed` and `isRetirementShapedMutationTargets`, which depend on `rel.startsWith(\"..\")` meaning *refuse*. Flipping that in the shared evaluator would change requirements-class and retirement-shape classification as collateral — exactly the \"second parallel engine\" the write-fence module forbids. (a) is correctly scoped. I land on (a) narrowed per F1 and anchored per F2, i.e. (a)+(c).\n\n### Steelman\n\nThe strongest case for the draft exactly as written: `scopes.edits: false` paired with an absolute outside-root Write is a vanishingly rare configuration; `denyPaths` globs are authored project-relative, so matching them against `../../x` is incoherent anyway; and the `fenceRoot`/`projectRoot` distinction only bites on externally-located linked worktrees, which the swarm layout does not produce. On that reading F1 and F2 are footnotes and the draft ships as-is.\n\nWhat flips me is asymmetry of cost. F2 costs one normative sentence and one fixture to foreclose; getting it wrong writes a tracked product file outside its story's `file_scope`, which is the exact failure class the write fence exists to prevent, and the \"swarm does not produce external worktrees\" premise is a convention, not a control — `git worktree add` anywhere defeats it. F1 is cheaper still: the layer-skip and the evaluator-skip are the same number of lines. I would withdraw F1 outright if the Bound said plainly that outside-root targets leave the runtime-authority layer entirely and that this is intended. It is the silence I am objecting to, not necessarily the outcome.\n\n### Census\n\nblocks-the-design: F1, F2. sharpens-framing: F3. footnote: F4, F5.\nclean-result: no\n\n",
+          "id": 6807968568,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6807968568",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T21:55:15Z",
+          "updated_at": "2026-11-11T21:58:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\ntakes:\n- accept-into-contract: 6807955126 (Codex PA finding-classes:none harvest-changed:false)\n- accept-into-contract: 6807968012 (Grok PA finding-classes:none harvest-changed:false)\nnote: late Claude Round-1 6807968568 arrived after spend-amend N=2 and Prefer-A Bound; its F1 scopes.edits blocker was already absorbed as Bound limb 2 from Codex 6807858710 C1. No Recut.\nyolo-standing: on\nsuccessor lean: 6807917088",
+          "id": 6807985337,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6807985337",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T21:56:08Z",
+          "updated_at": "2026-11-11T21:56:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n## Verified-claims table\n\n| Claim | Evidence | Disposition |\n|---|---|---|\n| Outside-root Write/Edit under ready story file_scope must skip path-layer story/project path fencing | Stop 1 P1–P3; pin dispatcher runtimeAuthorityForDirectWrite + outside-project-root; Round-1 Codex/Grok; Prefer-A Bound 6807917088 limb 1 | accepted |\n| Project scopes.edits=false must still deny outside-root direct writes | Codex R1 C1; Claude late R1 F1; Bound limb 2 | accepted |\n| Fixture matrix locks absolute, lexical ../, mixed harvest, symlink re-enter, edits=false, #2885 unchanged, fenceRoot dual-root | Grok R1 F1/F2; Codex R1 C2; Bound limb 3 | accepted |\n| P1–P3 relieved with live admit path (not recovery-only) | Codex PA 6807955126 + Grok PA 6807968012; finding-classes:none; harvest-changed:false | accepted |\n\ncited Prefer-A Bound: 6807917088\npain-audits: 6807955126, 6807968012",
+          "id": 6807985611,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6807985611",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T21:56:09Z",
+          "updated_at": "2026-11-11T21:56:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\ndesign-critique: synthesis accepted, because Prefer-A Bound 6807917088 absorbs Round-1 Codex blocker (preserve scopes.edits) and Grok fixture/root sharpens; dual pain-audit seats (Codex 6807955126, Grok 6807968012) returned finding-classes: none and harvest-changed: false with reachable P1–P3 relief.\nsuccessor lean: 6807917088\nverified-claims table: 6807985611\n\n## In plain English\nShip a small PreToolUse change so active story fences stop refusing Write/Edit to host memory and temp scratch outside the repo, while still obeying project edit-authority when edits are disabled. Ingest remains a separate operator verb.\n\narc-mode: no-ingest\nyolo-standing: on\nspend: N=2 (amended from N≥3; Claude #5478 zero-byte then late post)\ndest: .deft-scratch/worktrees/arc-6189 @ e514bc81132ff8c3bfbb5f9cdf6490d80bfcdc5a\nconflict_group: story-write-fence-outside-repo-refuse",
+          "id": 6807985915,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6807985915",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-11T21:56:10Z",
+          "updated_at": "2026-11-11T21:56:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Operator-directed recut cue: the #5656 positive-allow arm (2026-11-12)\n\nPosted by Scott's Claude session at Scott's direction (\"recut 6189 first\"). This is input for a recut of Prefer-A Bound [6807917088](https://github.com/deftai/directive/issues/6189#issuecomment-6807917088), not a lean.\n\n### Why a recut\n\nClaude's late Round-1 audit [6807968568](https://github.com/deftai/directive/issues/6189#issuecomment-6807968568) raised F3 (`sharpens-framing`). The parent's takes note ([6807985337](https://github.com/deftai/directive/issues/6189#issuecomment-6807985337)) disposes only that audit's F1, and the Bound is silent on F3.\n\nF3 is the failure we hit repeatedly on 2026-11-12. In `packages/core/src/hooks/dispatcher.ts`, the direct-write arm runs `requirePositiveGoverningAllow()` (around line 2690) before `runtimeAuthorityForDirectWrite()` (around line 2692). When the selected story has no positive governing allow on the merge base, it denies every Write, wherever the target is:\n\n```\nDirective denied this mutation: the selected running scope lacks positive governing story allow coverage (non-empty file_scope / allow list). Deny-only and pathless fences do not admit Write or implement spawn (#5656). … Fence base: origin/master.\n```\n\nThat is the normal state for a brief that is activated on a branch but not yet on master: the activation-PR window. In that window the agent could not write its own scratch files (for example an operator script under the session temp scratchpad, outside the repository). The Bound's limb 1 skips the path layer inside `runtimeAuthorityForDirectWrite`, which is never reached in this state. So as bound, #6189 does not relieve P3 for this case.\n\n### Proposed delta (one limb plus one fixture; everything else unchanged)\n\n- **Positive-allow arm skips outside-root targets.** In the direct-write arm, `requirePositiveGoverningAllow()` applies only when at least one harvested target is inside the project root, by the same `isOutsideProjectRootWrite(fenceRoot, target)` predicate and anchor that limb 1 binds. A Write whose every target is outside the root goes on to `runtimeAuthorityForDirectWrite`, where limb 4 (project `scopes.edits=false`) still denies. Spawn keeps the positive-allow requirement unchanged.\n- **Fixture (h):** ready story whose merge-base `file_scope` is empty (activated on a branch, not on master), absolute outside-root Write: admitted. The same story with an in-repo Write is still denied with the #5656 message. The same story with project `scopes.edits=false` and an outside-root Write is still denied.\n\n### Check while recutting\n\nF2 in the same audit (the outside-root anchor, `fenceRoot` versus `projectRoot`) looks covered by limb 1's anchor sentence and fixture (g). Confirm it in the takes rather than leaving it implicit.\n\n",
+          "id": 6839167710,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6839167710",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-12T23:37:55Z",
+          "updated_at": "2026-11-12T23:37:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: triage\n```\n\n## Stop 1 — Gate\n\narc-mode: no-ingest\nyolo-standing: on\nspend: N=1\nspend-recommend: N=1\nspend-ask: resolved\nmateriality-bar: open\ncharter: open critique\nmechanism-shaped: true\nTarget-digest: sha256:7ed34374b7c5c96a9b1f28256ca8eea457926021d7daf2d7ffd6c8b1c59f3870\ndispatch-sha: 858a0d47c5b641b446a36c58ce43719ccbf3217d\ndest: .deft-scratch/worktrees/arc-6189\nverification-path: pin-read .deft-scratch/worktrees/arc-6189 @ 858a0d47c5b641b446a36c58ce43719ccbf3217d\noperator-steer: cue comment 6839167710 (#5656 positive-allow arm; one limb + fixture h; confirm F2)\nlater-arc: supersedes completed Prefer-A Bound 6807917088 / synthesis 6807985915\nTarget-kind: issue\n\npain: P1, P2, P3\n\n- P1: Active ready story with non-empty file_scope refuses Write/Edit to absolute paths outside the repository (host memory, session temp scratch) because toProjectRelativePosix yields ../… and evaluateRuntimeAuthorityDirectWrite returns deny-story-scope\n- P2: The same absolute outside-root destinations written via Bash redirection are not refused by the story fence, so agents are pushed off the inspectable Write/Edit tools onto shell\n- P3: Workers cannot use Write for ordinary out-of-repo scratch while a story is active — including the activation-PR window where merge-base file_scope is empty and #5656 requirePositiveGoverningAllow denies before the path-fence skip\n\nclosed-findings:\n- 6807858710/C1 accepted\n- 6807858710/C2 accepted\n- 6807874908/F1 accepted\n- 6807874908/F2 accepted\n- 6807874908/F3 accepted\n- 6807874908/F4 accepted\n- 6807968568/F1 accepted\n- 6807968568/F2 accepted\n- 6807968568/F4 accepted\n- 6807968568/F5 accepted\n\ndesign-critique: warranted, because Prefer-A Bound 6807917088 left #5656 positive-allow ahead of the outside-root path skip, so empty merge-base file_scope (activation-PR window) still refuses outside-repo Write — mechanism-shaped PreToolUse ordering gap; operator cue 6839167710 directs a thin Recut.\n\nStop 2: drafted Prefer-A remint + closed solution space → spend N=1 (no panel permission).\nKISS: Thin Fail-Closed #3265 — one added limb + one fixture; keep prior Bound limbs.\n\nkeep-outs: #6185 launch-root; #6187 commit-shape heredoc; #2885 outside-root scope-not-ready carve-out stays on payloadRoot; #4956 unreadable fence fail-closed stays; spawn positive-allow unchanged; in-repo #5656 positive-allow stays\n\nFiled for @MScottAdams\r\n\n",
+          "id": 6840542910,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6840542910",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T00:57:33Z",
+          "updated_at": "2026-11-13T00:57:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\nLean: Prefer-A Bound\nconflict_group: story-write-fence-outside-repo-refuse\nTarget-digest: sha256:7ed34374b7c5c96a9b1f28256ca8eea457926021d7daf2d7ffd6c8b1c59f3870\nSpec-path: packages/core/src/hooks/dispatcher.ts (requirePositiveGoverningAllow + runtimeAuthorityForDirectWrite) + packages/core/src/hooks/outside-project-root.ts\nRecut: supersedes Prefer-A Bound 6807917088\noperator-steer: cue 6839167710\nStop-1: 6840542910\n\n## In plain English\nActive stories should fence repository writes, not host memory or temp scratch. Prefer-A skips story/path fencing for outside-root Write/Edit targets using the existing outside-root check, while still honoring project edit-authority (scopes.edits=false). The #5656 positive-allow gate also skips a Write whose every target is outside the repo, so the activation-PR window (empty merge-base file_scope) can still write scratch. Authz and protected-store stay upstream. Implementation spawns still need positive story allow.\n\n## Bound remedy\n- Outside-root path-fence skip — In runtimeAuthorityForDirectWrite, for each harvested mutation target where isOutsideProjectRootWrite(fenceRoot, target) is true, skip path-layer evaluation (project allowPaths/denyPaths and story file_scope / deny-story-scope) for that target. Ready-path skip uses fenceRoot (same root as toProjectRelativePosix in this loop); #2885 scope-not-ready carve-out stays on payloadRoot. If every target is skipped at the path layer and no project-authority deny fires, return null. relieves: P1\n- Outside-root path-fence skip also relieves Bash-push and scratch Write friction — same admit path as limb 1. relieves: P2\n- Outside-root path-fence skip also relieves ordinary out-of-repo scratch Write — same admit path as limb 1. relieves: P3\n- Preserve project edit authority on outside-root — Before path-layer skip (or when skipping path evaluation for an outside-root target), still apply enabled project runtimeAuthority scopes.edits: when scopes.edits is false, keep runtime-policy-deny-scope. Do not treat authz/protected-store alone as that authority.\n- Positive-allow arm skips outside-root Write — In the ready-path direct-write arm, requirePositiveGoverningAllow() applies only when at least one harvested target is inside the project root, by the same isOutsideProjectRootWrite(fenceRoot, target) predicate and fenceRoot anchor that limb 1 binds. A Write whose every target is outside the root proceeds to runtimeAuthorityForDirectWrite, where limb 4 (project scopes.edits=false) still denies. Implement-class spawn keeps the positive-allow requirement unchanged. disposes critic 6807968568 F3; operator cue 6839167710. relieves: P3\n- Fixture matrix — Ready story + non-empty file_scope: (a) absolute outside-root Write/Edit allows through path fence; (b) lexical ../ outside allows through path fence; (c) mixed harvest: outside member skipped + in-repo miss still deny-story-scope (both orders); (d) symlink re-enter still fenced; (e) enabled project policy + scopes.edits=false + outside-root still deny-scope; (f) #2885 scope-not-ready outside carve-out unchanged; (g) linked worktree under payload: absolute host/temp outside allows; in-repo worktree path with file_scope miss still deny-story-scope. (h) ready story activated on a branch but not yet on master (empty merge-base file_scope on origin/master): absolute outside-root Write admitted past #5656 positive-allow; same story with an in-repo Write still denied with the #5656 positive-allow message; same story with project scopes.edits=false and an outside-root Write still denied. disposes critic 6807874908 F1 F2; disposes critic 6807968568 F2 F3; operator cue 6839167710.\n\nReject:\n- Widening file_scope globs to match ../** or absolute host paths\n- Removing story fence for in-repo writes under an active brief\n- Prescribing Bash redirection / python -c as the supported outside-root write path\n- Collapsing #6185 (launch root) or #6187 (commit-shape heredoc) into this Bound\n- Softening authz / protected-store for outside-root targets\n- Unconditional skip of evaluateRuntimeAuthorityDirectWrite that also bypasses scopes.edits=false\n- Skipping requirePositiveGoverningAllow for implement-class spawn\n- Skipping requirePositiveGoverningAllow when any harvested Write target is in-repo\n\nFootnotes (dispose-as-footnote):\n- P2 relief is Write/Edit parity (pressure off shell); Shell-outside-root remaining unfenced under shellDestForms off is intentional residual (Grok F3).\n- authzForMutationTargets / protected-store stay upstream of this skip (Grok F4).\n- F2 root anchor: limb 1 and limb 5 both pin fenceRoot (ready-path / toProjectRelativePosix loop root), not payloadRoot/projectRoot used by the #2885 carve-out; fixture (g) discriminates linked-worktree under payload; confirmed per cue 6839167710 / late Claude audit 6807968568 F2.\n\ntakes:\n- accept-into-contract: 6807858710/C1\n- accept-into-contract: 6807858710/C2\n- accept-into-contract: 6807874908/F1\n- accept-into-contract: 6807874908/F2\n- accept-into-contract: 6807874908/F3 (footnote)\n- accept-into-contract: 6807874908/F4 (footnote)\n- accept-into-contract: 6807968568/F1 (already limb 4)\n- accept-into-contract: 6807968568/F2 (fenceRoot + fixture g; confirmed)\n- accept-into-contract: 6807968568/F3 (new limb 5 + fixture h)\n- accept-into-contract: 6807968568/F4 (footnote)\n- accept-into-contract: 6807968568/F5 (footnote)\n- operator-steer: 6839167710\r\n\n",
+          "id": 6840547321,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6840547321",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T00:57:49Z",
+          "updated_at": "2026-11-13T00:57:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRound-1 N=1 fresh critic on Prefer-A Bound remint #issuecomment-6840547321 vs Stop 1 #issuecomment-6840542910 (P1-P3) and operator cue #issuecomment-6839167710. Pin-read at 858a0d47c5b641b446a36c58ce43719ccbf3217d: packages/core/src/hooks/dispatcher.ts (requirePositiveGoverningAllow L2662-2691; runtimeAuthorityForDirectWrite L1416-1527 fenceRoot=effectiveRoot; #2885 carve-out L2555-2562 on payloadRoot/projectRoot) and packages/core/src/hooks/outside-project-root.ts. Charter open; materiality-bar open. Closed findings honored (no restatement without evidence-bearing reopen).\n\n## Verdict\nLimb 5 + fixture (h) are the right thin Recut for the #5656 ordering gap the cue names. F2 fenceRoot coverage remains bound (limb 1 sentence + fixture (g) + remint footnote/takes). P1/P2 remain on limbs 1-2. One blocks-the-design on limb 5 empty-harvest quantification; one sharpens-framing on limb 3 P3 attribution.\n\n## Findings\n\n### F1 - blocks-the-design: limb 5 empty-harvest vacuity skips #5656\n\n**Evidence.** Pin-read ready-path order is authz -> requirePositiveGoverningAllow (L2690) -> runtimeAuthorityForDirectWrite (L2692). Limb 5: positive-allow applies only when at least one harvested target is inside the project root. Under that wording, an empty/unclassified harvest has zero inside targets, so positive-allow is skipped. With activation-PR empty merge-base file_scope and default project runtimeAuthority.enabled=false, resolveWriteFence sets fenceActive=false (write-fence.ts L609-615) and runtimeAuthorityForDirectWrite returns null at L1472 before the #5366 empty-path deny (L1500-1507). Today the same empty Write still dies at #5656. The sited #2885 outside-root carve-out already guards with mutationTargets.length > 0 && every(isOutside...) (dispatcher.ts L2560-2562).\n\n**Failure mode.** Implementers who encode limb 5 as some(in-repo) / every(outside) without a non-empty conjunct admit empty Write/Edit (and write-shaped empty harvest) in the activation-PR window the Recut exists to handle - weaker than today #5656 fail-closed, and outside fixture (h).\n\n**Disposition consequence.** Prefer-A remint cannot bind limb 5 as written. State the skip as the #2885 dual: harvested.length > 0 && harvested.every(t => isOutsideProjectRootWrite(fenceRoot, t)) (only then omit requirePositiveGoverningAllow). Keep any in-repo target => positive-allow required and spawn unchanged. Extend fixture (h) (or add h-prime): ready + empty merge-base file_scope + empty/unclassified Write harvest still denied with the #5656 positive-allow message.\n\n### F2 - sharpens-framing: limb 3 still attributes all of P3 to limb 1\n\n**Evidence.** Stop 1 P3 now includes the activation-PR empty merge-base arm where limb 1 never runs. Remint limb 3 still says same admit path as limb 1. relieves: P3. Limb 5 correctly carries relieves: P3 for that arm.\n\n**Failure mode.** A later reader treats limb 1 alone as sufficient for full P3 and under-tests the empty-file_scope path.\n\n**Disposition consequence.** Lean can bind after narrowing limb 3 P3 claim to non-empty governing allow / path-fence parity, leaving activation-PR P3 on limb 5 only (or one combined P3 sentence naming both limbs).\n\n### F3 - footnote: F2 fenceRoot remains bound\n\nLimb 1 + limb 5 both pin fenceRoot (ready-path / toProjectRelativePosix loop root). #2885 stays on payloadRoot. Fixture (g) discriminates linked-worktree under payload. Takes accept 6807968568/F2. Cue check satisfied. restates: 6807968568/F2 (confirmed closed; no reopen).\n\n### F4 - footnote: injection/swarm lens\n\nLimb 5 reuses path-shape as an authority gate (same class as limb 1). Control retained: shared isOutsideProjectRootWrite lexical+realpath re-entry, fenceRoot not payloadRoot, Reject keeps spawn positive-allow and any-in-repo positive-allow. No new mesh/concurrency surface beyond F2 already-bound anchor.\n\n## Census\nblocks-the-design: F1. sharpens-framing: F2. footnote: F3, F4.\nclean-result: no\n\n",
+          "id": 6840717484,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6840717484",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T01:07:50Z",
+          "updated_at": "2026-11-13T01:08:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\nLean: Prefer-A Bound\nconflict_group: story-write-fence-outside-repo-refuse\nTarget-digest: sha256:7ed34374b7c5c96a9b1f28256ca8eea457926021d7daf2d7ffd6c8b1c59f3870\nSpec-path: packages/core/src/hooks/dispatcher.ts (requirePositiveGoverningAllow + runtimeAuthorityForDirectWrite) + packages/core/src/hooks/outside-project-root.ts\nRecut: supersedes Prefer-A Bound remint 6840547321 (and prior 6807917088)\noperator-steer: cue 6839167710\nStop-1: 6840542910\ndisposes critic: 6840717484\n\n## In plain English\nActive stories should fence repository writes, not host memory or temp scratch. Prefer-A skips story/path fencing for outside-root Write/Edit targets using the existing outside-root check, while still honoring project edit-authority (scopes.edits=false). The #5656 positive-allow gate also skips a Write whose every harvested target is outside the repo and the harvest is non-empty, so the activation-PR window (empty merge-base file_scope) can still write scratch. Empty/unclassified harvests stay fail-closed under #5656. Authz and protected-store stay upstream. Implementation spawns still need positive story allow.\n\n## Bound remedy\n- Outside-root path-fence skip — In runtimeAuthorityForDirectWrite, for each harvested mutation target where isOutsideProjectRootWrite(fenceRoot, target) is true, skip path-layer evaluation (project allowPaths/denyPaths and story file_scope / deny-story-scope) for that target. Ready-path skip uses fenceRoot (same root as toProjectRelativePosix in this loop); #2885 scope-not-ready carve-out stays on payloadRoot. If every target is skipped at the path layer and no project-authority deny fires, return null. relieves: P1\n- Outside-root path-fence skip also relieves Bash-push and scratch Write friction — same admit path as limb 1. relieves: P2\n- Outside-root path-fence skip also relieves ordinary out-of-repo scratch Write when positive governing allow is already present (non-empty file_scope / path-fence parity). Activation-PR empty merge-base P3 is limb 5. relieves: P3\n- Preserve project edit authority on outside-root — Before path-layer skip (or when skipping path evaluation for an outside-root target), still apply enabled project runtimeAuthority scopes.edits: when scopes.edits is false, keep runtime-policy-deny-scope. Do not treat authz/protected-store alone as that authority.\n- Positive-allow arm skips outside-root Write — In the ready-path direct-write arm, omit requirePositiveGoverningAllow() only when harvested.length > 0 && harvested.every(t => isOutsideProjectRootWrite(fenceRoot, t)), using the same fenceRoot anchor as limb 1 (#2885 dual). Any in-repo harvested target keeps positive-allow required. Empty or unclassified harvest keeps #5656 fail-closed. A qualifying outside-root Write proceeds to runtimeAuthorityForDirectWrite, where limb 4 (project scopes.edits=false) still denies. Implement-class spawn keeps the positive-allow requirement unchanged. disposes critic 6807968568 F3 and 6840717484 F1; operator cue 6839167710. relieves: P3\n- Fixture matrix — Ready story + non-empty file_scope: (a) absolute outside-root Write/Edit allows through path fence; (b) lexical ../ outside allows through path fence; (c) mixed harvest: outside member skipped + in-repo miss still deny-story-scope (both orders); (d) symlink re-enter still fenced; (e) enabled project policy + scopes.edits=false + outside-root still deny-scope; (f) #2885 scope-not-ready outside carve-out unchanged; (g) linked worktree under payload: absolute host/temp outside allows; in-repo worktree path with file_scope miss still deny-story-scope. (h) ready story activated on a branch but not yet on master (empty merge-base file_scope on origin/master): absolute outside-root Write admitted past #5656 positive-allow; same story with an in-repo Write still denied with the #5656 positive-allow message; same story with project scopes.edits=false and an outside-root Write still denied; empty/unclassified Write harvest under that same ready empty-file_scope story still denied with the #5656 positive-allow message. disposes critic 6807874908 F1 F2; disposes critic 6807968568 F2 F3; disposes critic 6840717484 F1; operator cue 6839167710.\n\nReject:\n- Widening file_scope globs to match ../** or absolute host paths\n- Removing story fence for in-repo writes under an active brief\n- Prescribing Bash redirection / python -c as the supported outside-root write path\n- Collapsing #6185 (launch root) or #6187 (commit-shape heredoc) into this Bound\n- Softening authz / protected-store for outside-root targets\n- Unconditional skip of evaluateRuntimeAuthorityDirectWrite that also bypasses scopes.edits=false\n- Skipping requirePositiveGoverningAllow for implement-class spawn\n- Skipping requirePositiveGoverningAllow when any harvested Write target is in-repo\n- Skipping requirePositiveGoverningAllow on empty/unclassified harvest\n\nFootnotes (dispose-as-footnote):\n- P2 relief is Write/Edit parity (pressure off shell); Shell-outside-root remaining unfenced under shellDestForms off is intentional residual (Grok F3).\n- authzForMutationTargets / protected-store stay upstream of this skip (Grok F4).\n- F2 root anchor: limb 1 and limb 5 both pin fenceRoot (ready-path / toProjectRelativePosix loop root), not payloadRoot/projectRoot used by the #2885 carve-out; fixture (g) discriminates linked-worktree under payload; confirmed per cue 6839167710 / late Claude audit 6807968568 F2 / Round-1 6840717484 F3.\n\ntakes:\n- accept-into-contract: 6840717484/F1\n- accept-into-contract: 6840717484/F2\n- accept-into-contract: 6840717484/F3 (footnote)\n- accept-into-contract: 6840717484/F4 (footnote)\n- accept-into-contract: 6807858710/C1\n- accept-into-contract: 6807858710/C2\n- accept-into-contract: 6807874908/F1\n- accept-into-contract: 6807874908/F2\n- accept-into-contract: 6807874908/F3 (footnote)\n- accept-into-contract: 6807874908/F4 (footnote)\n- accept-into-contract: 6807968568/F1 (already limb 4)\n- accept-into-contract: 6807968568/F2 (fenceRoot + fixture g; confirmed)\n- accept-into-contract: 6807968568/F3 (limb 5 + fixture h)\n- accept-into-contract: 6807968568/F4 (footnote)\n- accept-into-contract: 6807968568/F5 (footnote)\n- operator-steer: 6839167710\n\n",
+          "id": 6840737588,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6840737588",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T01:08:58Z",
+          "updated_at": "2026-11-13T01:08:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: true\n\nPain-audit of Prefer-A Bound v2 #issuecomment-6840737588 vs Stop 1 #issuecomment-6840542910 (P1-P3). Envelope: Stop1 6840542910, cue 6839167710, R1 6840717484, remint 6840547321, Bound 6840737588. Pin-read dest packages/core/src/hooks/dispatcher.ts @ 858a0d47c5b641b446a36c58ce43719ccbf3217d (requirePositiveGoverningAllow L2662-2691 ahead of runtimeAuthorityForDirectWrite L2692; path loop L1509-1525 with no outside-root skip yet; #2885 not-ready carve-out L2560-2562 on payloadRoot). Prior Bound 6807917088 lacked limb 5 / fixture h.\n\n- **P1 -- relieved.** Limb 1 skips path-layer evaluation for isOutsideProjectRootWrite(fenceRoot, target) under a ready story with non-empty file_scope, so absolute host/temp Write/Edit no longer die as deny-story-scope after toProjectRelativePosix ../. Limb 4 keeps scopes.edits=false. Fixtures (a)(b) lock the admit path.\n- **P2 -- relieved.** Limbs 1-2 restore inspectable Write/Edit for the same outside-root destinations, removing the Bash-redirection push. ShellDestForms-off residual stays intentional (footnote).\n- **P3 -- relieved.** Limb 3 covers ordinary out-of-repo scratch when positive governing allow is already present. Limb 5 + fixture (h) cover the activation-PR empty merge-base #5656 arm the cue named: omit requirePositiveGoverningAllow only when harvested.length > 0 && every(outside) on fenceRoot; in-repo / empty / unclassified harvest and implement-class spawn stay fail-closed. That is the harvest change vs 6807917088 (limb 5 + fixture h; R1 F1 absorbed).\n\nNo new finding-class. Authority/worktree: fenceRoot dual with #2885 payloadRoot retained; mixed harvest and symlink re-enter stay fenced.\n\n",
+          "id": 6840800675,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6840800675",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T01:12:42Z",
+          "updated_at": "2026-11-13T01:12:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\ntakes:\n- accept-into-contract: 6840800675 (pain-audit finding-classes:none harvest-changed:true)\n- accept-into-contract: 6840717484/F1\n- accept-into-contract: 6840717484/F2\n- accept-into-contract: 6840717484/F3 (footnote)\n- accept-into-contract: 6840717484/F4 (footnote)\nnote: later-arc Recut of Prefer-A Bound 6807917088; same-P* relieves Recut-supersedes admitted under harvest-changed:true (#5284). F2 fenceRoot coverage confirmed. Cue 6839167710 absorbed as limb 5 + fixture h + empty-harvest conjunct.\nyolo-standing: on\nsuccessor lean: 6840737588\n\n",
+          "id": 6840805665,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6840805665",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T01:13:01Z",
+          "updated_at": "2026-11-13T01:13:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n## Verified-claims table\n\n| Claim | Evidence | Disposition |\n|---|---|---|\n| Outside-root Write/Edit under ready story skips path-layer story/project path fencing at fenceRoot | Prefer-A Bound 6840737588 limb 1; pin-read runtimeAuthorityForDirectWrite + isOutsideProjectRootWrite | accept |\n| Project scopes.edits=false still denies outside-root Write | Bound limb 4; fixture (e)(h) | accept |\n| #5656 positive-allow omits only non-empty all-outside harvest on fenceRoot; spawn and in-repo stay required | Bound limb 5; R1 F1 6840717484; fixture (h) | accept |\n| Activation-PR empty merge-base file_scope admits outside-root Write and refuses in-repo / empty harvest / edits=false | Cue 6839167710; fixture (h); PA 6840800675 P3 | accept |\n| F2 outside-root anchor is fenceRoot not payloadRoot; fixture (g) discriminates | Bound footnote + takes; late Claude 6807968568 F2; R1 F3 | accept |\n| P1-P3 relieved with harvest-changed vs 6807917088 | PA 6840800675 finding-classes:none harvest-changed:true | accept |\n\n",
+          "id": 6840805957,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6840805957",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T01:13:02Z",
+          "updated_at": "2026-11-13T01:13:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\n## Verified-claims table\n\n| Claim | Evidence | Disposition |\n|---|---|---|\n| Outside-root Write/Edit under ready story skips path-layer story/project path fencing at fenceRoot | Prefer-A Bound 6840737588 limb 1; pin-read runtimeAuthorityForDirectWrite + isOutsideProjectRootWrite | accept |\n| Project scopes.edits=false still denies outside-root Write | Bound limb 4; fixture (e)(h) | accept |\n| #5656 positive-allow omits only non-empty all-outside harvest on fenceRoot; spawn and in-repo stay required | Bound limb 5; R1 F1 6840717484; fixture (h) | accept |\n| Activation-PR empty merge-base file_scope admits outside-root Write and refuses in-repo / empty harvest / edits=false | Cue 6839167710; fixture (h); PA 6840800675 P3 | accept |\n| F2 outside-root anchor is fenceRoot not payloadRoot; fixture (g) discriminates | Bound footnote + takes; late Claude 6807968568 F2; R1 F3 | accept |\n| P1-P3 relieved with harvest-changed vs 6807917088 | PA 6840800675 finding-classes:none harvest-changed:true | accept |\n\n",
+          "id": 6840806232,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6840806232",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T01:13:03Z",
+          "updated_at": "2026-11-13T01:13:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: parent\n```\ndesign-critique: synthesis accepted, because Prefer-A Bound 6840737588 absorbs operator cue 6839167710 (#5656 outside-root limb + fixture h), Round-1 empty-harvest blocker 6840717484/F1, and limb-3 P3 sharpen 6840717484/F2; pain-audit 6840800675 returned finding-classes: none and harvest-changed: true with reachable P1-P3 relief; F2 fenceRoot coverage confirmed.\nsuccessor lean: 6840737588\nverified-claims table: 6840805957\n\n## In plain English\nShip a small PreToolUse change so active story fences stop refusing Write/Edit to host memory and temp scratch outside the repo, including during the activation-PR window when merge-base file_scope is empty, while still obeying project edit-authority and keeping #5656 for in-repo writes, empty harvests, and implement-class spawn. Ingest remains a separate operator verb.\n\narc-mode: no-ingest\nyolo-standing: on\nspend: N=1\ndest: .deft-scratch/worktrees/arc-6189 @ 858a0d47c5b641b446a36c58ce43719ccbf3217d\nconflict_group: story-write-fence-outside-repo-refuse\n\n",
+          "id": 6840815911,
+          "html_url": "https://github.com/deftai/directive/issues/6189#issuecomment-6840815911",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T01:13:39Z",
+          "updated_at": "2026-11-13T01:13:39Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nWhen an active brief fences the checkout, the PreToolUse write hook applies that story's `file_scope` to every Write/Edit target, including absolute paths outside the repository. Files that are not in the repository at all, such as the host's per-user memory files or a session temp directory, are refused as \"outside write fence story file_scope\".\n\nDirective version: 0.129.6. Host: Claude Code.\n\n## Repro\n\n1. The checkout has exactly one active brief with a non-empty `file_scope`, on the delivery branch.\n2. From a session rooted at that checkout, use the Write or Edit tool on a file outside the repository:\n   - a host memory file, for example `~/.claude/projects/<project>/memory/<note>.md`\n   - a file under the session's temp scratch directory, for example `/private/tmp/<host>/<session>/scratchpad/<file>.md`\n\nResult:\n\n```\nDirective denied this direct write: path ../../.claude/projects/<project>/memory/<note>.md is outside write fence story file_scope (source: story).\nDirective denied this direct write: path ../../../../private/tmp/<host>/<session>/scratchpad/<file>.md is outside write fence story file_scope (source: story).\n```\n\nThe hook turns the absolute path into a `../`-relative path against the project root, then tests it against `file_scope`.\n\n## Expected\n\nThe story fence governs paths inside the project root. A path that resolves outside the root is not a repository write, so the story fence does not refuse it. Other policies, such as protected-store guards, may still apply.\n\n## Impact\n\n- While a story is active, agents cannot keep notes or memory, or write temp files (PR bodies, JSON for CLI `--file` arguments), with the dedicated tools.\n- The same writes through Bash redirection to the same paths are not refused. So the fence pushes agents to the shell, which is the less inspectable path.\n- A worker reported having to write a temp plan file with `python3 -c` after the Write tool was refused for the same reason.\n\n## Related\n\n#6185 (shared launch root), #6187 (commit check on heredoc text).\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6319843604,
+        "origin": "deftai/directive#6189",
+        "id": "github.issue.6319843604"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "7ed34374b7c5c96a9b1f28256ca8eea457926021d7daf2d7ffd6c8b1c59f3870"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "conflict_group": "story-write-fence-outside-repo-refuse",
+        "expected_outputs": [
+          "outside-root targets skip the path layer of the story fence",
+          "positive-allow check skipped only for all-outside-root Write",
+          "scopes.edits=false still denies outside-root",
+          "fixture matrix (a)-(h) in a new test file",
+          "CHANGELOG Unreleased"
+        ],
+        "depends_on": [],
+        "model_tier": "standard",
+        "verify_commands": [
+          "npx vitest run packages/core/src/hooks/dispatcher-outside-root.test.ts packages/core/src/hooks/outside-project-root.test.ts packages/core/src/hooks/dispatcher-write-gate.test.ts"
+        ],
+        "file_scope": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/outside-project-root.ts",
+          "packages/core/src/hooks/dispatcher-outside-root.test.ts",
+          "packages/core/src/hooks/outside-project-root.test.ts",
+          "packages/core/src/hooks/dispatcher-write-gate.test.ts",
+          "CHANGELOG.md"
+        ],
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope_confidence": "high",
+        "Traces": [
+          "#6189",
+          "#5656",
+          "#2885"
+        ],
+        "acceptance_criteria_justification": "Six limbs govern; the remaining items are the lean's must-not constraints, footnotes and arc record-keeping, kept so the brief mirrors the accepted Bound."
+      }
+    },
+    "id": "github.issue.6319843604",
+    "updated": "2026-11-13T02:32:00Z"
+  }
+}
