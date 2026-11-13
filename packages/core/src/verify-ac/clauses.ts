@@ -1206,7 +1206,7 @@ export function extractExpectedTokens(clause: AcceptanceClause): string[] {
   const tokens: string[] = [];
   const seen = new Set<string>();
   for (const span of extractQuotedSpans(clause)) {
-    if (!seen.has(span.token)) {
+    if (!span.pathLike && !seen.has(span.token)) {
       seen.add(span.token);
       tokens.push(span.token);
     }
@@ -1221,6 +1221,11 @@ export interface QuotedSpan {
   readonly start: number;
   /** Index just past the closing quote character. */
   readonly end: number;
+  /**
+   * The literal is file-path shaped or is the bound path. The presence check
+   * skips these; a removal sentence can still name one as its object.
+   */
+  readonly pathLike: boolean;
 }
 
 /**
@@ -1232,48 +1237,39 @@ export interface QuotedSpan {
 export function extractQuotedSpans(clause: AcceptanceClause): QuotedSpan[] {
   const text = clause.text;
   const spans: QuotedSpan[] = [];
-  const push = (open: number, close: number): void => {
+  // One left-to-right pass on each line. A quote pairs with the next quote of
+  // the same kind; the other kind inside it is part of the literal, and a
+  // closing quote never opens a new span. Separate regex passes captured
+  // ` with ` from `"X" with "Y"` and nested `'old'` inside `"the 'old' one"`.
+  let cursor = 0;
+  while (cursor < text.length) {
+    let open = -1;
+    for (let i = cursor; i < text.length; i += 1) {
+      const ch = text[i];
+      if (ch === '"' || (ch === "'" && (i === 0 || !/[A-Za-z0-9]/.test(text[i - 1] ?? "")))) {
+        open = i;
+        break;
+      }
+    }
+    if (open < 0) {
+      break;
+    }
+    const quote = text[open] ?? '"';
+    const close = text.indexOf(quote, open + 1);
+    const newline = text.indexOf("\n", open + 1);
+    if (close < 0 || (newline >= 0 && newline < close)) {
+      cursor = open + 1;
+      continue;
+    }
     const raw = text.slice(open + 1, close);
     const token = raw.trim();
-    const skip =
-      raw.length < 3 ||
-      raw.length > 80 ||
-      token.length === 0 ||
-      token === clause.artifact_path ||
-      looksLikeFilePath(token);
-    if (!skip) {
-      spans.push({ token, start: open, end: close + 1 });
+    if (raw.length >= 3 && raw.length <= 80 && token.length > 0) {
+      const pathLike = token === clause.artifact_path || looksLikeFilePath(token);
+      spans.push({ token, start: open, end: close + 1, pathLike });
     }
-  };
-  // Quotes pair in order on one line: a closing quote never re-opens a span.
-  // A regex retry did, so `"X" with "Y"` captured ` with ` as a literal (#6269).
-  const scan = (quote: string, opens: (index: number) => boolean): void => {
-    let cursor = 0;
-    while (cursor < text.length) {
-      const open = text.indexOf(quote, cursor);
-      if (open < 0) {
-        return;
-      }
-      if (!opens(open)) {
-        cursor = open + 1;
-        continue;
-      }
-      const close = text.indexOf(quote, open + 1);
-      if (close < 0) {
-        return;
-      }
-      const newline = text.indexOf("\n", open + 1);
-      if (newline >= 0 && newline < close) {
-        cursor = newline + 1;
-        continue;
-      }
-      push(open, close);
-      cursor = close + 1;
-    }
-  };
-  scan('"', () => true);
-  scan("'", (index) => index === 0 || !/[A-Za-z0-9]/.test(text[index - 1] ?? ""));
-  return spans.sort((a, b) => a.start - b.start);
+    cursor = close + 1;
+  }
+  return spans;
 }
 
 /**
@@ -1319,25 +1315,23 @@ const PRESENCE_VERB = /\b(?:adds?|keeps?|retains?|includes?|inserts?)\b/gi;
 const BARE_REPLACE = /\breplac(?:e|es|ed|ing)\b/i;
 const WITH_WORD = /\bwith\b/i;
 
-/** True when a grammar PATH names the bound artifact (exact, or a path suffix). */
+/** True when a grammar PATH is the bound artifact path, exactly after normalization. */
 function pathRefNamesArtifact(ref: string, artifactPath: string | null): boolean {
   if (artifactPath === null) {
     return false;
   }
   const cleaned = stripLeadingDotSlash(ref.trim().replace(/^[`"']|[`"']$/g, ""));
-  const unified = stripLeadingDotSlash(artifactPath);
-  if (cleaned.length === 0) {
-    return false;
-  }
-  return cleaned === unified || unified.endsWith(`/${cleaned}`);
+  return cleaned.length > 0 && cleaned === stripLeadingDotSlash(artifactPath);
 }
 
 function spanToken(spans: readonly QuotedSpan[], index: string | undefined): string {
   return spans[Number(index)]?.token ?? "";
 }
 
-function spansOverlap(spans: readonly QuotedSpan[]): boolean {
-  return spans.some((span, i) => i > 0 && span.start < (spans[i - 1]?.end ?? 0));
+/** A grammar PATH may be a quoted path span (a mark) or bare text. */
+function resolvePathRef(ref: string, spans: readonly QuotedSpan[]): string {
+  const mark = new RegExp(`^${MARK}$`).exec(ref);
+  return mark === null ? ref : spanToken(spans, mark[1]);
 }
 
 /** Clause text with each quoted span replaced by a numbered mark. */
@@ -1381,34 +1375,39 @@ function unresolvedReason(masked: string, spans: readonly QuotedSpan[]): string 
  */
 export function classifyQuotedTokenPolarity(clause: AcceptanceClause): QuotedTokenPolarity {
   const spans = extractQuotedSpans(clause);
-  if (spans.length === 0) {
-    return { kind: "none" };
-  }
+  const names = (ref: string): boolean =>
+    pathRefNamesArtifact(resolvePathRef(ref, spans), clause.artifact_path);
+  // A quoted bound path only names the file; it is never a literal to check.
+  const objects = spans.filter(
+    (span) => !(span.pathLike && pathRefNamesArtifact(span.token, clause.artifact_path)),
+  );
+  const present = [...new Set(spans.filter((s) => !s.pathLike).map((s) => s.token))];
   // Removal wording counts only outside quoted literals, inline code, and
   // path- or command-shaped words (`docs/remove-me.md`, `scope:remove`).
-  const masked = markSpans(clause.text, spansOverlap(spans) ? [] : spans)
+  // A colon or period at a word's end is prose punctuation, not a command.
+  const masked = markSpans(clause.text, spans)
     .replace(/`[^`\n]*`/g, " ")
-    .replace(/\S*(?:[/\\:]|\w[-.]\w)\S*/g, " ");
+    .replace(/\S*(?:[/\\]|\w[-.:]\w)\S*/g, " ");
   if (!REMOVAL_WORD.test(masked)) {
-    return { kind: "presence", present: [...new Set(spans.map((span) => span.token))] };
+    return present.length > 0 ? { kind: "presence", present } : { kind: "none" };
+  }
+  if (objects.length === 0) {
+    return { kind: "none" };
   }
   const unresolved = (reason: string): QuotedTokenPolarity => ({ kind: "unresolved", reason });
-  if (spansOverlap(spans)) {
-    return unresolved("quoted spans overlap");
-  }
   // One complete sentence: the whole clause, less one trailing period.
   const sentence = normalizeClauseText(markSpans(clause.text, spans)).replace(/\.$/, "").trimEnd();
   const removal = REMOVAL_FORM.exec(sentence);
   if (removal !== null) {
     const ref = removal[2];
-    if (ref !== undefined && !pathRefNamesArtifact(ref, clause.artifact_path)) {
+    if (ref !== undefined && !names(ref)) {
       return unresolved("the removal names a path other than the bound artifact");
     }
     return { kind: "absence", absent: [spanToken(spans, removal[1])], present: [] };
   }
   const noLonger = NO_LONGER_FORM.exec(sentence);
   if (noLonger !== null) {
-    if (!pathRefNamesArtifact(noLonger[1] ?? "", clause.artifact_path)) {
+    if (!names(noLonger[1] ?? "")) {
       return unresolved("the no-longer-contains subject is not the bound artifact");
     }
     return { kind: "absence", absent: [spanToken(spans, noLonger[2])], present: [] };
@@ -1416,7 +1415,7 @@ export function classifyQuotedTokenPolarity(clause: AcceptanceClause): QuotedTok
   const replace = REPLACE_FORM.exec(sentence);
   if (replace !== null) {
     const ref = replace[3];
-    if (ref !== undefined && !pathRefNamesArtifact(ref, clause.artifact_path)) {
+    if (ref !== undefined && !names(ref)) {
       return unresolved("the replace names a path other than the bound artifact");
     }
     const from = spanToken(spans, replace[1]);
@@ -1426,7 +1425,7 @@ export function classifyQuotedTokenPolarity(clause: AcceptanceClause): QuotedTok
     }
     return { kind: "absence", absent: [from], present: [to] };
   }
-  return unresolved(unresolvedReason(masked, spans));
+  return unresolved(unresolvedReason(masked, objects));
 }
 
 function walkOne(

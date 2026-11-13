@@ -1885,7 +1885,7 @@ describe("quoted-token removal polarity (#6269)", () => {
     'Deletes "old phrase" from `docs/x.md`',
     'Delete "old phrase"',
     'Drops "old phrase" from ./docs/x.md',
-    'Drop "old phrase" from x.md',
+    'Drop "old phrase" from "docs/x.md"',
     'Recuts "old phrase" from docs/x.md',
     'Recut "old phrase"',
     'docs/x.md no longer contains "old phrase"',
@@ -1994,6 +1994,48 @@ describe("quoted-token removal polarity (#6269)", () => {
     expect(
       classifyQuotedTokenPolarity(clause('Closed replace form: `Replaces "X" with "Y"`')).kind,
     ).toBe("none");
+  });
+
+  it("keeps inner quotes of the other kind inside the outer literal", () => {
+    const text = `Removes "the 'old' phrase" from docs/x.md`;
+    expect(extractQuotedSpans(clause(text)).map((s) => s.token)).toEqual(["the 'old' phrase"]);
+    expect(walkText(text, "the old phrase and the 'new' one\n")?.outcome).toBe("verified");
+    expect(walkText(text, "keeps the 'old' phrase\n")?.outcome).toBe("failed");
+    expect(extractQuotedSpans(clause(`Logs 'say "hello" now'`, null)).map((s) => s.token)).toEqual([
+      'say "hello" now',
+    ]);
+  });
+
+  it("checks a quoted file-path literal named as the removal object", () => {
+    const text = 'Removes "legacy.ts" from docs/x.md';
+    expect(classifyQuotedTokenPolarity(clause(text))).toEqual({
+      kind: "absence",
+      absent: ["legacy.ts"],
+      present: [],
+    });
+    expect(walkText(text, "imports nothing\n")?.outcome).toBe("verified");
+    expect(walkText(text, "import from legacy.ts\n")?.outcome).toBe("failed");
+    // The presence check still skips path-shaped literals, as before.
+    expect(extractExpectedTokens(clause('Adds "legacy.ts" to the list'))).toEqual([]);
+    expect(classifyQuotedTokenPolarity(clause('Adds "legacy.ts" to the list')).kind).toBe("none");
+  });
+
+  it("accepts a quoted bound path and refuses a basename-only path", () => {
+    expect(walkText('Removes "old phrase" from "docs/x.md"', "nothing\n")?.outcome).toBe(
+      "verified",
+    );
+    expect(classifyQuotedTokenPolarity(clause('Removes stale rows from "docs/x.md"')).kind).toBe(
+      "none",
+    );
+    const basename = walkText('Removes "old phrase" from x.md', "nothing\n");
+    expect(basename?.outcome).toBe("unverifiable");
+    expect(basename?.detail).toMatch(/other than the bound/);
+  });
+
+  it("treats a colon after the removal verb as prose, not a command name", () => {
+    const row = walkText('Removes: "old phrase" from docs/x.md', "keeps the old phrase\n");
+    expect(row?.outcome).toBe("unverifiable");
+    expect(row?.adjudicable).toBe(true);
   });
 
   it("keeps ok false when an unresolved row has a verified sibling", () => {
