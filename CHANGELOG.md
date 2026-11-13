@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- feat(occupancy,hooks): after `/clear` or a restart, the next Claude Code session can claim the checkout without a steal or manual release, because a SessionEnd hook frees the occupancy lease that the ending session owns. Refs #6274
 
 ### Changed
 - Minted the intent-constraint record for the #6274 session-end diagnostic cap (400 characters). Refs #6274.
