@@ -965,7 +965,10 @@
           "packages/core/src/hooks/dispatcher.test.ts",
           "packages/core/src/hooks/dispatcher.ts",
           "packages/cli/src/launcher-bundle-d43.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "xbrief/active/2026-11-12-6227-bugtestrelease-39-tests-fail-release-step-5-on-a-windows-mai.xbrief.json",
+          ".deft-scratch/pr-body/story-6227.md",
+          ".deft-scratch/subagent-status/story-6227.json"
         ],
         "parallel_safe": true,
         "size": "medium",
