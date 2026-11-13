@@ -2470,6 +2470,9 @@ describe("inactive Shell classifiers (#4709)", () => {
       "settings",
     );
     expect(
+      classifyShellAuthzOps("printf %s .deft/authz/grants/g | xargs cat && rm $AUTHZ_DIR"),
+    ).toContain("settings");
+    expect(
       classifyShellAuthzOps(
         "printf %s .deft/authz/grants/g | xargs -I{} cp {} .deft/authz/grants/out",
       ),
