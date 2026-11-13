@@ -474,7 +474,11 @@
         "file_scope": [
           "Taskfile.yml",
           "packages/core/src/content-contracts/standards/taskfile_release_project_root.test.ts",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "xbrief/active/2026-11-12-5942-bugrelease-releasee2e-releasepublish-and-releaserollback-mis.xbrief.json",
+          ".deft-scratch/pr-body/story-5942.md",
+          "xbrief/evaluator-surface-disposition.json",
+          ".deft-scratch/subagent-status/story-5942.json"
         ],
         "parallel_safe": true,
         "size": "small",
