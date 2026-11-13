@@ -185,6 +185,12 @@ describe("small-change lane bound policy", () => {
     const defaults = { maxProductionFiles: 5, maxChangedLines: 500 };
     expect(readSmallChangeLaneBound({})).toEqual({ bound: defaults, error: null });
     expect(readSmallChangeLaneBound(null)).toEqual({ bound: defaults, error: null });
+    // Greptile P1 on a659ab941: a present but malformed block refuses, never defaults.
+    for (const malformed of ["rapid", ["x"], 3]) {
+      const r = readSmallChangeLaneBound(malformed);
+      expect(r.bound).toBeNull();
+      expect(r.error).toContain("ceremonyDial must be an object");
+    }
     expect(readSmallChangeLaneBound({ smallChangeLane: null }).bound).toEqual(defaults);
   });
 
@@ -439,6 +445,22 @@ describe("evaluateSmallChangeLaneGate (#6204 recheck + lane exit)", () => {
       { projectRoot: root, gate: "scope:complete" },
     );
     expect(full).toMatchObject({ applies: true, ok: true });
+  });
+
+  it("refuses at the gate when the project ceremonyDial policy is malformed (Greptile P1 on a659ab941)", () => {
+    const { root, base } = initRepo();
+    write(
+      root,
+      "xbrief/PROJECT-DEFINITION.xbrief.json",
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "P", status: "running", items: [], policy: { ceremonyDial: "rapid" } },
+      }),
+    );
+    write(root, "src/a.ts", "const a = 1;\nconst b = 3;\n");
+    const r = evaluateSmallChangeLaneGate(lanePlan(base), { projectRoot: root, gate: "verify:ac" });
+    expect(r).toMatchObject({ applies: true, ok: false });
+    expect(r.message).toContain("ceremony dial policy is invalid");
   });
 
   it("reads depth and bound from the project when not overridden", () => {

@@ -212,13 +212,14 @@ export interface ReadSmallChangeLaneBoundResult {
 export function readSmallChangeLaneBound(
   ceremonyDialBlock: unknown,
 ): ReadSmallChangeLaneBoundResult {
-  const block =
-    ceremonyDialBlock !== null &&
-    typeof ceremonyDialBlock === "object" &&
-    !Array.isArray(ceremonyDialBlock)
-      ? (ceremonyDialBlock as Record<string, unknown>)
-      : {};
-  const raw = block.smallChangeLane;
+  // Absent → defaults. Present but malformed → refuse (never default past bad policy).
+  if (ceremonyDialBlock === undefined || ceremonyDialBlock === null) {
+    return { bound: { ...DEFAULT_SMALL_CHANGE_LANE_BOUND }, error: null };
+  }
+  if (typeof ceremonyDialBlock !== "object" || Array.isArray(ceremonyDialBlock)) {
+    return { bound: null, error: "plan.policy.ceremonyDial must be an object" };
+  }
+  const raw = (ceremonyDialBlock as Record<string, unknown>).smallChangeLane;
   if (raw === undefined || raw === null) {
     return { bound: { ...DEFAULT_SMALL_CHANGE_LANE_BOUND }, error: null };
   }
@@ -885,7 +886,17 @@ export function evaluateSmallChangeLaneGate(
       null,
     );
   }
-  const depth = options.depth ?? resolveCeremonyDial(options.projectRoot).depth;
+  let depth: CeremonyDepth;
+  if (options.depth !== undefined) {
+    depth = options.depth;
+  } else {
+    // An invalid dial policy falls back to a default depth; the lane does not.
+    const selection = resolveCeremonyDial(options.projectRoot);
+    if (selection.error !== null) {
+      return refuse(options.gate, `ceremony dial policy is invalid: ${selection.error}`, null);
+    }
+    depth = selection.depth;
+  }
   const boundRead =
     options.bound !== undefined
       ? {
