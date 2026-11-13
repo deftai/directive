@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.8.
 
 ### Fixed
+- `verify:ac` checks that a quoted phrase is absent when the clause is one of a closed set of removal sentences (`Removes|Deletes|Drops|Recuts "X" from PATH`, `PATH no longer contains "X"`, `Replaces "X" with "Y"`). Other removal wording around a quoted phrase is a blocking unverifiable row that names these forms. Closes #6269.
 
 ### Removed
 
