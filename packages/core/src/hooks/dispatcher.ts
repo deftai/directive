@@ -2562,8 +2562,7 @@ function inspectMutationGates(
         denyKind: "pin-miss",
       };
     } else {
-      const boundPath =
-        worktreeBinding.kind === "bound" ? worktreeBinding.path : spawnBoundPath;
+      const boundPath = worktreeBinding.kind === "bound" ? worktreeBinding.path : spawnBoundPath;
       scope = (seams.inspectScope ?? inspectActiveScope)(effectiveRoot, {
         env: environ,
         ...(boundPath !== null ? { boundPath } : {}),

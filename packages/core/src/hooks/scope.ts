@@ -12,13 +12,13 @@ import {
 } from "../policy/write-fence.js";
 import { evaluate } from "../preflight/evaluate.js";
 import { fenceUntrustedAcceptanceText } from "../scope/acceptance-evidence.js";
+import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import {
   liveOccupant,
   type OccupancyAdmission,
   type OccupancyRecord,
   occupancyAdmission,
 } from "../session/occupancy.js";
-import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import {
   type ReadWorkerAuthAssignmentResult,
   readWorkerAuthAssignment,
@@ -925,8 +925,7 @@ function refuseBinding(failureKind: string, detail: string, repair: string): Wor
     kind: "refuse",
     failureKind,
     message:
-      `Worktree story binding refused (${failureKind}): ${detail} ` +
-      `Repair: ${repair} (#6233).`,
+      `Worktree story binding refused (${failureKind}): ${detail} ` + `Repair: ${repair} (#6233).`,
   };
 }
 

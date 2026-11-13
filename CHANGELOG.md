@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - `reconcile-issues` no longer fails when a brief references a deleted issue (HTTP 410). The report names deleted (410) apart from missing (404) and exits 0. `--apply-lifecycle-fixes` leaves briefs anchored to a deleted issue in place, and refuses to move a parent whose decomposed child is deleted; a child whose state cannot be fetched fails the run. Umbrella reconcile counts a deleted child as open and does not rewrite its checkbox. Refs #5912.
+- The write fence binds a linked worktree registered by `swarm:launch` to its assigned story, so in-session Claude Code sub-agents can run a multi-story cohort with no `DEFT_ACTIVE_SCOPE` pin. A broken registry, a missing, ineligible or ambiguous story, or a pin that names a different story refuses the write. Unregistered worktrees and the main worktree are unchanged. Refs #6233.
 
 ### Removed
 
