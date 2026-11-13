@@ -127,6 +127,7 @@ import {
   type RoutingHonorSurface,
   type RoutingSpawnClass,
 } from "../swarm/routing-honor.js";
+import type { ReadWorkerAuthAssignmentResult } from "../swarm/worker-auth-assignment.js";
 import {
   formatLauncherCorrectLifecycleRecovery,
   UNRESOLVED_HOST_OWNER,
@@ -199,6 +200,7 @@ import {
   type InspectActiveScopeOptions,
   inspectActiveScope,
   POSITIVE_GOVERNING_ALLOW_REQUIRED,
+  resolveWorktreeStoryBinding,
 } from "./scope.js";
 import {
   classifyShellWriteTargets,
@@ -677,6 +679,11 @@ export interface HookPolicySeams {
     projectRoot: string,
     options?: InspectActiveScopeOptions,
   ) => ActiveScopeInspection;
+  /**
+   * Test seam for the #6233 linked-worktree story binding (worker-auth reader).
+   * Defaults to the validated `readWorkerAuthAssignment`.
+   */
+  readonly readWorkerAuthAssignment?: (cwd: string) => ReadWorkerAuthAssignmentResult;
   readonly sessionStart?: (projectRoot: string) => { code: number; stdout: string; stderr: string };
   /** Test seam for #2926 root opt-out on SessionStart. */
   readonly detectNoDeftDirective?: typeof detectNoDeftDirective;
@@ -2537,10 +2544,31 @@ function inspectMutationGates(
     const spawnBoundPath = isSpawnTool(toolName)
       ? uniqueActiveBasenameFromDestPath(spawnConsult?.destPath ?? null)
       : null;
-    scope = (seams.inspectScope ?? inspectActiveScope)(effectiveRoot, {
+    // #6233: a dispatch-registered linked worktree binds its story from the
+    // worker-auth assignment record. The main worktree never reads the registry
+    // (the resolver returns `none` there); a clean absence keeps today's path.
+    const worktreeBinding = resolveWorktreeStoryBinding(effectiveRoot, {
       env: environ,
-      ...(spawnBoundPath !== null ? { boundPath: spawnBoundPath } : {}),
+      boundPath: spawnBoundPath,
+      ...(seams.readWorkerAuthAssignment !== undefined
+        ? { readWorkerAuthAssignment: seams.readWorkerAuthAssignment }
+        : {}),
     });
+    if (worktreeBinding.kind === "refuse") {
+      scope = {
+        ready: false,
+        path: null,
+        message: worktreeBinding.message,
+        denyKind: "pin-miss",
+      };
+    } else {
+      const boundPath =
+        worktreeBinding.kind === "bound" ? worktreeBinding.path : spawnBoundPath;
+      scope = (seams.inspectScope ?? inspectActiveScope)(effectiveRoot, {
+        env: environ,
+        ...(boundPath !== null ? { boundPath } : {}),
+      });
+    }
   } catch (cause) {
     scope = { ready: false, path: null, message: String(cause) };
   }

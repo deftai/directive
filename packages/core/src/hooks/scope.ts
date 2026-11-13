@@ -18,10 +18,12 @@ import {
   type OccupancyRecord,
   occupancyAdmission,
 } from "../session/occupancy.js";
+import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import {
   type ReadWorkerAuthAssignmentResult,
   readWorkerAuthAssignment,
   resolveWorkerAuthDestPath,
+  storyIdForBrief,
 } from "../swarm/worker-auth-assignment.js";
 
 export { hasPositiveGoverningStoryAllow } from "../policy/write-fence.js";
@@ -724,6 +726,19 @@ function briefPlanId(data: Record<string, unknown> | null): string | null {
   return typeof id === "string" && id.trim().length > 0 ? id.trim() : null;
 }
 
+/** Story id the swarm launch records for this brief (#6233 shared derivation). */
+function briefStoryId(brief: {
+  readonly path: string;
+  readonly data: Record<string, unknown> | null;
+}): string {
+  const plan = brief.data?.plan;
+  const planRecord =
+    typeof plan === "object" && plan !== null && !Array.isArray(plan)
+      ? (plan as Record<string, unknown>)
+      : null;
+  return storyIdForBrief(brief.path, planRecord);
+}
+
 function fencedCandidates(paths: readonly string[]): string {
   return paths.map((path) => fenceActiveScopeName(path)).join(", ");
 }
@@ -796,7 +811,7 @@ function matchStoryIdToActive(
       denyKind: "pin-miss",
     };
   }
-  const owners = briefs.filter((brief) => briefPlanId(brief.data) === id);
+  const owners = briefs.filter((brief) => briefStoryId(brief) === id);
   const only = owners[0];
   if (owners.length === 1 && only !== undefined) {
     return { kind: "bound", path: only.path };
@@ -863,6 +878,136 @@ function admitUntiedWithWorkerAuth(
     }
   }
   return { kind: "untied" };
+}
+
+/**
+ * Write-fence story binding for a dispatch-registered linked worktree (#6233).
+ *
+ * - `none`: the main worktree (the registry is not read), or a linked worktree
+ *   whose validated reader reports no assignment. The caller keeps today's
+ *   selection (env pin, spawn bound path, single eligible, multiple-eligible).
+ * - `bound`: the assignment's `story_id` matches exactly one active brief and
+ *   that brief is implementation-eligible.
+ * - `refuse`: the reader failed, the assigned story is missing, ineligible or
+ *   ambiguous, or an env pin / spawn bound path names a different story.
+ *
+ * There is no `untied` outcome and no branch-token match: only the assignment
+ * record binds a story here.
+ */
+export type WorktreeStoryBinding =
+  | { readonly kind: "none" }
+  | { readonly kind: "bound"; readonly path: string; readonly storyId: string }
+  | { readonly kind: "refuse"; readonly failureKind: string; readonly message: string };
+
+/** Refusal kinds the resolver adds to the reader's own failure kinds (#6233). */
+export const WORKTREE_STORY_COMMON_DIR_UNRESOLVED = "common_dir_unresolved";
+export const WORKTREE_STORY_MISSING = "assigned_story_missing";
+export const WORKTREE_STORY_INELIGIBLE = "assigned_story_ineligible";
+export const WORKTREE_STORY_AMBIGUOUS = "assigned_story_ambiguous";
+export const WORKTREE_STORY_ENV_PIN_CONFLICT = "env_pin_conflict";
+export const WORKTREE_STORY_BOUND_PATH_CONFLICT = "bound_path_conflict";
+
+export interface ResolveWorktreeStoryBindingOptions {
+  /** Hook environ bag; the env pin is read from here (default `process.env`). */
+  readonly env?: NodeJS.ProcessEnv;
+  /** Spawn-time bound path (dest unique basename), when the tool is a spawn. */
+  readonly boundPath?: string | null;
+  /** Injectable worker-auth reader (tests). */
+  readonly readWorkerAuthAssignment?: (cwd: string) => ReadWorkerAuthAssignmentResult;
+  /** Injectable linked-worktree predicate (tests). */
+  readonly isLinkedWorktree?: (root: string) => boolean;
+  /** Injectable eligibility check (tests); defaults to the xBRIEF preflight evaluator. */
+  readonly isEligible?: (briefPath: string) => { readonly ok: boolean; readonly message: string };
+}
+
+function refuseBinding(failureKind: string, detail: string, repair: string): WorktreeStoryBinding {
+  return {
+    kind: "refuse",
+    failureKind,
+    message:
+      `Worktree story binding refused (${failureKind}): ${detail} ` +
+      `Repair: ${repair} (#6233).`,
+  };
+}
+
+function defaultEligible(briefPath: string): { ok: boolean; message: string } {
+  const result = evaluate(briefPath, { skipOriginFreshness: true });
+  return { ok: result.exitCode === 0, message: result.message };
+}
+
+export function resolveWorktreeStoryBinding(
+  worktreeRoot: string,
+  options: ResolveWorktreeStoryBindingOptions = {},
+): WorktreeStoryBinding {
+  const isLinked = options.isLinkedWorktree ?? isLinkedWorktreePath;
+  if (!isLinked(worktreeRoot)) return { kind: "none" };
+  const reader = options.readWorkerAuthAssignment ?? readWorkerAuthAssignment;
+  const read = reader(worktreeRoot);
+  const reRegister =
+    "the parent re-registers this worktree through `deft swarm:launch` (dispatch PREP rewrites its worker-auth record)";
+  if (!read.ok) {
+    return refuseBinding(
+      read.failureKind,
+      `the worker-auth registry cannot say which story this linked worktree belongs to: ${fenceUntrustedAcceptanceText(read.detail)}.`,
+      reRegister,
+    );
+  }
+  if (read.commonDir === null) {
+    return refuseBinding(
+      WORKTREE_STORY_COMMON_DIR_UNRESOLVED,
+      "the Git common directory of this linked worktree cannot be resolved, so its worker-auth registration is unknowable.",
+      "run the write from a worktree where `git rev-parse --git-common-dir` succeeds",
+    );
+  }
+  if (read.assignment === null) return { kind: "none" };
+
+  const storyId = read.assignment.story_id.trim();
+  const fencedId = fenceUntrustedAcceptanceText(storyId);
+  const scanned = listActiveLifecycleArtifacts(worktreeRoot).paths;
+  const owners = scanned.filter(
+    (path) => storyId.length > 0 && briefStoryId({ path, data: readBriefRecord(path) }) === storyId,
+  );
+  if (owners.length > 1) {
+    return refuseBinding(
+      WORKTREE_STORY_AMBIGUOUS,
+      `assigned story ${fencedId} matches ${owners.length} active briefs (${fencedCandidates(owners)}).`,
+      "give each active brief a unique plan.id",
+    );
+  }
+  const owner = owners[0];
+  if (owner === undefined) {
+    return refuseBinding(
+      WORKTREE_STORY_MISSING,
+      `assigned story ${fencedId} matches no brief under xbrief/active/ in this worktree.`,
+      "activate the assigned story's brief in this worktree (`deft scope:activate -- <brief>`)",
+    );
+  }
+  const eligible = (options.isEligible ?? defaultEligible)(owner);
+  if (!eligible.ok) {
+    return refuseBinding(
+      WORKTREE_STORY_INELIGIBLE,
+      `assigned story ${fencedId} (${fenceActiveScopeName(owner)}) is not implementation-eligible: ${eligible.message}`,
+      "run `deft xbrief:preflight -- <assigned-brief>` in this worktree and fix what it reports",
+    );
+  }
+
+  const bound = options.boundPath?.trim() ?? "";
+  if (bound.length > 0 && matchPinnedActiveScope(worktreeRoot, bound, scanned) !== owner) {
+    return refuseBinding(
+      WORKTREE_STORY_BOUND_PATH_CONFLICT,
+      `the spawn bound path ${fencePinValue(bound)} names a different story than the worktree assignment ${fencedId}.`,
+      "spawn into the worktree registered for that story",
+    );
+  }
+  const envPin = (options.env ?? process.env)[ACTIVE_SCOPE_PIN_ENV]?.trim() ?? "";
+  if (envPin.length > 0 && matchPinnedActiveScope(worktreeRoot, envPin, scanned) !== owner) {
+    return refuseBinding(
+      WORKTREE_STORY_ENV_PIN_CONFLICT,
+      `${ACTIVE_SCOPE_PIN_ENV} ${fencePinValue(envPin)} names a different story than the worktree assignment ${fencedId}.`,
+      `clear ${ACTIVE_SCOPE_PIN_ENV} for this worker (the worktree assignment names its story)`,
+    );
+  }
+  return { kind: "bound", path: owner, storyId };
 }
 
 function formatUntiedSoftMissingMessage(scanned: readonly string[]): string {

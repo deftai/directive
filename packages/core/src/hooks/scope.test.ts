@@ -2,8 +2,13 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { GITHUB_AUTH_MODE_HOST_GH, PRINCIPAL_KIND_USER } from "../intake/github-auth-modes.js";
 import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
 import { fenceUntrustedAcceptanceText } from "../scope/acceptance-evidence.js";
+import {
+  type ReadWorkerAuthAssignmentResult,
+  storyIdForBrief,
+} from "../swarm/worker-auth-assignment.js";
 import {
   ACTIVE_SCOPE_PIN_ENV,
   governingAllowCoversRelPath,
@@ -11,8 +16,16 @@ import {
   inspectActiveScope,
   matchPinnedActiveScope,
   POSITIVE_GOVERNING_ALLOW_REQUIRED,
+  type ResolveWorktreeStoryBindingOptions,
   resolveSoftMissingAcTargets,
+  resolveWorktreeStoryBinding,
   selectedBriefHasPositiveGoverningAllow,
+  WORKTREE_STORY_AMBIGUOUS,
+  WORKTREE_STORY_BOUND_PATH_CONFLICT,
+  WORKTREE_STORY_COMMON_DIR_UNRESOLVED,
+  WORKTREE_STORY_ENV_PIN_CONFLICT,
+  WORKTREE_STORY_INELIGIBLE,
+  WORKTREE_STORY_MISSING,
 } from "./index.js";
 
 /** Fixture tempdirs are not git merge-base trees; use working-tree fence SoT. */
@@ -692,5 +705,218 @@ describe("soft-missing AC target selection (#4285)", () => {
     expect(byPin).toEqual({ kind: "one", path: blocked });
     const byBound = resolveSoftMissingAcTargets(project, { boundPath: blocked, env: {} });
     expect(byBound).toEqual({ kind: "one", path: blocked });
+  });
+});
+
+describe("linked-worktree story binding from worker-auth (#6233)", () => {
+  function assigned(storyId: string): ReadWorkerAuthAssignmentResult {
+    return {
+      ok: true,
+      commonDir: "/common",
+      assignment: {
+        schema_version: 1,
+        dispatch_id: "dispatch-1",
+        story_id: storyId,
+        worktree_path: "/wt",
+        github_auth_mode: GITHUB_AUTH_MODE_HOST_GH,
+        expected_principal: { kind: PRINCIPAL_KIND_USER, login: "worker" },
+        credential_delivery_id: null,
+      },
+    };
+  }
+
+  function writeBrief(
+    project: string,
+    name: string,
+    planId: string | null,
+    status = "running",
+  ): string {
+    const active = join(project, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    const path = join(active, name);
+    const plan = {
+      ...runningPlacement,
+      status,
+      metadata: { ...runningPlacement.metadata, swarm: { file_scope: ["src/**"] } },
+      ...(planId !== null ? { id: planId } : {}),
+    };
+    writeFileSync(path, JSON.stringify({ plan }), "utf8");
+    return path;
+  }
+
+  function linked(
+    read: ReadWorkerAuthAssignmentResult,
+    extra: Partial<ResolveWorktreeStoryBindingOptions> = {},
+  ): ResolveWorktreeStoryBindingOptions & { reader: ReturnType<typeof vi.fn> } {
+    const reader = vi.fn((_cwd: string) => read);
+    return {
+      env: {},
+      isLinkedWorktree: () => true,
+      readWorkerAuthAssignment: reader,
+      reader,
+      ...extra,
+    };
+  }
+
+  const KINDS = new Set(["none", "bound", "refuse"]);
+
+  it("never reads the registry for the main worktree", () => {
+    const project = root();
+    writeBrief(project, "a-story.xbrief.json", "story-a");
+    const reader = vi.fn((_cwd: string) => assigned("story-a"));
+    const result = resolveWorktreeStoryBinding(project, {
+      env: {},
+      isLinkedWorktree: () => false,
+      readWorkerAuthAssignment: reader,
+    });
+    expect(result).toEqual({ kind: "none" });
+    expect(reader).not.toHaveBeenCalled();
+  });
+
+  it("reads the assignment through the validated reader and binds the unique story_id match", () => {
+    const project = root();
+    writeBrief(project, "a-story.xbrief.json", "story-a");
+    const storyB = writeBrief(project, "b-story.xbrief.json", "story-b");
+    const options = linked(assigned("story-b"));
+    const result = resolveWorktreeStoryBinding(project, options);
+    expect(options.reader).toHaveBeenCalledWith(project);
+    expect(result).toEqual({ kind: "bound", path: storyB, storyId: "story-b" });
+  });
+
+  it("binds from the assignment only: no branch input exists and no untied outcome is returned", () => {
+    const project = root();
+    writeBrief(project, "a-story.xbrief.json", "story-a");
+    writeBrief(project, "b-story.xbrief.json", "story-b");
+    // The resolver takes no branch: a branch named for story-a cannot move the bind.
+    const withBranch = {
+      ...linked(assigned("story-b")),
+      branch: "swarm/story-a",
+    } as ResolveWorktreeStoryBindingOptions;
+    const result = resolveWorktreeStoryBinding(project, withBranch);
+    expect(result).toMatchObject({ kind: "bound", storyId: "story-b" });
+    for (const read of [
+      assigned("story-a"),
+      assigned("nope"),
+      { ok: true, assignment: null, commonDir: "/c" } as const,
+    ]) {
+      const kind = resolveWorktreeStoryBinding(project, linked(read)).kind;
+      expect(KINDS.has(kind)).toBe(true);
+      expect(kind).not.toBe("untied");
+    }
+  });
+
+  it("matches a brief without plan.id by the same derivation launch records", () => {
+    const project = root();
+    writeBrief(project, "a-story.xbrief.json", "story-a");
+    const noId = writeBrief(project, "2026-11-13-42-no-id.xbrief.json", null);
+    const result = resolveWorktreeStoryBinding(
+      project,
+      linked(assigned(storyIdForBrief(noId, null))),
+    );
+    expect(result).toEqual({ kind: "bound", path: noId, storyId: "2026-11-13-42-no-id" });
+  });
+
+  it("returns none on a validated clean absence", () => {
+    const project = root();
+    writeBrief(project, "a-story.xbrief.json", "story-a");
+    writeBrief(project, "b-story.xbrief.json", "story-b");
+    const result = resolveWorktreeStoryBinding(
+      project,
+      linked({ ok: true, assignment: null, commonDir: "/common" }),
+    );
+    expect(result).toEqual({ kind: "none" });
+  });
+
+  it.each([
+    "registry_corruption",
+    "orphan_assignment",
+    "duplicate_assignment",
+    "malformed_assignment",
+    "missing_assignment",
+  ])("refuses when the reader fails with %s and names one repair step", (failureKind) => {
+    const project = root();
+    writeBrief(project, "a-story.xbrief.json", "story-a");
+    const result = resolveWorktreeStoryBinding(
+      project,
+      linked({
+        ok: false,
+        failureKind,
+        detail: "reader detail",
+        dispatchId: null,
+        expectedLogin: null,
+        observedLogin: null,
+      }),
+    );
+    expect(result).toMatchObject({ kind: "refuse", failureKind });
+    if (result.kind !== "refuse") throw new Error("expected refuse");
+    expect(result.message).toContain(`(${failureKind})`);
+    expect(result.message.match(/Repair:/g)).toHaveLength(1);
+    expect(result.message).toContain("swarm:launch");
+  });
+
+  it("refuses when the Git common directory of a linked worktree is unresolved", () => {
+    const project = root();
+    const result = resolveWorktreeStoryBinding(
+      project,
+      linked({ ok: true, assignment: null, commonDir: null }),
+    );
+    expect(result).toMatchObject({
+      kind: "refuse",
+      failureKind: WORKTREE_STORY_COMMON_DIR_UNRESOLVED,
+    });
+  });
+
+  it("refuses a missing, ambiguous or ineligible assigned story", () => {
+    const project = root();
+    writeBrief(project, "a-story.xbrief.json", "story-a");
+    writeBrief(project, "b-story.xbrief.json", "story-b");
+    writeBrief(project, "c-dup.xbrief.json", "story-dup");
+    writeBrief(project, "d-dup.xbrief.json", "story-dup");
+    writeBrief(project, "e-blocked.xbrief.json", "story-blocked", "blocked");
+
+    const missing = resolveWorktreeStoryBinding(project, linked(assigned("story-z")));
+    expect(missing).toMatchObject({ kind: "refuse", failureKind: WORKTREE_STORY_MISSING });
+    const ambiguous = resolveWorktreeStoryBinding(project, linked(assigned("story-dup")));
+    expect(ambiguous).toMatchObject({ kind: "refuse", failureKind: WORKTREE_STORY_AMBIGUOUS });
+    const ineligible = resolveWorktreeStoryBinding(project, linked(assigned("story-blocked")));
+    expect(ineligible).toMatchObject({ kind: "refuse", failureKind: WORKTREE_STORY_INELIGIBLE });
+    for (const result of [missing, ambiguous, ineligible]) {
+      if (result.kind !== "refuse") throw new Error("expected refuse");
+      expect(result.message.match(/Repair:/g)).toHaveLength(1);
+    }
+  });
+
+  it("refuses an env pin or spawn bound path that names a different story", () => {
+    const project = root();
+    writeBrief(project, "a-story.xbrief.json", "story-a");
+    const storyB = writeBrief(project, "b-story.xbrief.json", "story-b");
+
+    const envConflict = resolveWorktreeStoryBinding(
+      project,
+      linked(assigned("story-b"), {
+        env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/a-story.xbrief.json" },
+      }),
+    );
+    expect(envConflict).toMatchObject({
+      kind: "refuse",
+      failureKind: WORKTREE_STORY_ENV_PIN_CONFLICT,
+    });
+    const boundConflict = resolveWorktreeStoryBinding(
+      project,
+      linked(assigned("story-b"), { boundPath: "a-story.xbrief.json" }),
+    );
+    expect(boundConflict).toMatchObject({
+      kind: "refuse",
+      failureKind: WORKTREE_STORY_BOUND_PATH_CONFLICT,
+    });
+
+    const envAgrees = resolveWorktreeStoryBinding(
+      project,
+      linked(assigned("story-b"), {
+        env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/b-story.xbrief.json" },
+        boundPath: "b-story.xbrief.json",
+      }),
+    );
+    expect(envAgrees).toEqual({ kind: "bound", path: storyB, storyId: "story-b" });
   });
 });
