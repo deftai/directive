@@ -2908,11 +2908,44 @@ describe("scope:complete admits and rechecks the small-change lane thin shape (#
       },
     });
     expect(result.ok).toBe(false);
-    expect(result.message).toContain("#4768");
     expect(result.message).toContain("scope:promote refused (#6204)");
     const onDisk = JSON.parse(readFileSync(proposed, "utf8")) as {
       plan: { metadata: Record<string, { state: string }> };
     };
     expect(onDisk.plan.metadata["x-directive/smallChangeLane"]?.state).toBe("crossed");
+  });
+
+  it("checks the lane before clauses: a crossed lane brief with clauses cannot promote or activate (Greptile P1 on bd0de75db)", () => {
+    for (const [act, folder, status] of [
+      ["promote", "proposed", "proposed"],
+      ["activate", "pending", "pending"],
+      ["activate", "active", "running"],
+    ] as const) {
+      const path = writeThin(folder, status);
+      const data = JSON.parse(readFileSync(path, "utf8")) as {
+        plan: { acceptance: Record<string, unknown>; metadata: Record<string, unknown> };
+      };
+      data.plan.acceptance.clauses = [
+        { id: 1, text: "test: returns the corrected value", artifact_path: null, ambiguous: false },
+      ];
+      data.plan.metadata["x-directive/smallChangeLane"] = {
+        schema: "deft.small-change-lane.v1",
+        state: "crossed",
+        admitBase: "admitbase0",
+        crossedReason: "bound crossed",
+      };
+      writeFile(path, data);
+      const result = runTransition(act, path, new Date("2026-11-12T12:00:00Z"), {
+        smallChangeLane: {
+          depth: "rapid" as const,
+          bound: { maxProductionFiles: 1, maxChangedLines: 5 },
+          runGit: laneGit(3),
+        },
+      });
+      expect(result.ok, `${act} from ${folder}`).toBe(false);
+      expect(result.message).toContain(`scope:${act} refused (#6204)`);
+      expect(result.message).toContain("crossed after admit");
+      expect(existsSync(path)).toBe(true);
+    }
   });
 });

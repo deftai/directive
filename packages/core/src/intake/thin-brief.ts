@@ -48,6 +48,13 @@ export type ThinBriefEmitResult =
   | { readonly ok: true; readonly brief: Record<string, unknown> }
   | { readonly ok: false; readonly keep: "full-shape"; readonly reason: string };
 
+/** Acceptance records tied to the admitted source; their presence keeps the full shape. */
+const SOURCE_SENTENCE_KEYS = [
+  "sentences",
+  "admitted_source_sentences",
+  "admitted_source_digest",
+] as const;
+
 export interface CommandBackedAcceptanceCheck {
   readonly ok: boolean;
   readonly reason: string;
@@ -85,6 +92,14 @@ export function checkCommandBackedAcceptance(acceptance: unknown): CommandBacked
   }
   if (Array.isArray(rec.clauses) && rec.clauses.length > 0) {
     return { ok: false, reason: "plan.acceptance carries clauses; the thin shape has none" };
+  }
+  // verify:ac's admitted-source identity gate (#5055) and sentence floor (#3550)
+  // read these records. The thin shape cannot keep them without clauses, so a
+  // brief that carries them keeps the full shape.
+  for (const key of SOURCE_SENTENCE_KEYS) {
+    if (rec[key] !== undefined && rec[key] !== null) {
+      return { ok: false, reason: `plan.acceptance carries ${key}; the thin shape cannot keep it` };
+    }
   }
   const errors = validatePlanAcceptance(rec);
   if (errors.length > 0) {

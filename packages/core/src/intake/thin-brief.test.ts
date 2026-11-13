@@ -108,6 +108,9 @@ describe("emitThinBrief (#6204 thin shape)", () => {
       { ...STATED, none_stated: true },
       { ...STATED, commands: [{ command: " " }] },
       { ...STATED, clauses: [{ id: 1, text: "x" }] },
+      { ...STATED, sentences: ["Fix the off-by-one."] },
+      { ...STATED, admitted_source_sentences: ["Fix the off-by-one."] },
+      { ...STATED, admitted_source_digest: "abc" },
     ];
     for (const acceptance of cases) {
       const r = emitThinBrief({ ...INPUT, acceptance });
