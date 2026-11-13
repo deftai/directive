@@ -5,6 +5,16 @@
 
 # Roadmap
 
+## Active
+
+- **#6265** -- bug(ingest): issue:ingest harvests a lean's Reject list, footnotes and arc record-keeping as plan items -- `[running]`
+- **#6269** -- bug(verify-ac): a clause that removes a quoted phrase fails when the phrase is removed -- `[running]`
+- **#6270** -- bug(scope): strict acceptance axes match on identifiers, so a deploy-dev job or deploy.yml makes a clause need deploy evidence -- `[running]`
+- **#6271** -- bug(init,security): the consumer .gitignore baseline misses the private pre-PR store and the plan-sequence lock files -- `[running]`
+- **#6272** -- feat(scope): show which clauses need strict-axis evidence at activation, not after the merge -- `[running]`
+- **#6273** -- feat(scope): one-PR path for a single maintainer: a new or widened brief lands with its code without a second human reviewer -- `[running]`
+- **#6274** -- feat(occupancy,hooks): release the occupancy lease when its host session ends -- `[running]`
+
 ## Proposed
 
 _Scopes not yet promoted to pending. Orientation only — not a substitute for `task triage:queue`._

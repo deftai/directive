@@ -977,11 +977,29 @@ export function evaluateScopeProvenance(
   /** One-PR mint-level admits and reject notes (#6273). */
   const mintLevelAdmits: MintLevelAdmit[] = [];
   const onePrNotes: string[] = [];
-  // The level and requireHumanMerge come from the merge base only (#6273).
+  // The level and requireHumanMerge come from the merge base only (#6273):
+  // pin `git merge-base <base> HEAD`, not the base branch tip, so a later
+  // base-tip policy change neither refuses nor admits this change set.
+  // Injected base seams (tests) keep their own reader.
+  const readPolicyAtMergeBase = (): BaseBriefReadLocal => {
+    if (options.baseXbriefs !== undefined || options.readAtBase !== undefined) {
+      return readAtBase(PROJECT_DEFINITION_REL_PATH);
+    }
+    if (discoveryBaseRef === null || discoveryBaseRef === "") return { kind: "missing" };
+    const mb = git(["merge-base", discoveryBaseRef, "HEAD"], root);
+    const sha = mb.stdout.trim();
+    if (mb.status !== 0 || sha.length === 0) {
+      return { kind: "error", message: `git merge-base ${discoveryBaseRef} HEAD failed` };
+    }
+    const read = readRepoFileAtRef(root, sha, PROJECT_DEFINITION_REL_PATH);
+    if (read.status === "ok") return { kind: "text", text: read.text };
+    if (read.status === "missing") return { kind: "missing" };
+    return { kind: "error", message: read.message };
+  };
   let onePrGate: OnePrScopeProofGate | null = null;
   const resolveOnePrGate = (): OnePrScopeProofGate => {
     if (onePrGate !== null) return onePrGate;
-    const baseRead = readAtBase(PROJECT_DEFINITION_REL_PATH);
+    const baseRead = readPolicyAtMergeBase();
     let headRaw: string | null = null;
     if (options.headProjectDefinition !== undefined) {
       headRaw = options.headProjectDefinition;
