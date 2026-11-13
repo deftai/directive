@@ -156,6 +156,7 @@
       ]
     },
     "metadata": {
+      "productPullRequest": 6237,
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
         "files": [
