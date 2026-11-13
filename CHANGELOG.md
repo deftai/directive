@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fix(scope): strict acceptance axes (deploy, smoke, UAT) match prose only, not file, job or workflow names such as `deploy-dev` or `smoke-test.ts` (#6270, refs #3240).
 - Issue ingest now keeps rejected alternatives, footnotes and record-keeping out of the plan's work items. Rejected alternatives remain available as constraints. Refs #6265.
 - `verify:ac` no longer fails a clause that removes a quoted phrase once the phrase is gone. Supported sentences: `Removes|Deletes|Drops|Recuts "X" from PATH`, `PATH no longer contains "X"` and `Replaces "X" with "Y"`. Other removal wording around a quoted phrase now blocks as unverifiable, and the message names the supported sentences. Closes #6269.
+- fix(init,security): consumer installs now git-ignore the pre-PR HMAC secret store (`.deft/pre-pr-execution-private/`) and the plan-sequence generation, lock and lock-claim files. `directive update` adds the entries to existing installs (`--allow-dirty-no-stage` when those local files make the tree dirty); doctor warns, and never untracks, when the secret is already tracked (#6271).
 
 ### Removed
 

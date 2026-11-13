@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import {
   chmodSync,
+  copyFileSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -13,7 +14,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { copyTree } from "../deposit/copy-tree.js";
+import { CONTENT_PACKAGE_NAME } from "../deposit/resolve-content.js";
 import { ProjectionContainmentError } from "../fs/projection-containment.js";
+import { AGENTS_MANAGED_CLOSE } from "../platform/constants.js";
+import type { ClassifySeams } from "../resolution/index.js";
+import type { AgentHookReadinessResult } from "../verify-env/agent-hook-readiness.js";
+import { destContentionItTimeout } from "../vitest-runner/dest-contention-it-timeout.helper.test.js";
 import {
   CANONICAL_GITIGNORE_BASELINE,
   ensureInitGitignoreLines,
@@ -28,6 +34,7 @@ import {
   UNTRACK_CORE_GITIGNORE_LINES,
   untrackOrientationSessionBindRuntime,
 } from "./gitignore.js";
+import { runRefreshDepositCli, UPDATE_REFUSED_EXIT_CODE } from "./refresh.js";
 
 describe("ensureInitGitignoreLines", () => {
   const created: string[] = [];
@@ -939,4 +946,285 @@ describe("reconstituteLinkedWorktreeDeposit (#4443)", () => {
     expect(result.versionRepaired).toBe(false);
     expect(readFileSync(join(dest, "VERSION"), "utf8")).toBe(prior);
   });
+});
+
+describe("private pre-PR store + plan-sequence sidecars in the consumer baseline (#6271)", () => {
+  const BASELINE_6271_LINES = [
+    ".deft/pre-pr-execution-private/",
+    ".deft/plan-sequence.json.generation",
+    ".deft/plan-sequence.json.lock",
+    ".deft/plan-sequence.json.lock.claim-*",
+  ] as const;
+  const HMAC_SECRET_REL = ".deft/pre-pr-execution-private/hmac-secret";
+  const SIDECAR_PATHS = [
+    HMAC_SECRET_REL,
+    ".deft/plan-sequence.json.generation",
+    ".deft/plan-sequence.json.lock",
+    ".deft/plan-sequence.json.lock.claim-owner-1",
+  ] as const;
+  const created: string[] = [];
+
+  afterEach(() => {
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function git(root: string, args: readonly string[]): string {
+    return execFileSync("git", [...args], { cwd: root, encoding: "utf8" });
+  }
+
+  /** Git consumer whose .gitignore holds only the baseline (no blanket `.deft/*`). */
+  function refreshedConsumer(prefix: string): string {
+    const root = mkdtempSync(join(tmpdir(), prefix));
+    created.push(root);
+    git(root, ["init", "-q"]);
+    git(root, ["config", "user.email", "t@t.dev"]);
+    git(root, ["config", "user.name", "t"]);
+    ensureInitGitignoreLines(root, { printf: () => {} }, { skipLocalRuntimeUntrack: true });
+    mkdirSync(join(root, ".deft", "pre-pr-execution-private"), { recursive: true });
+    for (const rel of SIDECAR_PATHS) {
+      writeFileSync(join(root, rel), "local\n", "utf8");
+    }
+    writeFileSync(join(root, ".deft", "plan-sequence.json"), "{}\n", "utf8");
+    return root;
+  }
+
+  it("CANONICAL_GITIGNORE_BASELINE contains the four entries and no blanket .deft/", () => {
+    for (const line of BASELINE_6271_LINES) {
+      expect(CANONICAL_GITIGNORE_BASELINE).toContain(line);
+    }
+    expect(CANONICAL_GITIGNORE_BASELINE).not.toContain(".deft/");
+    expect(CANONICAL_GITIGNORE_BASELINE).not.toContain(".deft/*");
+    expect(CANONICAL_GITIGNORE_BASELINE).not.toContain(".deft/plan-sequence.json");
+  });
+
+  it("install writes the four entries", () => {
+    const root = mkdtempSync(join(tmpdir(), "gitignore-6271-install-"));
+    created.push(root);
+    ensureInitGitignoreLines(root, { printf: () => {} }, { skipLocalRuntimeUntrack: true });
+    const lines = readFileSync(join(root, ".gitignore"), "utf8").split("\n");
+    for (const line of BASELINE_6271_LINES) {
+      expect(lines).toContain(line);
+    }
+  });
+
+  it("refresh heals an existing install that lacks the four entries", () => {
+    const root = mkdtempSync(join(tmpdir(), "gitignore-6271-heal-"));
+    created.push(root);
+    const prior = CANONICAL_GITIGNORE_BASELINE.filter(
+      (line) => !(BASELINE_6271_LINES as readonly string[]).includes(line),
+    );
+    writeFileSync(join(root, ".gitignore"), `${prior.join("\n")}\n`, "utf8");
+
+    const first = ensureInitGitignoreLines(
+      root,
+      { printf: () => {} },
+      { skipLocalRuntimeUntrack: true },
+    );
+    expect(first.changed).toBe(true);
+    const healed = readFileSync(join(root, ".gitignore"), "utf8");
+    for (const line of BASELINE_6271_LINES) {
+      expect(healed.split("\n").filter((l) => l === line)).toHaveLength(1);
+    }
+
+    ensureInitGitignoreLines(root, { printf: () => {} }, { skipLocalRuntimeUntrack: true });
+    expect(readFileSync(join(root, ".gitignore"), "utf8")).toBe(healed);
+  });
+
+  it("git check-ignore reports all four paths ignored on a refreshed consumer", () => {
+    const root = refreshedConsumer("gitignore-6271-check-ignore-");
+    for (const rel of SIDECAR_PATHS) {
+      expect(git(root, ["check-ignore", "-v", "--", rel]).length).toBeGreaterThan(0);
+    }
+    // The plan sequence itself stays trackable.
+    expect(() =>
+      execFileSync("git", ["check-ignore", "-q", "--", ".deft/plan-sequence.json"], {
+        cwd: root,
+        stdio: "ignore",
+      }),
+    ).toThrow();
+  });
+
+  it("git status does not list the files and git add -A does not stage the secret", () => {
+    const root = refreshedConsumer("gitignore-6271-status-");
+    const status = git(root, ["status", "--porcelain", "--untracked-files=all"]);
+    for (const rel of SIDECAR_PATHS) {
+      expect(status).not.toContain(rel);
+    }
+    git(root, ["add", "-A"]);
+    const staged = git(root, ["diff", "--cached", "--name-only"]);
+    expect(staged).not.toContain(HMAC_SECRET_REL);
+    expect(staged).not.toContain("plan-sequence.json.lock");
+    expect(staged).not.toContain("plan-sequence.json.generation");
+    expect(staged).toContain(".deft/plan-sequence.json");
+  });
+});
+
+describe("directive update heals the #6271 entries through the CLI wrapper", () => {
+  const created: string[] = [];
+  const NEW_LINES = [
+    ".deft/pre-pr-execution-private/",
+    ".deft/plan-sequence.json.generation",
+    ".deft/plan-sequence.json.lock",
+    ".deft/plan-sequence.json.lock.claim-*",
+  ] as const;
+  const LOCAL_FILES = [
+    ".deft/pre-pr-execution-private/hmac-secret",
+    ".deft/plan-sequence.json.generation",
+    ".deft/plan-sequence.json.lock",
+    ".deft/plan-sequence.json.lock.claim-owner-1",
+  ] as const;
+
+  afterEach(() => {
+    for (const dir of created.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function git(root: string, args: readonly string[]): string {
+    return execFileSync("git", [...args], { cwd: root, encoding: "utf8" });
+  }
+
+  function agentHookReadiness(): AgentHookReadinessResult {
+    return {
+      code: 0,
+      message: "✓ deft agent hook readiness: live green",
+      stream: "stdout",
+      skipped: false,
+      liveStatus: "functional",
+      hosts: [],
+      registrations: [],
+      liveProbe: { code: 0, message: "live green", cases: [], hosts: [], durationMs: 4 },
+    };
+  }
+
+  function classifySeams(version: string): ClassifySeams {
+    return { engineProbe: () => ({ reachable: true, version }), preCutoverProbe: () => false };
+  }
+
+  /** Committed existing install (pre-#6271 .gitignore) plus untracked local runtime files. */
+  function existingInstallWithLocalFiles(): { project: string; contentRoot: string } {
+    const project = mkdtempSync(join(tmpdir(), "gitignore-6271-cli-"));
+    created.push(project);
+    const contentRoot = join(project, "node_modules", "@deftai", "directive-content");
+    mkdirSync(join(contentRoot, "templates"), { recursive: true });
+    mkdirSync(join(contentRoot, "vbrief", "schemas"), { recursive: true });
+    mkdirSync(join(contentRoot, ".githooks"), { recursive: true });
+    writeFileSync(
+      join(contentRoot, "package.json"),
+      JSON.stringify({ name: CONTENT_PACKAGE_NAME, version: "0.54.0" }),
+      "utf8",
+    );
+    copyFileSync(
+      join(process.cwd(), "content/templates/agents-entry.md"),
+      join(contentRoot, "templates/agents-entry.md"),
+    );
+    for (const name of ["pre-commit", "pre-push", "_directive-run.sh"] as const) {
+      copyFileSync(join(process.cwd(), ".githooks", name), join(contentRoot, ".githooks", name));
+      if (name !== "_directive-run.sh") chmodSync(join(contentRoot, ".githooks", name), 0o755);
+    }
+    writeFileSync(join(contentRoot, "main.md"), "# Deft\n", "utf8");
+    writeFileSync(
+      join(contentRoot, "vbrief", "schemas", "xbrief-core-0.8.schema.json"),
+      "current\n",
+      "utf8",
+    );
+
+    const deftDir = join(project, ".deft", "core");
+    mkdirSync(join(deftDir, "templates"), { recursive: true });
+    mkdirSync(join(deftDir, "vbrief", "schemas"), { recursive: true });
+    writeFileSync(
+      join(deftDir, "VERSION"),
+      "tag: 'v0.53.0'\nsha: abc\ninstall_root: '.deft/core'\n",
+      "utf8",
+    );
+    writeFileSync(join(deftDir, "main.md"), "# Deft\n", "utf8");
+    writeFileSync(
+      join(deftDir, "vbrief", "schemas", "xbrief-core-0.8.schema.json"),
+      "current\n",
+      "utf8",
+    );
+    copyFileSync(
+      join(process.cwd(), "content/templates/agents-entry.md"),
+      join(deftDir, "templates/agents-entry.md"),
+    );
+    writeFileSync(
+      join(project, "AGENTS.md"),
+      `# Operator prose\n\n<!-- deft:managed-section v3 sha=deadbeefcafe -->\nbody\n${AGENTS_MANAGED_CLOSE}\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join(project, "package.json"),
+      JSON.stringify({ private: true, devDependencies: { "@deftai/directive": "0.54.0" } }),
+      "utf8",
+    );
+    const prior = CANONICAL_GITIGNORE_BASELINE.filter(
+      (line) => !(NEW_LINES as readonly string[]).includes(line),
+    );
+    writeFileSync(join(project, ".gitignore"), `${prior.join("\n")}\n`, "utf8");
+
+    git(project, ["init", "-q"]);
+    git(project, ["config", "user.email", "test@example.com"]);
+    git(project, ["config", "user.name", "Test"]);
+    git(project, ["add", "-A"]);
+    git(project, ["-c", "commit.gpgsign=false", "commit", "-qm", "baseline"]);
+
+    mkdirSync(join(project, ".deft", "pre-pr-execution-private"), { recursive: true });
+    for (const rel of LOCAL_FILES) writeFileSync(join(project, rel), "local\n", "utf8");
+    return { project, contentRoot };
+  }
+
+  async function update(
+    project: string,
+    contentRoot: string,
+    allowDirtyNoStage: boolean,
+  ): Promise<{ code: number; payload: Record<string, unknown> }> {
+    const out: string[] = [];
+    const code = await runRefreshDepositCli({
+      projectDir: project,
+      jsonOut: true,
+      nonInteractive: true,
+      upgrade: true,
+      ...(allowDirtyNoStage ? { allowDirtyNoStage: true } : {}),
+      classifySeams: classifySeams("0.54.0"),
+      writeOut: (t) => out.push(t),
+      writeErr: () => undefined,
+      seams: {
+        resolveContentRoot: async () => contentRoot,
+        readEngineVersion: () => "0.54.0",
+        nowIso: () => "2026-11-13T12:00:00Z",
+        evaluateAgentHookReadiness: () => agentHookReadiness(),
+      },
+    });
+    return { code, payload: JSON.parse(out.join("")) as Record<string, unknown> };
+  }
+
+  it(
+    "plain update refuses dirty_tree on the local files; --allow-dirty-no-stage heals",
+    destContentionItTimeout(),
+    async () => {
+      const { project, contentRoot } = existingInstallWithLocalFiles();
+      const before = readFileSync(join(project, ".gitignore"), "utf8");
+
+      const refused = await update(project, contentRoot, false);
+      expect(refused.code).toBe(UPDATE_REFUSED_EXIT_CODE);
+      expect(refused.payload.error_code).toBe("dirty_tree");
+      expect(refused.payload.dirty_files).toEqual(
+        expect.arrayContaining([".deft/pre-pr-execution-private/hmac-secret"]),
+      );
+      expect(readFileSync(join(project, ".gitignore"), "utf8")).toBe(before);
+
+      const healed = await update(project, contentRoot, true);
+      expect(healed.code).toBe(0);
+      const lines = readFileSync(join(project, ".gitignore"), "utf8").split("\n");
+      for (const line of NEW_LINES) expect(lines).toContain(line);
+      for (const rel of LOCAL_FILES) {
+        expect(git(project, ["check-ignore", "-v", "--", rel]).length).toBeGreaterThan(0);
+      }
+      const status = git(project, ["status", "--porcelain", "--untracked-files=all"]);
+      for (const rel of LOCAL_FILES) expect(status).not.toContain(rel);
+      expect(git(project, ["diff", "--cached", "--name-only"]).trim()).toBe("");
+    },
+  );
 });
