@@ -9,6 +9,8 @@ import { blockBody, iterTaskBlocks, nonCommentLines, readRoot } from "./_taskfil
  * `{{.CLI_ARGS}}`, so the engine acts on the operator checkout and an operator
  * `--project-root` in CLI_ARGS still wins (the flag parsers are last-wins).
  *
+ * Static Taskfile parse via `_taskfile-helpers.ts`; no `task` binary needed.
+ *
  * The list is explicit on purpose. `release:wait-npm` is a known follow-up and
  * `release:local-update` has no `engine:invoke`.
  */
