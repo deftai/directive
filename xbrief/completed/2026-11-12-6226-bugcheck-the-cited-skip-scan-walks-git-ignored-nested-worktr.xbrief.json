@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6226",
-    "updated": "2026-11-12T21:52:30Z"
+    "updated": "2026-11-13T05:14:56Z"
   },
   "plan": {
     "title": "bug(check): the cited-skip scan walks git-ignored nested worktrees, so release Step 5 fails in a maintainer checkout that CI passes",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The #6071 cited-skip scan and the #6072 sanctioned-skip baseline each walk test files with a private walkTestFiles copy that descends into git-ignored linked worktrees under .deft-scratch/worktrees. On a maintainer checkout with swarm worktrees, skips inside those worktrees fail release Step 5 even though CI passes. This story extracts one shared leaf walk helper that skips .deft-scratch and does not descend into subdirectories whose .git entry is a file, and routes both gates through it.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6226",
@@ -19,50 +19,92 @@
     "items": [
       {
         "title": "Extract one shared test-file walk helper (leaf walk-enumeration module under `packages/core/src/check/`) and route both `gate-lists.ts` (`evaluateCitedSkipScan` / #6071) and `context.ts` (`runSanctionedSkipCountBaselineGate` / #6072) through it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When gate-lists.ts and context.ts enumerate test files, both call the one shared helper in packages/core/src/check/walk-test-files.ts and no private walkTestFiles copy remains."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "17c3f4c3a9703440f86844aa682207e05f31e771",
+          "recorded_at": "2026-11-13T05:14:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "That helper skips directory name `.deft-scratch` and does not descend into a subdirectory whose `.git` entry is a **file** (linked worktree).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When the tree holds .deft-scratch/worktrees/<x>/ with a .git file and an unrefused describe.skip, the helper returns no files from it and cited-skip-scan and sanctioned-skip-count-baseline both pass."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "17c3f4c3a9703440f86844aa682207e05f31e771",
+          "recorded_at": "2026-11-13T05:14:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Keep sanctioned-skip detection and the #6072 baseline ratchet rules unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When a primary-tree test file holds an unsanctioned describe.skip, the gate still fails with unsanctioned-test-skip, and the baseline ratchet returns the same verdicts as before."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "17c3f4c3a9703440f86844aa682207e05f31e771",
+          "recorded_at": "2026-11-13T05:14:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Do not switch v1 enumeration to `git ls-files`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When the helper enumerates files it walks the filesystem with node:fs, and the diff shows no git ls-files call added to the enumeration path."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "17c3f4c3a9703440f86844aa682207e05f31e771",
+          "recorded_at": "2026-11-13T05:14:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Do not close with twin in-place `walkTestFiles` edits as the Bound mechanism.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When reviewers inspect the diff, both gates import the shared helper; a change that only edits two walkTestFiles copies in place fails this clause."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "17c3f4c3a9703440f86844aa682207e05f31e771",
+          "recorded_at": "2026-11-13T05:14:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Do not merge duplicated inventory/scan/baseline tables as part of this close.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When the change lands, the CITED_SKIP_BASELINE tables in gate-lists.ts and context.ts still exist separately and return the same entries as before."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "17c3f4c3a9703440f86844aa682207e05f31e771",
+          "recorded_at": "2026-11-13T05:14:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -885,9 +927,35 @@
           "#6226"
         ],
         "acceptance_criteria_justification": "Six clauses from the accepted Prefer-A Recut-3 Bound: two positive mechanism clauses plus four locked keep-out clauses (no ratchet change, no git ls-files, no twin in-place edits, no table merge); the keep-outs are guardrails, not separate work."
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "95519295ab512e6b9fcfabb11884f503fef16117",
+        "prNumber": 6237,
+        "prBase": "master",
+        "mergeCommit": "17c3f4c3a9703440f86844aa682207e05f31e771",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d6d30ad073f68a8d1d258804043981a53b2f3aac",
+        "verifiedAt": "2026-11-13T05:14:56Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:NTFhZmZlMTctMDExZC00NWRmLTgzOTUtZTI1MThlODViMzkx",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-13T05:14:56Z",
+      "completedSessionId": "host:claude:v1:NTFhZmZlMTctMDExZC00NWRmLTgzOTUtZTI1MThlODViMzkx",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-13T05:14:56Z"
       }
     },
     "id": "github.issue.6357480604",
-    "updated": "2026-11-12T21:52:30Z"
+    "updated": "2026-11-13T05:14:56Z"
   }
 }
