@@ -94,6 +94,14 @@ tasks:
         vars:
           ENGINE_CMD: 'policy set-spec-guard-enforcement --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
+  set-one-pr-scope-proof:
+    desc: "Set plan.policy.onePrScopeProof off|mint (#6273). mint needs requireHumanMerge=true; signed is reserved for #5862 and refused. Requires --set and --confirm. -- task policy:set-one-pr-scope-proof -- --set off|mint --confirm"
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'policy set-one-pr-scope-proof --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
   wip-cap:
     desc: "Set plan.policy.wipCap=N (#1124 / D4 of #1119). Requires --set N --confirm. Default cap is 20 (#2319; raised from the original 10 per umbrella #1119 Current Shape v3)."
     dir: '{{.USER_WORKING_DIR}}'

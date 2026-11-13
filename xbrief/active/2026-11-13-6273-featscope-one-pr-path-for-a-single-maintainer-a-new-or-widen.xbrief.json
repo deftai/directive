@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6273",
-    "updated": "2026-11-13T15:30:16Z"
+    "updated": "2026-11-13T16:11:54Z"
   },
   "plan": {
     "title": "feat(scope): one-PR path for a single maintainer: a new or widened brief lands with its code without a second human reviewer",
@@ -1173,6 +1173,6 @@
       }
     },
     "id": "github.issue.6373272102",
-    "updated": "2026-11-13T15:30:16Z"
+    "updated": "2026-11-13T16:11:54Z"
   }
 }

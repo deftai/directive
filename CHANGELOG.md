@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- One-PR scope proof level `plan.policy.onePrScopeProof` (`off` by default, `mint`; `signed` is reserved for #5862), read from the merge base with `requireHumanMerge`. At the mint level a single maintainer can land a new or widened brief, its human mint record and its code in one PR: `scope:record-approved-scope` stamps the brief's auth-hash, and `verify:scope-provenance` admits only an exact scope match and prints the admitted scope with the line that CI cannot tell a real mint from a forged one. Set it with `deft policy:set-one-pr-scope-proof -- --set mint --confirm`. Refs #6273.
 
 ### Changed
 - chore(dogfood): pin Directive to 0.129.8.

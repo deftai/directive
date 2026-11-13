@@ -326,6 +326,7 @@ export const POLICY_ACTION_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> =
   "policy:allow-bot-merge": "allow-bot-merge",
   "policy:enable-value-feedback": "enable-value-feedback",
   "policy:set-spec-guard-enforcement": "set-spec-guard-enforcement",
+  "policy:set-one-pr-scope-proof": "set-one-pr-scope-proof",
   "policy:disable-host-hooks": "disable-host-hooks",
   "policy:set-ceremony-dial": "set-ceremony-dial",
   "policy:set-coverage-mode": "set-coverage-mode",
