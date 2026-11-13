@@ -150,9 +150,13 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(check): the cited-skip scan walks git-ignored nested worktrees, so release Step 5 fails in a maintainer checkout that CI passes"
+      ]
     },
     "metadata": {
+      "productPullRequest": 6237,
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
         "files": [
