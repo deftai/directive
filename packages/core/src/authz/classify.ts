@@ -2355,7 +2355,6 @@ const EXISTENCE_PROBE_READ_ONLY_BINS = new Set([
 const EXISTENCE_PROBE_IGNORE_OUTPUT_DEST_FLAGS = new Set(["test", "["]);
 
 const READ_ONLY_PROOF_OUTPUT_DEST_FLAGS = new Set(["-o", "--output", "--pretty-print"]);
-const GIT_READ_PROOF_OUTPUT_FLAGS = new Set(["-o", "--output"]);
 const GIT_VALUE_FLAGS = new Set([
   "-C",
   "-c",
@@ -2379,7 +2378,9 @@ const GIT_READ_PROOF_WRITE_SUBCOMMANDS = new Set([
 
 function argvHasOutputDestFlag(words: readonly string[], execIndex: number): boolean {
   for (let i = execIndex + 1; i < words.length; i++) {
-    const n = normalizeToken(words[i] as string);
+    const raw = words[i] as string;
+    const literal = zipShellWordLiteral(raw) ?? raw;
+    const n = normalizeToken(literal);
     if (READ_ONLY_PROOF_OUTPUT_DEST_FLAGS.has(n)) return true;
     if (n.startsWith("--output=") || n.startsWith("--pretty-print=")) return true;
     // POSIX attached `-oFILE` (not `-out*` / `--`).
@@ -2513,10 +2514,12 @@ function isProvenReadOnlyArgv(words: readonly string[], execIndex: number): bool
         break;
       }
       if (n.startsWith("-")) {
+        const rawFlag = zipShellWordLiteral(words[i] as string) ?? (words[i] as string);
         if (
-          GIT_READ_PROOF_OUTPUT_FLAGS.has(n) ||
-          n.startsWith("--output=") ||
-          (n.startsWith("-o") && n.length > 2)
+          rawFlag === "-o" ||
+          rawFlag === "--output" ||
+          rawFlag.startsWith("--output=") ||
+          (rawFlag.startsWith("-o") && rawFlag.length > 2)
         ) {
           return false;
         }
@@ -2550,7 +2553,7 @@ function isClosedReadOnlyShellCommand(command: string): boolean {
 function isRelativeLiteralShellPath(raw: string): boolean {
   if (zipShellWordHasExpansion(raw)) return false;
   const literal = zipShellWordLiteral(raw);
-  if (literal === null || literal.length === 0 || literal.startsWith("-")) return false;
+  if (literal === null || literal.length === 0) return false;
   if (literal.startsWith("/") || literal.startsWith("~/") || literal.startsWith("~\\")) {
     return false;
   }
@@ -2570,11 +2573,16 @@ function segmentHasRelativeWriterTarget(words: readonly string[], execIndex: num
   }
 
   let lastOperand: string | null = null;
+  let optionsEnded = false;
   for (let i = execIndex + 1; i < words.length; i++) {
     const raw = words[i] as string;
     if (isShellSegmentBreak(raw)) break;
     const normalized = normalizeToken(raw);
-    if (normalized === "--" || normalized.startsWith("-")) continue;
+    if (!optionsEnded && normalized === "--") {
+      optionsEnded = true;
+      continue;
+    }
+    if (!optionsEnded && normalized.startsWith("-")) continue;
     if (!isEnvAssign(raw)) lastOperand = raw;
   }
   return lastOperand !== null && isRelativeLiteralShellPath(lastOperand);
@@ -2652,6 +2660,24 @@ function xargsWriterStart(tokens: readonly string[], xargsIndex: number): number
   return null;
 }
 
+function xargsHasReplacement(tokens: readonly string[], xargsIndex: number): boolean {
+  for (let i = xargsIndex + 1; i < tokens.length; i++) {
+    const raw = tokens[i] as string;
+    if (isShellSegmentBreak(raw)) break;
+    const normalized = normalizeToken(raw);
+    if (normalized === "--") break;
+    if (
+      normalized === "-i" ||
+      normalized.startsWith("-i") ||
+      normalized === "--replace" ||
+      normalized.startsWith("--replace=")
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function xargsWriterHasProtectedDest(tokens: readonly string[], xargsIndex: number): boolean {
   const start = xargsWriterStart(tokens, xargsIndex);
   if (start === null || start >= tokens.length) return false;
@@ -2680,26 +2706,9 @@ function xargsWriterHasProtectedDest(tokens: readonly string[], xargsIndex: numb
     if (!optionsEnded && normalized.startsWith("-")) continue;
     if (!isEnvAssign(raw)) operands.push(raw);
   }
+  if (!xargsHasReplacement(tokens, xargsIndex) && operands.length < 2) return true;
   if (operands.length === 0) return false;
   return pathishIsProtectedMutationDest(pathishToken(operands[operands.length - 1] as string));
-}
-
-function hasProtectedInputToXargs(tokens: readonly string[]): boolean {
-  for (let i = 0; i < tokens.length; i++) {
-    if (normalizeToken(tokens[i] as string) !== "|") continue;
-    let leftHasProtectedPath = false;
-    for (let j = i - 1; j >= 0 && !isShellSegmentBreak(tokens[j] as string); j--) {
-      if (pathishIsProtectedMutationDest(pathishToken(tokens[j] as string))) {
-        leftHasProtectedPath = true;
-        break;
-      }
-    }
-    if (!leftHasProtectedPath) continue;
-    let xargsIndex = i + 1;
-    while (xargsIndex < tokens.length && isEnvAssign(tokens[xargsIndex] as string)) xargsIndex++;
-    if (normalizeToken(tokens[xargsIndex] as string) === "xargs") return true;
-  }
-  return false;
 }
 
 function hasProtectedInputToXargsWriter(tokens: readonly string[]): boolean {
@@ -3913,7 +3922,6 @@ function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]
     }
   }
   if (!mentionsKill) return false;
-  if (isClosedReadOnlyShellCommand(command)) return false;
   if (hasProtectedArchiveExtract(command)) return true;
 
   // Redirect dest region after each `>` operator, including noclobber forms (#4199).
@@ -3924,6 +3932,7 @@ function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]
       if (pathishMentionsKillSwitch(dest)) return true;
     }
   }
+  if (isClosedReadOnlyShellCommand(command)) return false;
 
   // Downloader/decoder destinations: curl -o .deft-directive-disable, scp, … (#3206 / #3213).
   for (const dest of downloaderDecoderDestinations(tokens)) {
@@ -4454,7 +4463,6 @@ function commandHasAuthzDirShellWrite(command: string, tokens: readonly string[]
   // Quote-stripped contiguous form for redirect dest checks (#3213).
   const stripped = lower.replace(/['"]/g, "");
 
-  if (isClosedReadOnlyShellCommand(command)) return false;
   if (hasProtectedArchiveExtract(command)) return true;
   if (hasProtectedCwdRelativeWriter(command)) return true;
   if (hasProtectedInputToXargsWriter(tokens)) return true;
@@ -4468,6 +4476,7 @@ function commandHasAuthzDirShellWrite(command: string, tokens: readonly string[]
       if (pathishIsSettingsStoreDir(redirectDestSlice(hay, i))) return true;
     }
   }
+  if (isClosedReadOnlyShellCommand(command)) return false;
 
   // Write/destructive + symlink plant + archive/alt-write bins with an authz path argument
   // (pathish = quote-strip resistant). Always run — do not gate on contiguous `.deft/authz`
@@ -4602,10 +4611,21 @@ function hasEnvExpansion(command: string): boolean {
       }
     }
     if (c === "%" && i + 1 < command.length) {
-      const n = command[i + 1] as string;
-      if (n === "_" || (n >= "A" && n <= "Z") || (n >= "a" && n <= "z")) {
-        return true;
+      let j = i + 1;
+      while (j < command.length) {
+        const n = command[j] as string;
+        if (
+          n === "_" ||
+          (n >= "A" && n <= "Z") ||
+          (n >= "a" && n <= "z") ||
+          (n >= "0" && n <= "9")
+        ) {
+          j++;
+          continue;
+        }
+        break;
       }
+      if (j > i + 1 && command[j] === "%") return true;
     }
   }
   return false;
@@ -4831,7 +4851,6 @@ function hasProgrammaticAuthzEnvWrite(command: string, tokens: readonly string[]
  * O(n) walks — no polynomial regex on input.
  */
 function hasIndirectAuthzStoreWrite(command: string, tokens: readonly string[]): boolean {
-  if (hasProtectedInputToXargs(tokens) && !hasProtectedInputToXargsWriter(tokens)) return false;
   if (hasProgrammaticAuthzEnvWrite(command, tokens)) return true;
   if (!hasWriteShape(command, tokens)) return false;
   const lower = command.toLowerCase().replace(/\\/g, "/");

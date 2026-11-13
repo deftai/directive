@@ -2466,6 +2466,9 @@ describe("inactive Shell classifiers (#4709)", () => {
     expect(
       classifyShellAuthzOps("printf %s .deft/authz/grants/g | xargs -I{} cp {} /tmp/g"),
     ).toEqual([]);
+    expect(classifyShellAuthzOps("printf %s .deft/authz/grants/g | xargs cp /tmp/g")).toContain(
+      "settings",
+    );
     expect(
       classifyShellAuthzOps(
         "printf %s .deft/authz/grants/g | xargs -I{} cp {} .deft/authz/grants/out",
