@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Activated the #6204 scope brief for through-merge. Refs #6204.
 - Activated the #6233 scope brief for through-merge. Refs #6233.
 - Restored the two live-run acceptance sentences of the #6233 scope brief as clauses. Refs #6233.
+- Completed the #6227 and #6233 scope briefs after their product PRs merged. Refs #6227. Refs #6233.
 - Completed the #5710, #5882, #6203 and #6212 scope briefs after their product PRs merged. Refs #5710. Refs #5882. Refs #6203. Refs #6212.
 - chore(scope): activate the #5942, #6226, #5912 and #6227 story briefs for a through-merge cohort.
 - chore(scope): widen file_scope on the #5942, #6226, #5912 and #6227 briefs so pinned workers can write PR-process files.
@@ -25,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Activated the #680 scope brief for through-merge. Refs #680.
 - Activated the #6189 scope brief for through-merge. Refs #6189.
 - Completed the #6204 and #680 scope briefs after their product PRs merged. Refs #6204. Refs #680.
+- Completed the #5942 and #6227 scope briefs after their product PRs merged. Refs #5942. Refs #6227.
 
 ### Fixed
 - `reconcile-issues` no longer fails when a brief references a deleted issue (HTTP 410). The report names deleted (410) apart from missing (404) and exits 0. `--apply-lifecycle-fixes` leaves briefs anchored to a deleted issue in place, and refuses to move a parent whose decomposed child is deleted; a child whose state cannot be fetched fails the run. Umbrella reconcile counts a deleted child as open and does not rewrite its checkbox. Refs #5912.
