@@ -216,6 +216,75 @@ describe("acceptance evidence inference (#3240)", () => {
   });
 });
 
+describe("strict axes match prose, not identifiers (#6270)", () => {
+  const axes = (title: string) => inferRequiredStrictAxes({ title });
+
+  it("returns no axis when the word sits inside a file, job or workflow name", () => {
+    for (const name of [
+      "the deploy-dev job runs on merge",
+      "deploy.yml",
+      "deploy-trust.ts",
+      "the deploy-prod workflow",
+      "deploy_prod step",
+      ".github/workflows/deploy",
+      "pre-deploy hook",
+      "smoke-test.ts",
+      "scripts/smoke.sh",
+      "uat-evidence/x.md",
+      "user-acceptance.md",
+    ]) {
+      expect(axes(name), name).toEqual([]);
+    }
+  });
+
+  it("returns no axis for text inside backticks", () => {
+    expect(axes("Adds `deploys to prod` to the docs")).toEqual([]);
+    expect(axes("Runs `smoke test` script")).toEqual([]);
+    expect(axes("Notes:\n```\nuat sign-off\n```\nunit tests green")).toEqual([]);
+  });
+
+  it("keeps the axis for prose claims", () => {
+    expect(axes("deploys to prod after merge")).toEqual(["deploy"]);
+    expect(axes("after deployment")).toEqual(["deploy"]);
+    expect(axes("Works after deployment.")).toEqual(["deploy"]);
+    expect(axes("smoke test passes")).toEqual(["smoke"]);
+    expect(axes("UAT sign-off")).toEqual(["uat"]);
+    expect(axes("User acceptance done")).toEqual(["uat"]);
+    expect(axes("Run the smoke, then deploy.")).toEqual(["smoke", "deploy"]);
+  });
+
+  it("checks the Acceptance narrative the same way", () => {
+    expect(
+      inferRequiredStrictAxes({
+        title: "Add the workflow",
+        narrative: { Acceptance: "The deploy-prod job is green on master" },
+      }),
+    ).toEqual([]);
+    expect(
+      inferRequiredStrictAxes({
+        title: "Add the workflow",
+        narrative: { Acceptance: "The service deploys to prod" },
+      }),
+    ).toEqual(["deploy"]);
+  });
+
+  it("gate admits test evidence for a name-only clause, not for a deploy claim", () => {
+    const nameOnly = evaluateAcceptanceEvidenceGate({
+      items: [
+        withEvidence({
+          title: "The deploy-dev job and deploy.yml run on merge",
+          status: "pending",
+        }),
+      ],
+    });
+    expect(nameOnly.ok).toBe(true);
+    const prose = evaluateAcceptanceEvidenceGate({
+      items: [withEvidence({ title: "The service deploys to prod", status: "pending" })],
+    });
+    expect(prose.ok).toBe(false);
+  });
+});
+
 describe("namespaced acceptance keys (#3305 Option B)", () => {
   it("ITEM_CORE does not include bare evidence or disposition", () => {
     expect(ITEM_CORE.has("evidence")).toBe(false);
