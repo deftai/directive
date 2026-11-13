@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6189",
-    "updated": "2026-11-13T02:32:00Z"
+    "updated": "2026-11-13T05:59:16Z"
   },
   "plan": {
     "title": "Story write fence refuses Write/Edit to files outside the repository (host memory, temp scratch)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "With a story active, the write fence refuses Write and Edit to files outside the repository, such as host memory or a session temp scratchpad. When the active story has no positive governing allow on the merge base (activated on a branch, not yet on master), the #5656 check refuses every Write, wherever the target is. This story makes the fence govern the repository only: outside-root targets skip the path layer and the positive-allow check, while project scopes.edits=false still denies.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6189",
@@ -20,274 +20,824 @@
     "items": [
       {
         "title": "Outside-root path-fence skip — In runtimeAuthorityForDirectWrite, for each harvested mutation target where isOutsideProjectRootWrite(fenceRoot, target) is true, skip path-layer evaluation (project allowPaths/denyPaths and story file_scope / deny-story-scope) for that target. Ready-path skip uses fenceRoot (same root as toProjectRelativePosix in this loop); #2885 scope-not-ready carve-out stays on payloadRoot. If every target is skipped at the path layer and no project-authority deny fires, return null. relieves: P1",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "In runtimeAuthorityForDirectWrite, each harvested target outside the project root (isOutsideProjectRootWrite against fenceRoot) skips the path layer (project allowPaths and denyPaths, story file_scope and deny-story-scope); when every target is skipped and no project-authority deny fires, the function returns null."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Outside-root path-fence skip also relieves Bash-push and scratch Write friction — same admit path as limb 1. relieves: P2",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When an agent writes outside the repository, Write and Edit take the same admit path as limb 1, so an out-of-repo scratch write returns allow without a shell workaround."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Outside-root path-fence skip also relieves ordinary out-of-repo scratch Write when positive governing allow is already present (non-empty file_scope / path-fence parity). Activation-PR empty merge-base P3 is limb 5. relieves: P3",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When the story has a positive governing allow, an ordinary out-of-repo scratch Write returns allow through limb 1; the activation-PR case with an empty merge-base allow is limb 5."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Preserve project edit authority on outside-root — Before path-layer skip (or when skipping path evaluation for an outside-root target), still apply enabled project runtimeAuthority scopes.edits: when scopes.edits is false, keep runtime-policy-deny-scope. Do not treat authz/protected-store alone as that authority.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When project runtimeAuthority is enabled with scopes.edits=false, an outside-root Write is still denied with runtime-policy-deny-scope; authz or protected-store alone never stands in for that authority."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Positive-allow arm skips outside-root Write — In the ready-path direct-write arm, omit requirePositiveGoverningAllow() only when harvested.length > 0 && harvested.every(t => isOutsideProjectRootWrite(fenceRoot, t)), using the same fenceRoot anchor as limb 1 (#2885 dual). Any in-repo harvested target keeps positive-allow required. Empty or unclassified harvest keeps #5656 fail-closed. A qualifying outside-root Write proceeds to runtimeAuthorityForDirectWrite, where limb 4 (project scopes.edits=false) still denies. Implement-class spawn keeps the positive-allow requirement unchanged. disposes critic 6807968568 F3 and 6840717484 F1; operator cue 6839167710. relieves: P3",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "In the ready-path direct-write arm, requirePositiveGoverningAllow() is skipped only when the harvest is non-empty and every target is outside the root by the same fenceRoot anchor; any in-repo target, an empty or unclassified harvest, and implement-class spawn keep the #5656 requirement."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Fixture matrix — Ready story + non-empty file_scope: (a) absolute outside-root Write/Edit allows through path fence; (b) lexical ../ outside allows through path fence; (c) mixed harvest: outside member skipped + in-repo miss still deny-story-scope (both orders); (d) symlink re-enter still fenced; (e) enabled project policy + scopes.edits=false + outside-root still deny-scope; (f) #2885 scope-not-ready outside carve-out unchanged; (g) linked worktree under payload: absolute host/temp outside allows; in-repo worktree path with file_scope miss still deny-story-scope. (h) ready story activated on a branch but not yet on master (empty merge-base file_scope on origin/master): absolute outside-root Write admitted past #5656 positive-allow; same story with an in-repo Write still denied with the #5656 positive-allow message; same story with project scopes.edits=false and an outside-root Write still denied; empty/unclassified Write harvest under that same ready empty-file_scope story still denied with the #5656 positive-allow message. disposes critic 6807874908 F1 F2; disposes critic 6807968568 F2 F3; disposes critic 6840717484 F1; operator cue 6839167710.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Fixtures (a) to (h) pass: given a ready story with an empty merge-base file_scope (fixture h), an outside-root Write returns allow, an in-repo Write fails with the #5656 message, and an outside-root Write under scopes.edits=false fails with runtime-policy-deny-scope."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Widening file_scope globs to match ../** or absolute host paths",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Review rejects any change that does this: Widening file_scope globs to match ../** or absolute host paths"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Removing story fence for in-repo writes under an active brief",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Review rejects any change that does this: Removing story fence for in-repo writes under an active brief"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Prescribing Bash redirection / python -c as the supported outside-root write path",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Review rejects any change that does this: Prescribing Bash redirection / python -c as the supported outside-root write path"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Collapsing #6185 (launch root) or #6187 (commit-shape heredoc) into this Bound",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Review rejects any change that does this: Collapsing #6185 (launch root) or #6187 (commit-shape heredoc) into this Bound"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Softening authz / protected-store for outside-root targets",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Review rejects any change that does this: Softening authz / protected-store for outside-root targets"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Unconditional skip of evaluateRuntimeAuthorityDirectWrite that also bypasses scopes.edits=false",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Review rejects any change that does this: Unconditional skip of evaluateRuntimeAuthorityDirectWrite that also bypasses scopes.edits=false"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Skipping requirePositiveGoverningAllow for implement-class spawn",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Review rejects any change that does this: Skipping requirePositiveGoverningAllow for implement-class spawn"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Skipping requirePositiveGoverningAllow when any harvested Write target is in-repo",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Review rejects any change that does this: Skipping requirePositiveGoverningAllow when any harvested Write target is in-repo"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Skipping requirePositiveGoverningAllow on empty/unclassified harvest",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Review rejects any change that does this: Skipping requirePositiveGoverningAllow on empty/unclassified harvest"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "P2 relief is Write/Edit parity (pressure off shell); Shell-outside-root remaining unfenced under shellDestForms off is intentional residual (Grok F3).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "When implemented, this footnote holds: P2 relief is Write/Edit parity (pressure off shell); Shell-outside-root remaining unfenced under shellDestForms off is intentional residual (Grok F3)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "authzForMutationTargets / protected-store stay upstream of this skip (Grok F4).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "When implemented, this footnote holds: authzForMutationTargets / protected-store stay upstream of this skip (Grok F4)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "F2 root anchor: limb 1 and limb 5 both pin fenceRoot (ready-path / toProjectRelativePosix loop root), not payloadRoot/projectRoot used by the #2885 carve-out; fixture (g) discriminates linked-worktree under payload; confirmed per cue 6839167710 / late Claude audit 6807968568 F2 / Round-1 6840717484 F3.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "When implemented, this footnote holds: F2 root anchor: limb 1 and limb 5 both pin fenceRoot (ready-path / toProjectRelativePosix loop root), not payloadRoot/projectRoot used by the #2885 carve-out; fixture (g) discriminates linked-worktree under payload; confirmed per cue 6839167710 / late Claude audit 6807968568 F2 / Round-1 6840717484 F3."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "accept-into-contract: 6840717484/F1",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.19",
         "narrative": {
           "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "accept-into-contract: 6840717484/F2",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.20",
         "narrative": {
           "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "accept-into-contract: 6840717484/F3 (footnote)",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.21",
         "narrative": {
           "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "accept-into-contract: 6840717484/F4 (footnote)",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.22",
         "narrative": {
           "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "accept-into-contract: 6807858710/C1",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.23",
         "narrative": {
           "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "accept-into-contract: 6807858710/C2",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.24",
         "narrative": {
           "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "accept-into-contract: 6807874908/F1",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.25",
         "narrative": {
           "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "accept-into-contract: 6807874908/F2",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.26",
         "narrative": {
           "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "accept-into-contract: 6807874908/F3 (footnote)",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.27",
         "narrative": {
           "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "accept-into-contract: 6807874908/F4 (footnote)",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.28",
         "narrative": {
           "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "accept-into-contract: 6807968568/F1 (already limb 4)",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.29",
         "narrative": {
           "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "accept-into-contract: 6807968568/F2 (fenceRoot + fixture g; confirmed)",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.30",
         "narrative": {
           "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "accept-into-contract: 6807968568/F3 (limb 5 + fixture h)",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.31",
         "narrative": {
           "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "accept-into-contract: 6807968568/F4 (footnote)",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.32",
         "narrative": {
           "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "accept-into-contract: 6807968568/F5 (footnote)",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.33",
         "narrative": {
           "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "operator-steer: 6839167710",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.34",
         "narrative": {
           "Acceptance": "When the brief completes, this item records an arc disposal or the operator steer; it adds no behaviour beyond items 1-6."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.35",
+        "title": "clause.35",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.36",
+        "title": "clause.36",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.37",
+        "title": "clause.37",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.38",
+        "title": "clause.38",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.39",
+        "title": "clause.39",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.40",
+        "title": "clause.40",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.41",
+        "title": "clause.41",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.42",
+        "title": "clause.42",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.43",
+        "title": "clause.43",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.44",
+        "title": "clause.44",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.45",
+        "title": "clause.45",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.46",
+        "title": "clause.46",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.47",
+        "title": "clause.47",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.48",
+        "title": "clause.48",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.49",
+        "title": "clause.49",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.50",
+        "title": "clause.50",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.51",
+        "title": "clause.51",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.52",
+        "title": "clause.52",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.53",
+        "title": "clause.53",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.54",
+        "title": "clause.54",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.55",
+        "title": "clause.55",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.56",
+        "title": "clause.56",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.57",
+        "title": "clause.57",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.58",
+        "title": "clause.58",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.59",
+        "title": "clause.59",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.60",
+        "title": "clause.60",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+          "recorded_at": "2026-11-13T05:59:16Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -1565,9 +2115,36 @@
           "#2885"
         ],
         "acceptance_criteria_justification": "Six limbs govern; the remaining items are the lean's must-not constraints, footnotes and arc record-keeping, kept so the brief mirrors the accepted Bound."
+      },
+      "productPullRequest": 6251,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "5577d3450c9246603365d0f24e510c1e9e31bc36",
+        "prNumber": 6251,
+        "prBase": "master",
+        "mergeCommit": "da5b3a69a35c81e2b71b141c1ada3c57d9513779",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7b44f451986b5d434f1b1b8ef240911cc5a3f138",
+        "verifiedAt": "2026-11-13T05:59:16Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-13T05:59:16Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-13T05:59:16Z"
       }
     },
     "id": "github.issue.6319843604",
-    "updated": "2026-11-13T02:32:00Z"
+    "updated": "2026-11-13T05:59:16Z"
   }
 }
