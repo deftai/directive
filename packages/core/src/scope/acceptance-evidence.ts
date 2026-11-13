@@ -387,14 +387,16 @@ export function inferRequiredStrictAxes(item: Record<string, unknown>): StrictAc
       if (typeof narrative[key] === "string") parts.push(narrative[key] as string);
     }
   }
-  const text = stripBacktickSpans(parts.join("\n").toLowerCase());
+  const raw = parts.join("\n").toLowerCase();
+  // Prose-only text for deploy / smoke / UAT (#6270); observed_behavior keeps `raw`.
+  const text = splitAxisAlternations(stripBacktickSpans(raw));
   const found: StrictAcceptanceAxis[] = [];
   // Order: longer / more specific phrases first so "observed behavior" wins over generic.
   if (
-    /\bobserved[_\s-]?behavior\b/.test(text) ||
-    /\bobserved behaviour\b/.test(text) ||
-    /\brunning behaviour\b/.test(text) ||
-    /\brunning behavior\b/.test(text)
+    /\bobserved[_\s-]?behavior\b/.test(raw) ||
+    /\bobserved behaviour\b/.test(raw) ||
+    /\brunning behaviour\b/.test(raw) ||
+    /\brunning behavior\b/.test(raw)
   ) {
     found.push("observed_behavior");
   }
@@ -428,9 +430,29 @@ const PROSE_USER_ACCEPTANCE = proseWord(String.raw`user\s+acceptance`);
 const PROSE_SMOKE = proseWord("smoke");
 const PROSE_DEPLOY = proseWord("deploy(?:ment|ed|s)?");
 
-/** Drop fenced and inline backtick spans: quoted code names no axis (#6270). */
+/** One axis word, for slash alternations such as "smoke/UAT" (#6270). */
+const AXIS_WORD = "(?:deploy(?:ment|ed|s)?|smoke|uat)";
+const AXIS_ALTERNATION = new RegExp(
+  `${PROSE_LEFT}${AXIS_WORD}(?:/${AXIS_WORD})+${PROSE_RIGHT}`,
+  "g",
+);
+
+/**
+ * Split a slash list made only of axis words ("smoke/uat", "deploy/smoke")
+ * into prose, so each word keeps its axis. Paths such as `scripts/smoke.sh`
+ * or `.github/workflows/deploy` do not match and stay names (#6270).
+ */
+function splitAxisAlternations(text: string): string {
+  return text.replace(AXIS_ALTERNATION, (run) => run.replaceAll("/", " / "));
+}
+
+/**
+ * Drop fenced blocks and inline code spans: quoted code names no axis (#6270).
+ * An inline span opens with a run of N backticks and closes with a run of
+ * exactly N, so ``deploy`` is dropped as a whole.
+ */
 function stripBacktickSpans(text: string): string {
-  return text.replace(/```[\s\S]*?```/g, " ").replace(/`[^`\n]*`/g, " ");
+  return text.replace(/```[\s\S]*?```/g, " ").replace(/(?<!`)(`+)(?!`)[^\n]*?(?<!`)\1(?!`)/g, " ");
 }
 
 /**

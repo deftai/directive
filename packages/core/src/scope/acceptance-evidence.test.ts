@@ -240,7 +240,20 @@ describe("strict axes match prose, not identifiers (#6270)", () => {
   it("returns no axis for text inside backticks", () => {
     expect(axes("Adds `deploys to prod` to the docs")).toEqual([]);
     expect(axes("Runs `smoke test` script")).toEqual([]);
+    expect(axes("The ``deploy`` job is green")).toEqual([]);
     expect(axes("Notes:\n```\nuat sign-off\n```\nunit tests green")).toEqual([]);
+    expect(axes("The `deploy-dev` job is green; smoke test passes")).toEqual(["smoke"]);
+  });
+
+  it("keeps each axis in a slash list of axis words", () => {
+    expect(axes("Smoke/UAT must pass")).toEqual(["uat", "smoke"]);
+    expect(axes("deploy/smoke/uat green")).toEqual(["uat", "smoke", "deploy"]);
+    expect(axes("scripts/smoke/run.sh")).toEqual([]);
+    expect(axes("smoke/uat-evidence")).toEqual([]);
+  });
+
+  it("keeps observed_behavior inside backticks (unchanged axis)", () => {
+    expect(axes("Verify `observed_behavior` in production")).toEqual(["observed_behavior"]);
   });
 
   it("keeps the axis for prose claims", () => {
@@ -282,6 +295,10 @@ describe("strict axes match prose, not identifiers (#6270)", () => {
       items: [withEvidence({ title: "The service deploys to prod", status: "pending" })],
     });
     expect(prose.ok).toBe(false);
+    const slashList = evaluateAcceptanceEvidenceGate({
+      items: [withEvidence({ title: "Smoke/UAT must pass", status: "pending" })],
+    });
+    expect(slashList.ok).toBe(false);
   });
 });
 
