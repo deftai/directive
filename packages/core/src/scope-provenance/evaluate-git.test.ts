@@ -404,6 +404,24 @@ describe("evaluateScopeProvenance one-PR mint level (#6273)", () => {
     expect(result.mintLevelAdmits?.[0]?.fileScope).toContain("packages/core/src/feature.test.ts");
   });
 
+  it("reads the level at the merge base, not the base branch tip", () => {
+    root = mintRepo({ basePolicy: MINT_ON });
+    landOnePr(root);
+    // After the fork, the base branch turns the level off. The change set's
+    // merge base still has mint, so the admit holds.
+    git(root, ["checkout", "-q", "base"]);
+    writeTracked(
+      root,
+      "xbrief/PROJECT-DEFINITION.xbrief.json",
+      projectDefinition({ onePrScopeProof: "off", requireHumanMerge: true }),
+    );
+    commit(root, "base tip: level off");
+    git(root, ["checkout", "-q", "impl"]);
+    const result = evaluateScopeProvenance(root, { baseRef: "base" });
+    expect(result.exitCode, result.message).toBe(0);
+    expect(result.mintLevelAdmits).toHaveLength(1);
+  });
+
   it("keeps the #4956 production fence on the merge-base brief", () => {
     root = mintRepo({ basePolicy: MINT_ON, baseScope: ["packages/core/src/feature.ts"] });
     const extras = ["b", "c", "d"];
