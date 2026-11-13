@@ -749,7 +749,8 @@ export function setCeremonyDial(
         prevParsed.override !== nextBlock.override ||
         legacyKeyMigrated;
 
-      policyBlock.ceremonyDial = nextBlock;
+      // Keep sibling keys (for example #6204 smallChangeLane) across dial writes.
+      policyBlock.ceremonyDial = { ...prevObj, ...nextBlock };
       if (changedFlag) {
         mutation.persist(data);
       }

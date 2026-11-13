@@ -3,6 +3,10 @@ import { basename, dirname } from "node:path";
 import { evaluateObservableMintPreflight } from "../observable-scope/mint.js";
 import { evaluateIntentCeilingFromEnv } from "../policy/intent-ceiling.js";
 import {
+  evaluateSmallChangeLaneGate,
+  type SmallChangeLaneGateOverrides,
+} from "../policy/small-change-lane.js";
+import {
   evaluateParentLineage,
   formatParentLineageLine,
   type ParentLineageResult,
@@ -110,6 +114,8 @@ export interface EvaluateOptions {
   readonly skipIntendedPlacement?: boolean;
   /** Injected origin fetch for tests. Default: live `gh api` REST. */
   readonly fetchOriginUpdatedAt?: FetchOriginUpdatedAt;
+  /** Small-change lane recheck overrides (#6204). Production leaves this unset. */
+  readonly smallChangeLane?: SmallChangeLaneGateOverrides;
 }
 
 /** Substitute `{path}` without `$`-pattern expansion in user paths (#1721). */
@@ -302,6 +308,18 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
     }
   }
 
+  // #6204: a small-change lane brief is rechecked against its bound here.
+  // No lane marker → no-op. A refusal names the one lane-exit remediation.
+  const lane = evaluateSmallChangeLaneGate(planRecord, {
+    ...options.smallChangeLane,
+    projectRoot: resolveProjectRootFromBrief(path, options.projectRoot),
+    gate: "xbrief:preflight",
+    briefPath: path,
+  });
+  if (!lane.ok) {
+    return outcome(1, lane.message, { parentLineage: lineage });
+  }
+
   // Lifecycle-ready OK line. Not implementation authorization (#4690).
   let message = lineage.applicable
     ? `OK ${path} -- lifecycle-ready. parent lineage OK ` +
@@ -313,6 +331,9 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
     : `OK ${path} -- lifecycle-ready.`;
   if (placementWarning !== undefined) {
     message = `${message} ${placementWarning}`;
+  }
+  if (lane.applies) {
+    message = `${message}\n${lane.message}`;
   }
 
   return outcome(0, message, { parentLineage: lineage });

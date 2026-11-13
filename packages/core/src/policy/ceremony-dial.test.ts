@@ -372,6 +372,24 @@ describe("resolveCeremonyDial + policy surface", () => {
     expect((field?.current as { override?: string }).override).toBe("minimal");
   });
 
+  it("setCeremonyDial keeps the #6204 smallChangeLane bound across dial writes", () => {
+    const bound = { maxProductionFiles: 2, maxChangedLines: 40 };
+    root = makeProject({ ceremonyDial: { enabled: true, override: null, smallChangeLane: bound } });
+    for (const override of ["standard", "rapid"] as const) {
+      const applied = setCeremonyDial(root, { override, confirm: true, actor: "test" });
+      expect(applied.exitCode).toBe(0);
+    }
+    const pd = JSON.parse(
+      readFileSync(join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
+    ) as { plan: Record<string, { ceremonyDial?: Record<string, unknown> } | undefined> };
+    const block = pd.plan["x-directive/policy"] ?? pd.plan.policy;
+    expect(block?.ceremonyDial).toEqual({
+      enabled: true,
+      override: "rapid",
+      smallChangeLane: bound,
+    });
+  });
+
   it("setCeremonyDial requires confirm and audits", () => {
     root = makeProject({});
     const denied = setCeremonyDial(root, { override: "rapid" });

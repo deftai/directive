@@ -668,3 +668,86 @@ describe("evaluate edge branches", () => {
     expect(result.message).toContain("not valid JSON");
   });
 });
+
+describe("small-change lane recheck at preflight (#6204)", () => {
+  const marker = {
+    schema: "deft.small-change-lane.v1",
+    state: "admitted",
+    admitBase: "a".repeat(40),
+  };
+  const thinBrief = JSON.stringify({
+    xBRIEFInfo: { version: "0.8" },
+    plan: {
+      title: "fix",
+      status: "running",
+      items: [],
+      references: [{ uri: "https://github.com/o/r/issues/1", type: "x-xbrief/github-issue" }],
+      acceptance: {
+        commands: [{ command: "npx vitest run a.test.ts" }],
+        none_stated: false,
+        source_rung: "stated",
+      },
+      metadata: { swarm: { file_scope: ["src/a.ts"] }, "x-directive/smallChangeLane": marker },
+    },
+  });
+  function laneGit(lines: number) {
+    return (args: readonly string[]) => {
+      const joined = args.join(" ");
+      if (joined.startsWith("rev-parse --show-toplevel")) return { status: 0, stdout: "/repo\n" };
+      if (joined.startsWith("rev-parse --verify"))
+        return { status: 0, stdout: `${"a".repeat(40)}\n` };
+      if (joined.startsWith("diff --numstat"))
+        return { status: 0, stdout: `${lines}\t0\tsrc/a.ts\0` };
+      if (joined.startsWith("ls-files")) return { status: 0, stdout: "" };
+      if (joined.includes("diff -U0")) {
+        return { status: 0, stdout: "diff --git a/src/a.ts b/src/a.ts\n+const x = 1;\n" };
+      }
+      return { status: 1, stdout: "" };
+    };
+  }
+  const skips = {
+    skipParentLineage: true,
+    skipOriginFreshness: true,
+    skipProjectInvariants: true,
+    skipIntendedPlacement: true,
+  } as const;
+  const bound = { maxProductionFiles: 1, maxChangedLines: 5 };
+
+  it("admits the thin shape without narratives or items while the bound holds", () => {
+    const path = writeVbrief("active", "thin.xbrief.json", thinBrief);
+    const result = evaluate(path, {
+      ...skips,
+      smallChangeLane: { depth: "rapid", bound, runGit: laneGit(3) },
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toContain("lifecycle-ready");
+    expect(result.message).toContain("xbrief:preflight: within bound");
+  });
+
+  it("refuses past the bound on every retry with the lane-exit remediation", () => {
+    const path = writeVbrief("active", "thin.xbrief.json", thinBrief);
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const result = evaluate(path, {
+        ...skips,
+        smallChangeLane: { depth: "rapid", bound, runGit: laneGit(50) },
+      });
+      expect(result.exitCode).toBe(1);
+      expect(result.message).toContain("xbrief:preflight refused (#6204)");
+      expect(result.message).toContain("escalate-to-full-shape");
+    }
+  });
+
+  it("leaves briefs outside the lane unchanged", () => {
+    const path = writeVbrief(
+      "active",
+      "plain.xbrief.json",
+      JSON.stringify({ plan: { status: "running", items: [] } }),
+    );
+    const result = evaluate(path, {
+      ...skips,
+      smallChangeLane: { depth: "standard", bound: null },
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.message).not.toContain("small-change-lane");
+  });
+});

@@ -25,6 +25,7 @@ import {
   maybeEmitAcceptanceStampFromChange,
 } from "../intake/clause-derivation.js";
 import { evaluateIssuePlanIdAdmission, planIdIdentityLockPath } from "../intake/issue-ingest.js";
+import { checkCommandBackedAcceptance } from "../intake/thin-brief.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { stampExistingEnvelopes } from "../lifecycle/brief-envelope.js";
 import { evaluateCompletedPlanConsistency } from "../lifecycle/completed-consistency.js";
@@ -40,6 +41,11 @@ import { getDefaultAppStore } from "../one-pr-unit/simulator.js";
 import { enforceLiveOnePrUnitCheck, resolveProductionAppStore } from "../one-pr-unit/store.js";
 import type { OriginRef } from "../one-pr-unit/types.js";
 import type { IssueRef } from "../orphan-active/refs.js";
+import {
+  evaluateSmallChangeLaneGate,
+  type SmallChangeLaneGateOverrides,
+  type SmallChangeLaneGateResult,
+} from "../policy/small-change-lane.js";
 import { resolveSpecGuard } from "../policy/spec-guard.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
@@ -149,6 +155,8 @@ export interface TransitionOptions {
   readonly skipAcceptanceEvidenceGate?: boolean;
   /** Test-only runner for the complete acceptance walk (#4060). Production leaves this unset. */
   readonly acceptanceRunner?: LiteralAcceptanceRunner;
+  /** Test-only small-change lane overrides (#6204). Production leaves this unset. */
+  readonly smallChangeLane?: SmallChangeLaneGateOverrides;
   /** Optional gh runner for the #5126 cancel shipped-origin refuse. */
   readonly runGh?: RunGhFn;
   /** Offline / fixture: skip live gh for the #5126 cancel refuse. */
@@ -595,6 +603,29 @@ export function runTransition(
     });
   }
 
+  // #6204: recheck a small-change lane brief before every promote / activate
+  // path (clauses or not, already-active included), so a crossed or oversized
+  // scope cannot go active without the lane exit. No lane marker → no-op.
+  let laneTransition: SmallChangeLaneGateResult | null = null;
+  if (act === "activate" || act === "promote") {
+    laneTransition = evaluateSmallChangeLaneGate(planObj, {
+      ...options.smallChangeLane,
+      projectRoot,
+      gate: act === "promote" ? "scope:promote" : "scope:activate",
+      briefPath: resolvedPath,
+    });
+    if (laneTransition.applies && !laneTransition.ok) {
+      return { ok: false, message: laneTransition.message };
+    }
+  }
+  // A lane brief carries stated commands and no clauses by design: while the
+  // lane admits it, the clause refusals (#4768) do not apply to it.
+  const laneAdmitsThin = (): boolean =>
+    laneTransition?.applies === true &&
+    laneTransition.ok &&
+    laneTransition.verdict?.kind === "admitted" &&
+    checkCommandBackedAcceptance(planObj.acceptance).ok;
+
   if (activateAlreadyActive) {
     if (currentStatus !== targetStatus) {
       return {
@@ -606,7 +637,7 @@ export function runTransition(
       };
     }
     const ingress = prepareActiveIngressAcceptance(planObj, { projectRoot });
-    if (!ingress.ok) {
+    if (!ingress.ok && !laneAdmitsThin()) {
       return { ok: false, message: ingress.message };
     }
     if (ingress.applied) {
@@ -625,7 +656,7 @@ export function runTransition(
   if (targetFolder !== null && targetFolder === currentFolder) {
     if (act === "activate" || act === "promote") {
       const ingress = prepareActiveIngressAcceptance(planObj, { projectRoot });
-      if (!ingress.ok) {
+      if (!ingress.ok && !laneAdmitsThin()) {
         return { ok: false, message: ingress.message };
       }
       if (ingress.applied) {
@@ -672,7 +703,7 @@ export function runTransition(
     // clause count covers a quality-strip that returns clauses but restores
     // a clauseless acceptance.
     const zeroClauseRefusal = zeroClauseDerivationRefusal(derivation, planObj.acceptance);
-    if (zeroClauseRefusal !== null) {
+    if (zeroClauseRefusal !== null && !laneAdmitsThin()) {
       return { ok: false, message: zeroClauseRefusal };
     }
     if (derivation.notice.length > 0) {
@@ -704,6 +735,7 @@ export function runTransition(
 
   // #3041: fail closed before mutating a code-bearing complete without delivery evidence.
   let reuseValidatedDeliveryAncestry = false;
+  let laneDeliveredCommit: string | null = null;
   if (act === "complete") {
     // #3583: auto-discover delivery evidence before the validate-only gate.
     const discovered = discoverDeliveryEvidenceForComplete({
@@ -744,6 +776,21 @@ export function runTransition(
     });
     if (!gate.ok) {
       return { ok: false, message: gate.message };
+    }
+    // #6204: recheck a small-change lane brief. With a delivered merge commit the
+    // lane measures that commit against its first parent; otherwise the worktree
+    // against the lane-admit base. Delivery identity above is unchanged.
+    laneDeliveredCommit =
+      options.smallChangeLane?.deliveredCommit ?? discovered.evidence?.mergeCommit ?? null;
+    const lane = evaluateSmallChangeLaneGate(planObj, {
+      ...options.smallChangeLane,
+      deliveredCommit: laneDeliveredCommit,
+      projectRoot,
+      gate: "scope:complete",
+      briefPath: resolvedPath,
+    });
+    if (!lane.ok) {
+      return { ok: false, message: lane.message };
     }
     if (gate.provenance !== null) {
       const sessionId = resolveCompletionSessionId(projectRoot);
@@ -822,6 +869,7 @@ export function runTransition(
       projectRoot,
       runner: options.acceptanceRunner,
       xbriefPath: resolvedPath,
+      smallChangeLane: { ...options.smallChangeLane, deliveredCommit: laneDeliveredCommit },
     });
     if (!acWalk.ok) {
       return {
