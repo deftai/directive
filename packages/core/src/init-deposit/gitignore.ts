@@ -71,6 +71,14 @@ export const CANONICAL_GITIGNORE_BASELINE: readonly string[] = [
   ".deft/delivery-attempts/",
   ".deft/metrics/",
   ".deft/escalations/",
+  // #6271: private pre-PR store holds the HMAC secret that signs pre-PR
+  // execution records. Committing it lets anyone forge those records.
+  ".deft/pre-pr-execution-private/",
+  // #6271: plan-sequence generation token, mutation lock and lock claims are
+  // per-clone runtime state. `.deft/plan-sequence.json` itself stays tracked.
+  ".deft/plan-sequence.json.generation",
+  ".deft/plan-sequence.json.lock",
+  ".deft/plan-sequence.json.lock.claim-*",
   // #4116: approved-scope records are tracked provenance. Ignore journal /
   // lock / next sidecars only; do not ignore the directory.
   ".deft/approved-scope/*.bak",

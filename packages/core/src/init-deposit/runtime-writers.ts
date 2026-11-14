@@ -16,6 +16,8 @@ import { SESSION_COMPLETED_MARKER_REL } from "../check/session-completed-ac.js";
 import { DELIVERY_ATTEMPT_DIR } from "../delivery-attempt/types.js";
 import { ESCALATION_DIR } from "../escalation/types.js";
 import { PROJECT_LOCAL_METRICS_DIR } from "../metrics/resolve-metrics-home.js";
+import { PLAN_SEQUENCE_FILENAME } from "../plan-sequence/types.js";
+import { PRE_PR_PRIVATE_STORE_DIR } from "../pre-pr-controller/store.js";
 import { APPROVED_SCOPE_DIR } from "../scope-provenance/digest.js";
 import { AC_PASS_BANK_DIR } from "../session/ac-pass-banking.js";
 import { VERIFY_AC_SESSION_CACHE_DIR } from "../session/verify-ac-session-cache.js";
@@ -34,6 +36,10 @@ export const RUNTIME_WRITER_PATHS_LOCAL_CACHE: readonly string[] = Object.freeze
   ".deft/orientation-state.json",
   ".deft/session-bind.json",
   ".deft/session-binds",
+  // #6271: private pre-PR store (HMAC secret) and plan-sequence sidecars.
+  `.deft/${PRE_PR_PRIVATE_STORE_DIR}`,
+  `.deft/${PLAN_SEQUENCE_FILENAME}.generation`,
+  `.deft/${PLAN_SEQUENCE_FILENAME}.lock`,
 ]);
 
 /**

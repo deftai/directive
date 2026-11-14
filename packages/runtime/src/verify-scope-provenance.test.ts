@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ENFORCE_NOOP_NOTICE,
   parseArgs,
+  reportMintLevelAdmits,
   resolveForgeContext,
   run,
 } from "./verify-scope-provenance.js";
@@ -236,5 +237,75 @@ describe("verify-scope-provenance CLI (#3145 / #5057)", () => {
     // Exit 2 is config/network (e.g. PR-aware base resolution) — still a successful CLI smoke.
     const code = run(["--project-root", ".", "--quiet", "--base-ref", "HEAD"]);
     expect([0, 1, 2]).toContain(code);
+  });
+});
+
+describe("mint-level admit visibility (#6273)", () => {
+  const ADMIT = {
+    planId: "story-6273",
+    xbriefRelPath: "xbrief/active/story.xbrief.json",
+    fileScope: ["packages/core/src/feature.ts", "packages/core/src/feature.test.ts"],
+    productionFileCount: 1,
+  };
+  const dirs: string[] = [];
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    while (dirs.length > 0) {
+      const d = dirs.pop();
+      if (d) rmSync(d, { recursive: true, force: true });
+    }
+  });
+
+  function capture(fn: () => void): { stdout: string; stderr: string } {
+    let stdout = "";
+    let stderr = "";
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      stdout += String(c);
+      return true;
+    });
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      stderr += String(c);
+      return true;
+    });
+    fn();
+    vi.restoreAllMocks();
+    return { stdout, stderr };
+  }
+
+  it("prints the plan id, admitted file_scope, production count and the CI limit line", () => {
+    const { stdout } = capture(() => reportMintLevelAdmits([ADMIT], {}));
+    expect(stdout).toContain("plan id: story-6273");
+    expect(stdout).toContain("- packages/core/src/feature.ts");
+    expect(stdout).toContain("production files: 1");
+    expect(stdout).toContain(
+      "CI cannot tell this mint from a file an agent wrote; the human merge is the control",
+    );
+  });
+
+  it("appends the same block to $GITHUB_STEP_SUMMARY when set", () => {
+    const dir = mkdtempSync(join(tmpdir(), "scope-prov-summary-"));
+    dirs.push(dir);
+    const summary = join(dir, "summary.md");
+    writeFileSync(summary, "# prior step\n", "utf8");
+    const { stdout } = capture(() =>
+      reportMintLevelAdmits([ADMIT], { GITHUB_STEP_SUMMARY: summary }),
+    );
+    const written = readFileSync(summary, "utf8");
+    expect(written.startsWith("# prior step\n")).toBe(true);
+    expect(written).toContain(stdout);
+    expect(written).toContain("```text");
+  });
+
+  it("writes nothing without an admit, and a summary write failure keeps going", () => {
+    const none = capture(() => reportMintLevelAdmits([], { GITHUB_STEP_SUMMARY: "/nope/x.md" }));
+    expect(none.stdout).toBe("");
+    const dir = mkdtempSync(join(tmpdir(), "scope-prov-summary-bad-"));
+    dirs.push(dir);
+    const bad = capture(() =>
+      reportMintLevelAdmits([ADMIT], { GITHUB_STEP_SUMMARY: join(dir, "missing", "x.md") }),
+    );
+    expect(bad.stdout).toContain("plan id: story-6273");
+    expect(bad.stderr).toContain("GITHUB_STEP_SUMMARY");
   });
 });

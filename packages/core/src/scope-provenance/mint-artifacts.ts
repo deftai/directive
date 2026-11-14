@@ -78,6 +78,8 @@ export interface MintArtifactsInput {
   readonly projectRoot: string;
   readonly humanApproval?: ApprovedScopeRecord["humanApproval"];
   readonly approvedAt?: string;
+  /** Head brief auth-hash v1 stamped into the record (#6273). */
+  readonly authHashV1?: string;
   readonly extract?: ExtractIntentOptions;
   /**
    * Test-only dest publish after both temp payloads exist.
@@ -518,6 +520,7 @@ export function mintApprovedScopeArtifacts(input: MintArtifactsInput): MintArtif
     }),
     intentDigest,
     digestAlgo: INTENT_DIGEST_ALGO,
+    ...(input.authHashV1 !== undefined ? { authHashV1: input.authHashV1 } : {}),
   };
   const intentPath = approvedScopeIntentPath(input.projectRoot, record.planId);
   const recordPath = approvedScopeRecordPath(input.projectRoot, record.planId);

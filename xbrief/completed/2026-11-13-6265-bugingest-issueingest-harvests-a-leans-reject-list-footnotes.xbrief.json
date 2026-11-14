@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6265",
-    "updated": "2026-11-13T15:34:40Z"
+    "updated": "2026-11-13T21:24:30Z"
   },
   "plan": {
     "title": "bug(ingest): issue:ingest harvests a lean's Reject list, footnotes and arc record-keeping as plan items",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Ingest of an accepted lean takes every list line after the Bound-remedy heading as a plan item, so the Reject list, footnotes and arc record-keeping become items that need hand-written acceptance. Ingest of a plain issue makes a clause from every body sentence, background included, so each context sentence becomes another false-positive and disposition surface. This story keeps only the remedy limbs and the acceptance surface as items and clauses, stores Reject lines as must-not text, and keeps the rest as unscored background.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6265",
@@ -19,34 +19,207 @@
     "items": [
       {
         "title": "The Bound-remedy slice ends at the next heading of level 2 or higher, or at a whole-line, non-list trailer label from a closed set (`Reject`, `Not proposed`, `Footnote`, `Footnotes`, `takes`, `Residual`, `Notes`, `Coordination`, with an optional parenthesised qualifier before the colon). `hashBoundRemedyBytes` calls that same slicer. relieves: P1",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When a lean whose `## Bound remedy` list is followed by a `Reject:`, `Not proposed:`, `Footnotes (…):` or `takes:` label is ingested, plan.items holds only the remedy limbs, and hashBoundRemedyBytes returns the same digest for two leans that differ only below the trailer label."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3c11627d425752c7db475ce01828ef326e6bd061",
+          "recorded_at": "2026-11-13T21:24:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "In the cited lean, list lines under a `Reject` or `Not proposed` heading or label go to `plan.narratives.Constraint` as must-not lines. Footnote and take lines go to neither `plan.items` nor clauses. relieves: P1",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When a #6189-shaped lean is ingested, ingest stores each Reject list line in plan.narratives.Constraint and records no footnote or take line in plan.items or plan.acceptance.clauses."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3c11627d425752c7db475ce01828ef326e6bd061",
+          "recorded_at": "2026-11-13T21:24:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "On a plain issue body that has at least one acceptance-shaped section (every heading `findAcHeading` or `SECTION_HEADING` matches, not only the first), plan items and clauses come from all of those sections plus every explicitly declared acceptance line anywhere in the body (`Done when`, `test:`, `acceptance:` lines, as `collectStatementSurface` reads them today). `plan.narratives.Overview` and the task statement passed to clause stamping hold only that selected surface; the rest of the body is stored as `plan.narratives.Background`, scanned with the existing untrusted-text scanner, and excluded from sentence coverage and from the `collectTaskStatementFromPlan` fall-through. A body without such a section ingests as today. relieves: P2",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When a plain issue with Summary, Acceptance and Test sections plus an inline `Done when` line outside them is ingested, ingest records a clause for every Acceptance, Test and `Done when` line, stores only that surface in Overview, and stores the Summary text in a scanned plan.narratives.Background that yields no statement sentence; when a body has no acceptance-shaped section, ingest returns the same brief as today."
+        },
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Limb 3 (plain-body acceptance-section cut) was not shipped in PR #6302. Moved to #6297 by operator choice: it conflicts with the #3550 / #5055 sentence floors.",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "59447805+MScottAdams@users.noreply.github.com",
+            "mintedAt": "2026-11-13T21:24:15Z",
+            "mintedVia": "scott-finalize-dispositions.ps1",
+            "eventRef": "issue:6297"
+          },
+          "recorded_at": "2026-11-13T21:24:15Z"
         }
       },
       {
         "title": "Fixtures: a #6189-shaped lean gives its 6 limbs as items and its Reject lines in `Constraint`; a colon-intro line, a limb ending in `:`, nested sub-bullets and a limb whose prose names `Reject:` all stay harvested; an issue with Summary plus Acceptance gives clauses only from Acceptance; sibling Acceptance and Test sections and an inline `Done when` line outside them all stay clauses; Overview holds only the selected surface, Background and Constraint text is scanned; an Expected-only body ingests as today; equal lean bodies keep equal harvest digests.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When the fixture file packages/core/src/intake/issue-ingest-harvest-trailers.test.ts runs, it passes and covers the #6189 shape, a colon-intro line before the limbs, a limb ending in a colon, nested sub-bullets, a limb whose prose contains `Reject:`, sibling Acceptance and Test sections, an inline `Done when` line, an Expected-only body, and equal digests for leans that differ only below the trailer."
+        },
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Lean fixtures shipped in PR #6302 (issue-ingest-harvest-trailers.test.ts). The plain-body fixtures (Summary plus Acceptance, sibling Acceptance/Test sections, inline Done when, Overview/Background split, Expected-only body) moved to #6297 with limb 3.",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "59447805+MScottAdams@users.noreply.github.com",
+            "mintedAt": "2026-11-13T21:24:15Z",
+            "mintedVia": "scott-finalize-dispositions.ps1",
+            "eventRef": "issue:6297"
+          },
+          "recorded_at": "2026-11-13T21:24:15Z"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3c11627d425752c7db475ce01828ef326e6bd061",
+          "recorded_at": "2026-11-13T21:24:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3c11627d425752c7db475ce01828ef326e6bd061",
+          "recorded_at": "2026-11-13T21:24:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3c11627d425752c7db475ce01828ef326e6bd061",
+          "recorded_at": "2026-11-13T21:24:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3c11627d425752c7db475ce01828ef326e6bd061",
+          "recorded_at": "2026-11-13T21:24:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Limb 3 (plain-body acceptance-section cut) was not shipped in PR #6302. Moved to #6297 by operator choice: it conflicts with the #3550 / #5055 sentence floors.",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "59447805+MScottAdams@users.noreply.github.com",
+            "mintedAt": "2026-11-13T21:24:15Z",
+            "mintedVia": "scott-finalize-dispositions.ps1",
+            "eventRef": "issue:6297"
+          },
+          "recorded_at": "2026-11-13T21:24:15Z"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Limb 3 (plain-body acceptance-section cut) was not shipped in PR #6302. Moved to #6297 by operator choice: it conflicts with the #3550 / #5055 sentence floors.",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "59447805+MScottAdams@users.noreply.github.com",
+            "mintedAt": "2026-11-13T21:24:15Z",
+            "mintedVia": "scott-finalize-dispositions.ps1",
+            "eventRef": "issue:6297"
+          },
+          "recorded_at": "2026-11-13T21:24:15Z"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Limb 3 (plain-body acceptance-section cut) was not shipped in PR #6302. Moved to #6297 by operator choice: it conflicts with the #3550 / #5055 sentence floors.",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "59447805+MScottAdams@users.noreply.github.com",
+            "mintedAt": "2026-11-13T21:24:15Z",
+            "mintedVia": "scott-finalize-dispositions.ps1",
+            "eventRef": "issue:6297"
+          },
+          "recorded_at": "2026-11-13T21:24:15Z"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3c11627d425752c7db475ce01828ef326e6bd061",
+          "recorded_at": "2026-11-13T21:24:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3c11627d425752c7db475ce01828ef326e6bd061",
+          "recorded_at": "2026-11-13T21:24:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3c11627d425752c7db475ce01828ef326e6bd061",
+          "recorded_at": "2026-11-13T21:24:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -761,9 +934,36 @@
           "#6265",
           "#6189"
         ]
+      },
+      "productPullRequest": 6302,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "e019029fce213eb870c0f2408c8c50def8ed931c",
+        "prNumber": 6302,
+        "prBase": "master",
+        "mergeCommit": "3c11627d425752c7db475ce01828ef326e6bd061",
+        "deliveryBranch": "master",
+        "deliveryCommit": "6d03e5f302939c067a53d715944e325bd7275dc5",
+        "verifiedAt": "2026-11-13T21:24:30Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:YjFmZmMwZDUtMmE1MS00M2VmLTk0YTMtMDZkZTMxMTExNTEw",
+        "identityBasis": "merge-time-keyword"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-13T21:24:30Z",
+      "completedSessionId": "host:claude:v1:YjFmZmMwZDUtMmE1MS00M2VmLTk0YTMtMDZkZTMxMTExNTEw",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-13T21:24:30Z"
       }
     },
     "id": "github.issue.6365937863",
-    "updated": "2026-11-13T15:34:40Z"
+    "updated": "2026-11-13T21:24:30Z"
   }
 }

@@ -21,6 +21,8 @@ import { shellCommandHasPayloadRootProtectedDestAfterRealpath } from "../authz/p
 import { prepareGithubOnlyDest } from "../design-critique/run-posture.js";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
+import { checkCheapInSync } from "../install-health/cheap.js";
+import type { CheapInSyncResult } from "../install-health/types.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { matchAny } from "../orchestration/pathspec.js";
 import {
@@ -83,7 +85,9 @@ import {
   occupancyPath,
   publishApplyingHost,
   publishApplyingHostFromCanonicalSessionId,
+  releaseOwnedOccupancyOnSessionEnd,
   resolveOccupancyLeaseRoot,
+  type SessionEndReleaseResult,
 } from "../session/occupancy.js";
 import { occupancyAwareDenialMessage } from "../session/occupancy-recovery.js";
 import {
@@ -273,6 +277,7 @@ export type HookHost = (typeof HOOK_HOSTS)[number];
 export const HOOK_EVENTS = [
   "session.start",
   "session.compact",
+  "session.end",
   "tool.before",
   "prompt.submit",
   "agent.response",
@@ -286,6 +291,16 @@ export type CompactHookHost = (typeof COMPACT_HOOK_HOSTS)[number];
 /** Hosts without a native compact hook surface — deposit skips cleanly (#2113). */
 export const COMPACT_HOOK_SKIP_HOSTS = ["codex"] as const;
 
+/**
+ * Hosts that receive a session-end hook deposit (#6274). Claude Code only in
+ * this cut: a conservative initial scope, not evidence other hosts lack it.
+ */
+export const SESSION_END_HOOK_HOSTS = ["claude"] as const;
+export type SessionEndHookHost = (typeof SESSION_END_HOOK_HOSTS)[number];
+
+/** Hosts that get no session-end deposit in this cut (#6274). */
+export const SESSION_END_HOOK_SKIP_HOSTS = ["grok", "cursor", "codex"] as const;
+
 export type HookVerdict = "allow" | "deny";
 export type HookDecisionCode =
   | "session-start"
@@ -296,6 +311,8 @@ export type HookDecisionCode =
   | "session-compact-rearm"
   | "session-compact-rearm-degraded"
   | "session-compact-noop"
+  /** session.end never routes through decideHook; runSessionEndHook owns it (#6274). */
+  | "session-end-noop"
   | "not-direct-write"
   | "invalid-input"
   /**
@@ -4245,6 +4262,20 @@ function decideLauncherFamilyArgv(
 
 /** Decide a normalized event using only the P0 direct-write policy. */
 export function decideHook(input: HookDispatchInput, seams: HookPolicySeams = {}): HookDecision {
+  if (input.event === "session.end") {
+    // #6274: shutdown must not restamp liveness or run policy; the runtime
+    // calls runSessionEndHook instead. A direct decideHook call is a no-op.
+    return {
+      verdict: "allow",
+      code: "session-end-noop",
+      event: input.event,
+      host: input.host,
+      toolName: null,
+      projectRoot: resolve(input.projectRoot),
+      message: "",
+      scopePath: null,
+    };
+  }
   const observation: DispatchObservation = { effectiveRoots: [], foreignTarget: false };
   const landed: HookDispatchInput = {
     ...input,
@@ -5364,6 +5395,109 @@ function allowAdvisoryText(decision: HookDecision): string | null {
   if (decision.code === "kill-force-ready") return msg;
   if (/\bWarning:/.test(msg)) return msg;
   return null;
+}
+
+/** Max length of the single session-end diagnostic line (#6274). */
+export const SESSION_END_DIAGNOSTIC_MAX_CHARS = 400;
+
+export type SessionEndHookOutcome =
+  | SessionEndReleaseResult["outcome"]
+  | "unsupported-host"
+  | "launch-root-mismatch"
+  | "pin-mismatch"
+  | "release-failed";
+
+export interface SessionEndHookInput {
+  readonly host: HookHost;
+  readonly projectRoot: string;
+  readonly payload: unknown;
+  /** Hook process env; read only for the host provider flag, never for an owner id. */
+  readonly environ?: NodeJS.ProcessEnv;
+  /** Checkout that owns the running hook-bin, or null when unknown (source runs). */
+  readonly launchRoot: string | null;
+}
+
+export interface SessionEndHookSeams {
+  readonly cheapInSync?: (root: string) => CheapInSyncResult;
+  readonly release?: typeof releaseOwnedOccupancyOnSessionEnd;
+}
+
+export interface SessionEndHookResult {
+  /** Always 0: a SessionEnd hook cannot block and must never fail shutdown. */
+  readonly exitCode: 0;
+  readonly outcome: SessionEndHookOutcome;
+  /** One bounded line for stderr. */
+  readonly diagnostic: string;
+}
+
+function sessionEndDiagnostic(text: string): string {
+  const line = `Directive session end: ${text}`.replace(/\s+/g, " ").trim();
+  return line.length <= SESSION_END_DIAGNOSTIC_MAX_CHARS
+    ? line
+    : `${line.slice(0, SESSION_END_DIAGNOSTIC_MAX_CHARS - 3)}...`;
+}
+
+function sameRealRoot(a: string, b: string): boolean {
+  const real = (path: string): string => {
+    try {
+      return realpathSync(path);
+    } catch {
+      return resolve(path);
+    }
+  };
+  return real(a) === real(b);
+}
+
+/**
+ * Event-specific session.end path (#6274 Prefer-A Bound limb 2).
+ *
+ * Keeps the launch-root and pin checks (a mismatch releases nothing), skips
+ * setup completion and policy dispatch, and turns every failure into one
+ * bounded diagnostic. The owner id comes only from the payload via the host
+ * identity contract, never from `DEFT_SESSION_ID` or other ambient identity.
+ * Exit code is always 0; exit 0 does not mean a lease was released.
+ */
+export function runSessionEndHook(
+  input: SessionEndHookInput,
+  seams: SessionEndHookSeams = {},
+): SessionEndHookResult {
+  const done = (outcome: SessionEndHookOutcome, text: string): SessionEndHookResult => ({
+    exitCode: 0,
+    outcome,
+    diagnostic: sessionEndDiagnostic(text),
+  });
+  try {
+    if (!(SESSION_END_HOOK_HOSTS as readonly string[]).includes(input.host)) {
+      return done("unsupported-host", `host ${input.host} has no session-end support; no release.`);
+    }
+    const projectRoot = resolve(input.projectRoot);
+    if (input.launchRoot !== null && !sameRealRoot(input.launchRoot, projectRoot)) {
+      return done(
+        "launch-root-mismatch",
+        `payload root ${normalizeHookProjectRoot(projectRoot)} does not match launch root ` +
+          `${normalizeHookProjectRoot(input.launchRoot)}; no release.`,
+      );
+    }
+    const cheap = (seams.cheapInSync ?? checkCheapInSync)(projectRoot);
+    if (cheap.failClosed) {
+      return done(
+        "pin-mismatch",
+        `installed runtime identity check failed (pin=${cheap.pinVersion ?? "?"} ` +
+          `installed=${cheap.installedVersion ?? "?"}); no release.`,
+      );
+    }
+    // Pass an environ without DEFT_* identity: only the provider flag matters.
+    const environ: NodeJS.ProcessEnv = {};
+    const grokFlag = input.environ?.GROK_HOOK_EVENT;
+    if (grokFlag !== undefined) environ.GROK_HOOK_EVENT = grokFlag;
+    const identity = resolveHookHostIdentity(input.host, input.payload, environ);
+    const result = (seams.release ?? releaseOwnedOccupancyOnSessionEnd)(projectRoot, {
+      ownerSessionId: identity.status === "ok" ? identity.sessionId : null,
+    });
+    return done(result.outcome, result.message);
+  } catch (cause) {
+    return done("release-failed", `release failed on its non-blocking path: ${String(cause)}`);
+  }
 }
 
 export function renderHostDecision(host: HookHost, decision: HookDecision): string {

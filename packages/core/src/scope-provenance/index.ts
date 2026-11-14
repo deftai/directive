@@ -57,6 +57,7 @@ export {
   GITHUB_ISSUE_REF_TYPES,
   type IntentPreimage,
 } from "./extract-intent.js";
+export { computeAuthHashV1 } from "./forge-approval.js";
 export { computeIntentDigest, INTENT_DIGEST_ALGO } from "./intent-digest.js";
 export { parseJsonRejectingDuplicateKeys } from "./json-tokenizer.js";
 export { allKnownMachineLeaves, KNOWN_MACHINE_WRITERS } from "./known-machine.js";
