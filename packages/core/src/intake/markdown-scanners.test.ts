@@ -98,7 +98,11 @@ describe("Bound-remedy harvest extractor (#4258)", () => {
       "2. still not enough",
     ].join("\n");
     expect(findBoundRemedyHeading(lean)).toBeNull();
-    expect(extractBoundRemedyHarvest(lean)).toEqual({ items: [], sourceText: "" });
+    expect(extractBoundRemedyHarvest(lean)).toEqual({
+      items: [],
+      sourceText: "",
+      constraintLines: [],
+    });
   });
 
   it("accepts only the contract level-2 Bound-remedy heading", () => {

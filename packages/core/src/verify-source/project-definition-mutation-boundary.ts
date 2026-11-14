@@ -160,6 +160,7 @@ export const PRODUCTION_MUTATION_INVENTORY: Readonly<Record<string, number>> = O
   "packages/core/src/policy/coverage-mode.ts": 1,
   "packages/core/src/policy/destructive-gh-verbs.ts": 1,
   "packages/core/src/policy/host-hooks.ts": 1,
+  "packages/core/src/policy/one-pr-scope-proof.ts": 1,
   "packages/core/src/policy/org-force-on-migration.ts": 1,
   "packages/core/src/policy/product-signal.ts": 1,
   "packages/core/src/policy/require-human-merge.ts": 1,

@@ -10,9 +10,14 @@
  * `--pr N` / `--repo OWNER/NAME` (env fallback GITHUB_PR_NUMBER /
  * GITHUB_REPOSITORY) supply PR context for the forge-approved head-brief
  * membership admit (#6203). Without a PR number the admit is never consulted.
+ *
+ * A one-PR mint-level admit (#6273) prints its block on stdout and appends the
+ * same block to `$GITHUB_STEP_SUMMARY` when that variable is set.
  */
+import { appendFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { scopeProvenance } from "@deftai/directive-core";
+import { formatMintLevelAdmitBlock, type MintLevelAdmit } from "@deftai/directive-core/policy";
 import { isDirectEntrypoint } from "./entrypoint.js";
 
 /** Stderr line when argv includes `--enforce`. Exit code is unchanged. */
@@ -114,6 +119,31 @@ export function resolveForgeContext(
   return { prNumber, repo: repo.length > 0 ? repo : null };
 }
 
+/**
+ * Print each mint-level admit block (#6273) and append it to the step summary
+ * when `GITHUB_STEP_SUMMARY` is set. A summary write failure is reported on
+ * stderr and never changes the exit code.
+ */
+export function reportMintLevelAdmits(
+  admits: readonly MintLevelAdmit[],
+  env: NodeJS.ProcessEnv,
+): void {
+  if (admits.length === 0) return;
+  const block = admits.map((a) => formatMintLevelAdmitBlock(a)).join("");
+  process.stdout.write(block);
+  const summaryPath = (env.GITHUB_STEP_SUMMARY ?? "").trim();
+  if (summaryPath.length === 0) return;
+  const fence = "```";
+  try {
+    appendFileSync(summaryPath, `\n${fence}text\n${block}${fence}\n`, "utf8");
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    process.stderr.write(
+      `verify_scope_provenance: could not append to GITHUB_STEP_SUMMARY: ${detail}\n`,
+    );
+  }
+}
+
 export function run(argv: string[], env: NodeJS.ProcessEnv = process.env): number {
   const args = parseArgs(argv);
   if (args.error !== undefined) {
@@ -130,6 +160,7 @@ export function run(argv: string[], env: NodeJS.ProcessEnv = process.env): numbe
   if (args.enforcePresent) {
     process.stderr.write(`${ENFORCE_NOOP_NOTICE}\n`);
   }
+  reportMintLevelAdmits(result.mintLevelAdmits ?? [], env);
   if (result.exitCode === 0) {
     if (!args.quiet) {
       process.stdout.write(`${result.message}\n`);

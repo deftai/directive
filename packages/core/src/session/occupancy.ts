@@ -2674,6 +2674,96 @@ export function releaseOccupancy(
   );
 }
 
+/** Outcome of the host session-end owner release (#6274). */
+export type SessionEndReleaseOutcome = "released" | "no-identity" | "no-lease" | "foreign-owner";
+
+export interface SessionEndReleaseResult {
+  readonly outcome: SessionEndReleaseOutcome;
+  /** Owner id derived from the ending session's payload, or null when absent. */
+  readonly ownerSessionId: string | null;
+  /** Session recorded on the lease that was read, or null when none. */
+  readonly leaseSessionId: string | null;
+  readonly path: string;
+  /** True only when the applying-host record belonged to the ending session. */
+  readonly applyingHostRemoved: boolean;
+  readonly message: string;
+}
+
+/**
+ * Strict owner release for a host SessionEnd hook (#6274 Prefer-A Bound limb 3).
+ *
+ * Removes the lease only when `ownerSessionId` (derived by the caller from the
+ * hook payload, never ambient identity) equals the recorded owner, live or
+ * expired. There is no header enforcement and no project write: shutdown must
+ * not edit consumer content (#6274 F2). No id, no lease or another owner
+ * leaves every file untouched, applying-host included (#6274 F1). On its own
+ * release it removes applying-host only when that record names the same
+ * session. The manual `occupancy:release` / `session:end` path is unchanged.
+ */
+export function releaseOwnedOccupancyOnSessionEnd(
+  projectRoot: string,
+  input: { readonly ownerSessionId: string | null | undefined; readonly lockDeps?: LockDeps },
+): SessionEndReleaseResult {
+  const root = resolveOccupancyLeaseRoot(projectRoot);
+  const path = occupancyPath(root);
+  const owner = input.ownerSessionId?.trim() ?? "";
+  const untouched = (
+    outcome: Exclude<SessionEndReleaseOutcome, "released">,
+    leaseSessionId: string | null,
+  ): SessionEndReleaseResult => ({
+    outcome,
+    ownerSessionId: owner.length > 0 ? owner : null,
+    leaseSessionId,
+    path,
+    applyingHostRemoved: false,
+    message:
+      outcome === "no-identity"
+        ? "session end: no payload session id; occupancy left unchanged"
+        : outcome === "no-lease"
+          ? "session end: no occupancy lease; nothing released"
+          : `session end: lease belongs to ${leaseSessionId ?? "<unknown>"}; occupancy left unchanged`,
+  });
+  if (owner.length === 0) return untouched("no-identity", null);
+  // Unlocked pre-check keeps the common no-op paths free of lock-file churn.
+  const peek = readOccupancy(root);
+  if (peek === null) return untouched("no-lease", null);
+  if (peek.sessionId !== owner) return untouched("foreign-owner", peek.sessionId);
+  return withOccupancyLock(
+    root,
+    (fence) => {
+      const existing = readOccupancy(root);
+      if (existing === null) return untouched("no-lease", null);
+      if (existing.sessionId !== owner) return untouched("foreign-owner", existing.sessionId);
+      removeOccupancyFile(root, fence);
+      let applyingHostRemoved = false;
+      let cleanupNote = "";
+      const applying = readApplyingHost(root);
+      if (
+        (applying.status === "ok" || applying.status === "stale") &&
+        applying.record.applyingHostSessionId === owner
+      ) {
+        try {
+          fence();
+          containedRemove({ root, target: applyingHostPath(root) });
+          applyingHostRemoved = true;
+        } catch (cause) {
+          // Best-effort: the lease release already succeeded; say so in the one diagnostic.
+          cleanupNote = `; own applying-host record not removed: ${String(cause)}`;
+        }
+      }
+      return {
+        outcome: "released" as const,
+        ownerSessionId: owner,
+        leaseSessionId: existing.sessionId,
+        path,
+        applyingHostRemoved,
+        message: `session end: occupancy released session ${owner}${cleanupNote}`,
+      };
+    },
+    input.lockDeps,
+  );
+}
+
 /**
  * Steal claim-first rollback is release-to-empty, not restore-previous (#3906).
  * Compare-and-delete removes the persist-time stolen record; it does not

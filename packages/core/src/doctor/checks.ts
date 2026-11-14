@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync, readdirSync, readlinkSync, statSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve as resolvePath } from "node:path";
 import { VBRIEF_VERSION } from "@deftai/directive-types";
@@ -38,6 +39,10 @@ import {
   REVIEW_CYCLE_NO_REVIEWER_HANDBACK,
   reviewerConfigPresent,
 } from "../pr-merge-readiness/reviewer-presence.js";
+import {
+  PRE_PR_PRIVATE_STORE_DIR,
+  PRE_PR_STORE_MAC_SECRET_NAME,
+} from "../pre-pr-controller/store.js";
 import { detectPackageManager, type PackageManager } from "../resolution/package-manager.js";
 import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import { classifyXbriefSchemaDistance } from "../staleness-tickler/probe-xbrief.js";
@@ -114,6 +119,8 @@ export const DOCTOR_ADVISORY_FAIL_CHECKS: ReadonlySet<string> = new Set([
   "wsl-ownership-guard",
   // #5326: deposited design-critique without judgmentGates — advisory only.
   "design-critique-deposit",
+  // #6271: tracked pre-PR HMAC secret. Warn and name the fix; never untrack.
+  "pre-pr-secret-tracked",
 ]);
 
 /** True when a check fail must stay a warning (not lastErrorCount / exit 1). */
@@ -151,6 +158,11 @@ export interface CheckSeams {
   readonly isFrameworkSource?: (projectRoot: string) => boolean;
   readonly payloadPresent?: (projectRoot: string) => boolean;
   readonly resolvePayloadSourceVersion?: (projectRoot: string) => string | null;
+  /**
+   * #6271: read-only "is this repo-relative path in the git index" probe.
+   * `null` means git is unavailable or the root is not a repository.
+   */
+  readonly isPathTracked?: (projectRoot: string, rel: string) => boolean | null;
 }
 
 /** Dirent-like entry for the bounded dangling-link walk (#3749). */
@@ -1702,6 +1714,17 @@ export function checkTypescript7SideBySide(
 }
 
 /**
+ * #6271: escape when `directive update` refuses `dirty_tree` because local
+ * runtime files the missing entries would ignore are still untracked.
+ */
+export const GITIGNORE_DIRTY_TREE_FIX = "directive update --allow-dirty-no-stage" as const;
+
+const GITIGNORE_DIRTY_TREE_RECOVERY =
+  "If update refuses with dirty_tree because untracked local runtime files " +
+  "(for example under .deft/) are present, run " +
+  `\`${GITIGNORE_DIRTY_TREE_FIX}\`, then commit .gitignore.`;
+
+/**
  * #2206: check that the consumer `.gitignore` carries the canonical Deft baseline
  * entries. Advisory (exit-exempt) because missing entries are an adoption risk, not
  * a broken install.
@@ -1749,11 +1772,80 @@ export function checkGitignoreCoverage(projectRoot: string, seams: CheckSeams = 
       `Deft .gitignore coverage incomplete: ${missing.length} canonical entr${missing.length === 1 ? "y" : "ies"} ` +
       `missing (${missing.slice(0, 3).join(", ")}${missing.length > 3 ? ", …" : ""}). ` +
       "Run `directive update` to add the missing entries (idempotent, safe on re-run). " +
+      `${GITIGNORE_DIRTY_TREE_RECOVERY} ` +
       `Full missing list: ${JSON.stringify(missing)}.`,
     data: stampAdvisory({
       gitignore_path: gitignorePath,
       missing,
       suggested_fix: "directive update",
+      dirty_tree_fix: GITIGNORE_DIRTY_TREE_FIX,
+    }),
+  };
+}
+
+/** #6271: doctor check name for a tracked pre-PR HMAC secret. */
+export const PRE_PR_SECRET_TRACKED_CHECK = "pre-pr-secret-tracked" as const;
+
+/** #6271: repo-relative (posix) path of the pre-PR store HMAC secret. */
+export const PRE_PR_HMAC_SECRET_REL = `.deft/${PRE_PR_PRIVATE_STORE_DIR}/${PRE_PR_STORE_MAC_SECRET_NAME}`;
+
+/** Read-only index probe. Runs `git ls-files` only; never changes the index. */
+function defaultIsPathTracked(projectRoot: string, rel: string): boolean | null {
+  try {
+    const out = execFileSync("git", ["ls-files", "--", rel], {
+      cwd: projectRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    return out.trim().length > 0;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * #6271: warn when the pre-PR store HMAC secret is tracked in git. Anyone with
+ * the repository can then forge pre-PR execution records. Advisory: names the
+ * fix (untrack, then rotate) and never untracks the file itself.
+ */
+export function checkPrePrSecretTracked(projectRoot: string, seams: CheckSeams = {}): CheckResult {
+  const probe = seams.isPathTracked ?? defaultIsPathTracked;
+  const tracked = probe(projectRoot, PRE_PR_HMAC_SECRET_REL);
+  if (tracked === null) {
+    return {
+      name: PRE_PR_SECRET_TRACKED_CHECK,
+      status: "skip",
+      detail: "git index not readable; pre-PR HMAC secret tracking not checked.",
+      data: { secret_path: PRE_PR_HMAC_SECRET_REL },
+    };
+  }
+  if (!tracked) {
+    return {
+      name: PRE_PR_SECRET_TRACKED_CHECK,
+      status: "pass",
+      detail: "Pre-PR HMAC secret is not tracked in git.",
+      data: { secret_path: PRE_PR_HMAC_SECRET_REL, tracked: false },
+    };
+  }
+  const untrack = `git rm --cached -- ${PRE_PR_HMAC_SECRET_REL}`;
+  const rotate = `delete ${PRE_PR_HMAC_SECRET_REL}; the next pre-PR run creates a new secret`;
+  return {
+    name: PRE_PR_SECRET_TRACKED_CHECK,
+    status: "fail",
+    detail:
+      `The pre-PR HMAC secret ${PRE_PR_HMAC_SECRET_REL} is tracked in git. ` +
+      "Anyone with the repository can forge pre-PR execution records. " +
+      "Doctor does not untrack it. Fix: run `directive update` to refresh the .gitignore baseline " +
+      `(\`${GITIGNORE_DIRTY_TREE_FIX}\` if it refuses with dirty_tree), ` +
+      `untrack the secret with \`${untrack}\` and commit, ` +
+      `then rotate it (${rotate}) and re-run pre-PR.`,
+    data: stampAdvisory({
+      secret_path: PRE_PR_HMAC_SECRET_REL,
+      tracked: true,
+      untrack_command: untrack,
+      dirty_tree_fix: GITIGNORE_DIRTY_TREE_FIX,
+      rotate,
+      suggested_fix: untrack,
     }),
   };
 }
@@ -2103,6 +2195,7 @@ export function runChecksImpl(
     checks.push(checkStaleXbriefSchemaDeposit(projectRoot, seams));
     checks.push(checkXbriefEnvelopeMajorVersion(projectRoot, seams));
     checks.push(checkGitignoreCoverage(projectRoot, seams));
+    checks.push(checkPrePrSecretTracked(projectRoot, seams));
     checks.push(checkTypescript7SideBySide(projectRoot, seams));
     checks.push(checkCoverageCheckResumePolicy(projectRoot));
     checks.push(checkCompletedLifecycleConsistency(projectRoot));
@@ -2130,6 +2223,7 @@ export function runChecksImpl(
   checks.push(checkStaleXbriefSchemaDeposit(projectRoot, seams));
   checks.push(checkXbriefEnvelopeMajorVersion(projectRoot, seams));
   checks.push(checkGitignoreCoverage(projectRoot, seams));
+  checks.push(checkPrePrSecretTracked(projectRoot, seams));
   checks.push(checkTypescript7SideBySide(projectRoot, seams));
   checks.push(checkCoverageCheckResumePolicy(projectRoot));
   checks.push(checkCompletedLifecycleConsistency(projectRoot));

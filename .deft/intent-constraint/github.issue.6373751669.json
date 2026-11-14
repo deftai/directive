@@ -1,0 +1,20 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.6373751669",
+  "xbriefRelPath": "xbrief/active/2026-11-13-6274-featoccupancyhooks-release-the-occupancy-lease-when-its-host.xbrief.json",
+  "approvedAt": "2026-11-13T17:59:28Z",
+  "constraints": [
+    {
+      "value": "400",
+      "unit": "characters",
+      "rejectionScope": "operation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-11-13T17:59:28Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "6be97976442dff7e3b8a9b36054dd390847dd28ab472a6b2d71ce61993741ec7"
+}

@@ -69,6 +69,11 @@ import {
   FIELD_MIN_GREPTILE_CONFIDENCE_CLI_ALIAS,
   inspectMinGreptileConfidence,
 } from "./min-greptile-confidence.js";
+import {
+  FIELD_ONE_PR_SCOPE_PROOF,
+  FIELD_ONE_PR_SCOPE_PROOF_CLI_ALIAS,
+  inspectOnePrScopeProof,
+} from "./one-pr-scope-proof.js";
 import { readPlanPolicy } from "./plan-extensions.js";
 import {
   FIELD_PRODUCT_SIGNAL,
@@ -146,6 +151,7 @@ export * from "./intent-ceiling.js";
 export * from "./merge-approval-head.js";
 export * from "./min-greptile-confidence.js";
 export * from "./no-deft-directive.js";
+export * from "./one-pr-scope-proof.js";
 export * from "./org-force-on-migration.js";
 export * from "./plan-extensions.js";
 export * from "./policy-invocation.js";
@@ -497,6 +503,19 @@ function inspectCoverageModeField(
   };
 }
 
+function inspectOnePrScopeProofField(
+  data: Record<string, unknown> | null,
+  projectRoot?: string,
+): PolicyField {
+  const field = inspectOnePrScopeProof(data, projectRoot);
+  return {
+    name: field.name,
+    current: field.current,
+    default: field.default,
+    source: field.source,
+  };
+}
+
 function inspectCheckResumeField(
   data: Record<string, unknown> | null,
   projectRoot?: string,
@@ -793,6 +812,11 @@ export function inspectOnePolicy(name: string, projectRoot: string): PolicyField
   if (name === FIELD_COVERAGE_MODE_CLI_ALIAS || name === FIELD_COVERAGE_MODE) {
     const [data] = loadProjectDefinition(projectRoot);
     return inspectCoverageModeField(data, projectRoot);
+  }
+  // onePrScopeProof (#6273) is field-only: `policy:show --field=onePrScopeProof`.
+  if (name === FIELD_ONE_PR_SCOPE_PROOF_CLI_ALIAS || name === FIELD_ONE_PR_SCOPE_PROOF) {
+    const [data] = loadProjectDefinition(projectRoot);
+    return inspectOnePrScopeProofField(data, projectRoot);
   }
   const normalized =
     name === FIELD_ALLOW_DESTRUCTIVE_GH_VERBS_CLI_ALIAS || name === FIELD_ALLOW_DESTRUCTIVE_GH_VERBS

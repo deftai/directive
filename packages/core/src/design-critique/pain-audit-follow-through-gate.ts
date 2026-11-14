@@ -9,6 +9,7 @@
  */
 
 import { createHash } from "node:crypto";
+import { sliceBoundRemedySection, stripFencedCodeBlocks } from "../intake/markdown-scanners.js";
 import { classifyPosition } from "./citation-grammar.js";
 import { extractOperativeAuditTargets, painMarkerId } from "./parent-audit.js";
 
@@ -84,9 +85,6 @@ const CRITIC_ROLE_RE = /(?:^|\n)\s*role:\s*critic\b/i;
 const PARENT_ROLE_RE = /(?:^|\n)\s*role:\s*parent\b/i;
 const FINDING_CLASSES_RE = /(?:^|\n)[ \t]*finding-classes:[ \t]*([^\n]*)/gi;
 const HARVEST_CHANGED_RE = /(?:^|\n)[ \t]*harvest-changed:[ \t]*([^\n]*)/gi;
-/** Intake-aligned: space or hyphen after Bound (`## Bound remedy` / `## Bound-remedy`). */
-const BOUND_REMEDY_HEADING_RE = /(?:^|\n)##[ \t]+Bound[\s-]+remedy\b[^\n]*(?:\r?\n|$)/i;
-const NEXT_H2_RE = /\r?\n##[ \t]+/;
 const CLASS_TOKEN_RE = /^(blocking|sharpening|footnote|none)$/i;
 const LIST_ITEM_LINE_RE = /^[ \t]*(?:[-*+]|\d+[.)])[ \t]+(\S.*)$/;
 const CHECKBOX_PREFIX_RE = /^\[[ xX]\][ \t]+/;
@@ -209,31 +207,23 @@ export function extractOperativeHarvestChanged(body: string): HarvestChangedCarr
  * Empty-string hash when the heading or list is absent (still a stable identity).
  */
 export function hashBoundRemedyBytes(body: string): string {
-  const re = new RegExp(BOUND_REMEDY_HEADING_RE.source, "gi");
-  for (const match of body.matchAll(re)) {
-    const headingOffset = match.index ?? 0;
-    const tokenAt =
-      headingOffset + (match[0].startsWith("\n") || match[0].startsWith("\r") ? 1 : 0);
-    if (classifyPosition(body, tokenAt) !== null) continue;
-    const start = headingOffset + match[0].length;
-    const rest = body.slice(start);
-    const next = NEXT_H2_RE.exec(rest);
-    const slice = next === null ? rest : rest.slice(0, next.index);
-    const titles: string[] = [];
-    const seen = new Set<string>();
-    for (const line of slice.split(/\r?\n/)) {
-      const item = LIST_ITEM_LINE_RE.exec(line);
-      if (item === null) continue;
-      // Match intake parseListItems: strip leading checkbox markers from titles.
-      let title = (item[1] ?? "").trim();
-      title = title.replace(CHECKBOX_PREFIX_RE, "").trim();
-      if (title.length === 0 || seen.has(title)) continue;
-      seen.add(title);
-      titles.push(title);
-    }
-    return createHash("sha256").update(titles.join("\n"), "utf8").digest("hex");
+  // #6265: the same slicer as intake harvest (next H2 or a closed trailer label),
+  // so trailer-only lean edits (Reject / Footnotes / takes) do not move the digest.
+  const slice = sliceBoundRemedySection(body);
+  const titles: string[] = [];
+  const seen = new Set<string>();
+  // Fenced examples inside the remedy are sample text, not limbs (same as intake).
+  for (const line of stripFencedCodeBlocks(slice ?? "").split(/\r?\n/)) {
+    const item = LIST_ITEM_LINE_RE.exec(line);
+    if (item === null) continue;
+    // Match intake parseListItems: strip leading checkbox markers from titles.
+    let title = (item[1] ?? "").trim();
+    title = title.replace(CHECKBOX_PREFIX_RE, "").trim();
+    if (title.length === 0 || seen.has(title)) continue;
+    seen.add(title);
+    titles.push(title);
   }
-  return createHash("sha256").update("", "utf8").digest("hex");
+  return createHash("sha256").update(titles.join("\n"), "utf8").digest("hex");
 }
 
 function commentCitesId(body: string, id: number): boolean {

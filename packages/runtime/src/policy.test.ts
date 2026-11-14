@@ -268,6 +268,64 @@ describe("run show + set integration", async () => {
     expect(err).not.toContain("vbrief/PROJECT-DEFINITION.vbrief.json");
   });
 
+  it("set-one-pr-scope-proof refuses signed with a pointer to #5862 (#6273)", async () => {
+    const r = project();
+    const { code, out } = captureRun([
+      "set-one-pr-scope-proof",
+      "--set",
+      "signed",
+      "--confirm",
+      "--project-root",
+      r,
+    ]);
+    expect(code).toBe(1);
+    expect(out).toContain("#5862");
+    const data = JSON.parse(
+      readFileSync(join(r, "xbrief", "PROJECT-DEFINITION.xbrief.json"), "utf8"),
+    ) as { plan: Record<string, Record<string, unknown> | undefined> };
+    expect(data.plan["x-directive/policy"]?.onePrScopeProof).toBeUndefined();
+    expect(data.plan.policy?.onePrScopeProof).toBeUndefined();
+  });
+
+  it("set-one-pr-scope-proof needs --confirm, then writes mint and off (#6273)", async () => {
+    const r = project();
+    const dry = captureRun(["set-one-pr-scope-proof", "--set", "mint", "--project-root", r]);
+    expect(dry.code).toBe(1);
+    expect(dry.out).toContain("--confirm");
+
+    const set = captureRun([
+      "set-one-pr-scope-proof",
+      "--set=mint",
+      "--confirm",
+      "--project-root",
+      r,
+    ]);
+    expect(set.code).toBe(0);
+    expect(set.out).toContain("onePrScopeProof=mint");
+    const show = captureRun(["show", "--field=onePrScopeProof", "--project-root", r]);
+    expect(show.code).toBe(0);
+    expect(show.out).toContain("plan.policy.onePrScopeProof");
+    expect(show.out).toContain("mint");
+
+    const off = captureRun([
+      "set-one-pr-scope-proof",
+      "--set",
+      "off",
+      "--confirm",
+      "--project-root",
+      r,
+    ]);
+    expect(off.code).toBe(0);
+    expect(off.out).toContain("onePrScopeProof=off");
+  });
+
+  it("set-one-pr-scope-proof rejects an unknown level at parse (#6273)", async () => {
+    expect(parseArgs(["set-one-pr-scope-proof", "--set", "bogus"]).error).toContain(
+      "expected off|mint",
+    );
+    expect(parseArgs(["set-one-pr-scope-proof", "--set", "signed"]).onePrScopeProof).toBe("signed");
+  });
+
   it("refuses allow-destructive-gh-verbs without confirm", async () => {
     const r = project();
     const { code, out } = captureRun(["allow-destructive-gh-verbs", "--project-root", r]);

@@ -42,6 +42,12 @@ export interface ApprovedScopeRecord {
   readonly intentDigest?: string;
   /** Digest algorithm name; Wave 2 writes `intent-extract-v1`. */
   readonly digestAlgo?: string;
+  /**
+   * Auth-hash v1 of the brief at mint time (`computeAuthHashV1`, #6273). The
+   * one-PR mint level admits a same-PR record only when this equals the head
+   * brief's auth-hash. Not authority on its own.
+   */
+  readonly authHashV1?: string;
 }
 
 export const APPROVED_SCOPE_DIR = ".deft/approved-scope";

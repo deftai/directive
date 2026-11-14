@@ -65,6 +65,25 @@ The list does not select a file. `behavioral_clause_count` and
 decision. Absent `sentences` leaves the walk unchanged. Standalone, check,
 and scope:complete share the walk.
 
+## Quoted-token polarity (#6269)
+
+A quoted literal in a bound clause must be present in the artifact, except in
+these complete-sentence forms, where the walk checks exact literal absence:
+
+- `Removes|Deletes|Drops|Recuts "X" from PATH` (singular or plural verb; PATH optional) — X absent.
+- `PATH no longer contains "X"` — X absent.
+- `Replaces "X" with "Y" in PATH` (PATH optional) — X absent, Y present.
+
+PATH, bare or quoted, must be the bound artifact path exactly. A quoted
+file-path literal can be the removed X. Matching is exact: case, inner
+whitespace and inner quotes count.
+
+Other removal wording around a quoted literal (negated, past tense, a second
+verb, the same literal twice, `replaces` with no `with`, X equal to Y) is
+adjudicable `unverifiable`. It keeps `ok` false and never verifies. The
+detail names the forms above; rewrite the clause into one of them. Absence
+proves only that the literal is gone, not that the surrounding text was kept.
+
 ## See also
 
 - `task verify:ac` in [`../commands.md`](../commands.md)

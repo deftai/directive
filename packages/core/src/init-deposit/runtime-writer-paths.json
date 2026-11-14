@@ -10,7 +10,10 @@
     ".deft/cache/task",
     ".deft/orientation-state.json",
     ".deft/session-bind.json",
-    ".deft/session-binds"
+    ".deft/session-binds",
+    ".deft/pre-pr-execution-private",
+    ".deft/plan-sequence.json.generation",
+    ".deft/plan-sequence.json.lock"
   ],
   "trackedProvenance": [
     ".deft/approved-scope"

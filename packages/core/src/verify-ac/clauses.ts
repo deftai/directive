@@ -160,8 +160,53 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+/**
+ * Quote pairs on one line, left to right (#6269). A quote pairs with the next
+ * quote of the same kind; the other kind inside it is part of the literal,
+ * and a closing quote never opens a new pair. An apostrophe right after a
+ * letter or digit is a possessive or contraction, not an opener (#4103).
+ */
+function quotePairs(text: string): Array<{ readonly open: number; readonly close: number }> {
+  const pairs: Array<{ readonly open: number; readonly close: number }> = [];
+  let cursor = 0;
+  while (cursor < text.length) {
+    let open = -1;
+    for (let i = cursor; i < text.length; i += 1) {
+      const ch = text[i];
+      if (ch === '"' || (ch === "'" && (i === 0 || !/[A-Za-z0-9]/.test(text[i - 1] ?? "")))) {
+        open = i;
+        break;
+      }
+    }
+    if (open < 0) {
+      break;
+    }
+    const close = text.indexOf(text[open] ?? '"', open + 1);
+    const newline = text.indexOf("\n", open + 1);
+    if (close < 0 || (newline >= 0 && newline < close)) {
+      cursor = open + 1;
+      continue;
+    }
+    pairs.push({ open, close });
+    cursor = close + 1;
+  }
+  return pairs;
+}
+
+/**
+ * Collapse whitespace outside quoted literals and trim. Whitespace inside a
+ * quoted literal is kept: the walk matches literals exactly, so collapsing
+ * `"Old  Phrase"` to `"Old Phrase"` would let a removal verify while the
+ * original literal is still in the file (#6269).
+ */
 function normalizeClauseText(text: string): string {
-  return text.replace(/\s+/g, " ").trim();
+  let out = "";
+  let cursor = 0;
+  for (const { open, close } of quotePairs(text)) {
+    out += text.slice(cursor, open).replace(/\s+/g, " ") + text.slice(open, close + 1);
+    cursor = close + 1;
+  }
+  return (out + text.slice(cursor).replace(/\s+/g, " ")).trim();
 }
 
 function looksLikeFilePath(token: string): boolean {
@@ -1205,24 +1250,211 @@ export function bindClausesToDeclaredScope(
 export function extractExpectedTokens(clause: AcceptanceClause): string[] {
   const tokens: string[] = [];
   const seen = new Set<string>();
-  const patterns = [/"([^"\n]{3,80})"/g, /(?<![A-Za-z0-9])'([^'\n]{3,80})'/g];
-  for (const quoted of patterns) {
-    let match = quoted.exec(clause.text);
-    while (match !== null) {
-      const token = (match[1] ?? "").trim();
-      const skip =
-        token.length === 0 ||
-        token === clause.artifact_path ||
-        looksLikeFilePath(token) ||
-        seen.has(token);
-      if (!skip) {
-        seen.add(token);
-        tokens.push(token);
-      }
-      match = quoted.exec(clause.text);
+  for (const span of extractQuotedSpans(clause)) {
+    if (!span.pathLike && !seen.has(span.token)) {
+      seen.add(span.token);
+      tokens.push(span.token);
     }
   }
   return tokens;
+}
+
+/** One quoted literal and where it sits in the clause text (#6269). */
+export interface QuotedSpan {
+  readonly token: string;
+  /** Index of the opening quote character in `clause.text`. */
+  readonly start: number;
+  /** Index just past the closing quote character. */
+  readonly end: number;
+  /**
+   * The literal is file-path shaped or is the bound path. The presence check
+   * skips these; a removal sentence can still name one as its object.
+   */
+  readonly pathLike: boolean;
+}
+
+/**
+ * Every quoted literal in the clause, in text order, with its position.
+ *
+ * Unlike `extractExpectedTokens`, a literal quoted twice yields two spans:
+ * polarity is assigned per span, so spans are not deduped before that (#6269).
+ */
+export function extractQuotedSpans(clause: AcceptanceClause): QuotedSpan[] {
+  const text = clause.text;
+  const spans: QuotedSpan[] = [];
+  for (const { open, close } of quotePairs(text)) {
+    const raw = text.slice(open + 1, close);
+    const token = raw.trim();
+    if (raw.length >= 3 && raw.length <= 80 && token.length > 0) {
+      const pathLike = token === clause.artifact_path || looksLikeFilePath(token);
+      spans.push({ token, start: open, end: close + 1, pathLike });
+    }
+  }
+  return spans;
+}
+
+/**
+ * Polarity of a clause's quoted literals (#6269).
+ *
+ * - `none`: no quoted literal, so no token oracle.
+ * - `presence`: no removal wording; every literal must be present (as before).
+ * - `absence`: the clause is one closed removal or replace sentence.
+ * - `unresolved`: removal wording outside the closed grammar. The walk returns
+ *   adjudicable `unverifiable`, which keeps `ok` false and never verifies.
+ */
+export type QuotedTokenPolarity =
+  | { readonly kind: "none" }
+  | { readonly kind: "presence"; readonly present: readonly string[] }
+  | {
+      readonly kind: "absence";
+      readonly absent: readonly string[];
+      readonly present: readonly string[];
+    }
+  | { readonly kind: "unresolved"; readonly reason: string };
+
+export const SUPPORTED_TOKEN_ABSENCE_FORMS =
+  'Removes|Deletes|Drops|Recuts "X" [from PATH]; PATH no longer contains "X"; ' +
+  'Replaces "X" with "Y" [in PATH]';
+
+const REMOVAL_WORD =
+  /\b(?:remov(?:e|es|ed|ing)|delet(?:e|es|ed|ing)|drop(?:s|ped|ping)?|recut(?:s|ting)?|replac(?:e|es|ed|ing)|no\s+longer\s+contains?)\b/i;
+const NEGATED_REMOVAL =
+  /\b(?:not|never|no|without|cannot|nor)\s+(?:\w+\s+){0,2}?(?:remov|delet|drop|recut|replac)\w*\b|n't\s+(?:\w+\s+){0,2}?(?:remov|delet|drop|recut|replac)\w*\b/i;
+const SPAN_MARK = "\u0000";
+const PATH_REF = "(`[^`\\n]+`|\"[^\"\\n]+\"|'[^'\\n]+'|\\S+)";
+const MARK = `${SPAN_MARK}(\\d+)${SPAN_MARK}`;
+const REMOVAL_FORM = new RegExp(
+  `^(?:removes?|deletes?|drops?|recuts?)\\s+${MARK}(?:\\s+from\\s+${PATH_REF})?$`,
+  "i",
+);
+const NO_LONGER_FORM = new RegExp(`^${PATH_REF}\\s+no\\s+longer\\s+contains\\s+${MARK}$`, "i");
+const REPLACE_FORM = new RegExp(
+  `^replaces?\\s+${MARK}\\s+with\\s+${MARK}(?:\\s+in\\s+${PATH_REF})?$`,
+  "i",
+);
+const PRESENCE_VERB = /\b(?:adds?|keeps?|retains?|includes?|inserts?)\b/gi;
+const BARE_REPLACE = /\breplac(?:e|es|ed|ing)\b/i;
+const WITH_WORD = /\bwith\b/i;
+
+/** True when a grammar PATH is the bound artifact path, exactly after normalization. */
+function pathRefNamesArtifact(ref: string, artifactPath: string | null): boolean {
+  if (artifactPath === null) {
+    return false;
+  }
+  const cleaned = stripLeadingDotSlash(ref.trim().replace(/^[`"']|[`"']$/g, ""));
+  return cleaned.length > 0 && cleaned === stripLeadingDotSlash(artifactPath);
+}
+
+function spanToken(spans: readonly QuotedSpan[], index: string | undefined): string {
+  return spans[Number(index)]?.token ?? "";
+}
+
+/** A grammar PATH may be a quoted path span (a mark) or bare text. */
+function resolvePathRef(ref: string, spans: readonly QuotedSpan[]): string {
+  const mark = new RegExp(`^${MARK}$`).exec(ref);
+  return mark === null ? ref : spanToken(spans, mark[1]);
+}
+
+/** Clause text with each quoted span replaced by a numbered mark. */
+function markSpans(text: string, spans: readonly QuotedSpan[]): string {
+  let out = "";
+  let cursor = 0;
+  spans.forEach((span, i) => {
+    out += `${text.slice(cursor, span.start)}${SPAN_MARK}${i}${SPAN_MARK}`;
+    cursor = span.end;
+  });
+  return out + text.slice(cursor);
+}
+
+/** Why removal wording did not resolve; for the detail line only. */
+function unresolvedReason(masked: string, spans: readonly QuotedSpan[]): string {
+  if (NEGATED_REMOVAL.test(masked)) {
+    return "negated removal verb";
+  }
+  if (BARE_REPLACE.test(masked) && !WITH_WORD.test(masked)) {
+    return "replace with no with";
+  }
+  const tokens = spans.map((span) => span.token);
+  if (new Set(tokens).size < tokens.length) {
+    return "the same literal is quoted more than once";
+  }
+  const verbs =
+    (masked.match(new RegExp(REMOVAL_WORD.source, "gi")) ?? []).length +
+    (masked.match(PRESENCE_VERB) ?? []).length;
+  if (verbs > 1) {
+    return "more than one governing verb";
+  }
+  return "the removal object is not exactly one quoted span in a supported form";
+}
+
+/**
+ * Assign polarity to each quoted span from a closed sentence grammar (#6269).
+ *
+ * The whole clause must be one supported sentence for any span to be absent.
+ * A removal word anywhere else never flips polarity; it leaves the clause
+ * unresolved. Spans in a clause with no removal wording keep the presence check.
+ */
+export function classifyQuotedTokenPolarity(clause: AcceptanceClause): QuotedTokenPolarity {
+  const spans = extractQuotedSpans(clause);
+  const names = (ref: string): boolean =>
+    pathRefNamesArtifact(resolvePathRef(ref, spans), clause.artifact_path);
+  // A quoted bound path only names the file; it is never a literal to check.
+  const objects = spans.filter(
+    (span) => !(span.pathLike && pathRefNamesArtifact(span.token, clause.artifact_path)),
+  );
+  const present = [...new Set(spans.filter((s) => !s.pathLike).map((s) => s.token))];
+  // Removal wording counts only outside quoted literals, inline code, and
+  // path- or command-shaped words (`docs/remove-me.md`, `scope:remove`).
+  // A colon or period at a word's end is prose punctuation, not a command.
+  const masked = markSpans(clause.text, spans)
+    .replace(/`[^`\n]*`/g, " ")
+    .replace(/\S*(?:[/\\]|\w[-.:]\w)\S*/g, " ");
+  if (!REMOVAL_WORD.test(masked)) {
+    return present.length > 0 ? { kind: "presence", present } : { kind: "none" };
+  }
+  const unresolved = (reason: string): QuotedTokenPolarity => ({ kind: "unresolved", reason });
+  // One complete sentence: the whole clause, less one trailing period.
+  const sentence = normalizeClauseText(markSpans(clause.text, spans)).replace(/\.$/, "").trimEnd();
+  if (objects.length === 0) {
+    // The only quoted literal is the bound path. As a location
+    // (`Removes stale rows from "docs/x.md"`) it carries no token oracle. As
+    // the object of a closed form it would assert file deletion, which a
+    // token check cannot prove, so it blocks rather than escaping as `none`.
+    const governed =
+      REMOVAL_FORM.test(sentence) || NO_LONGER_FORM.test(sentence) || REPLACE_FORM.test(sentence);
+    return governed
+      ? unresolved("the removal object is the bound artifact path, not a literal in it")
+      : { kind: "none" };
+  }
+  const removal = REMOVAL_FORM.exec(sentence);
+  if (removal !== null) {
+    const ref = removal[2];
+    if (ref !== undefined && !names(ref)) {
+      return unresolved("the removal names a path other than the bound artifact");
+    }
+    return { kind: "absence", absent: [spanToken(spans, removal[1])], present: [] };
+  }
+  const noLonger = NO_LONGER_FORM.exec(sentence);
+  if (noLonger !== null) {
+    if (!names(noLonger[1] ?? "")) {
+      return unresolved("the no-longer-contains subject is not the bound artifact");
+    }
+    return { kind: "absence", absent: [spanToken(spans, noLonger[2])], present: [] };
+  }
+  const replace = REPLACE_FORM.exec(sentence);
+  if (replace !== null) {
+    const ref = replace[3];
+    if (ref !== undefined && !names(ref)) {
+      return unresolved("the replace names a path other than the bound artifact");
+    }
+    const from = spanToken(spans, replace[1]);
+    const to = spanToken(spans, replace[2]);
+    if (from === to) {
+      return unresolved("the replaced literal equals its replacement");
+    }
+    return { kind: "absence", absent: [from], present: [to] };
+  }
+  return unresolved(unresolvedReason(masked, objects));
 }
 
 function walkOne(
@@ -1311,11 +1543,15 @@ function walkOne(
   } catch {
     return bound("failed", `artifact unreadable at stated path ${artifactPath}`);
   }
-  if (isBoundArtifactAbsenceClaim(clause.text, artifactPath)) {
+  // #6269: token absence is classified before the path-absence branch, so a
+  // removal clause is never read as "the bound file must not exist". The guards
+  // above (declared scope, containment, existence, file type) still run first.
+  const polarity = classifyQuotedTokenPolarity(clause);
+  const tokenAbsence = polarity.kind === "absence" || polarity.kind === "unresolved";
+  if (!tokenAbsence && isBoundArtifactAbsenceClaim(clause.text, artifactPath)) {
     return bound("failed", `artifact exists at ${artifactPath} but the clause requires absence`);
   }
-  const expected = extractExpectedTokens(clause);
-  if (expected.length > 0) {
+  if (polarity.kind !== "none") {
     // #5393: defect-description quoted tokens are not an acceptance oracle.
     // Missing or present → unverifiable + adjudicable:false (sibling of #3826 /
     // #4240). Token-present must not credit verified for retaining the error string.
@@ -1331,17 +1567,40 @@ function walkOne(
         adjudicable: false,
       };
     }
+    if (polarity.kind === "unresolved") {
+      // #6269: adjudicable, so it keeps `ok` false; it is never verified.
+      return bound(
+        "unverifiable",
+        `quoted-token polarity unresolved (${polarity.reason}); supported forms: ` +
+          `${SUPPORTED_TOKEN_ABSENCE_FORMS} (#6269)`,
+      );
+    }
     let body = "";
     try {
       body = readFileSync(abs, "utf8");
     } catch {
       return bound("failed", `artifact unreadable at stated path ${artifactPath}`);
     }
-    const missing = expected.filter((token) => !body.includes(token));
-    if (missing.length > 0) {
+    // Exact literal match: case, inner whitespace and inner quotes are significant.
+    const absent = polarity.kind === "absence" ? polarity.absent : [];
+    const stillPresent = absent.filter((token) => body.includes(token));
+    const missing = polarity.present.filter((token) => !body.includes(token));
+    if (stillPresent.length > 0 || missing.length > 0) {
+      const parts = [
+        ...(stillPresent.length > 0
+          ? [`token(s) the clause removes are still in ${artifactPath}: ${stillPresent.join(", ")}`]
+          : []),
+        ...(missing.length > 0
+          ? [`expected token(s) missing from ${artifactPath}: ${missing.join(", ")}`]
+          : []),
+      ];
+      return bound("failed", parts.join("; "));
+    }
+    if (absent.length > 0) {
       return bound(
-        "failed",
-        `expected token(s) missing from ${artifactPath}: ${missing.join(", ")}`,
+        "verified",
+        `removed token(s) absent from shipped artifact ${artifactPath}` +
+          (polarity.present.length > 0 ? "; replacement token(s) present" : ""),
       );
     }
     return bound("verified", `tokens present in shipped artifact ${artifactPath}`);
@@ -1395,7 +1654,8 @@ function isSentenceTerminator(ch: string): boolean {
 
 /** Drop heading and list markers. The sentence stays text; it does not select a file. */
 function stripSentenceChrome(raw: string): string {
-  let text = stripInlineMarkdownBold(raw).replace(/\s+/g, " ").trim();
+  // Same whitespace rule as clause text: quoted literals keep their spacing (#6269).
+  let text = normalizeClauseText(stripInlineMarkdownBold(raw));
   for (let guard = 0; guard < 4 && text.length > 0; guard += 1) {
     const heading = /^(#{1,6}) (.+)$/.exec(text);
     if (heading !== null) {
@@ -1550,7 +1810,8 @@ function readNonEmptyStringList(value: unknown): string[] | null {
 }
 
 function isExistenceOrQuotedTokenClause(clause: AcceptanceClause): boolean {
-  if (extractExpectedTokens(clause).length > 0) {
+  // Same span classifier as walkOne (#6269): a removal clause is a token clause.
+  if (classifyQuotedTokenPolarity(clause).kind !== "none") {
     return true;
   }
   return EXISTENCE_CLAIM.test(clause.text) && !NEGATED_EXISTENCE.test(clause.text);
@@ -1592,9 +1853,15 @@ export function evaluateStatementSentenceCoverage(
   }
   const confessions =
     rec.confessions === undefined ? [] : (readNonEmptyStringList(rec.confessions) ?? []);
-  const clauseTexts = new Set(clauses.map((clause) => normalizeClauseText(clause.text)));
-  const confessionTexts = new Set(confessions);
-  const unmapped = sentences.filter((text) => !clauseTexts.has(text) && !confessionTexts.has(text));
+  // Coverage is identity, not a literal oracle: compare with all whitespace
+  // collapsed, so a sentence stored before quoted spacing was kept still maps
+  // to its clause (#6269).
+  const coverageKey = (text: string): string => text.replace(/\s+/g, " ").trim();
+  const clauseTexts = new Set(clauses.map((clause) => coverageKey(clause.text)));
+  const confessionTexts = new Set(confessions.map(coverageKey));
+  const unmapped = sentences.filter(
+    (text) => !clauseTexts.has(coverageKey(text)) && !confessionTexts.has(coverageKey(text)),
+  );
   return {
     hasSentenceList: true,
     sentences,

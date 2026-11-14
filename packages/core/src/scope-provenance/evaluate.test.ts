@@ -5,6 +5,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  type ApprovedScopeRecord,
   buildApprovedScopeRecord,
   computeFileScopeDigest,
   extractFileScope,
@@ -19,7 +20,13 @@ import {
   resolveDefaultBaseRef,
   unquoteGitPath,
 } from "./evaluate.js";
-import type { ForgeApprovalContext, ForgeApprovalReader } from "./forge-approval.js";
+import { extractIntentFromRaw } from "./extract-intent.js";
+import {
+  computeAuthHashV1,
+  type ForgeApprovalContext,
+  type ForgeApprovalReader,
+} from "./forge-approval.js";
+import { computeIntentDigest } from "./intent-digest.js";
 
 function xbrief(planId: string, fileScope: string[]): Record<string, unknown> {
   return {
@@ -2209,5 +2216,257 @@ describe("forge-approved head-brief membership admit (#6203)", () => {
     const hit = result.findings.find((f) => f.kind === "change-set-outside-approved-scope");
     expect(hit?.detail).toMatch(/forge-approved head brief \(#6203\)/);
     expect(hit?.remediation).toMatch(/fresh qualifying human approval/);
+  });
+});
+
+describe("one-PR mint level same-PR record admit (#6273)", () => {
+  const BRIEF = "xbrief/active/one-pr.xbrief.json";
+  const PLAN = "story-one-pr";
+  const RECORD = `.deft/approved-scope/${PLAN}.json`;
+  const INTENT = `.deft/approved-scope/${PLAN}.intent.json`;
+  const PD = "xbrief/PROJECT-DEFINITION.xbrief.json";
+  const SCOPE = [
+    "packages/core/src/feature.ts",
+    "packages/core/src/feature.test.ts",
+    RECORD,
+    INTENT,
+  ];
+  const CHANGED = [
+    BRIEF,
+    RECORD,
+    INTENT,
+    "packages/core/src/feature.ts",
+    "packages/core/src/feature.test.ts",
+  ];
+  const MINT_ON = { onePrScopeProof: "mint", requireHumanMerge: true };
+
+  function brief(fileScope: readonly string[], acceptance = "it works"): Record<string, unknown> {
+    return {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        id: PLAN,
+        title: "One-PR story",
+        status: "running",
+        items: [{ id: "a", title: "A", status: "pending", narrative: { Acceptance: acceptance } }],
+        metadata: { swarm: { file_scope: [...fileScope] } },
+      },
+    };
+  }
+
+  function pd(policy: Record<string, unknown> | null): string {
+    const plan: Record<string, unknown> = { title: "T", status: "running", items: [] };
+    if (policy !== null) plan["x-directive/policy"] = policy;
+    return JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan });
+  }
+
+  /** In-memory equivalent of `scope:record-approved-scope` for the minted brief. */
+  function mint(payload: Record<string, unknown>): { record: ApprovedScopeRecord; intent: string } {
+    const raw = JSON.stringify(payload);
+    const extracted = extractIntentFromRaw(raw, { projectRoot: "/tmp/one-pr" });
+    if (!extracted.ok) throw new Error(extracted.error);
+    const record: ApprovedScopeRecord = {
+      ...buildApprovedScopeRecord({
+        xbriefRelPath: BRIEF,
+        payload,
+        humanApproval: { kind: "operator", actor: "scott", mintedAt: "2026-11-13T00:00:00Z" },
+        intentDigest: computeIntentDigest(extracted.preimage),
+        digestAlgo: "intent-extract-v1",
+      }),
+      authHashV1: computeAuthHashV1(payload, BRIEF) ?? "",
+    };
+    return { record, intent: JSON.stringify(extracted.preimage) };
+  }
+
+  interface Case {
+    readonly basePolicy?: Record<string, unknown> | null;
+    readonly headPolicy?: Record<string, unknown> | null;
+    readonly minted?: Record<string, unknown>;
+    readonly head?: Record<string, unknown>;
+    readonly editRecord?: (rec: ApprovedScopeRecord) => ApprovedScopeRecord;
+  }
+
+  function evaluate(c: Case = {}) {
+    const basePolicy = c.basePolicy === undefined ? MINT_ON : c.basePolicy;
+    const minted = c.minted ?? brief(SCOPE);
+    const head = c.head ?? minted;
+    const pair = mint(minted);
+    const record = c.editRecord !== undefined ? c.editRecord(pair.record) : pair.record;
+    return evaluateScopeProvenance("/tmp/one-pr", {
+      changedFiles: CHANGED,
+      activeXbriefs: new Map([[BRIEF, JSON.stringify(head)]]),
+      approvedRecords: [record],
+      baseXbriefs: new Map([[PD, pd(basePolicy)]]),
+      headProjectDefinition: pd(c.headPolicy === undefined ? basePolicy : c.headPolicy),
+      headApprovedIntents: new Map([[PLAN, pair.intent]]),
+    });
+  }
+
+  function expectRefused(result: ReturnType<typeof evaluateScopeProvenance>, note: RegExp | null) {
+    expect(result.exitCode).toBe(1);
+    expect(result.findings[0]?.kind).toBe("self-authorizing-scope-expansion");
+    expect(result.mintLevelAdmits).toBeUndefined();
+    if (note === null) expect(result.message).not.toMatch(/#6273/);
+    else expect(result.message).toMatch(note);
+  }
+
+  it("admits an exact same-PR human mint as mint membership authority", () => {
+    const result = evaluate();
+    expect(result.exitCode, result.message).toBe(0);
+    expect(result.mintLevelAdmits).toEqual([
+      {
+        planId: PLAN,
+        xbriefRelPath: BRIEF,
+        fileScope: normalizeFileScope(SCOPE),
+        productionFileCount: 1,
+      },
+    ]);
+  });
+
+  it("refuses paths outside the admitted record with mint remediation", () => {
+    const result = evaluateScopeProvenance("/tmp/one-pr", {
+      changedFiles: [...CHANGED, "tests/helpers/extra.ts"],
+      activeXbriefs: new Map([[BRIEF, JSON.stringify(brief(SCOPE))]]),
+      approvedRecords: [mint(brief(SCOPE)).record],
+      baseXbriefs: new Map([[PD, pd(MINT_ON)]]),
+      headProjectDefinition: pd(MINT_ON),
+      headApprovedIntents: new Map([[PLAN, mint(brief(SCOPE)).intent]]),
+    });
+    expect(result.exitCode).toBe(1);
+    const hit = result.findings.find((f) => f.kind === "change-set-outside-approved-scope");
+    expect(hit?.expandedPaths).toContain("tests/helpers/extra.ts");
+    expect(result.mintLevelAdmits).toHaveLength(1);
+  });
+
+  it("refuses when merge-base requireHumanMerge is false", () => {
+    expectRefused(
+      evaluate({ basePolicy: { onePrScopeProof: "mint", requireHumanMerge: false } }),
+      /requireHumanMerge=true/,
+    );
+  });
+
+  it("refuses requireHumanMerge that is only implied, not typed true", () => {
+    expectRefused(evaluate({ basePolicy: { onePrScopeProof: "mint" } }), /requireHumanMerge=true/);
+  });
+
+  it("refuses a level set only in the head", () => {
+    expectRefused(evaluate({ basePolicy: { requireHumanMerge: true }, headPolicy: MINT_ON }), null);
+  });
+
+  it("refuses a change set that edits either policy field", () => {
+    expectRefused(
+      evaluate({ headPolicy: { onePrScopeProof: "mint", requireHumanMerge: false } }),
+      /edits onePrScopeProof or requireHumanMerge/,
+    );
+    expectRefused(
+      evaluate({ headPolicy: { onePrScopeProof: "off", requireHumanMerge: true } }),
+      /edits onePrScopeProof or requireHumanMerge/,
+    );
+  });
+
+  it("refuses the reserved signed level at the merge base", () => {
+    expectRefused(
+      evaluate({ basePolicy: { onePrScopeProof: "signed", requireHumanMerge: true } }),
+      /#5862/,
+    );
+  });
+
+  it("refuses an authHashV1 that differs from the head brief", () => {
+    expectRefused(
+      evaluate({ editRecord: (r) => ({ ...r, authHashV1: `sha256:${"0".repeat(64)}` }) }),
+      /authHashV1 differs/,
+    );
+    expectRefused(
+      evaluate({
+        editRecord: (r) => {
+          const { authHashV1: _drop, ...rest } = r;
+          return rest as ApprovedScopeRecord;
+        },
+      }),
+      /no authHashV1/,
+    );
+  });
+
+  it("refuses a record whose fileScope differs from the head brief (hash still matches)", () => {
+    const wider = [...SCOPE, "packages/core/src/extra.ts"];
+    expectRefused(
+      evaluate({
+        editRecord: (r) => ({
+          ...r,
+          fileScope: normalizeFileScope(wider),
+          fileScopeDigest: computeFileScopeDigest(wider),
+        }),
+      }),
+      /fileScope differs/,
+    );
+    expectRefused(
+      evaluate({ editRecord: (r) => ({ ...r, fileScopeDigest: "0".repeat(64) }) }),
+      /fileScopeDigest does not match/,
+    );
+  });
+
+  it("refuses a planId, path or stamp that does not match", () => {
+    expectRefused(
+      evaluate({ editRecord: (r) => ({ ...r, xbriefRelPath: "xbrief/active/other.xbrief.json" }) }),
+      /xbriefRelPath does not match/,
+    );
+    expectRefused(
+      evaluate({ editRecord: (r) => ({ ...r, planId: "another-story" }) }),
+      /no same-PR approved-scope record/,
+    );
+    expectRefused(
+      evaluate({
+        editRecord: (r) => ({
+          ...r,
+          humanApproval: { kind: "agent", actor: "agent:worker", mintedAt: "2026-11-13T00:00:00Z" },
+        }),
+      }),
+      /human stamp/,
+    );
+  });
+
+  it("refuses a glob added to the head brief after the mint", () => {
+    expectRefused(evaluate({ head: brief([...SCOPE, "packages/core/src/**"]) }), /glob/);
+  });
+
+  it("refuses head brief drift after the mint", () => {
+    expectRefused(
+      evaluate({ head: brief(SCOPE, "it works and ships more") }),
+      /authHashV1 differs/,
+    );
+    const retitled = brief(SCOPE);
+    (retitled.plan as Record<string, unknown>).title = "A different story";
+    expectRefused(evaluate({ head: retitled }), /drifted from the minted intent/);
+  });
+
+  it("refuses a missing or altered same-PR preimage", () => {
+    const pair = mint(brief(SCOPE));
+    const base = {
+      changedFiles: CHANGED,
+      activeXbriefs: new Map([[BRIEF, JSON.stringify(brief(SCOPE))]]),
+      approvedRecords: [pair.record],
+      baseXbriefs: new Map([[PD, pd(MINT_ON)]]),
+      headProjectDefinition: pd(MINT_ON),
+    };
+    expectRefused(
+      evaluateScopeProvenance("/tmp/one-pr", { ...base, headApprovedIntents: new Map() }),
+      /no same-PR intent preimage/,
+    );
+    const altered = JSON.parse(pair.intent) as { plan: Record<string, unknown> };
+    altered.plan.title = "Swapped";
+    expectRefused(
+      evaluateScopeProvenance("/tmp/one-pr", {
+        ...base,
+        headApprovedIntents: new Map([[PLAN, JSON.stringify(altered)]]),
+      }),
+      /preimage digest does not match/,
+    );
+  });
+
+  it("level off and an absent field keep the pre-#6273 finding", () => {
+    expectRefused(
+      evaluate({ basePolicy: { onePrScopeProof: "off", requireHumanMerge: true } }),
+      null,
+    );
+    expectRefused(evaluate({ basePolicy: null }), null);
   });
 });

@@ -12,6 +12,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { scopeProvenance } from "@deftai/directive-core";
 import { startUatLease } from "@deftai/directive-core/authz";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AUTHZ_AGENT_SHELL_ENV_MARKERS } from "./human-presence-mint.js";
@@ -179,6 +180,43 @@ describe("scope-record-approved-scope CLI (#3205)", () => {
       operatorSeams(),
     );
     expect(agentCode).toBe(1);
+  });
+
+  it("stamps authHashV1 of the bound brief path into the record (#6273)", () => {
+    root = mkdtempSync(join(tmpdir(), "scope-record-authhash-"));
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    const payload = {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        id: "story-6273",
+        status: "pending",
+        items: [{ id: "a", title: "A", narrative: { Acceptance: "it works" } }],
+        metadata: { swarm: { file_scope: ["src/a.ts", "src/a.test.ts"] } },
+      },
+    };
+    writeFileSync(
+      join(root, "xbrief/pending/story.xbrief.json"),
+      `${JSON.stringify(payload, null, 2)}\n`,
+      "utf8",
+    );
+    const printed: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      printed.push(String(c));
+      return true;
+    });
+    const code = run(
+      ["xbrief/pending/story.xbrief.json", "--project-root", root, "--actor", "scott", "--confirm"],
+      operatorSeams(),
+    );
+    expect(code).toBe(0);
+    const rec = JSON.parse(
+      readFileSync(join(root, ".deft/approved-scope/story-6273.json"), "utf8"),
+    ) as { authHashV1?: string; xbriefRelPath: string };
+    // Bound to the active path the record names, so the head brief must match it.
+    const expected = scopeProvenance.computeAuthHashV1(payload, "xbrief/active/story.xbrief.json");
+    expect(expected).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(rec.authHashV1).toBe(expected);
+    expect(printed.join("")).toContain(`authHashV1: ${expected}`);
   });
 
   it("shared-gate refuse matrix for scope:record-approved-scope (#3384)", () => {

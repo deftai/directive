@@ -44,7 +44,7 @@ export function isPathInsideRoot(root: string, candidate: string): boolean {
   return !rel.startsWith("..");
 }
 
-const { isHumanApprovalStamp, mintApprovedScopeArtifacts } = scopeProvenance;
+const { computeAuthHashV1, isHumanApprovalStamp, mintApprovedScopeArtifacts } = scopeProvenance;
 
 export interface ParsedArgs {
   projectRoot: string;
@@ -309,6 +309,7 @@ export function run(argv: string[], seams: HumanPresenceMintSeams = {}): number 
     args.repo.trim().length > 0 ? args.repo.trim() : undefined,
     projectRoot,
   );
+  const authHashV1 = computeAuthHashV1(payload, xbriefRelPath);
   // Mint writes record + preimage as one fail-closed pair. A dest-write
   // failure restores the prior pair or leaves neither dest (#3385 residual).
   let minted: ReturnType<typeof mintApprovedScopeArtifacts>;
@@ -319,6 +320,8 @@ export function run(argv: string[], seams: HumanPresenceMintSeams = {}): number 
       rawText: raw,
       projectRoot,
       humanApproval: stamp,
+      // Bind the record to the brief's auth-hash v1 for the one-PR mint level (#6273).
+      ...(authHashV1 !== null ? { authHashV1 } : {}),
       extract: {
         projectRoot,
         approvedReposSeed: repoSeed !== null ? [repoSeed] : [],
@@ -337,11 +340,14 @@ export function run(argv: string[], seams: HumanPresenceMintSeams = {}): number 
         `  xbriefRelPath: ${record.xbriefRelPath}\n` +
         `  fileScopeDigest: ${record.fileScopeDigest}\n` +
         `  intentDigest: ${record.intentDigest ?? ""}\n` +
+        `  authHashV1: ${record.authHashV1 ?? ""}\n` +
         `  paths: ${record.fileScope.length}\n` +
         `  humanApproval: ${stamp.kind}/${stamp.actor}\n` +
         "  Read the preimage before you commit. That file is the approved intent (#3385).\n" +
         "  Next: commit record + preimage on the merge base (or a prior PR) before " +
-        "activation/expansion in the implementation change set (#3205 / #3385).\n",
+        "activation/expansion in the implementation change set (#3205 / #3385).\n" +
+        "  At merge-base onePrScopeProof=mint with requireHumanMerge=true, the pair may ride " +
+        "in the same PR as the brief and its code (#6273).\n",
     );
   }
   return 0;

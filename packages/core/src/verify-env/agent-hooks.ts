@@ -121,6 +121,24 @@ function formatPinEngineSkewVisibility(projectRoot: string): string | null {
   );
 }
 
+/** One sentence naming each session-end host and whether its SessionEnd hook is present (#6274). */
+export function formatSessionEndRegistrationNote(
+  registrations: readonly AgentHookInspection[],
+): string {
+  const parts = registrations
+    .filter((entry) => entry.sessionEndSupport === "deposited" && entry.status !== "disabled")
+    .map((entry) => {
+      const name = entry.host[0]?.toUpperCase() + entry.host.slice(1);
+      const state =
+        entry.sessionEndRegistered === true
+          ? "registered"
+          : "not registered (best-effort; redeposit to add it)";
+      return `${name} ${state}`;
+    });
+  if (parts.length === 0) return "";
+  return ` SessionEnd lease release: ${parts.join(", ")}; other hosts have no session-end deposit.`;
+}
+
 /** Read-only P0 agent-host registration health, independent of git hooks. */
 export function evaluateAgentHooks(
   projectRoot: string,
@@ -183,6 +201,9 @@ export function evaluateAgentHooks(
     };
   }
 
+  // #6274: SessionEnd lease release is best-effort, reported beside compactSupport
+  // through each registration's sessionEndSupport / sessionEndRegistered.
+  const sessionEndNote = formatSessionEndRegistrationNote(registrations);
   const disabledHosts = registrations
     .filter((entry) => entry.status === "disabled")
     .map((entry) => entry.host[0]?.toUpperCase() + entry.host.slice(1));
@@ -197,7 +218,8 @@ export function evaluateAgentHooks(
       (disabledHosts.length > 0
         ? ` Intentional hostHooks disabled: ${disabledHosts.join(", ")}.`
         : "") +
-      " Per-host mutation tool names verified against the deposited matchers (#3987).",
+      " Per-host mutation tool names verified against the deposited matchers (#3987)." +
+      sessionEndNote,
     stream: "stdout",
     registrations,
     coverage,

@@ -4,13 +4,17 @@ import { dirname, join, parse } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   bindClausesToDeclaredScope,
+  classifyQuotedTokenPolarity,
   collectDeclaredAcceptanceNarrativeSurface,
   collectDoneWhenLines,
   collectPlanItemAcceptanceSurface,
   countAdjudicableClauses,
   countUnverifiedAdjudicableClauses,
   deriveAcceptanceClauses,
+  evaluateStatementSentenceCoverage,
   extractExpectedTokens,
+  extractQuotedSpans,
+  extractStatementSentences,
   formatClauseWalkMessage,
   formatZeroClauseAcceptanceShapedNotice,
   isBindableMatchAnyFilePointer,
@@ -1854,5 +1858,355 @@ Done when npm run check exits 0 on main.
     expect(report.clauses[0]?.outcome).toBe("unverifiable");
     expect(report.clauses[0]?.adjudicable).toBe(false);
     expect(report.clauses[0]?.outcome).not.toBe("failed");
+  });
+});
+
+describe("quoted-token removal polarity (#6269)", () => {
+  const DOC = "docs/x.md";
+
+  function rootWithDoc(body: string): string {
+    const root = mkdtempSync(join(tmpdir(), "clause-6269-"));
+    mkdirSync(join(root, "docs"), { recursive: true });
+    writeFileSync(join(root, DOC), body, "utf8");
+    return root;
+  }
+
+  function clause(text: string, artifactPath: string | null = DOC) {
+    return { id: 1, text, artifact_path: artifactPath, ambiguous: false };
+  }
+
+  function walkText(text: string, body: string) {
+    return walkAcceptanceClauses([clause(text)], rootWithDoc(body), { declaredScope: [DOC] })
+      .clauses[0];
+  }
+
+  const REMOVAL_FORMS = [
+    'Removes "old phrase" from docs/x.md',
+    'Remove "old phrase" from docs/x.md.',
+    'Deletes "old phrase" from `docs/x.md`',
+    'Delete "old phrase"',
+    'Drops "old phrase" from ./docs/x.md',
+    'Drop "old phrase" from "docs/x.md"',
+    'Recuts "old phrase" from docs/x.md',
+    'Recut "old phrase"',
+    'docs/x.md no longer contains "old phrase"',
+    '`docs/x.md` no longer contains "old phrase".',
+  ];
+
+  for (const text of REMOVAL_FORMS) {
+    it(`verifies when the literal is absent and fails when present: ${text}`, () => {
+      const absent = walkText(text, "the new phrase only\n");
+      expect(absent?.outcome).toBe("verified");
+      expect(absent?.adjudicable).toBe(true);
+      const present = walkText(text, "still has the old phrase here\n");
+      expect(present?.outcome).toBe("failed");
+      expect(present?.detail).toMatch(/still in docs\/x\.md: old phrase/);
+    });
+  }
+
+  it("checks all four replace combinations: only X absent and Y present verifies", () => {
+    const text = 'Replaces "old phrase" with "new phrase" in docs/x.md';
+    expect(walkText(text, "the new phrase\n")?.outcome).toBe("verified");
+    expect(walkText(text, "the old phrase and the new phrase\n")?.outcome).toBe("failed");
+    expect(walkText(text, "the old phrase\n")?.outcome).toBe("failed");
+    // Must-not (clause-wide flip): both literals absent is failed, not verified.
+    const neither = walkText(text, "nothing relevant\n");
+    expect(neither?.outcome).toBe("failed");
+    expect(neither?.detail).toMatch(/expected token\(s\) missing from docs\/x\.md: new phrase/);
+    expect(walkText('Replace "old phrase" with "new phrase"', "the new phrase\n")?.outcome).toBe(
+      "verified",
+    );
+  });
+
+  it("keeps the presence check for spans no closed form governs", () => {
+    const text = 'Adds "new phrase" to docs/x.md';
+    expect(walkText(text, "the new phrase\n")?.outcome).toBe("verified");
+    expect(walkText(text, "nothing\n")?.outcome).toBe("failed");
+    expect(classifyQuotedTokenPolarity(clause(text))).toEqual({
+      kind: "presence",
+      present: ["new phrase"],
+    });
+  });
+
+  it("does not read removal words inside a quoted literal or inline code as a verb", () => {
+    expect(classifyQuotedTokenPolarity(clause('Logs "removed from cache"')).kind).toBe("presence");
+    expect(classifyQuotedTokenPolarity(clause('`scope:remove` prints "all done"')).kind).toBe(
+      "presence",
+    );
+    expect(classifyQuotedTokenPolarity(clause('scope:remove prints "all done"')).kind).toBe(
+      "presence",
+    );
+    expect(
+      classifyQuotedTokenPolarity(clause('Adds "all done" to docs/remove-me.md', null)).kind,
+    ).toBe("presence");
+  });
+
+  const UNRESOLVED: ReadonlyArray<readonly [string, string, RegExp]> = [
+    ["negated removal verb", 'Does not remove "old phrase" from docs/x.md', /negated/],
+    ["two governing verbs", 'Removes and adds "old phrase" in docs/x.md', /more than one/],
+    [
+      "same literal under both polarities",
+      'Removes "old phrase" from docs/x.md and keeps "old phrase"',
+      /more than once/,
+    ],
+    ["replace with no with", 'Replaces "old phrase" in docs/x.md', /replace with no with/],
+    ["X equal to Y", 'Replaces "old phrase" with "old phrase"', /equals its replacement/],
+    [
+      "object not exactly the quoted span",
+      'Removes the "old phrase" heading from docs/x.md',
+      /not exactly one quoted span/,
+    ],
+    ["past-tense removal", '"old phrase" is removed from docs/x.md', /not exactly one/],
+    ["another path", 'Removes "old phrase" from docs/other.md', /other than the bound/],
+  ];
+
+  for (const [name, text, reason] of UNRESOLVED) {
+    it(`returns adjudicable unverifiable, never verified, for ${name}`, () => {
+      for (const body of ["the old phrase\n", "nothing\n"]) {
+        const row = walkText(text, body);
+        expect(row?.outcome).toBe("unverifiable");
+        expect(row?.adjudicable).toBe(true);
+        expect(row?.detail).toMatch(reason);
+        expect(row?.detail).toContain('Removes|Deletes|Drops|Recuts "X"');
+        expect(row?.detail).toContain('PATH no longer contains "X"');
+        expect(row?.detail).toContain('Replaces "X" with "Y"');
+      }
+    });
+  }
+
+  it("keeps each quoted span with its own position, with no dedupe before polarity", () => {
+    const text = 'Removes "old phrase" from docs/x.md and keeps "old phrase"';
+    const spans = extractQuotedSpans(clause(text));
+    expect(spans.map((s) => s.token)).toEqual(["old phrase", "old phrase"]);
+    expect(spans[1]?.start).toBeGreaterThan(spans[0]?.start ?? 0);
+    expect(text.slice(spans[1]?.start, spans[1]?.end)).toBe('"old phrase"');
+    // The legacy expected-token list still dedupes for presence-only callers.
+    expect(extractExpectedTokens(clause(text))).toEqual(["old phrase"]);
+    // The second span is evaluated: the clause is unresolved, not a clean removal.
+    expect(classifyQuotedTokenPolarity(clause(text)).kind).toBe("unresolved");
+  });
+
+  it("pairs quotes in order so a closing quote never opens a literal", () => {
+    // A regex retry used to capture the text between two short literals.
+    expect(extractQuotedSpans(clause('Closed replace form: `Replaces "X" with "Y"`'))).toEqual([]);
+    expect(
+      extractQuotedSpans(clause('Replaces "ab" with "new phrase"')).map((s) => s.token),
+    ).toEqual(["new phrase"]);
+    expect(
+      classifyQuotedTokenPolarity(clause('Closed replace form: `Replaces "X" with "Y"`')).kind,
+    ).toBe("none");
+  });
+
+  it("keeps inner quotes of the other kind inside the outer literal", () => {
+    const text = `Removes "the 'old' phrase" from docs/x.md`;
+    expect(extractQuotedSpans(clause(text)).map((s) => s.token)).toEqual(["the 'old' phrase"]);
+    expect(walkText(text, "the old phrase and the 'new' one\n")?.outcome).toBe("verified");
+    expect(walkText(text, "keeps the 'old' phrase\n")?.outcome).toBe("failed");
+    expect(extractQuotedSpans(clause(`Logs 'say "hello" now'`, null)).map((s) => s.token)).toEqual([
+      'say "hello" now',
+    ]);
+  });
+
+  it("checks a quoted file-path literal named as the removal object", () => {
+    const text = 'Removes "legacy.ts" from docs/x.md';
+    expect(classifyQuotedTokenPolarity(clause(text))).toEqual({
+      kind: "absence",
+      absent: ["legacy.ts"],
+      present: [],
+    });
+    expect(walkText(text, "imports nothing\n")?.outcome).toBe("verified");
+    expect(walkText(text, "import from legacy.ts\n")?.outcome).toBe("failed");
+    // The presence check still skips path-shaped literals, as before.
+    expect(extractExpectedTokens(clause('Adds "legacy.ts" to the list'))).toEqual([]);
+    expect(classifyQuotedTokenPolarity(clause('Adds "legacy.ts" to the list')).kind).toBe("none");
+    // Single-quoted and plural forms take the same path-literal object.
+    expect(walkText("Delete 'legacy.ts'", "import from legacy.ts\n")?.outcome).toBe("failed");
+    expect(walkText('Drops "src/legacy.ts" from docs/x.md', "nothing\n")?.outcome).toBe("verified");
+  });
+
+  it("blocks a closed form whose only quoted object is the bound path", () => {
+    for (const text of ['Removes "docs/x.md"', 'Deletes "docs/x.md" from docs/x.md']) {
+      for (const body of ["docs/x.md is listed\n", "nothing\n"]) {
+        const row = walkText(text, body);
+        expect(row?.outcome).toBe("unverifiable");
+        expect(row?.adjudicable).toBe(true);
+        expect(row?.detail).toMatch(/object is the bound artifact path/);
+      }
+    }
+  });
+
+  it("accepts a quoted bound path and refuses a basename-only path", () => {
+    expect(walkText('Removes "old phrase" from "docs/x.md"', "nothing\n")?.outcome).toBe(
+      "verified",
+    );
+    expect(classifyQuotedTokenPolarity(clause('Removes stale rows from "docs/x.md"')).kind).toBe(
+      "none",
+    );
+    const basename = walkText('Removes "old phrase" from x.md', "nothing\n");
+    expect(basename?.outcome).toBe("unverifiable");
+    expect(basename?.detail).toMatch(/other than the bound/);
+  });
+
+  it("treats a colon after the removal verb as prose, not a command name", () => {
+    const row = walkText('Removes: "old phrase" from docs/x.md', "keeps the old phrase\n");
+    expect(row?.outcome).toBe("unverifiable");
+    expect(row?.adjudicable).toBe(true);
+  });
+
+  it("keeps ok false when an unresolved row has a verified sibling", () => {
+    const root = rootWithDoc("the new phrase\n");
+    const report = walkAcceptanceClauses(
+      [
+        { ...clause('Removes "old phrase" from docs/x.md'), id: 1 },
+        { ...clause('Does not remove "old phrase" from docs/x.md'), id: 2 },
+      ],
+      root,
+      { declaredScope: [DOC] },
+    );
+    expect(report.verified.map((r) => r.id)).toEqual([1]);
+    expect(report.failed).toEqual([]);
+    expect(countUnverifiedAdjudicableClauses(report.clauses)).toBe(1);
+    expect(report.ok).toBe(false);
+  });
+
+  it("classifies token absence before the bound-artifact absence branch", () => {
+    // The literal holds an ABSENCE_ALTERNATION phrase and the clause names the
+    // bound path, which used to route to the path-absence failed row.
+    const text = 'Removes "must be absent" from docs/x.md';
+    const row = walkText(text, "the rule text is gone\n");
+    expect(row?.outcome).toBe("verified");
+    expect(row?.detail).not.toMatch(/requires absence/);
+    expect(walkText(text, "this must be absent\n")?.outcome).toBe("failed");
+  });
+
+  it("keeps the path-absence row for a clause with no quoted span", () => {
+    const row = walkText("docs/x.md must be absent", "anything\n");
+    expect(row?.outcome).toBe("failed");
+    expect(row?.detail).toMatch(/clause requires absence/);
+  });
+
+  it("keeps the path-absence row for a presence span with a path-absence phrase", () => {
+    const row = walkText('docs/x.md must be absent and "anything" stays', "anything\n");
+    expect(row?.outcome).toBe("failed");
+    expect(row?.detail).toMatch(/clause requires absence/);
+  });
+
+  it("runs the scope, existence and file-type guards before any token check", () => {
+    const root = rootWithDoc("nothing\n");
+    mkdirSync(join(root, "docs", "dir.md"), { recursive: true });
+    const report = walkAcceptanceClauses(
+      [
+        { ...clause('Removes "old phrase" from docs/gone.md', "docs/gone.md"), id: 1 },
+        { ...clause('Removes "old phrase" from docs/dir.md', "docs/dir.md"), id: 2 },
+        { ...clause('Removes "old phrase" from docs/undeclared.md', "docs/undeclared.md"), id: 3 },
+      ],
+      root,
+      { declaredScope: ["docs/gone.md", "docs/dir.md"] },
+    );
+    expect(report.clauses[0]?.outcome).toBe("failed");
+    expect(report.clauses[0]?.detail).toMatch(/artifact missing/);
+    expect(report.clauses[1]?.outcome).toBe("failed");
+    expect(report.clauses[1]?.detail).toMatch(/not a shipped file/);
+    expect(report.clauses[2]?.outcome).toBe("unverifiable");
+    expect(report.clauses[2]?.adjudicable).toBe(false);
+    expect(report.ok).toBe(false);
+  });
+
+  it("matches the exact literal: case and inner whitespace stay significant", () => {
+    const text = 'Removes "Old  Phrase" from docs/x.md';
+    expect(walkText(text, "old phrase\nOld Phrase\nOLD  PHRASE\n")?.outcome).toBe("verified");
+    expect(walkText(text, "keeps Old  Phrase\n")?.outcome).toBe("failed");
+  });
+
+  it("keeps quoted whitespace through stored and derived clauses", () => {
+    const text = 'Removes  "Old  Phrase"\tfrom docs/x.md';
+    const stored = readAcceptanceClauses({
+      clauses: [{ id: 1, text, artifact_path: DOC, ambiguous: false }],
+    });
+    // Whitespace outside the quotes collapses; inside the literal it is kept.
+    expect(stored[0]?.text).toBe('Removes "Old  Phrase" from docs/x.md');
+    const { clauses: derived } = stampDerivedClausesOnAcceptance(
+      {
+        items: [{ title: text, narrative: {} }],
+        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+      },
+      "Title only",
+    );
+    expect(derived[0]?.text).toBe('Removes "Old  Phrase" from docs/x.md');
+    for (const clauses of [
+      stored,
+      bindClausesToDeclaredScope(derived, [DOC], rootWithDoc("")).clauses,
+    ]) {
+      const failRoot = rootWithDoc("still has Old  Phrase\n");
+      expect(
+        walkAcceptanceClauses(clauses, failRoot, { declaredScope: [DOC] }).clauses[0]?.outcome,
+      ).toBe("failed");
+      const passRoot = rootWithDoc("now says Old Phrase\n");
+      expect(
+        walkAcceptanceClauses(clauses, passRoot, { declaredScope: [DOC] }).clauses[0]?.outcome,
+      ).toBe("verified");
+    }
+  });
+
+  it("maps a quoted-spacing sentence to its clause in sentence coverage", () => {
+    const clauseText = 'Removes "Old  Phrase" from the guide';
+    // Intake now keeps quoted spacing when it extracts statement sentences.
+    expect(extractStatementSentences(`- ${clauseText}\n`)).toEqual([clauseText]);
+    const clauses = [clause(clauseText)];
+    // A sentence stored by an older intake (spacing collapsed) still maps.
+    for (const sentence of [clauseText, 'Removes "Old Phrase" from the guide']) {
+      const coverage = evaluateStatementSentenceCoverage({ sentences: [sentence] }, clauses);
+      expect(coverage.unmappedSentenceCount).toBe(0);
+    }
+    const confessed = evaluateStatementSentenceCoverage(
+      { sentences: ["Not a  clause"], confessions: ["Not a clause"] },
+      clauses,
+    );
+    expect(confessed.unmappedSentenceCount).toBe(0);
+  });
+
+  it("leaves the #5393 defect-description exemption unchanged", () => {
+    const root = rootWithDoc("still says possibly undefined\n");
+    const report = walkAcceptanceClauses(
+      [
+        {
+          ...clause('Removes "possibly undefined" from docs/x.md'),
+          source_kind: "defect-description" as const,
+        },
+      ],
+      root,
+      { declaredScope: [DOC] },
+    );
+    expect(report.clauses[0]?.outcome).toBe("unverifiable");
+    expect(report.clauses[0]?.adjudicable).toBe(false);
+  });
+
+  it("counts a removal-only clause as a token clause, not a behavioral one", () => {
+    const removal = clause('Removes "old phrase" from docs/x.md');
+    const coverage = evaluateStatementSentenceCoverage({ sentences: [removal.text] }, [removal]);
+    expect(coverage.behavioralClauseCount).toBe(0);
+    expect(
+      evaluateStatementSentenceCoverage({}, [clause("a behavioral claim with no literal")])
+        .behavioralClauseCount,
+    ).toBe(1);
+  });
+
+  it("walks a removal clause derived from plan.items", () => {
+    const { clauses } = stampDerivedClausesOnAcceptance(
+      {
+        items: [{ title: 'Removes "old phrase" from docs/x.md', narrative: {} }],
+        acceptance: { commands: [], none_stated: true, source_rung: "project_floor" },
+      },
+      "Title only",
+    );
+    const root = rootWithDoc("the new phrase\n");
+    const bound = bindClausesToDeclaredScope(clauses, [DOC], root);
+    expect(bound.ok).toBe(true);
+    expect(bound.clauses[0]?.artifact_path).toBe(DOC);
+    const report = walkAcceptanceClauses(bound.clauses, root, { declaredScope: [DOC] });
+    expect(report.clauses[0]?.outcome).toBe("verified");
+    expect(report.ok).toBe(true);
+    writeFileSync(join(root, DOC), "the old phrase\n", "utf8");
+    expect(walkAcceptanceClauses(bound.clauses, root, { declaredScope: [DOC] }).ok).toBe(false);
   });
 });
