@@ -10,9 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- Minted the intent-constraint record for the #6274 session-end diagnostic cap (400 characters). Refs #6274.
 - chore(dogfood): pin Directive to 0.129.9.
 
 ### Fixed
+- fix(scope): strict acceptance axes (deploy, smoke, UAT) match prose only, not file, job or workflow names such as `deploy-dev` or `smoke-test.ts` (#6270, refs #3240).
+- Issue ingest now keeps rejected alternatives, footnotes and record-keeping out of the plan's work items. Rejected alternatives remain available as constraints. Refs #6265.
+- Shell authorization classification now blocks writes to protected Directive state hidden behind directory changes, command wrappers, awk scripts, and archive extraction while preserving read-only inspection and safe copies. Refs #6292.
 
 ### Removed
 

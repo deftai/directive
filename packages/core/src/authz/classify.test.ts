@@ -2430,6 +2430,84 @@ describe("unique destination grammar (#3804)", () => {
 });
 
 describe("inactive Shell classifiers (#4709)", () => {
+  it("uses one closed read-only proof for protected stores and kill-switches (#6292)", () => {
+    const blocked = [
+      "cd .deft/authz/grants && cp ~/f g",
+      "printf %s .deft/authz/grants/g | xargs touch",
+      "ar x /tmp/e.a .deft-directive-disable",
+      "awk 'BEGIN {system(\"cp /tmp/g .deft/authz/grants/g\")}'",
+    ];
+    for (const command of blocked) {
+      expect(inactiveShellTargetsProtectedStore(command), command).toBe(true);
+      expect(
+        classifyHookAuthzOps({
+          toolName: "Shell",
+          shellCommand: command,
+          isDirectWrite: false,
+        }),
+        command,
+      ).not.toEqual([]);
+    }
+
+    const allowed = [
+      "ls .deft/authz/grants/ 2>/dev/null | head",
+      "test -e .deft-directive-disable",
+      "cat .deft/authz/state.json",
+      "ar t /tmp/e.a .deft-directive-disable",
+    ];
+    for (const command of allowed) {
+      expect(inactiveShellTargetsProtectedStore(command), command).toBe(false);
+      expect(hasKillSwitchShellWrite(command), command).toBe(false);
+      expect(classifyShellAuthzOps(command), command).not.toContain("settings");
+    }
+  });
+
+  it("does not treat protected inputs as xargs destinations", () => {
+    expect(
+      classifyShellAuthzOps("printf %s .deft/authz/grants/g | xargs -I{} cp {} /tmp/g"),
+    ).toEqual([]);
+    expect(classifyShellAuthzOps("printf %s .deft/authz/grants/g | xargs cp /tmp/g")).toContain(
+      "settings",
+    );
+    expect(
+      classifyShellAuthzOps("printf %s .deft/authz/grants/g | xargs cat && rm $AUTHZ_DIR"),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps(
+        "printf %s .deft/authz/grants/g | xargs -I{} cp {} .deft/authz/grants/out",
+      ),
+    ).toContain("settings");
+  });
+
+  it("handles option terminators and output-writing git forms", () => {
+    expect(classifyShellAuthzOps("cd -- .deft/authz/grants && cp /tmp/g g")).toContain("settings");
+    expect(classifyShellAuthzOps("git diff --output=.deft/authz/grants/g")).toContain("settings");
+    expect(classifyShellAuthzOps("git diff -o .deft/authz/grants/g")).toContain("settings");
+    expect(
+      classifyShellAuthzOps(
+        "git -c diff.external='touch .deft-directive-disable' diff --no-index a b",
+      ),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps("git -c alias.diff='!touch .deft-directive-disable' diff"),
+    ).toContain("settings");
+    expect(classifyShellAuthzOps("echo x > .deft/approved-scope-backup/story.json")).toEqual([]);
+  });
+
+  it("resolves relative writer targets from protected directories", () => {
+    expect(
+      classifyShellAuthzOps("cd .deft/approved-scope && cp story.json ../../story-backup.json"),
+    ).not.toContain("settings");
+    expect(
+      classifyShellAuthzOps("cd .deft/approved-scope && cp story.json child/story-backup.json"),
+    ).toContain("settings");
+  });
+
+  it("recognizes Windows substring and replacement expansions", () => {
+    expect(classifyShellAuthzOps('copy seed.json "%DEST:~0%"')).toContain("settings");
+    expect(classifyShellAuthzOps('copy seed.json "%DEST:old=new%"')).toContain("settings");
+  });
+
   it("pins hasAuthzDirShellWrite for grant-store writes, not reads", () => {
     expect(hasAuthzDirShellWrite("cp /tmp/g.json .deft/authz/grants/g.json")).toBe(true);
     expect(hasAuthzDirShellWrite('echo {"x":1} > .deft/authz/grants/evil.json')).toBe(true);
