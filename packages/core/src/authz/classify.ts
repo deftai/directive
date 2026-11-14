@@ -1,1 +1,5470 @@
-@packages/core/src/authz/classify.ts
+/**
+ * Map hook tool invocations to authz operation classes (#2944).
+ * Reuses #2711 push/merge shell classification; adds PR create/advance detection
+ * for UAT denials without re-owning runtimeAuthority Shell matchers.
+ *
+ * Token walks are O(n) — no nested-quantifier regex on untrusted shell input
+ * (CodeQL js/polynomial-redos).
+ *
+ * Guarantee: protected destinations in explicit write grammars emit `unknown`,
+ * while proven read-only commands and ordinary destinations retain their prior
+ * classifications. Non-goals: arbitrary embedded-language semantics and argv0
+ * writer catalogs. Full-input token and literal scans stay linear.
+ */
+
+import { isShellTool } from "../hooks/tools.js";
+import {
+  classifyMcpTool,
+  classifyShellCommand,
+  listShellOps,
+  type RuntimeAuthorityShellOp,
+} from "../policy/runtime-authority.js";
+import {
+  resolvedDestIsPayloadRootProtected,
+  shellCommandHasPayloadRootProtectedDestAfterRealpath,
+} from "./protected-dest-realpath.js";
+import type { AuthzOperation } from "./types.js";
+
+export type AuthzClassifiedOp =
+  | AuthzOperation
+  | "test"
+  | "evidence"
+  | "unknown"
+  | "protected_store";
+
+/**
+ * Split on whitespace without nested quantifiers (O(n)).
+ * Newlines become `;` segment breaks so compound lists like
+ * `scp …authz…\necho ok` keep the scp dest (#3213 Greptile residual).
+ * Bare space/tab/CR still only separate tokens.
+ */
+function shellTokens(command: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  for (let i = 0; i < command.length; i++) {
+    const c = command[i];
+    if (c === undefined) break;
+    if (c === " " || c === "\t" || c === "\r") {
+      if (cur.length > 0) {
+        out.push(cur);
+        cur = "";
+      }
+      continue;
+    }
+    if (c === "\n") {
+      if (cur.length > 0) {
+        out.push(cur);
+        cur = "";
+      }
+      // Emit a segment break once (avoid runs of `;` from blank lines).
+      if (out.length > 0 && out[out.length - 1] !== ";") {
+        out.push(";");
+      }
+      continue;
+    }
+    cur += c;
+  }
+  if (cur.length > 0) out.push(cur);
+  return out;
+}
+
+function normalizeToken(token: string): string {
+  return token.replace(/['"\\]/g, "").toLowerCase();
+}
+
+function isEnvAssign(token: string): boolean {
+  const eq = token.indexOf("=");
+  if (eq <= 0) return false;
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(token.slice(0, eq));
+}
+
+/**
+ * Walk tokens looking for `gh [opts] <resource> <verb>` patterns (O(n)).
+ * Returns the resource+verb pair when found.
+ */
+/** gh global flags that take a separate value token. */
+const GH_VALUE_FLAGS = new Set(["-R", "--repo", "-a", "--app", "-h", "--hostname", "-p", "--jq"]);
+
+function findGhResourceVerb(tokens: readonly string[]): { resource: string; verb: string } | null {
+  let i = 0;
+  while (i < tokens.length && isEnvAssign(tokens[i] as string)) i++;
+  const wrap = tokens[i] !== undefined ? normalizeToken(tokens[i] as string) : "";
+  if (wrap === "sudo" || wrap === "env" || wrap === "command") {
+    i++;
+    while (i < tokens.length && isEnvAssign(tokens[i] as string)) i++;
+  }
+  const bin = tokens[i] !== undefined ? normalizeToken(tokens[i] as string) : "";
+  if (bin !== "gh" && bin !== "gh.exe") return null;
+  i++;
+  while (i < tokens.length) {
+    const t = tokens[i];
+    if (t === undefined) break;
+    const n = normalizeToken(t);
+    if (!n.startsWith("-")) break;
+    // --flag=value form consumes one token.
+    if (n.startsWith("--") && n.includes("=")) {
+      i++;
+      continue;
+    }
+    // Value-taking short/long flags: -R owner/repo, --repo owner/repo
+    if (GH_VALUE_FLAGS.has(t) || GH_VALUE_FLAGS.has(n)) {
+      i += 2;
+      continue;
+    }
+    i++;
+  }
+  const resource = tokens[i] !== undefined ? normalizeToken(tokens[i] as string) : "";
+  const verb = tokens[i + 1] !== undefined ? normalizeToken(tokens[i + 1] as string) : "";
+  if (resource.length === 0 || verb.length === 0) return null;
+  return { resource, verb };
+}
+
+const TEST_BINS = new Set(["vitest", "pytest", "cargo", "npm", "pnpm", "yarn", "task"]);
+const TEST_SECOND = new Set(["test"]);
+const DEPLOY_PAIRS: ReadonlyArray<readonly [string, string]> = [
+  ["terraform", "apply"],
+  ["helm", "upgrade"],
+  ["kubectl", "apply"],
+  ["fly", "deploy"],
+  ["vercel", "deploy"],
+];
+
+function hasGoTest(tokens: readonly string[]): boolean {
+  for (let i = 0; i < tokens.length - 1; i++) {
+    if (
+      normalizeToken(tokens[i] as string) === "go" &&
+      normalizeToken(tokens[i + 1] as string) === "test"
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function hasTestRunner(tokens: readonly string[]): boolean {
+  if (hasGoTest(tokens)) return true;
+  for (let i = 0; i < tokens.length; i++) {
+    const t = normalizeToken(tokens[i] as string);
+    if (TEST_BINS.has(t)) {
+      // vitest/pytest alone, or npm/pnpm/yarn/task/cargo + test
+      if (t === "vitest" || t === "pytest") return true;
+      const next = tokens[i + 1] !== undefined ? normalizeToken(tokens[i + 1] as string) : "";
+      if (TEST_SECOND.has(next)) return true;
+    }
+  }
+  return false;
+}
+
+function hasDeploy(tokens: readonly string[]): boolean {
+  for (let i = 0; i < tokens.length - 1; i++) {
+    const a = normalizeToken(tokens[i] as string);
+    const b = normalizeToken(tokens[i + 1] as string);
+    for (const [bin, verb] of DEPLOY_PAIRS) {
+      if (a === bin && b === verb) return true;
+    }
+  }
+  return false;
+}
+
+function hasGhApiPath(tokens: readonly string[], needle: string): boolean {
+  let sawGh = false;
+  let sawApi = false;
+  for (const raw of tokens) {
+    const t = normalizeToken(raw);
+    if (t === "gh" || t === "gh.exe") {
+      sawGh = true;
+      continue;
+    }
+    if (sawGh && t === "api") {
+      sawApi = true;
+      continue;
+    }
+    if (sawApi && t.includes(needle)) return true;
+  }
+  return false;
+}
+
+/**
+ * Authz authority-mutating CLI verbs (#3110). Classified as **settings** so under
+ * active UAT they deny without a prior human grant — never empty → shell-op-unclassifiable fail-open.
+ */
+const AUTHZ_MUTATING_SUBCOMMANDS = new Set(["grant", "uat-start", "uat-suspend", "revoke"]);
+
+/**
+ * Policy authority mutators that weaken merge / branch / directive gates (#3186).
+ * Classified as **settings** — agents must not self-serve these under active UAT.
+ */
+const POLICY_AUTHORITY_MUTATORS = new Set([
+  "allow-bot-merge",
+  "allow-direct-commits",
+  "allow-destructive-gh-verbs",
+  "enforce-destructive-gh-verbs",
+  "disable-directive",
+  "enable-directive",
+]);
+
+/** Kill-switch / permanent opt-out basenames agents must not plant (#3186 / #3039 / #6136). */
+export const KILL_SWITCH_BASENAMES = [".deft-directive-disable", ".no-deft-directive"] as const;
+
+/** True when a path basename is a kill-switch / permanent opt-out plant target (#6136). */
+export function isKillSwitchPlantPath(pathish: string): boolean {
+  // Lowercase so Windows / case-insensitive plants (`.DEFT-DIRECTIVE-DISABLE`) match.
+  const p = canonicalizePathish(pathish).toLowerCase();
+  if (p.length === 0) return false;
+  for (const name of KILL_SWITCH_BASENAMES) {
+    if (p === name || p.endsWith(`/${name}`)) return true;
+  }
+  return false;
+}
+
+/**
+ * Dest-form writers #3529 harvest missed (#3545). Shared across downloader,
+ * archive-alt, positional, and indirect-write membership so a named-peer
+ * allowlist cannot be the only fail-closed path.
+ */
+const UAT_RESIDUAL_DEST_WRITE_BINS_3545 = [
+  "fromdos",
+  "todos",
+  "emacsclient",
+  "pico",
+  "pdftk",
+  "gs",
+  "dpkg",
+  "degit",
+  "composer",
+  "ddrescue",
+  "dc3dd",
+  "sg_dd",
+] as const;
+/** In-place residual writers: any protected operand is a dest. Extract/output bins stay dest-flag gated. */
+const UAT_RESIDUAL_INPLACE_WRITE_BINS_3545 = [
+  "fromdos",
+  "todos",
+  "emacsclient",
+  "pico",
+  "degit",
+  "composer",
+  "ddrescue",
+  "dc3dd",
+  "sg_dd",
+] as const;
+
+/**
+ * Downloaders / decoders / remote-copy tools that can plant files without shell
+ * redirects (#3206 / #3213 / #3245). Not in INDIRECT_WRITE_BINS: those feed hasWriteShape
+ * and would classify bare `curl $URL` as a store write via opaque-expansion heuristics.
+ */
+const DOWNLOADER_DECODER_BINS = new Set([
+  "curl",
+  "wget",
+  "xxd",
+  "openssl",
+  // #3213 residual after #3206: alternate downloaders / remote copy.
+  "scp",
+  "aria2c",
+  "certutil",
+  // #3245 residual after #3213: archive extractors + further alt downloaders.
+  "tar",
+  "bsdtar",
+  "unzip",
+  "7z",
+  "7za",
+  "7zr",
+  "rclone",
+  "axel",
+  "fetch",
+  "socat",
+  "lftp",
+  // #3288 residual after #3245: crypto / alt-download / pipe / archive bins.
+  "gpg",
+  "age",
+  "zstd",
+  "unzstd",
+  "sftp",
+  "wget2",
+  "http",
+  "https",
+  "yt-dlp",
+  "ytdlp",
+  "aria2",
+  "mbuffer",
+  "cpio",
+  // #3311 residual after #3288: versioned / alternate write bins.
+  "gpg2",
+  "gpg1",
+  "rage",
+  "xh",
+  "httpie",
+  "wcurl",
+  "curlie",
+  "uudecode",
+  "iconv",
+  "gtar",
+  "star",
+  "gnutar",
+  "pax",
+  // #3336 residual after #3311: further write bins (oras/ncat/patch peers).
+  "oras",
+  "lwp-download",
+  "ncat",
+  "patch",
+  "base32",
+  "lrzip",
+  "unar",
+  "cabextract",
+  "ditto",
+  "dpkg-deb",
+  "hg",
+  "msguniq",
+  // #3354 residual after #3336: nc/7zz/msgfmt peers + plant writers.
+  "nc",
+  "netcat",
+  "7zz",
+  "msgfmt",
+  "msgcat",
+  "lz4",
+  "lzop",
+  "unrar",
+  "rar",
+  "aunpack",
+  "atool",
+  "ftpget",
+  "tftp",
+  "sqlite3",
+  "crane",
+  "objcopy",
+  // #3382 residual after #3354: dest forms that are not generic -o/--output/--outfile.
+  "cmake",
+  "script",
+  "gallery-dl",
+  "megadl",
+  "ncftpget",
+  "svn",
+  "fossil",
+  "bzr",
+  "cvs",
+  "darcs",
+  "ed",
+  "nvim",
+  "nano",
+  "vim",
+  "vi",
+  // #3421 residual after #3382: dest forms the harvest missed.
+  "git",
+  "ex",
+  "dos2unix",
+  "unix2dos",
+  "mac2unix",
+  "unix2mac",
+  "aws",
+  "pijul",
+  "pg_dump",
+  "pg_restore",
+  "pg_dumpall",
+  "convert",
+  "magick",
+  "mogrify",
+  "fallocate",
+  "new-item",
+  // #3459 residual after #3421: GNU g* peers, forge clone, iwr, fsutil.
+  "iwr",
+  "invoke-webrequest",
+  "fsutil",
+  "gh",
+  "glab",
+  "hub",
+  // #3529 residual after #3459: dest-form writers harvest missed.
+  "xcopy",
+  "robocopy",
+  "bitsadmin",
+  "start-bitstransfer",
+  "expand-archive",
+  "tee-object",
+  "export-csv",
+  "pscp",
+  "jj",
+  "sponge",
+  "expand",
+  "extrac32",
+  "makecab",
+  "replace",
+  // #3545 residual after #3529: dest-form writers harvest missed.
+  ...UAT_RESIDUAL_DEST_WRITE_BINS_3545,
+]);
+
+/**
+ * Archive extractors / alt writers that can plant via pathish operands without
+ * shell redirects (#3245 / #3288 / #3311 / #3336 / #3354 / #3382). Used for pathish authz/kill scans (prefer deny)
+ * and write-shape residual under UAT — not bare curl-class URL fetches.
+ */
+const ARCHIVE_ALT_WRITE_BINS = new Set([
+  "tar",
+  "bsdtar",
+  "unzip",
+  "7z",
+  "7za",
+  "7zr",
+  "rclone",
+  "axel",
+  "fetch",
+  "socat",
+  "lftp",
+  // #3288 residual after #3245.
+  "gpg",
+  "age",
+  "zstd",
+  "unzstd",
+  "sftp",
+  "wget2",
+  "http",
+  "https",
+  "yt-dlp",
+  "ytdlp",
+  "aria2",
+  "mbuffer",
+  "cpio",
+  // #3311 residual after #3288.
+  "gpg2",
+  "gpg1",
+  "rage",
+  "xh",
+  "httpie",
+  "wcurl",
+  "curlie",
+  "uudecode",
+  "iconv",
+  "gtar",
+  "star",
+  "gnutar",
+  "pax",
+  // #3336 residual after #3311.
+  "oras",
+  "lwp-download",
+  "ncat",
+  "patch",
+  "base32",
+  "lrzip",
+  "unar",
+  "cabextract",
+  "ditto",
+  "dpkg-deb",
+  "hg",
+  "msguniq",
+  // #3354 residual after #3336.
+  "nc",
+  "netcat",
+  "7zz",
+  "msgfmt",
+  "msgcat",
+  "lz4",
+  "lzop",
+  "unrar",
+  "rar",
+  "aunpack",
+  "atool",
+  "ftpget",
+  "tftp",
+  "sqlite3",
+  "crane",
+  "objcopy",
+  // #3382 residual: dedicated dest-form writers (not general-purpose cmake/git/editors).
+  "gallery-dl",
+  "megadl",
+  "ncftpget",
+  // #3421 residual: dedicated dest-form writers (not general-purpose git/aws/editors).
+  "dos2unix",
+  "unix2dos",
+  "mac2unix",
+  "unix2mac",
+  "pijul",
+  "pg_dump",
+  "pg_restore",
+  "pg_dumpall",
+  "convert",
+  "magick",
+  "mogrify",
+  "fallocate",
+  // #3459 residual: dest writers that are not general-purpose gh/cmd.
+  "iwr",
+  "invoke-webrequest",
+  "fsutil",
+  // #3529 residual: dest writers that are not general-purpose cmd/git.
+  "xcopy",
+  "robocopy",
+  "bitsadmin",
+  "start-bitstransfer",
+  "expand-archive",
+  "tee-object",
+  "export-csv",
+  "sponge",
+  "expand",
+  "extrac32",
+  "makecab",
+  "replace",
+  // #3545 residual: dest writers that are not general-purpose cmd/git.
+  ...UAT_RESIDUAL_INPLACE_WRITE_BINS_3545,
+]);
+
+/**
+ * Bins whose pathish operands are scanned for authz/kill destinations (#3213 / #3245 / #3288 / #3311 / #3336 / #3354 / #3382).
+ * Prefer a Set over a long `||` chain so coverage counts one membership check, not N branches.
+ */
+const PROTECTED_POSITIONAL_BINS = new Set([
+  "scp",
+  "certutil",
+  "rclone",
+  "tar",
+  "bsdtar",
+  "unzip",
+  "7z",
+  "7za",
+  "7zr",
+  "socat",
+  "lftp",
+  // #3288 residual.
+  "sftp",
+  "cpio",
+  "gpg",
+  "age",
+  "zstd",
+  "unzstd",
+  "mbuffer",
+  // #3311 residual: versioned crypto + archive/decoder peers.
+  "gpg2",
+  "gpg1",
+  "rage",
+  "uudecode",
+  "iconv",
+  "gtar",
+  "star",
+  "gnutar",
+  "pax",
+  // #3336 residual: positional dest writers (ditto/dpkg-deb/hg/lwp-download).
+  "oras",
+  "lwp-download",
+  "ncat",
+  "patch",
+  "base32",
+  "lrzip",
+  "unar",
+  "cabextract",
+  "ditto",
+  "dpkg-deb",
+  "hg",
+  "msguniq",
+  // #3354 residual: positional dest writers (nc/7zz/unrar/ftpget/crane/objcopy/sqlite3).
+  "nc",
+  "netcat",
+  "7zz",
+  "msgfmt",
+  "msgcat",
+  "lz4",
+  "lzop",
+  "unrar",
+  "rar",
+  "aunpack",
+  "atool",
+  "ftpget",
+  "tftp",
+  "sqlite3",
+  "crane",
+  "objcopy",
+  // #3382 residual: positional dest writers (cmake copy / script / VCS / editors).
+  "cmake",
+  "script",
+  "gallery-dl",
+  "megadl",
+  "ncftpget",
+  "svn",
+  "fossil",
+  "bzr",
+  "cvs",
+  "darcs",
+  "ed",
+  "nvim",
+  "nano",
+  "vim",
+  "vi",
+  // #3421 residual: positional dest writers (aws, convert, New-Item).
+  // git clone/worktree/submodule dests are harvested only on those write subcommands.
+  "ex",
+  "dos2unix",
+  "unix2dos",
+  "mac2unix",
+  "unix2mac",
+  "aws",
+  "pijul",
+  "pg_dump",
+  "pg_restore",
+  "pg_dumpall",
+  "convert",
+  "magick",
+  "mogrify",
+  "fallocate",
+  "new-item",
+  // #3459 residual: positional dest writers (fsutil createnew, iwr dest flags).
+  // gh/glab/hub clone dests are harvested only on the clone subcommand.
+  "iwr",
+  "invoke-webrequest",
+  "fsutil",
+  // #3529 residual: positional dest writers (xcopy/robocopy/BitsTransfer/pscp).
+  // jj clone dests are harvested only on the clone subcommand.
+  "xcopy",
+  "robocopy",
+  "bitsadmin",
+  "start-bitstransfer",
+  "expand-archive",
+  "tee-object",
+  "export-csv",
+  "pscp",
+  "sponge",
+  "expand",
+  "extrac32",
+  "makecab",
+  "replace",
+  // #3545 residual: positional dest writers (fromdos/dpkg/degit/ddrescue).
+  ...UAT_RESIDUAL_DEST_WRITE_BINS_3545,
+]);
+
+/**
+ * Bins whose dest is the last pathish operand (src … dest). A protected
+ * source that writes elsewhere is not a dest plant (#3421 residual).
+ */
+const LAST_POSITIONAL_DEST_BINS = new Set(["aws", "convert", "magick"]);
+/** Wrappers / assignments before the dest-owning bin (`env aws`, `FOO=1 convert`). */
+const COMMAND_WRAPPER_BINS = new Set([
+  "env",
+  "command",
+  "nice",
+  "nohup",
+  "sudo",
+  "doas",
+  "time",
+  "stdbuf",
+  "timeout",
+  "ionice",
+]);
+
+function isWrapperOrAssignmentToken(raw: string, n: string): boolean {
+  if (COMMAND_WRAPPER_BINS.has(writeBinName(raw))) return true;
+  return n.includes("=") && !n.startsWith("-") && !raw.includes("/") && !raw.includes("\\");
+}
+
+/** Wrapper flags that take a separate value (`env -C DIR`, `nice -n N`). */
+const WRAPPER_VALUE_FLAGS = new Set([
+  "-c",
+  "--chdir",
+  "-u",
+  "--unset",
+  "-n",
+  "--adjustment",
+  "-o",
+  "--output",
+  "-i",
+  "--input",
+  "-e",
+  "--error",
+  "-s",
+  "--signal",
+  "-k",
+  "--kill-after",
+]);
+
+/** In-place ImageMagick writer: every protected operand is a dest, not last-only. */
+const MAGICK_FAMILY_BINS = new Set(["convert", "magick", "mogrify"]);
+const MAGICK_WRITE_DEST_FLAGS = new Set(["-write"]);
+
+/** True when this token is a subcommand of a last-positional dest bin (`aws s3 cp`). */
+function tokenEndsShellSegment(token: string): boolean {
+  return isShellSegmentBreak(token) || firstUnquotedShellOpIndex(token) >= 0;
+}
+
+function segmentStartedByLastPositionalDest(
+  tokens: readonly string[],
+  tokenIndex: number,
+): boolean {
+  let start = tokenIndex;
+  while (start > 0 && !tokenEndsShellSegment(tokens[start - 1] as string)) start--;
+  let skipNext = false;
+  let afterWrapper = false;
+  for (let k = start; k < tokenIndex; k++) {
+    const raw = tokens[k] as string;
+    if (isShellSegmentBreak(raw)) continue;
+    const n = normalizeToken(raw);
+    const bare = binBareName(raw);
+    if (skipNext) {
+      skipNext = false;
+      if (LAST_POSITIONAL_DEST_BINS.has(bare)) return true;
+      continue;
+    }
+    if (n.startsWith("-")) {
+      if (!n.includes("=") && WRAPPER_VALUE_FLAGS.has(n)) skipNext = true;
+      continue;
+    }
+    if (isWrapperOrAssignmentToken(raw, n)) {
+      afterWrapper = COMMAND_WRAPPER_BINS.has(bare);
+      continue;
+    }
+    if (LAST_POSITIONAL_DEST_BINS.has(bare)) return true;
+    // timeout 5 aws / similar: skip one non-bin operand after a wrapper.
+    if (afterWrapper) {
+      afterWrapper = false;
+      continue;
+    }
+    return false;
+  }
+  return false;
+}
+
+/** wget family (directory-prefix dest flags). */
+const WGET_FAMILY_BINS = new Set(["wget", "wget2"]);
+/** aria2 family (dir dest flags). */
+const ARIA2_FAMILY_BINS = new Set(["aria2c", "aria2"]);
+/** 7z family (attached -oDIR only). Includes 7zz (#3354). */
+const SEVEN_Z_FAMILY_BINS = new Set(["7z", "7za", "7zr", "7zz"]);
+/** aunpack / atool extract-to dest flags (#3354). */
+const ATOOL_FAMILY_BINS = new Set(["aunpack", "atool"]);
+const ATOOL_DIR_DEST_FLAGS = new Set(["-x", "--extract-to"]);
+/** sqlite3 meta-commands that plant a file dest (#3354). */
+const SQLITE3_OUTPUT_META = [".output", ".once"] as const;
+/** tar family (chdir -C / --directory). Includes GNU/Schily aliases (#3311). */
+const TAR_FAMILY_BINS = new Set(["tar", "bsdtar", "gtar", "star", "gnutar"]);
+/** xh / httpie family (download-dir dest flags) (#3311). */
+const XH_FAMILY_BINS = new Set(["xh", "httpie"]);
+/** gallery-dl dest-dir flags (#3382). */
+const GALLERY_DL_FAMILY_BINS = new Set(["gallery-dl", "gallery_dl"]);
+const GALLERY_DL_DIR_DEST_FLAGS = new Set(["-d", "--destination", "--dest"]);
+/** megadl dest-path flags (#3382). */
+const MEGADL_FAMILY_BINS = new Set(["megadl"]);
+const MEGADL_PATH_DEST_FLAGS = new Set(["--path"]);
+/**
+ * Extra dest flags harvested on unknown write-shaped bins when dest is protected (#3382 / #3421).
+ * Not merged into DOWNLOADER_FILE_DEST_FLAGS: curl `-d` is POST data, not a file dest.
+ */
+const GENERIC_PROTECTED_EXTRA_DEST_FLAGS = new Set([
+  "-d",
+  "--dir",
+  "--destination",
+  "--dest",
+  "--path",
+  "--directory",
+  "--workdir",
+  "--file",
+  "--separate-git-dir",
+  "--pack-destination",
+  // #3529 residual dest flags (PowerShell single-dash + extra dir dests).
+  "--output-dir",
+  "--outdir",
+  "--target-directory",
+  "--destdir",
+  "-destination",
+  "-destinationpath",
+  "-filepath",
+  "--prefix",
+  // #3545 residual dest flags (VCS repo dest + ghostscript output).
+  "--repodir",
+  "--repo-dir",
+  "-soutputfile",
+]);
+/** Bins whose `--file` / `-f` operand is an input, not a dest plant. */
+const READ_SHAPED_FILE_FLAG_BINS = new Set([
+  "grep",
+  "egrep",
+  "fgrep",
+  "rg",
+  "ag",
+  "ack",
+  "get-content",
+  "gc",
+  "cat",
+  "type",
+  "less",
+  "more",
+  "head",
+  "tail",
+]);
+const READ_INPUT_FILE_FLAGS = new Set(["--file", "-f"]);
+/** PowerShell New-Item dest flags (not generic: Get-Content -Path is a read). */
+const NEW_ITEM_PATH_DEST_FLAGS = new Set(["-path", "-literalpath", "--literalpath"]);
+/** git subcommands whose positionals can plant a dest (#3421). */
+const GIT_WRITE_SUBCOMMANDS = new Set(["clone", "worktree", "submodule"]);
+/** git bundle subcommands that write a bundle file (#3529). Reads: verify / list-heads / unbundle. */
+const GIT_BUNDLE_WRITE_SUBCOMMANDS = new Set(["create"]);
+/** jj subcommands whose positionals can plant a dest (#3529). */
+const JJ_WRITE_SUBCOMMANDS = new Set(["clone"]);
+const JJ_PRE_SUBCOMMAND_BOOLEAN_FLAGS = new Set([
+  "--help",
+  "-h",
+  "--quiet",
+  "-q",
+  "--ignore-immutable",
+  "--no-pager",
+]);
+/** Forge CLIs whose `clone` dest is harvested like git clone (#3459). */
+const FORGE_CLONE_BINS = new Set(["gh", "glab", "hub"]);
+/** fossil dest-dir flags (#3382 PATH form + #3421 --workdir=). */
+const FOSSIL_WORKDIR_DEST_FLAGS = new Set(["--workdir"]);
+/** pg_dump family dest-file flags (#3421). */
+const PG_DUMP_FAMILY_BINS = new Set(["pg_dump", "pg_restore", "pg_dumpall"]);
+const PG_DUMP_FILE_DEST_FLAGS = new Set(["-f", "--file"]);
+
+/**
+ * File destination flags for downloaders/decoders (#3206).
+ * normalizeToken lowercases, so wget `-O` and curl `-o` share `-o`.
+ * scp: `-o` is an SSH option — excluded in isDownloaderDestFlag.
+ * 7z: `-oDIR` is attached-only (no separate value token).
+ */
+const DOWNLOADER_FILE_DEST_FLAGS = new Set([
+  "-o",
+  "--output",
+  "--output-document",
+  "--output-file",
+  "-out",
+  "--out",
+  "--outfile",
+  // PowerShell iwr/Invoke-WebRequest -OutFile (single-dash long form) (#3459).
+  "-outfile",
+  // unar single-dash long form; GNU/others use --output-directory.
+  "-output-directory",
+  "--output-directory",
+]);
+
+/** Directory destination flags (curl --output-dir / wget -P / aria2c -d); bin-scoped below. */
+const CURL_DIR_DEST_FLAGS = new Set(["--output-dir"]);
+const WGET_DIR_DEST_FLAGS = new Set(["-p", "--directory-prefix"]);
+const ARIA2C_DIR_DEST_FLAGS = new Set(["-d", "--dir"]);
+/**
+ * tar/bsdtar extract directory (#3245).
+ * Case-sensitive: POSIX tar uses capital `-C` for chdir; lower `-c` is create and is NOT dest.
+ */
+const TAR_DIR_DEST_FLAGS_EXACT = new Set(["-C"]);
+const TAR_DIR_DEST_FLAGS_LOWER = new Set(["--directory"]);
+/** unzip / cabextract extract directory (#3245 / #3336). */
+const UNZIP_DIR_DEST_FLAGS = new Set(["-d"]);
+const UNZIP_DIR_DEST_BINS = new Set(["unzip", "cabextract"]);
+/** xh / httpie download directory (#3311). */
+const XH_DIR_DEST_FLAGS = new Set(["--download-dir"]);
+/**
+ * cpio chdir before extract/create (#3288).
+ * Case-sensitive short form: POSIX cpio uses capital `-D`; lower `-d` is a create option bit.
+ * Long form `--directory` is accepted lowercased.
+ */
+const CPIO_DIR_DEST_FLAGS_EXACT = new Set(["-D"]);
+const CPIO_DIR_DEST_FLAGS_LOWER = new Set(["--directory"]);
+/**
+ * Symlink / hard-link plant bins (#3213). Absent from prior killWriteBins →
+ * `ln -sf … .deft-directive-disable` classified empty → UAT fail-open.
+ */
+const SYMLINK_PLANT_BINS = new Set(["ln", "link", "mklink"]);
+
+/** socat address prefixes that open a write target (#3245). */
+const SOCAT_WRITE_ADDR_PREFIXES = [
+  "open:",
+  "create:",
+  "creat:",
+  "append:",
+  "owronly:",
+  "oappend:",
+] as const;
+/** Final path segment of a token (path-qualified bins / .exe). */
+function binBareName(token: string): string {
+  const pathish = token.replace(/['"]/g, "").toLowerCase().replace(/\\/g, "/");
+  const base = pathish.includes("/") ? pathish.slice(pathish.lastIndexOf("/") + 1) : pathish;
+  return base.endsWith(".exe") ? base.slice(0, -4) : base;
+}
+
+/**
+ * GNU coreutils g* prefixes (Homebrew `ginstall`, `gcp`).
+ * Stems only — `git` / `gh` / `gpg` do not map to `it` / `h` / `pg` (#3459).
+ */
+const GNU_COREUTILS_WRITE_STEMS = new Set([
+  "cp",
+  "mv",
+  "rm",
+  "rmdir",
+  "unlink",
+  "shred",
+  "truncate",
+  "chmod",
+  "chown",
+  "dd",
+  "tee",
+  "install",
+  "ln",
+  "link",
+  "mkdir",
+  "touch",
+]);
+
+function writeBinName(token: string): string {
+  const bare = binBareName(token);
+  if (bare.length > 1 && bare.startsWith("g")) {
+    const stem = bare.slice(1);
+    if (GNU_COREUTILS_WRITE_STEMS.has(stem)) return stem;
+  }
+  return bare;
+}
+
+/** True when token names a downloader/decoder bin (bare or path-qualified). */
+function isDownloaderDecoderBin(token: string): boolean {
+  const n = normalizeToken(token);
+  if (n.startsWith("-")) return false;
+  return DOWNLOADER_DECODER_BINS.has(writeBinName(token));
+}
+
+function isScpFamilyBin(bin: string): boolean {
+  return bin === "scp" || bin === "pscp";
+}
+
+/**
+ * True when `flag` (normalized lower) or `rawFlag` (original token) is a dest flag for `bin`.
+ * tar `-C` must use raw case: lowercased `-c` is create-archive, not chdir (#3245).
+ * 7z uses attached `-oDIR` only — separate `-o PATH` is not a 7z dest form (handled elsewhere).
+ */
+function isDownloaderDestFlag(flag: string, bin: string, rawFlag?: string): boolean {
+  // scp/pscp: `-o` is OpenSSH option (ProxyCommand, …), not a file dest flag.
+  if (isScpFamilyBin(bin)) return false;
+  // 7z family: only attached `-oDIR` (parsed in attached-short branch), not separate `-o PATH`.
+  if (SEVEN_Z_FAMILY_BINS.has(bin)) {
+    return false;
+  }
+  // #3288: cpio `-o` is copy-out (create archive), not a file dest; dest is `-D` / `--directory`.
+  if (bin === "cpio") {
+    if (rawFlag !== undefined && CPIO_DIR_DEST_FLAGS_EXACT.has(rawFlag)) return true;
+    // Long form is case-insensitive via normalizeToken (`flag` already lowercased).
+    if (CPIO_DIR_DEST_FLAGS_LOWER.has(flag)) return true;
+    return false;
+  }
+  if (DOWNLOADER_FILE_DEST_FLAGS.has(flag)) return true;
+  if (bin === "curl" && CURL_DIR_DEST_FLAGS.has(flag)) return true;
+  if (WGET_FAMILY_BINS.has(bin) && WGET_DIR_DEST_FLAGS.has(flag)) return true;
+  if (ARIA2_FAMILY_BINS.has(bin) && ARIA2C_DIR_DEST_FLAGS.has(flag)) return true;
+  if (TAR_FAMILY_BINS.has(bin)) {
+    if (rawFlag !== undefined && TAR_DIR_DEST_FLAGS_EXACT.has(rawFlag)) return true;
+    if (TAR_DIR_DEST_FLAGS_LOWER.has(flag)) return true;
+    // Exact match on raw when normalize collapsed case for long flags only.
+    if (rawFlag !== undefined && TAR_DIR_DEST_FLAGS_LOWER.has(normalizeToken(rawFlag))) return true;
+    return false;
+  }
+  if (UNZIP_DIR_DEST_BINS.has(bin) && UNZIP_DIR_DEST_FLAGS.has(flag)) return true;
+  if (XH_FAMILY_BINS.has(bin) && XH_DIR_DEST_FLAGS.has(flag)) return true;
+  if (ATOOL_FAMILY_BINS.has(bin) && ATOOL_DIR_DEST_FLAGS.has(flag)) return true;
+  if (GALLERY_DL_FAMILY_BINS.has(bin) && GALLERY_DL_DIR_DEST_FLAGS.has(flag)) return true;
+  if (MEGADL_FAMILY_BINS.has(bin) && MEGADL_PATH_DEST_FLAGS.has(flag)) return true;
+  if (bin === "fossil" && FOSSIL_WORKDIR_DEST_FLAGS.has(flag)) return true;
+  if (PG_DUMP_FAMILY_BINS.has(bin) && PG_DUMP_FILE_DEST_FLAGS.has(flag)) return true;
+  if (bin === "new-item" && NEW_ITEM_PATH_DEST_FLAGS.has(flag)) return true;
+  if (MAGICK_FAMILY_BINS.has(bin) && MAGICK_WRITE_DEST_FLAGS.has(flag)) return true;
+  return false;
+}
+/**
+ * OpenSSH/scp flags that take a separate value token (`-o ProxyCommand=…`, `-i key`, `-P port`).
+ * Not dest flags — must skip so value tokens are not mistaken for write destinations (#3213).
+ * Case-sensitive where needed: scp `-P` (port) takes a value; `-p` (preserve) does not.
+ */
+const SCP_VALUE_FLAGS_LOWER = new Set(["-o", "-i", "-c", "-s", "-j", "-f", "-l", "-b"]);
+const SCP_VALUE_FLAGS_EXACT = new Set(["-P", "-F", "-S", "-J"]);
+
+/** Shell metacharacters that end a command segment (compound lists / pipelines). */
+function isShellSegmentBreak(token: string): boolean {
+  const t = token.trim();
+  if (t.length === 0) return false;
+  if (t === ";" || t === "|" || t === "||" || t === "&&" || t === "&") return true;
+  // Trailing operator glued to a prior token is handled by pathish stripping; bare ops here.
+  return false;
+}
+
+/**
+ * First unquoted, unescaped shell-list operator (`;` `&` `|`) in a token, or -1.
+ * Quoted operators (e.g. `'file;name'`) and escaped unquoted ops (e.g. `path\;file`)
+ * are literal data and must not end scp segments (#3213 Greptile residual).
+ * O(n). Unquoted / double-quoted `\` escapes the next char; single-quoted `\` is literal.
+ */
+function firstUnquotedShellOpIndex(raw: string): number {
+  let inSingle = false;
+  let inDouble = false;
+  for (let k = 0; k < raw.length; k++) {
+    const ch = raw[k] as string;
+    // Outside single quotes, backslash escapes the next character (POSIX-ish).
+    if (ch === "\\" && k + 1 < raw.length && !inSingle) {
+      k++;
+      continue;
+    }
+    if (ch === "'" && !inDouble) {
+      inSingle = !inSingle;
+      continue;
+    }
+    if (ch === '"' && !inSingle) {
+      inDouble = !inDouble;
+      continue;
+    }
+    if (inSingle || inDouble) continue;
+    if (ch === ";" || ch === "&" || ch === "|") return k;
+  }
+  return -1;
+}
+
+/**
+ * dpkg/pdftk/gs only harvest protected positionals on write forms
+ * (`dpkg -x`, `pdftk … output`, gs dest flags). Inspect/read forms stay unclassifiable.
+ */
+function residualPositionalBinIsWriteShaped(
+  bin: string,
+  tokens: readonly string[],
+  start: number,
+): boolean {
+  if (bin !== "dpkg" && bin !== "pdftk" && bin !== "gs") return true;
+  for (let k = start; k < tokens.length; k++) {
+    const raw = tokens[k] as string;
+    if (tokenEndsShellSegment(raw)) break;
+    const n = normalizeToken(raw);
+    if (bin === "dpkg" && (n === "-x" || n === "--extract" || n === "--vextract")) {
+      return true;
+    }
+    if (bin === "pdftk" && n === "output") return true;
+    if (bin === "gs" && (n.startsWith("-soutputfile") || n === "-soutputfile")) return true;
+  }
+  return false;
+}
+
+/**
+ * Destinations from curl/wget/xxd/openssl/scp/aria2c/certutil via -o/--output/-O/-out/
+ * --output-dir/-P/-d/--dir (separate, =value, or attached short form), xxd -r path-like
+ * write positionals (#3206), positional dests for scp/certutil (#3213), and #3245 residual
+ * archive/alt bins (tar -C, unzip -d, 7z -oDIR, rclone positionals, socat OPEN:, axel/fetch -o).
+ * openssl uses flags only (no positional dests — avoids treating -in paths as writes).
+ * Segment stops at shell operators so compound `scp …authz…; echo` cannot overwrite dests.
+ * O(n) token walk — no nested-quantifier regex on untrusted input.
+ */
+function downloaderDecoderDestinations(tokens: readonly string[]): string[] {
+  const dests: string[] = [];
+  let i = 0;
+  while (i < tokens.length) {
+    if (!isDownloaderDecoderBin(tokens[i] as string)) {
+      i++;
+      continue;
+    }
+    const bin = writeBinName(tokens[i] as string);
+    i++;
+    // xxd reverse mode writes; without -r, path positionals are dump inputs (read).
+    let xxdReverse = false;
+    // scp / certutil / rclone / archive extractors: collect pathish operands in this segment.
+    // Fail-closed under UAT: any pathish mentioning protected store/kill paths is a dest
+    // candidate (scp source-or-dest of `.deft/authz` is treated as settings — prefer deny
+    // over source/dest thrash). Last pathish remains the ordinary write dest.
+    // Segment breaks (`;`/`\n`/glued ops) prevent following-command overwrite.
+    let lastPositionalPath: string | null = null;
+    const protectedPathish: string[] = [];
+    const collectsProtectedPositionals =
+      (PROTECTED_POSITIONAL_BINS.has(bin) && residualPositionalBinIsWriteShaped(bin, tokens, i)) ||
+      (bin === "git" && gitHasWriteSubcommand(tokens, i)) ||
+      (bin === "git" && gitHasBundleCreate(tokens, i)) ||
+      (bin === "jj" && jjHasWriteSubcommand(tokens, i)) ||
+      (FORGE_CLONE_BINS.has(bin) && forgeHasCloneSubcommand(tokens, i));
+    while (i < tokens.length) {
+      const raw = tokens[i] as string;
+      const n = normalizeToken(raw);
+
+      // Bare shell ops end this bin's segment. Do NOT use normalizeToken here —
+      // quoted `';'` becomes `;` after strip and would cut before the real authz dest
+      // (Greptile P1 residual #3213). Glued ops are handled by firstUnquotedShellOpIndex.
+      if (isShellSegmentBreak(raw)) {
+        break;
+      }
+
+      // New bare bin starts another command segment (not pathish ./wget operands).
+      if (
+        !n.startsWith("-") &&
+        !raw.includes("/") &&
+        !raw.includes("\\") &&
+        isDownloaderDecoderBin(raw)
+      ) {
+        break;
+      }
+
+      if (bin === "xxd" && (n === "-r" || n === "--reverse")) {
+        xxdReverse = true;
+        i++;
+        continue;
+      }
+
+      // Skip openssl/xxd input flags + value so -in PATH is not a write dest.
+      if (n === "-in" || n === "--in" || n === "-inform" || n === "--inform") {
+        const next = tokens[i + 1];
+        if (next !== undefined && !String(next).startsWith("-")) {
+          i += 2;
+          continue;
+        }
+        i++;
+        continue;
+      }
+
+      // scp/pscp: skip OpenSSH value-taking flags + their values (-o Option=Value, -i key, -P port).
+      if (
+        isScpFamilyBin(bin) &&
+        (SCP_VALUE_FLAGS_LOWER.has(n) ||
+          SCP_VALUE_FLAGS_EXACT.has(raw) ||
+          SCP_VALUE_FLAGS_EXACT.has(n))
+      ) {
+        const next = tokens[i + 1];
+        if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
+          i += 2;
+          continue;
+        }
+        i++;
+        continue;
+      }
+
+      // --flag=value (and rare -out=value); scp -oOption=Value attached form also lands here.
+      // tar --directory=PATH also lands here.
+      if (n.includes("=") && (n.startsWith("-") || n.startsWith("--"))) {
+        const eq = raw.indexOf("=");
+        const flagRaw = raw.slice(0, eq);
+        const flag = normalizeToken(flagRaw);
+        if (isDownloaderDestFlag(flag, bin, flagRaw)) {
+          dests.push(pathishToken(raw.slice(eq + 1)));
+        }
+        // scp attached -oProxyCommand=… is not a file dest — skip without recording.
+        i++;
+        continue;
+      }
+
+      // Attached short: -oPATH / -OPATH (after lowercasing both are -opath…)
+      // Skip for scp/pscp (OpenSSH -oOption=Value attached forms are not file dests).
+      // 7z requires attached -oDIR (#3245).
+      if (!isScpFamilyBin(bin) && n.startsWith("-") && !n.startsWith("--") && n.length > 2) {
+        // `-outfile` is PowerShell -OutFile (next token is dest), not attached -outFILE (#3459).
+        if (n.startsWith("-out") && n.length > 4 && !n.startsWith("-output") && n !== "-outfile") {
+          dests.push(pathishToken(raw.slice(4)));
+          i++;
+          continue;
+        }
+        // cpio `-o` is copy-out create mode, not a file dest (#3288).
+        if (bin !== "cpio" && n.startsWith("-o") && !n.startsWith("-out") && n.length > 2) {
+          dests.push(pathishToken(raw.slice(2)));
+          i++;
+          continue;
+        }
+        // wget / wget2 attached -Pdir
+        if (
+          WGET_FAMILY_BINS.has(bin) &&
+          n.startsWith("-p") &&
+          n.length > 2 &&
+          !n.startsWith("-proxy")
+        ) {
+          dests.push(pathishToken(raw.slice(2)));
+          i++;
+          continue;
+        }
+        // aria2c / aria2 attached -dDIR (#3213 / #3288)
+        if (ARIA2_FAMILY_BINS.has(bin) && n.startsWith("-d") && n.length > 2) {
+          dests.push(pathishToken(raw.slice(2)));
+          i++;
+          continue;
+        }
+        // gallery-dl attached -dDIR (#3382)
+        if (GALLERY_DL_FAMILY_BINS.has(bin) && n.startsWith("-d") && n.length > 2) {
+          dests.push(pathishToken(raw.slice(2)));
+          i++;
+          continue;
+        }
+        // unzip / cabextract attached -dDIR (#3245 / #3336)
+        if (UNZIP_DIR_DEST_BINS.has(bin) && n.startsWith("-d") && n.length > 2) {
+          dests.push(pathishToken(raw.slice(2)));
+          i++;
+          continue;
+        }
+        // aunpack / atool attached -XDIR (#3354)
+        if (ATOOL_FAMILY_BINS.has(bin) && n.startsWith("-x") && n.length > 2) {
+          dests.push(pathishToken(raw.slice(2)));
+          i++;
+          continue;
+        }
+        // tar attached -CDIR (rare; capital C required)
+        if (TAR_FAMILY_BINS.has(bin) && raw.startsWith("-C") && raw.length > 2) {
+          dests.push(pathishToken(raw.slice(2)));
+          i++;
+          continue;
+        }
+        // cpio attached -DDIR (#3288; capital D required)
+        if (bin === "cpio" && raw.startsWith("-D") && raw.length > 2) {
+          dests.push(pathishToken(raw.slice(2)));
+          i++;
+          continue;
+        }
+      }
+
+      // Separate value: -o PATH / --output PATH / -out PATH / --output-dir / -P / -d / -C DIR
+      if (isDownloaderDestFlag(n, bin, raw)) {
+        const next = tokens[i + 1];
+        if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
+          dests.push(pathishToken(next));
+          i += 2;
+          continue;
+        }
+        i++;
+        continue;
+      }
+
+      // xxd -r only: path-like write positionals (not http(s) URLs). openssl: flags only.
+      if (bin === "xxd" && xxdReverse && !n.startsWith("-")) {
+        const p = pathishToken(raw);
+        if (
+          (p.includes("/") || p.startsWith(".") || p.includes("\\")) &&
+          !p.startsWith("http:") &&
+          !p.startsWith("https:") &&
+          !p.startsWith("ftp:")
+        ) {
+          dests.push(p);
+        }
+      }
+
+      // socat write address forms: OPEN:path, CREATE:path, APPEND:path (#3245).
+      if (bin === "socat" && !n.startsWith("-")) {
+        const p = pathishToken(raw);
+        for (const prefix of SOCAT_WRITE_ADDR_PREFIXES) {
+          if (p.startsWith(prefix) && p.length > prefix.length) {
+            const dest = p.slice(prefix.length);
+            dests.push(dest);
+            if (pathishIsProtectedDest(dest)) {
+              protectedPathish.push(dest);
+            }
+            break;
+          }
+        }
+      }
+
+      // sqlite3 `.output` / `.once` dest (separate token or `.output PATH` in one token) (#3354).
+      if (bin === "sqlite3") {
+        const meta = sqlite3MetaDest(raw, tokens[i + 1]);
+        if (meta !== null) {
+          dests.push(meta.dest);
+          if (pathishIsProtectedDest(meta.dest)) {
+            protectedPathish.push(meta.dest);
+          }
+          i += meta.consumedNext ? 2 : 1;
+          continue;
+        }
+      }
+
+      // scp / certutil / rclone / archive extractors: pathish operands (quote-aware glued-op cut).
+      // Under UAT: any `.deft/authz` / approved-scope / kill-switch pathish is
+      // fail-closed settings (prefer deny over dest-parser perfection; #3213 / #3421).
+      // Last-positional dest bins (aws/convert/magick): only the last operand is dest.
+      if (collectsProtectedPositionals && !n.startsWith("-")) {
+        const cut = firstUnquotedShellOpIndex(raw);
+        const cleaned = cut >= 0 ? raw.slice(0, cut) : raw;
+        const p = pathishToken(cleaned);
+        if (p.length > 0) {
+          lastPositionalPath = p;
+          if (pathishIsProtectedDest(p) && !LAST_POSITIONAL_DEST_BINS.has(bin)) {
+            protectedPathish.push(p);
+          }
+        }
+        if (cut >= 0) {
+          i++;
+          break;
+        }
+      }
+      i++;
+    }
+    // Prefer protected pathish (fail-closed) then last ordinary dest.
+    for (const p of protectedPathish) {
+      dests.push(p);
+    }
+    if (lastPositionalPath !== null && !protectedPathish.includes(lastPositionalPath)) {
+      dests.push(lastPositionalPath);
+    }
+  }
+  // #3354: fail-closed dest flags on unknown write-shaped bins (not named-peer only).
+  for (const dest of genericProtectedDests(tokens)) {
+    dests.push(dest);
+  }
+  return dests;
+}
+function authzSubcommandFromToken(token: string): string | null {
+  const t = normalizeToken(token);
+  if (t.startsWith("authz:")) {
+    const sub = t.slice("authz:".length);
+    return AUTHZ_MUTATING_SUBCOMMANDS.has(sub) ? sub : null;
+  }
+  return AUTHZ_MUTATING_SUBCOMMANDS.has(t) ? t : null;
+}
+
+function policyMutatorFromToken(token: string): string | null {
+  const t = normalizeToken(token);
+  if (t.startsWith("policy:")) {
+    const sub = t.slice("policy:".length);
+    return POLICY_AUTHORITY_MUTATORS.has(sub) ? sub : null;
+  }
+  return POLICY_AUTHORITY_MUTATORS.has(t) ? t : null;
+}
+
+/**
+ * Detect `deft|task|directive authz:grant` / `authz grant` (and wrappers) in shell tokens.
+ * O(n) token walk — no nested-quantifier regex on untrusted input.
+ */
+function hasAuthzMutatingCli(tokens: readonly string[]): boolean {
+  for (let i = 0; i < tokens.length; i++) {
+    const raw = tokens[i];
+    if (raw === undefined) break;
+    const t = normalizeToken(raw);
+    // Combined form anywhere: authz:grant / authz:uat-suspend / …
+    if (authzSubcommandFromToken(t) !== null && t.startsWith("authz:")) {
+      return true;
+    }
+    // Separated form: … authz grant|uat-start|uat-suspend|revoke
+    // Also path-ish bins ending in /authz or \authz (node …/authz.js grant).
+    const isAuthzBin =
+      t === "authz" ||
+      t.endsWith("/authz") ||
+      t.endsWith("\\authz") ||
+      t.endsWith("/authz.js") ||
+      t.endsWith("\\authz.js") ||
+      t.endsWith("/authz.ts") ||
+      t.endsWith("\\authz.ts");
+    if (!isAuthzBin) continue;
+    const next = tokens[i + 1] !== undefined ? normalizeToken(tokens[i + 1] as string) : "";
+    if (authzSubcommandFromToken(next) !== null) return true;
+  }
+  return false;
+}
+
+/**
+ * Detect `policy:allow-bot-merge` / `policy allow-direct-commits` / peers (#3186).
+ * O(n) token walk — no nested-quantifier regex on untrusted input.
+ */
+function hasPolicyAuthorityMutator(tokens: readonly string[]): boolean {
+  for (let i = 0; i < tokens.length; i++) {
+    const raw = tokens[i];
+    if (raw === undefined) break;
+    const t = normalizeToken(raw);
+    if (policyMutatorFromToken(t) !== null && t.startsWith("policy:")) {
+      return true;
+    }
+    const isPolicyBin =
+      t === "policy" ||
+      t.endsWith("/policy") ||
+      t.endsWith("\\policy") ||
+      t.endsWith("/policy.js") ||
+      t.endsWith("\\policy.js") ||
+      t.endsWith("/policy.ts") ||
+      t.endsWith("\\policy.ts");
+    if (!isPolicyBin) continue;
+    const next = tokens[i + 1] !== undefined ? normalizeToken(tokens[i + 1] as string) : "";
+    if (policyMutatorFromToken(next) !== null) return true;
+  }
+  return false;
+}
+
+/** True when pathish token names a kill-switch basename (quote-strip resistant). */
+function pathishIsProtectedDest(pathish: string): boolean {
+  return (
+    pathishIsAuthzDir(pathish) ||
+    pathishIsApprovedScopeDir(pathish) ||
+    pathishMentionsKillSwitch(pathish)
+  );
+}
+
+const ZIP_PREFIX_NO_VALUE_FLAGS = new Set(["-q", "--quiet"]);
+type ZipShellQuote = "'" | '"' | "$'" | null;
+
+/**
+ * Split only the bounded zip fallback into quote-aware shell segments.
+ * Operators inside quotes or after an escape remain data; glued operators
+ * (`ok&&zip`, `ok;zip`, `ok|zip`) still begin a real executable segment.
+ */
+function zipShellSegments(command: string): string[] {
+  const segments: string[] = [];
+  let current = "";
+  let quote: ZipShellQuote = null;
+  let atWordStart = true;
+
+  for (let i = 0; i < command.length; i++) {
+    const char = command[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < command.length) {
+      if (command[i + 1] === "\n") {
+        i++;
+        continue;
+      }
+      if (command[i + 1] === "\r" && command[i + 2] === "\n") {
+        i += 2;
+        continue;
+      }
+      current += char;
+      current += command[i + 1] as string;
+      atWordStart = false;
+      i++;
+      continue;
+    }
+    if (quote === null && char === "$" && command[i + 1] === "'") {
+      quote = "$'";
+      current += "$'";
+      atWordStart = false;
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === "$'" && char === "'") quote = null;
+      else if (quote === char) quote = null;
+      current += char;
+      atWordStart = false;
+      continue;
+    }
+    if (quote === null) {
+      if (char === "#" && atWordStart) {
+        while (i + 1 < command.length && command[i + 1] !== "\n" && command[i + 1] !== "\r") {
+          i++;
+        }
+        continue;
+      }
+      if (
+        char === "&" &&
+        (current[current.length - 1] === ">" ||
+          current[current.length - 1] === "<" ||
+          command[i + 1] === ">")
+      ) {
+        current += char;
+        atWordStart = false;
+        continue;
+      }
+      if ((char === "&" || char === "|") && command[i + 1] === char) {
+        segments.push(current);
+        current = "";
+        atWordStart = true;
+        i++;
+        continue;
+      }
+      if (char === ";" || char === "&" || char === "|" || char === "\n" || char === "\r") {
+        segments.push(current);
+        current = "";
+        atWordStart = true;
+        continue;
+      }
+    }
+    current += char;
+    atWordStart =
+      quote === null &&
+      (char === " " ||
+        char === "\t" ||
+        char === "(" ||
+        char === ")" ||
+        char === "<" ||
+        char === ">");
+  }
+
+  segments.push(current);
+  return segments;
+}
+
+/** Quote-aware word split for one bounded zip segment; null means unmatched quotes. */
+function zipShellWords(segment: string): string[] | null {
+  const words: string[] = [];
+  let current = "";
+  let quote: ZipShellQuote = null;
+
+  for (let i = 0; i < segment.length; i++) {
+    const char = segment[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < segment.length) {
+      current += char;
+      current += segment[i + 1] as string;
+      i++;
+      continue;
+    }
+    if (quote === null && char === "$" && segment[i + 1] === "'") {
+      quote = "$'";
+      current += "$'";
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === "$'" && char === "'") quote = null;
+      else if (quote === char) quote = null;
+      current += char;
+      continue;
+    }
+    if (quote === null && (char === " " || char === "\t" || char === "\r" || char === "\n")) {
+      if (current.length > 0) {
+        words.push(current);
+        current = "";
+      }
+      continue;
+    }
+    current += char;
+  }
+
+  if (quote !== null) return null;
+  if (current.length > 0) words.push(current);
+  return words;
+}
+
+/** Remove POSIX backslash-newline continuations before physical heredoc lines are read. */
+function zipShellWithoutLineContinuations(command: string): string {
+  let result = "";
+  let quote: ZipShellQuote = null;
+
+  for (let i = 0; i < command.length; i++) {
+    const char = command[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < command.length) {
+      if (command[i + 1] === "\n") {
+        i++;
+        continue;
+      }
+      if (command[i + 1] === "\r" && command[i + 2] === "\n") {
+        i += 2;
+        continue;
+      }
+      result += char;
+      result += command[i + 1] as string;
+      i++;
+      continue;
+    }
+    if (quote === null && char === "$" && command[i + 1] === "'") {
+      quote = "$'";
+      result += "$'";
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === "$'" && char === "'") quote = null;
+      else if (quote === char) quote = null;
+    }
+    result += char;
+  }
+
+  return result;
+}
+
+/**
+ * True for executable command substitution (`$(…)` / backticks) outside single
+ * quotes. Arithmetic `$((…))` and plain `$VAR` / `${VAR}` do not qualify —
+ * those cannot run a nested writer before the outer argv0 (#5970 P1).
+ */
+function zipShellWordHasCommandSubstitution(raw: string): boolean {
+  let quote: ZipShellQuote = null;
+  for (let i = 0; i < raw.length; i++) {
+    const char = raw[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < raw.length) {
+      i++;
+      continue;
+    }
+    if (quote === null && char === "$" && raw[i + 1] === "'") {
+      quote = "$'";
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === "$'" && char === "'") quote = null;
+      else if (quote === char) quote = null;
+      continue;
+    }
+    if (quote === "'" || quote === "$'") continue;
+    if (char === "`") return true;
+    if (char === "$" && raw[i + 1] === "(" && raw[i + 2] !== "(") return true;
+  }
+  return false;
+}
+
+function argvHasCommandSubstitution(words: readonly string[], execIndex: number): boolean {
+  for (let i = execIndex + 1; i < words.length; i++) {
+    if (zipShellWordHasCommandSubstitution(words[i] as string)) return true;
+  }
+  return false;
+}
+
+/** True for shell expansion syntax outside single quotes and not escaped. */
+function zipShellWordHasExpansion(raw: string): boolean {
+  let quote: ZipShellQuote = null;
+  for (let i = 0; i < raw.length; i++) {
+    const char = raw[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < raw.length) {
+      i++;
+      continue;
+    }
+    if (quote === null && char === "$" && raw[i + 1] === "'") {
+      quote = "$'";
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === "$'" && char === "'") quote = null;
+      else if (quote === char) quote = null;
+      continue;
+    }
+    if (quote === "'" || quote === "$'") continue;
+    if (char === "`") return true;
+    if (char === "$" && i + 1 < raw.length) {
+      const next = raw[i + 1] as string;
+      if (
+        next === "{" ||
+        next === "(" ||
+        next === "_" ||
+        next === "'" ||
+        next === "@" ||
+        next === "*" ||
+        next === "?" ||
+        next === "#" ||
+        next === "!" ||
+        next === "$" ||
+        next === "-" ||
+        (next >= "0" && next <= "9") ||
+        (next >= "A" && next <= "Z") ||
+        (next >= "a" && next <= "z")
+      ) {
+        return true;
+      }
+    }
+    if (char === "%" && i + 1 < raw.length) {
+      const next = raw[i + 1] as string;
+      if (next === "_" || (next >= "A" && next <= "Z") || (next >= "a" && next <= "z")) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+const ZIP_SHELL_WINDOWS_ESCAPED_LITERAL_CHARS = new Set([
+  "$",
+  "`",
+  "'",
+  '"',
+  "\\",
+  " ",
+  "\t",
+  "\r",
+  "\n",
+  ";",
+  "&",
+  "|",
+]);
+
+type ZipAnsiCEscape = {
+  value: string;
+  endIndex: number;
+};
+
+function zipAnsiCEscape(raw: string, slashIndex: number): ZipAnsiCEscape | null {
+  const next = raw[slashIndex + 1];
+  if (next === undefined) return null;
+  const simple: Record<string, string> = {
+    a: "\u0007",
+    b: "\b",
+    e: "\u001b",
+    E: "\u001b",
+    f: "\f",
+    n: "\n",
+    r: "\r",
+    t: "\t",
+    v: "\u000b",
+    "\\": "\\",
+    "'": "'",
+    '"': '"',
+    "?": "?",
+  };
+  if (next in simple) {
+    return { value: simple[next] as string, endIndex: slashIndex + 1 };
+  }
+  if (next === "\n") return { value: "", endIndex: slashIndex + 1 };
+
+  const isHex = (char: string | undefined): boolean =>
+    char !== undefined &&
+    ((char >= "0" && char <= "9") || (char >= "a" && char <= "f") || (char >= "A" && char <= "F"));
+  if (next === "x" || next === "u" || next === "U") {
+    const maxDigits = next === "x" ? 2 : next === "u" ? 4 : 8;
+    let end = slashIndex + 2;
+    while (end < raw.length && end < slashIndex + 2 + maxDigits && isHex(raw[end])) end++;
+    if (end === slashIndex + 2) return null;
+    const codePoint = Number.parseInt(raw.slice(slashIndex + 2, end), 16);
+    if (!Number.isSafeInteger(codePoint) || codePoint > 0x10ffff) return null;
+    return { value: String.fromCodePoint(codePoint), endIndex: end - 1 };
+  }
+  if (next >= "0" && next <= "7") {
+    let end = slashIndex + 1;
+    while (
+      end < raw.length &&
+      end < slashIndex + 4 &&
+      (raw[end] as string) >= "0" &&
+      (raw[end] as string) <= "7"
+    ) {
+      end++;
+    }
+    return {
+      value: String.fromCodePoint(Number.parseInt(raw.slice(slashIndex + 1, end), 8)),
+      endIndex: end - 1,
+    };
+  }
+  if (next === "c" && raw[slashIndex + 2] !== undefined) {
+    const codePoint = (raw.charCodeAt(slashIndex + 2) & 0x1f) >>> 0;
+    return { value: String.fromCodePoint(codePoint), endIndex: slashIndex + 2 };
+  }
+  return { value: `\\${next}`, endIndex: slashIndex + 1 };
+}
+
+/** Resolve POSIX shell quote and backslash syntax to a literal word. */
+function zipShellWordLiteral(raw: string): string | null {
+  let literal = "";
+  let quote: "'" | '"' | null = null;
+  let ansiC = false;
+
+  for (let i = 0; i < raw.length; i++) {
+    const char = raw[i] as string;
+    if (quote === null && char === "$" && raw[i + 1] === "'") {
+      quote = "'";
+      ansiC = true;
+      i++;
+      continue;
+    }
+    if (ansiC && char === "\\") {
+      const decoded = zipAnsiCEscape(raw, i);
+      if (decoded === null) return null;
+      literal += decoded.value;
+      i = decoded.endIndex;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) {
+        quote = char;
+        continue;
+      }
+      if (quote === char) {
+        quote = null;
+        ansiC = false;
+        continue;
+      }
+    }
+    if (char === "\\" && quote !== "'" && i + 1 < raw.length) {
+      const next = raw[i + 1] as string;
+      if (quote === null) {
+        literal += next;
+        i++;
+        continue;
+      }
+      if (next === "$" || next === "`" || next === '"' || next === "\\") {
+        literal += next;
+        i++;
+        continue;
+      }
+    }
+    literal += char;
+  }
+
+  return quote === null ? literal : null;
+}
+
+/**
+ * Preserve unquoted Windows separators as a second literal interpretation.
+ * This keeps PowerShell-style protected paths visible without weakening POSIX
+ * handling of arbitrary escapes such as `.de\\ft/authz`.
+ */
+function zipShellWordWindowsLiteral(raw: string): string | null {
+  let literal = "";
+  let quote: "'" | '"' | null = null;
+
+  for (let i = 0; i < raw.length; i++) {
+    const char = raw[i] as string;
+    if (char === "'" || char === '"') {
+      if (quote === null) {
+        quote = char;
+        continue;
+      }
+      if (quote === char) {
+        quote = null;
+        continue;
+      }
+    }
+    if (char === "\\" && quote !== "'" && i + 1 < raw.length) {
+      const next = raw[i + 1] as string;
+      const escapedInDouble =
+        quote === '"' && (next === "$" || next === "`" || next === '"' || next === "\\");
+      if (
+        escapedInDouble ||
+        (quote === null && ZIP_SHELL_WINDOWS_ESCAPED_LITERAL_CHARS.has(next))
+      ) {
+        literal += next;
+        i++;
+        continue;
+      }
+    }
+    literal += char;
+  }
+
+  return quote === null ? literal : null;
+}
+
+type ZipHereDocSpec = {
+  delimiter: string;
+  stripLeadingTabs: boolean;
+};
+
+/** Locate shifts inside `$((...))` or a bounded `((...))` command in one linear pass. */
+function zipShellArithmeticShiftIndexes(line: string): ReadonlySet<number> {
+  const shiftIndexes = new Set<number>();
+  let quote: "'" | '"' | null = null;
+  let parenDepth = 0;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < line.length) {
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === char) quote = null;
+      continue;
+    }
+    if (quote !== null) continue;
+
+    if (parenDepth === 0) {
+      const startsExpansion = char === "$" && line[i + 1] === "(" && line[i + 2] === "(";
+      const previous = line[i - 1];
+      const startsCommand =
+        char === "(" &&
+        line[i + 1] === "(" &&
+        (previous === undefined || " \t\r;|&(".includes(previous));
+      if (startsExpansion || startsCommand) {
+        parenDepth = 2;
+        i += startsExpansion ? 2 : 1;
+      }
+      continue;
+    }
+
+    if (char === "<" && line[i + 1] === "<") shiftIndexes.add(i);
+    if (char === "(") parenDepth++;
+    else if (char === ")") parenDepth--;
+  }
+
+  return shiftIndexes;
+}
+
+function zipStripHereDocDeclarationsFromLine(line: string): {
+  sanitized: string;
+  specs: ZipHereDocSpec[];
+} {
+  const specs: ZipHereDocSpec[] = [];
+  const arithmeticShiftIndexes = zipShellArithmeticShiftIndexes(line);
+  let sanitized = "";
+  let quote: "'" | '"' | null = null;
+  let atWordStart = true;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < line.length) {
+      sanitized += char;
+      sanitized += line[i + 1] as string;
+      atWordStart = false;
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === char) quote = null;
+      sanitized += char;
+      atWordStart = false;
+      continue;
+    }
+    if (quote === null && char === "#" && atWordStart) {
+      sanitized += line.slice(i);
+      break;
+    }
+    if (
+      quote === null &&
+      char === "<" &&
+      line[i - 1] !== "<" &&
+      line[i + 1] === "<" &&
+      line[i + 2] !== "<" &&
+      !arithmeticShiftIndexes.has(i)
+    ) {
+      let cursor = i + 2;
+      let stripLeadingTabs = false;
+      if (line[cursor] === "-") {
+        stripLeadingTabs = true;
+        cursor++;
+      }
+      while (line[cursor] === " " || line[cursor] === "\t") cursor++;
+      const delimiterStart = cursor;
+      let delimiterQuote: "'" | '"' | null = null;
+      while (cursor < line.length) {
+        const delimiterChar = line[cursor] as string;
+        if (delimiterChar === "\\" && delimiterQuote !== "'" && cursor + 1 < line.length) {
+          cursor += 2;
+          continue;
+        }
+        if (delimiterChar === "'" || delimiterChar === '"') {
+          if (delimiterQuote === null) delimiterQuote = delimiterChar;
+          else if (delimiterQuote === delimiterChar) delimiterQuote = null;
+          cursor++;
+          continue;
+        }
+        if (
+          delimiterQuote === null &&
+          (delimiterChar === " " ||
+            delimiterChar === "\t" ||
+            delimiterChar === "\r" ||
+            delimiterChar === ";" ||
+            delimiterChar === "&" ||
+            delimiterChar === "|" ||
+            delimiterChar === "<" ||
+            delimiterChar === ">" ||
+            delimiterChar === "(" ||
+            delimiterChar === ")")
+        ) {
+          break;
+        }
+        cursor++;
+      }
+      const rawDelimiter = line.slice(delimiterStart, cursor);
+      const delimiter = rawDelimiter.length > 0 ? zipShellWordLiteral(rawDelimiter) : null;
+      if (delimiter !== null) {
+        let ioNumberStart = sanitized.length;
+        while (
+          ioNumberStart > 0 &&
+          (sanitized[ioNumberStart - 1] as string) >= "0" &&
+          (sanitized[ioNumberStart - 1] as string) <= "9"
+        ) {
+          ioNumberStart--;
+        }
+        const beforeIoNumber = sanitized[ioNumberStart - 1];
+        if (
+          ioNumberStart < sanitized.length &&
+          (beforeIoNumber === undefined ||
+            beforeIoNumber === " " ||
+            beforeIoNumber === "\t" ||
+            beforeIoNumber === ";" ||
+            beforeIoNumber === "&" ||
+            beforeIoNumber === "|" ||
+            beforeIoNumber === "(")
+        ) {
+          sanitized = sanitized.slice(0, ioNumberStart);
+        }
+        sanitized += " ";
+        specs.push({ delimiter, stripLeadingTabs });
+        atWordStart = true;
+        i = cursor - 1;
+        continue;
+      }
+    }
+    sanitized += char;
+    if (quote === null) {
+      atWordStart =
+        char === " " ||
+        char === "\t" ||
+        char === "\r" ||
+        char === ";" ||
+        char === "&" ||
+        char === "|" ||
+        char === "(" ||
+        char === ")" ||
+        char === "<" ||
+        char === ">";
+    }
+  }
+
+  return { sanitized, specs };
+}
+
+/**
+ * Remove recognized heredoc bodies while preserving commands before and after
+ * them. Here-strings remain ordinary redirections for the bounded word parser.
+ */
+function zipShellWithoutHereDocBodies(command: string): string {
+  const lines = command.split("\n");
+  const kept: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const parsed = zipStripHereDocDeclarationsFromLine(lines[i] as string);
+    kept.push(parsed.sanitized);
+    for (const spec of parsed.specs) {
+      let foundDelimiter = false;
+      while (i + 1 < lines.length) {
+        i++;
+        let candidate = (lines[i] as string).replace(/\r$/, "");
+        if (spec.stripLeadingTabs) candidate = candidate.replace(/^\t+/, "");
+        if (candidate === spec.delimiter) {
+          foundDelimiter = true;
+          break;
+        }
+      }
+      if (!foundDelimiter) return kept.join("\n");
+    }
+  }
+
+  return kept.join("\n");
+}
+
+function zipLiteralHasDirSegment(pathish: string, dir: string): boolean {
+  const canonical = canonicalizePathish(pathish);
+  if (canonical === dir || canonical.startsWith(`${dir}/`)) return true;
+  for (let i = 0; i < canonical.length; i++) {
+    const char = canonical[i] as string;
+    if (char !== "/") continue;
+    const rest = canonical.slice(i + 1);
+    if (rest === dir || rest.startsWith(`${dir}/`)) return true;
+  }
+  return false;
+}
+
+function zipLiteralIsProtectedDest(word: string, windowsSeparators = false): boolean {
+  const lower = word.toLowerCase();
+  const literal = windowsSeparators ? lower.replace(/\\/g, "/") : lower;
+  if (literal.startsWith("~/")) return false;
+  if (
+    zipLiteralHasDirSegment(literal, ".deft/authz") ||
+    zipLiteralHasDirSegment(literal, ".deft/approved-scope")
+  ) {
+    return true;
+  }
+  const canonical = canonicalizePathish(literal);
+  return KILL_SWITCH_BASENAMES.some((name) => canonical === name || canonical.endsWith(`/${name}`));
+}
+
+function zipLiteralIsUnambiguousWindowsPath(word: string): boolean {
+  return (
+    /^[A-Za-z]:[\\/]/.test(word) ||
+    word.startsWith(".\\") ||
+    word.startsWith("..\\") ||
+    word.startsWith("\\")
+  );
+}
+
+/** Literal protected destination predicate for the bounded zip producer. */
+function pathishIsLiteralProtectedDest(rawWord: string): boolean {
+  if (zipShellWordHasExpansion(rawWord)) return false;
+  const posix = zipShellWordLiteral(rawWord);
+  const windows = zipShellWordWindowsLiteral(rawWord);
+  return (
+    (posix !== null && zipLiteralIsProtectedDest(posix)) ||
+    (windows !== null &&
+      windows !== posix &&
+      zipLiteralIsUnambiguousWindowsPath(windows) &&
+      zipLiteralIsProtectedDest(windows, true))
+  );
+}
+
+type ZipShellRedirection = {
+  positionalPrefix: string | null;
+  consumesNextWord: boolean;
+};
+
+/** Split a shell word at its first active redirection operator. */
+function zipShellWordRedirection(raw: string): ZipShellRedirection | null {
+  let quote: "'" | '"' | null = null;
+
+  for (let i = 0; i < raw.length; i++) {
+    const char = raw[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < raw.length) {
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === char) quote = null;
+      continue;
+    }
+    if (quote === null && (char === "<" || char === ">")) {
+      const prefix = raw.slice(0, i);
+      let targetIndex = i + 1;
+      while (
+        targetIndex < raw.length &&
+        (raw[targetIndex] === "<" ||
+          raw[targetIndex] === ">" ||
+          raw[targetIndex] === "&" ||
+          raw[targetIndex] === "|" ||
+          raw[targetIndex] === "!")
+      ) {
+        targetIndex++;
+      }
+      return {
+        positionalPrefix:
+          prefix.length > 0 && prefix !== "&" && !/^[0-9]+$/.test(prefix) ? prefix : null,
+        consumesNextWord: targetIndex === raw.length,
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Remove only shell redirection syntax and its targets. A word prefix before an
+ * attached redirect remains positional (`input>/tmp/log` still passes input).
+ */
+function zipShellWordsWithoutRedirections(input: readonly string[]): string[] {
+  const words: string[] = [];
+
+  for (let i = 0; i < input.length; i++) {
+    const raw = input[i] as string;
+    const redirection = zipShellWordRedirection(raw);
+    if (redirection === null) {
+      words.push(raw);
+      continue;
+    }
+    if (redirection.positionalPrefix !== null) words.push(redirection.positionalPrefix);
+    if (redirection.consumesNextWord) i++;
+  }
+
+  return words;
+}
+
+function zipWordEndsWithUnquotedCloseParen(raw: string): boolean {
+  let quote: "'" | '"' | null = null;
+
+  for (let i = 0; i < raw.length; i++) {
+    const char = raw[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < raw.length) {
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === char) quote = null;
+      continue;
+    }
+    if (i === raw.length - 1) return quote === null && char === ")";
+  }
+
+  return false;
+}
+
+/** Support exactly one simple outer subshell group: `(zip ...)`. */
+function zipUnwrapSimpleGrouping(
+  input: readonly string[],
+  hasClosingBraceAfter: boolean,
+  hasClosingParenAfter: boolean,
+): string[] | null {
+  const words = [...input];
+  const first = words[0];
+  if (first === undefined) return words;
+
+  if (first === "{") {
+    if (!hasClosingBraceAfter) return null;
+    words.shift();
+    return words;
+  }
+  if (first === "(") {
+    words.shift();
+  } else if (first.startsWith("(") && !first.startsWith("((")) {
+    words[0] = first.slice(1);
+  } else {
+    return words;
+  }
+
+  const lastIndex = words.length - 1;
+  const last = words[lastIndex];
+  if (last === undefined) return null;
+  if (last === ")") {
+    words.pop();
+  } else if (!last.endsWith("))") && zipWordEndsWithUnquotedCloseParen(last)) {
+    const withoutClose = last.slice(0, -1);
+    if (withoutClose.length === 0) words.pop();
+    else words[lastIndex] = withoutClose;
+  } else if (hasClosingParenAfter) {
+    return words;
+  } else {
+    return null;
+  }
+
+  return words;
+}
+
+const ZIP_SIMPLE_WRAPPERS = new Set(["command", "env", "nice", "sudo"]);
+const ZIP_EXECUTABLE_NAMES = new Set(["zip"]);
+const ZIP_WRAPPER_NO_VALUE_FLAGS: Readonly<Record<string, ReadonlySet<string>>> = {
+  command: new Set(["-p"]),
+  env: new Set(["-i", "--ignore-environment"]),
+  nice: new Set(),
+  sudo: new Set(["-n"]),
+};
+
+function zipKnownBinName(raw: string, names: ReadonlySet<string>): string | null {
+  if (zipShellWordHasExpansion(raw)) return null;
+  for (const literal of [zipShellWordLiteral(raw), zipShellWordWindowsLiteral(raw)]) {
+    if (literal === null) continue;
+    const name = writeBinName(literal);
+    if (names.has(name)) return name;
+  }
+  return null;
+}
+
+/** Find zip after only bounded, no-value wrapper forms. */
+function zipExecutableIndex(words: readonly string[]): number | null {
+  let i = 0;
+  while (i < words.length && isEnvAssign(words[i] as string)) i++;
+
+  let wrapper = i < words.length ? zipKnownBinName(words[i] as string, ZIP_SIMPLE_WRAPPERS) : null;
+  while (wrapper !== null) {
+    i++;
+    const noValueFlags = ZIP_WRAPPER_NO_VALUE_FLAGS[wrapper] ?? new Set<string>();
+    while (i < words.length && noValueFlags.has(normalizeToken(words[i] as string))) i++;
+    if (normalizeToken(words[i] ?? "") === "--") i++;
+    if (wrapper === "env") {
+      while (i < words.length && isEnvAssign(words[i] as string)) i++;
+    }
+    wrapper = i < words.length ? zipKnownBinName(words[i] as string, ZIP_SIMPLE_WRAPPERS) : null;
+  }
+
+  return i < words.length && zipKnownBinName(words[i] as string, ZIP_EXECUTABLE_NAMES) !== null
+    ? i
+    : null;
+}
+
+/**
+ * Recognize the verified `zip [quiet] <archive> <input>` mutation grammar (#4005).
+ * The first positional operand is the archive destination; later protected
+ * operands are inputs and must not be treated as writes. Unknown option shapes
+ * remain fail-open instead of turning this bounded producer into a zip parser.
+ */
+function hasProtectedZipArchiveDestination(command: string): boolean {
+  const boundedCommand = zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(command));
+  const wordSegments = zipShellSegments(boundedCommand).map((segment) => zipShellWords(segment));
+  const closingBraceAfter = new Array<boolean>(wordSegments.length).fill(false);
+  const closingParenAfter = new Array<boolean>(wordSegments.length).fill(false);
+  let sawClosingBrace = false;
+  let sawClosingParen = false;
+  for (let i = wordSegments.length - 1; i >= 0; i--) {
+    closingBraceAfter[i] = sawClosingBrace;
+    closingParenAfter[i] = sawClosingParen;
+    const words = wordSegments[i];
+    if (
+      words !== null &&
+      words !== undefined &&
+      zipShellWordsWithoutRedirections(words)[0] === "}"
+    ) {
+      sawClosingBrace = true;
+    }
+    if (words?.some((word) => zipWordEndsWithUnquotedCloseParen(word))) {
+      sawClosingParen = true;
+    }
+  }
+
+  for (let segmentIndex = 0; segmentIndex < wordSegments.length; segmentIndex++) {
+    const splitWords = wordSegments[segmentIndex];
+    if (splitWords === null || splitWords === undefined) continue;
+    let groupedWords = zipUnwrapSimpleGrouping(
+      splitWords,
+      closingBraceAfter[segmentIndex] as boolean,
+      closingParenAfter[segmentIndex] as boolean,
+    );
+    if (groupedWords === null) {
+      groupedWords = zipUnwrapSimpleGrouping(
+        zipShellWordsWithoutRedirections(splitWords),
+        closingBraceAfter[segmentIndex] as boolean,
+        closingParenAfter[segmentIndex] as boolean,
+      );
+    }
+    if (groupedWords === null) continue;
+    const words = zipShellWordsWithoutRedirections(groupedWords);
+    const executableIndex = zipExecutableIndex(words);
+    if (executableIndex === null) continue;
+
+    let i = executableIndex + 1;
+    let optionsEnded = false;
+    let destination: string | null = null;
+    let sawInput = false;
+    let supportedShape = true;
+
+    while (i < words.length) {
+      const raw = words[i] as string;
+      const normalized = normalizeToken(raw);
+
+      if (destination === null) {
+        if (!optionsEnded && normalized === "--") {
+          optionsEnded = true;
+        } else if (!optionsEnded && normalized.startsWith("-")) {
+          if (!ZIP_PREFIX_NO_VALUE_FLAGS.has(normalized)) {
+            supportedShape = false;
+            break;
+          }
+        } else {
+          destination = raw;
+        }
+      } else if (!optionsEnded && normalized === "--") {
+        optionsEnded = true;
+      } else if (!optionsEnded && normalized.startsWith("-") && normalized !== "-") {
+        supportedShape = false;
+        break;
+      } else {
+        const literalInput = zipShellWordLiteral(raw);
+        if (literalInput !== null && literalInput.length > 0) sawInput = true;
+      }
+
+      i++;
+    }
+
+    if (
+      supportedShape &&
+      destination !== null &&
+      sawInput &&
+      pathishIsLiteralProtectedDest(destination)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Closed read-only proof for #4188 dest-of-write. Inspection of authz state
+ * stays allow. Absence of a near-zero-read measurement keeps this list load-bearing.
+ * sort/awk prove only without -o/--output/--pretty-print or attached `-oFILE`.
+ */
+const READ_ONLY_PROOF_BINS = new Set([
+  "cat",
+  "ls",
+  "grep",
+  "diff",
+  "get-content",
+  "gc",
+  "head",
+  "tail",
+  "wc",
+  "pwd",
+  "sha256sum",
+  "shasum",
+  "md5sum",
+  "cksum",
+  "sort",
+  "awk",
+  "gawk",
+  "nawk",
+]);
+
+/**
+ * #5970 Approach1 existence probes. Sole classify carve for relative dest-of-write
+ * and #4188 harvest (no second harvest-only skip list). test/[ ignore POSIX -o OR;
+ * dir/Get-ChildItem still refuse sort/awk-style output-dest flags.
+ */
+const EXISTENCE_PROBE_READ_ONLY_BINS = new Set([
+  "test-path",
+  "test",
+  "[",
+  "get-item",
+  "gi",
+  "dir",
+  "get-childitem",
+  "gci",
+]);
+
+const EXISTENCE_PROBE_IGNORE_OUTPUT_DEST_FLAGS = new Set(["test", "["]);
+
+const READ_ONLY_PROOF_OUTPUT_DEST_FLAGS = new Set(["-o", "--output", "--pretty-print"]);
+const GIT_VALUE_FLAGS = new Set([
+  "-C",
+  "-c",
+  "--attr-source",
+  "--config-env",
+  "--exec-path",
+  "--git-dir",
+  "--namespace",
+  "--super-prefix",
+  "--work-tree",
+]);
+const GIT_READ_PROOF_WRITE_SUBCOMMANDS = new Set([
+  "clone",
+  "fetch",
+  "pull",
+  "push",
+  "reset",
+  "worktree",
+  "submodule",
+]);
+
+function argvHasOutputDestFlag(words: readonly string[], execIndex: number): boolean {
+  for (let i = execIndex + 1; i < words.length; i++) {
+    const raw = words[i] as string;
+    const literal = zipShellWordLiteral(raw) ?? raw;
+    const n = normalizeToken(literal);
+    if (READ_ONLY_PROOF_OUTPUT_DEST_FLAGS.has(n)) return true;
+    if (n.startsWith("--output=") || n.startsWith("--pretty-print=")) return true;
+    // POSIX attached `-oFILE` (not `-out*` / `--`).
+    if (n.startsWith("-o") && !n.startsWith("-out") && !n.startsWith("--") && n.length > 2) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function awkPayloadHasWrite(words: readonly string[], execIndex: number): boolean {
+  let payload = "";
+  for (let i = execIndex + 1; i < words.length; i++) {
+    const raw = words[i] as string;
+    const flag = normalizeToken(raw);
+    if (flag === "-f" || flag === "--file") return true;
+    const literal = zipShellWordLiteral(raw);
+    if (literal !== null) payload += ` ${literal}`;
+  }
+  return /\bsystem\s*\(/i.test(payload) || /\b(?:print|printf)\s*(?:>>|>)/i.test(payload);
+}
+
+function wrapperBinName(raw: string): string | null {
+  if (zipShellWordHasExpansion(raw)) return null;
+  const literal = zipShellWordLiteral(raw);
+  if (literal === null) return null;
+  const name = writeBinName(literal);
+  if (COMMAND_WRAPPER_BINS.has(name) || ZIP_SIMPLE_WRAPPERS.has(name)) return name;
+  return null;
+}
+
+function commandIndexAfterWrappers(words: readonly string[]): number | null {
+  let i = 0;
+  while (i < words.length && isEnvAssign(words[i] as string)) i++;
+  let wrapper = i < words.length ? wrapperBinName(words[i] as string) : null;
+  while (wrapper !== null) {
+    i++;
+    const noValueFlags = ZIP_WRAPPER_NO_VALUE_FLAGS[wrapper] ?? new Set<string>();
+    while (i < words.length) {
+      const n = normalizeToken(words[i] as string);
+      if (noValueFlags.has(n)) {
+        i++;
+        continue;
+      }
+      if (WRAPPER_VALUE_FLAGS.has(n) && !n.includes("=")) {
+        i += 2;
+        continue;
+      }
+      break;
+    }
+    // timeout DURATION cmd — duration is positional, not a value-flag.
+    if (wrapper === "timeout" && i < words.length) {
+      const duration = normalizeToken(words[i] as string);
+      if (
+        duration.length > 0 &&
+        !duration.startsWith("-") &&
+        wrapperBinName(words[i] as string) === null
+      ) {
+        i++;
+      }
+    }
+    if (normalizeToken(words[i] ?? "") === "--") i++;
+    if (wrapper === "env") {
+      while (i < words.length && isEnvAssign(words[i] as string)) i++;
+    }
+    wrapper = i < words.length ? wrapperBinName(words[i] as string) : null;
+  }
+  return i < words.length ? i : null;
+}
+
+function argv0Literal(words: readonly string[], execIndex: number): string | null {
+  const raw = words[execIndex] as string;
+  if (zipShellWordHasExpansion(raw)) return null;
+  return zipShellWordLiteral(raw);
+}
+
+function argv0IsPathQualified(literal: string): boolean {
+  return literal.includes("/") || literal.includes("\\");
+}
+
+function argv0BareName(words: readonly string[], execIndex: number): string | null {
+  const literal = argv0Literal(words, execIndex);
+  if (literal === null) return null;
+  return writeBinName(literal);
+}
+
+function isArStyleArchiveBin(name: string): boolean {
+  return name === "ar" || name === "llvm-ar" || name === "gcc-ar";
+}
+
+function isProvenReadOnlyArgv(words: readonly string[], execIndex: number): boolean {
+  const literal = argv0Literal(words, execIndex);
+  if (literal === null || argv0IsPathQualified(literal)) return false;
+  // Nested writers in argv (`$(mkfile …)` / backticks) void the reader proof (#5970 P1).
+  if (argvHasCommandSubstitution(words, execIndex)) return false;
+  const name = writeBinName(literal);
+  if (isArStyleArchiveBin(name)) {
+    const rawMode = words[execIndex + 1];
+    if (rawMode === undefined) return false;
+    const mode = normalizeToken(rawMode).replace(/^-/, "");
+    return (
+      /^[abcdfilmnpqrstuvx]+$/.test(mode) &&
+      ![...mode].some((letter) => ARCHIVE_WRITE_OPERATIONS.has(letter) || letter === "x")
+    );
+  }
+  if (EXISTENCE_PROBE_READ_ONLY_BINS.has(name)) {
+    // Visible refuse for nested writers (Greptile #5970 P1); also gated above.
+    if (argvHasCommandSubstitution(words, execIndex)) return false;
+    if (EXISTENCE_PROBE_IGNORE_OUTPUT_DEST_FLAGS.has(name)) return true;
+    return !argvHasOutputDestFlag(words, execIndex);
+  }
+  if (READ_ONLY_PROOF_BINS.has(name)) {
+    if (name === "sort" || name === "awk" || name === "gawk" || name === "nawk") {
+      if (
+        (name === "awk" || name === "gawk" || name === "nawk") &&
+        awkPayloadHasWrite(words, execIndex)
+      ) {
+        return false;
+      }
+      return !argvHasOutputDestFlag(words, execIndex);
+    }
+    return true;
+  }
+  if (name === "git") {
+    let i = execIndex + 1;
+    let subcommand: string | null = null;
+    while (i < words.length) {
+      const n = normalizeToken(words[i] as string);
+      if (n === "--") {
+        i++;
+        break;
+      }
+      if (n.startsWith("-")) {
+        const rawFlag = zipShellWordLiteral(words[i] as string) ?? (words[i] as string);
+        if (
+          rawFlag === "-o" ||
+          rawFlag === "--output" ||
+          rawFlag.startsWith("--output=") ||
+          (rawFlag.startsWith("-o") && rawFlag.length > 2)
+        ) {
+          return false;
+        }
+        if (GIT_VALUE_FLAGS.has(n) && !n.includes("=")) i++;
+        i++;
+        continue;
+      }
+      if (subcommand === null) {
+        subcommand = n;
+      } else if (GIT_READ_PROOF_WRITE_SUBCOMMANDS.has(n)) {
+        return false;
+      }
+      i++;
+    }
+    return (
+      subcommand !== null && new Set(["diff", "log", "rev-parse", "show", "status"]).has(subcommand)
+    );
+  }
+  return false;
+}
+
+/** A shell command is read-only only when every command segment has a proof. */
+function isClosedReadOnlyShellCommand(command: string): boolean {
+  const segments = zipStyleCommandSegments(command);
+  return (
+    segments.length > 0 &&
+    segments.every((segment) => isProvenReadOnlyArgv(segment.words, segment.execIndex))
+  );
+}
+
+function isRelativeLiteralShellPath(raw: string): boolean {
+  if (zipShellWordHasExpansion(raw)) return false;
+  const literal = zipShellWordLiteral(raw);
+  if (literal === null || literal.length === 0) return false;
+  if (literal.startsWith("/") || literal.startsWith("~/") || literal.startsWith("~\\")) {
+    return false;
+  }
+  if (/^[A-Za-z]:[\\/]/.test(literal)) return false;
+  return true;
+}
+
+function segmentHasRelativeWriterTarget(words: readonly string[], execIndex: number): boolean {
+  const name = argv0BareName(words, execIndex);
+  if (
+    name === null ||
+    (!INDIRECT_WRITE_BINS.has(name) &&
+      !ARCHIVE_ALT_WRITE_BINS.has(name) &&
+      !SYMLINK_PLANT_BINS.has(name))
+  ) {
+    return false;
+  }
+
+  let lastOperand: string | null = null;
+  let optionsEnded = false;
+  for (let i = execIndex + 1; i < words.length; i++) {
+    const raw = words[i] as string;
+    if (isShellSegmentBreak(raw)) break;
+    const normalized = normalizeToken(raw);
+    if (!optionsEnded && normalized === "--") {
+      optionsEnded = true;
+      continue;
+    }
+    if (!optionsEnded && normalized.startsWith("-")) continue;
+    if (!isEnvAssign(raw)) lastOperand = raw;
+  }
+  return lastOperand !== null && isRelativeLiteralShellPath(lastOperand);
+}
+
+function hasProtectedCwdRelativeWriter(command: string): boolean {
+  let protectedCwd = false;
+  for (const segment of zipStyleCommandSegments(command)) {
+    const name = argv0BareName(segment.words, segment.execIndex);
+    if (name === "cd" || name === "pushd" || name === "set-location") {
+      let target: string | undefined;
+      let i = segment.execIndex + 1;
+      while (i < segment.words.length) {
+        const raw = segment.words[i] as string;
+        if (isShellSegmentBreak(raw)) break;
+        const normalized = normalizeToken(raw);
+        if (normalized === "--") {
+          i++;
+          continue;
+        }
+        if (name === "set-location" && (normalized === "-path" || normalized === "-literalpath")) {
+          target = segment.words[i + 1];
+          break;
+        }
+        if (normalized.startsWith("-")) {
+          i++;
+          continue;
+        }
+        target = raw;
+        break;
+      }
+      protectedCwd = target !== undefined && pathishIsSettingsStoreDir(pathishToken(target));
+      continue;
+    }
+    if (!protectedCwd || isProvenReadOnlyArgv(segment.words, segment.execIndex)) continue;
+    if (segmentHasRelativeWriterTarget(segment.words, segment.execIndex)) return true;
+  }
+  return false;
+}
+
+const XARGS_VALUE_FLAGS = new Set([
+  "-a",
+  "-d",
+  "-e",
+  "-i",
+  "-l",
+  "-n",
+  "-p",
+  "-p1",
+  "-p0",
+  "-P",
+  "-s",
+  "-E",
+  "--arg-file",
+  "--delimiter",
+  "--eof",
+  "--max-args",
+  "--max-chars",
+  "--max-procs",
+  "--replace",
+  "--max-lines",
+]);
+
+function xargsWriterStart(tokens: readonly string[], xargsIndex: number): number | null {
+  let i = xargsIndex + 1;
+  while (i < tokens.length) {
+    const raw = tokens[i] as string;
+    if (isShellSegmentBreak(raw)) return null;
+    const normalized = normalizeToken(raw);
+    if (normalized === "--") return i + 1 < tokens.length ? i + 1 : null;
+    if (!normalized.startsWith("-")) return i;
+    if (XARGS_VALUE_FLAGS.has(normalized) && !normalized.includes("=")) i++;
+    i++;
+  }
+  return null;
+}
+
+function xargsHasReplacement(tokens: readonly string[], xargsIndex: number): boolean {
+  for (let i = xargsIndex + 1; i < tokens.length; i++) {
+    const raw = tokens[i] as string;
+    if (isShellSegmentBreak(raw)) break;
+    const normalized = normalizeToken(raw);
+    if (normalized === "--") break;
+    if (
+      normalized === "-i" ||
+      normalized.startsWith("-i") ||
+      normalized === "--replace" ||
+      normalized.startsWith("--replace=")
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function xargsWriterHasProtectedDest(tokens: readonly string[], xargsIndex: number): boolean {
+  const start = xargsWriterStart(tokens, xargsIndex);
+  if (start === null || start >= tokens.length) return false;
+  const name = writeBinName(tokens[start] as string);
+  if (
+    !INDIRECT_WRITE_BINS.has(name) &&
+    !ARCHIVE_ALT_WRITE_BINS.has(name) &&
+    !SYMLINK_PLANT_BINS.has(name)
+  ) {
+    return false;
+  }
+
+  const destination = new Set(["cp", "mv", "rsync", "install", "xcopy", "robocopy"]);
+  if (!destination.has(name)) return true;
+
+  const operands: string[] = [];
+  let optionsEnded = false;
+  for (let i = start + 1; i < tokens.length; i++) {
+    const raw = tokens[i] as string;
+    if (isShellSegmentBreak(raw)) break;
+    const normalized = normalizeToken(raw);
+    if (!optionsEnded && normalized === "--") {
+      optionsEnded = true;
+      continue;
+    }
+    if (!optionsEnded && normalized.startsWith("-")) continue;
+    if (!isEnvAssign(raw)) operands.push(raw);
+  }
+  if (!xargsHasReplacement(tokens, xargsIndex) && operands.length < 2) return true;
+  if (operands.length === 0) return false;
+  return pathishIsProtectedMutationDest(pathishToken(operands[operands.length - 1] as string));
+}
+
+function hasProtectedInputToXargsWriter(tokens: readonly string[]): boolean {
+  for (let i = 0; i < tokens.length; i++) {
+    if (normalizeToken(tokens[i] as string) !== "|") continue;
+    let leftHasProtectedPath = false;
+    for (let j = i - 1; j >= 0 && !isShellSegmentBreak(tokens[j] as string); j--) {
+      const pathish = pathishToken(tokens[j] as string);
+      if (pathishIsProtectedMutationDest(pathish)) {
+        leftHasProtectedPath = true;
+        break;
+      }
+    }
+    if (!leftHasProtectedPath) continue;
+
+    let xargsIndex = i + 1;
+    while (xargsIndex < tokens.length && isEnvAssign(tokens[xargsIndex] as string)) xargsIndex++;
+    if (normalizeToken(tokens[xargsIndex] as string) !== "xargs") continue;
+    if (xargsWriterHasProtectedDest(tokens, xargsIndex)) return true;
+  }
+  return false;
+}
+
+function hasAwkProtectedWrite(command: string): boolean {
+  for (const segment of zipStyleCommandSegments(command)) {
+    const name = argv0BareName(segment.words, segment.execIndex);
+    if (name !== "awk" && name !== "gawk" && name !== "nawk") continue;
+    const payload = segment.words.slice(segment.execIndex + 1).join(" ");
+    const mentionsStore = unquotedPayloadPathTokens(payload).some((token) =>
+      pathishIsSettingsStoreDir(pathishToken(token)),
+    );
+    if (!mentionsStore) continue;
+    const lowerPayload = payload.toLowerCase();
+    if (/\bsystem\s*\(/.test(lowerPayload) || /\b(?:print|printf)\s*(?:>>|>)/.test(lowerPayload)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function hasProtectedArchiveExtract(command: string): boolean {
+  for (const segment of zipStyleCommandSegments(command)) {
+    const name = argv0BareName(segment.words, segment.execIndex);
+    if (name === null || !isArStyleArchiveBin(name)) continue;
+    const rawMode = segment.words[segment.execIndex + 1];
+    if (
+      rawMode === undefined ||
+      zipShellWordLiteral(rawMode) === null ||
+      !normalizeToken(rawMode).replace(/^-/, "").includes("x")
+    ) {
+      continue;
+    }
+    // The first operand after the mode is the archive input; only later
+    // operands name members that are extracted into the current directory.
+    for (let i = segment.execIndex + 3; i < segment.words.length; i++) {
+      const pathish = pathishToken(segment.words[i] as string);
+      if (pathishIsProtectedMutationDest(pathish)) return true;
+    }
+  }
+  return false;
+}
+
+function argv0HasExistingDestGrammar(name: string): boolean {
+  if (name === "zip") return true;
+  if (INDIRECT_WRITE_BINS.has(name)) return true;
+  if (ARCHIVE_ALT_WRITE_BINS.has(name)) return true;
+  if (DOWNLOADER_DECODER_BINS.has(name)) return true;
+  if (LAST_POSITIONAL_DEST_BINS.has(name)) return true;
+  if (SYMLINK_PLANT_BINS.has(name)) return true;
+  if (DEST_ASSIGNMENT_OWNER_BINS.has(name)) return true;
+  if (DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(name)) return true;
+  for (const bin of UAT_RESIDUAL_DEST_WRITE_BINS_3545) {
+    if (bin === name) return true;
+  }
+  for (const bin of UAT_RESIDUAL_INPLACE_WRITE_BINS_3545) {
+    if (bin === name) return true;
+  }
+  return false;
+}
+
+const INTERPRETER_CODE_FLAGS = new Set([
+  "-e",
+  "-c",
+  "--eval",
+  "--command",
+  "-eval",
+  "--batch-string",
+  "-code",
+  "-r",
+]);
+
+/** Quoted path-like literals inside -e/-c/eval payloads (#3593). */
+function quotedStringLiterals(payload: string): string[] {
+  const dests: string[] = [];
+  for (const re of [/"([^"]+)"/g, /'([^']+)'/g, /`([^`]+)`/g, /(?:q|qq|Q|%q|%Q)\{([^}]+)\}/g]) {
+    for (const match of payload.matchAll(re)) {
+      const inner = match[1];
+      if (inner !== undefined && inner.length > 0) dests.push(inner);
+    }
+  }
+  return dests;
+}
+
+/** Concatenated double-quoted literals inside a Lisp-style concat form (#3804). */
+function concatenatedQuotedStringLiterals(payload: string): string[] {
+  const dests: string[] = [];
+  for (let i = 0; i < payload.length; i++) {
+    if (payload[i] !== "(") continue;
+    let cursor = i + 1;
+    while (cursor < payload.length && /\s/.test(payload[cursor] as string)) cursor++;
+    if (payload.slice(cursor, cursor + 6) !== "concat") continue;
+    cursor += 6;
+    if (cursor < payload.length && !/\s|\)/.test(payload[cursor] as string)) continue;
+
+    let depth = 1;
+    let inString = false;
+    let escaped = false;
+    let current = "";
+    const parts: string[] = [];
+    let closed = false;
+    for (; cursor < payload.length; cursor++) {
+      const ch = payload[cursor] as string;
+      if (inString) {
+        if (escaped) {
+          current += ch;
+          escaped = false;
+        } else if (ch === "\\") {
+          escaped = true;
+        } else if (ch === '"') {
+          parts.push(current);
+          current = "";
+          inString = false;
+        } else {
+          current += ch;
+        }
+        continue;
+      }
+      if (ch === '"') {
+        inString = true;
+      } else if (ch === "(") {
+        depth++;
+      } else if (ch === ")") {
+        depth--;
+        if (depth === 0) {
+          closed = true;
+          break;
+        }
+      }
+    }
+    if (!closed) return dests;
+    if (parts.length > 1) dests.push(parts.join(""));
+    i = cursor;
+  }
+  return dests;
+}
+
+/** Shell-word-like tokens inside interpreter payloads (#3728). */
+function unquotedPayloadPathTokens(payload: string): string[] {
+  return [...payload.matchAll(/[^\s()[\]{},;'"`]+/g)]
+    .map((match) => match[0])
+    .filter((token) => token.length > 0);
+}
+
+function interpreterPayloadIsProvenReadOnly(payload: string): boolean {
+  const nestedCommand = payload.replace(/^['"`]|['"`]$/g, "");
+  const [segment, ...rest] = zipStyleCommandSegments(nestedCommand);
+  if (segment === undefined || rest.length !== 0) return false;
+
+  // An archive operand is source-only for top-level `ar x`, but extraction
+  // still writes files. It cannot prove an enclosing interpreter payload is
+  // read-only, so keep scanning that payload for protected path literals.
+  const name = argv0BareName(segment.words, segment.execIndex);
+  if (name !== null && isArStyleArchiveBin(name)) {
+    const rawMode = segment.words[segment.execIndex + 1];
+    const literalMode = rawMode === undefined ? null : zipShellWordLiteral(rawMode);
+    if (literalMode?.replace(/^-/, "").includes("x")) return false;
+  }
+
+  return isProvenReadOnlyArgv(segment.words, segment.execIndex);
+}
+
+/**
+ * #3764 / #3728: path literals in interpreter payloads are dest-of-write
+ * without a write-API / language parse. Reads and `print` of protected paths
+ * in those payloads classify unknown. Emacs eval forms also reconstruct Lisp
+ * `concat` literals because the individual strings need not be protected.
+ */
+function harvestInterpreterPayloadDests(words: readonly string[], execIndex: number): string[] {
+  const dests: string[] = [];
+  const name = argv0BareName(words, execIndex);
+  for (let i = execIndex + 1; i < words.length; i++) {
+    const rawFlag = words[i] as string;
+    const flag = normalizeToken(rawFlag);
+    if (rawFlag.replace(/['"\\]/g, "") === "-C") continue;
+    if (!INTERPRETER_CODE_FLAGS.has(flag) && flag !== "eval") continue;
+    const payload = words[i + 1];
+    if (payload === undefined) continue;
+    dests.push(...quotedStringLiterals(payload));
+    const emacsEvalFlag =
+      (name === "emacs" || name === "emacsclient") &&
+      (flag === "--eval" || flag === "-eval" || flag === "-e");
+    if (emacsEvalFlag) dests.push(...concatenatedQuotedStringLiterals(payload));
+    if (!interpreterPayloadIsProvenReadOnly(payload)) {
+      dests.push(...unquotedPayloadPathTokens(payload));
+    }
+  }
+  return dests;
+}
+
+/**
+ * Undashed jar create/update cluster (`cf`, `cfm`, `cmf`, `cfe`, `cvfm`).
+ * Mode letter is first (`c`/`u`). Remaining letters are jar short options
+ * (`m` manifest, `e` entrypoint, `f` file, `v` verbose, …). Dest-grammar only;
+ * does not grow a bin catalog (#3593 / #4188).
+ */
+function isJarCompactCreateCluster(token: string): boolean {
+  if (token.length < 1 || token.length > 8) return false;
+  if (token[0] !== "c" && token[0] !== "u") return false;
+  return /^[cuvtfximen0pkas]+$/.test(token);
+}
+
+/** Letters that consume the next positional (`f` archive, `m` manifest, `e` entry). */
+const JAR_OPERAND_LETTERS = new Set(["f", "m", "e"]);
+
+function noteJarCluster(cluster: string, pendingOperands: string[]): boolean {
+  const writes = cluster.includes("c") || cluster.includes("u");
+  for (const ch of cluster) {
+    if (JAR_OPERAND_LETTERS.has(ch)) pendingOperands.push(ch);
+  }
+  return writes;
+}
+
+/**
+ * jar create/update DEST — dest is `--file` or the operand bound to `f`
+ * in compact-cluster letter order (`cmf manifest DEST` vs `cfm DEST manifest`).
+ */
+function jarCreateArchiveDest(words: readonly string[], execIndex: number): string | null {
+  const name = argv0BareName(words, execIndex);
+  if (name !== "jar" && name !== "fastjar") return null;
+  let writesArchive = false;
+  let fileDest: string | null = null;
+  const pendingOperands: string[] = [];
+  for (let i = execIndex + 1; i < words.length; i++) {
+    const raw = words[i] as string;
+    const n = normalizeToken(raw);
+    if (n.startsWith("--file=")) {
+      // Slice raw first so dest case is preserved; fall back to quote-stripped
+      // `n` when wrapping quotes on the whole token leave zipShellWordLiteral
+      // unbalanced (`'--file=DEST'`).
+      const afterEq = raw.slice(raw.indexOf("=") + 1);
+      fileDest = zipShellWordLiteral(afterEq) ?? zipShellWordLiteral(n.slice(n.indexOf("=") + 1));
+      continue;
+    }
+    if (n === "--file" || n === "-f") {
+      const next = words[i + 1];
+      if (next !== undefined) {
+        fileDest = zipShellWordLiteral(next);
+        i += 1;
+      }
+      continue;
+    }
+    if (n === "--create" || n === "--update") {
+      writesArchive = true;
+      continue;
+    }
+    if (n.startsWith("-") && n !== "--") {
+      if (noteJarCluster(n.replace(/^-*/, ""), pendingOperands)) writesArchive = true;
+      continue;
+    }
+    if (!n.startsWith("-") && n !== "--") {
+      if (isJarCompactCreateCluster(n)) {
+        if (noteJarCluster(n, pendingOperands)) writesArchive = true;
+        continue;
+      }
+      const letter = pendingOperands.shift();
+      if (letter === "f" && fileDest === null) {
+        fileDest = zipShellWordLiteral(raw);
+      }
+      if (letter === undefined) break;
+    }
+  }
+  if (!writesArchive) return null;
+  return fileDest !== null && fileDest.length > 0 ? fileDest : null;
+}
+
+/** `ar`-style operations that mutate the archive rather than only read or extract it. */
+const ARCHIVE_WRITE_OPERATIONS = new Set(["d", "m", "q", "r", "s"]);
+
+/** Compact archive mode followed by the first archive operand (#3804). */
+function firstArchiveOperandDest(words: readonly string[], execIndex: number): string | null {
+  const name = argv0BareName(words, execIndex);
+  if (name === null || !isArStyleArchiveBin(name) || argv0HasExistingDestGrammar(name)) return null;
+  const rawMode = words[execIndex + 1];
+  if (rawMode === undefined) return null;
+  const literalMode = zipShellWordLiteral(rawMode);
+  if (literalMode === null) return null;
+  const mode = normalizeToken(literalMode).replace(/^-/, "");
+  if (!/^[abcdfilmnpqrstuvx]+$/.test(mode)) return null;
+  if (![...mode].some((letter) => ARCHIVE_WRITE_OPERATIONS.has(letter))) return null;
+  const exactMode = literalMode.replace(/^-/, "");
+  const consumesPositionOperand = /[abi]/i.test(exactMode);
+  const consumesCountOperand = exactMode.includes("N");
+  const rawDest =
+    words[execIndex + 2 + (consumesPositionOperand ? 1 : 0) + (consumesCountOperand ? 1 : 0)];
+  if (rawDest === undefined) return null;
+  const dest = zipShellWordLiteral(rawDest);
+  return dest !== null && dest.length > 0 ? dest : null;
+}
+
+/** Borg create long options whose values precede the unique archive positional. */
+const BORG_CREATE_LONG_VALUE_OPTIONS = new Set([
+  "--exclude",
+  "--exclude-from",
+  "--pattern",
+  "--patterns-from",
+  "--exclude-if-present",
+  "--checkpoint-interval",
+  "--compression",
+  "--comment",
+  "--timestamp",
+  "--chunker-params",
+  "--files-cache",
+  "--stdin-name",
+  "--stdin-user",
+  "--stdin-group",
+  "--stdin-mode",
+  "--paths-delimiter",
+  "--filter",
+  "--files-changed",
+  "--lock-wait",
+  "--debug-topic",
+  "--debug-profile",
+  "--rsh",
+  "--remote-path",
+  "--remote-ratelimit",
+  "--remote-buffer",
+  "--upload-ratelimit",
+  "--upload-buffer",
+  "--umask",
+  "--repo",
+  "--repository",
+  "--other-repo",
+]);
+
+/** Borg short options that consume an attached or following value. */
+const BORG_CREATE_SHORT_VALUE_OPTIONS = new Set(["e", "c", "C"]);
+
+/**
+ * Whether a Borg short-option token consumes the following argv word.
+ *
+ * Python argparse accepts clusters such as `-ne PATTERN` and attached values
+ * such as `-nePATTERN`. The first value-taking option owns the remaining
+ * suffix; only a value-taking option at the end consumes the next word.
+ */
+function borgShortOptionConsumesNext(literal: string): boolean {
+  const cluster = literal.slice(1);
+  for (let i = 0; i < cluster.length; i++) {
+    if (!BORG_CREATE_SHORT_VALUE_OPTIONS.has(cluster[i] as string)) continue;
+    return i === cluster.length - 1;
+  }
+  return false;
+}
+
+function borgOptionConsumesNext(raw: string): boolean {
+  const literal = zipShellWordLiteral(raw);
+  if (literal === null || !literal.startsWith("-") || literal === "-") return false;
+  if (!literal.startsWith("--")) return borgShortOptionConsumesNext(literal);
+  const separator = literal.indexOf("=");
+  const option = normalizeToken(separator >= 0 ? literal.slice(0, separator) : literal);
+  return separator < 0 && BORG_CREATE_LONG_VALUE_OPTIONS.has(option);
+}
+
+/** Borg `create DEST::archive`: only the first positional is a write destination (#3804). */
+function doubleColonCreateArchiveDests(words: readonly string[], execIndex: number): string[] {
+  if (argv0BareName(words, execIndex) !== "borg") return [];
+  let sawCreate = false;
+  let optionsEnded = false;
+  for (let i = execIndex + 1; i < words.length; i++) {
+    const raw = words[i] as string;
+    const token = normalizeToken(raw);
+    if (!sawCreate) {
+      if (!optionsEnded && token === "--") {
+        optionsEnded = true;
+        continue;
+      }
+      if (!optionsEnded && token.startsWith("-") && token !== "-") {
+        if (borgOptionConsumesNext(raw)) i += 1;
+        continue;
+      }
+      if (token !== "create") return [];
+      sawCreate = true;
+      optionsEnded = false;
+      continue;
+    }
+    if (!optionsEnded && token === "--") {
+      optionsEnded = true;
+      continue;
+    }
+    if (!optionsEnded && token.startsWith("-") && token !== "-") {
+      if (borgOptionConsumesNext(raw)) i += 1;
+      continue;
+    }
+    if (zipShellWordHasExpansion(raw)) return [];
+    const literal = zipShellWordLiteral(raw);
+    if (literal === null) return [];
+    const separator = literal.indexOf("::");
+    return separator > 0 ? [literal.slice(0, separator)] : [];
+  }
+  return [];
+}
+
+/**
+ * Dest-flag names harvested as dest-of-write (`unknown`), not as grantable
+ * `settings`. Do not merge into GENERIC_PROTECTED_EXTRA_DEST_FLAGS (#3764).
+ */
+const UNKNOWN_DEST_OF_WRITE_FLAGS = new Set([
+  "--target-dir",
+  "--print-to-pdf",
+  "--distpath",
+  "--output-path",
+  "--out-dir",
+  "--outdir",
+  "--export-filename",
+  "--repo",
+  "--repository",
+  "--to",
+  "--to-name",
+  "-of",
+  "-output",
+  "--output",
+]);
+
+/**
+ * Leftover dest-of-write grammars (#3626): attached emit-flags (`-femit-bin=`)
+ * and Windows slash dests (`/out:`, `/output=`, `/p:OutputPath=`), plus leftover
+ * `-p:OutputPath=`. Do not recut `-out:` / `-output=` (already unknown). Do not
+ * add generic `-p` (#3918).
+ */
+function attachedDestOfWriteValue(raw: string): string | null {
+  const literal = zipShellWordLiteral(raw) ?? raw;
+  const lower = literal.toLowerCase();
+  if (lower.startsWith("-femit-")) {
+    const eq = literal.indexOf("=");
+    if (eq > "-femit-".length && eq < literal.length - 1) return literal.slice(eq + 1);
+    return null;
+  }
+  // Longer slash dests first so `/output=` is not `/out`.
+  const slashPrefixes = ["/output=", "/output:", "/out=", "/out:"] as const;
+  for (const prefix of slashPrefixes) {
+    if (lower.startsWith(prefix) && literal.length > prefix.length) {
+      return literal.slice(prefix.length);
+    }
+  }
+  const propertyPrefixes = ["-p:outputpath=", "/p:outputpath="] as const;
+  for (const prefix of propertyPrefixes) {
+    if (lower.startsWith(prefix) && literal.length > prefix.length) {
+      return literal.slice(prefix.length);
+    }
+  }
+  return null;
+}
+
+function hasProtectedAttachedDestOfWrite(command: string): boolean {
+  for (const segment of zipStyleCommandSegments(command)) {
+    for (let i = segment.execIndex + 1; i < segment.words.length; i++) {
+      const dest = attachedDestOfWriteValue(segment.words[i] as string);
+      if (dest !== null && dest.length > 0 && isRelativePayloadProtectedDest(dest)) return true;
+    }
+  }
+  for (const raw of shellTokens(command)) {
+    const dest = attachedDestOfWriteValue(raw);
+    if (dest !== null && dest.length > 0 && pathishIsProtectedMutationDest(pathishToken(dest))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** `-C DIR` is dest-of-write only for these extractors. `git`/`make`/`tar` use `-C` as cwd. */
+const UNKNOWN_DEST_OF_WRITE_C_BINS = new Set(["binwalk"]);
+
+function harvestUnknownDestFlagValues(
+  words: readonly string[],
+  execIndex: number,
+  argv0Name: string | null,
+): string[] {
+  const dests: string[] = [];
+  const harvestDashC = argv0Name !== null && UNKNOWN_DEST_OF_WRITE_C_BINS.has(argv0Name);
+  const repoFlagIsSelector = argv0Name === "gh" || argv0Name === "gh.exe";
+  for (let i = execIndex + 1; i < words.length; i++) {
+    const raw = words[i] as string;
+    const attached = attachedDestOfWriteValue(raw);
+    if (attached !== null && attached.length > 0) {
+      dests.push(attached);
+      continue;
+    }
+    const eq = raw.indexOf("=");
+    if (eq > 0 && raw.startsWith("-")) {
+      const flagTok = raw.slice(0, eq);
+      const value = raw.slice(eq + 1);
+      if (value.length === 0) continue;
+      if (flagTok === "-C") {
+        if (harvestDashC) dests.push(value);
+        continue;
+      }
+      const flag = normalizeToken(flagTok);
+      if (flag === "--repo" && repoFlagIsSelector) continue;
+      if (UNKNOWN_DEST_OF_WRITE_FLAGS.has(flag)) dests.push(value);
+      continue;
+    }
+    if (raw === "-C") {
+      if (!harvestDashC) continue;
+      const next = words[i + 1];
+      if (next === undefined) continue;
+      const nn = normalizeToken(next);
+      if (nn === "--" || nn.startsWith("-")) continue;
+      dests.push(next);
+      i++;
+      continue;
+    }
+    const flag = normalizeToken(raw);
+    if (!UNKNOWN_DEST_OF_WRITE_FLAGS.has(flag)) continue;
+    if (flag === "--repo" && repoFlagIsSelector) continue;
+    const next = words[i + 1];
+    if (next === undefined) continue;
+    const nn = normalizeToken(next);
+    if (nn === "--" || nn.startsWith("-")) continue;
+    dests.push(next);
+    i++;
+  }
+  return dests;
+}
+
+function hasOrdinaryFileExtension(lit: string): boolean {
+  const slash = Math.max(lit.lastIndexOf("/"), lit.lastIndexOf("\\"));
+  const base = slash >= 0 ? lit.slice(slash + 1) : lit;
+  const dot = base.lastIndexOf(".");
+  return dot > 0 && dot < base.length - 1;
+}
+
+function isNonPathishTrailingToken(raw: string): boolean {
+  if (isRelativePayloadProtectedDest(raw)) return false;
+  const lit = zipShellWordLiteral(raw);
+  if (lit === null) return true;
+  if (lit.includes("/") || lit.includes("\\")) return false;
+  if (hasOrdinaryFileExtension(lit)) return false;
+  return true;
+}
+
+/** Last dest-of-write positional, walking back past trailing non-path junk (#3764). */
+function lastDestOfWritePositional(words: readonly string[], execIndex: number): string | null {
+  const argv0 = argv0BareName(words, execIndex);
+  const wrappedBin = firstCommandBin(words.slice(execIndex));
+  const cargoArgv = isCargoArgv0(argv0) || isCargoArgv0(wrappedBin);
+  const nonFlags: string[] = [];
+  for (let i = execIndex + 1; i < words.length; i++) {
+    const raw = words[i] as string;
+    const n = normalizeToken(raw);
+    if (n === "--") continue;
+    // cargo --target TRIPLE is a toolchain, not dest-of-write (#4204 negative).
+    if (cargoArgv && (n === "--target" || n.startsWith("--target="))) {
+      if (n === "--target") {
+        const next = words[i + 1];
+        if (next !== undefined && !normalizeToken(next).startsWith("-")) i++;
+      }
+      continue;
+    }
+    if (n.startsWith("-")) continue;
+    nonFlags.push(raw);
+  }
+  if (nonFlags.length === 0) return null;
+  const last = nonFlags[nonFlags.length - 1] as string;
+  if (isRelativePayloadProtectedDest(last)) return last;
+  if (isNonPathishTrailingToken(last)) {
+    for (let j = nonFlags.length - 2; j >= 0; j--) {
+      const prev = nonFlags[j] as string;
+      if (isRelativePayloadProtectedDest(prev)) return prev;
+    }
+  }
+  return last;
+}
+
+function isRelativePayloadProtectedDest(rawWord: string): boolean {
+  if (zipShellWordHasExpansion(rawWord)) return false;
+  const posix = zipShellWordLiteral(rawWord);
+  if (posix === null) return false;
+  if (posix.startsWith("~/") || posix.startsWith("/") || posix.startsWith("~\\")) return false;
+  if (/^[A-Za-z]:[\\/]/.test(posix)) return false;
+  return pathishIsLiteralProtectedDest(rawWord);
+}
+
+type ZipStyleSegment = {
+  readonly words: readonly string[];
+  readonly execIndex: number;
+};
+
+function zipStyleCommandSegments(command: string): ZipStyleSegment[] {
+  const boundedCommand = zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(command));
+  const wordSegments = zipShellSegments(boundedCommand).map((segment) => zipShellWords(segment));
+  const closingBraceAfter = new Array<boolean>(wordSegments.length).fill(false);
+  const closingParenAfter = new Array<boolean>(wordSegments.length).fill(false);
+  let sawClosingBrace = false;
+  let sawClosingParen = false;
+  for (let i = wordSegments.length - 1; i >= 0; i--) {
+    closingBraceAfter[i] = sawClosingBrace;
+    closingParenAfter[i] = sawClosingParen;
+    const words = wordSegments[i];
+    if (
+      words !== null &&
+      words !== undefined &&
+      zipShellWordsWithoutRedirections(words)[0] === "}"
+    ) {
+      sawClosingBrace = true;
+    }
+    if (words?.some((word) => zipWordEndsWithUnquotedCloseParen(word))) {
+      sawClosingParen = true;
+    }
+  }
+
+  const out: ZipStyleSegment[] = [];
+  for (let segmentIndex = 0; segmentIndex < wordSegments.length; segmentIndex++) {
+    const splitWords = wordSegments[segmentIndex];
+    if (splitWords === null || splitWords === undefined) continue;
+    let groupedWords = zipUnwrapSimpleGrouping(
+      splitWords,
+      closingBraceAfter[segmentIndex] as boolean,
+      closingParenAfter[segmentIndex] as boolean,
+    );
+    if (groupedWords === null) {
+      groupedWords = zipUnwrapSimpleGrouping(
+        zipShellWordsWithoutRedirections(splitWords),
+        closingBraceAfter[segmentIndex] as boolean,
+        closingParenAfter[segmentIndex] as boolean,
+      );
+    }
+    if (groupedWords === null) continue;
+    const words = zipShellWordsWithoutRedirections(groupedWords);
+    const execIndex = commandIndexAfterWrappers(words);
+    if (execIndex === null) continue;
+    out.push({ words, execIndex });
+  }
+  return out;
+}
+
+function hasProtectedJarCreateArchiveDest(command: string): boolean {
+  for (const segment of zipStyleCommandSegments(command)) {
+    const jarDest = jarCreateArchiveDest(segment.words, segment.execIndex);
+    if (jarDest !== null && isRelativePayloadProtectedDest(jarDest)) return true;
+  }
+  return false;
+}
+
+function hasProtectedUniqueArchiveDest(command: string): boolean {
+  for (const segment of zipStyleCommandSegments(command)) {
+    const archiveDest = firstArchiveOperandDest(segment.words, segment.execIndex);
+    if (archiveDest !== null && isRelativePayloadProtectedDest(archiveDest)) return true;
+    for (const doubleColonDest of doubleColonCreateArchiveDests(segment.words, segment.execIndex)) {
+      if (isRelativePayloadProtectedDest(doubleColonDest)) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * #4188: unknown argv0 (not a write/dest catalog member, not proven read-only)
+ * whose last positional dest-of-write is a payload-relative protected path.
+ * Does not grow dest-flag or write-bin catalogs. Zip first-positional grammar
+ * stays on hasProtectedZipArchiveDestination.
+ */
+function hasProtectedUnprovenReadOnlyDestOfWrite(command: string): boolean {
+  for (const segment of zipStyleCommandSegments(command)) {
+    if (isProvenReadOnlyArgv(segment.words, segment.execIndex)) continue;
+    const literal = argv0Literal(segment.words, segment.execIndex);
+    const name = argv0BareName(segment.words, segment.execIndex);
+    if (name === null) continue;
+    if (isArStyleArchiveBin(name)) {
+      const rawMode = segment.words[segment.execIndex + 1];
+      if (
+        rawMode !== undefined &&
+        zipShellWordLiteral(rawMode) !== null &&
+        normalizeToken(rawMode).replace(/^-/, "").includes("x")
+      ) {
+        continue;
+      }
+    }
+    const jarDest = jarCreateArchiveDest(segment.words, segment.execIndex);
+    if (jarDest !== null && isRelativePayloadProtectedDest(jarDest)) return true;
+    const archiveDest = firstArchiveOperandDest(segment.words, segment.execIndex);
+    if (archiveDest !== null && isRelativePayloadProtectedDest(archiveDest)) return true;
+    for (const dest of harvestInterpreterPayloadDests(segment.words, segment.execIndex)) {
+      if (isRelativePayloadProtectedDest(dest)) return true;
+    }
+    for (const dest of harvestUnknownDestFlagValues(segment.words, segment.execIndex, name)) {
+      if (isRelativePayloadProtectedDest(dest)) return true;
+    }
+    const pathQualified = literal !== null && argv0IsPathQualified(literal);
+    // Path-qualified `./cat` is not a proven reader. Still skip catalogued
+    // writers (they already emit settings). Do not apply print/read first-bin
+    // skips to path-qualified names.
+    if (name === "zip") continue;
+    if (
+      INDIRECT_WRITE_BINS.has(name) ||
+      ARCHIVE_ALT_WRITE_BINS.has(name) ||
+      DOWNLOADER_DECODER_BINS.has(name) ||
+      LAST_POSITIONAL_DEST_BINS.has(name) ||
+      SYMLINK_PLANT_BINS.has(name) ||
+      DEST_ASSIGNMENT_OWNER_BINS.has(name)
+    ) {
+      continue;
+    }
+    if (!pathQualified && argv0HasExistingDestGrammar(name)) continue;
+    const last = lastDestOfWritePositional(segment.words, segment.execIndex);
+    if (last !== null && isRelativePayloadProtectedDest(last)) return true;
+  }
+  return false;
+}
+
+/** True when a recovered dest literal is a payload-relative protected path. */
+export function destLiteralIsRelativeProtected(dest: string): boolean {
+  if (dest.startsWith("~/") || dest.startsWith("/") || dest.startsWith("~\\")) return false;
+  if (/^[A-Za-z]:[\\/]/.test(dest)) return false;
+  return zipLiteralIsProtectedDest(dest) || zipLiteralIsProtectedDest(dest, true);
+}
+
+/**
+ * Last dest-of-write candidates for dispatcher realpath (#4188).
+ * Proven read-only and print/read first-bins stay out. Zip last operands are
+ * inputs and are not harvested. Catalogued writers are included so a non-shell
+ * symlink dest can still be realpath-resolved.
+ */
+export function harvestDestsOfWriteForRealpath(command: string): string[] {
+  const dests: string[] = [];
+  for (const segment of zipStyleCommandSegments(command)) {
+    if (isProvenReadOnlyArgv(segment.words, segment.execIndex)) continue;
+    const name = argv0BareName(segment.words, segment.execIndex);
+    if (name === null || name === "zip") continue;
+    const literal = argv0Literal(segment.words, segment.execIndex);
+    const pathQualified = literal !== null && argv0IsPathQualified(literal);
+    if (!pathQualified && DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(name)) continue;
+    const jarDest = jarCreateArchiveDest(segment.words, segment.execIndex);
+    if (jarDest !== null && jarDest.length > 0) dests.push(jarDest);
+    const archiveDest = firstArchiveOperandDest(segment.words, segment.execIndex);
+    if (archiveDest !== null && archiveDest.length > 0) dests.push(archiveDest);
+    dests.push(...doubleColonCreateArchiveDests(segment.words, segment.execIndex));
+    for (const interp of harvestInterpreterPayloadDests(segment.words, segment.execIndex)) {
+      dests.push(interp);
+    }
+    for (const flagDest of harvestUnknownDestFlagValues(segment.words, segment.execIndex, name)) {
+      const lit = zipShellWordLiteral(flagDest);
+      if (lit !== null && lit.length > 0) dests.push(lit);
+    }
+    const last = lastDestOfWritePositional(segment.words, segment.execIndex);
+    if (last === null || zipShellWordHasExpansion(last)) continue;
+    const destLiteral = zipShellWordLiteral(last);
+    if (destLiteral === null || destLiteral.length === 0) continue;
+    dests.push(destLiteral);
+  }
+  return dests;
+}
+
+function isGenericProtectedDestFlag(flag: string): boolean {
+  return DOWNLOADER_FILE_DEST_FLAGS.has(flag) || GENERIC_PROTECTED_EXTRA_DEST_FLAGS.has(flag);
+}
+
+/** Env-style dest keys harvested even without a leading `--` (`make DESTDIR=`). */
+const DEST_ASSIGNMENT_KEYS = new Set(["destdir", "prefix", "install_root", "dest_dir"]);
+/** Bins whose DESTDIR=/PREFIX= assignment is a dest plant (not `echo DESTDIR=…`). */
+const DEST_ASSIGNMENT_OWNER_BINS = new Set(["make", "gmake"]);
+/**
+ * First-command bins that print/read: a later `make` token is data, not the writer
+ * (`echo DESTDIR=… make`, `git log make DESTDIR=…`). Also the first command of a
+ * search-launcher `-exec` / `-c` payload (`find -exec echo make DESTDIR=`).
+ * Search/launchers themselves are not in this set — `find -exec make DESTDIR=`
+ * still harvests the payload writer.
+ */
+const DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS = new Set([
+  "echo",
+  "printf",
+  "true",
+  "false",
+  ":",
+  "git",
+  "gh",
+  "hg",
+  "svn",
+  "cat",
+  "ls",
+  "grep",
+  "egrep",
+  "fgrep",
+  "rg",
+  "head",
+  "tail",
+  "less",
+  "more",
+  "wc",
+  "diff",
+  "stat",
+  "file",
+]);
+/**
+ * Search/launchers whose first token is not the writer. Harvest make/DESTDIR
+ * only from `-exec` / `--exec` / `-c` payloads (`find -exec make DESTDIR=`).
+ * The payload's first command still uses NON_WRITER (`find -exec echo make`).
+ * `xargs make DESTDIR=` stays a wrapper (not in the non-writer set).
+ */
+const DEST_ASSIGNMENT_SEARCH_LAUNCHER_BINS = new Set(["find"]);
+const DEST_ASSIGNMENT_EXEC_PAYLOAD_FLAGS = new Set([
+  "-exec",
+  "--exec",
+  "-execdir",
+  "--execdir",
+  "-c",
+]);
+/** find `-exec` payload terminator (`\;` or `+`). Resets so a later `-exec` is still operative. */
+function isFindExecPayloadTerminator(n: string): boolean {
+  return n === ";" || n === "+";
+}
+/** make targets that do not apply DESTDIR (avoid denying `make DESTDIR=… clean`). */
+const DEST_ASSIGNMENT_NON_WRITE_TARGETS = new Set([
+  "clean",
+  "distclean",
+  "mostlyclean",
+  "maintainer-clean",
+  "check",
+  "test",
+  "tests",
+  "help",
+]);
+/** make flags that consume the next token (`-C dir`, `-f Makefile`). */
+const MAKE_VALUE_FLAGS = new Set([
+  "-c",
+  "--directory",
+  "-f",
+  "--file",
+  "--makefile",
+  "--include-dir",
+  "-j",
+  "--jobs",
+  "-l",
+  "--load-average",
+  "--eval",
+]);
+
+/**
+ * True when a DESTDIR/PREFIX assignment is an operative make write.
+ * Looks for make/gmake anywhere after wrappers (including unknown wrappers
+ * such as `xargs`), unless the first command is a print/read bin.
+ * Search/launchers (`find`) still harvest from `-exec` / `--exec` / `-c`
+ * payloads unless that payload's first command is a print/read bin.
+ * Payload state resets at `\;` / `+` so a later `-exec make DESTDIR=` is
+ * still operative (`find -exec echo hi \; -exec make DESTDIR= install`).
+ * Non-writing targets (`clean`) are not operative.
+ */
+function segmentDestAssignmentIsOperative(tokens: readonly string[], tokenIndex: number): boolean {
+  let start = tokenIndex;
+  while (start > 0 && !tokenEndsShellSegment(tokens[start - 1] as string)) start--;
+  let skipNext = false;
+  let firstCommand = "";
+  let inExecPayload = false;
+  let execPayloadFirstCommand = "";
+  let sawMake = false;
+  const targets: string[] = [];
+  for (let k = start; k < tokens.length; k++) {
+    const raw = tokens[k] as string;
+    if (tokenEndsShellSegment(raw)) break;
+    if (skipNext) {
+      skipNext = false;
+      continue;
+    }
+    const n = normalizeToken(raw);
+    if (inExecPayload && isFindExecPayloadTerminator(n)) {
+      inExecPayload = false;
+      execPayloadFirstCommand = "";
+      continue;
+    }
+    // Print/read `-exec` payload: skip until terminator so a later `-exec` is seen.
+    if (
+      inExecPayload &&
+      execPayloadFirstCommand.length > 0 &&
+      DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(execPayloadFirstCommand)
+    ) {
+      continue;
+    }
+    if (n.startsWith("-")) {
+      // find -exec / -c opens the payload; do not consume the next token as a
+      // wrapper value. After make is seen, -C still skips its directory.
+      if (
+        DEST_ASSIGNMENT_EXEC_PAYLOAD_FLAGS.has(n) &&
+        DEST_ASSIGNMENT_SEARCH_LAUNCHER_BINS.has(firstCommand) &&
+        !sawMake
+      ) {
+        inExecPayload = true;
+        execPayloadFirstCommand = "";
+        continue;
+      }
+      if (!n.includes("=") && (WRAPPER_VALUE_FLAGS.has(n) || MAKE_VALUE_FLAGS.has(n))) {
+        skipNext = true;
+      }
+      continue;
+    }
+    if (isEnvAssign(raw)) continue;
+    const bare = writeBinName(raw);
+    if (COMMAND_WRAPPER_BINS.has(bare)) continue;
+    if (bare.length > 0 && bare[0] !== undefined && bare[0] >= "0" && bare[0] <= "9") {
+      continue;
+    }
+    if (firstCommand.length === 0) {
+      firstCommand = bare;
+      if (DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(bare)) return false;
+    }
+    if (inExecPayload && execPayloadFirstCommand.length === 0) {
+      execPayloadFirstCommand = bare;
+    }
+    if (inExecPayload && DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(execPayloadFirstCommand)) {
+      continue;
+    }
+    if (DEST_ASSIGNMENT_OWNER_BINS.has(bare)) {
+      if (DEST_ASSIGNMENT_SEARCH_LAUNCHER_BINS.has(firstCommand) && !inExecPayload) {
+        continue;
+      }
+      sawMake = true;
+      continue;
+    }
+    if (sawMake) targets.push(n);
+  }
+  if (!sawMake) return false;
+  if (targets.length === 0) return true;
+  for (const t of targets) {
+    if (!DEST_ASSIGNMENT_NON_WRITE_TARGETS.has(t)) return true;
+  }
+  return false;
+}
+
+function isReadShapedInputFileFlag(bin: string, flag: string): boolean {
+  return READ_SHAPED_FILE_FLAG_BINS.has(bin) && READ_INPUT_FILE_FLAGS.has(flag);
+}
+
+/**
+ * Git globals that do not take a separate value. Unlisted globals consume the
+ * next token so a later dest writer is still seen (#3421 residual).
+ */
+const GIT_PRE_SUBCOMMAND_BOOLEAN_FLAGS = new Set([
+  "--no-pager",
+  "-p",
+  "--paginate",
+  "-P",
+  "--bare",
+  "--help",
+  "-h",
+  "--version",
+  "--literal-pathspecs",
+  "--glob-pathspecs",
+  "--noglob-pathspecs",
+  "--icase-pathspecs",
+  "--no-replace-objects",
+  "--no-optional-locks",
+  "--no-lazy-fetch",
+  "--no-advice",
+  "--quiet",
+  "-q",
+]);
+
+/**
+ * True only when the VCS *subcommand* (first non-flag token) is a dest writer.
+ * Later operands named clone/worktree/submodule (e.g. `git log worktree -- …`)
+ * are not write subcommands (#3423 residual).
+ * Boolean globals (`--no-pager`) do not consume the next token. Other globals
+ * consume it even when that token spells a subcommand (#3421 residual).
+ */
+function hasWriteSubcommand(
+  tokens: readonly string[],
+  start: number,
+  writeSubs: Set<string>,
+  booleanFlags: Set<string>,
+): boolean {
+  let i = start;
+  while (i < tokens.length) {
+    const raw = tokens[i] as string;
+    if (isShellSegmentBreak(raw)) return false;
+    const n = normalizeToken(raw);
+    if (n.startsWith("-")) {
+      if (!n.includes("=") && !booleanFlags.has(n) && !n.startsWith("--no-")) {
+        const next = tokens[i + 1];
+        if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
+          i += 2;
+          continue;
+        }
+      }
+      i++;
+      continue;
+    }
+    return writeSubs.has(n);
+  }
+  return false;
+}
+
+function gitHasWriteSubcommand(tokens: readonly string[], start: number): boolean {
+  return hasWriteSubcommand(tokens, start, GIT_WRITE_SUBCOMMANDS, GIT_PRE_SUBCOMMAND_BOOLEAN_FLAGS);
+}
+
+/**
+ * True when this git segment is `bundle create` (write), not `bundle verify` / `list-heads`
+ * / `unbundle` (read of an existing bundle) (#3529 Greptile P1).
+ */
+function gitHasBundleCreate(tokens: readonly string[], start: number): boolean {
+  const nonFlags: string[] = [];
+  let i = start;
+  while (i < tokens.length) {
+    const raw = tokens[i] as string;
+    if (isShellSegmentBreak(raw)) break;
+    const n = normalizeToken(raw);
+    if (n.startsWith("-")) {
+      if (!n.includes("=") && !GIT_PRE_SUBCOMMAND_BOOLEAN_FLAGS.has(n) && !n.startsWith("--no-")) {
+        const next = tokens[i + 1];
+        if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
+          i += 2;
+          continue;
+        }
+      }
+      i++;
+      continue;
+    }
+    nonFlags.push(n);
+    if (nonFlags.length >= 2) break;
+    i++;
+  }
+  return nonFlags[0] === "bundle" && GIT_BUNDLE_WRITE_SUBCOMMANDS.has(nonFlags[1] ?? "");
+}
+
+function jjHasWriteSubcommand(tokens: readonly string[], start: number): boolean {
+  return hasWriteSubcommand(tokens, start, JJ_WRITE_SUBCOMMANDS, JJ_PRE_SUBCOMMAND_BOOLEAN_FLAGS);
+}
+
+/**
+ * True when this forge-CLI segment is a clone dest writer
+ * (`gh repo clone`, `glab repo clone`, `hub clone`) (#3459).
+ * `clone` as a later flag value (`gh pr create --title clone`) is not a dest writer.
+ */
+function forgeHasCloneSubcommand(tokens: readonly string[], start: number): boolean {
+  const nonFlags: string[] = [];
+  let i = start;
+  while (i < tokens.length) {
+    const raw = tokens[i] as string;
+    if (isShellSegmentBreak(raw)) break;
+    const n = normalizeToken(raw);
+    if (n.startsWith("-")) {
+      if (!n.includes("=") && (GH_VALUE_FLAGS.has(raw) || GH_VALUE_FLAGS.has(n))) {
+        const next = tokens[i + 1];
+        if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
+          i += 2;
+          continue;
+        }
+      }
+      i++;
+      continue;
+    }
+    nonFlags.push(n);
+    i++;
+  }
+  if (nonFlags[0] === "clone") return true;
+  return nonFlags[0] === "repo" && nonFlags[1] === "clone";
+}
+
+/**
+ * Fail-closed dest harvest for write-shaped Shell under UAT (#3354 / #3382 / #3421).
+ * Named-bin parsers above are not the only path: any token that looks like
+ * `-o` / `--output` / `--outfile` / `--output-file` / `-d` / `--dir` /
+ * `--destination` / `--path` / `--directory` / `--workdir` / `--file` / `-f`
+ * (or attached `-oDIR` / `-dDIR`) whose dest is authz/kill-switch/approved-scope
+ * is collected even when the bin is unknown.
+ * scp `-o` (OpenSSH option) and cpio `-o` (copy-out) stay excluded.
+ */
+function genericProtectedDests(tokens: readonly string[]): string[] {
+  const dests: string[] = [];
+  // Track the current command bin — scp `-o` is OpenSSH option, cpio `-o` is copy-out.
+  // Skipping only when the current token itself is `scp`/`cpio` missed later `-o` values (#3354).
+  let currentBin = "";
+  for (let i = 0; i < tokens.length; i++) {
+    const raw = tokens[i] as string;
+    const n = normalizeToken(raw);
+    if (isShellSegmentBreak(raw)) {
+      currentBin = "";
+      continue;
+    }
+    if (!n.startsWith("-") && !isEnvAssign(raw)) {
+      if (isDownloaderDecoderBin(raw)) {
+        currentBin = writeBinName(raw);
+      } else if (
+        currentBin.length === 0 &&
+        !raw.includes("/") &&
+        !raw.includes("\\") &&
+        n.length > 0
+      ) {
+        currentBin = writeBinName(raw);
+      }
+    }
+    if (isScpFamilyBin(currentBin) || currentBin === "cpio") continue;
+    // jar `--file=` / `-f` is dest-of-write grammar (#3593), not a dest-flag plant (#4188).
+    if (currentBin === "jar" || currentBin === "fastjar") continue;
+    // Env-style dest assignments (`DESTDIR=`, `PREFIX=`) without a leading dash (#3545).
+    if (n.includes("=") && !n.startsWith("-")) {
+      const eq = raw.indexOf("=");
+      const keyRaw = raw.slice(0, eq);
+      if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(keyRaw)) {
+        const key = normalizeToken(keyRaw);
+        if (DEST_ASSIGNMENT_KEYS.has(key) && segmentDestAssignmentIsOperative(tokens, i)) {
+          const dest = pathishToken(raw.slice(eq + 1));
+          if (pathishIsProtectedDest(dest)) dests.push(dest);
+        }
+      }
+      continue;
+    }
+    if (n.includes("=") && (n.startsWith("-") || n.startsWith("--"))) {
+      const eq = raw.indexOf("=");
+      const flag = normalizeToken(raw.slice(0, eq));
+      if (isGenericProtectedDestFlag(flag) && !isReadShapedInputFileFlag(currentBin, flag)) {
+        const dest = pathishToken(raw.slice(eq + 1));
+        if (pathishIsProtectedDest(dest)) dests.push(dest);
+      }
+      continue;
+    }
+    // Named dest flags (`-Destination`, `--output-dir`) take the next token.
+    // Check before attached `-oDIR` / `-dDIR` so `-destination` is not `-d` + `estination`.
+    if (isGenericProtectedDestFlag(n) && !isReadShapedInputFileFlag(currentBin, n)) {
+      const next = tokens[i + 1];
+      if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
+        const dest = pathishToken(next);
+        if (pathishIsProtectedDest(dest)) dests.push(dest);
+      }
+      continue;
+    }
+    if (
+      n.startsWith("-") &&
+      !n.startsWith("--") &&
+      n.startsWith("-o") &&
+      !n.startsWith("-out") &&
+      n.length > 2
+    ) {
+      const dest = pathishToken(raw.slice(2));
+      if (pathishIsProtectedDest(dest)) dests.push(dest);
+      continue;
+    }
+    if (n.startsWith("-") && !n.startsWith("--") && n.startsWith("-d") && n.length > 2) {
+      const dest = pathishToken(raw.slice(2));
+      if (pathishIsProtectedDest(dest)) dests.push(dest);
+    }
+  }
+  return dests;
+}
+
+function sqlite3MetaDest(
+  raw: string,
+  next: string | undefined,
+): { dest: string; consumedNext: boolean } | null {
+  const p = pathishToken(raw);
+  for (const meta of SQLITE3_OUTPUT_META) {
+    if (p === meta) {
+      if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
+        return { dest: pathishToken(next), consumedNext: true };
+      }
+      return null;
+    }
+    if (p.startsWith(`${meta} `) || p.startsWith(`${meta}\t`)) {
+      const dest = p.slice(meta.length).trim();
+      if (dest.length > 0 && dest !== "|") return { dest, consumedNext: false };
+    }
+  }
+  return null;
+}
+
+function pathishMentionsKillSwitch(pathish: string): boolean {
+  const p = canonicalizePathish(pathish).toLowerCase();
+  for (const name of KILL_SWITCH_BASENAMES) {
+    if (p === name || p.endsWith(`/${name}`) || p.includes(name)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Shell write targeting `.deft-directive-disable` / `.no-deft-directive` (#3186 / #3039 / #3213 / #6136).
+ * Always-on grant-gated plant deny (not UAT-only). Includes symlink plant bins
+ * (`ln`/`link`/`mklink`) and quote-split-resistant basename checks.
+ */
+export function hasKillSwitchShellWrite(command: string, tokens?: readonly string[]): boolean {
+  const cmd = command.trim();
+  if (cmd.length === 0) return false;
+  const resolvedTokens = tokens ?? shellTokens(cmd);
+  return hasKillSwitchShellWriteInner(cmd, resolvedTokens);
+}
+
+function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]): boolean {
+  const lower = command.toLowerCase().replace(/\\/g, "/");
+  // Quote-stripped form so `'.deft'-directive-disable`-class splits still match (#3213).
+  const stripped = lower.replace(/['"]/g, "");
+  let mentionsKill = false;
+  for (const name of KILL_SWITCH_BASENAMES) {
+    if (lower.includes(name) || stripped.includes(name)) {
+      mentionsKill = true;
+      break;
+    }
+  }
+  if (!mentionsKill) {
+    for (const t of tokens) {
+      if (pathishMentionsKillSwitch(pathishToken(t))) {
+        mentionsKill = true;
+        break;
+      }
+    }
+  }
+  if (!mentionsKill) return false;
+  if (hasProtectedArchiveExtract(command)) return true;
+
+  // Redirect dest region after each `>` operator, including noclobber forms (#4199).
+  for (const hay of [lower, stripped]) {
+    for (let i = 0; i < hay.length; i++) {
+      if (hay[i] !== ">") continue;
+      const dest = redirectDestSlice(hay, i);
+      if (pathishMentionsKillSwitch(dest)) return true;
+    }
+  }
+  if (isClosedReadOnlyShellCommand(command)) return false;
+
+  // Downloader/decoder destinations: curl -o .deft-directive-disable, scp, … (#3206 / #3213).
+  for (const dest of downloaderDecoderDestinations(tokens)) {
+    if (pathishMentionsKillSwitch(dest)) return true;
+  }
+
+  // Write/destructive + symlink plant + archive/alt-write bins with a kill-switch path
+  // argument (#3213 ln/link/mklink; #3245 tar/axel/rclone/socat residual).
+  // echo/printf/type are stdout-only without a redirect; redirect dests are handled
+  // above so bare `echo .deft-directive-disable` stays non-plant (#6136 Greptile P2).
+  const killWriteBins = new Set([
+    ...INDIRECT_WRITE_BINS,
+    ...SYMLINK_PLANT_BINS,
+    ...ARCHIVE_ALT_WRITE_BINS,
+    "touch",
+    "new-item",
+    "ni",
+  ]);
+  for (let ti = 0; ti < tokens.length; ti++) {
+    const binTok = normalizeToken(tokens[ti] as string);
+    const bare = writeBinName(tokens[ti] as string);
+    if (!killWriteBins.has(binTok) && !killWriteBins.has(bare)) continue;
+    // Last-positional dest bins (and their subcommands): dest harvest owns dest vs source.
+    if (LAST_POSITIONAL_DEST_BINS.has(bare) || segmentStartedByLastPositionalDest(tokens, ti)) {
+      continue;
+    }
+    for (let tj = ti + 1; tj < tokens.length; tj++) {
+      const p = pathishToken(tokens[tj] as string);
+      if (pathishMentionsKillSwitch(p)) return true;
+      // socat OPEN:.deft-directive-disable — path after address prefix (#3245).
+      for (const prefix of SOCAT_WRITE_ADDR_PREFIXES) {
+        if (p.startsWith(prefix) && pathishMentionsKillSwitch(p.slice(prefix.length))) {
+          return true;
+        }
+      }
+    }
+  }
+  // Bare `touch .deft-directive-disable` / `ln -sf x .deft-directive-disable` — path later.
+  // Skip tokens in a last-positional dest segment (dest harvest owns dest vs source).
+  // Other segments still scan so `aws … ; touch .deft-directive-disable` is settings.
+  for (let ti = 0; ti < tokens.length; ti++) {
+    if (
+      LAST_POSITIONAL_DEST_BINS.has(writeBinName(tokens[ti] as string)) ||
+      segmentStartedByLastPositionalDest(tokens, ti)
+    ) {
+      continue;
+    }
+    const p = pathishToken(tokens[ti] as string);
+    for (const name of KILL_SWITCH_BASENAMES) {
+      // Exact basename or ends with /basename
+      if (p === name || p.endsWith(`/${name}`)) {
+        // Require some write shape (redirect already handled; touch/ni/echo/ln/…)
+        if (
+          hasWriteShape(command, tokens) ||
+          lower.includes("touch") ||
+          lower.includes("new-item") ||
+          SYMLINK_PLANT_BINS.has(writeBinName(tokens[0] as string)) ||
+          tokens.some((tok) => SYMLINK_PLANT_BINS.has(writeBinName(tok)))
+        ) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * True when a token is a write-capable language/runtime interpreter (#3186).
+ * Matches bare names, versioned bins (`python3.11`), and path-qualified forms
+ * (`/usr/bin/python3`, `C:\Python311\python.exe`) — exact Set membership alone
+ * would fail-open on absolute/versioned paths (Greptile P1).
+ */
+function isProgrammaticWriteBinToken(token: string): boolean {
+  const t = normalizeToken(token);
+  if (t.length === 0) return false;
+  // Path-qualified: keep final path segment after / or \ (normalizeToken strips quotes only).
+  const pathish = token.replace(/['"]/g, "").toLowerCase().replace(/\\/g, "/");
+  const base = pathish.includes("/") ? (pathish.slice(pathish.lastIndexOf("/") + 1) as string) : t;
+  const bare = base.endsWith(".exe") ? base.slice(0, -4) : base;
+
+  if (
+    bare === "python" ||
+    bare === "python3" ||
+    bare === "node" ||
+    bare === "nodejs" ||
+    bare === "perl" ||
+    bare === "ruby" ||
+    bare === "jruby" ||
+    bare === "pypy" ||
+    bare === "pypy3" ||
+    bare === "pwsh" ||
+    bare === "powershell" ||
+    bare === "tsx" ||
+    bare === "ts-node" ||
+    bare === "tsnode" ||
+    bare === "bun" ||
+    bare === "deno" ||
+    bare === "php" ||
+    bare === "lua" ||
+    bare === "luajit"
+  ) {
+    return true;
+  }
+  // Versioned: python3.11, python3.12, node18, php8.3, lua5.4, …
+  if (bare.startsWith("python3.") || bare.startsWith("python2.")) return true;
+  if (/^python\d+(\.\d+)*$/.test(bare)) return true;
+  if (/^node\d+$/.test(bare)) return true;
+  if (/^php\d+(\.\d+)*$/.test(bare)) return true;
+  if (/^lua\d+(\.\d+)*$/.test(bare)) return true;
+  // #3545 residual: versioned ruby / jruby / pypy (bare `ruby` already matched).
+  if (/^ruby\d+(\.\d+)*$/.test(bare)) return true;
+  if (/^jruby\d+(\.\d+)*$/.test(bare)) return true;
+  if (bare.startsWith("pypy3.") || /^pypy\d+(\.\d+)*$/.test(bare)) return true;
+  return false;
+}
+
+/**
+ * True when `needle` occurs in `haystack` outside single/double-quoted regions (O(n)).
+ * Escaped quotes (`\'` / `\"`) stay inside the string. Used so `print('.write(')` is not
+ * a write API while `open(p,'w').write('x')` still matches `.write(` (Greptile conf residual).
+ */
+/**
+ * True when `ident` is followed by optional whitespace then `(` (PHP `file_put_contents (`).
+ * Skips matches inside quotes so `echo "file_put_contents ($x)"` is not a write.
+ * O(n) — no nested-quantifier regex.
+ */
+function includesIdentCall(haystack: string, ident: string): boolean {
+  if (ident.length === 0 || haystack.length < ident.length) return false;
+  let inSingle = false;
+  let inDouble = false;
+  for (let i = 0; i < haystack.length; i++) {
+    const c = haystack[i] as string;
+    if (c === "\\" && i + 1 < haystack.length && (inSingle || inDouble)) {
+      i++;
+      continue;
+    }
+    if (c === "'" && !inDouble) {
+      inSingle = !inSingle;
+      continue;
+    }
+    if (c === '"' && !inSingle) {
+      inDouble = !inDouble;
+      continue;
+    }
+    if (inSingle || inDouble) continue;
+    if (!haystack.startsWith(ident, i)) continue;
+    let j = i + ident.length;
+    while (j < haystack.length) {
+      const w = haystack[j] as string;
+      if (w === " " || w === "\t" || w === "\n" || w === "\r") {
+        j++;
+        continue;
+      }
+      break;
+    }
+    if (j < haystack.length && haystack[j] === "(") return true;
+  }
+  return false;
+}
+
+/** Strip matching wrapping quotes from a `-r`/`-e` payload. */
+function unwrapQuotedPayload(token: string): string {
+  if (token.length >= 2) {
+    const a = token[0];
+    const b = token[token.length - 1];
+    if ((a === '"' && b === '"') || (a === "'" && b === "'")) {
+      return token.slice(1, -1);
+    }
+  }
+  return token;
+}
+
+/** Script bodies after interpreter `-r`/`-e`/`-c` (PHP/node one-liners). */
+function interpreterScriptPayloads(tokens: readonly string[]): string[] {
+  const out: string[] = [];
+  const flags = new Set(["-r", "-e", "-c", "--run", "--eval", "--execute"]);
+  for (let i = 0; i < tokens.length; i++) {
+    const n = normalizeToken(tokens[i] as string);
+    if (!flags.has(n)) continue;
+    const next = tokens[i + 1];
+    if (next === undefined || isShellSegmentBreak(next) || String(next).startsWith("-")) continue;
+    out.push(unwrapQuotedPayload(next));
+  }
+  return out;
+}
+
+function includesOutsideQuotes(haystack: string, needle: string): boolean {
+  if (needle.length === 0 || haystack.length < needle.length) return false;
+  let inSingle = false;
+  let inDouble = false;
+  for (let i = 0; i < haystack.length; i++) {
+    const c = haystack[i] as string;
+    if (c === "\\" && i + 1 < haystack.length && (inSingle || inDouble)) {
+      i++; // skip escaped char inside quotes
+      continue;
+    }
+    if (c === "'" && !inDouble) {
+      inSingle = !inSingle;
+      continue;
+    }
+    if (c === '"' && !inSingle) {
+      inDouble = !inDouble;
+      continue;
+    }
+    if (inSingle || inDouble) continue;
+    if (haystack.startsWith(needle, i)) return true;
+  }
+  return false;
+}
+
+/**
+ * Perl `open F,">dest"` / `open FH, '>'` without parens (#3545).
+ * Quote-aware so `print 'open F,>'` is not a write. O(n).
+ */
+function hasPerlBareOpenWrite(haystack: string): boolean {
+  let inSingle = false;
+  let inDouble = false;
+  for (let i = 0; i < haystack.length; i++) {
+    const c = haystack[i] as string;
+    if (c === "\\" && i + 1 < haystack.length && (inSingle || inDouble)) {
+      i++;
+      continue;
+    }
+    if (c === "'" && !inDouble) {
+      inSingle = !inSingle;
+      continue;
+    }
+    if (c === '"' && !inSingle) {
+      inDouble = !inDouble;
+      continue;
+    }
+    if (inSingle || inDouble) continue;
+    if (!haystack.startsWith("open", i)) continue;
+    if (i > 0) {
+      const prev = haystack[i - 1] as string;
+      if ((prev >= "a" && prev <= "z") || (prev >= "0" && prev <= "9") || prev === "_") continue;
+    }
+    let j = i + 4;
+    while (j < haystack.length) {
+      const w = haystack[j] as string;
+      if (w === " " || w === "\t" || w === "\n" || w === "\r") {
+        j++;
+        continue;
+      }
+      break;
+    }
+    const identStart = j;
+    while (j < haystack.length) {
+      const ch = haystack[j] as string;
+      if (
+        (ch >= "a" && ch <= "z") ||
+        (ch >= "A" && ch <= "Z") ||
+        (ch >= "0" && ch <= "9") ||
+        ch === "_"
+      ) {
+        j++;
+        continue;
+      }
+      break;
+    }
+    if (j === identStart) continue;
+    while (j < haystack.length) {
+      const w = haystack[j] as string;
+      if (w === " " || w === "\t") {
+        j++;
+        continue;
+      }
+      break;
+    }
+    if (j >= haystack.length || haystack[j] !== ",") continue;
+    j++;
+    while (j < haystack.length) {
+      const w = haystack[j] as string;
+      if (w === " " || w === "\t") {
+        j++;
+        continue;
+      }
+      break;
+    }
+    const q = haystack[j];
+    if ((q === "'" || q === '"') && j + 1 < haystack.length && haystack[j + 1] === ">") {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * True when command uses a programmatic bin with a **write** API, optionally with
+ * path-obfuscation markers (base64/bytes/chr). Pure reads / print-only stay unclassifiable.
+ *
+ * Chosen rule (#3186): classify write-capable programmatic Shell as **settings** so
+ * active UAT fails closed (not shell-op-unclassifiable allow) even when the path is
+ * built at runtime without a literal `.deft/authz` substring. Outside UAT, ordinary
+ * settings still allow; inventoried authz-store / protected dest-of-write Shell is
+ * denied by evaluate (#4709) from these classifiers, not from path glob or shellDestForms.
+ *
+ * Read-only `open(...).read()` does **not** count as writeish (Greptile P1).
+ * Quoted data containing `.write(` does **not** count (Greptile conf residual).
+ * Obfuscation alone without a write API does **not** classify (avoid deny on decode-only).
+ */
+function hasWriteCapableProgrammaticShell(command: string, tokens: readonly string[]): boolean {
+  let hasProg = false;
+  for (const t of tokens) {
+    if (isProgrammaticWriteBinToken(t)) {
+      hasProg = true;
+      break;
+    }
+  }
+  if (!hasProg) return false;
+
+  const lower = command.toLowerCase();
+  // Shell wrappers put whole scripts in "…" after -c/-e, so long API names (writeFileSync)
+  // use full-string includes. Short ambiguous `.write(` uses quote-aware match so
+  // `print('.write(')` is not a write API (Greptile conf residual).
+  const writeApi =
+    lower.includes("writefilesync") ||
+    lower.includes("writefile") ||
+    lower.includes("writetext") ||
+    includesIdentCall(lower, "file_put_contents") ||
+    interpreterScriptPayloads(tokens).some((p) =>
+      includesIdentCall(p.toLowerCase(), "file_put_contents"),
+    ) ||
+    lower.includes("set-content") ||
+    lower.includes("out-file") ||
+    lower.includes("fs.write") ||
+    lower.includes("createwritestream") ||
+    lower.includes("path.write(") ||
+    lower.includes("file.write(") ||
+    lower.includes("spurt") ||
+    interpreterScriptPayloads(tokens).some((p) => {
+      const pl = p.toLowerCase();
+      return (
+        includesIdentCall(pl, "write_file") ||
+        includesIdentCall(pl, "spew") ||
+        includesOutsideQuotes(pl, "->spew") ||
+        hasPerlBareOpenWrite(pl)
+      );
+    }) ||
+    includesIdentCall(lower, "write_file") ||
+    includesIdentCall(lower, "spew") ||
+    includesOutsideQuotes(lower, "->spew") ||
+    hasPerlBareOpenWrite(lower) ||
+    lower.includes(">>") ||
+    lower.includes("unlink(") ||
+    lower.includes("rmsync") ||
+    lower.includes("rm_rf") ||
+    lower.includes("shutil.rmtree") ||
+    lower.includes("os.remove(") ||
+    lower.includes("os.unlink(") ||
+    lower.includes("fs.unlink") ||
+    lower.includes("fs.rm(") ||
+    lower.includes("fs.rmsync") ||
+    // Short `.write(` only counts outside quotes (avoids print('.write(') false positive).
+    // Also match when it appears after a shell -c/-e opening quote as code (common PoC shape):
+    // if the command has write mode open or other write API, those already hit above.
+    includesOutsideQuotes(lower, ".write(") ||
+    // Script body after -c/-e often sits in one double-quoted region: still detect `.write(`
+    // as code when paired with an assignment/call shape (f.write / .write(x)).
+    (lower.includes(".write(") &&
+      (lower.includes("open(") || lower.includes("=open") || lower.includes("fs.")));
+
+  // open(..., 'w' / "w" / 'a' / '>') — mode tokens are quoted; match on full command.
+  const openWriteMode =
+    lower.includes("open(") &&
+    (lower.includes(",'w") ||
+      lower.includes(',"w') ||
+      lower.includes(", 'w") ||
+      lower.includes(', "w') ||
+      lower.includes(",'a") ||
+      lower.includes(',"a') ||
+      lower.includes(", 'a") ||
+      lower.includes(', "a') ||
+      lower.includes(",'>") ||
+      lower.includes(',">') ||
+      lower.includes(", '>") ||
+      lower.includes(', ">') ||
+      lower.includes("mode='w") ||
+      lower.includes('mode="w') ||
+      lower.includes("mode='a") ||
+      lower.includes('mode="a') ||
+      lower.includes("mode=w"));
+
+  // Perl `open F,">dest"` — `open(` is absent; `-e` payloads with spaces split tokens (#3545).
+  const perlBareOpenWrite =
+    (lower.includes("open ") || lower.includes("open\t")) &&
+    (lower.includes(",'>") ||
+      lower.includes(',">') ||
+      lower.includes(", '>") ||
+      lower.includes(', ">'));
+
+  const writeish = writeApi || openWriteMode || perlBareOpenWrite;
+
+  // Path construction that hides the destination from literal classifiers.
+  const obfuscatedPath =
+    lower.includes("base64") ||
+    lower.includes("fromcharcode") ||
+    lower.includes("bytes([") ||
+    lower.includes("bytearray") ||
+    lower.includes("buffer.from") ||
+    lower.includes("codecs.decode") ||
+    lower.includes("unhexlify") ||
+    lower.includes("fromhex") ||
+    lower.includes("string.fromcharcode") ||
+    lower.includes("atob(") ||
+    lower.includes("btoa(") ||
+    lower.includes("chr(");
+
+  // Fail-closed residual: write-ish programmatic shell (obfuscation alone not enough).
+  if (writeish) return true;
+  void obfuscatedPath;
+  return false;
+}
+
+/**
+ * Path-ish normalize: keep separators (do not strip `\` like normalizeToken).
+ */
+function pathishToken(token: string): string {
+  return token.replace(/['"]/g, "").toLowerCase().replace(/\\/g, "/");
+}
+
+/**
+ * Collapse `//`, `/./`, and `/../` lexically so equivalent dests still match
+ * (`.deft/foo/../approved-scope/x`) without following symlinks or matching
+ * prefix siblings. O(n) — no nested-quantifier regex.
+ */
+function canonicalizePathish(pathish: string): string {
+  const parts: string[] = [];
+  let cur = "";
+  const abs = pathish.startsWith("/");
+  for (let i = 0; i <= pathish.length; i++) {
+    const c = i < pathish.length ? (pathish[i] as string) : "/";
+    if (c === "/" || i === pathish.length) {
+      if (cur.length === 0 || cur === ".") {
+        // drop empty and `.`
+      } else if (cur === "..") {
+        if (parts.length > 0 && parts[parts.length - 1] !== "..") {
+          parts.pop();
+        } else if (!abs) {
+          parts.push("..");
+        }
+      } else {
+        parts.push(cur);
+      }
+      cur = "";
+    } else {
+      cur += c;
+    }
+  }
+  const joined = parts.join("/");
+  return abs ? `/${joined}` : joined;
+}
+
+/**
+ * True when a pathish string targets `.deft/authz` (after quote strip / slash normalize).
+ * Quote-split forms like `'.deft/'authz'/grants/x'` become `.deft/authz/grants/x` via pathishToken.
+ */
+/** True when `dir` is a path segment (left-bounded; `foo.deft/authz` is not `.deft/authz`). */
+function pathishHasDirSegment(pathish: string, dir: string): boolean {
+  const p = canonicalizePathish(pathish.trim());
+  if (p === dir || p.startsWith(`${dir}/`) || p.startsWith(`${dir}\\`)) return true;
+  for (let i = 0; i < p.length; i++) {
+    const c = p[i] as string;
+    if (c !== "/" && c !== "\\" && c !== ":" && c !== "=") continue;
+    const rest = p.slice(i + 1);
+    if (rest === dir || rest.startsWith(`${dir}/`) || rest.startsWith(`${dir}\\`)) return true;
+  }
+  return false;
+}
+
+function pathishIsAuthzDir(pathish: string): boolean {
+  return pathishHasDirSegment(pathish, ".deft/authz");
+}
+
+/** True when a pathish string targets `.deft/approved-scope` (#3421 / #3410 mint). */
+function pathishIsApprovedScopeDir(pathish: string): boolean {
+  return pathishHasDirSegment(pathish, ".deft/approved-scope");
+}
+
+function pathishIsSettingsStoreDir(pathish: string): boolean {
+  return pathishIsAuthzDir(pathish) || pathishIsApprovedScopeDir(pathish);
+}
+
+/** After `>` at `gtIndex`, skip the rest of the redirect operator and return dest. */
+function redirectDestSlice(hay: string, gtIndex: number): string {
+  let j = gtIndex + 1;
+  while (j < hay.length) {
+    const c = hay[j];
+    if (c === ">" || c === "<" || c === "&" || c === "|" || c === "!") j += 1;
+    else break;
+  }
+  let end = j;
+  while (
+    end < hay.length &&
+    hay[end] !== "|" &&
+    hay[end] !== ";" &&
+    hay[end] !== "&" &&
+    hay[end] !== "\n"
+  ) {
+    end += 1;
+  }
+  return hay.slice(j, end);
+}
+
+/** True when dest is a settings-store path or a split-path `authz` segment after `.deft`. */
+function destMentionsAuthzSegment(dest: string): boolean {
+  const p = canonicalizePathish(pathishToken(dest).trim());
+  if (pathishIsSettingsStoreDir(p)) return true;
+  const segs = p.split("/").filter((s) => s.length > 0);
+  for (let i = 0; i < segs.length; i++) {
+    if (segs[i] !== "authz") continue;
+    const prev = i > 0 ? (segs[i - 1] as string) : "";
+    if (prev === ".deft" || prev.length === 0) return true;
+  }
+  return false;
+}
+
+/**
+ * Shell **write** targeting `.deft/authz/` or `.deft/approved-scope/` (#3110 / #3421).
+ * Pure reads (`cat .deft/authz/state.json`) stay unclassifiable — use `authz:show`.
+ * Redirects only count when the destination region contains a settings-store dir.
+ * Pathish/token checks run even when the raw command lacks contiguous `.deft/authz`
+ * text (quote-split residual: `cp x '.deft/'authz'/grants/y'`).
+ */
+function commandHasAuthzDirShellWrite(command: string, tokens: readonly string[]): boolean {
+  const lower = command.toLowerCase().replace(/\\/g, "/");
+  // Quote-stripped contiguous form for redirect dest checks (#3213).
+  const stripped = lower.replace(/['"]/g, "");
+
+  if (hasProtectedArchiveExtract(command)) return true;
+  if (hasProtectedCwdRelativeWriter(command)) return true;
+  if (hasProtectedInputToXargsWriter(tokens)) return true;
+  if (hasAwkProtectedWrite(command)) return true;
+
+  // Redirect dest region after each `>` operator, including `>|` / `>&` / `>&!` / `>!` (#4199).
+  // Check both raw and quote-stripped so quote-split dests still match.
+  for (const hay of [lower, stripped]) {
+    for (let i = 0; i < hay.length; i++) {
+      if (hay[i] !== ">") continue;
+      if (pathishIsSettingsStoreDir(redirectDestSlice(hay, i))) return true;
+    }
+  }
+  if (isClosedReadOnlyShellCommand(command)) return false;
+
+  // Write/destructive + symlink plant + archive/alt-write bins with an authz path argument
+  // (pathish = quote-strip resistant). Always run — do not gate on contiguous `.deft/authz`
+  // in the raw command (#3213 / #3245). SYMLINK_PLANT_BINS: `ln -s forged .deft/authz/grants/x`
+  // must not fail-open as unclassifiable (SLizard residual). ARCHIVE_ALT_WRITE_BINS: tar/rclone
+  // residual pathish without dest-flag perfection thrash.
+  for (let ti = 0; ti < tokens.length; ti++) {
+    const bare = writeBinName(tokens[ti] as string);
+    const n = normalizeToken(tokens[ti] as string);
+    if (
+      !INDIRECT_WRITE_BINS.has(n) &&
+      !INDIRECT_WRITE_BINS.has(bare) &&
+      !SYMLINK_PLANT_BINS.has(bare) &&
+      !ARCHIVE_ALT_WRITE_BINS.has(bare)
+    ) {
+      continue;
+    }
+    // Last-positional dest bins (and their subcommands): dest harvest owns dest vs source.
+    if (LAST_POSITIONAL_DEST_BINS.has(bare) || segmentStartedByLastPositionalDest(tokens, ti)) {
+      continue;
+    }
+    for (let tj = ti + 1; tj < tokens.length; tj++) {
+      const p = pathishToken(tokens[tj] as string);
+      if (pathishIsSettingsStoreDir(p)) return true;
+      for (const prefix of SOCAT_WRITE_ADDR_PREFIXES) {
+        if (p.startsWith(prefix) && pathishIsSettingsStoreDir(p.slice(prefix.length))) {
+          return true;
+        }
+      }
+    }
+  }
+
+  // Downloader/decoder destinations under settings-store dirs (#3206 / #3421).
+  for (const dest of downloaderDecoderDestinations(tokens)) {
+    if (pathishIsSettingsStoreDir(dest)) return true;
+  }
+  // Contiguous mention without write shape stays false (reads like cat .deft/authz/…).
+  return false;
+}
+
+/** Write/destructive shell bins (token match after normalizeToken). */
+const INDIRECT_WRITE_BINS = new Set([
+  "dd",
+  "sed",
+  "tee",
+  "cp",
+  "mv",
+  "rsync",
+  "rm",
+  "rmdir",
+  "unlink",
+  "shred",
+  "truncate",
+  "chmod",
+  "chown",
+  "install",
+  "python",
+  "python3",
+  "node",
+  "perl",
+  "ruby",
+  "pwsh",
+  "powershell",
+  "set-content",
+  "out-file",
+  "add-content",
+  "copy-item",
+  "move-item",
+  "remove-item",
+  "ri",
+  "ni",
+  "new-item",
+  "sc",
+  "mi",
+  // #3459 residual: Windows copy / fsutil / touch / TS runners.
+  "copy",
+  "fsutil",
+  "touch",
+  "tsx",
+  "ts-node",
+  // #3529 residual: Windows dest writers / rename / moreutils sponge / runtimes.
+  "xcopy",
+  "robocopy",
+  "move",
+  "ren",
+  "rename",
+  "rename-item",
+  "sponge",
+  "bun",
+  "deno",
+  "php",
+  "lua",
+  "start-bitstransfer",
+  "bitsadmin",
+  "expand-archive",
+  "tee-object",
+  "export-csv",
+  "expand",
+  "extrac32",
+  "makecab",
+  "replace",
+  // #3545 residual: dest writers (fromdos/degit/ddrescue). dpkg/pdftk/gs stay dest-flag gated.
+  ...UAT_RESIDUAL_INPLACE_WRITE_BINS_3545,
+]);
+
+/**
+ * O(n): true when command expands `$…` / `` `…` `` / `%VAR%`
+ * (no nested-quantifier regex). Includes command substitution and positional `$1`.
+ */
+function hasEnvExpansion(command: string): boolean {
+  for (let i = 0; i < command.length; i++) {
+    const c = command[i];
+    if (c === "`") return true;
+    if (c === "$" && i + 1 < command.length) {
+      const n = command[i + 1] as string;
+      // $VAR / ${VAR} / $(cmd) / $1 / $@ / $* / $? / $'…' (ANSI-C)
+      if (
+        n === "{" ||
+        n === "(" ||
+        n === "_" ||
+        n === "'" ||
+        n === "@" ||
+        n === "*" ||
+        n === "?" ||
+        n === "#" ||
+        n === "!" ||
+        (n >= "0" && n <= "9") ||
+        (n >= "A" && n <= "Z") ||
+        (n >= "a" && n <= "z")
+      ) {
+        return true;
+      }
+    }
+    if (c === "%" && i + 1 < command.length) {
+      let j = i + 1;
+      while (j < command.length) {
+        const n = command[j] as string;
+        if (
+          n === "_" ||
+          (n >= "A" && n <= "Z") ||
+          (n >= "a" && n <= "z") ||
+          (n >= "0" && n <= "9")
+        ) {
+          j++;
+          continue;
+        }
+        break;
+      }
+      if (j > i + 1 && command[j] === "%") return true;
+    }
+  }
+  return false;
+}
+
+function hasWriteShape(command: string, tokens: readonly string[]): boolean {
+  if (command.includes(">")) return true;
+  for (const t of tokens) {
+    const bare = writeBinName(t);
+    if (INDIRECT_WRITE_BINS.has(normalizeToken(t)) || INDIRECT_WRITE_BINS.has(bare)) return true;
+    // #3245: archive extractors / alt downloaders are write-shaped (defense-in-depth for
+    // unclassifiable plant paths under UAT — not bare curl $URL which stays non-write-shaped).
+    if (ARCHIVE_ALT_WRITE_BINS.has(bare)) return true;
+  }
+  return false;
+}
+/**
+ * Split-path containment: `.deft` and `authz` both appear (e.g. `cd .deft && … authz/…`).
+ * O(n) substring checks — no nested-quantifier regex.
+ */
+function hasSplitAuthzPath(command: string): boolean {
+  const lower = command.toLowerCase().replace(/\\/g, "/");
+  if (!lower.includes("authz")) return false;
+  return lower.includes(".deft") || lower.includes("/deft/") || lower.includes("deft/");
+}
+
+/**
+ * Last non-flag token is a pure expansion dest (`$STORE`, `${STORE}`, `%TEMP%`)
+ * with no trailing path segment (`$HOME/out` is NOT pure — ordinary user write).
+ */
+function lastTokenIsOpaqueExpansion(tokens: readonly string[]): boolean {
+  let last = "";
+  for (const t of tokens) {
+    if (t.startsWith("-")) continue;
+    last = t;
+  }
+  if (last.length === 0) return false;
+  const n = last.replace(/['"]/g, "");
+  // Path after expansion → ordinary dest, not opaque store alias.
+  if (n.includes("/") || n.includes("\\")) return false;
+  if (n.startsWith("$") && n.length > 1) return true;
+  if (n.startsWith("%") && n.endsWith("%") && n.length > 2) return true;
+  return false;
+}
+
+/** Env / path tokens that are ordinary non-store destinations (not authz containment). */
+const ORDINARY_EXPANSION_PREFIXES = [
+  "home",
+  "tmpdir",
+  "temp",
+  "tmp",
+  "pwd",
+  "user",
+  "username",
+  "userprofile",
+  "xdg_",
+  "path",
+  "psmodulepath",
+  "appdata",
+  "localappdata",
+  "programfiles",
+  "systemroot",
+  "windir",
+  "shell",
+  "term",
+  "color",
+  "lang",
+  "lc_",
+  "editor",
+  "visual",
+  "pager",
+  "browser",
+  "http",
+  "https",
+  "proxy",
+  "npm_",
+  "pnpm_",
+  "yarn_",
+  "node_",
+  "python",
+  "virtual_env",
+  "conda",
+  "cargo",
+  "go",
+  "java",
+  "ssh",
+  "gpg",
+  "git_",
+  "gh_",
+  "github_",
+  "ci",
+  "tf_",
+  "aws_",
+  "azure",
+  "gcloud",
+];
+
+/**
+ * True when the expansion name itself suggests authz / grant store
+ * (e.g. $AUTHZ_DIR, $DEFT_AUTHZ_ROOT, %GRANT_STORE%) — residual path without keywords.
+ */
+function hasAuthzPlausibleExpansionName(command: string): boolean {
+  const lower = command.toLowerCase();
+  // O(n) scan for $NAME / ${NAME} / %NAME% containing authz/grant/store store-ish tokens.
+  for (let i = 0; i < lower.length; i++) {
+    const c = lower[i];
+    if (c === "$" && i + 1 < lower.length) {
+      let j = i + 1;
+      if (lower[j] === "{" || lower[j] === "(") j++;
+      let name = "";
+      while (j < lower.length) {
+        const ch = lower[j] as string;
+        if ((ch >= "a" && ch <= "z") || (ch >= "0" && ch <= "9") || ch === "_") {
+          name += ch;
+          j++;
+          continue;
+        }
+        break;
+      }
+      if (nameLooksAuthzStore(name)) return true;
+    }
+    if (c === "%" && i + 1 < lower.length) {
+      let j = i + 1;
+      let name = "";
+      while (j < lower.length && lower[j] !== "%") {
+        const ch = lower[j] as string;
+        if ((ch >= "a" && ch <= "z") || (ch >= "0" && ch <= "9") || ch === "_") {
+          name += ch;
+          j++;
+          continue;
+        }
+        break;
+      }
+      if (nameLooksAuthzStore(name)) return true;
+    }
+  }
+  return false;
+}
+
+function nameLooksAuthzStore(name: string): boolean {
+  if (name.length === 0) return false;
+  if (
+    name.includes("authz") ||
+    name.includes("grant") ||
+    name === "store" ||
+    name.endsWith("_store") ||
+    name.startsWith("store_") ||
+    name.includes("deft_auth") ||
+    name.includes("auth_store")
+  ) {
+    // Exclude ordinary false friends if any appear later.
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Programmatic env write to store: python/node open(os.environ[...]) / process.env patterns
+ * that lack shell `$` expansion but still hit authz paths (#3110 residual).
+ */
+function hasProgrammaticAuthzEnvWrite(command: string, tokens: readonly string[]): boolean {
+  const lower = command.toLowerCase();
+  let hasProg = false;
+  for (const t of tokens) {
+    if (isProgrammaticWriteBinToken(t)) {
+      hasProg = true;
+      break;
+    }
+  }
+  if (!hasProg) return false;
+  // Must look like a write (open/write/writefile/set-content) not a pure read.
+  const writeish =
+    lower.includes("open(") ||
+    lower.includes(".write") ||
+    lower.includes("writefile") ||
+    lower.includes("writetext") ||
+    lower.includes("set-content") ||
+    lower.includes("out-file") ||
+    lower.includes("fs.write") ||
+    lower.includes("createwritestream") ||
+    lower.includes(">>") ||
+    lower.includes("mode='w'") ||
+    lower.includes('mode="w"') ||
+    lower.includes(",'w'") ||
+    lower.includes(',"w"');
+  if (!writeish) return false;
+  // Authz-store target only — bare `state.json` alone is ordinary app state (#3110 residual).
+  if (
+    lower.includes("authz") ||
+    lower.includes("/grants/") ||
+    lower.includes("grant-") ||
+    lower.includes("deft_auth") ||
+    lower.includes("auth_store") ||
+    lower.includes(".deft/authz") ||
+    lower.includes(".deft\\authz")
+  ) {
+    return true;
+  }
+  // os.environ / process.env + authz-store-ish key (not generic "auth"/"store" alone).
+  if (
+    lower.includes("os.environ") ||
+    lower.includes("process.env") ||
+    lower.includes("$env:") ||
+    lower.includes("getenv")
+  ) {
+    if (
+      lower.includes("authz") ||
+      lower.includes("grant") ||
+      lower.includes("deft_auth") ||
+      lower.includes("auth_store")
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Indirect shell FS mutation that can plausibly hit the authz store (#3110).
+ * Narrower than "any write + any expansion" (avoids denying `echo > $HOME/out` under UAT)
+ * but still catches opaque `$STORE` dest, `rm -rf $STORE`, authz-named expansions,
+ * and programmatic os.environ writes. Does **not** flag ordinary cleanup `rm $TMP/x`.
+ * O(n) walks — no polynomial regex on input.
+ */
+function hasIndirectAuthzStoreWrite(command: string, tokens: readonly string[]): boolean {
+  if (hasProgrammaticAuthzEnvWrite(command, tokens)) return true;
+  if (!hasWriteShape(command, tokens)) return false;
+  const lower = command.toLowerCase().replace(/\\/g, "/");
+  // Authz-plausible destination text (literal or expanded path segments).
+  // Bare `state.json` alone is ordinary app state — require authz/grants/.deft context
+  // (Greptile residual: do not deny unrelated expanded state-file writes under UAT).
+  if (
+    lower.includes("authz") ||
+    lower.includes("/grants/") ||
+    lower.includes("grant-") ||
+    lower.includes(".deft/authz") ||
+    (lower.includes("state.json") &&
+      (lower.includes("authz") ||
+        lower.includes(".deft") ||
+        lower.includes("/grants/") ||
+        hasAuthzPlausibleExpansionName(command)))
+  ) {
+    // Require write shape already true; still need expansion OR already handled by literal path.
+    // When expansion is absent, hasAuthzDirShellWrite covers literals; here catch expanded.
+    if (hasEnvExpansion(command) || hasAuthzPlausibleExpansionName(command)) return true;
+  }
+  if (!hasEnvExpansion(command)) return false;
+  // Expansion var **name** suggests store (e.g. $AUTHZ_DIR without "authz" path text after).
+  if (hasAuthzPlausibleExpansionName(command)) return true;
+  // Destructive bins: only pure-opaque dest or authz-named expansion — not `rm $TMP/build`.
+  let destructive = false;
+  for (const t of tokens) {
+    const n = normalizeToken(t);
+    if (
+      n === "rm" ||
+      n === "rmdir" ||
+      n === "unlink" ||
+      n === "shred" ||
+      n === "remove-item" ||
+      n === "ri"
+    ) {
+      destructive = true;
+      break;
+    }
+  }
+  if (destructive && lastTokenIsOpaqueExpansion(tokens)) return true;
+  // cp/mv/tee/redirect dest is only `$VAR` / `%VAR%` (opaque absolute store path).
+  // Skip ordinary well-known env prefixes ($HOME, $TMPDIR, …).
+  if (lastTokenIsOpaqueExpansion(tokens)) {
+    const last = [...tokens].reverse().find((t) => !t.startsWith("-")) ?? "";
+    const bare = last.replace(/['"%${}]/g, "").toLowerCase();
+    if (!ORDINARY_EXPANSION_PREFIXES.some((p) => bare === p || bare.startsWith(p))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Close-shaped issue writes (#4494). Previously unclassified (`gh issue close`)
+ * failed open. Invert: grant-immune `unknown`, not empty and not DEFT_ALLOW-escapable
+ * `issue_mutation`.
+ */
+function isCloseShapedIssueWrite(tokens: readonly string[], command: string): boolean {
+  const gh = findGhResourceVerb(tokens);
+  if (gh !== null && gh.resource === "issue" && (gh.verb === "close" || gh.verb === "delete")) {
+    return true;
+  }
+  const lower = command.toLowerCase();
+  if (lower.includes("scm:issue:close") || lower.includes("scm issue close")) {
+    return true;
+  }
+  if (!hasGhApiPath(tokens, "/issues") || hasGhApiPath(tokens, "/comments")) {
+    return false;
+  }
+  return (
+    lower.includes("--method patch") ||
+    lower.includes("--method put") ||
+    lower.includes("-x patch") ||
+    lower.includes("-x put")
+  );
+}
+
+/** Best-effort shell classification for UAT-sensitive ops beyond push/merge. */
+export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
+  const cmd = command.trim();
+  if (cmd.length === 0) return [];
+
+  const found = new Set<AuthzClassifiedOp>();
+  for (const op of listShellOps(cmd)) {
+    found.add(op);
+  }
+
+  const tokens = shellTokens(cmd);
+  const gh = findGhResourceVerb(tokens);
+  if (gh !== null) {
+    if (
+      gh.resource === "pr" &&
+      (gh.verb === "create" || gh.verb === "edit" || gh.verb === "ready" || gh.verb === "reopen")
+    ) {
+      found.add("pr");
+    }
+    // Surface merge when listShellOps misses global flags like --repo (#2711 compose).
+    if (gh.resource === "pr" && gh.verb === "merge") {
+      found.add("merge");
+    }
+    if (gh.resource === "issue" && gh.verb === "create") {
+      found.add("issue_mutation");
+    }
+    if (gh.resource === "repo" && gh.verb === "edit") {
+      found.add("settings");
+    }
+  }
+  if (isCloseShapedIssueWrite(tokens, cmd)) {
+    found.add("unknown");
+  } else if (hasGhApiPath(tokens, "/issues")) {
+    found.add("issue_mutation");
+  }
+  if (hasGhApiPath(tokens, "/settings")) found.add("settings");
+  if (hasTestRunner(tokens)) found.add("test");
+  if (hasDeploy(tokens)) found.add("deployment");
+  // #3110: authz authority CLI + store **writes** (literal / split / $VAR / rm) → settings.
+  if (hasAuthzMutatingCli(tokens)) found.add("settings");
+  if (commandHasAuthzDirShellWrite(cmd, tokens)) found.add("settings");
+  // #3186 / #6136: kill-switch plant + policy authority mutators → settings
+  // (always-on grant-gated via dispatcher; not UAT-only).
+  if (hasKillSwitchShellWrite(cmd, tokens)) found.add("settings");
+  if (hasPolicyAuthorityMutator(tokens)) found.add("settings");
+  // Split path write: `cd .deft && echo x > authz/state.json` OR `cd .deft/authz && echo x > state.json`
+  // OR `cd .deft/authz && cp … grants/x` (write bin without redirect).
+  // When the command cds into an authz path, any write shape is settings (relative dest has no "authz" text).
+  {
+    let cdsIntoAuthz = false;
+    for (let ti = 0; ti < tokens.length - 1; ti++) {
+      const bin = normalizeToken(tokens[ti] as string);
+      if (bin !== "cd" && bin !== "pushd" && bin !== "set-location" && bin !== "sl") continue;
+      const dest = pathishToken(tokens[ti + 1] as string);
+      if (dest.includes("authz")) {
+        cdsIntoAuthz = true;
+        break;
+      }
+    }
+    if (cdsIntoAuthz && hasWriteShape(cmd, tokens)) {
+      found.add("settings");
+    } else if (hasSplitAuthzPath(cmd) && cmd.includes(">")) {
+      // Scan every `>` region — not only the last — so a later `> /tmp/x` cannot hide an earlier store write.
+      const lower = cmd.toLowerCase().replace(/\\/g, "/");
+      for (let i = 0; i < lower.length; i++) {
+        if (lower[i] !== ">") continue;
+        if (destMentionsAuthzSegment(redirectDestSlice(lower, i))) {
+          found.add("settings");
+          break;
+        }
+      }
+    }
+  }
+  if (hasIndirectAuthzStoreWrite(cmd, tokens)) found.add("settings");
+  // #3186: programmatic write/obfuscated-path shells fail closed as settings (not unclassifiable allow).
+  // Always merge settings even when other ops already matched (e.g. `pytest && python -c '…write…'`)
+  // so a compound safe prefix cannot hide a write-capable residual (SLizard residual).
+  if (hasWriteCapableProgrammaticShell(cmd, tokens)) {
+    found.add("settings");
+  }
+  // #4005 / #4188: a verified protected dest-of-write must not be hidden by
+  // unrelated always-allowed token matches such as an input named `pytest`.
+  // Generic dest-flag plants stay settings (grantable). Zip first-positional,
+  // unknown-argv0 last-positional, and dest-not-last dest-flag / of= empty-ops
+  // emit unknown (grant-immune under UAT).
+  // #3593: jar archive dest is dest-of-write even when `--file=` also looks
+  // like a dest-flag (genericProtectedDests skips jar; keep unknown if settings
+  // still landed some other way).
+  const uniqueArchiveDest = hasProtectedUniqueArchiveDest(cmd);
+  const destOfWriteUnknown =
+    uniqueArchiveDest ||
+    hasProtectedZipArchiveDestination(cmd) ||
+    hasProtectedUnprovenReadOnlyDestOfWrite(cmd);
+  const attachedProtected = hasProtectedAttachedDestOfWrite(cmd);
+  // #3626: attached emit-flag / slash dests stay grant-immune even when a
+  // compound prefix already classified settings.
+  if (
+    destOfWriteUnknown &&
+    (!found.has("settings") ||
+      hasProtectedJarCreateArchiveDest(cmd) ||
+      uniqueArchiveDest ||
+      attachedProtected)
+  ) {
+    found.add("unknown");
+  }
+  // #4199: write-shaped Shell with a visible protected dest must not fail open as [].
+  if (
+    hasWriteShapedProtectedSettingsDest(cmd, tokens) &&
+    (!found.has("settings") || attachedProtected)
+  ) {
+    found.add("unknown");
+  }
+
+  return [...found];
+}
+
+function pathishIsProtectedMutationDest(pathish: string): boolean {
+  return pathishIsSettingsStoreDir(pathish) || pathishMentionsKillSwitch(pathish);
+}
+
+function isShellConnectorToken(token: string): boolean {
+  return token === "&&" || token === "||" || token === ";" || token === "|";
+}
+
+const EMPTY_OPS_WRAPPER_BINS = new Set([
+  "sudo",
+  "doas",
+  "exec",
+  "time",
+  "env",
+  "nice",
+  "nohup",
+  "command",
+  "builtin",
+  "stdbuf",
+  "timeout",
+  "ionice",
+]);
+
+function firstCommandBin(tokens: readonly string[]): string {
+  let skipNext = false;
+  let skipDurationOperand = false;
+  for (const raw of tokens) {
+    if (isShellConnectorToken(raw)) continue;
+    if (skipNext) {
+      skipNext = false;
+      continue;
+    }
+    if (raw.includes("=") && /^[A-Za-z_][A-Za-z0-9_]*=/.test(raw)) continue;
+    const lower = raw.toLowerCase();
+    if (raw.startsWith("-")) {
+      const flag = lower.includes("=") ? lower.slice(0, lower.indexOf("=")) : lower;
+      if (!raw.includes("=") && WRAPPER_VALUE_FLAGS.has(flag)) skipNext = true;
+      continue;
+    }
+    if (skipDurationOperand) {
+      skipDurationOperand = false;
+      continue;
+    }
+    const bin = writeBinName(raw).replace(/^\(+/, "");
+    if (bin.length === 0) continue;
+    if (EMPTY_OPS_WRAPPER_BINS.has(bin) || COMMAND_WRAPPER_BINS.has(bin)) {
+      if (bin === "timeout") skipDurationOperand = true;
+      continue;
+    }
+    return bin;
+  }
+  return "";
+}
+
+function segmentSliceAround(tokens: readonly string[], index: number): readonly string[] {
+  let start = 0;
+  for (let i = index; i >= 0; i--) {
+    if (isShellConnectorToken(tokens[i] as string)) {
+      start = i + 1;
+      break;
+    }
+  }
+  let end = tokens.length;
+  for (let i = index; i < tokens.length; i++) {
+    if (isShellConnectorToken(tokens[i] as string)) {
+      end = i;
+      break;
+    }
+  }
+  return tokens.slice(start, end);
+}
+
+function redirectDestIsProtectedSettings(command: string): boolean {
+  const lower = command.toLowerCase().replace(/\\/g, "/");
+  const stripped = lower.replace(/['"]/g, "");
+  for (const hay of [lower, stripped]) {
+    for (let i = 0; i < hay.length; i++) {
+      if (hay[i] !== ">") continue;
+      if (pathishIsProtectedMutationDest(redirectDestSlice(hay, i))) return true;
+    }
+  }
+  return false;
+}
+
+const EMPTY_OPS_LAST_DEST_BINS = new Set(["makeself", "puppet", "yq", "dasel", "nomad"]);
+
+/**
+ * Dest-not-last dest-flag leftovers (#4204 / #4218 / #4161 / #3849 / #3918).
+ *
+ * Assumptions: these finite names are dest-of-write when the operand is a
+ * payload-protected path and the segment is not a proven read-shaped first bin.
+ * `--target` is dest-of-write except on cargo (toolchain triple; proven non-dest,
+ * not a named-bin harvest). `--jobname` is the long form of already-harvested
+ * `-jobname`.
+ *
+ * Guarantees: `restic restore --target DEST SNAPSHOT` emits `unknown`;
+ * `cargo --target ${grant}` (including `timeout`/`ionice`/`sudo`/`env` wrappers)
+ * stays unclassifiable; `grep -w`, `/tmp` dests, and dest-last generic `-o`
+ * stay as they were.
+ *
+ * Non-goals: do not add `--python_out` / `--stream-record` / `-p` / `-out:` to
+ * this set (#3918 bound-remedy). Attached `--*=` payload dests and last-positional
+ * dest-of-write stay on those other producers.
+ */
+const EMPTY_OPS_DEST_FLAGS = new Set([
+  "--file",
+  "--inplace",
+  "--output",
+  "--dest",
+  "--destination",
+  "-out",
+  "-f",
+  "-on",
+  "-ox",
+  "-og",
+  "-oa",
+  "-os",
+  "-w",
+  "--result-file",
+  "-r",
+  "--compile",
+  "-output",
+  "--out-file",
+  "--data-dir",
+  "-data-dir",
+  "-jobname",
+  "--jobname",
+  "-of",
+  "--target",
+]);
+
+/** cargo `--target` is a toolchain triple, not a restore dest (#4204 negative). */
+function emptyOpsDestFlagIsCargoTarget(
+  flag: string,
+  tokens: readonly string[],
+  index: number,
+): boolean {
+  if (flag !== "--target") return false;
+  const first = firstCommandBin(segmentSliceAround(tokens, index));
+  return first === "cargo" || first === "cargo.exe";
+}
+
+function isCargoArgv0(name: string | null): boolean {
+  return name === "cargo" || name === "cargo.exe";
+}
+
+/** Bare `of=` assignment dests (`dcfldd of=dest`). Not DESTDIR= make harvest. */
+const EMPTY_OPS_DEST_ASSIGNMENT_KEYS = new Set(["of"]);
+
+function emptyOpsSegmentIsReadShaped(tokens: readonly string[], index: number): boolean {
+  const first = firstCommandBin(segmentSliceAround(tokens, index));
+  // #5970: POSIX test/[ use -f/-o as predicates, not EMPTY_OPS_DEST_FLAGS writers.
+  // dir/Get-ChildItem stay off this carve so -o/--output dest plants still deny.
+  return (
+    READ_SHAPED_FILE_FLAG_BINS.has(first) ||
+    DEST_ASSIGNMENT_NON_WRITER_FIRST_BINS.has(first) ||
+    EXISTENCE_PROBE_IGNORE_OUTPUT_DEST_FLAGS.has(first)
+  );
+}
+
+function destFlagOperandIsProtectedSettings(tokens: readonly string[]): boolean {
+  for (let i = 0; i < tokens.length; i++) {
+    const raw = tokens[i] as string;
+    const attached = attachedDestOfWriteValue(raw);
+    if (attached !== null && attached.length > 0) {
+      if (
+        !emptyOpsSegmentIsReadShaped(tokens, i) &&
+        pathishIsProtectedMutationDest(pathishToken(attached))
+      ) {
+        return true;
+      }
+      continue;
+    }
+    const lower = raw.toLowerCase();
+    const eq = raw.indexOf("=");
+    const colonPrefix = lower.startsWith("-out:")
+      ? "-out:"
+      : lower.startsWith("json:")
+        ? "json:"
+        : "";
+
+    // `of=dest` (no leading dash) and `-out:dest` / `json:DEST` attached dests.
+    if (eq > 0 && !raw.startsWith("-")) {
+      const key = raw.slice(0, eq).toLowerCase();
+      if (
+        EMPTY_OPS_DEST_ASSIGNMENT_KEYS.has(key) &&
+        !emptyOpsSegmentIsReadShaped(tokens, i) &&
+        pathishIsProtectedMutationDest(pathishToken(raw.slice(eq + 1)))
+      ) {
+        return true;
+      }
+      continue;
+    }
+    if (colonPrefix.length > 0 && raw.length > colonPrefix.length) {
+      if (
+        !emptyOpsSegmentIsReadShaped(tokens, i) &&
+        pathishIsProtectedMutationDest(pathishToken(raw.slice(colonPrefix.length)))
+      ) {
+        return true;
+      }
+      continue;
+    }
+
+    const eqFlag = eq > 1 && raw.startsWith("-") ? raw.slice(0, eq).toLowerCase() : "";
+    const isEqDest = eqFlag.length > 0 && EMPTY_OPS_DEST_FLAGS.has(eqFlag);
+    const isBareDest = EMPTY_OPS_DEST_FLAGS.has(lower);
+    if (!isEqDest && !isBareDest) continue;
+    const destFlagName = isEqDest ? eqFlag : lower;
+    if (emptyOpsDestFlagIsCargoTarget(destFlagName, tokens, i)) continue;
+    if (emptyOpsSegmentIsReadShaped(tokens, i)) continue;
+    if (isEqDest) {
+      const val = raw.slice(eq + 1);
+      if (pathishIsProtectedMutationDest(pathishToken(val))) return true;
+      continue;
+    }
+    if (i + 1 >= tokens.length) continue;
+    if (pathishIsProtectedMutationDest(pathishToken(tokens[i + 1] as string))) return true;
+  }
+  return false;
+}
+
+function hasWriteShapedProtectedSettingsDest(command: string, tokens: readonly string[]): boolean {
+  if (redirectDestIsProtectedSettings(command)) return true;
+  if (destFlagOperandIsProtectedSettings(tokens)) return true;
+  for (let i = 0; i < tokens.length; i++) {
+    const bin = writeBinName(tokens[i] as string).replace(/^\(+/, "");
+    if (!EMPTY_OPS_LAST_DEST_BINS.has(bin)) continue;
+    for (let j = i + 1; j < tokens.length; j++) {
+      const tok = tokens[j] as string;
+      if (isShellConnectorToken(tok)) break;
+      if (tok.startsWith("-")) continue;
+      if (pathishIsProtectedMutationDest(pathishToken(tok))) return true;
+    }
+  }
+  return false;
+}
+
+/** Map a PreToolUse tool name + optional shell command to authz ops. */
+export function classifyHookAuthzOps(input: {
+  readonly toolName: string;
+  readonly shellCommand: string | null;
+  readonly isDirectWrite: boolean;
+  readonly mcpArgsText?: string | null;
+  /** Payload root for #4188 harvest realpath. Blank/omitted skips harvest. */
+  readonly projectRoot?: string | null;
+  /** Direct Write/Edit target path for always-on kill-switch plant classify (#6136). */
+  readonly writePath?: string | null;
+}): AuthzClassifiedOp[] {
+  const { toolName, shellCommand, isDirectWrite } = input;
+  if (isDirectWrite) {
+    // Prefer-A Bound #6136: kill-switch Write/Edit is `settings` (always-on grant
+    // gate). Keep off bare `edit` — isProtectedStoreEditDest treats the flag
+    // basenames themselves as protected and would deny before the grant check.
+    // Symlink plants into `.deft/authz/` are denied in dispatcher via realpath
+    // (not this op class alone).
+    const writePath = (input.writePath ?? "").trim();
+    if (writePath.length > 0 && isKillSwitchPlantPath(writePath)) return ["settings"];
+    return ["edit"];
+  }
+
+  const lower = toolName.toLowerCase();
+  // Shared catalog (#4041 / #3987). A second name list missed Grok monitor.
+  if (isShellTool(toolName)) {
+    // Missing command string: fail open (host gap) — same posture as #2711.
+    if (shellCommand === null) return [];
+    // Empty classification (git status, tests without product verbs, …) is not gated.
+    const ops = classifyShellAuthzOps(shellCommand);
+    // #4709: inventoried-store Shell write. protected_store last. Dest-of-write
+    // unknown stays first (active UAT grant-immune classifiable-form deny);
+    // inactive unknown-allow then this deny. Drop grant-consuming ops (settings)
+    // so a later store deny cannot spend a single-use grant. Lexical dests stay
+    // I/O-free; #4188 harvest realpath uses the passed payload root only.
+    const harvestRoot = (input.projectRoot ?? "").trim();
+    const harvestProtected =
+      harvestRoot.length > 0 &&
+      shellCommandHasPayloadRootProtectedDestAfterRealpath(harvestRoot, shellCommand);
+    if (inactiveShellTargetsProtectedStore(shellCommand) || harvestProtected) {
+      const next = harvestProtected && !ops.includes("unknown") ? ["unknown", ...ops] : [...ops];
+      if (next.includes("unknown")) return ["unknown", "protected_store"];
+      return ["protected_store"];
+    }
+    return ops;
+  }
+
+  // MCP / bare names via #2711 classifier + PR heuristics (token-ish name checks).
+  const mcpOp: RuntimeAuthorityShellOp | null = classifyMcpTool(
+    toolName,
+    input.mcpArgsText ?? null,
+  );
+  if (mcpOp !== null) return [mcpOp];
+
+  const name = lower.replace(/[^a-z0-9_]/g, "_");
+  if (
+    name.includes("create_pull_request") ||
+    name.includes("pull_request_create") ||
+    name.includes("pr_create") ||
+    name === "create_pull_request"
+  ) {
+    return ["pr"];
+  }
+  if (name.includes("create_issue") || name.includes("issue_create")) {
+    return ["issue_mutation"];
+  }
+
+  // Unrelated tools — not gated by Wave 1 authz (prefer fail-open over false deny).
+  return [];
+}
+
+/**
+ * Public pin for #4709: Shell write targeting `.deft/authz/` or `.deft/approved-scope/`.
+ * Reads stay false. Not an evaluate path glob and not opt-in shellDestForms.
+ */
+export function hasAuthzDirShellWrite(command: string): boolean {
+  const cmd = command.trim();
+  if (cmd.length === 0) return false;
+  return commandHasAuthzDirShellWrite(cmd, shellTokens(cmd));
+}
+
+/**
+ * Dest-of-write unknown targeting the #4188 protected set (grant store, approved-scope,
+ * kill-switch). Close-shaped issue writes are not this class.
+ */
+export function hasProtectedDestOfWriteUnknown(command: string): boolean {
+  const cmd = command.trim();
+  if (cmd.length === 0) return false;
+  const tokens = shellTokens(cmd);
+  const uniqueArchiveDest = hasProtectedUniqueArchiveDest(cmd);
+  const destOfWriteUnknown =
+    uniqueArchiveDest ||
+    hasProtectedZipArchiveDestination(cmd) ||
+    hasProtectedUnprovenReadOnlyDestOfWrite(cmd);
+  const attachedProtected = hasProtectedAttachedDestOfWrite(cmd);
+  if (destOfWriteUnknown || attachedProtected) return true;
+  return hasWriteShapedProtectedSettingsDest(cmd, tokens);
+}
+
+/**
+ * Inactive Shell half (#4709): hasAuthzDirShellWrite or dest-of-write unknown.
+ * classifyHookAuthzOps appends protected_store from this pin. #4188 harvest
+ * realpath against an explicit payload root closes non-lexical symlink aliases.
+ */
+export function inactiveShellTargetsProtectedStore(command: string): boolean {
+  return hasAuthzDirShellWrite(command) || hasProtectedDestOfWriteUnknown(command);
+}
+
+/**
+ * First matched protected dest/token from the same classify/harvest routes that
+ * set protected_store (#5970 P3). Lexical dest-of-write first; #4188 realpath
+ * harvest when projectRoot is provided. Proven readers yield null.
+ */
+export function matchProtectedStoreShellDest(
+  command: string,
+  projectRoot?: string | null,
+): string | null {
+  const cmd = command.trim();
+  if (cmd.length === 0) return null;
+
+  for (const segment of zipStyleCommandSegments(cmd)) {
+    if (isProvenReadOnlyArgv(segment.words, segment.execIndex)) continue;
+    const jarDest = jarCreateArchiveDest(segment.words, segment.execIndex);
+    if (jarDest !== null && isRelativePayloadProtectedDest(jarDest)) return jarDest;
+    const archiveDest = firstArchiveOperandDest(segment.words, segment.execIndex);
+    if (archiveDest !== null && isRelativePayloadProtectedDest(archiveDest)) return archiveDest;
+    for (const doubleColonDest of doubleColonCreateArchiveDests(segment.words, segment.execIndex)) {
+      if (isRelativePayloadProtectedDest(doubleColonDest)) return doubleColonDest;
+    }
+    for (const dest of harvestInterpreterPayloadDests(segment.words, segment.execIndex)) {
+      if (isRelativePayloadProtectedDest(dest)) return dest;
+    }
+    const name = argv0BareName(segment.words, segment.execIndex);
+    if (name !== null) {
+      for (const dest of harvestUnknownDestFlagValues(segment.words, segment.execIndex, name)) {
+        if (isRelativePayloadProtectedDest(dest)) return dest;
+      }
+    }
+    const last = lastDestOfWritePositional(segment.words, segment.execIndex);
+    if (last !== null && isRelativePayloadProtectedDest(last)) {
+      const lit = zipShellWordLiteral(last);
+      return lit ?? last;
+    }
+  }
+
+  const tokens = shellTokens(cmd);
+  if (hasWriteShapedProtectedSettingsDest(cmd, tokens)) {
+    // Prefer redirect destinations over earlier read operands (#5970 P2).
+    for (let i = 0; i < cmd.length; i++) {
+      if (cmd[i] !== ">") continue;
+      const dest = redirectDestSlice(cmd.toLowerCase().replace(/\\/g, "/"), i).trim();
+      if (dest.length > 0 && pathishIsProtectedMutationDest(dest)) return dest;
+    }
+    for (const raw of tokens) {
+      const pathish = pathishToken(raw);
+      if (pathishIsProtectedMutationDest(pathish)) return pathish;
+    }
+  }
+
+  if (commandHasAuthzDirShellWrite(cmd, tokens)) {
+    for (const raw of tokens) {
+      const pathish = pathishToken(raw);
+      if (pathishIsAuthzDir(pathish) || pathishIsApprovedScopeDir(pathish)) return pathish;
+    }
+  }
+
+  if (hasKillSwitchShellWrite(cmd, tokens)) {
+    for (const raw of tokens) {
+      const pathish = pathishToken(raw);
+      if (pathishMentionsKillSwitch(pathish)) return pathish;
+    }
+  }
+
+  const harvestRoot = (projectRoot ?? "").trim();
+  if (harvestRoot.length > 0) {
+    for (const dest of harvestDestsOfWriteForRealpath(cmd)) {
+      if (destLiteralIsRelativeProtected(dest)) continue;
+      if (resolvedDestIsPayloadRootProtected(harvestRoot, dest)) return dest;
+    }
+  }
+
+  return null;
+}
+
+/** Re-export #2711 classifiers for composition docs/tests. */
+export { classifyMcpTool, classifyShellCommand, listShellOps };
