@@ -2483,7 +2483,29 @@ describe("inactive Shell classifiers (#4709)", () => {
     expect(classifyShellAuthzOps("cd -- .deft/authz/grants && cp /tmp/g g")).toContain("settings");
     expect(classifyShellAuthzOps("git diff --output=.deft/authz/grants/g")).toContain("settings");
     expect(classifyShellAuthzOps("git diff -o .deft/authz/grants/g")).toContain("settings");
+    expect(
+      classifyShellAuthzOps(
+        "git -c diff.external='touch .deft-directive-disable' diff --no-index a b",
+      ),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps("git -c alias.diff='!touch .deft-directive-disable' diff"),
+    ).toContain("settings");
     expect(classifyShellAuthzOps("echo x > .deft/approved-scope-backup/story.json")).toEqual([]);
+  });
+
+  it("resolves relative writer targets from protected directories", () => {
+    expect(
+      classifyShellAuthzOps("cd .deft/approved-scope && cp story.json ../../story-backup.json"),
+    ).not.toContain("settings");
+    expect(
+      classifyShellAuthzOps("cd .deft/approved-scope && cp story.json child/story-backup.json"),
+    ).toContain("settings");
+  });
+
+  it("recognizes Windows substring and replacement expansions", () => {
+    expect(classifyShellAuthzOps('copy seed.json "%DEST:~0%"')).toContain("settings");
+    expect(classifyShellAuthzOps('copy seed.json "%DEST:old=new%"')).toContain("settings");
   });
 
   it("pins hasAuthzDirShellWrite for grant-store writes, not reads", () => {
