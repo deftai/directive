@@ -14,6 +14,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import type { FragmentFs } from "../changelog/fragment.js";
 import { EXIT_VIOLATION } from "./constants.js";
 import { commitReleaseArtifacts } from "./git.js";
 import { runPipeline } from "./pipeline.js";
@@ -339,6 +340,9 @@ describe("changelog fragments in the release (#6315 / #6286 item 6)", () => {
     const root = fragmentRoot(fragments);
     execFileSync("git", ["init", "-q", "-b", "master"], { cwd: root });
     git(root, ["config", "core.autocrlf", "false"]);
+    // commitReleaseArtifacts runs plain `git commit`; CI runners have no global identity.
+    git(root, ["config", "user.email", "ci@test"]);
+    git(root, ["config", "user.name", "ci"]);
     git(root, ["add", "-A"]);
     git(root, ["commit", "-q", "-m", "init"]);
     return root;
@@ -552,6 +556,36 @@ describe("changelog fragments in the release (#6315 / #6286 item 6)", () => {
     });
     const result = prepareReleaseArtifacts(prepInput(root, true));
     expect(result.ok).toBe(true);
+  });
+
+  it("refuses when changelog.d/ cannot be listed (not silently skipped)", () => {
+    const root = fragmentRoot({ "20-a.md": "section: Added\n- a (#20)\n" });
+    const dir = { isSymbolicLink: () => false, isFile: () => false, isDirectory: () => true };
+    const cases: FragmentFs[] = [
+      {
+        readdir: () => {
+          throw new Error("EACCES: listing denied");
+        },
+        lstat: () => dir,
+        readFile: () => "",
+      },
+      {
+        readdir: () => [],
+        lstat: () => {
+          throw Object.assign(new Error("EACCES: stat denied"), { code: "EACCES" });
+        },
+        readFile: () => "",
+      },
+    ];
+    for (const fragmentFs of cases) {
+      const result = prepareReleaseArtifacts({ ...prepInput(root, true), fragmentFs });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.code).toBe("fragment-invalid");
+        expect(result.message).toContain("changelog.d could not be listed");
+      }
+    }
+    expect(readFileSync(join(root, "CHANGELOG.md"), "utf8")).toBe(BASE);
   });
 
   it("reports a failed fragment deletion", () => {

@@ -202,6 +202,15 @@ export function readChangelogFragment(
   return { path: relPath, section: parsed.section, entries: parsed.entries };
 }
 
+function unreadableDir(err: unknown): InvalidChangelogFragment {
+  const msg = err instanceof Error ? err.message : String(err);
+  return {
+    path: CHANGELOG_FRAGMENT_DIR,
+    reason: "unreadable",
+    detail: `changelog.d could not be listed: ${msg}`,
+  };
+}
+
 export function isValidChangelogFragment(
   value: ChangelogFragment | InvalidChangelogFragment,
 ): value is ChangelogFragment {
@@ -224,8 +233,12 @@ export function readChangelogFragments(
   let dirStat: ReturnType<FragmentFs["lstat"]>;
   try {
     dirStat = fs.lstat(absDir);
-  } catch {
-    return { valid: [], invalid: [] };
+  } catch (err) {
+    // Only a missing directory is "no fragments" (#6315 review). Any other
+    // error is reported, so the release refuses instead of skipping entries.
+    const code = (err as NodeJS.ErrnoException | null)?.code;
+    if (code === "ENOENT") return { valid: [], invalid: [] };
+    return { valid: [], invalid: [unreadableDir(err)] };
   }
   if (dirStat.isSymbolicLink()) {
     return {
@@ -254,8 +267,8 @@ export function readChangelogFragments(
   let names: string[];
   try {
     names = fs.readdir(absDir);
-  } catch {
-    return { valid: [], invalid: [] };
+  } catch (err) {
+    return { valid: [], invalid: [unreadableDir(err)] };
   }
   const valid: ChangelogFragment[] = [];
   const bad: InvalidChangelogFragment[] = [];
