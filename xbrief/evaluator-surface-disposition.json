@@ -1,11 +1,11 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 6316,
+  "issue": 6314,
   "surfaces": [
-    "packages/core/src/intent-constraint/plan-id-adopter.ts",
-    "packages/core/src/intent-constraint/plan-id-adopter.test.ts",
+    "packages/core/src/presentation-ceiling/evaluate.ts",
+    "packages/core/src/presentation-ceiling/evaluate.test.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for #6316: plan-id adoption accepts a sole deft-story-part: N line for mint selection only (#6310 Bound 1); both lines for one N refuse; hint text names --write-story-line. Adoption semantics for the mark unchanged. Disclosure only; not #3164 authorization. Refs #6316, #6310."
+  "note": "Renew disclosure for #6314: presentation-ceiling matches changelog paths through isChangelogEntryPath (CHANGELOG.md or changelog.d/<name>.md, absolute readers included) instead of the literal CHANGELOG.md; outcomes are unchanged at mode inline with no fragment. class-checks/evaluate.ts keeps its literal match until the protected-only follow-up #6327. Disclosure only; not #3164 authorization. Refs #6314, #6286."
 }
