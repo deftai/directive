@@ -14,7 +14,7 @@
       "Labels": "framework-gap",
       "UserStory": "As a maintainer running parallel stories, I want each PR to add its own changelog fragment that the gate checks and the release assembles, so that changelog edits stop conflicting between branches.",
       "ImplementationPlan": "1. Extend `verify:changelog-unreleased` merge-base mode (packages/core/src/task-surface/index.ts, tasks/verify.yml, check/named-cause.ts) for `fragments` and `either` modes; keep the lifecycle-only exemption and `inline` behaviour; fail on a changed, renamed or deleted merge-base fragment or an invalid added one.\n2. In packages/core/src/release (release-artifacts.ts, changelog.ts, pipeline.ts, git.ts), capture fragments, assemble the section in memory, refuse invalid, duplicate-entry and existing-version cases, write CHANGELOG.md, delete exactly the captured fragments and stage the deletions in the release commit; a dry run writes nothing; a mid-run failure names the restore.\n3. State in the PR templates, the swarm skill and the release skill that a story lists its own `changelog.d/<issue>-<slug>.md` path in file_scope; `swarm:readiness` stays unchanged.\n4. Set `plan.policy.changelog.mode` to `either` in xbrief/PROJECT-DEFINITION.xbrief.json and add this story's own fragment file.\n5. Cover each clause with release, pipeline, rollback, readiness-branches and content-contract tests.",
-      "Traces": "#6315, #6286, #6314, #680"
+      "Traces": "#6315, #6286, #680"
     },
     "items": [
       {
@@ -387,7 +387,6 @@
         "Traces": [
           "#6315",
           "#6286",
-          "#6314",
           "#680"
         ],
         "acceptance_criteria_justification": "Twelve clauses, one per acceptance criterion in the #6315 issue body (slice B of #6286 lean 6859392664, items 4, 6, 7, 8 and 9); gate, release and story-scope cases are distinct and kept one-to-one so each maps to its own evidence."

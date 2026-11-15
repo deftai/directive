@@ -14,7 +14,7 @@
       "Labels": "framework-gap",
       "UserStory": "As an operator deferring one acceptance clause to a later issue, I want a grant that completion applies as a deferred disposition, so that the story completes without hand-editing the active brief.",
       "ImplementationPlan": "1. Add the `acceptance-disposition` template in packages/core/src/policy/acceptance-disposition-grant.ts and runtime authz.ts, minted through the human-presence gate into the store at `mainWorktreeRoot(projectRoot)`.\n2. At mint, store a digest of each covered clause text (or the item title when it is not a clause); accept only for that plan and those ids while each digest matches, else refuse and name a re-mint.\n3. In packages/core/src/scope/transition.ts and acceptance-evidence.ts, apply covered dispositions in memory after `persistClauseKeyedPendingItems` and before `stampMergeFromCompletionProvenance`, keep them out of the mid-flight active write, and write them with the `completed/` write, which also records first use.\n4. Refuse completion on an expired unused grant with no later cover, naming a re-mint or `authz:revoke`.\n5. Cover each clause in acceptance-evidence, transition, complete-cohort-sweep, grant, authz and intent tests; document the template in content/contracts/human-origin-authz.md.",
-      "Traces": "#6318, #6310, #6317"
+      "Traces": "#6318, #6310"
     },
     "items": [
       {
@@ -138,8 +138,7 @@
         ],
         "Traces": [
           "#6318",
-          "#6310",
-          "#6317"
+          "#6310"
         ],
         "acceptance_criteria_justification": "Seven clauses, one per acceptance criterion in the #6318 issue body (slice C of #6310 lean 6887155397, Bound 4 with Bound 5 fixtures); kept one-to-one so each maps to its own evidence."
       },

@@ -14,7 +14,7 @@
       "Labels": "framework-gap",
       "UserStory": "As an operator completing a story whose merged PR has no usable mark, I want the identity join to read merge-time bodies and accept my attestation grant, so that shipped stories complete without hand-edited briefs.",
       "ImplementationPlan": "1. In packages/core/src/scope/delivery-evidence.ts, read each candidate's merge-time body before any basis; refuse on an unreadable body or a part line; settle same-mark competitors by `git show origin/<deliveryBranch>:<brief path>` after a fetch; list part-line and competing PRs in provenance.\n2. In packages/core/src/swarm/finalize-cohort.ts, refuse the #6212 operator bind when another merged, non-excluded PR carries the same mark, naming both.\n3. Add the `delivery-identity-attest` template (policy/delivery-identity-attest-grant.ts, runtime authz.ts) through the human-presence mint gate, `operator-cli` origin, 24-hour expiry, and the `operator-attested` basis; record first use with the `completed/` write.\n4. Resolve the grant store at `mainWorktreeRoot(projectRoot)` for mint, read, use, revoke and show; refuse when it cannot be resolved.\n5. Cover each clause in delivery-evidence, transition, finalize-cohort, grant and authz tests; document the template in content/contracts/human-origin-authz.md and content/commands.md.",
-      "Traces": "#6317, #6310, #6316, #6212, #6269, #6270, #6271, #6273"
+      "Traces": "#6317, #6310, #6212"
     },
     "items": [
       {
@@ -147,12 +147,7 @@
         "Traces": [
           "#6317",
           "#6310",
-          "#6316",
-          "#6212",
-          "#6269",
-          "#6270",
-          "#6271",
-          "#6273"
+          "#6212"
         ],
         "acceptance_criteria_justification": "Eight clauses, one per acceptance criterion in the #6317 issue body (slice B of #6310 lean 6887155397, Bound 2 and 3 with Bound 5 fixtures); kept one-to-one so each maps to its own evidence."
       },
