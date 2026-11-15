@@ -23891,7 +23891,7 @@
       "changelog": {
         "mode": "either"
       },
-      "requireHumanMerge": true,
+      "requireHumanMerge": false,
       "onePrScopeProof": "mint"
     },
     "updated": "2026-07-02T14:32:31Z",
