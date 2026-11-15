@@ -134,6 +134,47 @@ A narrowing is refused *as filed*, not forever. A viable successor design would:
 
 None of that would make #4013's filed premise — that the fallback is a defect — true.
 
+## Commit targets — which checkout a `git commit` is judged against (#6278 / #6247)
+
+The prospective scope-cover check on a Shell `git commit` (#5656) reads staged paths before the
+commit runs. It reads them on the **target root**, the checkout the commit names:
+
+| Command shape | Target root |
+| --- | --- |
+| `git -C <absolute path> commit …` | The named path, admitted as below. |
+| `cd <absolute path> && … git commit …` (one `cd`, joined to the commit by `&&`) | The named path, admitted as below. |
+| A commit with no `cd` and no `-C` | The hook project root, as before. |
+
+A path is absolute when it is a native absolute path. On Windows that is a drive path (`C:\…` or
+`C:/…`) or the MSYS drive form (`/c/…`), which maps to its drive path. Quoted and unquoted paths
+resolve the same way; one quote-aware tokenizer serves commit recognition, target resolution and
+the index-mutating-form check (`packages/core/src/hooks/commit-target.ts`).
+
+**Admission.** A named path must exist and pass `admitEffectiveHookRoot`: same
+`--git-common-dir` as the payload root, or deny (`foreign-repository-deny`). A commit target has
+no non-repository fallback: a path outside every checkout, or a payload root that is not a
+repository, is refused. The payload root stays the identity for authz, the kill-switch and deny
+diagnostics.
+
+**Index and story.** Staged paths are listed on the target root, and `resolveWorktreeStoryBinding`
+runs there: `bound` selects that worktree's story and its write fence; `refuse` denies with the
+resolver's reason (never a fallback to another eligible story); `none` keeps the earlier
+selection. The empty-index and lifecycle-only passes still apply, read from the target root.
+
+**Refused as unresolvable** (the message names the two absolute forms): a relative path after
+`cd` or `-C`; more than one `cd` or `-C` before the commit; a `cd` joined to the commit by `;` or
+`||`; a variable, `~` or substitution in the path; `--git-dir` / `--work-tree`; and a `GIT_DIR`,
+`GIT_WORK_TREE`, `GIT_INDEX_FILE` or `GIT_COMMON_DIR` prefix on the commit. In each case the gate
+cannot know which index the commit will use.
+
+**Limits, named and not closed here.** A plain commit is still judged at the hook project root,
+wherever the shell actually is; workers name their worktree in every git command (#6291). A
+`git add` in the same call as the commit stages after the gate has read the index, and that now
+also reaches the two named forms. The commit is held to the target story's `file_scope` for the
+product paths in that snapshot; it does not authenticate which actor commits. Other shell forms
+(subshells, `pushd`, an exported `GIT_DIR`) are not interpreted; this is not a general shell
+parser.
+
 ## Scope of this guarantee
 
 Root admission is **cooperative host-session routing**, the same posture as the occupancy lease it
@@ -151,4 +192,6 @@ the write fence.
 | Nearest existing ancestor, toplevel and common-dir lookups | `packages/core/src/session/git.ts` — `existingAncestorDir`, `worktreePathOrNull`, `gitCommonDir` |
 | Shell write-dest classification and the in-repo predicate | `packages/core/src/hooks/shell-write-targets.ts` — `isInRepoShellWritePath` |
 | Tool-name surfaces | `packages/core/src/hooks/tools.ts` — `isDirectWriteTool`, `isShellTool`, `isMcpTool` |
-| Behaviour lock | `packages/core/src/hooks/dispatcher-effective-root.test.ts` |
+| Commit-target tokenizer and resolver | `packages/core/src/hooks/commit-target.ts` — `resolveCommitTarget`, `tokenizeShellCommand` |
+| Commit-target admission and scope-cover | `packages/core/src/hooks/dispatcher.ts` — `decideProspectiveGitCommitScopeCover`, `evaluateProspectiveScopeCover` |
+| Behaviour lock | `packages/core/src/hooks/dispatcher-effective-root.test.ts`; commit targets in `dispatcher-active-scope.test.ts` and `commit-target.test.ts` |

@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
 import { SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE } from "../scope/transition-hint.js";
@@ -287,54 +287,65 @@ describe("spawn multiple-eligible recovery (#4880 Prefer-A B')", () => {
  * `.deft-scratch/worktrees/`, each registered for a different story through
  * writeWorkerAuthAssignment, and no DEFT_ACTIVE_SCOPE pin.
  */
+type Cohort = { primary: string; wtA: string; wtB: string; wtC: string };
+
+function git(cwd: string, args: readonly string[]): string {
+  return execFileSync("git", [...args], { cwd, encoding: "utf8" });
+}
+
+function seedBriefs(root: string): void {
+  writeRunning(root, "a-story.xbrief.json", ["packages/a/**"]);
+  writeRunning(root, "b-story.xbrief.json", ["packages/b/**"]);
+}
+
+function register(primary: string, worktree: string, storyId: string): void {
+  const written = writeWorkerAuthAssignment({
+    projectRoot: primary,
+    worktreePath: worktree,
+    dispatchId: `dispatch-${storyId}`,
+    storyId,
+    githubAuthMode: "host-gh",
+    expectedPrincipal: { kind: "user", login: "worker" },
+    credentialDeliveryId: null,
+  });
+  expect(written.ok).toBe(true);
+}
+
+function initRepo(prefix: string): string {
+  const root = mkdtempSync(join(tmpdir(), prefix));
+  temps.push(root);
+  git(root, ["init", "-q"]);
+  git(root, ["config", "user.email", "t@t.local"]);
+  git(root, ["config", "user.name", "T"]);
+  git(root, ["commit", "--allow-empty", "-q", "-m", "init"]);
+  return root;
+}
+
+/** wt-a / wt-b registered for a-story / b-story; wt-c is an unregistered linked worktree. */
+function cohort(registered = true, names = { a: "story-a", b: "story-b", c: "story-c" }): Cohort {
+  const primary = initRepo("hook-6233-");
+  const nest = join(primary, ".deft-scratch", "worktrees");
+  mkdirSync(nest, { recursive: true });
+  const wtA = join(nest, names.a);
+  const wtB = join(nest, names.b);
+  const wtC = join(nest, names.c);
+  for (const wt of [wtA, wtB, wtC]) git(primary, ["worktree", "add", "--detach", "-q", wt]);
+  for (const root of [primary, wtA, wtB, wtC]) seedBriefs(root);
+  // Launch records the shared derivation: the filename stem when plan.id is absent.
+  if (registered) {
+    register(primary, wtA, "a-story");
+    register(primary, wtB, "b-story");
+  }
+  return { primary, wtA, wtB, wtC };
+}
+
+function corruptIndex(primary: string): void {
+  const store = join(primary, ".git", "deft-worker-auth");
+  mkdirSync(store, { recursive: true });
+  writeFileSync(join(store, "index.json"), "{ not json", "utf8");
+}
+
 describe("registered linked worktree story binding (#6233)", { timeout: 60_000 }, () => {
-  type Cohort = { primary: string; wtA: string; wtB: string; wtC: string };
-
-  function git(cwd: string, args: readonly string[]): void {
-    execFileSync("git", [...args], { cwd, encoding: "utf8" });
-  }
-
-  function seedBriefs(root: string): void {
-    writeRunning(root, "a-story.xbrief.json", ["packages/a/**"]);
-    writeRunning(root, "b-story.xbrief.json", ["packages/b/**"]);
-  }
-
-  function register(primary: string, worktree: string, storyId: string): void {
-    const written = writeWorkerAuthAssignment({
-      projectRoot: primary,
-      worktreePath: worktree,
-      dispatchId: `dispatch-${storyId}`,
-      storyId,
-      githubAuthMode: "host-gh",
-      expectedPrincipal: { kind: "user", login: "worker" },
-      credentialDeliveryId: null,
-    });
-    expect(written.ok).toBe(true);
-  }
-
-  /** wt-a / wt-b registered for a-story / b-story; wt-c is an unregistered linked worktree. */
-  function cohort(registered = true): Cohort {
-    const primary = mkdtempSync(join(tmpdir(), "hook-6233-"));
-    temps.push(primary);
-    git(primary, ["init", "-q"]);
-    git(primary, ["config", "user.email", "t@t.local"]);
-    git(primary, ["config", "user.name", "T"]);
-    git(primary, ["commit", "--allow-empty", "-q", "-m", "init"]);
-    const nest = join(primary, ".deft-scratch", "worktrees");
-    mkdirSync(nest, { recursive: true });
-    const wtA = join(nest, "story-a");
-    const wtB = join(nest, "story-b");
-    const wtC = join(nest, "story-c");
-    for (const wt of [wtA, wtB, wtC]) git(primary, ["worktree", "add", "--detach", "-q", wt]);
-    for (const root of [primary, wtA, wtB, wtC]) seedBriefs(root);
-    // Launch records the shared derivation: the filename stem when plan.id is absent.
-    if (registered) {
-      register(primary, wtA, "a-story");
-      register(primary, wtB, "b-story");
-    }
-    return { primary, wtA, wtB, wtC };
-  }
-
   function write(primary: string, target: string, environ: NodeJS.ProcessEnv = {}) {
     return decideHook(
       {
@@ -346,12 +357,6 @@ describe("registered linked worktree story binding (#6233)", { timeout: 60_000 }
       },
       liveScopeSeams(),
     );
-  }
-
-  function corruptIndex(primary: string): void {
-    const store = join(primary, ".git", "deft-worker-auth");
-    mkdirSync(store, { recursive: true });
-    writeFileSync(join(store, "index.json"), "{ not json", "utf8");
   }
 
   it("admits each worker's in-scope product write and refuses out of scope, with no env pin", () => {
@@ -479,5 +484,209 @@ describe("registered linked worktree story binding (#6233)", { timeout: 60_000 }
     const ineligible = write(primary, join(wtA, "packages", "a", "index.ts"));
     expect(ineligible).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
     expect(ineligible.message).toContain("(assigned_story_ineligible)");
+  });
+});
+
+/**
+ * #6278 / #6247 acceptance fixture: the commit gate judges the checkout a commit
+ * names, on that checkout's index and worktree story binding. A real repository
+ * with registered linked worktrees, two active briefs in each, and no pin. The
+ * PowerShell-tool attempt of comment 6858441886 is outside the hook matcher, so
+ * it has no fixture here (#6291 covers it in the dispatch preamble).
+ */
+describe("commit gate judges the checkout the commit names (#6278 / #6247)", {
+  timeout: 120_000,
+}, () => {
+  const FORMS = "git -C <absolute path> commit";
+
+  function commit(projectRoot: string, command: string, environ: NodeJS.ProcessEnv = {}) {
+    return decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot,
+        payload: { tool_name: "Bash", tool_input: { command } },
+        environ: { DEFT_SESSION_ID: "owner", ...environ },
+      },
+      liveScopeSeams(),
+    );
+  }
+
+  function stage(root: string, rel: string): void {
+    const abs = join(root, ...rel.split("/"));
+    mkdirSync(dirname(abs), { recursive: true });
+    writeFileSync(abs, "export {};\n", "utf8");
+    git(root, ["add", "--", rel]);
+  }
+
+  function unstageAll(root: string): void {
+    git(root, ["reset", "-q"]);
+  }
+
+  /** MSYS `/c/...` form of a Windows drive path; the native path elsewhere. */
+  function msys(path: string): string {
+    if (process.platform !== "win32") return path;
+    const match = /^([A-Za-z]):[\\/](.*)$/.exec(path);
+    if (match === null) return path;
+    return `/${(match[1] ?? "").toLowerCase()}/${(match[2] ?? "").replace(/\\/g, "/")}`;
+  }
+
+  function namedForms(wt: string, msg: string): string[] {
+    return [
+      `cd "${wt}" && git commit -F "${msg}"`,
+      `git -C "${wt}" commit -F ${msys(msg)}`,
+      `cd ${msys(wt)} && git commit -F ${msys(msg)}`,
+    ];
+  }
+
+  it("judges the field-report attempts on the named worktree's index, not the hook root's", () => {
+    const { primary, wtA, wtB } = cohort();
+    const msg = join(primary, "msg.txt");
+    // The hook root is a sibling worktree with nothing staged, as in comment 6858441886.
+    for (const hookRoot of [wtB, primary]) {
+      stage(wtA, "packages/b/out.ts");
+      for (const command of namedForms(wtA, msg)) {
+        const out = commit(hookRoot, command);
+        expect(out, command).toMatchObject({
+          verdict: "deny",
+          code: "prospective-scope-cover-deny",
+        });
+        expect(out.message).toContain("packages/b/out.ts");
+        expect(out.message).toMatch(/outside governing file_scope/);
+        expect(out.message).toContain("effectiveRoot=");
+      }
+      unstageAll(wtA);
+      stage(wtA, "packages/a/in.ts");
+      for (const command of namedForms(wtA, msg)) {
+        const inScope = commit(hookRoot, command);
+        expect(inScope.code, command).not.toBe("prospective-scope-cover-deny");
+        expect(inScope.verdict, command).toBe("allow");
+      }
+      unstageAll(wtA);
+    }
+  });
+
+  it("binds a plain commit to the hook root's own registered worktree (#6247)", () => {
+    const { wtA } = cohort();
+    stage(wtA, "packages/a/in.ts");
+    expect(commit(wtA, "git commit -m x").verdict).toBe("allow");
+    unstageAll(wtA);
+    stage(wtA, "packages/b/out.ts");
+    expect(commit(wtA, "git commit -m x")).toMatchObject({
+      verdict: "deny",
+      code: "prospective-scope-cover-deny",
+    });
+  });
+
+  it("refuses relative, repeated and variable targets whatever the indexes hold", () => {
+    const { primary, wtA, wtB } = cohort();
+    stage(wtA, "packages/b/out.ts");
+    stage(primary, "packages/a/in.ts");
+    for (const command of [
+      "git -C . commit -m x",
+      "cd .deft-scratch/worktrees/story-a && git commit -m x",
+      `cd "${wtA}" && cd "${wtB}" && git commit -m x`,
+      `cd "${wtA}" && git -C "${wtB}" commit -m x`,
+      "cd $WT && git commit -m x",
+      `GIT_INDEX_FILE="${join(wtA, "index")}" git commit -m x`,
+      `GIT_DIR="${join(primary, ".git")}" git commit -m x`,
+      `git --git-dir="${join(primary, ".git")}" commit -m x`,
+    ]) {
+      const out = commit(primary, command);
+      expect(out, command).toMatchObject({
+        verdict: "deny",
+        code: "prospective-scope-cover-deny",
+      });
+      expect(out.message).toMatch(/cannot be resolved to one checkout/);
+      expect(out.message).toContain(FORMS);
+    }
+  });
+
+  it("resolves a quoted path with spaces and a forward-slash drive path", () => {
+    const { primary, wtA } = cohort(true, { a: "story a", b: "story b", c: "story c" });
+    stage(wtA, "packages/a/in.ts");
+    for (const command of [
+      `cd "${wtA}" && git commit -m x`,
+      `git -C '${wtA}' commit -m x`,
+      `git -C "${wtA.replace(/\\/g, "/")}" commit -m x`,
+    ]) {
+      expect(commit(primary, command).verdict, command).toBe("allow");
+    }
+    unstageAll(wtA);
+    stage(wtA, "packages/b/out.ts");
+    const out = commit(primary, `cd "${wtA}" && git commit -m x`);
+    expect(out).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+    expect(out.message).toContain("packages/b/out.ts");
+  });
+
+  it("denies a foreign repository, a missing directory and a non-repository target", () => {
+    const { primary } = cohort();
+    const foreign = initRepo("hook-6278-foreign-");
+    seedBriefs(foreign);
+    stage(foreign, "packages/a/in.ts");
+    const foreignOut = commit(primary, `git -C "${foreign}" commit -m x`);
+    expect(foreignOut).toMatchObject({ verdict: "deny", code: "foreign-repository-deny" });
+    expect(foreignOut.message).toMatch(/different Git repository/);
+
+    const missing = commit(primary, `git -C "${join(primary, "missing")}" commit -m x`);
+    expect(missing).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+    expect(missing.message).toMatch(/does not exist/);
+
+    const plain = mkdtempSync(join(tmpdir(), "hook-6278-plain-"));
+    temps.push(plain);
+    const notRepo = commit(primary, `cd "${plain}" && git commit -m x`);
+    expect(notRepo).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+    expect(notRepo.message).toMatch(/not a checkout/);
+  });
+
+  it("denies with the resolver's reason on a corrupt record or a conflicting pin", () => {
+    const { primary, wtA } = cohort();
+    stage(wtA, "packages/a/in.ts");
+    const conflict = commit(primary, `git -C "${wtA}" commit -m x`, {
+      [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/b-story.xbrief.json",
+    });
+    expect(conflict).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+    expect(conflict.message).toContain("(env_pin_conflict)");
+    expect(conflict.message).toContain(`clear ${ACTIVE_SCOPE_PIN_ENV}`);
+    expect(conflict.message.match(/Repair:/g)).toHaveLength(1);
+
+    corruptIndex(primary);
+    const corrupt = commit(primary, `cd "${wtA}" && git commit -m x`);
+    expect(corrupt).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+    expect(corrupt.message).toContain("(registry_corruption)");
+    expect(corrupt.message).not.toContain("Multiple active xBRIEF artifacts");
+  });
+
+  it("keeps today's selection for an unregistered linked worktree and the main worktree", () => {
+    const { primary, wtC } = cohort();
+    const pin = { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/a-story.xbrief.json" };
+    for (const [hookRoot, command] of [
+      [primary, `git -C "${wtC}" commit -m x`],
+      [primary, "git commit -m x"],
+    ] as const) {
+      const root = command.startsWith("git -C") ? wtC : primary;
+      stage(root, "packages/a/in.ts");
+      const unpinned = commit(hookRoot, command);
+      expect(unpinned, command).toMatchObject({
+        verdict: "deny",
+        code: "prospective-scope-cover-deny",
+      });
+      expect(unpinned.message).toContain("Multiple active xBRIEF artifacts");
+      expect(unpinned.message).not.toContain("Worktree story binding");
+      expect(commit(hookRoot, command, pin).verdict, command).toBe("allow");
+      unstageAll(root);
+    }
+    // The main worktree never reads the registry, so a corrupt record leaves it as it was.
+    corruptIndex(primary);
+    stage(primary, "packages/a/in.ts");
+    expect(commit(primary, "git commit -m x", pin).verdict).toBe("allow");
+  });
+
+  it("passes an empty or lifecycle-only index on the target root, as before", () => {
+    const { primary, wtA } = cohort();
+    corruptIndex(primary);
+    expect(commit(primary, `git -C "${wtA}" commit -m x`).verdict).toBe("allow");
+    git(wtA, ["add", "--", "xbrief/active/a-story.xbrief.json"]);
+    expect(commit(primary, `git -C "${wtA}" commit -m x`).verdict).toBe("allow");
   });
 });
