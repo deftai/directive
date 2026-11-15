@@ -49,7 +49,6 @@ export {
   stableOwnershipFingerprint,
   writeOwnershipRecord,
 } from "./ownership.js";
-
 export type { FsSeams, LockfileVersionRead, ReadinessRead, RuntimePinRead } from "./readers.js";
 export {
   compareSchemaVersion,
@@ -63,6 +62,13 @@ export {
   readReadiness,
   readRuntimePin,
 } from "./readers.js";
+export type { PinMismatchRecoveryAdmitInput } from "./recovery-admit.js";
+export {
+  admitPinMismatchRecovery,
+  isPinMismatchOnly,
+  matchPinMismatchRecoveryCommand,
+  PIN_MISMATCH_RECOVERY_COMMANDS,
+} from "./recovery-admit.js";
 export type {
   CheapInSyncResult,
   FullInSyncOptions,

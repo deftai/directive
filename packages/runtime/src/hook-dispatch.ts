@@ -2,28 +2,35 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isShellTool } from "@deftai/directive-core/dist/hooks/tools.js";
 import { checkCheapInSync } from "@deftai/directive-core/dist/install-health/cheap.js";
 import {
   HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE,
   INSTALLATION_RECOVERY_GUIDANCE,
 } from "@deftai/directive-core/dist/install-health/constants.js";
+import { admitPinMismatchRecovery } from "@deftai/directive-core/dist/install-health/recovery-admit.js";
 import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-health/types.js";
 import {
   decideHook,
+  firstString,
   type HookDecision,
   type HookEvent,
   type HookHost,
   type HookPayloadContext,
   hookPayloadTopLevelKeys,
+  hookShellCommand,
+  hookToolName,
   isHookEvent,
   isHookHost,
   mergeHookDispatchEnviron,
   normalizeHookProjectRoot,
   parseHookStdin,
   projectRootFromHookPayload,
+  record,
   renderHostDecision,
   runSessionEndHook,
   type SessionEndHookSeams,
+  toolInputRecord,
 } from "@deftai/directive-core/hooks";
 import { readProjectDataStatus } from "./data-status.js";
 import { maybeSelfCompleteSetup } from "./self-complete.js";
@@ -147,6 +154,55 @@ function installationIdentityDeny(
     toolName: null,
     projectRoot: normalizeHookProjectRoot(projectRoot),
     message,
+    scopePath: null,
+  };
+}
+
+/**
+ * Directory a shell tool call runs in, from the host payload (#6313). Tool
+ * input fields first (Codex `workdir`, others `cwd`), then the payload `cwd`.
+ * Null when the host sends none.
+ */
+function shellCommandCwd(payload: unknown): string | null {
+  const input = record(payload);
+  if (input === null) return null;
+  const toolInput = toolInputRecord(input);
+  return firstString([toolInput?.workdir, toolInput?.cwd, toolInput?.working_directory, input.cwd]);
+}
+
+/**
+ * Admit the pin-mismatch refusal's own named recovery (#6313): a simple
+ * recovery command through a shell tool at the project root, when pin ≠
+ * installed is the only fault. Returns null to keep the refusal.
+ */
+function pinMismatchRecoveryAdmit(
+  host: HookHost,
+  event: HookEvent,
+  projectRoot: string,
+  payload: unknown,
+  cheap: CheapInSyncResult,
+): HookDecision | null {
+  if (event !== "tool.before") return null;
+  const toolName = hookToolName(payload, host);
+  const cwd = shellCommandCwd(payload);
+  const admitted = admitPinMismatchRecovery({
+    cheap,
+    shellTool: toolName !== null && isShellTool(toolName),
+    command: hookShellCommand(payload),
+    atProjectRoot: cwd === null || rootsMatch(normalizeHookProjectRoot(cwd), projectRoot),
+  });
+  if (admitted === null) return null;
+  return {
+    verdict: "allow",
+    code: "shell-op-ready",
+    event,
+    host,
+    toolName,
+    projectRoot: normalizeHookProjectRoot(projectRoot),
+    message:
+      `Directive hook admitted the pin-mismatch recovery \`${admitted}\` ` +
+      `(pin=${cheap.pinVersion ?? "?"} installed=${cheap.installedVersion ?? "?"}). ` +
+      "Other commands stay refused until the install matches the pin.",
     scopePath: null,
   };
 }
@@ -372,6 +428,14 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   // names frozen-lockfile restore then overlay retirement.
   const cheap = (seams.cheapInSync ?? checkCheapInSync)(projectRoot);
   if (cheap.failClosed) {
+    // #6313: admit the refusal's own named recovery when pin ≠ installed is the
+    // only fault; no setup and no policy dispatch on this path either.
+    const admit = pinMismatchRecoveryAdmit(args.host, args.event, projectRoot, payload, cheap);
+    if (admit !== null) {
+      const rendered = renderHostDecision(args.host, admit);
+      if (rendered.length > 0) writeOut(`${rendered}\n`);
+      return 0;
+    }
     const guidance = cheap.recoveryGuidance ?? INSTALLATION_RECOVERY_GUIDANCE;
     const identityLine = cheap.identityMatch
       ? `Directive hook refuse: materialize-runtime overlay is present; identity cannot pass until the overlay is retired after exact restore ` +
