@@ -74,6 +74,7 @@ describe("checkCheapInSync (AC2.4)", () => {
     expect(result.pinVersion).toBe(V);
     expect(result.installedVersion).toBe(V);
     expect(result.failClosed).toBe(false);
+    expect(result.pinMismatchOnly).toBe(false);
   });
 
   it("fails when readiness marker is missing (generation may still be current)", () => {
@@ -104,6 +105,7 @@ describe("checkCheapInSync (AC2.4)", () => {
     expect(result.ok).toBe(false);
     expect(result.identityMatch).toBe(false);
     expect(result.failClosed).toBe(true);
+    expect(result.pinMismatchOnly).toBe(true);
     expect(result.allowSetup).toBe(false);
     expect(result.recoveryGuidance).toBe(PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE);
     expect(result.recoveryGuidance).toMatch(/npm install|pnpm install/);
@@ -148,6 +150,8 @@ describe("checkCheapInSync overlay failClosed (#5910)", () => {
     expect(result.failClosed).toBe(true);
     expect(result.allowSetup).toBe(false);
     expect(result.identityMatch).toBe(false);
+    // Overlay is a second fault: the #6313 recovery admit stays off (#5910 recovery).
+    expect(result.pinMismatchOnly).toBe(false);
     expect(result.recoveryGuidance).toBe(OVERLAY_RESTORE_RECOVERY_GUIDANCE);
     expect(result.recoveryGuidance).toContain("materialize-runtime-overlay.json");
     expect(result.recoveryGuidance).toContain("pnpm install --frozen-lockfile");
@@ -166,6 +170,7 @@ describe("checkCheapInSync overlay failClosed (#5910)", () => {
     const result = checkCheapInSync(root);
     expect(result.identityMatch).toBe(true);
     expect(result.failClosed).toBe(true);
+    expect(result.pinMismatchOnly).toBe(false);
     expect(result.ok).toBe(false);
     expect(result.allowSetup).toBe(false);
     expect(result.recoveryGuidance).toBe(OVERLAY_RESTORE_RECOVERY_GUIDANCE);

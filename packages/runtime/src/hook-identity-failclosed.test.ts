@@ -349,3 +349,319 @@ describe("packaged-consumer deposited outer (#6100 P4)", () => {
     expect(msg).toMatch(/prep|swarm-worktrees prep|open that worktree/i);
   });
 });
+
+describe("pin-mismatch recovery admit (#6313)", () => {
+  const PIN_LINE = "Directive hook refuse: pinned runtime does not match the installed runtime";
+
+  function cheapPinMismatchOnly(): CheapInSyncResult {
+    return { ...cheapFailClosed(), pinMismatchOnly: true };
+  }
+
+  function writePinFixture(root: string, pin: string, installed: string): void {
+    writeFileSync(
+      join(root, "package.json"),
+      `${JSON.stringify(
+        { name: "pin-6313", private: true, devDependencies: { "@deftai/directive-runtime": pin } },
+        null,
+        2,
+      )}\n`,
+    );
+    const runtimePkg = join(root, "node_modules", "@deftai", "directive-runtime");
+    mkdirSync(runtimePkg, { recursive: true });
+    writeFileSync(
+      join(runtimePkg, "package.json"),
+      `${JSON.stringify({ name: "@deftai/directive-runtime", version: installed }, null, 2)}\n`,
+    );
+  }
+
+  function dispatchTool(opts: {
+    projectRoot: string;
+    toolName?: string;
+    toolInput: Record<string, unknown>;
+    cwd?: string;
+    host?: "claude" | "cursor" | "codex";
+    event?: "tool.before" | "session.start";
+    launchingCheckoutRoot?: string;
+    cheapInSync?: (root: string) => CheapInSyncResult;
+  }): { body: Record<string, unknown>; raw: string } {
+    const out: string[] = [];
+    const host = opts.host ?? "claude";
+    run([`--host=${host}`, `--event=${opts.event ?? "tool.before"}`], {
+      readStdin: () =>
+        JSON.stringify({
+          tool_name: opts.toolName ?? "Bash",
+          tool_input: opts.toolInput,
+          workspace_roots: [opts.projectRoot],
+          ...(opts.cwd !== undefined ? { cwd: opts.cwd } : {}),
+        }),
+      writeOut: (text) => out.push(text),
+      writeErr: () => undefined,
+      cwd: () => opts.projectRoot,
+      stdinEmptyRetryMs: 0,
+      launchingCheckoutRoot: () => opts.launchingCheckoutRoot ?? opts.projectRoot,
+      ...(opts.cheapInSync !== undefined ? { cheapInSync: opts.cheapInSync } : {}),
+    });
+    const raw = out.join("").trim();
+    const body = raw.length === 0 ? {} : (JSON.parse(raw) as Record<string, unknown>);
+    return { body, raw };
+  }
+
+  function isDeny(body: Record<string, unknown>): boolean {
+    const hso = body.hookSpecificOutput as Record<string, unknown> | undefined;
+    return (
+      hso?.permissionDecision === "deny" || body.permission === "deny" || body.decision === "deny"
+    );
+  }
+
+  function wireMessage(body: Record<string, unknown>): string {
+    const hso = body.hookSpecificOutput as Record<string, unknown> | undefined;
+    return String(hso?.permissionDecisionReason ?? denyMessage(body));
+  }
+
+  function expectPinRefusal(body: Record<string, unknown>): void {
+    expect(isDeny(body)).toBe(true);
+    const msg = wireMessage(body);
+    expect(msg).toContain(PIN_LINE);
+    expect(msg).toContain(PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE);
+  }
+
+  it("admits pnpm install --frozen-lockfile at the root, then the next command once installed", () => {
+    const root = tempDir("pin-6313-real");
+    writePinFixture(root, "0.129.9", "0.129.8");
+
+    // Real checkCheapInSync: pin newer than installed, no overlay.
+    const admitted = dispatchTool({
+      projectRoot: root,
+      toolInput: { command: "pnpm install --frozen-lockfile" },
+      cwd: root,
+    });
+    expect(isDeny(admitted.body)).toBe(false);
+    expect(admitted.raw).not.toContain(PIN_LINE);
+
+    // An unrelated command before the install still hits the same refusal.
+    expectPinRefusal(
+      dispatchTool({ projectRoot: root, toolInput: { command: "git status" }, cwd: root }).body,
+    );
+
+    // The install finishes: installed now matches the pin.
+    writePinFixture(root, "0.129.9", "0.129.9");
+    const next = dispatchTool({
+      projectRoot: root,
+      toolInput: { command: "git status" },
+      cwd: root,
+    });
+    expect(next.raw).not.toContain(PIN_LINE);
+    expect(next.raw).not.toContain("installation-identity-deny");
+  });
+
+  it.each(["npm install", "npm ci"])("admits the named recovery %j", (command) => {
+    const root = tempDir("pin-6313-named");
+    const result = dispatchTool({
+      projectRoot: root,
+      toolInput: { command },
+      cwd: root,
+      cheapInSync: () => cheapPinMismatchOnly(),
+    });
+    expect(isDeny(result.body)).toBe(false);
+  });
+
+  it("renders a cursor allow with an existing allow code", () => {
+    const root = tempDir("pin-6313-cursor");
+    const result = dispatchTool({
+      projectRoot: root,
+      toolName: "Shell",
+      toolInput: { command: "pnpm install --frozen-lockfile" },
+      cwd: root,
+      host: "cursor",
+      cheapInSync: () => cheapPinMismatchOnly(),
+    });
+    expect(result.body.permission).toBe("allow");
+    expect(result.body.code).toBe("shell-op-ready");
+  });
+
+  it.each([
+    ["an unrelated command", "git status"],
+    ["install chained with another command", "pnpm install --frozen-lockfile && git status"],
+    ["install after a directory change", "cd sub && pnpm install --frozen-lockfile"],
+    ["install with a directory flag", "pnpm --dir sub install --frozen-lockfile"],
+    ["the global install", "npm i -g @deftai/directive"],
+    ["the repair", "directive install --repair"],
+  ])("refuses %s with the same recovery text", (_label, command) => {
+    const root = tempDir("pin-6313-refuse");
+    const result = dispatchTool({
+      projectRoot: root,
+      toolInput: { command },
+      cwd: root,
+      cheapInSync: () => cheapPinMismatchOnly(),
+    });
+    expectPinRefusal(result.body);
+  });
+
+  it("refuses the install when the shell runs in a different directory", () => {
+    const root = tempDir("pin-6313-cwd");
+    const sub = join(root, "sub");
+    mkdirSync(sub);
+    expectPinRefusal(
+      dispatchTool({
+        projectRoot: root,
+        toolInput: { command: "pnpm install --frozen-lockfile" },
+        cwd: sub,
+        cheapInSync: () => cheapPinMismatchOnly(),
+      }).body,
+    );
+  });
+
+  it("refuses the install when the tool input names a different workdir (codex)", () => {
+    const root = tempDir("pin-6313-workdir");
+    const sub = join(root, "sub");
+    mkdirSync(sub);
+    expectPinRefusal(
+      dispatchTool({
+        projectRoot: root,
+        host: "codex",
+        toolInput: { command: "pnpm install --frozen-lockfile", workdir: sub },
+        cwd: root,
+        cheapInSync: () => cheapPinMismatchOnly(),
+      }).body,
+    );
+  });
+
+  it("refuses the install when no run directory is sent", () => {
+    const root = tempDir("pin-6313-nodir");
+    expectPinRefusal(
+      dispatchTool({
+        projectRoot: root,
+        toolInput: { command: "pnpm install --frozen-lockfile" },
+        cheapInSync: () => cheapPinMismatchOnly(),
+      }).body,
+    );
+  });
+
+  it("refuses the install on codex when only the session cwd is sent (#4998)", () => {
+    const root = tempDir("pin-6313-codex-outer");
+    expectPinRefusal(
+      dispatchTool({
+        projectRoot: root,
+        host: "codex",
+        toolInput: { command: "pnpm install --frozen-lockfile" },
+        cwd: root,
+        cheapInSync: () => cheapPinMismatchOnly(),
+      }).body,
+    );
+  });
+
+  it("admits the install on codex when the tool input workdir is the project root", () => {
+    const root = tempDir("pin-6313-codex-nested");
+    const result = dispatchTool({
+      projectRoot: root,
+      host: "codex",
+      toolInput: { command: "pnpm install --frozen-lockfile", workdir: root },
+      cwd: root,
+      cheapInSync: () => cheapPinMismatchOnly(),
+    });
+    expect(isDeny(result.body)).toBe(false);
+  });
+
+  it.each([
+    ["an empty tool input workdir", { workdir: "" }],
+    ["tool input directories that disagree", { workdir: "ROOT", cwd: "SUB" }],
+  ])("refuses the install with %s, even when the outer cwd is the root", (_label, dirs) => {
+    const root = tempDir("pin-6313-nested-bad");
+    const sub = join(root, "sub");
+    mkdirSync(sub);
+    const toolDirs = Object.fromEntries(
+      Object.entries(dirs).map(([key, value]) => [
+        key,
+        value === "ROOT" ? root : value === "SUB" ? sub : value,
+      ]),
+    );
+    expectPinRefusal(
+      dispatchTool({
+        projectRoot: root,
+        toolInput: { command: "pnpm install --frozen-lockfile", ...toolDirs },
+        cwd: root,
+        cheapInSync: () => cheapPinMismatchOnly(),
+      }).body,
+    );
+  });
+
+  it("refuses the recovery command through a non-shell tool", () => {
+    const root = tempDir("pin-6313-write");
+    expectPinRefusal(
+      dispatchTool({
+        projectRoot: root,
+        toolName: "Write",
+        toolInput: { file_path: join(root, "a.txt"), command: "npm install" },
+        cwd: root,
+        cheapInSync: () => cheapPinMismatchOnly(),
+      }).body,
+    );
+  });
+
+  it("does not admit outside tool.before", () => {
+    const root = tempDir("pin-6313-event");
+    const result = dispatchTool({
+      projectRoot: root,
+      event: "session.start",
+      toolInput: { command: "pnpm install --frozen-lockfile" },
+      cwd: root,
+      cheapInSync: () => cheapPinMismatchOnly(),
+    });
+    expect(result.raw).toContain(PIN_LINE);
+  });
+
+  it("does not admit when pinMismatchOnly is absent (fail closed)", () => {
+    const root = tempDir("pin-6313-absent");
+    expectPinRefusal(
+      dispatchTool({
+        projectRoot: root,
+        toolInput: { command: "pnpm install --frozen-lockfile" },
+        cwd: root,
+        cheapInSync: () => cheapFailClosed(),
+      }).body,
+    );
+  });
+
+  it("overlay-present fault: install is not admitted; #5910 recovery stays", () => {
+    const root = tempDir("pin-6313-overlay");
+    writePinFixture(root, "0.129.9", "0.129.8");
+    mkdirSync(join(root, ".deft-scratch"), { recursive: true });
+    writeFileSync(join(root, ".deft-scratch", "materialize-runtime-overlay.json"), "{}\n");
+    const result = dispatchTool({
+      projectRoot: root,
+      toolInput: { command: "pnpm install --frozen-lockfile" },
+      cwd: root,
+    });
+    expect(isDeny(result.body)).toBe(true);
+    expect(wireMessage(result.body)).toContain(OVERLAY_RECOVERY);
+  });
+
+  it("overlay version-spoof fault: install is not admitted", () => {
+    const root = tempDir("pin-6313-spoof");
+    const result = dispatchTool({
+      projectRoot: root,
+      toolInput: { command: "pnpm install --frozen-lockfile" },
+      cwd: root,
+      cheapInSync: () => cheapOverlaySpoof(),
+    });
+    expect(isDeny(result.body)).toBe(true);
+    expect(wireMessage(result.body)).toContain(OVERLAY_RECOVERY);
+  });
+
+  it("identity (root) mismatch fault: install is not admitted", () => {
+    const base = tempDir("pin-6313-root");
+    const main = join(base, "main");
+    const foreign = join(base, "foreign");
+    mkdirSync(main);
+    mkdirSync(foreign);
+    const result = dispatchTool({
+      projectRoot: foreign,
+      toolInput: { command: "pnpm install --frozen-lockfile" },
+      cwd: foreign,
+      launchingCheckoutRoot: main,
+      cheapInSync: () => cheapPinMismatchOnly(),
+    });
+    expect(isDeny(result.body)).toBe(true);
+    expect(wireMessage(result.body)).toContain(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE);
+  });
+});
