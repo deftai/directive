@@ -1410,7 +1410,12 @@ function restampCompletedBrief(args: RestampArgs): TransitionResult {
     return { ok: false, message: gate.message };
   }
   // #6318: a restamp replays every acceptance-disposition grant the brief cites.
-  const cited = checkCitedAcceptanceDispositionGrants({ projectRoot, plan: planObj, now });
+  const cited = checkCitedAcceptanceDispositionGrants({
+    projectRoot,
+    plan: planObj,
+    now,
+    recordedAt: nowIso,
+  });
   if (!cited.ok) {
     return { ok: false, message: cited.reason };
   }

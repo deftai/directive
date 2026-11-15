@@ -29,6 +29,7 @@ import {
   ACCEPTANCE_DISPOSITION_KEY,
   type AcceptanceDispositionRecord,
   applyGrantedDispositions,
+  type GrantedDisposition,
   type GrantedDispositionOriginals,
 } from "../scope/acceptance-evidence.js";
 import { defaultGitRunner, type GitRunner } from "../session/git.js";
@@ -55,7 +56,8 @@ const ISSUE_NUMBER_RE = /^\d+$/;
 const OWNER_REPO_RE = /^[\w.-]+\/[\w.-]+$/;
 const SHA256_HEX_RE = /^[0-9a-f]{64}$/;
 const BRIEF_DIRS = ["xbrief", "vbrief"] as const;
-const OPEN_FOLDERS = ["active", "pending", "proposed"] as const;
+/** Open folders first; completed/ last so a restamp can take a replacement grant. */
+const BRIEF_FOLDERS = ["active", "pending", "proposed", "completed"] as const;
 
 export function isAcceptanceDispositionTemplateName(name: string): boolean {
   return name.trim().toLowerCase() === ACCEPTANCE_DISPOSITION_TEMPLATE_NAME;
@@ -167,10 +169,10 @@ export function parseAcceptanceDispositionDeferredTo(
   };
 }
 
-/** Find the open brief (active, pending, proposed) whose plan.id is `planId`. */
-function findOpenBriefPlan(root: string, planId: string): Record<string, unknown> | null {
+/** Find the brief (active, pending, proposed, then completed) whose plan.id is `planId`. */
+function findBriefPlan(root: string, planId: string): Record<string, unknown> | null {
   for (const dir of BRIEF_DIRS) {
-    for (const folder of OPEN_FOLDERS) {
+    for (const folder of BRIEF_FOLDERS) {
       const folderPath = join(root, dir, folder);
       let names: string[];
       try {
@@ -304,13 +306,12 @@ export function mintAcceptanceDispositionTemplateGrant(
   }
   const store = resolveAcceptanceDispositionStore(input.projectRoot, input.runGit);
   if (!store.ok) return store;
-  const plan =
-    findOpenBriefPlan(input.projectRoot, planRef) ?? findOpenBriefPlan(store.root, planRef);
+  const plan = findBriefPlan(input.projectRoot, planRef) ?? findBriefPlan(store.root, planRef);
   if (plan === null) {
     return {
       ok: false,
       reason:
-        `template acceptance-disposition: no active, pending or proposed brief has plan id ` +
+        `template acceptance-disposition: no active, pending, proposed or completed brief has plan id ` +
         `${planRef} in ${input.projectRoot} or ${store.root}`,
     };
   }
@@ -594,10 +595,13 @@ export function applyAcceptanceDispositionGrants(input: {
   };
 }
 
-function collectCitedGrants(
-  items: unknown,
-  out: { itemId: string; grantId: string }[],
-): { itemId: string; grantId: string }[] {
+interface CitedGrant {
+  readonly itemId: string;
+  readonly grantId: string;
+  readonly recordedAt: string;
+}
+
+function collectCitedGrants(items: unknown, out: CitedGrant[]): CitedGrant[] {
   if (!Array.isArray(items)) return out;
   for (const entry of items) {
     const item = asRecord(entry);
@@ -606,69 +610,111 @@ function collectCitedGrants(
     const provenance = asRecord(disposition?.provenance);
     const grantId = typeof provenance?.grantId === "string" ? provenance.grantId.trim() : "";
     const itemId = typeof item.id === "string" ? canonicalAcceptanceDispositionId(item.id) : "";
-    if (grantId.length > 0 && itemId.length > 0) out.push({ itemId, grantId });
+    const recordedAt =
+      typeof disposition?.recorded_at === "string" ? disposition.recorded_at.trim() : "";
+    if (grantId.length > 0 && itemId.length > 0) out.push({ itemId, grantId, recordedAt });
     collectCitedGrants(item.subItems, out);
     collectCitedGrants(item.items, out);
   }
   return out;
 }
 
+/** True when the disposition was written before the grant expired (unrecorded first use). */
+function writtenBeforeExpiry(grant: HumanOriginGrant, recordedAt: string): boolean {
+  const expiresAt = grant.semantics.expiresAt;
+  if (expiresAt === null || !hasReadableExpiry(expiresAt)) return false;
+  const written = Date.parse(recordedAt);
+  return !Number.isNaN(written) && written <= Date.parse(expiresAt);
+}
+
 /**
  * Restamp of a brief already in completed/ (#6343 review): every disposition
- * that cites an acceptance-disposition grant is a replay of that grant. The
- * grant must still be in the main clone store for this plan, cover the item,
- * and match the digest of the current clause text (or item title); an unused
- * grant must still be live. Returns the unused grants to record after the
- * write. A brief that cites no grant passes untouched.
+ * that cites an acceptance-disposition grant is a replay. The cited grant is
+ * accepted while it is in the main clone store for this plan, covers the item
+ * and matches the digest of the current clause text (or item title), and is
+ * used, live, or was first used before expiry with only the use record
+ * missing. Otherwise the latest used or live grant for the plan that covers the
+ * item with a matching digest replaces it, and its disposition is applied to
+ * the plan before the write (an operator mints one for the completed brief).
+ * With neither, restamp refuses and names a re-mint. A brief that cites no
+ * grant passes untouched.
  */
 export function checkCitedAcceptanceDispositionGrants(input: {
   readonly projectRoot: string;
   readonly plan: Record<string, unknown>;
   readonly now?: Date;
+  readonly recordedAt?: string;
   readonly runGit?: GitRunner;
-}): { ok: true; grantIdsToRecord: readonly string[] } | { ok: false; reason: string } {
+}):
+  | { ok: true; grantIdsToRecord: readonly string[]; replacedIds: readonly string[] }
+  | { ok: false; reason: string } {
   const cited = collectCitedGrants(input.plan.items, []);
-  if (cited.length === 0) return { ok: true, grantIdsToRecord: [] };
+  if (cited.length === 0) return { ok: true, grantIdsToRecord: [], replacedIds: [] };
   const planId = typeof input.plan.id === "string" ? input.plan.id.trim() : "";
   const store = resolveAcceptanceDispositionStore(input.projectRoot, input.runGit);
   if (!store.ok) return store;
   const now = input.now ?? new Date();
   const views = planId.length === 0 ? [] : planGrantViews(store.root, planId);
   const activeIds = new Set(listActiveHumanGrants(store.root, undefined, now).map((g) => g.id));
+  const used = (v: GrantView): boolean => v.grant.semantics.usedAt !== null;
+  const live = (v: GrantView): boolean =>
+    !used(v) && activeIds.has(v.grant.id) && expiresAfter(v.grant, now);
   const toRecord = new Set<string>();
-  for (const { itemId, grantId } of cited) {
-    const view = views.find((v) => v.grant.id === grantId);
+  const replacements: GrantedDisposition[] = [];
+  for (const { itemId, grantId, recordedAt } of cited) {
     const text = acceptanceDispositionCoverText(input.plan, itemId);
+    const digest = text === null ? null : acceptanceDispositionDigest(text);
+    const matches = (v: GrantView): boolean => digest !== null && v.digests.get(itemId) === digest;
+    const view = views.find((v) => v.grant.id === grantId);
+    if (
+      view !== undefined &&
+      matches(view) &&
+      (used(view) || live(view) || writtenBeforeExpiry(view.grant, recordedAt))
+    ) {
+      if (!used(view)) toRecord.add(grantId);
+      continue;
+    }
+    const replacement = views
+      .filter((v) => v.grant.id !== grantId && (used(v) || live(v)) && matches(v))
+      .sort((a, b) => b.mintedMs - a.mintedMs)[0];
+    if (replacement !== undefined) {
+      const cover: AcceptanceDispositionGrantCover = {
+        itemId,
+        grantId: replacement.grant.id,
+        deferredTo: replacement.deferredTo,
+        reason: replacement.reason,
+        replay: used(replacement),
+        grant: replacement.grant,
+      };
+      replacements.push({
+        itemId,
+        record: acceptanceDispositionRecordFor(cover, input.recordedAt ?? now.toISOString()),
+      });
+      if (!used(replacement)) toRecord.add(replacement.grant.id);
+      continue;
+    }
+    const problem =
+      view === undefined
+        ? `grant ${grantId} is not in ${store.root} for plan ${planId || "(no id)"} (revoked or missing)`
+        : view.digests.get(itemId) === undefined
+          ? `grant ${grantId} does not cover ${itemId}`
+          : !matches(view)
+            ? `the text of ${itemId} changed after grant ${grantId} was minted`
+            : `grant ${grantId} expired (or is not active) before first use`;
     const remint = formatAcceptanceDispositionCommand(
       planId.length > 0 ? planId : null,
       [itemId],
       view?.deferredTo ?? null,
     );
-    const used = view !== undefined && view.grant.semantics.usedAt !== null;
-    const live =
-      view !== undefined && !used && activeIds.has(grantId) && expiresAfter(view.grant, now);
-    const recorded = view?.digests.get(itemId);
-    const problem =
-      view === undefined
-        ? `grant ${grantId} is not a live acceptance-disposition grant for plan ${planId || "(no id)"} in ${store.root}`
-        : !used && !live
-          ? `grant ${grantId} expired (or is not active) before first use`
-          : recorded === undefined
-            ? `grant ${grantId} does not cover ${itemId}`
-            : text === null || acceptanceDispositionDigest(text) !== recorded
-              ? `the text of ${itemId} changed after grant ${grantId} was minted`
-              : null;
-    if (problem !== null) {
-      return {
-        ok: false,
-        reason:
-          `acceptance-disposition (restamp): ${problem}; re-mint with \`${remint}\` ` +
-          `or run \`deft authz:revoke -- ${grantId}\` (#6318)`,
-      };
-    }
-    if (!used) toRecord.add(grantId);
+    return {
+      ok: false,
+      reason:
+        `acceptance-disposition (restamp): ${problem}; mint a replacement for the completed ` +
+        `brief with \`${remint}\` and run scope:complete again (#6318)`,
+    };
   }
-  return { ok: true, grantIdsToRecord: [...toRecord] };
+  const applied = applyGrantedDispositions(input.plan, replacements);
+  return { ok: true, grantIdsToRecord: [...toRecord], replacedIds: [...applied.appliedIds] };
 }
 
 /** Record first use after the completed/ write succeeds (#6318). */

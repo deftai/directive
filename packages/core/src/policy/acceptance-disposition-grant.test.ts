@@ -184,7 +184,7 @@ describe("acceptance-disposition template (#6318)", () => {
       [{ reason: "two\nlines" }, /--reason/],
       [{ expiresAt: "not-a-date" }, /not a readable date/],
       [{ expiresAt: "2026-11-15T09:00:00Z" }, /not in the future/],
-      [{ planRef: "github.issue.1" }, /no active, pending or proposed brief/],
+      [{ planRef: "github.issue.1" }, /no active, pending, proposed or completed brief/],
       [{ storyIds: ["clause.9"] }, /neither an acceptance clause/],
     ];
     for (const [overrides, reason] of refusals) {
@@ -437,7 +437,11 @@ describe("acceptance-disposition review fixes (#6343)", () => {
     ).toBe(true);
   });
 
-  function completedPlan(grantId: string, text = "Clause two text."): Record<string, unknown> {
+  function completedPlan(
+    grantId: string,
+    text = "Clause two text.",
+    recordedAt = "2026-11-15T11:00:00Z",
+  ): Record<string, unknown> {
     const body = plan(text);
     (body.items as Record<string, unknown>[]).push({
       id: "clause.2",
@@ -446,14 +450,21 @@ describe("acceptance-disposition review fixes (#6343)", () => {
       [ACCEPTANCE_DISPOSITION_KEY]: {
         disposition: "deferred",
         reason: "operator correction",
-        recorded_at: "2026-11-15T11:00:00Z",
+        recorded_at: recordedAt,
         provenance: { kind: "operator-cli", actor: "operator", grantId },
       },
     });
     return body;
   }
 
-  it("a restamp replays every cited grant and refuses a changed clause, an unknown grant or an expired unused grant", () => {
+  function clause2(body: Record<string, unknown>): Record<string, unknown> {
+    return (body.items as Record<string, unknown>[]).find((i) => i.id === "clause.2") as Record<
+      string,
+      unknown
+    >;
+  }
+
+  it("a restamp replays every cited grant and refuses a changed clause or an unknown grant", () => {
     const { dest } = cloneWithDest();
     writeBrief(dest);
     const minted = mint(dest);
@@ -461,33 +472,78 @@ describe("acceptance-disposition review fixes (#6343)", () => {
     const id = minted.grant.id;
     const check = (body: Record<string, unknown>, now = LATER) =>
       checkCitedAcceptanceDispositionGrants({ projectRoot: dest, plan: body, now });
-    expect(check(plan())).toEqual({ ok: true, grantIdsToRecord: [] });
-    expect(check(completedPlan(id))).toEqual({ ok: true, grantIdsToRecord: [id] });
+    expect(check(plan())).toEqual({ ok: true, grantIdsToRecord: [], replacedIds: [] });
+    expect(check(completedPlan(id))).toEqual({ ok: true, grantIdsToRecord: [id], replacedIds: [] });
     expect(check(completedPlan(id, "Reworded."))).toMatchObject({
       ok: false,
-      reason: expect.stringMatching(/restamp\): the text of clause\.2 changed.*re-mint/),
+      reason: expect.stringMatching(
+        /restamp\): the text of clause\.2 changed.*mint a replacement for the completed brief/,
+      ),
     });
-    expect(check(completedPlan("grant-unknown"))).toMatchObject({
+    expect(check(completedPlan("grant-unknown", "Reworded."))).toMatchObject({
       ok: false,
-      reason: expect.stringMatching(/grant-unknown is not a live acceptance-disposition grant/),
+      reason: expect.stringMatching(/grant-unknown is not in .* \(revoked or missing\)/),
     });
-    expect(check(completedPlan(id), AFTER_EXPIRY)).toMatchObject({
-      ok: false,
-      reason: expect.stringMatching(/expired \(or is not active\)/),
+    // First use before expiry with only the use record missing still replays.
+    expect(check(completedPlan(id), AFTER_EXPIRY)).toEqual({
+      ok: true,
+      grantIdsToRecord: [id],
+      replacedIds: [],
     });
-    const other = mint(dest, { storyIds: ["task-x"], now: LATER });
-    if (!other.ok) throw new Error(other.reason);
-    expect(check(completedPlan(other.grant.id))).toMatchObject({
-      ok: false,
-      reason: expect.stringMatching(/does not cover clause\.2/),
-    });
+    // Written after expiry: refused.
+    expect(check(completedPlan(id, undefined, "2026-11-16T10:30:00Z"), AFTER_EXPIRY)).toMatchObject(
+      {
+        ok: false,
+        reason: expect.stringMatching(/expired \(or is not active\) before first use/),
+      },
+    );
     // A used grant replays after its expiry.
     recordAcceptanceDispositionUse({ projectRoot: dest, grantIds: [id], now: LATER });
-    expect(check(completedPlan(id), AFTER_EXPIRY)).toEqual({ ok: true, grantIdsToRecord: [] });
+    expect(check(completedPlan(id), AFTER_EXPIRY)).toEqual({
+      ok: true,
+      grantIdsToRecord: [],
+      replacedIds: [],
+    });
     const notGit = mkdtempSync(join(tmpdir(), "disposition-nogit-"));
     bases.push(notGit);
     expect(
       checkCitedAcceptanceDispositionGrants({ projectRoot: notGit, plan: completedPlan(id) }),
     ).toMatchObject({ ok: false, reason: expect.stringMatching(/store cannot be resolved/) });
+  });
+
+  it("a restamp applies a replacement grant minted for the completed brief", () => {
+    const { main, dest } = cloneWithDest();
+    // The brief is only in completed/: mint still finds it.
+    mkdirSync(join(dest, "xbrief", "completed"), { recursive: true });
+    writeFileSync(
+      join(dest, "xbrief", "completed", "2026-11-15-6318-story.xbrief.json"),
+      `${JSON.stringify({ plan: completedPlan("grant-old") })}\n`,
+      "utf8",
+    );
+    const old = mint(dest);
+    if (!old.ok) throw new Error(old.reason);
+    expect(revokeGrant({ projectRoot: main, grantId: old.grant.id }).ok).toBe(true);
+    const body = completedPlan(old.grant.id);
+    expect(
+      checkCitedAcceptanceDispositionGrants({ projectRoot: dest, plan: body, now: LATER }),
+    ).toMatchObject({ ok: false, reason: expect.stringMatching(/revoked or missing/) });
+    const fresh = mint(dest, { reason: "replacement", now: LATER });
+    if (!fresh.ok) throw new Error(fresh.reason);
+    const replaced = checkCitedAcceptanceDispositionGrants({
+      projectRoot: dest,
+      plan: body,
+      now: LATER,
+      recordedAt: "2026-11-15T11:30:00Z",
+    });
+    expect(replaced).toEqual({
+      ok: true,
+      grantIdsToRecord: [fresh.grant.id],
+      replacedIds: ["clause.2"],
+    });
+    expect(clause2(body)[ACCEPTANCE_DISPOSITION_KEY]).toMatchObject({
+      reason: "replacement",
+      recorded_at: "2026-11-15T11:30:00Z",
+      provenance: { grantId: fresh.grant.id },
+    });
   });
 });

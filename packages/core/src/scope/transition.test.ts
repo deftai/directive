@@ -3619,7 +3619,22 @@ describe("scope:complete restamp replays acceptance-disposition grants (#6343 re
       writeFile(done, raw);
       const refused = complete(done);
       expect(refused.ok).toBe(false);
-      expect(refused.message).toMatch(/restamp\): the text of clause\.2 changed.*re-mint/);
+      expect(refused.message).toMatch(
+        /restamp\): the text of clause\.2 changed.*mint a replacement for the completed brief/,
+      );
+      // Recovery: a replacement minted for the completed brief lets the restamp pass.
+      const replacement = mintAcceptanceDispositionTemplateGrant({
+        projectRoot: main,
+        planRef: "github.issue.6318",
+        storyIds: ["clause.2"],
+        deferredTo: "#6400",
+        reason: "operator correction after rewording",
+        now: new Date("2026-11-15T12:00:01.000Z"),
+      });
+      if (!replacement.ok) throw new Error(replacement.reason);
+      const recovered = complete(done);
+      expect(recovered.ok, recovered.message).toBe(true);
+      expect(readFileSync(done, "utf8")).toContain(replacement.grant.id);
     } finally {
       rmSync(base, { recursive: true, force: true });
     }
