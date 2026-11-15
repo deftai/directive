@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6317",
-    "updated": "2026-11-15T02:35:54Z"
+    "updated": "2026-11-15T17:29:45Z"
   },
   "plan": {
     "title": "feat(scope): identity join reads merge-time body; operator delivery attestation (#6310 slice B)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Slice B of the accepted #6310 design: the completion identity join reads each candidate's merge-time body first, refuses part-line PRs as partial deliveries, settles two PRs with the same mark by the stamp on the fetched delivery branch, and accepts an operator delivery attestation grant for merged work with no basis. This is the recovery that lets #6269, #6270, #6271 and #6273 complete.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6317",
@@ -19,66 +19,398 @@
     "items": [
       {
         "title": "Given a story with only a part-line PR merged, then `scope:complete --pr` on it, `swarm:finalize-cohort --stories N`, and an attestation of that PR all refuse.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given a story with only a part-line PR merged, then `scope:complete --pr`, `swarm:finalize-cohort --stories N` and an attestation of that PR each refuse."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a part-line PR with a Connected link and a failing body read, then the join refuses.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given a part-line PR with a Connected link and a failing merge-time body read, when the join runs, then it refuses."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a second PR that merges with the mark, then the story completes and provenance lists the part-line PR.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given a second PR that merges with the mark after a part-line PR, then the story completes and provenance lists the part-line PR."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given two merged PRs with the same mark, then the one equal to the stamp on the fetched delivery branch completes by `--pr`, by auto-discovery and through finalize; the other refuses and names it; a working-tree stamp that differs from the fetched blob does not win; an unstamped brief with two marked PRs refuses through finalize and names both.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given two merged PRs with the same mark, then the one equal to the fetched delivery-branch stamp completes by `--pr`, auto-discovery and finalize, the other refuses naming it, a differing working-tree stamp does not win, and an unstamped brief refuses through finalize naming both."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an incomplete scan, then the join refuses.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given an incomplete merged-PR scan, when the identity join runs, then it refuses."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an attested PR, then it completes from the primary clone, from a linked dest and through finalize; a grant minted from a linked dest is found from the primary.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given an attested PR, then it completes from the primary clone, from a linked dest and through finalize, and a grant minted from a linked dest is found from the primary."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an acceptance refusal after the join, then the grant stays unused; a finalize retry and a restamp for the same target pass.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given an acceptance refusal after the join, then the grant stays unused, and a finalize retry and a restamp for the same target both pass."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an expired unused grant, a grant for another PR, commit or plan, an attested PR with an unreadable body, or an attested lifecycle-only PR, then completion refuses.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given an expired unused grant, a grant for another PR, commit or plan, an attested PR with an unreadable body, or an attested lifecycle-only PR, then completion refuses."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "clause.21",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.22",
+        "title": "clause.22",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.23",
+        "title": "clause.23",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.24",
+        "title": "clause.24",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.25",
+        "title": "clause.25",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.26",
+        "title": "clause.26",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.27",
+        "title": "clause.27",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.28",
+        "title": "clause.28",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.29",
+        "title": "clause.29",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.30",
+        "title": "clause.30",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.31",
+        "title": "clause.31",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+          "recorded_at": "2026-11-15T17:29:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -163,7 +495,34 @@
         "origin": "deftai/directive#6317",
         "id": "github.issue.6398935915"
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 6330,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ec3be037d402781384981081a672c7037ad0ab49",
+        "prNumber": 6330,
+        "prBase": "master",
+        "mergeCommit": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c4e48aee6951adfa223e8262fa3087fb23a55340",
+        "verifiedAt": "2026-11-15T17:29:45Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-15T17:29:45Z",
+      "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-15T17:29:45Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -465,6 +824,6 @@
       ]
     },
     "id": "github.issue.6398935915",
-    "updated": "2026-11-15T02:35:54Z"
+    "updated": "2026-11-15T17:29:45Z"
   }
 }
