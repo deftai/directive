@@ -119,7 +119,7 @@ deft coverage:hotspots --attempt-id <attemptId>
 
 Complementary hatches stay separate: `--allow-coverage-debt`, `policy:allow-*`,
 `DEFT_ALLOW_*`, delivery-attempt `recordOperatorOverride`, `spec-drift-override`,
-`delivery-identity-attest`.
+`delivery-identity-attest`, `acceptance-disposition`.
 
 ## Delivery identity attestation (#6317)
 
@@ -142,6 +142,29 @@ deft authz:grant -- --template delivery-identity-attest \
 | One store | Mint, every read, the use record, `authz:revoke` and `authz:show` resolve the store at `mainWorktreeRoot(projectRoot)`, so the primary clone, a linked dest and the finalize lifecycle checkout share it; an unresolvable root refuses |
 | Provenance | `completionProvenance.identityBasis=operator-attested` and `attestationGrantId` |
 | Keep-outs | Never attests a part-line PR; never bypasses a PR's own contested sole mark (that settles by the delivery-branch stamp); does not relax ancestry |
+
+## Acceptance-disposition deferral (#6318)
+
+Records that acceptance items are deferred to a later issue without editing the
+active brief (#6310 Bound 4). `scope:complete` writes the `deferred` disposition
+on the covered items instead of merge evidence.
+
+```bash
+deft authz:grant -- --template acceptance-disposition --plan-ref <scopeId> \
+  --story-ids <itemIds> --deferred-to <issue> --reason <text> [--confirm]
+```
+
+| Rule | Detail |
+| --- | --- |
+| Mint provenance | `origin.kind=operator-cli` only, through the same human-presence mint gate; default expiry 24 hours; single-use |
+| Inputs | `--story-ids` are `clause.N` ids or plan item ids; `--deferred-to` is `N`, `#N` or `owner/repo#N`; `--reason` is one non-empty line; `--expires` must be a readable future date. The brief is found by plan id in the open lifecycle folders of the current checkout, then the main clone |
+| Binding | Plan id plus, per covered id, a sha256 digest of `acceptance.clauses[id].text` (a plan item that is not a clause uses its title); `operations=[settings]` only |
+| Admission | On first use and on any replay, only for that plan and those ids, and only while each digest still matches. A changed clause refuses and names a re-mint. Per id the latest usable grant wins |
+| Complete-prep | Dispositions (`deferred`, the reason, `deferred_to`, `provenance.grantId`) apply in memory after `persistClauseKeyedPendingItems` and before `stampMergeFromCompletionProvenance`, so the merge stamper skips them. The mid-flight active write leaves them out; they land only with the `completed/` write. `swarm:complete-cohort --dry-run` applies them on its clone |
+| Use record | First use must be before expiry; it is recorded when the `completed/` write succeeds. An acceptance refusal leaves the grant unused. A used grant replays |
+| Expired | An expired or inactive unused grant refuses completion and names a re-mint or `authz:revoke`, unless a later usable grant covers the same plan and every one of its ids. A missing or unreadable expiry never authorizes an unused grant |
+| One store | Same store as `delivery-identity-attest`: `mainWorktreeRoot(projectRoot)` for mint, reads, use record, `authz:revoke` and `authz:show`; mint refuses an unresolvable root. A completion run with no resolvable store sees no grant and stamps as before (stated limit of the #6310 lean) |
+| Keep-outs | The intent extract is unchanged: a hand-written disposition on an active brief still fails scope-provenance membership |
 
 ## Explicit non-goals (siblings)
 

@@ -41,6 +41,10 @@ import { getDefaultAppStore } from "../one-pr-unit/simulator.js";
 import { enforceLiveOnePrUnitCheck, resolveProductionAppStore } from "../one-pr-unit/store.js";
 import type { OriginRef } from "../one-pr-unit/types.js";
 import type { IssueRef } from "../orphan-active/refs.js";
+import {
+  applyAcceptanceDispositionGrants,
+  recordAcceptanceDispositionUse,
+} from "../policy/acceptance-disposition-grant.js";
 import { recordDeliveryIdentityAttestUse } from "../policy/delivery-identity-attest-grant.js";
 import {
   evaluateSmallChangeLaneGate,
@@ -74,6 +78,7 @@ import {
   formatAcceptanceCompletionListing,
   migrateNoneStatedForHistoricalShip,
   persistClauseKeyedPendingItems,
+  restoreGrantedDispositionOriginals,
   stampMergeFromCompletionProvenance,
 } from "./acceptance-evidence.js";
 import { append, canonicalLogPath, newDecisionId } from "./audit-log.js";
@@ -824,10 +829,24 @@ export function runTransition(
   // #3240: per-criterion typed evidence or human-origin disposition before auto-advance.
   let acceptanceReports: readonly CriterionAcceptanceReport[] | undefined;
   let acceptanceListing = "";
+  /** #6318: acceptance-disposition grants whose first use is recorded after the completed/ write. */
+  let dispositionGrantIds: readonly string[] = [];
   if (act === "complete" && options.skipAcceptanceEvidenceGate !== true) {
     // #5403 Stage-1: empty commands → none_stated only when merge provenance is present.
     migrateNoneStatedForHistoricalShip(planObj);
     const persist = persistClauseKeyedPendingItems(planObj);
+    // #6318: grant-covered `deferred` dispositions apply in memory before the merge
+    // stamper, so it skips them; the mid-flight active write leaves them out.
+    const granted = applyAcceptanceDispositionGrants({
+      projectRoot,
+      plan: planObj,
+      now,
+      recordedAt: nowIso,
+    });
+    if (!granted.ok) {
+      return { ok: false, message: granted.reason };
+    }
+    dispositionGrantIds = granted.grantIdsToRecord;
     const mergeStamp = stampMergeFromCompletionProvenance(planObj, {
       projectRoot,
       runGit: options.runGit,
@@ -846,12 +865,15 @@ export function runTransition(
       persist.rewrittenIds.length > 0 ||
       mergeStamp.stampedIds.length > 0
     ) {
-      const persistWrite = atomicWriteBrief(
-        resolvedPath,
-        briefWithoutDurableCompletionProvenance(data),
-        vbriefRoot,
-        { projectRoot },
-      );
+      const midFlight = briefWithoutDurableCompletionProvenance(data);
+      const midFlightPlan = midFlight.plan;
+      if (typeof midFlightPlan === "object" && midFlightPlan !== null) {
+        restoreGrantedDispositionOriginals(
+          midFlightPlan as Record<string, unknown>,
+          granted.originals,
+        );
+      }
+      const persistWrite = atomicWriteBrief(resolvedPath, midFlight, vbriefRoot, { projectRoot });
       if (!persistWrite.ok) {
         return { ok: false, message: persistWrite.message };
       }
@@ -1233,7 +1255,10 @@ export function runTransition(
         maybeEmitAcceptanceStampFromChange(projectRoot, previousAcceptance, planObj.acceptance);
       }
       const attestUse =
-        act === "complete" ? recordAttestationUse(projectRoot, attestationGrantId, now) : "";
+        act === "complete"
+          ? recordAttestationUse(projectRoot, attestationGrantId, now) +
+            recordDispositionGrantUse(projectRoot, dispositionGrantIds, now)
+          : "";
       const moveMsg =
         `${actionLabel} ${basename}: ${currentFolder}/ -> ${targetFolder}/ (status: ${targetStatus})` +
         (derivationNotice.length > 0 ? `\n${derivationNotice}` : "") +
@@ -1448,6 +1473,24 @@ function recordAttestationUse(projectRoot: string, grantId: string | undefined, 
   const used = recordDeliveryIdentityAttestUse({ projectRoot, grantId, now });
   return used.ok
     ? `\nOperator delivery attestation ${grantId} recorded as used.`
+    : `\nWarning: ${used.reason}; the grant stays unused until a later run records it.`;
+}
+
+/**
+ * Record first use of acceptance-disposition grants once the completed/ write
+ * succeeded (#6318). A failed record is reported, not fatal.
+ */
+function recordDispositionGrantUse(
+  projectRoot: string,
+  grantIds: readonly string[],
+  now: Date,
+): string {
+  if (grantIds.length === 0) {
+    return "";
+  }
+  const used = recordAcceptanceDispositionUse({ projectRoot, grantIds, now });
+  return used.ok
+    ? `\nAcceptance-disposition grant(s) ${grantIds.join(", ")} recorded as used.`
     : `\nWarning: ${used.reason}; the grant stays unused until a later run records it.`;
 }
 

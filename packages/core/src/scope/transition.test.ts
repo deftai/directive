@@ -15,6 +15,7 @@ import * as containedWriteMod from "../fs/contained-write.js";
 import { ContainedWriteError, ContainedWriteErrorCode } from "../fs/contained-write.js";
 import * as projectionContainment from "../fs/projection-containment.js";
 import * as clauseDerivation from "../intake/clause-derivation.js";
+import { mintAcceptanceDispositionTemplateGrant } from "../policy/acceptance-disposition-grant.js";
 import { mintDeliveryIdentityAttestTemplateGrant } from "../policy/delivery-identity-attest-grant.js";
 import * as specGuardMod from "../policy/spec-guard.js";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
@@ -3217,5 +3218,288 @@ describe("scope:complete identity join for part-line, same-mark and attested PRs
       identityBasis: "operator-attested",
       verifier: "swarm:finalize-cohort",
     });
+  });
+});
+
+describe("scope:complete applies operator acceptance-disposition grants (#6318)", () => {
+  const ISSUE = 6318;
+  const REPO = "deftai/directive";
+  const PLAN_ID = "github.issue.6318";
+  const MERGED_AT = "2026-11-15T10:00:00Z";
+  const PR = 6340;
+  const SHA = "6340".repeat(10);
+  const NOW = new Date("2026-11-15T12:00:00.000Z");
+  const DEFERRED = "Deferred clause text.";
+  const name = `2026-11-15-${ISSUE}-story.xbrief.json`;
+  const bases: string[] = [];
+  afterEach(() => {
+    for (const base of bases.splice(0)) {
+      rmSync(base, { recursive: true, force: true });
+    }
+  });
+
+  function realGit(cwd: string, args: string[]): string {
+    return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+  }
+
+  /** Main clone plus linked worktrees; every checkout carries the xbrief folders. */
+  function cloneWithDests(...dests: string[]): Record<string, string> {
+    const base = mkdtempSync(join(tmpdir(), "scope-6318-"));
+    bases.push(base);
+    const main = join(base, "main");
+    mkdirSync(main);
+    realGit(main, ["init", "-q"]);
+    realGit(main, ["config", "user.email", "test@example.com"]);
+    realGit(main, ["config", "user.name", "test"]);
+    writeFileSync(join(main, "README.md"), "x\n", "utf8");
+    realGit(main, ["add", "README.md"]);
+    realGit(main, ["commit", "-q", "-m", "init"]);
+    const roots: Record<string, string> = { main };
+    for (const dest of dests) {
+      roots[dest] = join(base, dest);
+      realGit(main, ["worktree", "add", "-q", "-b", `b-${dest}`, roots[dest] as string]);
+    }
+    for (const root of Object.values(roots)) {
+      for (const folder of ["active", "completed"]) {
+        mkdirSync(join(root, "xbrief", folder), { recursive: true });
+      }
+      mkdirSync(join(root, "src"), { recursive: true });
+      writeFileSync(join(root, "src", "product.txt"), "v1\n", "utf8");
+    }
+    return roots;
+  }
+
+  const mergeEvidence = {
+    kind: "merge",
+    pointer: SHA,
+    recorded_at: "2026-11-15T10:30:00Z",
+    recorded_by: "scope:complete",
+  };
+
+  /**
+   * Clause 1 is a merge item; clause 2 is the deferred clause and has a plan
+   * item only when `withDeferredItem`; clause 3 (smoke) cannot take merge
+   * evidence, so acceptance refuses while it is open.
+   */
+  function writeStory(
+    root: string,
+    opts: { withDeferredItem?: boolean; openSmoke?: boolean; preStamped?: boolean } = {},
+  ): string {
+    const items: Record<string, unknown>[] = [
+      {
+        id: "clause.1",
+        title: "Merge tip ancestry",
+        status: "pending",
+        "x-directive/requires": "merge",
+        ...(opts.preStamped === true ? { "x-directive/evidence": mergeEvidence } : {}),
+      },
+    ];
+    if (opts.withDeferredItem === true) {
+      items.push({ id: "clause.2", title: DEFERRED, status: "pending" });
+    }
+    const clauses: Record<string, unknown>[] = [
+      { id: 1, text: "Merge tip ancestry", artifact_path: "src/product.txt", ambiguous: false },
+      { id: 2, text: DEFERRED, artifact_path: null, ambiguous: false },
+    ];
+    if (opts.openSmoke === true) {
+      items.push({ id: "clause.3", title: "Smoke test passes after deploy", status: "pending" });
+      clauses.push({
+        id: 3,
+        text: "Smoke test passes after deploy",
+        artifact_path: null,
+        ambiguous: false,
+      });
+    }
+    const path = join(root, "xbrief", "active", name);
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        id: PLAN_ID,
+        title: "deferral story",
+        status: "running",
+        references: [
+          { uri: `https://github.com/${REPO}/issues/${ISSUE}`, type: "x-xbrief/github-issue" },
+        ],
+        metadata: {
+          kind: "story",
+          swarm: { file_scope: ["src/product.txt"], verify_commands: ["task check"] },
+        },
+        items,
+        acceptance: {
+          commands: [],
+          none_stated: true,
+          source_rung: "derived",
+          ambiguity_attestation: "none_found",
+          clauses,
+        },
+      },
+    });
+    return path;
+  }
+
+  const deliveryGit: GitRunner = (_cwd, args) => {
+    const joined = args.join(" ");
+    if (args[0] === "show") return { code: 128, stdout: "", stderr: "fatal: no path" };
+    if (joined.includes("merge-base") && joined.includes("--is-ancestor")) {
+      return { code: 0, stdout: "", stderr: "" };
+    }
+    if (joined.includes("rev-parse") && joined.includes("origin/")) {
+      return { code: 0, stdout: "deliverytip", stderr: "" };
+    }
+    if (joined.includes("symbolic-ref")) {
+      return { code: 0, stdout: "origin/master", stderr: "" };
+    }
+    return { code: 0, stdout: "ok", stderr: "" };
+  };
+
+  function complete(path: string, opts: { finalize?: boolean } = {}) {
+    const body = `deft-story: ${ISSUE}`;
+    return runTransition("complete", path, NOW, {
+      runGit: deliveryGit,
+      fetchPrPayload: (n: number, repo: string) =>
+        n === PR && repo === REPO
+          ? {
+              merged_at: MERGED_AT,
+              merge_commit_sha: SHA,
+              base: { ref: "master" },
+              head: { sha: "headsha" },
+              body,
+            }
+          : null,
+      fetchClosingPrRefs: () => ({ ok: true, refs: [] }),
+      fetchClosingIssueIds: () => [{ repository: REPO, issueNumber: ISSUE }],
+      mergeTimeForge: staticMergeTimeForge({
+        merged: [{ number: PR, mergedAt: MERGED_AT, body, lastEditedAt: null }],
+      }),
+      deliveryEvidence: { prNumber: PR, mergeCommit: SHA, mergedAt: MERGED_AT },
+      acceptanceRunner: () => ({ exitCode: 0, stdout: "ok", stderr: "" }),
+      ...(opts.finalize === true
+        ? { assumeEvidenceValidated: true, verifier: "swarm:finalize-cohort" }
+        : {}),
+    });
+  }
+
+  function mint(projectRoot: string, now: Date) {
+    const minted = mintAcceptanceDispositionTemplateGrant({
+      projectRoot,
+      planRef: PLAN_ID,
+      storyIds: ["clause.2"],
+      deferredTo: "#6400",
+      reason: "operator correction",
+      now,
+    });
+    if (!minted.ok) throw new Error(minted.reason);
+    return minted;
+  }
+
+  function items(path: string): Record<string, Record<string, unknown>> {
+    const data = JSON.parse(readFileSync(path, "utf8")) as {
+      plan: { items: Record<string, unknown>[] };
+    };
+    return Object.fromEntries(data.plan.items.map((item) => [String(item.id), item]));
+  }
+
+  function grantUsedAt(root: string, grantId: string): string | null {
+    const data = JSON.parse(
+      readFileSync(join(root, ".deft", "authz", "grants", `${grantId}.json`), "utf8"),
+    ) as { semantics: { usedAt: string | null } };
+    return data.semantics.usedAt;
+  }
+
+  it("clause.1 / clause.2: a granted deferral completes from the primary, a linked dest and finalize with no merge evidence on that item", () => {
+    const roots = cloneWithDests("dest", "lifecycle");
+    // The active brief is on every checkout (it landed on the delivery branch).
+    for (const checkout of Object.values(roots)) writeStory(checkout);
+    // Minted from a linked dest: one store at the main clone.
+    const minted = mint(roots.dest as string, NOW);
+    const runs: [string, string, boolean][] = [
+      ["primary", "main", false],
+      ["linked dest (replay)", "dest", false],
+      ["finalize (replay)", "lifecycle", true],
+    ];
+    for (const [label, where, finalize] of runs) {
+      const root = roots[where] as string;
+      const result = complete(join(root, "xbrief", "active", name), { finalize });
+      expect(result.ok, `${label}: ${result.message}`).toBe(true);
+      const done = items(join(root, "xbrief", "completed", name));
+      expect(done["clause.1"]?.["x-directive/evidence"], label).toMatchObject({ kind: "merge" });
+      expect(done["clause.2"]?.["x-directive/evidence"], label).toBeUndefined();
+      expect(done["clause.2"]?.["x-directive/disposition"], label).toMatchObject({
+        disposition: "deferred",
+        reason: "operator correction",
+        deferred_to: "#6400",
+        provenance: { kind: "operator-cli", grantId: minted.grant.id },
+      });
+      expect(grantUsedAt(roots.main as string, minted.grant.id), label).not.toBeNull();
+      if (where === "main") {
+        expect(result.message).toMatch(/Acceptance-disposition grant\(s\) .* recorded as used/);
+      }
+    }
+  });
+
+  it("clause.3: an acceptance refusal leaves the active brief unchanged and the grant unused", () => {
+    const { main } = cloneWithDests();
+    const root = main as string;
+    const path = writeStory(root, { withDeferredItem: true, openSmoke: true, preStamped: true });
+    const minted = mint(root, NOW);
+    const before = readFileSync(path, "utf8");
+    const result = complete(path);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/Acceptance evidence required/);
+    expect(readFileSync(path, "utf8")).toBe(before);
+    expect(existsSync(join(root, "xbrief", "completed", name))).toBe(false);
+    expect(grantUsedAt(root, minted.grant.id)).toBeNull();
+  });
+
+  it("clause.3: the mid-flight active write keeps merge stamps but leaves the deferral out", () => {
+    const { main } = cloneWithDests();
+    const root = main as string;
+    const path = writeStory(root, { openSmoke: true });
+    const minted = mint(root, NOW);
+    const result = complete(path);
+    expect(result.ok).toBe(false);
+    const active = items(path);
+    expect(active["clause.1"]?.["x-directive/evidence"]).toMatchObject({ kind: "merge" });
+    expect(active["clause.2"]).toMatchObject({ id: "clause.2", status: "pending" });
+    expect(active["clause.2"]?.["x-directive/disposition"]).toBeUndefined();
+    expect(active["clause.2"]?.["x-directive/evidence"]).toBeUndefined();
+    expect(grantUsedAt(root, minted.grant.id)).toBeNull();
+  });
+
+  it("clause.4: an expired unused grant refuses completion; after a re-mint from a linked dest it passes", () => {
+    const { main, dest } = cloneWithDests("dest");
+    const root = main as string;
+    const path = writeStory(root);
+    writeStory(dest as string);
+    const old = mint(root, new Date("2026-11-13T00:00:00Z"));
+    const before = readFileSync(path, "utf8");
+    const refused = complete(path);
+    expect(refused.ok).toBe(false);
+    expect(refused.message).toMatch(
+      new RegExp(`${old.grant.id}.*expired.*re-mint with .*authz:revoke -- ${old.grant.id}`),
+    );
+    expect(readFileSync(path, "utf8")).toBe(before);
+    const fresh = mint(dest as string, new Date("2026-11-15T11:00:00Z"));
+    const passed = complete(path);
+    expect(passed.ok, passed.message).toBe(true);
+    expect(items(join(root, "xbrief", "completed", name))["clause.2"]).toMatchObject({
+      "x-directive/disposition": { provenance: { grantId: fresh.grant.id } },
+    });
+    expect(grantUsedAt(root, old.grant.id)).toBeNull();
+  });
+
+  it("refuses a first use after the clause text changed and names a re-mint", () => {
+    const { main } = cloneWithDests();
+    const root = main as string;
+    const path = writeStory(root);
+    mint(root, NOW);
+    const raw = JSON.parse(readFileSync(path, "utf8")) as {
+      plan: { acceptance: { clauses: Record<string, unknown>[] } };
+    };
+    (raw.plan.acceptance.clauses[1] as Record<string, unknown>).text = "Reworded clause.";
+    writeFile(path, raw);
+    const result = complete(path);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/text of clause\.2 changed.*re-mint/);
   });
 });

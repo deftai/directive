@@ -770,3 +770,42 @@ describe("canonical evidence while still active (#4059)", () => {
     ).toBe(true);
   });
 });
+
+describe("acceptance-disposition grant leaves the intent extract unchanged (#6318)", () => {
+  it("a grant-shaped deferred disposition has no extract exemption and still fails membership", () => {
+    expect(ITEM_MACHINE_KEYS.has(ACCEPTANCE_DISPOSITION_KEY)).toBe(false);
+    const payload = brief();
+    const live = brief();
+    const plan = live.plan as Record<string, unknown>;
+    const items = (plan.items as Array<Record<string, unknown>>).map((item) => ({ ...item }));
+    items[0][ACCEPTANCE_DISPOSITION_KEY] = {
+      disposition: "deferred",
+      reason: "operator correction",
+      deferred_to: "#6400",
+      recorded_at: "2026-11-15T12:00:00Z",
+      provenance: { kind: "operator-cli", actor: "operator", grantId: "grant-6318" },
+    };
+    plan.items = items;
+    const mintRoot = tempRoot();
+    const minted = mintApprovedScopeArtifacts({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      payload,
+      rawText: `${JSON.stringify(payload)}\n`,
+      projectRoot: mintRoot,
+      humanApproval: { kind: "operator", actor: "scott", mintedAt: "2026-11-15T00:00:00Z" },
+      extract: { projectRoot: mintRoot, approvedReposSeed: ["deftai/directive"] },
+    });
+    const result = evaluateScopeProvenance(tempRoot(), {
+      changedFiles: ["xbrief/active/story.xbrief.json"],
+      activeXbriefs: new Map([["xbrief/active/story.xbrief.json", JSON.stringify(live)]]),
+      approvedRecords: [minted.record],
+      baseApprovedRecords: new Map([[minted.record.planId, minted.record]]),
+      readAtBase: (rel) => (rel.endsWith(".intent.json") ? JSON.stringify(minted.preimage) : null),
+      enforce: true,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(
+      result.findings.some((f) => f.kind === "unclassified-key" || f.kind === "intent-drift"),
+    ).toBe(true);
+  });
+});
