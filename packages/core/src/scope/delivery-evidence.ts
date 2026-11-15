@@ -1911,9 +1911,10 @@ type IssueAnchoredProof =
 /**
  * Issue-anchored association as of merged_at (#5710 P3 / #6317). The
  * merge-time body is read before any basis; an unreadable body refuses, and a
- * part-line body refuses as a partial delivery on every basis. Then cheap
- * bases (b, c, brief-in-PR-diff), the exhaustive sole-mark scan (a), and the
- * operator attestation (d). Success always needs a positive proof.
+ * part-line body refuses as a partial delivery on every basis. A body with the
+ * sole mark settles only by the exhaustive sole-mark scan (a); otherwise the
+ * cheap bases (b, c, brief-in-PR-diff), then the operator attestation (d).
+ * Success always needs a positive proof.
  */
 function proveIssueAnchoredAssociation(
   input: StoryPrMergeIdentityInput,
@@ -1965,7 +1966,41 @@ function proveIssueAnchoredAssociation(
     };
   }
 
-  const reasons: string[] = [];
+  // A PR that carries the sole mark settles by the mark (uniqueness, or the
+  // fetched delivery-branch stamp) before any other basis, so a keyword, a
+  // Connected link, the brief diff or an attestation never bypasses a
+  // contested mark (#6317).
+  if (soleDeftStoryMark(body.body) === issueNumber) {
+    const mark = proveSoleMarkBasis({
+      forge,
+      budget,
+      repository,
+      issueNumber,
+      prNumber,
+      mergeTimeBody: body.body,
+      readDeliveryBranchStamp: input.readDeliveryBranchStamp,
+    });
+    if (mark.ok) {
+      return {
+        ok: true,
+        basis: "merge-time-mark",
+        extras: {
+          ...(mark.partLinePrs.length > 0 ? { partLinePrs: mark.partLinePrs } : {}),
+          ...(mark.competingMarkedPrs.length > 0
+            ? { competingMarkedPrs: mark.competingMarkedPrs }
+            : {}),
+        },
+      };
+    }
+    return refuse([
+      mark.reason,
+      "(b)/(c)/brief-in-PR-diff/(d) not evaluated: the PR carries the sole mark; settle the mark instead",
+    ]);
+  }
+
+  const reasons: string[] = [
+    `(a) PR #${prNumber} body as of merged_at has no sole \`deft-story: ${issueNumber}\` mark`,
+  ];
   const cheap = proveKeywordOrConnected(forge, budget, target, body.body, reasons);
   if (cheap !== null) {
     return { ok: true, basis: cheap, extras: {} };
@@ -1977,35 +2012,6 @@ function proveIssueAnchoredAssociation(
   }
   if (briefDiff.length > 0) {
     reasons.push(briefDiff);
-  }
-
-  const mark = proveSoleMarkBasis({
-    forge,
-    budget,
-    repository,
-    issueNumber,
-    prNumber,
-    mergeTimeBody: body.body,
-    readDeliveryBranchStamp: input.readDeliveryBranchStamp,
-  });
-  if (mark.ok) {
-    return {
-      ok: true,
-      basis: "merge-time-mark",
-      extras: {
-        ...(mark.partLinePrs.length > 0 ? { partLinePrs: mark.partLinePrs } : {}),
-        ...(mark.competingMarkedPrs.length > 0
-          ? { competingMarkedPrs: mark.competingMarkedPrs }
-          : {}),
-      },
-    };
-  }
-  reasons.unshift(mark.reason);
-  if (soleDeftStoryMark(body.body) === issueNumber) {
-    // A marked PR has a basis to settle (uniqueness, delivery-branch stamp);
-    // attestation is for merged work with no basis and never bypasses it.
-    reasons.push("(d) not evaluated: the PR carries the sole mark; settle the mark instead");
-    return refuse(reasons);
   }
 
   const attested = proveAttestedBasis(input, forge, budget, target);

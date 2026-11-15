@@ -2795,7 +2795,8 @@ describe("sole-mark uniqueness scan (#5710 P3)", () => {
     const rich = { graphqlRemaining: 5000, coreRemaining: 5000 };
     const low = makeForge({
       filePages: { 99: pages },
-      rates: [rich, rich, rich, { graphqlRemaining: 5000, coreRemaining: 99 }],
+      // A marked candidate skips the (b)/(c) reads (#6317): revisions, files page 0, then low.
+      rates: [rich, rich, { graphqlRemaining: 5000, coreRemaining: 99 }],
     });
     const refused = joinIssue({ pr: 99, body: mark, forge: low });
     expect(refused.ok).toBe(false);
@@ -3536,6 +3537,46 @@ describe("identity join reads the merge-time body first (#6317 / #6310 Bound 2)"
     expect(prov.partLinePrs).toEqual([6300]);
     expect("competingMarkedPrs" in prov).toBe(false);
     expect(prov.identityBasis).toBe("operator-attested");
+  });
+
+  it("clause.4: a marked PR with a keyword, Connected link or brief diff still settles by the mark", () => {
+    const merged = [listed(6301, mark), listed(6302, mark)];
+    const briefDiff: FetchPrChangedFilesFn = () => [
+      { status: "added", filename: "xbrief/active/s.xbrief.json" },
+      PRODUCT_FILE,
+    ];
+    const cases: { body: string; forge: MergeTimeForge; brief?: boolean }[] = [
+      { body: `${mark}\nFixes #6212`, forge: makeForge({ merged }) },
+      { body: mark, forge: makeForge({ merged, events: connected(6301) }) },
+      { body: mark, forge: makeForge({ merged }), brief: true },
+    ];
+    for (const c of cases) {
+      const result = verifyStoryPrMergeIdentity({
+        plan: { ...issuePlan(6212), id: "github.issue.6212" },
+        evidence: { prNumber: 6301 },
+        mergeCommit: "mergesha",
+        fetchPrPayload: payloadFor({ 6301: mergedPayload({ body: c.body }) }),
+        mergeTimeForge: c.forge,
+        readDeliveryBranchStamp: stampRead(6302),
+        ...(c.brief === true
+          ? { briefBasename: "s.xbrief.json", fetchPrChangedFiles: briefDiff }
+          : {}),
+      });
+      expect(result.ok).toBe(false);
+      expect(result.message).toMatch(/#6302 also carry a sole/);
+      expect(result.message).toMatch(/brief-in-PR-diff\/\(d\) not evaluated/);
+    }
+    // The stamped PR still completes by the mark even with a keyword in its body.
+    const win = verifyStoryPrMergeIdentity({
+      plan: issuePlan(6212),
+      evidence: { prNumber: 6302 },
+      mergeCommit: "mergesha",
+      fetchPrPayload: payloadFor({ 6302: mergedPayload({ body: `${mark}\nFixes #6212` }) }),
+      mergeTimeForge: makeForge({ merged }),
+      readDeliveryBranchStamp: stampRead(6302),
+    });
+    expect(win.ok).toBe(true);
+    expect(win.identityBasis).toBe("merge-time-mark");
   });
 
   it("an attestation never bypasses a contested sole mark", () => {
