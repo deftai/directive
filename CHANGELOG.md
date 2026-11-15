@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Changelog fragments, slice A (#6314): one path test for changelog entry paths (`CHANGELOG.md`, `changelog.d/<issue>-<slug>.md`), the fragment format, `plan.policy.changelog.mode` (`inline` by default; `deft policy:set-changelog-mode`), and one effective view of unreleased entries for every reader. No change while the mode is `inline` and no fragment exists.
 
 ### Changed
 - chore(dogfood): pin Directive to 0.129.9.

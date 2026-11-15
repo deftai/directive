@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { isChangelogEntryPath } from "../changelog/entry-path.js";
 import { extractIntentCloserSet } from "../one-pr-unit/closer-set.js";
 import { evaluateOnePrUnit } from "../one-pr-unit/evaluate.js";
 import {
@@ -42,7 +43,7 @@ function normalizeDiffPath(path: string): string {
 
 function isBriefLandAllowlistedPath(path: string): boolean {
   const p = normalizeDiffPath(path);
-  if (p === "CHANGELOG.md") {
+  if (isChangelogEntryPath(p)) {
     return true;
   }
   return /^(xbrief|vbrief)\/(proposed|pending|active)\//.test(p);
@@ -51,7 +52,8 @@ function isBriefLandAllowlistedPath(path: string): boolean {
 /**
  * Path B activation / membership-land shape (#5387): allowlist only.
  * Every path (and rename source) is nonterminal brief under proposed|pending|active
- * or exact root CHANGELOG.md. Requires at least one non-removed nonterminal brief.
+ * or a changelog entry path (root CHANGELOG.md or changelog.d/<name>.md).
+ * Requires at least one non-removed nonterminal brief.
  * Denies completed/, packages/**, and all other product surfaces.
  */
 export function isBriefLandShapedDiff(files: readonly PrDiffPath[]): boolean {

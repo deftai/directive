@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { effectiveChangelogText } from "../changelog/effective-unreleased.js";
 import { restIssueListOpenInventory } from "../scm/gh-rest.js";
 import { isStep5HostCoverage } from "../ts-check-lane/run-lane.js";
 import { readCoverageTotalsFromReport } from "../vitest-runner/coverage-debt.js";
@@ -527,7 +528,8 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
     const crLabel = "Consumer-readiness census";
     let changelogText = "";
     try {
-      changelogText = readFile(changelogPath);
+      // #6314: census and new-refusal hints read the effective [Unreleased] view.
+      changelogText = effectiveChangelogText(projectRoot, readFile(changelogPath));
     } catch {
       changelogText = "";
     }

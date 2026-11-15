@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { effectiveChangelogText } from "../changelog/effective-unreleased.js";
 import { guardChangelogReadSafety } from "../release/changelog-read-safety.js";
 import {
   COVERAGE_GOAL,
@@ -49,7 +50,11 @@ export default async function coverageDebtTeardown(): Promise<void> {
   const changelogSafety = guardChangelogReadSafety(repoRoot);
   if (changelogSafety.ok) {
     try {
-      const changelog = readFileSync(join(repoRoot, "CHANGELOG.md"), "utf8");
+      // #6314: read through the effective view (changelog + changelog.d/ fragments).
+      const changelog = effectiveChangelogText(
+        repoRoot,
+        readFileSync(join(repoRoot, "CHANGELOG.md"), "utf8"),
+      );
       const overuse = formatOveruseWarning(countRecentCoverageDebtMentions(changelog));
       if (overuse) process.stderr.write(`${overuse}\n`);
     } catch {

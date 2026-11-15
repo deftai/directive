@@ -487,3 +487,16 @@ describe("outgoingChangedPaths merge-base delivery (#6172)", () => {
     expect(msg).toMatch(/outgoing ⊆ reviewed pushBinding/i);
   });
 });
+
+describe("isDocsOnlyPath changelog entry paths (#6314)", () => {
+  it("keeps CHANGELOG.md, LICENSE and fragments docs-only", async () => {
+    const { isDocsOnlyPath } = await import("./pre-push.js");
+    expect(isDocsOnlyPath("CHANGELOG.md")).toBe(true);
+    expect(isDocsOnlyPath("changelog.md")).toBe(true);
+    expect(isDocsOnlyPath("changelog.d/6314-x.md")).toBe(true);
+    expect(isDocsOnlyPath("LICENSE")).toBe(true);
+    expect(isDocsOnlyPath("license.txt")).toBe(true);
+    expect(isDocsOnlyPath("LICENSE-MIT")).toBe(false);
+    expect(isDocsOnlyPath("CHANGELOG")).toBe(false);
+  });
+});

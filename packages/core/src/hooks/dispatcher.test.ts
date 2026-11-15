@@ -7806,6 +7806,42 @@ describe("Prefer-A #5890 retirement-shaped zero-eligible", () => {
     );
   });
 
+  it("gates a changelog.d fragment-only Write like CHANGELOG.md (#6314)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          cwd: "/project",
+          tool_input: { file_path: "/project/changelog.d/6314-x.md" },
+        },
+      },
+      zeroEligible(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toMatch(/leftover-land/);
+    expect(decision.message).toMatch(/named residual/);
+  });
+
+  it("does not treat a nested changelog.d Write as retirement-shaped (#6314)", () => {
+    const decision = decideHook(
+      {
+        host: "claude",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          tool_name: "Write",
+          cwd: "/project",
+          tool_input: { file_path: "/project/changelog.d/sub/x.md" },
+        },
+      },
+      zeroEligible(),
+    );
+    expect(decision.message ?? "").not.toMatch(/leftover-land/);
+  });
+
   it("gates completed+CHANGELOG ApplyPatch the same way", () => {
     const completed = "xbrief/completed/2026-09-13-story.xbrief.json";
     const body = [

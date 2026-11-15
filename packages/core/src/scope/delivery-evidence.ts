@@ -9,6 +9,7 @@
  * Deploy / UAT are separate axes and MUST NOT be inferred from Git alone.
  */
 
+import { isChangelogEntryPath } from "../changelog/entry-path.js";
 import { productPullRequestFromPlan } from "../orphan-active/running-briefs.js";
 import {
   assertSafeBranchName,
@@ -899,14 +900,15 @@ export const SPEC_DRIFT_LEDGER_REL = "xbrief/.audit/spec-drift-ledger.json";
 
 /**
  * Delivery-brief-land path family (#5710 / #680 F1): a brief under an
- * `xbrief|vbrief/<lifecycle>/` folder, root `CHANGELOG.md`, or the exact
+ * `xbrief|vbrief/<lifecycle>/` folder, a changelog entry path (root
+ * `CHANGELOG.md` or a `changelog.d/<name>.md` fragment, #6314), or the exact
  * spec-drift ledger. One helper for the delivery gate, the CHANGELOG
  * exemption, membership and finalize's lifecycle-shaped PR check, so the
  * family cannot drift between them.
  */
 export function isDeliveryBriefLandPath(path: string): boolean {
   const p = path.replace(/\\/g, "/");
-  if (p === "CHANGELOG.md" || p === SPEC_DRIFT_LEDGER_REL) {
+  if (isChangelogEntryPath(p) || p === SPEC_DRIFT_LEDGER_REL) {
     return true;
   }
   const parts = p.split("/");

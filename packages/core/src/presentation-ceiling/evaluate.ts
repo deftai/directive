@@ -11,6 +11,7 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
 import type * as TypeScript from "typescript";
+import { isChangelogEntryPath } from "../changelog/entry-path.js";
 import { isMarkupPath } from "../observable-scope/extract.js";
 import { isUnderConfiguredRoot } from "../scope-provenance/base-fence.js";
 import { isHumanApprovalStamp } from "../scope-provenance/digest.js";
@@ -41,7 +42,6 @@ const UNEVALUATED_NOTE =
 
 const CSS_EXT = ".css";
 const JSON_EXT = ".json";
-const CHANGELOG_REL = "CHANGELOG.md";
 const APPROVED_SCOPE_PREFIX = ".deft/approved-scope/";
 const XBRIEF_PREFIX = "xbrief/";
 const COMPLETED_PREFIX = "xbrief/completed/";
@@ -291,8 +291,11 @@ function protectedJsonText(text: string): boolean {
   );
 }
 
+/** Reader input path that names a changelog: `CHANGELOG` / a changelog entry path, at any depth. */
 function changelogPath(text: string): boolean {
-  return /(?:^|\/)CHANGELOG(?:\.md)?$/.test(text);
+  if (isChangelogEntryPath(text)) return true;
+  const base = text.slice(text.lastIndexOf("/") + 1);
+  return base === "CHANGELOG" || isChangelogEntryPath(base);
 }
 
 function approvedScopeModule(specifier: string): boolean {
@@ -1144,7 +1147,7 @@ export function evaluatePresentationCeilingFromSnapshot(
       continue;
     }
 
-    if (rel === CHANGELOG_REL) {
+    if (isChangelogEntryPath(rel)) {
       if (changelogReader) {
         findings.push({
           kind: "changelog-production-reader",

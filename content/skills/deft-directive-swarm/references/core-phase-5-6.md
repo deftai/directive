@@ -70,7 +70,7 @@ All PRs meet ALL of:
 - Greptile confidence > 3
 - No P0 or P1 issues remain (P2 issues are non-blocking style suggestions)
 - `task check` passed at merge chokepoint before push (or equivalent full-gate validation — #1704)
-- CHANGELOG entries present under `[Unreleased]`
+- CHANGELOG entries present under `[Unreleased]` or as `changelog.d/` fragments (#6314)
 
 ! **Mandatory cohort verifier (#1364):** After every poller (Phase 6 review-cycle sub-agent) reports back, the monitor MUST run `task swarm:verify-review-clean -- <pr-numbers...>` and confirm exit 0 BEFORE evaluating the rest of the Exit Condition or surfacing the Phase 5 -> 6 gate. The verifier re-uses the Greptile rolling-summary parser from `task pr:merge-ready` so the per-PR merge gate and the cohort gate stay in lockstep (a parser fix lands in both surfaces at once). Exit codes: 0 (cohort CLEAN -- all PRs simultaneously have SHA match + confidence > 3 + zero P0/P1 + not errored on current HEAD); 1 (one or more PRs unclean with per-PR diagnostics -- re-dispatch the poller for the unclean PR or address findings, then re-run the verifier); 2 (config error -- empty cohort, malformed xBRIEF glob, gh missing). The verifier is the structural answer to the #1166 swarm execution recurrence where multiple pollers exited with `clean_gate_holdout=confidence` (confidence == 3) and the monitor still raised the Phase 5 -> 6 gate because the trigger keyed on "all pollers have reported back" rather than "every PR in the cohort is objectively CLEAN".
 
@@ -100,7 +100,7 @@ All PRs meet ALL of:
    - Greptile confidence score > 3
    - No P0 or P1 issues remaining
    - full `task check` passed on the branch before push (#1704 merge chokepoint)
-   - CHANGELOG.md entry present under `[Unreleased]`
+   - CHANGELOG.md entry present under `[Unreleased]` (or a `changelog.d/` fragment)
    - Explicit user approval received for this merge cascade
 
    ! **Cohort gate (#1364):** Before the merge-readiness checklist is even emitted, the monitor MUST have already passed `task swarm:verify-review-clean -- <pr-numbers...>` per the Phase 5 Exit Condition above. The cohort gate is the structural pre-condition for this entire Phase 5 -> 6 sequence -- without exit 0 on the verifier, the checklist below MUST NOT be presented to the user. The per-merge `task pr:merge-ready` gate below remains the merge-time freshness-window-atomic check; the cohort verifier is the once-after-pollers gate that gates the discussion at all.
@@ -341,7 +341,7 @@ The monitor MUST, from its OWN worktree and on the configured base branch:
 
 - ! Populate version from the CHANGELOG promotion commit or git tag
 - ! Populate release title from the CHANGELOG section heading or GitHub release title
-- ! Key changes summarized from CHANGELOG `[Unreleased]` entries (not raw commit messages)
+- ! Key changes summarized from CHANGELOG `[Unreleased]` entries and `changelog.d/` fragments (not raw commit messages)
 - ! Agent count and approximate duration from the swarm session (Phase 3 launch to Phase 6 close)
 - ! PR numbers from the merged PRs in this swarm run
 - ! **Override merges line (#526):** For any PR in the release that was merged via the Greptile-service-errored override path (Phase 6 Step 1 choice (c)), explicitly call it out in the announcement with the one-line rationale taken from the merge commit body so downstream readers of the release notes can trace the documented rationale. Detect override merges by scanning each merged PR's merge commit body for the override rationale footprint (prior Greptile success on a pre-rebase SHA + CI green on current SHA + pure conflict-resolution rebase). Omit the `*Override merges*` line only when no merged PR in this release used the override path.

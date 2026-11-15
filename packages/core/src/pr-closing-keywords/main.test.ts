@@ -1219,3 +1219,23 @@ describe("full-story close intent mark (#4864)", () => {
     rmSync(root, { recursive: true, force: true });
   });
 });
+
+describe("isBriefLandShapedDiff changelog entry paths (#6314)", () => {
+  it("admits a changelog.d fragment beside a nonterminal brief, like CHANGELOG.md", () => {
+    expect(
+      isBriefLandShapedDiff([
+        { status: "modified", path: "xbrief/active/story.xbrief.json" },
+        { status: "added", path: "changelog.d/6314-x.md" },
+      ]),
+    ).toBe(true);
+  });
+
+  it("refuses a nested fragment directory path", () => {
+    expect(
+      isBriefLandShapedDiff([
+        { status: "modified", path: "xbrief/active/story.xbrief.json" },
+        { status: "added", path: "changelog.d/sub/x.md" },
+      ]),
+    ).toBe(false);
+  });
+});

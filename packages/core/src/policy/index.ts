@@ -23,6 +23,7 @@ import {
   FIELD_CEREMONY_DIAL_CLI_ALIAS,
   inspectCeremonyDial,
 } from "./ceremony-dial.js";
+import { inspectChangelogMode, isChangelogModeFieldName } from "./changelog-mode.js";
 import {
   FIELD_CHECK_RESUME,
   FIELD_CHECK_RESUME_CLI_ALIAS,
@@ -127,6 +128,7 @@ export * from "./branch-sync.js";
 export * from "./capacity.js";
 export * from "./ceremony-dial.js";
 export * from "./ceremony-dial-escalation.js";
+export * from "./changelog-mode.js";
 export * from "./check-resume.js";
 export * from "./coverage-debt.js";
 export * from "./coverage-mode.js";
@@ -812,6 +814,17 @@ export function inspectOnePolicy(name: string, projectRoot: string): PolicyField
   if (name === FIELD_COVERAGE_MODE_CLI_ALIAS || name === FIELD_COVERAGE_MODE) {
     const [data] = loadProjectDefinition(projectRoot);
     return inspectCoverageModeField(data, projectRoot);
+  }
+  // changelog.mode (#6314) is field-only: `policy:show --field=plan.policy.changelog.mode`.
+  if (isChangelogModeFieldName(name)) {
+    const [data] = loadProjectDefinition(projectRoot);
+    const field = inspectChangelogMode(data, projectRoot);
+    return {
+      name: field.name,
+      current: field.current,
+      default: field.default,
+      source: field.source,
+    };
   }
   // onePrScopeProof (#6273) is field-only: `policy:show --field=onePrScopeProof`.
   if (name === FIELD_ONE_PR_SCOPE_PROOF_CLI_ALIAS || name === FIELD_ONE_PR_SCOPE_PROOF) {

@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { LEGACY_VBRIEF_VERSION } from "@deftai/directive-types";
+import { readEffectiveUnreleased } from "../changelog/effective-unreleased.js";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import {
   assertProjectionContained,
@@ -190,7 +191,19 @@ export function runChangelogCheck(
     return 1;
   }
   const entries = extractUnreleasedDashEntries(text);
-  if (entries.length === 0) {
+  // #6314: the presence check reads the effective view: `[Unreleased]` lines plus
+  // the entries of valid `changelog.d/` fragments. With no fragment it is unchanged.
+  // The merge-base comparison below still reads `CHANGELOG.md` only; the fragment
+  // gate (which fragments a branch adds) is a later slice of #6286.
+  const effective = readEffectiveUnreleased(root, { changelogText: text });
+  for (const bad of effective.invalidFragments) {
+    io.writeOut(
+      `WARN: ignoring invalid changelog fragment ${bad.path} (${bad.reason}: ${bad.detail})\n`,
+    );
+  }
+  const fragmentEntryCount = effective.entries.length - effective.changelogEntries.length;
+  const total = entries.length + fragmentEntryCount;
+  if (total === 0) {
     // #680 P4: after a release `[Unreleased]` is empty; a lifecycle-only change set
     // still needs no line. Against-merge-base mode only; the heading stays required.
     if (options.againstMergeBase === true && isLifecycleOnlyAgainstMergeBase(root)) {
@@ -207,6 +220,12 @@ export function runChangelogCheck(
     if (compared !== 0) {
       return compared;
     }
+  }
+  if (fragmentEntryCount > 0) {
+    io.writeOut(
+      `OK: [Unreleased] has ${total} entries (${entries.length} in CHANGELOG.md, ${fragmentEntryCount} in changelog.d/)\n`,
+    );
+    return 0;
   }
   io.writeOut(`OK: CHANGELOG.md [Unreleased] section has ${entries.length} entries\n`);
   return 0;
