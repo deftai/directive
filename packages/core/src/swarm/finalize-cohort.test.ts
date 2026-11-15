@@ -20,7 +20,12 @@ import { deriveUnmarkedFinalizeAdmit } from "../orphan-active/evaluate.js";
 import { firstMergedPrRef } from "../orphan-active/refs.js";
 import { productPullRequestFromPlan } from "../orphan-active/running-briefs.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
-import { isDeliveryBriefLandExcluded } from "../scope/delivery-evidence.js";
+import {
+  isDeliveryBriefLandExcluded,
+  type MergedPrListNode,
+  type MergeTimeForge,
+  type PrFileEntry,
+} from "../scope/delivery-evidence.js";
 import { runTransition } from "../scope/transition.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
 import {
@@ -40,6 +45,28 @@ import {
 } from "./finalize-owed.js";
 import type { TextCaptureResult } from "./subprocess.js";
 import type { WorktreePmRunner } from "./worktree-pm-install.js";
+
+/** Offline merged-PR reads for the #6317 operator-bind same-mark scan. */
+function markForge(
+  merged: readonly MergedPrListNode[] = [],
+  files: Readonly<Record<number, readonly PrFileEntry[]>> = {},
+): MergeTimeForge {
+  const page = <T>(nodes: readonly T[]) => ({
+    ok: true as const,
+    nodes,
+    hasNextPage: false,
+    endCursor: null,
+  });
+  return {
+    listMergedPrsPage: () => page(merged),
+    fetchBodyRevisionsPage: () => page([]),
+    fetchConnectionEventsPage: () => page([]),
+    fetchPrFilesPage: (_repo, n) =>
+      page(files[n] ?? [{ status: "modified", filename: "packages/core/src/x.ts" }]),
+    probeRateLimit: () => ({ graphqlRemaining: 5000, coreRemaining: 5000 }),
+    nowMs: () => 0,
+  };
+}
 
 function writeActiveStory(
   project: string,
@@ -1586,6 +1613,7 @@ describe("finalizeCohort", () => {
       }),
       runGit: mockRunGit(),
       fetchPrChangedFiles: productFiles,
+      mergeTimeForge: markForge(),
     });
     expect(result.result.errors.filter((e) => e.includes("does not bind PR delivery"))).toEqual([]);
     expect(result.result.story_paths).toContain(storyPath);
@@ -1601,6 +1629,67 @@ describe("finalizeCohort", () => {
     const plan = (JSON.parse(readFileSync(storyPath, "utf8")) as { plan: Record<string, unknown> })
       .plan;
     expect(productPullRequestFromPlan(plan)).toBe(6300);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses the operator bind and names both PRs when another merged PR carries the same mark (#6317)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-6317-competitor-"));
+    const storyPath = writeActiveStory(project, "story-6212", 6212);
+    const listed = (number: number, body: string) => ({
+      number,
+      mergedAt: "2026-11-12T10:00:00Z",
+      body,
+      lastEditedAt: null,
+    });
+    const run = (forge: MergeTimeForge) =>
+      finalizeCohort({
+        projectRoot: project,
+        storyTokens: ["6212"],
+        prNumbers: [6300],
+        repo: "deftai/directive",
+        noCommit: true,
+        deliveryBranch: "master",
+        runGh: mockRunGh({
+          6300: { merged: true, closingIssues: [], body: "Refs #6212\n\ndeft-story: 6212\n" },
+        }),
+        runGit: mockRunGit(),
+        fetchPrChangedFiles: productFiles,
+        mergeTimeForge: forge,
+      });
+
+    const competing = run(
+      markForge(
+        [
+          listed(6300, "deft-story: 6212"),
+          listed(6290, "deft-story: 6212"),
+          // A part-line PR and a brief-only marked PR are not competitors.
+          listed(6280, "deft-story-part: 6212"),
+          listed(6270, "deft-story: 6212"),
+        ],
+        { 6270: [{ status: "modified", filename: "xbrief/active/story-6212.xbrief.json" }] },
+      ),
+    );
+    expect(competing.result.refused_marks?.map((m) => m.detail)).toEqual([
+      "#6212: deft-story mark on PR #6300 does not bind PR delivery " +
+        "(PR #6300 and merged PR #6290 carry the same mark; stamp metadata.productPullRequest " +
+        "on the delivery branch to choose one (#6317)) (#4864).",
+    ]);
+    const plan = (JSON.parse(readFileSync(storyPath, "utf8")) as { plan: Record<string, unknown> })
+      .plan;
+    expect(productPullRequestFromPlan(plan)).toBeNull();
+
+    // An incomplete scan fails closed for the whole batch, like a failed file lookup.
+    const failing: MergeTimeForge = {
+      ...markForge(),
+      listMergedPrsPage: () => ({ ok: false, error: "secondary rate limit" }),
+    };
+    const incomplete = run(failing);
+    expect(
+      incomplete.result.errors.some((e) =>
+        e.includes("same-mark scan for PR #6300 failed: merged-PR scan: secondary rate limit"),
+      ),
+    ).toBe(true);
+    expect(productPullRequestFromPlan(plan)).toBeNull();
     rmSync(project, { recursive: true, force: true });
   });
 
@@ -1632,6 +1721,7 @@ describe("finalizeCohort", () => {
       },
       runGit: mockRunGit(),
       fetchPrChangedFiles: productFiles,
+      mergeTimeForge: markForge(),
     });
     // Refused #7000 is non-fatal: no error, exit INCOMPLETE, pending on refused_marks.
     expect(result.exitCode).toBe(EXIT_INCOMPLETE);
@@ -1752,6 +1842,7 @@ describe("finalizeCohort", () => {
         landedCompleted: ["xbrief/completed/story-6212.xbrief.json"],
       }),
       fetchPrChangedFiles: productFiles,
+      mergeTimeForge: markForge(),
       landProbeLimit: 1,
       sleep: () => {},
     });
@@ -1810,6 +1901,7 @@ describe("finalizeCohort", () => {
         landedCompleted: ["xbrief/completed/story-6212.xbrief.json"],
       }),
       fetchPrChangedFiles: productFiles,
+      mergeTimeForge: markForge(),
       landProbeLimit: 1,
       sleep: () => {},
     });
@@ -1860,6 +1952,7 @@ describe("finalizeCohort", () => {
       }),
       runGit: mockRunGit(),
       fetchPrChangedFiles: productFiles,
+      mergeTimeForge: markForge(),
     });
     expect(result.result.errors).toEqual([]);
     expect(result.exitCode).toBe(EXIT_INCOMPLETE);
@@ -1890,6 +1983,7 @@ describe("finalizeCohort", () => {
       runGh,
       runGit: mockRunGit({ landedCompleted: ["xbrief/completed/story-6212.xbrief.json"] }),
       fetchPrChangedFiles: productFiles,
+      mergeTimeForge: markForge(),
       landProbeLimit: 1,
       sleep: () => {},
     });
@@ -1954,6 +2048,7 @@ describe("finalizeCohort", () => {
       }),
       runGit: mockRunGit(),
       fetchPrChangedFiles: productFiles,
+      mergeTimeForge: markForge(),
     });
     expect(result.exitCode).toBe(EXIT_GATE_FAILED);
     expect(result.result.errors.some((e) => e.includes("is not the delivery branch"))).toBe(true);
@@ -1980,6 +2075,7 @@ describe("finalizeCohort", () => {
       }),
       runGit: mockRunGit(),
       fetchPrChangedFiles: productFiles,
+      mergeTimeForge: markForge(),
     });
     expect(result.exitCode).toBe(EXIT_INCOMPLETE);
     expect(result.result.errors).toEqual([]);
