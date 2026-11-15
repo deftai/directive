@@ -121,6 +121,7 @@ import {
 import { DEFAULT_WIP_CAP } from "./wip.js";
 
 export * from "./ac-pass-banking.js";
+export * from "./acceptance-disposition-grant.js";
 export * from "./agents-md-advisory.js";
 export * from "./autonomy.js";
 export * from "./base-branch.js";

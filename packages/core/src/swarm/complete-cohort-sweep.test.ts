@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { mintAcceptanceDispositionTemplateGrant } from "../policy/acceptance-disposition-grant.js";
 import { applyWorktreeOccupancy, readOccupancy, releaseOccupancy } from "../session/occupancy.js";
 
 vi.mock("../scope/transition.js", () => ({
@@ -754,6 +755,71 @@ describe("launch occupancy record lifecycle (#4595)", () => {
       ...stubGates(),
     });
     expect(allowed.exitCode).toBe(0);
+    rmSync(project, { recursive: true, force: true });
+  });
+});
+
+describe("dry-run applies acceptance-disposition grants on the clone (#6318)", () => {
+  function deferralStory(project: string): string {
+    const full = join(project, "xbrief", "active", "deferral.xbrief.json");
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      full,
+      JSON.stringify({
+        plan: {
+          id: "github.issue.6318",
+          title: "deferral",
+          status: "running",
+          acceptance: {
+            clauses: [
+              { id: 1, text: "Covered by a test." },
+              { id: 2, text: "Deferred clause." },
+            ],
+          },
+          items: [
+            {
+              id: "clause.1",
+              title: "Covered by a test.",
+              status: "pending",
+              ...acceptanceEvidence("packages/core/src/swarm/complete-cohort-sweep.test.ts"),
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    return full;
+  }
+
+  function mint(project: string, now: Date): void {
+    const minted = mintAcceptanceDispositionTemplateGrant({
+      projectRoot: project,
+      planRef: "github.issue.6318",
+      storyIds: ["clause.2"],
+      deferredTo: "#6400",
+      reason: "operator correction",
+      now,
+    });
+    if (!minted.ok) throw new Error(minted.reason);
+  }
+
+  it("passes with a live grant and refuses an expired unused grant without writing", () => {
+    vi.mocked(runTransition).mockClear();
+    const project = mkdtempSync(join(tmpdir(), "sw-dry-6318-"));
+    gitInitIfNeeded(project);
+    const storyPath = deferralStory(project);
+    const before = readFileSync(storyPath, "utf8");
+    // Without a grant the open clause fails the dry run.
+    expect(sweepCohort([storyPath], project, true).stories[0]?.ok).toBe(false);
+    mint(project, new Date(Date.now() - 3 * 24 * 3600 * 1000));
+    const expired = sweepCohort([storyPath], project, true);
+    expect(expired.stories[0]?.ok).toBe(false);
+    expect(expired.stories[0]?.detail).toMatch(/expired.*re-mint.*authz:revoke/);
+    mint(project, new Date());
+    const live = sweepCohort([storyPath], project, true);
+    expect(live.stories[0]?.ok).toBe(true);
+    expect(readFileSync(storyPath, "utf8")).toBe(before);
+    expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
     rmSync(project, { recursive: true, force: true });
   });
 });
