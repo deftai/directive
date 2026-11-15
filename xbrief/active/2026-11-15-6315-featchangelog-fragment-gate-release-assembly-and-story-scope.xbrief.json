@@ -218,85 +218,260 @@
       "clauses": [
         {
           "id": 1,
-          "text": "Given mode `fragments` and a branch that carries other PRs' fragments and none of its own, then the gate fails; with a valid own fragment, it passes.",
-          "artifact_path": null,
+          "text": "Summary Slice B of the accepted #6286 design (CHANGELOG fragments): the branch-relative changelog gate, release assembly of fragments, story scope, and this repository's move to mode `either`.",
+          "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
-          "text": "Given mode `fragments` and a valid own fragment together with any edit to `CHANGELOG.md`, then the gate fails.",
+          "text": "It depends on slice A (path test, format, mode, effective view).",
           "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
-          "text": "Given mode `either` and both forms in one change set, then the gate fails; with exactly one form, it passes.",
-          "artifact_path": null,
+          "text": "Bound contract: successor lean 6859392664 on #6286, items 4, 6, 7, 8 (first step) and 9 (completed-arc record 6859436534).",
+          "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
-          "text": "Given any mode and a change set that modifies, renames or deletes a fragment present at the merge base, then the gate fails; an invalid added fragment fails.",
-          "artifact_path": null,
+          "text": "Each slice has its own issue so that each brief completes from exactly one PR with its own `deft-story` line until #6310 ships.",
+          "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
-          "text": "Given a lifecycle-only change set, then the gate is exempt as today.",
-          "artifact_path": null,
+          "text": "Scope 1.",
+          "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 6,
-          "text": "Given a release cut with several fragments, then the promoted section holds each entry once in the right subsection, no fragment remains, and the deletions are in the release commit.",
-          "artifact_path": null,
+          "text": "Gate.",
+          "artifact_path": "packages/core/src/changelog/fragment.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 7,
-          "text": "Given a dry run, then nothing is written or deleted.",
-          "artifact_path": null,
+          "text": "`verify:changelog-unreleased` in merge-base mode keeps the #680 lifecycle-only exemption and its `inline` behaviour.",
+          "artifact_path": "packages/core/src/changelog/fragment.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 8,
-          "text": "Given a failure injected after the write and before deletion, and one after deletion and before the commit, then a rerun without a restore is refused, and a rerun after the restore gives each entry once and one version section.",
-          "artifact_path": null,
+          "text": "In `fragments` mode it passes only when the change set against the merge base adds at least one valid fragment that is absent at the merge base, and fails when the change set changes `CHANGELOG.md` at all.",
+          "artifact_path": "packages/core/src/changelog/fragment.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 9,
-          "text": "Given a changelog that already holds the version heading, duplicate entry text in two fragments, or a symlinked fragment, then the release refuses.",
-          "artifact_path": null,
+          "text": "In `either` mode it passes when the change set adds exactly one of the two forms.",
+          "artifact_path": "packages/core/src/changelog/fragment.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 10,
-          "text": "Given two stories that list their own fragment paths, then `swarm:readiness` reports no overlap; given two stories that list the same directory entry, then the overlap is reported as today.",
-          "artifact_path": null,
+          "text": "Fragments that other merged PRs put on the branch never satisfy it.",
+          "artifact_path": "packages/core/src/changelog/fragment.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 11,
-          "text": "Given two branches that each add a fragment, when they merge in either order, then there is no conflict.",
-          "artifact_path": null,
+          "text": "In every mode, a change set that modifies, renames or deletes a fragment present at the merge base fails, and every fragment it adds must be valid.",
+          "artifact_path": "packages/core/src/changelog/fragment.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 12,
+          "text": "Release.",
+          "artifact_path": "packages/core/src/release/release-artifacts.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "`prepareReleaseArtifacts` captures the fragments, applies the changelog read-safety refusal to each, and computes the assembled section in memory (subsection order, then file name).",
+          "artifact_path": "packages/core/src/release/release-artifacts.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "It refuses on an invalid fragment, on two fragments with an identical entry line, and when `CHANGELOG.md` already holds a heading for the version being cut.",
+          "artifact_path": "packages/core/src/release/release-artifacts.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "`writeReleaseArtifacts` writes `CHANGELOG.md` and deletes exactly the captured fragments; `commitReleaseArtifacts` stages those deletions with the release artifacts.",
+          "artifact_path": "packages/core/src/release/release-artifacts.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "A dry run writes and deletes nothing.",
+          "artifact_path": "packages/core/src/release/release-artifacts.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "A failure between write and commit names the restore of `CHANGELOG.md`, `ROADMAP.md` and `changelog.d/` to HEAD, and says `--allow-dirty` is not a recovery path.",
+          "artifact_path": "packages/core/src/release/pipeline.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "The release commit is refused while a captured fragment is still on disk.",
+          "artifact_path": "packages/core/src/release/git.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Story scope.",
+          "artifact_path": "content/skills/deft-directive-swarm/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "A story that adds an entry lists its own concrete fragment path in `file_scope`; the brief and PR templates (`.github/PULL_REQUEST_TEMPLATE.md`) and the swarm skill say so.",
+          "artifact_path": "content/skills/deft-directive-swarm/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "`swarm:readiness` is unchanged.",
+          "artifact_path": "packages/core/src/swarm/readiness-branches.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "This repository sets `plan.policy.changelog.mode` to `either` (operator decision, 2026-11-15).",
+          "artifact_path": "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "The move to `fragments` comes later, after a release is cut with fragments, and is the operator's call.",
+          "artifact_path": "content/scm/changelog.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "Acceptance Criteria - Given mode `fragments` and a branch that carries other PRs' fragments and none of its own, then the gate fails; with a valid own fragment, it passes.",
+          "artifact_path": "packages/core/src/changelog/fragment.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "Given mode `fragments` and a valid own fragment together with any edit to `CHANGELOG.md`, then the gate fails.",
+          "artifact_path": "packages/core/src/changelog/fragment.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "Given mode `either` and both forms in one change set, then the gate fails; with exactly one form, it passes.",
+          "artifact_path": "packages/core/src/changelog/fragment.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 27,
+          "text": "Given any mode and a change set that modifies, renames or deletes a fragment present at the merge base, then the gate fails; an invalid added fragment fails.",
+          "artifact_path": "packages/core/src/changelog/fragment.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 28,
+          "text": "Given a lifecycle-only change set, then the gate is exempt as today.",
+          "artifact_path": "packages/core/src/changelog/fragment.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 29,
+          "text": "Given a release cut with several fragments, then the promoted section holds each entry once in the right subsection, no fragment remains, and the deletions are in the release commit.",
+          "artifact_path": "packages/core/src/release/release-artifacts.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 30,
+          "text": "Given a dry run, then nothing is written or deleted.",
+          "artifact_path": "packages/core/src/release/release-artifacts.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 31,
+          "text": "Given a failure injected after the write and before deletion, and one after deletion and before the commit, then a rerun without a restore is refused, and a rerun after the restore gives each entry once and one version section.",
+          "artifact_path": "packages/core/src/release/pipeline.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 32,
+          "text": "Given a changelog that already holds the version heading, duplicate entry text in two fragments, or a symlinked fragment, then the release refuses.",
+          "artifact_path": "packages/core/src/release/release-artifacts.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 33,
+          "text": "Given two stories that list their own fragment paths, then `swarm:readiness` reports no overlap; given two stories that list the same directory entry, then the overlap is reported as today.",
+          "artifact_path": "packages/core/src/swarm/readiness-branches.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 34,
+          "text": "Given two branches that each add a fragment, when they merge in either order, then there is no conflict.",
+          "artifact_path": "packages/core/src/release/release-artifacts.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 35,
           "text": "This repository's policy reads `either`.",
-          "artifact_path": null,
+          "artifact_path": "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 36,
+          "text": "Refs #6286.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 37,
+          "text": "design-critique: not warranted, because this slice implements items 4, 6, 7, 8 and 9 of the design already accepted on #6286 (lean 6859392664, record 6859436534) and adds no mechanism.",
+          "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "statement"
         }
@@ -304,32 +479,7 @@
       "ambiguity_attestation": "none_found",
       "confessions": [
         "feat(changelog): fragment gate, release assembly and story scope (#6286 slice B)",
-        "Summary Slice B of the accepted #6286 design (CHANGELOG fragments): the branch-relative changelog gate, release assembly of fragments, story scope, and this repository's move to mode `either`.",
-        "It depends on slice A (path test, format, mode, effective view).",
-        "Bound contract: successor lean 6859392664 on #6286, items 4, 6, 7, 8 (first step) and 9 (completed-arc record 6859436534).",
-        "Each slice has its own issue so that each brief completes from exactly one PR with its own `deft-story` line until #6310 ships.",
-        "Scope 1.",
-        "Gate.",
-        "`verify:changelog-unreleased` in merge-base mode keeps the #680 lifecycle-only exemption and its `inline` behaviour.",
-        "In `fragments` mode it passes only when the change set against the merge base adds at least one valid fragment that is absent at the merge base, and fails when the change set changes `CHANGELOG.md` at all.",
-        "In `either` mode it passes when the change set adds exactly one of the two forms.",
-        "Fragments that other merged PRs put on the branch never satisfy it.",
-        "In every mode, a change set that modifies, renames or deletes a fragment present at the merge base fails, and every fragment it adds must be valid.",
-        "Release.",
-        "`prepareReleaseArtifacts` captures the fragments, applies the changelog read-safety refusal to each, and computes the assembled section in memory (subsection order, then file name).",
-        "It refuses on an invalid fragment, on two fragments with an identical entry line, and when `CHANGELOG.md` already holds a heading for the version being cut.",
-        "`writeReleaseArtifacts` writes `CHANGELOG.md` and deletes exactly the captured fragments; `commitReleaseArtifacts` stages those deletions with the release artifacts.",
-        "A dry run writes and deletes nothing.",
-        "A failure between write and commit names the restore of `CHANGELOG.md`, `ROADMAP.md` and `changelog.d/` to HEAD, and says `--allow-dirty` is not a recovery path.",
-        "The release commit is refused while a captured fragment is still on disk.",
-        "Story scope.",
-        "A story that adds an entry lists its own concrete fragment path in `file_scope`; the brief and PR templates (`.github/PULL_REQUEST_TEMPLATE.md`) and the swarm skill say so.",
-        "`swarm:readiness` is unchanged.",
-        "This repository sets `plan.policy.changelog.mode` to `either` (operator decision, 2026-11-15).",
-        "The move to `fragments` comes later, after a release is cut with fragments, and is the operator's call.",
-        "Acceptance Criteria - Given mode `fragments` and a branch that carries other PRs' fragments and none of its own, then the gate fails; with a valid own fragment, it passes.",
-        "Refs #6286.",
-        "design-critique: not warranted, because this slice implements items 4, 6, 7, 8 and 9 of the design already accepted on #6286 (lean 6859392664, record 6859436534) and adds no mechanism."
+        "Given mode `fragments` and a branch that carries other PRs' fragments and none of its own, then the gate fails; with a valid own fragment, it passes."
       ]
     },
     "metadata": {
@@ -390,7 +540,9 @@
           "docs/RELEASING.md",
           "docs/RULE-MAP.md",
           "CHANGELOG.md",
-          "changelog.d/6315-changelog-fragments.md"
+          "changelog.d/6315-changelog-fragments.md",
+          "packages/core/src/platform/changelog-cli.ts",
+          "packages/core/src/platform/changelog-cli.test.ts"
         ],
         "file_scope_confidence": "medium",
         "readiness": "ready",
