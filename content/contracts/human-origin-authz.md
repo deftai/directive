@@ -118,7 +118,30 @@ deft coverage:hotspots --attempt-id <attemptId>
 | Keep-outs | Does not fix #5541 / #5665 classifier correctness; no fabricate green; no UAT silent suspend; no blanket env override |
 
 Complementary hatches stay separate: `--allow-coverage-debt`, `policy:allow-*`,
-`DEFT_ALLOW_*`, delivery-attempt `recordOperatorOverride`, `spec-drift-override`.
+`DEFT_ALLOW_*`, delivery-attempt `recordOperatorOverride`, `spec-drift-override`,
+`delivery-identity-attest`.
+
+## Delivery identity attestation (#6317)
+
+Recovery for merged work with no merge-time identity basis (#6310 Bound 3). An
+operator attests one PR and its merge commit for one plan; the completion
+identity join then accepts the basis `operator-attested`.
+
+```bash
+deft authz:grant -- --template delivery-identity-attest \
+  --target <owner>/<repo>#<pr>@<merge_commit_sha> --plan-ref <scopeId> [--confirm]
+```
+
+| Rule | Detail |
+| --- | --- |
+| Mint provenance | `origin.kind=operator-cli` only, through the same human-presence mint gate; default expiry 24 hours; single-use |
+| Binding | PR number + full merge commit sha + plan id; `operations=[settings]` only, no push/merge permission |
+| Admission | Grant matches, the PR's merge-time body was read and carries no `deft-story-part: N`, and the PR passes the nonzero-file and delivery-exclusion checks |
+| Use record | First use must be before expiry; it is recorded when the `completed/` write succeeds, not in the join. An acceptance refusal leaves the grant unused. A later run for the same plan, PR and merge commit (finalize retry, restamp) accepts the used grant |
+| Expired | An expired, unused grant refuses completion and names a re-mint or `authz:revoke` |
+| One store | Mint, every read, the use record, `authz:revoke` and `authz:show` resolve the store at `mainWorktreeRoot(projectRoot)`, so the primary clone, a linked dest and the finalize lifecycle checkout share it; an unresolvable root refuses |
+| Provenance | `completionProvenance.identityBasis=operator-attested` and `attestationGrantId` |
+| Keep-outs | Never attests a part-line PR; never bypasses a PR's own contested sole mark (that settles by the delivery-branch stamp); does not relax ancestry |
 
 ## Explicit non-goals (siblings)
 

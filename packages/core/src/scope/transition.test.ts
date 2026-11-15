@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -14,6 +15,7 @@ import * as containedWriteMod from "../fs/contained-write.js";
 import { ContainedWriteError, ContainedWriteErrorCode } from "../fs/contained-write.js";
 import * as projectionContainment from "../fs/projection-containment.js";
 import * as clauseDerivation from "../intake/clause-derivation.js";
+import { mintDeliveryIdentityAttestTemplateGrant } from "../policy/delivery-identity-attest-grant.js";
 import * as specGuardMod from "../policy/spec-guard.js";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import type { GitRunner } from "../session/git.js";
@@ -2947,5 +2949,273 @@ describe("scope:complete admits and rechecks the small-change lane thin shape (#
       expect(result.message).toContain("crossed after admit");
       expect(existsSync(path)).toBe(true);
     }
+  });
+});
+
+describe("scope:complete identity join for part-line, same-mark and attested PRs (#6317)", () => {
+  const ISSUE = 6270;
+  const REPO = "deftai/directive";
+  const PLAN_ID = "github.issue.6270";
+  const MERGED_AT = "2026-11-14T10:00:00Z";
+  const SHA = (pr: number) => String(pr).padStart(4, "0").repeat(10);
+  const mark = `deft-story: ${ISSUE}`;
+  const part = `deft-story-part: ${ISSUE}`;
+  const name = `2026-11-15-${ISSUE}-story.xbrief.json`;
+  const bases: string[] = [];
+  afterEach(() => {
+    for (const base of bases.splice(0)) {
+      rmSync(base, { recursive: true, force: true });
+    }
+  });
+
+  function realGit(cwd: string, args: string[]): string {
+    return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+  }
+
+  /** Main clone plus linked worktrees; every checkout carries the xbrief folders. */
+  function cloneWithDests(...dests: string[]): Record<string, string> {
+    const base = mkdtempSync(join(tmpdir(), "scope-6317-"));
+    bases.push(base);
+    const main = join(base, "main");
+    mkdirSync(main);
+    realGit(main, ["init", "-q"]);
+    realGit(main, ["config", "user.email", "test@example.com"]);
+    realGit(main, ["config", "user.name", "test"]);
+    writeFileSync(join(main, "README.md"), "x\n", "utf8");
+    realGit(main, ["add", "README.md"]);
+    realGit(main, ["commit", "-q", "-m", "init"]);
+    const roots: Record<string, string> = { main };
+    for (const dest of dests) {
+      roots[dest] = join(base, dest);
+      realGit(main, ["worktree", "add", "-q", "-b", `b-${dest}`, roots[dest] as string]);
+    }
+    for (const root of Object.values(roots)) {
+      for (const folder of ["active", "completed"]) {
+        mkdirSync(join(root, "xbrief", folder), { recursive: true });
+      }
+    }
+    return roots;
+  }
+
+  function writeStory(root: string, productPullRequest?: number): string {
+    const path = join(root, "xbrief", "active", name);
+    writeFile(path, {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        id: PLAN_ID,
+        title: "two-PR story",
+        status: "running",
+        references: [
+          { uri: `https://github.com/${REPO}/issues/${ISSUE}`, type: "x-xbrief/github-issue" },
+        ],
+        metadata: {
+          kind: "story",
+          swarm: { file_scope: ["packages/core/src/x.ts"] },
+          ...(productPullRequest !== undefined ? { productPullRequest } : {}),
+        },
+        items: [],
+      },
+    });
+    return path;
+  }
+
+  /** Delivery-branch git: ancestry ok; `git show origin/master:<path>` serves `blobStamp`. */
+  function deliveryGit(blobStamp: number | null | "absent"): GitRunner {
+    return (_cwd, args) => {
+      const joined = args.join(" ");
+      if (args[0] === "show") {
+        if (blobStamp === "absent") return { code: 128, stdout: "", stderr: "fatal: no path" };
+        const metadata = blobStamp === null ? {} : { productPullRequest: blobStamp };
+        return { code: 0, stdout: JSON.stringify({ plan: { metadata } }), stderr: "" };
+      }
+      if (joined.includes("merge-base") && joined.includes("--is-ancestor")) {
+        return { code: 0, stdout: "", stderr: "" };
+      }
+      if (joined.includes("rev-parse") && joined.includes("origin/")) {
+        return { code: 0, stdout: "deliverytip", stderr: "" };
+      }
+      if (joined.includes("symbolic-ref")) {
+        return { code: 0, stdout: "origin/master", stderr: "" };
+      }
+      return { code: 0, stdout: "ok", stderr: "" };
+    };
+  }
+
+  const merged = (number: number, body: string): MergedPrListNode => ({
+    number,
+    mergedAt: MERGED_AT,
+    body,
+    lastEditedAt: null,
+  });
+
+  function complete(
+    path: string,
+    opts: {
+      prs: Record<number, string>;
+      pr?: number;
+      blob?: number | null | "absent";
+      finalize?: boolean;
+    },
+  ) {
+    return runTransition("complete", path, new Date("2026-11-15T12:00:00.000Z"), {
+      runGit: deliveryGit(opts.blob === undefined ? "absent" : opts.blob),
+      fetchPrPayload: (n: number, repo: string) => {
+        const body = opts.prs[n];
+        return body === undefined || repo !== REPO
+          ? null
+          : {
+              merged_at: MERGED_AT,
+              merge_commit_sha: SHA(n),
+              base: { ref: "master" },
+              head: { sha: `head${n}` },
+              body,
+            };
+      },
+      fetchClosingPrRefs: () => ({ ok: true, refs: [] }),
+      fetchClosingIssueIds: () => [{ repository: REPO, issueNumber: ISSUE }],
+      mergeTimeForge: staticMergeTimeForge({
+        merged: Object.entries(opts.prs).map(([n, body]) => merged(Number(n), body)),
+      }),
+      deliveryEvidence:
+        opts.pr === undefined
+          ? null
+          : { prNumber: opts.pr, mergeCommit: SHA(opts.pr), mergedAt: MERGED_AT },
+      ...(opts.finalize === true
+        ? { assumeEvidenceValidated: true, verifier: "swarm:finalize-cohort" }
+        : {}),
+    });
+  }
+
+  function provenance(root: string): Record<string, unknown> {
+    const data = JSON.parse(readFileSync(join(root, "xbrief", "completed", name), "utf8")) as {
+      plan: { metadata: { completionProvenance: Record<string, unknown> } };
+    };
+    return data.plan.metadata.completionProvenance;
+  }
+
+  it("clause.1: with only a part-line PR merged, --pr, finalize, auto-discovery and an attestation all refuse", () => {
+    const { main } = cloneWithDests();
+    const path = writeStory(main, 6301);
+    const prs = { 6301: `Refs #${ISSUE}\n${part}` };
+    const byPr = complete(path, { prs, pr: 6301 });
+    expect(byPr.ok).toBe(false);
+    expect(byPr.message).toMatch(/partial delivery/);
+    const byFinalize = complete(path, { prs, pr: 6301, finalize: true });
+    expect(byFinalize.ok).toBe(false);
+    expect(byFinalize.message).toMatch(/partial delivery/);
+    const byDiscovery = complete(path, { prs });
+    expect(byDiscovery.ok).toBe(false);
+    expect(byDiscovery.message).toMatch(/partial delivery/);
+
+    const minted = mintDeliveryIdentityAttestTemplateGrant({
+      projectRoot: main,
+      target: `${REPO}#6301@${SHA(6301)}`,
+      planRef: PLAN_ID,
+    });
+    expect(minted.ok).toBe(true);
+    const attested = complete(path, { prs, pr: 6301 });
+    expect(attested.ok).toBe(false);
+    expect(attested.message).toMatch(/operator attestation included/);
+    expect(existsSync(path)).toBe(true);
+  });
+
+  it("clause.3: a second PR that merges with the mark completes and provenance lists the part-line PR", () => {
+    const { main } = cloneWithDests();
+    const path = writeStory(main);
+    const result = complete(path, {
+      prs: { 6301: `Refs #${ISSUE}\n${part}`, 6302: mark },
+      pr: 6302,
+    });
+    expect(result.ok).toBe(true);
+    expect(provenance(main)).toMatchObject({
+      identityBasis: "merge-time-mark",
+      prNumber: 6302,
+      partLinePrs: [6301],
+    });
+  });
+
+  it("clause.4: two marked PRs complete only by the fetched delivery-branch stamp, by --pr, discovery and finalize", () => {
+    const prs = { 6302: mark, 6303: mark };
+    const runs: [string, Parameters<typeof complete>[1]][] = [
+      ["--pr", { prs, pr: 6303, blob: 6303 }],
+      ["auto-discovery", { prs, blob: 6303 }],
+      ["finalize", { prs, pr: 6303, blob: 6303, finalize: true }],
+    ];
+    for (const [label, opts] of runs) {
+      const { main } = cloneWithDests();
+      const path = writeStory(main, 6303);
+      const result = complete(path, opts);
+      expect(result.ok, label).toBe(true);
+      expect(provenance(main), label).toMatchObject({ prNumber: 6303, competingMarkedPrs: [6302] });
+    }
+
+    const { main } = cloneWithDests();
+    const path = writeStory(main, 6303);
+    const other = complete(path, { prs, pr: 6302, blob: 6303 });
+    expect(other.ok).toBe(false);
+    expect(other.message).toMatch(/#6303 also carry a sole/);
+    // A working-tree stamp that differs from the fetched blob does not win.
+    const workingTree = complete(path, { prs, blob: 6302 });
+    expect(workingTree.ok).toBe(false);
+    expect(workingTree.message).toMatch(/is #6302, not #6303/);
+    // Unstamped on the delivery branch: refuse and name the competitor.
+    const unstamped = complete(path, { prs, pr: 6303, blob: null, finalize: true });
+    expect(unstamped.ok).toBe(false);
+    expect(unstamped.message).toMatch(/#6302 also carry a sole/);
+    expect(unstamped.message).toMatch(/is unset, not #6303/);
+    expect(existsSync(path)).toBe(true);
+  });
+
+  it("clause.6: an attested PR completes from the primary, a linked dest and finalize; a dest-minted grant is found from the primary", () => {
+    const prs = { 6304: `Refs #${ISSUE}` };
+    const target = `${REPO}#6304@${SHA(6304)}`;
+
+    // Minted from a linked dest, completed from the primary clone.
+    const primary = cloneWithDests("dest");
+    expect(
+      mintDeliveryIdentityAttestTemplateGrant({
+        projectRoot: primary.dest as string,
+        target,
+        planRef: PLAN_ID,
+      }).ok,
+    ).toBe(true);
+    const fromPrimary = complete(writeStory(primary.main as string), { prs, pr: 6304 });
+    expect(fromPrimary.ok).toBe(true);
+    expect(fromPrimary.message).toMatch(/recorded as used/);
+    expect(provenance(primary.main as string)).toMatchObject({
+      identityBasis: "operator-attested",
+      attestationGrantId: expect.any(String),
+    });
+
+    // Minted from the primary, completed from a linked dest.
+    const dest = cloneWithDests("dest");
+    expect(
+      mintDeliveryIdentityAttestTemplateGrant({
+        projectRoot: dest.main as string,
+        target,
+        planRef: PLAN_ID,
+      }).ok,
+    ).toBe(true);
+    expect(complete(writeStory(dest.dest as string), { prs, pr: 6304 }).ok).toBe(true);
+
+    // Through finalize: the lifecycle checkout is another linked worktree.
+    const fin = cloneWithDests("dest", "lifecycle");
+    expect(
+      mintDeliveryIdentityAttestTemplateGrant({
+        projectRoot: fin.dest as string,
+        target,
+        planRef: PLAN_ID,
+      }).ok,
+    ).toBe(true);
+    const viaFinalize = complete(writeStory(fin.lifecycle as string), {
+      prs,
+      pr: 6304,
+      finalize: true,
+    });
+    expect(viaFinalize.ok).toBe(true);
+    expect(provenance(fin.lifecycle as string)).toMatchObject({
+      identityBasis: "operator-attested",
+      verifier: "swarm:finalize-cohort",
+    });
   });
 });

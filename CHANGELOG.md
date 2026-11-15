@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Story lines for product PRs of an active story (#6316).** New `deft-story-part: N` line for a PR that is part of a story and does not complete it. `pr:check-closing-keywords` fails a product PR of a running story with neither line, and a body with both. `--body-file <path> --write-story-line [--part]` and `pre-pr:run --body-file` write the line. PR templates stop advising `Closes #N` for an active story. Refs #6310.
+- **Identity join reads the merge-time body first; operator delivery attestation (#6317).** Completion refuses an unreadable merge-time body and a `deft-story-part: N` PR (a partial delivery) on every basis. Two PRs with the same mark settle by `productPullRequest` on the fetched delivery branch; finalize's operator bind refuses and names both. New `deft authz:grant -- --template delivery-identity-attest --target <owner>/<repo>#<pr>@<sha> --plan-ref <scopeId>` (basis `operator-attested`, main-clone grant store) recovers merged work with no basis. Refs #6310.
 
 ### Changed
 - Minted the intent-constraint record for the #6295 merge-queue exit code (3) and GraphQL floor (500 points). Refs #6295.

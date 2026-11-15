@@ -12,6 +12,7 @@ import {
   bodyHasClosingKeywordFor,
   classifyStoredDeliveryDisposition,
   connectedAtMergedAt,
+  type DeliveryBranchStampRead,
   defaultFetchClosingIssueIds,
   defaultFetchClosingPrRefs,
   defaultFetchPrChangedFiles,
@@ -25,6 +26,7 @@ import {
   type FetchClosingPrRefsFn,
   type FetchPrChangedFilesFn,
   type FetchPrPayloadFn,
+  type FindDeliveryAttestationFn,
   hasExplicitDeliverySelectors,
   isCodeBearingScope,
   isCompletionMoveShaped,
@@ -42,6 +44,7 @@ import {
   type PrFileEntry,
   prDiffAddsBrief,
   type RateLimitSnapshot,
+  readDeliveryBranchProductPullRequest,
   refreshRemoteDeliveryRef,
   resolveCanonicalProjectRepository,
   resolveCompletionSessionId,
@@ -51,6 +54,7 @@ import {
   scanSoleMarkCompetitors,
   selectMergeTimeBody,
   soleDeftStoryMark,
+  stampDeliveryProvenance,
   verifyStoryPrMergeIdentity,
 } from "./delivery-evidence.js";
 import { runTransition } from "./transition.js";
@@ -2561,7 +2565,9 @@ describe("merge-time association (#5710 P3)", () => {
     expect(stranded.message).toMatch(/\(a\) a unique sole `deft-story: N` mark/);
     expect(stranded.message).toMatch(/\(b\) a closing keyword/);
     expect(stranded.message).toMatch(/\(c\) a Connected issue link/);
-    expect(stranded.message).toMatch(/identity-migration/);
+    // #6317: the refusal names the operator attestation, not the parked migration.
+    expect(stranded.message).not.toMatch(/identity-migration/);
+    expect(stranded.message).toMatch(/deft authz:grant --template delivery-identity-attest/);
     // No forge at all: still fails closed with the same named bases.
     const noForge = verifyStoryPrMergeIdentity({
       plan: issuePlan(6147),
@@ -2858,6 +2864,7 @@ describe("sole-mark uniqueness scan (#5710 P3)", () => {
     ).toEqual({
       ok: true,
       competitors: [],
+      partLinePrs: [],
     });
     expect(
       scanSoleMarkCompetitors({
@@ -2866,7 +2873,7 @@ describe("sole-mark uniqueness scan (#5710 P3)", () => {
         candidatePr: 9,
         forge: makeForge({ merged: [listed(1, mark)] }),
       }),
-    ).toEqual({ ok: true, competitors: [1] });
+    ).toEqual({ ok: true, competitors: [1], partLinePrs: [] });
   });
 });
 
@@ -3197,5 +3204,355 @@ describe("non-delivery refuse for a merged stamped PR (#5710 P4)", () => {
       expect(readFileSync(path, "utf8")).toBe(raw);
       expect(existsSync(join(root, "xbrief", "completed", "stamped.xbrief.json"))).toBe(false);
     }
+  });
+});
+
+describe("identity join reads the merge-time body first (#6317 / #6310 Bound 2)", () => {
+  const mark = "deft-story: 6212";
+  const part = "deft-story-part: 6212";
+  type StampRead = () => DeliveryBranchStampRead;
+  const connected = (pr: number): Record<number, readonly PrConnectionEvent[]> => ({
+    [pr]: [
+      { kind: "connected", createdAt: BEFORE, issues: [{ repository: REPO, issueNumber: 6212 }] },
+    ],
+  });
+  const stampRead =
+    (pr: number | null, calls?: string[]): StampRead =>
+    () => {
+      calls?.push("stamp");
+      return { ok: true, productPullRequest: pr, source: "origin/master:xbrief/active/s.json" };
+    };
+  const join = (opts: {
+    pr: number;
+    body: string;
+    forge: MergeTimeForge;
+    stamp?: StampRead;
+    attest?: FindDeliveryAttestationFn;
+  }) =>
+    verifyStoryPrMergeIdentity({
+      plan: { ...issuePlan(6212), id: "github.issue.6212" },
+      evidence: { prNumber: opts.pr },
+      mergeCommit: "mergesha",
+      fetchPrPayload: payloadFor({ [opts.pr]: mergedPayload({ body: opts.body }) }),
+      mergeTimeForge: opts.forge,
+      readDeliveryBranchStamp: opts.stamp,
+      findDeliveryAttestation: opts.attest,
+    });
+
+  it("clause.2: a part-line PR with a Connected link and a failing body read refuses", () => {
+    const result = join({
+      pr: 6300,
+      body: `Refs #6212\n${part}`,
+      forge: makeForge({ events: connected(6300), revisionsFail: [6300] }),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/merge-time body unreadable, refusing before any basis/);
+    expect(result.identityBasis).toBeUndefined();
+  });
+
+  it("clause.2: a readable part-line body refuses as a partial delivery on every basis", () => {
+    const attest: FindDeliveryAttestationFn = () => ({ ok: true, grantId: "g-1", replay: false });
+    for (const body of [`${part}\nFixes #6212`, part]) {
+      const forge = makeForge({ events: connected(6300) });
+      const result = join({ pr: 6300, body, forge, attest });
+      expect(result.ok).toBe(false);
+      expect(result.message).toMatch(/partial delivery/);
+      expect(result.message).toMatch(/operator attestation included/);
+      expect(result.message).toMatch(/completing mark `deft-story: 6212`/);
+      expect(forge.calls.some((c) => c.startsWith("events:"))).toBe(false);
+    }
+  });
+
+  it("clause.2: no forge means no readable body, so even brief-in-PR-diff refuses", () => {
+    const result = verifyStoryPrMergeIdentity({
+      plan: issuePlan(6212),
+      evidence: { prNumber: 6300 },
+      mergeCommit: "mergesha",
+      fetchPrPayload: payloadFor({ 6300: mergedPayload({ body: "Refs #6212" }) }),
+      briefBasename: "s.xbrief.json",
+      fetchPrChangedFiles: () => [
+        { status: "added", filename: "xbrief/active/s.xbrief.json" },
+        PRODUCT_FILE,
+      ],
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/lookups are unavailable/);
+  });
+
+  it("clause.3: a part-line PR is never a competitor and is listed for provenance", () => {
+    const forge = makeForge({ merged: [listed(6300, part), listed(6301, mark)] });
+    const result = join({ pr: 6301, body: mark, forge });
+    expect(result.ok).toBe(true);
+    expect(result.identityBasis).toBe("merge-time-mark");
+    expect(result.partLinePrs).toEqual([6300]);
+    expect(result.competingMarkedPrs).toBeUndefined();
+  });
+
+  it("clause.4: two marked PRs settle by the fetched delivery-branch stamp", () => {
+    const merged = [listed(6301, mark), listed(6302, mark)];
+    const calls: string[] = [];
+    const win = join({
+      pr: 6302,
+      body: mark,
+      forge: makeForge({ merged }),
+      stamp: stampRead(6302, calls),
+    });
+    expect(win.ok).toBe(true);
+    expect(win.competingMarkedPrs).toEqual([6301]);
+    expect(calls).toEqual(["stamp"]);
+
+    const lose = join({
+      pr: 6301,
+      body: mark,
+      forge: makeForge({ merged }),
+      stamp: stampRead(6302),
+    });
+    expect(lose.ok).toBe(false);
+    expect(lose.message).toMatch(/#6302 also carry a sole `deft-story: 6212` mark/);
+    expect(lose.message).toMatch(/productPullRequest in origin\/master:.* is #6302, not #6301/);
+
+    const unstamped = join({
+      pr: 6301,
+      body: mark,
+      forge: makeForge({ merged }),
+      stamp: stampRead(null),
+    });
+    expect(unstamped.ok).toBe(false);
+    expect(unstamped.message).toMatch(/is unset, not #6301/);
+
+    const noReader = join({ pr: 6301, body: mark, forge: makeForge({ merged }) });
+    expect(noReader.ok).toBe(false);
+    expect(noReader.message).toMatch(/no delivery-branch brief read/);
+
+    const failedRead = join({
+      pr: 6301,
+      body: mark,
+      forge: makeForge({ merged }),
+      stamp: () => ({ ok: false, error: "git fetch origin master failed" }),
+    });
+    expect(failedRead.ok).toBe(false);
+    expect(failedRead.message).toMatch(/settling by the fetched delivery-branch stamp failed/);
+  });
+
+  it("clause.4: a single marked PR does not read the delivery branch", () => {
+    const calls: string[] = [];
+    const result = join({
+      pr: 6301,
+      body: mark,
+      forge: makeForge({ merged: [listed(6301, mark)] }),
+      stamp: stampRead(null, calls),
+    });
+    expect(result.ok).toBe(true);
+    expect(calls).toEqual([]);
+  });
+
+  it("clause.5: an incomplete merged-PR scan refuses even when the stamp names the PR", () => {
+    const result = join({
+      pr: 6301,
+      body: mark,
+      forge: makeForge({ merged: [listed(6301, mark)], listFailAtPage: 0 }),
+      stamp: stampRead(6301),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/uniqueness unknown, refusing/);
+  });
+
+  it("operator-attested basis: grant match plus delivery checks; refusal names the attest command", () => {
+    const queries: unknown[] = [];
+    const attest: FindDeliveryAttestationFn = (q) => {
+      queries.push(q);
+      return { ok: true, grantId: "g-attest", replay: false };
+    };
+    const ok = join({ pr: 6400, body: "Refs #6212", forge: makeForge({}), attest });
+    expect(ok.ok).toBe(true);
+    expect(ok.identityBasis).toBe("operator-attested");
+    expect(ok.attestationGrantId).toBe("g-attest");
+    expect(queries).toEqual([
+      { repository: REPO, prNumber: 6400, mergeCommitSha: "mergesha", planId: "github.issue.6212" },
+    ]);
+
+    const lifecycleOnly = join({
+      pr: 6400,
+      body: "Refs #6212",
+      forge: makeForge({ files: { 6400: [{ status: "modified", filename: "CHANGELOG.md" }] } }),
+      attest,
+    });
+    expect(lifecycleOnly.ok).toBe(false);
+    expect(lifecycleOnly.message).toMatch(/\(d\) PR #6400 changes only briefs and CHANGELOG.md/);
+
+    const zeroFile = join({
+      pr: 6400,
+      body: "Refs #6212",
+      forge: makeForge({ files: { 6400: [] } }),
+      attest,
+    });
+    expect(zeroFile.message).toMatch(/\(d\) PR #6400 changes no files/);
+
+    const missing = join({
+      pr: 6400,
+      body: "Refs #6212",
+      forge: makeForge({}),
+      attest: () => ({ ok: false, reason: "operator-attested: no grant" }),
+    });
+    expect(missing.ok).toBe(false);
+    expect(missing.message).toMatch(/\(d\) operator-attested: no grant/);
+    expect(missing.message).toMatch(
+      /deft authz:grant --template delivery-identity-attest --target deftai\/directive#6400@mergesha --plan-ref github\.issue\.6212 --confirm/,
+    );
+
+    const noLookup = join({ pr: 6400, body: "Refs #6212", forge: makeForge({}) });
+    expect(noLookup.message).toMatch(/\(d\) operator attestation lookup is unavailable/);
+
+    const noPlanId = verifyStoryPrMergeIdentity({
+      plan: issuePlan(6212),
+      evidence: { prNumber: 6400 },
+      mergeCommit: "mergesha",
+      fetchPrPayload: payloadFor({ 6400: mergedPayload({ body: "Refs #6212" }) }),
+      mergeTimeForge: makeForge({}),
+      findDeliveryAttestation: attest,
+    });
+    expect(noPlanId.ok).toBe(false);
+    expect(noPlanId.message).toMatch(/the plan has no id/);
+    expect(noPlanId.message).toMatch(/--plan-ref <scopeId>/);
+  });
+
+  it("evaluateDeliveryGate stores the grant id, part-line and competing PRs in provenance", () => {
+    const root = makeRepo();
+    try {
+      const base = {
+        projectRoot: root,
+        nowIso: "2026-11-12T12:00:00Z",
+        assumeEvidenceValidated: true,
+      };
+      const attested = evaluateDeliveryGate({
+        ...base,
+        runGit: gitOk(),
+        plan: { ...issuePlan(6212), id: "github.issue.6212" },
+        evidence: { prNumber: 6400, mergeCommit: "mergesha", mergedAt: MERGED_AT },
+        fetchPrPayload: payloadFor({ 6400: mergedPayload({ body: "Refs #6212" }) }),
+        mergeTimeForge: makeForge({}),
+        findDeliveryAttestation: () => ({ ok: true, grantId: "g-attest", replay: true }),
+      });
+      expect(attested.ok).toBe(true);
+      expect(attested.provenance?.identityBasis).toBe("operator-attested");
+      expect(attested.provenance?.attestationGrantId).toBe("g-attest");
+
+      const stampedBlob = JSON.stringify({ plan: { metadata: { productPullRequest: 6302 } } });
+      const marked = evaluateDeliveryGate({
+        ...base,
+        runGit: (cwd, args) =>
+          args[0] === "show" ? { code: 0, stdout: stampedBlob, stderr: "" } : gitOk()(cwd, args),
+        plan: issuePlan(6212),
+        evidence: { prNumber: 6302, mergeCommit: "mergesha", mergedAt: MERGED_AT },
+        fetchPrPayload: payloadFor({ 6302: mergedPayload({ body: mark }) }),
+        mergeTimeForge: makeForge({
+          merged: [listed(6300, part), listed(6301, mark), listed(6302, mark)],
+        }),
+        briefBasename: "s.xbrief.json",
+      });
+      expect(marked.ok).toBe(true);
+      expect(marked.provenance?.partLinePrs).toEqual([6300]);
+      expect(marked.provenance?.competingMarkedPrs).toEqual([6301]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("readDeliveryBranchProductPullRequest fetches, reads the blob, and fails closed", () => {
+    const shows: string[] = [];
+    const runGit =
+      (blobs: Record<string, string>, fetchFail = false): GitRunner =>
+      (cwd, args) => {
+        if (args[0] === "show") {
+          const spec = String(args[1]);
+          shows.push(spec);
+          const blob = blobs[spec];
+          return blob === undefined
+            ? { code: 128, stdout: "", stderr: "fatal: path does not exist" }
+            : { code: 0, stdout: blob, stderr: "" };
+        }
+        return gitOk({ fetchFail })(cwd, args);
+      };
+    const read = (git: GitRunner) =>
+      readDeliveryBranchProductPullRequest({
+        projectRoot: "/x",
+        deliveryBranch: "master",
+        briefRelPath: "xbrief/active/s.xbrief.json",
+        runGit: git,
+      });
+    const active = "origin/master:xbrief/active/s.xbrief.json";
+    const stamped = JSON.stringify({ plan: { metadata: { productPullRequest: 77 } } });
+    expect(read(runGit({ [active]: stamped }))).toEqual({
+      ok: true,
+      productPullRequest: 77,
+      source: active,
+    });
+    // The brief already moved to completed/ on the delivery branch.
+    expect(read(runGit({ "origin/master:xbrief/completed/s.xbrief.json": stamped })).ok).toBe(true);
+    expect(shows).toContain("origin/master:xbrief/completed/s.xbrief.json");
+    expect(read(runGit({ [active]: JSON.stringify({ plan: {} }) }))).toMatchObject({
+      ok: true,
+      productPullRequest: null,
+    });
+    expect(read(runGit({}, true))).toMatchObject({ ok: false });
+    expect(read(runGit({}))).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/is not on/),
+    });
+    expect(read(runGit({ [active]: "not json" }))).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/not valid JSON/),
+    });
+    expect(read(runGit({ [active]: "[]" }))).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/no plan object/),
+    });
+  });
+
+  it("stampDeliveryProvenance writes the new provenance fields only when present", () => {
+    const plan: Record<string, unknown> = {};
+    stampDeliveryProvenance(plan, {
+      repository: REPO,
+      implementationCommit: null,
+      prNumber: 6400,
+      prBase: "master",
+      mergeCommit: "mergesha",
+      deliveryBranch: "master",
+      deliveryCommit: "tip",
+      verifiedAt: "2026-11-12T12:00:00Z",
+      verifier: "scope:complete",
+      disposition: "delivered",
+      handoffState: "delivered",
+      deployed: null,
+      uatVerified: null,
+      identityBasis: "operator-attested",
+      attestationGrantId: "g-attest",
+      partLinePrs: [6300],
+      competingMarkedPrs: [],
+    });
+    const prov = (plan.metadata as { completionProvenance: Record<string, unknown> })
+      .completionProvenance;
+    expect(prov.attestationGrantId).toBe("g-attest");
+    expect(prov.partLinePrs).toEqual([6300]);
+    expect("competingMarkedPrs" in prov).toBe(false);
+    expect(prov.identityBasis).toBe("operator-attested");
+  });
+
+  it("an attestation never bypasses a contested sole mark", () => {
+    let asked = 0;
+    const attest: FindDeliveryAttestationFn = () => {
+      asked += 1;
+      return { ok: true, grantId: "g-attest", replay: false };
+    };
+    const result = join({
+      pr: 6301,
+      body: mark,
+      forge: makeForge({ merged: [listed(6301, mark), listed(6302, mark)] }),
+      stamp: stampRead(6302),
+      attest,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/\(d\) not evaluated: the PR carries the sole mark/);
+    expect(asked).toBe(0);
   });
 });
