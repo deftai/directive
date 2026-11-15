@@ -64,6 +64,14 @@ const RULES: readonly { rule: LiteralChangelogPathMatch["rule"]; re: RegExp }[] 
   { rule: "regex", re: /CHANGELOG\\{1,2}\.md|CHANGELOG\(\?:\\{1,2}\.md\)/ },
   { rule: "membership", re: new RegExp(String.raw`\.(?:has|includes)\(\s*` + LIT) },
   { rule: "membership", re: new RegExp(String.raw`\bcase\s+` + LIT + String.raw`\s*:`) },
+  // Inline literal collections: `["CHANGELOG.md", …].includes(p)`, `new Set(["CHANGELOG.md"])`.
+  {
+    rule: "membership",
+    re: new RegExp(
+      String.raw`\[[^\]]*` + LIT + String.raw`[^\]]*\]\s*\.(?:includes|indexOf|some|find|has)\(`,
+    ),
+  },
+  { rule: "membership", re: new RegExp(String.raw`new\s+(?:Set|Map)\s*\(\s*\[[^\]]*` + LIT) },
   { rule: "list-element", re: new RegExp(String.raw`^\s*` + LIT + String.raw`\s*,?\s*$`) },
 ];
 
@@ -169,6 +177,11 @@ describe("changelog entry path contract (#6314)", () => {
       { path: "packages/core/src/x/compare.ts", text: 'if (p === "CHANGELOG.md") return true;' },
       { path: "packages/core/src/x/regex.ts", text: "const RE = /^(CHANGELOG\\.md|LICENSE)$/i;" },
       { path: "packages/core/src/x/has.ts", text: 'return SET.has("CHANGELOG.md");' },
+      { path: "packages/core/src/x/inline.ts", text: 'return ["CHANGELOG.md"].includes(path);' },
+      {
+        path: "packages/core/src/x/set.ts",
+        text: 'const S = new Set(["README.md", "CHANGELOG.md"]);',
+      },
       {
         path: "packages/core/src/x/list.ts",
         text: 'const L = [\n  "README.md",\n  "CHANGELOG.md",\n];',
@@ -183,6 +196,8 @@ describe("changelog entry path contract (#6314)", () => {
       ["packages/core/src/x/compare.ts", "comparison"],
       ["packages/core/src/x/regex.ts", "regex"],
       ["packages/core/src/x/has.ts", "membership"],
+      ["packages/core/src/x/inline.ts", "membership"],
+      ["packages/core/src/x/set.ts", "membership"],
       ["packages/core/src/x/list.ts", "list-element"],
       ["packages/core/src/x/const.ts", "constant-comparison"],
       ["packages/core/src/x/alias.ts", "constant-comparison"],
