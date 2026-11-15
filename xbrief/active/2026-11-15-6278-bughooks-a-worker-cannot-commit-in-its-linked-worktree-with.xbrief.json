@@ -8,47 +8,71 @@
     "title": "bug(hooks): a worker cannot commit in its linked worktree with cd-then-commit or git -C forms",
     "status": "running",
     "narratives": {
-      "Description": "bug(hooks): a worker cannot commit in its linked worktree with cd-then-commit or git -C forms",
+      "Description": "A worker in a linked worktree cannot commit with `cd <path> && git commit` or `git -C <path> commit`, because the commit gate judges the hook project root's index instead of the named checkout. This story adds one commit-target resolver so the gate reads the index and story binding of the checkout the commit names, and refuses targets it cannot resolve to one checkout.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6278",
       "Overview": "\n1. One commit-target resolver, in a new module `packages/core/src/hooks/commit-target.ts`, with one quote-aware tokenizer shared by commit recognition, target resolution and the index-mutating-form check. Quoted and unquoted paths resolve the same way; quoted paths with spaces stay whole; Windows backslashes are not rewritten.\n2. Shapes that name a checkout: `git -C <absolute path> commit …`, and exactly one leading `cd <absolute path> &&` before the commit. A path is absolute when it is a native absolute path; on Windows that is a drive-letter path (`C:\\…` or `C:/…`) or the MSYS drive form (`/c/…`), which the resolver maps to its drive path.\n3. Target root. For those shapes it is the named path. For a call with no `cd` and no `-C` it is the hook project root, exactly as today.\n4. A target the gate cannot resolve to one checkout is refused, and the message names the two absolute forms. That covers: a relative path after `cd` or `-C` in a call that holds a commit; more than one `cd` or `-C` before the commit; a variable, `~` or substitution in that path; `--git-dir` and `--work-tree` (refused today); and a `GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE` or `GIT_COMMON_DIR` prefix on the commit. These are the only refusals this design adds. Each is a case where the gate cannot know which index the commit will use; at the pin each one is refused already or is passed on the hook project root's index.\n5. Admission. A named path must exist and goes through the existing `admitEffectiveHookRoot`: same git common dir, or deny. A commit target has no non-repository fallback. The payload root stays the identity for authz, kill-switch and deny diagnostics.\n6. Index and story on the target root. Staged paths are listed there. `resolveWorktreeStoryBinding` runs on it: `bound` supplies `boundPath` to `inspectActiveScope` and the write fence is loaded for that story; `refuse` is a deny that carries the resolver's reason, with a repair line for `env_pin_conflict`; `none` keeps today's selection. The empty-index and lifecycle-only early returns stay, now read from the target root's index.\n7. Fixtures enter at the hook decision and use a real registered linked worktree with two active briefs and no pin: the four attempts of comment 6858441886 (quoted `cd`, `-C`, and unquoted `cd` with MSYS paths are judged against the worktree's index; none passes on another checkout's index); the issue's allow and refuse pairs for `-C` and `cd`; `git -C . commit` and `cd <relative> && git commit` with differing indexes (refused); `cd a && cd b && git commit` (refused); a quoted path with spaces and a Windows drive path; a location-variable prefix (refused); a `-C` into a foreign repository and into a missing directory (denied); a corrupt assignment record and a conflicting pin (denied with the resolver's reason); an unregistered linked worktree; and a main-worktree commit that behaves as today.\n\n\n",
       "Constraint": "- Refusing every other command before or after the commit, including `git add … && git commit` (the first version of this recut). It adds a refusal of a common form; see marker A3.\n- A new deny for git writes that land outside the caller's bound worktree, and occupancy or ritual checks on a commit target. Commits are not ritual-gated today, and the operator's reshaping note on #6291 asks for explicit targeting and no new deny; see marker A2.\n- Refusing POSIX-style paths on Windows. Workers on the Bash tool use the MSYS form.\n- Resolving a relative `-C` or `cd` path against a reported directory or the hook project root (pain-audit 1).\n- Lifting the `-C` deny, or stripping a `cd` prefix, without resolving and admitting one checkout first (all three round-1 critics).\n- A second resolver or a second same-repository check beside `admitEffectiveHookRoot` (Codex 1, Claude 3).\n- A general shell interpreter; the two shapes are literal (Codex 2).\n- Treating a `refuse` binding as \"no binding\" and falling back to another eligible story (Codex 3, Claude 4).\n- Requiring registration for every commit (Codex 3).\n- Reading `DEFT_ACTIVE_SCOPE=` or any other per-command environment prefix as a pin (Claude 2).\n- Folding in the main-worktree cases from #6247 comment 6844905798, or the planning-commit admission accepted on #5839.",
-      "Labels": "bug, consumer-example, design-critique:ingest-ready, framework-gap"
+      "Labels": "bug, consumer-example, design-critique:ingest-ready, framework-gap",
+      "UserStory": "As a worker agent in a linked worktree, I want the commit gate to judge the checkout my commit names, so that cd-then-commit and git -C commits pass or fail on that worktree's own index and story.",
+      "ImplementationPlan": "1. Add packages/core/src/hooks/commit-target.ts with one quote-aware tokenizer shared by commit recognition, target resolution and the index-mutating-form check, mapping MSYS `/c/...` paths to drive paths.\n2. Resolve the target root for `git -C <absolute path> commit` and one leading `cd <absolute path> &&`; use the hook project root when neither is present; refuse relative, repeated, variable or `~` paths and git location overrides with a message naming the two absolute forms.\n3. In packages/core/src/hooks/dispatcher.ts, admit a named path only through the existing `admitEffectiveHookRoot` (same git common dir) and keep the payload root as identity.\n4. List staged paths and run `resolveWorktreeStoryBinding` on the target root (bound, refuse, none), loading that story's write fence.\n5. Add fixtures at the hook decision in commit-target.test.ts and the dispatcher tests with a real registered linked worktree, and align content/docs/hook-root-admission.md, the swarm host notes and the preamble.",
+      "Traces": "#6278, #5656, #6233, #6247"
     },
     "items": [
       {
         "title": "One commit-target resolver, in a new module `packages/core/src/hooks/commit-target.ts`, with one quote-aware tokenizer shared by commit recognition, target resolution and the index-mutating-form check. Quoted and unquoted paths resolve the same way; quoted paths with spaces stay whole; Windows backslashes are not rewritten.",
         "status": "proposed",
-        "id": "clause.1"
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given quoted and unquoted forms of the same path, when the one tokenizer in commit-target.ts runs for commit recognition, target resolution and the index-mutating check, then each returns the same path, a quoted path with spaces stays whole and Windows backslashes are kept."
+        }
       },
       {
         "title": "Shapes that name a checkout: `git -C <absolute path> commit …`, and exactly one leading `cd <absolute path> &&` before the commit. A path is absolute when it is a native absolute path; on Windows that is a drive-letter path (`C:\\…` or `C:/…`) or the MSYS drive form (`/c/…`), which the resolver maps to its drive path.",
         "status": "proposed",
-        "id": "clause.2"
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given `git -C <absolute path> commit` or one leading `cd <absolute path> &&`, when the gate resolves the target, then a drive-letter path and its MSYS `/c/...` form resolve to the same drive path."
+        }
       },
       {
         "title": "Target root. For those shapes it is the named path. For a call with no `cd` and no `-C` it is the hook project root, exactly as today.",
         "status": "proposed",
-        "id": "clause.3"
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a named-checkout shape, then the target root is the named path; given a commit with no `cd` and no `-C`, then the target root is the hook project root as today."
+        }
       },
       {
         "title": "A target the gate cannot resolve to one checkout is refused, and the message names the two absolute forms. That covers: a relative path after `cd` or `-C` in a call that holds a commit; more than one `cd` or `-C` before the commit; a variable, `~` or substitution in that path; `--git-dir` and `--work-tree` (refused today); and a `GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE` or `GIT_COMMON_DIR` prefix on the commit. These are the only refusals this design adds. Each is a case where the gate cannot know which index the commit will use; at the pin each one is refused already or is passed on the hook project root's index.",
         "status": "proposed",
-        "id": "clause.4"
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given a relative path, more than one `cd` or `-C`, a variable, `~` or substitution, `--git-dir` or `--work-tree`, or a GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE or GIT_COMMON_DIR prefix, then the gate refuses and the message names the two absolute forms."
+        }
       },
       {
         "title": "Admission. A named path must exist and goes through the existing `admitEffectiveHookRoot`: same git common dir, or deny. A commit target has no non-repository fallback. The payload root stays the identity for authz, kill-switch and deny diagnostics.",
         "status": "proposed",
-        "id": "clause.5"
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given a named path, then it must exist and pass `admitEffectiveHookRoot` (same git common dir) or the hook denies, with no non-repository fallback and the payload root kept as identity."
+        }
       },
       {
         "title": "Index and story on the target root. Staged paths are listed there. `resolveWorktreeStoryBinding` runs on it: `bound` supplies `boundPath` to `inspectActiveScope` and the write fence is loaded for that story; `refuse` is a deny that carries the resolver's reason, with a repair line for `env_pin_conflict`; `none` keeps today's selection. The empty-index and lifecycle-only early returns stay, now read from the target root's index.",
         "status": "proposed",
-        "id": "clause.6"
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given a target root, then staged paths are listed there and `resolveWorktreeStoryBinding` runs on it: `bound` loads that story's fence, `refuse` denies with the resolver's reason, and `none` keeps today's selection."
+        }
       },
       {
         "title": "Fixtures enter at the hook decision and use a real registered linked worktree with two active briefs and no pin: the four attempts of comment 6858441886 (quoted `cd`, `-C`, and unquoted `cd` with MSYS paths are judged against the worktree's index; none passes on another checkout's index); the issue's allow and refuse pairs for `-C` and `cd`; `git -C . commit` and `cd <relative> && git commit` with differing indexes (refused); `cd a && cd b && git commit` (refused); a quoted path with spaces and a Windows drive path; a location-variable prefix (refused); a `-C` into a foreign repository and into a missing directory (denied); a corrupt assignment record and a conflicting pin (denied with the resolver's reason); an unregistered linked worktree; and a main-worktree commit that behaves as today.",
         "status": "proposed",
-        "id": "clause.7"
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given a real registered linked worktree with two active briefs and no pin, when each listed fixture command reaches the hook decision, then the hook allows or refuses it on the worktree's own index as stated."
+        }
       }
     ],
     "tags": [
@@ -130,55 +154,156 @@
       "clauses": [
         {
           "id": 1,
-          "text": "One commit-target resolver, in a new module `packages/core/src/hooks/commit-target.ts`, with one quote-aware tokenizer shared by commit recognition, target resolution and the index-mutating-form check. Quoted and unquoted paths resolve the same way; quoted paths with spaces stay whole; Windows backslashes are not rewritten.",
+          "text": "One commit-target resolver, in a new module `packages/core/src/hooks/commit-target.ts`, with one quote-aware tokenizer shared by commit recognition, target resolution and the index-mutating-form check.",
           "artifact_path": "packages/core/src/hooks/commit-target.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
-          "text": "Shapes that name a checkout: `git -C <absolute path> commit …`, and exactly one leading `cd <absolute path> &&` before the commit. A path is absolute when it is a native absolute path; on Windows that is a drive-letter path (`C:\\…` or `C:/…`) or the MSYS drive form (`/c/…`), which the resolver maps to its drive path.",
+          "text": "Shapes that name a checkout: `git -C <absolute path> commit …`, and exactly one leading `cd <absolute path> &&` before the commit.",
           "artifact_path": "packages/core/src/hooks/commit-target.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
-          "text": "Target root. For those shapes it is the named path. For a call with no `cd` and no `-C` it is the hook project root, exactly as today.",
-          "artifact_path": null,
+          "text": "For those shapes it is the named path.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
-          "text": "A target the gate cannot resolve to one checkout is refused, and the message names the two absolute forms. That covers: a relative path after `cd` or `-C` in a call that holds a commit; more than one `cd` or `-C` before the commit; a variable, `~` or substitution in that path; `--git-dir` and `--work-tree` (refused today); and a `GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE` or `GIT_COMMON_DIR` prefix on the commit. These are the only refusals this design adds. Each is a case where the gate cannot know which index the commit will use; at the pin each one is refused already or is passed on the hook project root's index.",
-          "artifact_path": null,
+          "text": "A target the gate cannot resolve to one checkout is refused, and the message names the two absolute forms.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
-          "text": "Admission. A named path must exist and goes through the existing `admitEffectiveHookRoot`: same git common dir, or deny. A commit target has no non-repository fallback. The payload root stays the identity for authz, kill-switch and deny diagnostics.",
-          "artifact_path": null,
+          "text": "A named path must exist and goes through the existing `admitEffectiveHookRoot`: same git common dir, or deny.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 6,
-          "text": "Index and story on the target root. Staged paths are listed there. `resolveWorktreeStoryBinding` runs on it: `bound` supplies `boundPath` to `inspectActiveScope` and the write fence is loaded for that story; `refuse` is a deny that carries the resolver's reason, with a repair line for `env_pin_conflict`; `none` keeps today's selection. The empty-index and lifecycle-only early returns stay, now read from the target root's index.",
-          "artifact_path": null,
+          "text": "Index and story on the target root.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 7,
-          "text": "Fixtures enter at the hook decision and use a real registered linked worktree with two active briefs and no pin: the four attempts of comment 6858441886 (quoted `cd`, `-C`, and unquoted `cd` with MSYS paths are judged against the worktree's index; none passes on another checkout's index); the issue's allow and refuse pairs for `-C` and `cd`; `git -C . commit` and `cd <relative> && git commit` with differing indexes (refused); `cd a && cd b && git commit` (refused); a quoted path with spaces and a Windows drive path; a location-variable prefix (refused); a `-C` into a foreign repository and into a missing directory (denied); a corrupt assignment record and a conflicting pin (denied with the resolver's reason); an unregistered linked worktree; and a main-worktree commit that behaves as today.",
-          "artifact_path": null,
+          "text": "Fixtures enter at the hook decision and use a real registered linked worktree with two active briefs and no pin: the four attempts of comment 6858441886 (quoted `cd`, `-C`, and unquoted `cd` with MSYS paths are judged against the worktree's index; none passes on another checkout's index); the issue's allow and refuse pairs for `-C` and `cd`; `git -C .",
+          "artifact_path": "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Quoted and unquoted paths resolve the same way; quoted paths with spaces stay whole; Windows backslashes are not rewritten.",
+          "artifact_path": "packages/core/src/hooks/commit-target.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "A path is absolute when it is a native absolute path; on Windows that is a drive-letter path (`C:\\…` or `C:/…`) or the MSYS drive form (`/c/…`), which the resolver maps to its drive path.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Target root.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "For a call with no `cd` and no `-C` it is the hook project root, exactly as today.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "That covers: a relative path after `cd` or `-C` in a call that holds a commit; more than one `cd` or `-C` before the commit; a variable, `~` or substitution in that path; `--git-dir` and `--work-tree` (refused today); and a `GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE` or `GIT_COMMON_DIR` prefix on the commit.",
+          "artifact_path": "packages/core/src/hooks/commit-target.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "These are the only refusals this design adds.",
+          "artifact_path": "content/docs/hook-root-admission.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Each is a case where the gate cannot know which index the commit will use; at the pin each one is refused already or is passed on the hook project root's index.",
+          "artifact_path": "content/docs/hook-root-admission.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Admission.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "A commit target has no non-repository fallback.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-effective-root.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "The payload root stays the identity for authz, kill-switch and deny diagnostics.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Staged paths are listed there.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "`resolveWorktreeStoryBinding` runs on it: `bound` supplies `boundPath` to `inspectActiveScope` and the write fence is loaded for that story; `refuse` is a deny that carries the resolver's reason, with a repair line for `env_pin_conflict`; `none` keeps today's selection.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "The empty-index and lifecycle-only early returns stay, now read from the target root's index.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "commit` and `cd <relative> && git commit` with differing indexes (refused); `cd a && cd b && git commit` (refused); a quoted path with spaces and a Windows drive path; a location-variable prefix (refused); a `-C` into a foreign repository and into a missing directory (denied); a corrupt assignment record and a conflicting pin (denied with the resolver's reason); an unregistered linked worktree; and a main-worktree commit that behaves as today.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-effective-root.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(hooks): a worker cannot commit in its linked worktree with cd-then-commit or git -C forms"
+      ]
     },
     "metadata": {
       "intended_placement": {
@@ -652,8 +777,32 @@
           "docs/RULE-MAP.md",
           "CHANGELOG.md"
         ],
-        "file_scope_confidence": "medium"
-      }
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "hooks-commit-gate",
+        "verify_commands": [
+          "npx vitest run packages/core/src/hooks/commit-target.test.ts packages/core/src/hooks/dispatcher.test.ts packages/core/src/hooks/dispatcher-effective-root.test.ts packages/core/src/hooks/dispatcher-active-scope.test.ts packages/core/src/content-contracts/skills/swarm_skill.test.ts packages/core/src/content-contracts/skills/agent_prompt_preamble_template.test.ts"
+        ],
+        "expected_outputs": [
+          "commit-target resolver in packages/core/src/hooks/commit-target.ts",
+          "commit gate reads the target root's index and story binding",
+          "refusals naming the two absolute forms for unresolvable targets",
+          "hook-decision fixtures with a real registered linked worktree",
+          "hook-root-admission docs, swarm host notes and preamble aligned"
+        ],
+        "Traces": [
+          "#6278",
+          "#5656",
+          "#6233",
+          "#6247"
+        ],
+        "acceptance_criteria_justification": "Seven clauses, one per item of the accepted Bound remedy (lean 6857990436); resolver, shapes, target root, refusals, admission, binding and fixtures are separate behaviours, kept one-to-one so each maps to its own evidence."
+      },
+      "kind": "story"
     },
     "id": "github.issue.6374105652",
     "updated": "2026-11-15T02:36:05Z"
