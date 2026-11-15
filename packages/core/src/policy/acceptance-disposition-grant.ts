@@ -598,7 +598,6 @@ export function applyAcceptanceDispositionGrants(input: {
 interface CitedGrant {
   readonly itemId: string;
   readonly grantId: string;
-  readonly recordedAt: string;
 }
 
 function collectCitedGrants(items: unknown, out: CitedGrant[]): CitedGrant[] {
@@ -610,21 +609,11 @@ function collectCitedGrants(items: unknown, out: CitedGrant[]): CitedGrant[] {
     const provenance = asRecord(disposition?.provenance);
     const grantId = typeof provenance?.grantId === "string" ? provenance.grantId.trim() : "";
     const itemId = typeof item.id === "string" ? canonicalAcceptanceDispositionId(item.id) : "";
-    const recordedAt =
-      typeof disposition?.recorded_at === "string" ? disposition.recorded_at.trim() : "";
-    if (grantId.length > 0 && itemId.length > 0) out.push({ itemId, grantId, recordedAt });
+    if (grantId.length > 0 && itemId.length > 0) out.push({ itemId, grantId });
     collectCitedGrants(item.subItems, out);
     collectCitedGrants(item.items, out);
   }
   return out;
-}
-
-/** True when the disposition was written before the grant expired (unrecorded first use). */
-function writtenBeforeExpiry(grant: HumanOriginGrant, recordedAt: string): boolean {
-  const expiresAt = grant.semantics.expiresAt;
-  if (expiresAt === null || !hasReadableExpiry(expiresAt)) return false;
-  const written = Date.parse(recordedAt);
-  return !Number.isNaN(written) && written <= Date.parse(expiresAt);
 }
 
 /**
@@ -632,8 +621,8 @@ function writtenBeforeExpiry(grant: HumanOriginGrant, recordedAt: string): boole
  * that cites an acceptance-disposition grant is a replay. The cited grant is
  * accepted while it is in the main clone store for this plan, covers the item
  * and matches the digest of the current clause text (or item title), and is
- * used, live, or was first used before expiry with only the use record
- * missing. Otherwise the latest used or live grant for the plan that covers the
+ * used or still live. The brief's own `recorded_at` is never trusted as proof
+ * of use (#6343 review). Otherwise the latest used or live grant for the plan that covers the
  * item with a matching digest replaces it, and its disposition is applied to
  * the plan before the write (an operator mints one for the completed brief).
  * With neither, restamp refuses and names a re-mint. A brief that cites no
@@ -661,16 +650,12 @@ export function checkCitedAcceptanceDispositionGrants(input: {
     !used(v) && activeIds.has(v.grant.id) && expiresAfter(v.grant, now);
   const toRecord = new Set<string>();
   const replacements: GrantedDisposition[] = [];
-  for (const { itemId, grantId, recordedAt } of cited) {
+  for (const { itemId, grantId } of cited) {
     const text = acceptanceDispositionCoverText(input.plan, itemId);
     const digest = text === null ? null : acceptanceDispositionDigest(text);
     const matches = (v: GrantView): boolean => digest !== null && v.digests.get(itemId) === digest;
     const view = views.find((v) => v.grant.id === grantId);
-    if (
-      view !== undefined &&
-      matches(view) &&
-      (used(view) || live(view) || writtenBeforeExpiry(view.grant, recordedAt))
-    ) {
+    if (view !== undefined && matches(view) && (used(view) || live(view))) {
       if (!used(view)) toRecord.add(grantId);
       continue;
     }

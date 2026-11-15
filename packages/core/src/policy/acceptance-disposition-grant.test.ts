@@ -484,13 +484,12 @@ describe("acceptance-disposition review fixes (#6343)", () => {
       ok: false,
       reason: expect.stringMatching(/grant-unknown is not in .* \(revoked or missing\)/),
     });
-    // First use before expiry with only the use record missing still replays.
-    expect(check(completedPlan(id), AFTER_EXPIRY)).toEqual({
-      ok: true,
-      grantIdsToRecord: [id],
-      replacedIds: [],
+    // An unused grant past expiry is refused, even when recorded_at predates the expiry:
+    // the brief's own date is never proof of use (#6343 review).
+    expect(check(completedPlan(id), AFTER_EXPIRY)).toMatchObject({
+      ok: false,
+      reason: expect.stringMatching(/expired \(or is not active\) before first use/),
     });
-    // Written after expiry: refused.
     expect(check(completedPlan(id, undefined, "2026-11-16T10:30:00Z"), AFTER_EXPIRY)).toMatchObject(
       {
         ok: false,
