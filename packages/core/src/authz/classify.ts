@@ -2501,35 +2501,15 @@ function argv0BareName(words: readonly string[], execIndex: number): string | nu
 }
 
 function hasGitBehaviorChangingEnvAssignment(words: readonly string[], execIndex: number): boolean {
-  const executionEnvNames = new Set([
-    "EDITOR",
-    "GIT_ASKPASS",
-    "GIT_CONFIG",
-    "GIT_CONFIG_GLOBAL",
-    "GIT_CONFIG_KEY_0",
-    "GIT_CONFIG_NOSYSTEM",
-    "GIT_CONFIG_SYSTEM",
-    "GIT_DIFF_OPTS",
-    "GIT_EDITOR",
-    "GIT_EXTERNAL_DIFF",
-    "GIT_INDEX_FILE",
-    "GIT_MERGE_AUTOEDIT",
-    "GIT_PAGER",
-    "GIT_SEQUENCE_EDITOR",
-    "GIT_SSH",
-    "GIT_SSH_COMMAND",
-    "GIT_WORK_TREE",
-    "PAGER",
-    "SSH_ASKPASS",
-    "VISUAL",
-  ]);
   for (let i = 0; i < execIndex; i++) {
     const literal = zipShellWordLiteral(words[i] as string);
     if (literal === null) continue;
     const eq = literal.indexOf("=");
     if (eq <= 0) continue;
-    const name = literal.slice(0, eq).toUpperCase();
-    if (name.startsWith("GIT_") || executionEnvNames.has(name)) return true;
+    // Git's behavior can depend on environment outside a finite variable list
+    // (for example PATH, HOME, or config lookup variables), so any assignment
+    // before Git voids the read-only proof.
+    return true;
   }
   return false;
 }

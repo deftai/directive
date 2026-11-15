@@ -2535,6 +2535,11 @@ describe("inactive Shell classifiers (#4709)", () => {
         "PAGER='touch .deft-directive-disable' git diff --no-index /tmp/a /tmp/b",
       ),
     ).toContain("settings");
+    expect(
+      classifyShellAuthzOps(
+        "PATH=/tmp git -c diff.external='touch .deft-directive-disable' diff --no-index /tmp/a /tmp/b",
+      ),
+    ).toContain("settings");
     expect(classifyShellAuthzOps("cat /tmp/f <( touch .deft-directive-disable )")).toContain(
       "settings",
     );
