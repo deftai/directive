@@ -2467,11 +2467,35 @@ function argv0BareName(words: readonly string[], execIndex: number): string | nu
 }
 
 function hasGitBehaviorChangingEnvAssignment(words: readonly string[], execIndex: number): boolean {
+  const executionEnvNames = new Set([
+    "EDITOR",
+    "GIT_ASKPASS",
+    "GIT_CONFIG",
+    "GIT_CONFIG_GLOBAL",
+    "GIT_CONFIG_KEY_0",
+    "GIT_CONFIG_NOSYSTEM",
+    "GIT_CONFIG_SYSTEM",
+    "GIT_DIFF_OPTS",
+    "GIT_EDITOR",
+    "GIT_EXTERNAL_DIFF",
+    "GIT_INDEX_FILE",
+    "GIT_MERGE_AUTOEDIT",
+    "GIT_PAGER",
+    "GIT_SEQUENCE_EDITOR",
+    "GIT_SSH",
+    "GIT_SSH_COMMAND",
+    "GIT_WORK_TREE",
+    "PAGER",
+    "SSH_ASKPASS",
+    "VISUAL",
+  ]);
   for (let i = 0; i < execIndex; i++) {
     const literal = zipShellWordLiteral(words[i] as string);
     if (literal === null) continue;
     const eq = literal.indexOf("=");
-    if (eq > 0 && literal.slice(0, eq).toUpperCase().startsWith("GIT_")) return true;
+    if (eq <= 0) continue;
+    const name = literal.slice(0, eq).toUpperCase();
+    if (name.startsWith("GIT_") || executionEnvNames.has(name)) return true;
   }
   return false;
 }
@@ -2709,7 +2733,10 @@ function hasProtectedCwdRelativeWriter(command: string): boolean {
   // Track the lexical cwd so `cd .` and other relative changes cannot erase a
   // previously established protected directory.
   let cwd: string | null = "";
+  let subshellCwd: string | null | undefined;
   for (const segment of zipStyleCommandSegments(command)) {
+    if (segment.subshellStart) subshellCwd = cwd;
+    const activeCwd: string | null = subshellCwd === undefined ? cwd : subshellCwd;
     const name = argv0BareName(segment.words, segment.execIndex);
     if (name === "cd" || name === "pushd" || name === "set-location") {
       let target: string | undefined;
@@ -2733,23 +2760,29 @@ function hasProtectedCwdRelativeWriter(command: string): boolean {
         target = raw;
         break;
       }
-      cwd = target === undefined ? null : resolveShellCwd(cwd, target);
+      const nextCwd: string | null =
+        target === undefined ? null : resolveShellCwd(activeCwd, target);
+      if (subshellCwd === undefined) cwd = nextCwd;
+      else subshellCwd = nextCwd;
+      if (segment.subshellEnd) subshellCwd = undefined;
       continue;
     }
     if (
-      cwd === null ||
-      !pathishIsSettingsStoreDir(cwd) ||
+      activeCwd === null ||
+      !pathishIsSettingsStoreDir(activeCwd) ||
       isProvenReadOnlyArgv(segment.words, segment.execIndex)
     ) {
+      if (segment.subshellEnd) subshellCwd = undefined;
       continue;
     }
     const target = segmentRelativeWriterTarget(segment.words, segment.execIndex);
     if (
       target !== null &&
-      (resolvesInsideProtectedCwd(cwd, target) || relativePathMayTraverseSymlink(target))
+      (resolvesInsideProtectedCwd(activeCwd, target) || relativePathMayTraverseSymlink(target))
     ) {
       return true;
     }
+    if (segment.subshellEnd) subshellCwd = undefined;
   }
   return false;
 }
@@ -3434,6 +3467,8 @@ function isRelativePayloadProtectedDest(rawWord: string): boolean {
 type ZipStyleSegment = {
   readonly words: readonly string[];
   readonly execIndex: number;
+  readonly subshellStart: boolean;
+  readonly subshellEnd: boolean;
 };
 
 function zipStyleCommandSegments(command: string): ZipStyleSegment[] {
@@ -3479,7 +3514,12 @@ function zipStyleCommandSegments(command: string): ZipStyleSegment[] {
     const words = zipShellWordsWithoutRedirections(groupedWords);
     const execIndex = commandIndexAfterWrappers(words);
     if (execIndex === null) continue;
-    out.push({ words, execIndex });
+    out.push({
+      words,
+      execIndex,
+      subshellStart: splitWords.some((word) => word.startsWith("(")),
+      subshellEnd: splitWords.some((word) => word.endsWith(")")),
+    });
   }
   return out;
 }

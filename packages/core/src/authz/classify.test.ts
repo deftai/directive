@@ -2504,10 +2504,18 @@ describe("inactive Shell classifiers (#4709)", () => {
         "GIT_EXTERNAL_DIFF='touch .deft-directive-disable' git diff --no-index /tmp/a /tmp/b",
       ),
     ).toContain("settings");
+    expect(
+      classifyShellAuthzOps(
+        "PAGER='touch .deft-directive-disable' git diff --no-index /tmp/a /tmp/b",
+      ),
+    ).toContain("settings");
     expect(classifyShellAuthzOps("cat /tmp/f <( touch .deft-directive-disable )")).toContain(
       "settings",
     );
     expect(classifyShellAuthzOps("cat /tmp/f <( cat .no-deft-directive )")).toEqual([]);
+    expect(
+      classifyShellAuthzOps("cd .deft/approved-scope && (cd /tmp) && cp /tmp/g story.json"),
+    ).toContain("settings");
     expect(classifyShellAuthzOps("echo x > .deft/approved-scope-backup/story.json")).toEqual([]);
   });
 
