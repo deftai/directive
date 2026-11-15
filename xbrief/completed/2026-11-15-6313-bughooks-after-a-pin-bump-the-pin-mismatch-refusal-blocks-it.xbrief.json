@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6313",
-    "updated": "2026-11-15T02:36:08Z"
+    "updated": "2026-11-15T16:12:23Z"
   },
   "plan": {
     "title": "bug(hooks): after a pin bump the pin-mismatch refusal blocks its own named recovery (pnpm install)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "After a pin bump, the hook refuses every shell command because the pin does not match the installed runtime, including the `pnpm install` it names as the recovery. This story admits exactly the named recovery commands, uncompounded at the project root, when pin mismatch is the only fault.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6313",
@@ -19,34 +19,254 @@
     "items": [
       {
         "title": "Given a checkout whose pin is newer than the installed runtime, when the agent runs `pnpm install --frozen-lockfile` at the project root through the hooked shell, then the hook admits it, and after it finishes the next unrelated command is admitted.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given a pin newer than the installed runtime, when the agent runs `pnpm install --frozen-lockfile` at the project root through the hooked shell, then the hook admits it and then admits the next unrelated command."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the same state, when the agent runs any other command (including `pnpm install` chained with another command, or run in a different directory), then the hook still refuses with the same recovery text.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given the same pin mismatch, when the agent runs any other command, `pnpm install` chained with another command, or it in another directory, then the hook refuses with the same recovery text."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an overlay-present or identity-mismatch fault, the admit does not apply (the existing #5910 recovery stays).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given an overlay-present or identity-mismatch fault, when the agent runs the install command, then the hook does not admit it and the existing #5910 recovery stays."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Tests beside `hook-dispatch.ts` cover the admit and the refusals above.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When the tests beside `hook-dispatch.ts` run, then they cover the admit and each refusal listed in the other clauses."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+          "recorded_at": "2026-11-15T16:12:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -157,7 +377,34 @@
         "origin": "deftai/directive#6313",
         "id": "github.issue.6381141107"
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 6328,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "5fe1cc757c7e58f91ae62ba1dc1bd1f9a3a30abf",
+        "prNumber": 6328,
+        "prBase": "master",
+        "mergeCommit": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5b4bd48c6170995d31dbfc97898e985d4a20a433",
+        "verifiedAt": "2026-11-15T16:12:23Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-15T16:12:23Z",
+      "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-15T16:12:23Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -366,6 +613,6 @@
       ]
     },
     "id": "github.issue.6381141107",
-    "updated": "2026-11-15T02:36:08Z"
+    "updated": "2026-11-15T16:12:23Z"
   }
 }
