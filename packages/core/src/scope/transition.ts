@@ -41,6 +41,7 @@ import { getDefaultAppStore } from "../one-pr-unit/simulator.js";
 import { enforceLiveOnePrUnitCheck, resolveProductionAppStore } from "../one-pr-unit/store.js";
 import type { OriginRef } from "../one-pr-unit/types.js";
 import type { IssueRef } from "../orphan-active/refs.js";
+import { recordDeliveryIdentityAttestUse } from "../policy/delivery-identity-attest-grant.js";
 import {
   evaluateSmallChangeLaneGate,
   type SmallChangeLaneGateOverrides,
@@ -736,6 +737,8 @@ export function runTransition(
   // #3041: fail closed before mutating a code-bearing complete without delivery evidence.
   let reuseValidatedDeliveryAncestry = false;
   let laneDeliveredCommit: string | null = null;
+  /** #6317: operator attestation grant whose use is recorded after the completed/ write. */
+  let attestationGrantId: string | undefined;
   if (act === "complete") {
     // #3583: auto-discover delivery evidence before the validate-only gate.
     const discovered = discoverDeliveryEvidenceForComplete({
@@ -772,11 +775,13 @@ export function runTransition(
       fetchPrPayload: options.fetchPrPayload,
       mergeTimeForge: options.mergeTimeForge,
       briefBasename: basename,
+      briefRelPath: relative(projectRoot, resolvedPath).replace(/\\/g, "/"),
       fetchPrChangedFiles: options.fetchPrChangedFiles,
     });
     if (!gate.ok) {
       return { ok: false, message: gate.message };
     }
+    attestationGrantId = gate.provenance?.attestationGrantId;
     // #6204: recheck a small-change lane brief. With a delivered merge commit the
     // lane measures that commit against its first parent; otherwise the worktree
     // against the lane-admit base. Delivery identity above is unchanged.
@@ -1227,10 +1232,13 @@ export function runTransition(
       if (act === "activate" || act === "promote") {
         maybeEmitAcceptanceStampFromChange(projectRoot, previousAcceptance, planObj.acceptance);
       }
+      const attestUse =
+        act === "complete" ? recordAttestationUse(projectRoot, attestationGrantId, now) : "";
       const moveMsg =
         `${actionLabel} ${basename}: ${currentFolder}/ -> ${targetFolder}/ (status: ${targetStatus})` +
         (derivationNotice.length > 0 ? `\n${derivationNotice}` : "") +
-        (acceptanceListing.length > 0 ? `\n${acceptanceListing}` : "");
+        (acceptanceListing.length > 0 ? `\n${acceptanceListing}` : "") +
+        attestUse;
       return {
         ok: true,
         message: moveMsg,
@@ -1369,6 +1377,7 @@ function restampCompletedBrief(args: RestampArgs): TransitionResult {
     fetchPrPayload: options.fetchPrPayload,
     mergeTimeForge: options.mergeTimeForge,
     briefBasename: basename,
+    briefRelPath: relative(projectRoot, resolvedPath).replace(/\\/g, "/"),
     fetchPrChangedFiles: options.fetchPrChangedFiles,
   });
   if (!gate.ok) {
@@ -1422,8 +1431,24 @@ function restampCompletedBrief(args: RestampArgs): TransitionResult {
     ok: true,
     message:
       `Restamped ${basename} in completed/ (status: completed, ` +
-      `deliveryDisposition=${disposition})`,
+      `deliveryDisposition=${disposition})` +
+      recordAttestationUse(projectRoot, gate.provenance?.attestationGrantId, now),
   };
+}
+
+/**
+ * Record first use of an operator delivery attestation once the completed/
+ * write succeeded (#6317). A replay of a used grant is a no-op. A failed
+ * record is reported, not fatal: the completed brief already landed.
+ */
+function recordAttestationUse(projectRoot: string, grantId: string | undefined, now: Date): string {
+  if (grantId === undefined) {
+    return "";
+  }
+  const used = recordDeliveryIdentityAttestUse({ projectRoot, grantId, now });
+  return used.ok
+    ? `\nOperator delivery attestation ${grantId} recorded as used.`
+    : `\nWarning: ${used.reason}; the grant stays unused until a later run records it.`;
 }
 
 export function recordWipCapOverride(
