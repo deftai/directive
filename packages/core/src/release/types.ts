@@ -88,6 +88,12 @@ export interface ReleaseSeams {
     phase: ReleaseInputPhase,
   ) => ReleaseInputResult;
   readonly runBuild?: (projectRoot: string, version: string | null) => [boolean, string];
+  /**
+   * #6315 -- delete one captured changelog fragment in Step 7. When omitted,
+   * production uses unlinkSync. Tests inject a failure between the write and
+   * the commit.
+   */
+  readonly unlinkFragment?: (absPath: string) => void;
   readonly runUvLock?: (projectRoot: string) => [boolean, string];
   readonly checkTagAvailable?: (
     version: string,

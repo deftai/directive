@@ -48,6 +48,12 @@ See `skills/deft-directive-release/SKILL.md` § Branch-Protection Policy Guard f
 
 `task release` Step 5 starts with a read-only CHANGELOG node-type guard (regular file plus symlink-ancestor floor). `--skip-ci` skips the CI suite, not that guard. Step 6 is **Prepare release artifacts** (in-memory ROADMAP + CHANGELOG; pair-open existing destinations; no writes). Step 7 is **Write release artifacts** (ROADMAP to completion, then CHANGELOG). `--skip-build` skips Step 8 (`task build`), not prepare-artifacts.
 
+### Changelog fragments (#6315)
+
+Step 6 also captures the `changelog.d/` fragments, applies the CHANGELOG read-safety refusal to each, and assembles the promoted section in memory (subsection order, then file name). It refuses an invalid fragment, an entry line held by two fragments, and a `CHANGELOG.md` that already holds the version heading. Step 7 deletes exactly the captured fragments after the CHANGELOG write. Step 9 stages the deletions in the release commit and refuses while a captured fragment is still on disk. A dry run writes and deletes nothing.
+
+Recovery after a failure between the Step 7 write and the Step 9 commit: restore `CHANGELOG.md`, `ROADMAP.md` and `changelog.d/` to HEAD (`git restore --source=HEAD --staged --worktree -- CHANGELOG.md ROADMAP.md changelog.d/`), then rerun. `--allow-dirty` is not a recovery path. After the release commit exists, use `task release:rollback`; its revert restores the fragments.
+
 ## Windows Step 5 host coverage decision (#6041; reverses #5026)
 
 **Decision.** PR CI and ordinary `ts:check-lane` run the suite **without** `--coverage`. Release Step 5 (`ts:check-lane` under `DEFT_RELEASE_PREFLIGHT=1`) runs host vitest **with** `--coverage` and enforces thresholds on the host. On-demand `task test:coverage` remains. Tip-SHA GHA coverage-of-record cites are retired from Step 5 success, stamp-hit, and auto-hatch paths.
