@@ -1305,6 +1305,17 @@ describe("authz CLI delivery-identity-attest template (#6317)", () => {
     expect(runAuthz(["show", "--project-root", notGit])).toBe(0);
   });
 
+  it("refuses an unreadable --expires value", () => {
+    const { main: mainRoot } = cloneWithDest();
+    const { err } = capture();
+    expect(
+      runAuthz(
+        grantArgv(mainRoot, ["--target", TARGET, "--plan-ref", "p", "--expires", "not-a-date"]),
+      ),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/not a readable date/);
+  });
+
   it("goes through the human-presence mint gate (non-TTY refuses)", () => {
     const { main: mainRoot } = cloneWithDest();
     const { err } = capture();

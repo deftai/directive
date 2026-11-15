@@ -195,6 +195,29 @@ describe("delivery-identity-attest template (#6317)", () => {
     expect(find(main)).toMatchObject({ ok: false });
   });
 
+  it("an unreadable or missing expiry never attests (mint refuses, lookup refuses)", () => {
+    const { main } = cloneWithDest();
+    expect(
+      mintDeliveryIdentityAttestTemplateGrant({
+        projectRoot: main,
+        target: TARGET,
+        planRef: PLAN_ID,
+        expiresAt: "not-a-date",
+      }),
+    ).toMatchObject({ ok: false, reason: expect.stringMatching(/not a readable date/) });
+
+    const minted = mint(main);
+    if (!minted.ok) throw new Error(minted.reason);
+    for (const expiresAt of ["not-a-date", null]) {
+      const tampered = { ...minted.grant, semantics: { ...minted.grant.semantics, expiresAt } };
+      expect(saveGrant(main, tampered).ok).toBe(true);
+      expect(find(main)).toMatchObject({
+        ok: false,
+        reason: expect.stringMatching(/expired \(or is not active\) before first use/),
+      });
+    }
+  });
+
   it("an agent-origin or tampered grant record is not an attestation", () => {
     const { main } = cloneWithDest();
     const minted = mint(main);

@@ -111,6 +111,19 @@ export type DeliveryIdentityAttestMintResult =
   | { readonly ok: true; readonly grant: HumanOriginGrant; readonly storeRoot: string }
   | { readonly ok: false; readonly reason: string };
 
+/** True when the expiry text parses to a real date. */
+function hasReadableExpiry(expiresAt: string): boolean {
+  return !Number.isNaN(Date.parse(expiresAt));
+}
+
+/** True when the grant has a readable expiry later than `now`. */
+function expiresAfter(grant: HumanOriginGrant, now: Date): boolean {
+  const expiresAt = grant.semantics.expiresAt;
+  return (
+    expiresAt !== null && hasReadableExpiry(expiresAt) && Date.parse(expiresAt) > now.getTime()
+  );
+}
+
 function isoExpiry(now: Date, hours: number): string {
   return new Date(now.getTime() + hours * 3600 * 1000).toISOString().replace(/\.\d{3}Z$/, "Z");
 }
@@ -147,6 +160,12 @@ export function mintDeliveryIdentityAttestTemplateGrant(
     return store;
   }
   let expiresAt = input.expiresAt ?? null;
+  if (expiresAt !== null && !hasReadableExpiry(expiresAt)) {
+    return {
+      ok: false,
+      reason: `template delivery-identity-attest: --expires ${JSON.stringify(expiresAt)} is not a readable date`,
+    };
+  }
   if (expiresAt === null) {
     const hours =
       input.durationHours !== undefined && Number.isFinite(input.durationHours)
@@ -258,8 +277,11 @@ export function findDeliveryIdentityAttestation(
   if (replay !== undefined) {
     return { ok: true, grantId: replay.id, replay: true };
   }
-  const active = listActiveHumanGrants(store.root, undefined, input.now ?? new Date()).filter(
-    matches,
+  const now = input.now ?? new Date();
+  // An unused grant must carry a readable expiry that is still ahead; an
+  // unreadable or missing expiry never attests (Greptile P1 on #6330).
+  const active = listActiveHumanGrants(store.root, undefined, now).filter(
+    (g) => matches(g) && expiresAfter(g, now),
   );
   const usable = active[0];
   if (usable !== undefined) {

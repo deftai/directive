@@ -138,7 +138,7 @@ deft authz:grant -- --template delivery-identity-attest \
 | Binding | PR number + full merge commit sha + plan id; `operations=[settings]` only, no push/merge permission |
 | Admission | Grant matches, the PR's merge-time body was read and carries no `deft-story-part: N`, and the PR passes the nonzero-file and delivery-exclusion checks |
 | Use record | First use must be before expiry; it is recorded when the `completed/` write succeeds, not in the join. An acceptance refusal leaves the grant unused. A later run for the same plan, PR and merge commit (finalize retry, restamp) accepts the used grant |
-| Expired | An expired, unused grant refuses completion and names a re-mint or `authz:revoke` |
+| Expired | An expired, unused grant refuses completion and names a re-mint or `authz:revoke`; an unreadable `--expires` is refused at mint, and an unused grant with a missing or unreadable expiry never attests |
 | One store | Mint, every read, the use record, `authz:revoke` and `authz:show` resolve the store at `mainWorktreeRoot(projectRoot)`, so the primary clone, a linked dest and the finalize lifecycle checkout share it; an unresolvable root refuses |
 | Provenance | `completionProvenance.identityBasis=operator-attested` and `attestationGrantId` |
 | Keep-outs | Never attests a part-line PR; never bypasses a PR's own contested sole mark (that settles by the delivery-branch stamp); does not relax ancestry |
