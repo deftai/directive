@@ -136,7 +136,10 @@ describe("readChangelogFragments (#6314)", () => {
     let read = false;
     const fs: FragmentFs = {
       readdir: () => ["1-link.md"],
-      lstat: () => ({ isSymbolicLink: () => true, isFile: () => false, isDirectory: () => false }),
+      lstat: (p) =>
+        p.endsWith("changelog.d")
+          ? { isSymbolicLink: () => false, isFile: () => false, isDirectory: () => true }
+          : { isSymbolicLink: () => true, isFile: () => false, isDirectory: () => false },
       readFile: () => {
         read = true;
         return "section: Added\n- x\n";
@@ -147,6 +150,35 @@ describe("readChangelogFragments (#6314)", () => {
     });
     expect(readChangelogFragments("/r", fs).invalid.map((f) => f.reason)).toEqual(["symlink"]);
     expect(read).toBe(false);
+  });
+
+  it("never lists a symlinked or non-directory changelog.d (#6314 review)", () => {
+    let listed = false;
+    const symlinkDir: FragmentFs = {
+      readdir: () => {
+        listed = true;
+        return ["1-outside.md"];
+      },
+      lstat: () => ({ isSymbolicLink: () => true, isFile: () => false, isDirectory: () => true }),
+      readFile: () => "section: Fixed\n- Outside (Closes #1)\n",
+    };
+    expect(readChangelogFragments("/r", symlinkDir)).toEqual({
+      valid: [],
+      invalid: [
+        {
+          path: "changelog.d",
+          reason: "symlink",
+          detail: "changelog.d is a symlink; fragments are not read",
+        },
+      ],
+    });
+    expect(listed).toBe(false);
+
+    const root = tempRoot();
+    writeFileSync(join(root, "changelog.d"), "not a directory");
+    expect(readChangelogFragments(root).invalid.map((f) => [f.path, f.reason])).toEqual([
+      ["changelog.d", "not-regular"],
+    ]);
   });
 
   it("reports lstat and read failures as unreadable", () => {

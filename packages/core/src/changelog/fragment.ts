@@ -207,14 +207,47 @@ export function isValidChangelogFragment(
  * by file name, split into valid and invalid. Names that are not changelog
  * entry paths (for example `.gitkeep`, `X.md`, sub-directories with other
  * names) are not fragments and are skipped. A missing directory is no fragments.
+ * A `changelog.d` that is a symlink (or not a directory) is never listed, so
+ * files outside the project cannot become fragments; it is reported invalid.
  */
 export function readChangelogFragments(
   projectRoot: string,
   fs: FragmentFs = nodeFs,
 ): ChangelogFragmentSet {
+  const absDir = join(projectRoot, CHANGELOG_FRAGMENT_DIR);
+  let dirStat: ReturnType<FragmentFs["lstat"]>;
+  try {
+    dirStat = fs.lstat(absDir);
+  } catch {
+    return { valid: [], invalid: [] };
+  }
+  if (dirStat.isSymbolicLink()) {
+    return {
+      valid: [],
+      invalid: [
+        {
+          path: CHANGELOG_FRAGMENT_DIR,
+          reason: "symlink",
+          detail: "changelog.d is a symlink; fragments are not read",
+        },
+      ],
+    };
+  }
+  if (!dirStat.isDirectory()) {
+    return {
+      valid: [],
+      invalid: [
+        {
+          path: CHANGELOG_FRAGMENT_DIR,
+          reason: "not-regular",
+          detail: "changelog.d is not a directory",
+        },
+      ],
+    };
+  }
   let names: string[];
   try {
-    names = fs.readdir(join(projectRoot, CHANGELOG_FRAGMENT_DIR));
+    names = fs.readdir(absDir);
   } catch {
     return { valid: [], invalid: [] };
   }

@@ -152,6 +152,24 @@ function groupBySubsection(entries: readonly UnreleasedEntry[]): UnreleasedSubse
 }
 
 /**
+ * True when `lines[last]` closes a plain `- ` list entry: the entry line itself
+ * or an indented continuation of it, with no blockquote or fence line between.
+ */
+function endsPlainListEntry(lines: readonly string[], from: number, last: number): boolean {
+  for (let i = last; i >= from; i -= 1) {
+    const line = lines[i] ?? "";
+    const trimmed = line.trimStart();
+    if (trimmed.length === 0) return false;
+    if (trimmed.startsWith(">") || trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
+      return false;
+    }
+    if (line.startsWith("- ")) return true;
+    if (!/^[ \t]/.test(line)) return false;
+  }
+  return false;
+}
+
+/**
  * Merge valid fragment entries into the `[Unreleased]` section (pure).
  * Each entry lands at the end of its `### <Subsection>` block; a missing block
  * is added at the end of `[Unreleased]`. Fragments are taken in the given order
@@ -192,7 +210,11 @@ export function mergeFragmentsIntoChangelogText(
         if ((lines[i] ?? "").trim().length > 0) last = i;
       }
       if (last >= 0) {
-        lines.splice(last + 1, 0, ...entryLines);
+        // Append straight after a plain list entry; after anything else (a
+        // blockquote, a code fence, prose) keep a blank separator so the new
+        // entries do not read as part of that block (Closes #N stays a claim).
+        const separator = endsPlainListEntry(lines, sub + 1, last) ? [] : [""];
+        lines.splice(last + 1, 0, ...separator, ...entryLines);
       } else {
         const insert = ["", ...entryLines];
         if (sub + 1 >= lines.length || (lines[sub + 1] ?? "").trim().length > 0) insert.push("");

@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { parseClosesSet } from "../release/consumer-hard-stops.js";
 import {
   composeEffectiveUnreleased,
   effectiveChangelogText,
@@ -131,6 +132,28 @@ describe("mergeFragmentsIntoChangelogText (#6314)", () => {
     );
     // The released section is untouched.
     expect(merged.split("## [0.1.0]")[1]).toBe(CHANGELOG.split("## [0.1.0]")[1]);
+  });
+
+  it("keeps a blank line between a trailing blockquote or fence and appended entries (#6314 review)", () => {
+    const quoted =
+      "## [Unreleased]\n\n### Fixed\n\n- Inline\n\n> note about the cut\n\n## [0.1.0]\n";
+    const merged = mergeFragmentsIntoChangelogText(quoted, [
+      frag("changelog.d/77-x.md", "Fixed", ["- Fixed this (Closes #77)"]),
+    ]);
+    expect(merged).toBe(
+      "## [Unreleased]\n\n### Fixed\n\n- Inline\n\n> note about the cut\n\n- Fixed this (Closes #77)\n\n## [0.1.0]\n",
+    );
+    expect(parseClosesSet(merged)).toEqual(new Set([77]));
+
+    const fenced = "## [Unreleased]\n### Added\n- a\n  ```\n  code\n  ```\n";
+    expect(
+      mergeFragmentsIntoChangelogText(fenced, [frag("changelog.d/1-a.md", "Added", ["- b"])]),
+    ).toBe("## [Unreleased]\n### Added\n- a\n  ```\n  code\n  ```\n\n- b\n");
+
+    const prose = "## [Unreleased]\n### Added\nSome prose.\n";
+    expect(
+      mergeFragmentsIntoChangelogText(prose, [frag("changelog.d/1-a.md", "Added", ["- b"])]),
+    ).toBe("## [Unreleased]\n### Added\nSome prose.\n\n- b\n");
   });
 
   it("keeps CRLF and pads a subsection heading followed directly by another heading", () => {

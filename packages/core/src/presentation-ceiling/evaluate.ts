@@ -291,11 +291,16 @@ function protectedJsonText(text: string): boolean {
   );
 }
 
-/** Reader input path that names a changelog: `CHANGELOG` / a changelog entry path, at any depth. */
+/**
+ * Reader input path that names a changelog at any depth (absolute or relative):
+ * `CHANGELOG`, `CHANGELOG.md`, or a `changelog.d/<name>.md` fragment suffix.
+ */
 function changelogPath(text: string): boolean {
-  if (isChangelogEntryPath(text)) return true;
-  const base = text.slice(text.lastIndexOf("/") + 1);
-  return base === "CHANGELOG" || isChangelogEntryPath(base);
+  const posix = text.replace(/\\/g, "/");
+  const parts = posix.split("/");
+  const base = parts[parts.length - 1] ?? "";
+  const tail = parts.slice(-2).join("/");
+  return base === "CHANGELOG" || isChangelogEntryPath(base) || isChangelogEntryPath(tail);
 }
 
 function approvedScopeModule(specifier: string): boolean {

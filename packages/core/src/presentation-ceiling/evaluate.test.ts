@@ -738,6 +738,7 @@ describe("presentation ceiling changelog entry paths (#6314)", () => {
     "const notes = readFileSync('changelog.d/6314-x.md').split('SQL:')[1];\n",
     "const notes = readFileSync('docs/CHANGELOG.md').split('SQL:')[1];\n",
     "const notes = readFileSync('CHANGELOG').split('SQL:')[1];\n",
+    "const notes = readFileSync('/project/changelog.d/6314-x.md').split('SQL:')[1];\n",
   ])("treats a production reader of a changelog path as a reader: %s", (content) => {
     const result = evaluatePresentationCeilingFromSnapshot(
       snap({
