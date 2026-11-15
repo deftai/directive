@@ -534,3 +534,13 @@ describe("dirty product evidence reachability (#4544 Prefer-A Bound 6000271029)"
     expect("skipped" in skipped && skipped.skipped).toBe(true);
   });
 });
+
+describe("isNonProductMutationPath changelog entry paths (#6314)", () => {
+  it("keeps root and nested CHANGELOG.md non-product and adds fragments", () => {
+    expect(isNonProductMutationPath("CHANGELOG.md")).toBe(true);
+    expect(isNonProductMutationPath("apps/demo/CHANGELOG.md")).toBe(true);
+    expect(isNonProductMutationPath("changelog.d/6314-x.md")).toBe(true);
+    expect(isNonProductMutationPath("changelog.d/sub/x.md")).toBe(false);
+    expect(isNonProductMutationPath("src/changelog.md")).toBe(false);
+  });
+});

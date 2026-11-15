@@ -10,6 +10,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { isChangelogEntryPath } from "../changelog/entry-path.js";
 import {
   admittedUntiedWorktreeKey,
   listActiveLifecycleArtifacts,
@@ -38,7 +39,7 @@ const TRUTHY = new Set(["1", "true", "yes", "on"]);
 
 /** Inert path extensions / known inert filenames for enrolled docs-only skip. */
 const INERT_EXT_RE = /\.(md|mdx|txt|rst)$/i;
-const INERT_NAME_RE = /^(CHANGELOG\.md|LICENSE(\..+)?)$/i;
+const INERT_NAME_RE = /^LICENSE(\..+)?$/i;
 
 type GitPathsResult =
   | { readonly ok: true; readonly paths: readonly string[] }
@@ -232,6 +233,7 @@ export function outgoingChangedPaths(
 
 export function isDocsOnlyPath(path: string): boolean {
   const n = path.replaceAll("\\", "/");
+  if (isChangelogEntryPath(n)) return true;
   if (INERT_NAME_RE.test(n)) return true;
   if (INERT_EXT_RE.test(n)) return true;
   return false;

@@ -18,6 +18,7 @@ import {
   utcIso,
 } from "../authz/index.js";
 import { shellCommandHasPayloadRootProtectedDestAfterRealpath } from "../authz/protected-dest-realpath.js";
+import { isChangelogEntryPath } from "../changelog/entry-path.js";
 import { prepareGithubOnlyDest } from "../design-critique/run-posture.js";
 import { runningInsideDeftRepo } from "../doctor/paths.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
@@ -874,17 +875,16 @@ function allMutationTargetsAreCompletedLifecycleWrites(
   return allMutationTargetsMatch(projectRoot, payload, isCompletedLifecycleWrite);
 }
 
-/** Exact CHANGELOG.md relative path for Prefer-A #5890 retirement-shaped harvest. */
-const CHANGELOG_REL = "CHANGELOG.md";
-
+/** Changelog entry path (#6314) for Prefer-A #5890 retirement-shaped harvest. */
 function isChangelogRelPath(relPosix: string): boolean {
   const p = relPosix.replace(/\\/g, "/").replace(/^\.\//, "");
-  return p === CHANGELOG_REL;
+  return isChangelogEntryPath(p);
 }
 
 /**
  * Prefer-A #5890 retirement-shaped harvest: every target is completed/ lifecycle
- * or CHANGELOG.md, and at least one is CHANGELOG.md. Pure completed/ is exempt
+ * or a changelog entry path, and at least one is a changelog entry path
+ * (`CHANGELOG.md` or `changelog.d/<name>.md`, #6314). Pure completed/ is exempt
  * upstream (#4422) before inspectActiveScope; cancelled/ and product paths stay
  * on the ungated zero-eligible arm.
  */

@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6295",
-    "updated": "2026-11-15T02:35:47Z"
+    "updated": "2026-11-15T15:54:43Z"
   },
   "plan": {
     "title": "feat(merge): green PRs merge without manual re-qualification (merge queue or merge train)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Green PRs on master need manual re-qualification today: update-branch loops, a merge-gate re-read and `--admin` merges. This story moves master to a GitHub merge queue, runs CI and a stand-in `Greptile Review` check on `merge_group`, and gives `pr:wait-mergeable-and-merge` a queue mode that enqueues and reports exactly one of six results.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6295",
@@ -20,74 +20,329 @@
     "items": [
       {
         "title": "Queue on master: master requires a merge queue (squash as the queue's merge method), and the repository allows auto-merge so the CLI can arm admission while checks run. Release and policy commits land through the queue as PRs; direct pushes to master are not part of the normal path. Docs say so.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given master's branch rules, then a merge queue with squash is required and repository auto-merge is on, and the docs state that release and policy commits land as PRs through the queue."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Checks on the queue: `.github/workflows/ci.yml` also runs on `merge_group`. The required checks for master are `TypeScript (build + lint + test)` and `Merge gate (task check)`, reported on PRs and on `merge_group`. On `merge_group`, the PR-context checks inside `task check:merge` (closing keywords, scope provenance, intent constraint) are skipped: they were evaluated on the PR head and body at the PR's last CI run, the same assurance a direct merge of an up-to-date PR has today; later body edits are not re-checked, as today, and lifecycle atomicity stays with #6277.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given a `merge_group` event, when ci.yml runs, then `TypeScript (build + lint + test)` and `Merge gate (task check)` report on the group commit with the closing-keyword, scope-provenance and intent-constraint checks skipped."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Review check on the queue: one job named `Greptile Review`, run only on `merge_group`, reports success on the group commit. It starts no review and lists no members. It is sound because GitHub admits a PR to the queue only after its required checks, including the Greptile app's `Greptile Review`, pass on its head, and refuses any update to a queued PR's branch; changing the PR means leaving the queue and passing the checks again on the new head (measured, 6863745290 observations 1, 2 and 4). The job never runs on `pull_request`. The org ruleset keeps requiring `Greptile Review`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given a `merge_group` event, then one `Greptile Review` job reports success on the group commit without starting a review; given a `pull_request` event, then that job does not run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Merge verb, queue mode: `pr:wait-mergeable-and-merge` detects that the delivery branch requires a merge queue (branch rules REST). It runs today's pre-merge checks that read the PR head (review verdict, CI on the head, `verify:pr-closeout-attestable`), records the head SHA and the time, and runs `gh pr merge N --match-head-commit <sha>` with no `--admin` and no merge-method flag. It then reads the PR once from GitHub (head SHA, merged state and merge commit, merge-queue entry, auto-merge request, and the queue and auto-merge timeline events after the recorded time) and returns exactly one result, checked in this order: `head-changed` (the PR's head differs from the recorded SHA; carries the actual merge commit when the PR has merged; no reconciliation runs); `merged` (merged, with the merge commit); `queued` (entry present); `awaiting-admission` (auto-merge request present, no entry); `removed` (not merged, and a removed-from-queue event after the recorded time, with its reason, which may be empty); `inactive` (none of the above; with the latest auto-merge-disabled reason code if any). `--resume --expect-head <sha> --since <time>` repeats that read from any session; on `merged` it runs today's post-merge reconciliation, which must be safe to run more than once. The read follows the GraphQL bucket rules (#954).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given a queue-required delivery branch, when `pr:wait-mergeable-and-merge` runs, then it runs the head checks, enqueues with `--match-head-commit` and no `--admin`, and returns exactly one of the six results in the stated order; `--resume` repeats the read."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Deleted in queue mode: the up-to-date requirement and its update-branch remediation (`semantic-green.ts` stale-base refusal), the #6071 master merge-gate re-read before merge (`cascade.ts`), the update-branch loops, and `--admin`. A break-glass direct merge is a separate, named operator path, not the default.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given queue mode, when the merge verb runs, then it makes no update-branch call, no stale-base refusal, no master merge-gate re-read and no `--admin` merge."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Pre-PR: `deny-master-merge-gate-red` refuses only when master's named gate is red, never while it is pending; in queue mode it is removed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given master's named gate pending, then `deny-master-merge-gate-red` lets pre-PR pass; given it red without a queue, then it refuses; in queue mode the deny is removed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Closeout check: `verify:pr-closeout-attestable` reads the PR head SHA from REST and evaluates the tree at that SHA, including referenced evidence, instead of requiring local HEAD to equal the PR head. It stays at enqueue time until #6277 ships.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given local HEAD differs from the PR head, when `verify:pr-closeout-attestable` runs, then it reads the head SHA from REST and evaluates the tree and referenced evidence at that SHA."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Consumers: a repository without a merge queue keeps today's merge path (minus item 6's pending change). To use queue mode a consumer enables the queue on its delivery branch and auto-merge on the repository, adds `merge_group` to the workflows behind its required checks, and adds a job like item 3 for any required app check that does not run on `merge_group`. A queue configuration error fails the enqueue; it never falls back to `--admin`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given a repository without a merge queue, then the merge verb returns today's results; given a queue configuration error, then the enqueue fails and never falls back to `--admin`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Tests: queue detected → enqueue without `--admin`, no update-branch call; each of the six results is returned from a recorded GitHub response in the stated order, including a merge whose timeline also holds a removed-from-queue event with reason `merged` (result `merged`), a dequeue then new head then re-queue then merge read with the old expected head (result `head-changed` with the merge commit, no reconciliation), a timeout removal with reason `checks_timed_out` (result `removed`), and a cancelled auto-merge before admission (result `inactive`); `--resume` on `merged` runs reconciliation and a second resume does not break it; the item 3 job runs on `merge_group` only; on `merge_group` the PR-context checks are skipped and the rest run; pre-PR passes while master's gate is pending and refuses when it is red (non-queue); no-queue repositories behave as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "When the merge-queue tests run, then each listed fixture holds: enqueue without `--admin`, the six results from recorded GitHub responses in order, `--resume` reconciliation safe to run twice, the job on `merge_group` only, skipped PR-context checks, and no-queue parity."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "clause.21",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.22",
+        "title": "clause.22",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.23",
+        "title": "clause.23",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.24",
+        "title": "clause.24",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.25",
+        "title": "clause.25",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+          "recorded_at": "2026-11-15T15:44:20Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -971,7 +1226,34 @@
         "algorithm": "sha256",
         "sha256": "63196e2b2b911b2d881d40fad0b18f0d6aff5466deac70d02db15172a7b0dfa1"
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 6322,
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "81fa74a9b32bfd1d8185b6fa832d30aa125acdb9",
+        "prNumber": 6322,
+        "prBase": "master",
+        "mergeCommit": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d8bb1b8534d0e5b4cda07f9a75b36824317359d8",
+        "verifiedAt": "2026-11-15T15:54:43Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+        "identityBasis": "merge-time-mark"
+      },
+      "completedAt": "2026-11-15T15:54:43Z",
+      "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-15T15:54:43Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -1217,6 +1499,6 @@
       ]
     },
     "id": "github.issue.6375855023",
-    "updated": "2026-11-15T02:35:47Z"
+    "updated": "2026-11-15T15:54:43Z"
   }
 }

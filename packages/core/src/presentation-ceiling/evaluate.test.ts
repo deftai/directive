@@ -720,3 +720,46 @@ describe("HTML script end-tag extraction (#5747 / CodeQL alert #143)", () => {
     expect(result.findings.some((f) => f.kind === "changelog-production-reader")).toBe(true);
   });
 });
+
+describe("presentation ceiling changelog entry paths (#6314)", () => {
+  it("passes a fragment-only release-notes change like CHANGELOG.md", () => {
+    const result = evaluatePresentationCeilingFromSnapshot(
+      snap({
+        changedFiles: ["changelog.d/6314-x.md"],
+        baseArtifacts: [artifact(CEILING)],
+        headArtifacts: [artifact(CEILING)],
+        standingFileContents: new Map(),
+      }),
+    );
+    expect(result.exitCode).toBe(0);
+  });
+
+  it.each([
+    "const notes = readFileSync('changelog.d/6314-x.md').split('SQL:')[1];\n",
+    "const notes = readFileSync('docs/CHANGELOG.md').split('SQL:')[1];\n",
+    "const notes = readFileSync('CHANGELOG').split('SQL:')[1];\n",
+    "const notes = readFileSync('/project/changelog.d/6314-x.md').split('SQL:')[1];\n",
+  ])("treats a production reader of a changelog path as a reader: %s", (content) => {
+    const result = evaluatePresentationCeilingFromSnapshot(
+      snap({
+        changedFiles: ["changelog.d/6314-x.md"],
+        baseArtifacts: [artifact(CEILING)],
+        headArtifacts: [artifact(CEILING)],
+        standingFileContents: new Map([["src/index.js", content]]),
+      }),
+    );
+    expect(result.findings.some((f) => f.kind === "changelog-production-reader")).toBe(true);
+  });
+
+  it("does not exempt a nested changelog.d path", () => {
+    const result = evaluatePresentationCeilingFromSnapshot(
+      snap({
+        changedFiles: ["changelog.d/sub/x.md"],
+        baseArtifacts: [artifact(CEILING)],
+        headArtifacts: [artifact(CEILING)],
+        standingFileContents: new Map(),
+      }),
+    );
+    expect(result.findings.some((f) => f.path === "changelog.d/sub/x.md")).toBe(true);
+  });
+});

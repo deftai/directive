@@ -5,6 +5,7 @@
  */
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
+import { effectiveChangelogText } from "../changelog/effective-unreleased.js";
 import { containedWrite } from "../fs/contained-write.js";
 import {
   type CoverageDebtIssueProbe,
@@ -160,7 +161,10 @@ export function probeOpenCoverageDebtLedger(
   const changelogSafety = guardChangelogReadSafety(projectRoot);
   if (changelogSafety.ok && exists(changelogPath)) {
     try {
-      const cited = extractCoverageDebtCitationsFromChangelog(read(changelogPath));
+      // #6314: read [Unreleased] through the effective view (changelog + fragments).
+      const cited = extractCoverageDebtCitationsFromChangelog(
+        effectiveChangelogText(projectRoot, read(changelogPath)),
+      );
       if (ghPath === null) {
         // Fail closed: cannot confirm closed state without gh.
         citedOpen = cited;
@@ -236,7 +240,9 @@ export function probeSkipCiIncidentLedger(
     const changelogSafety = guardChangelogReadSafety(projectRoot);
     if (changelogSafety.ok && exists(changelogPath)) {
       try {
-        spent = extractSkipCiIncidentCitationsFromChangelog(read(changelogPath));
+        spent = extractSkipCiIncidentCitationsFromChangelog(
+          effectiveChangelogText(projectRoot, read(changelogPath)),
+        );
       } catch {
         // ignore unreadable changelog
       }

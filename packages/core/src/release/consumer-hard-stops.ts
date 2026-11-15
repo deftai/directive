@@ -80,6 +80,8 @@ export function enumerateConsumerHardStops(
 /**
  * Extract Closes/Fixes/Resolves #N from changelog Unreleased text.
  * Never from issue bodies. Hits in refused markdown positions are not claims.
+ * Callers pass the effective text (`effectiveChangelogText`, #6314) so
+ * `changelog.d/` fragment entries are in the Closes set.
  */
 export function parseClosesSet(changelogText: string): Set<number> {
   const after = changelogText.split(/^## \[Unreleased\]\s*$/m)[1] ?? "";

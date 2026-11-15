@@ -161,6 +161,23 @@ The blockquote captures the operator's one-sentence release narrative (recommend
 
 ! Move items from `[Unreleased]` to versioned section during release.
 
+## Fragments (`changelog.d/`, #6314)
+
+A change can record its entry in its own fragment file instead of a line in `CHANGELOG.md`, so parallel PRs do not edit the same file.
+
+- File: `changelog.d/<issue>-<slug>.md` (one level deep; lowercase letters, digits, `.`, `_`, `-`). Two changes for one issue use different slugs.
+- Format: the first line is `section: <Subsection>` (`Added`, `Changed`, `Deprecated`, `Removed`, `Fixed` or `Security`); then one or more entries, each starting with `- `, with indented continuation lines.
+- Invalid: an empty file, an unknown section, a line that starts with `#`, a symlink, or a non-regular file.
+
+```markdown
+section: Added
+- **Fragments**: parallel PRs add changelog entries without conflicts (#6314)
+```
+
+The unreleased entries are the `[Unreleased]` lines of `CHANGELOG.md` plus the entries of all valid fragments, by subsection. Every tool that reads `[Unreleased]` reads this effective view.
+
+`plan.policy.changelog.mode` selects the form: `inline` (default, a line in `CHANGELOG.md`), `either` (cutover) or `fragments`. Inspect with `deft policy:show --field=plan.policy.changelog.mode`; set with `deft policy:set-changelog-mode -- --mode inline|either|fragments --confirm`. The gate and the release assembly of fragments follow in a later change (#6286).
+
 ## Breaking Changes
 
 ! Clearly mark breaking changes:

@@ -179,7 +179,10 @@ export function formatCoverageAttribution(issue: number, totals: CoverageTotals)
   return lines.join("\n");
 }
 
-/** Count recent release sections citing coverage-debt (CHANGELOG scan). */
+/**
+ * Count recent release sections citing coverage-debt (CHANGELOG scan).
+ * Callers pass the effective text (`effectiveChangelogText`, #6314).
+ */
 export function countRecentCoverageDebtMentions(changelog: string, maxSections = 5): number {
   const versionHeader = /^## \[(?!Unreleased)/m;
   const sections = changelog.split(versionHeader).slice(1, maxSections + 1);

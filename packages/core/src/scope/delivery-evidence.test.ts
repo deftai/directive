@@ -3199,3 +3199,16 @@ describe("non-delivery refuse for a merged stamped PR (#5710 P4)", () => {
     }
   });
 });
+
+describe("isDeliveryBriefLandPath changelog entry paths (#6314)", () => {
+  it("treats CHANGELOG.md and a changelog.d fragment as delivery-brief-land", () => {
+    expect(isDeliveryBriefLandPath("CHANGELOG.md")).toBe(true);
+    expect(isDeliveryBriefLandPath("changelog.d/6314-fragments.md")).toBe(true);
+  });
+
+  it("keeps nested, upper-case and non-root changelog paths out", () => {
+    expect(isDeliveryBriefLandPath("changelog.d/sub/x.md")).toBe(false);
+    expect(isDeliveryBriefLandPath("changelog.d/X.md")).toBe(false);
+    expect(isDeliveryBriefLandPath("docs/CHANGELOG.md")).toBe(false);
+  });
+});
