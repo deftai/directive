@@ -2504,6 +2504,20 @@ describe("inactive Shell classifiers (#4709)", () => {
     ).toContain("settings");
     expect(classifyShellAuthzOps('awk \'BEGIN { print "x" | "cat" }\'')).toEqual([]);
     expect(
+      classifyShellAuthzOps("awk 'BEGIN { print \" | tee \" }' .deft/authz/state.json"),
+    ).toEqual([]);
+    expect(
+      classifyShellAuthzOps('awk \'BEGIN { print "escaped \\" | tee " }\' .deft/authz/state.json'),
+    ).toEqual([]);
+    expect(
+      classifyShellAuthzOps(
+        'awk \'BEGIN { print " | tee "; print "x" | "tee .deft/authz/grants/g" }\'',
+      ),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps('awk "/\'/ { print \\"x\\" | \\"tee .deft/authz/grants/g\\" }"'),
+    ).toContain("settings");
+    expect(
       classifyShellAuthzOps(
         "GIT_EXTERNAL_DIFF='touch .deft-directive-disable' git diff --no-index /tmp/a /tmp/b",
       ),

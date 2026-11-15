@@ -2402,8 +2402,21 @@ function awkPayloadHasWrite(words: readonly string[], execIndex: number): boolea
   if (/\bsystem\s*\(/i.test(payload) || /\b(?:print|printf)\s*(?:>>|>)/i.test(payload)) {
     return true;
   }
+  let inString = false;
+  let escaped = false;
   for (let i = 0; i < payload.length; i++) {
-    if (payload[i] !== "|") continue;
+    const ch = payload[i] as string;
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+    if (ch !== "|") continue;
     let j = i + 1;
     while (j < payload.length && /\s|['"]/.test(payload[j] as string)) j++;
     const start = j;
