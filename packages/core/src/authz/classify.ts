@@ -84,7 +84,6 @@ function isEnvAssign(token: string): boolean {
  */
 /** gh global flags that take a separate value token. */
 const GH_VALUE_FLAGS = new Set(["-R", "--repo", "-a", "--app", "-h", "--hostname", "-p", "--jq"]);
-const GH_VALUE_FLAGS_NORMALIZED = new Set([...GH_VALUE_FLAGS].map((flag) => normalizeToken(flag)));
 
 function findGhResourceVerb(tokens: readonly string[]): { resource: string; verb: string } | null {
   let i = 0;
@@ -108,7 +107,7 @@ function findGhResourceVerb(tokens: readonly string[]): { resource: string; verb
       continue;
     }
     // Value-taking short/long flags: -R owner/repo, --repo owner/repo
-    if (GH_VALUE_FLAGS_NORMALIZED.has(n)) {
+    if (GH_VALUE_FLAGS.has(t) || GH_VALUE_FLAGS.has(n)) {
       i += 2;
       continue;
     }
@@ -2357,7 +2356,6 @@ const EXISTENCE_PROBE_IGNORE_OUTPUT_DEST_FLAGS = new Set(["test", "["]);
 
 const READ_ONLY_PROOF_OUTPUT_DEST_FLAGS = new Set(["-o", "--output", "--pretty-print"]);
 const GIT_VALUE_FLAGS = new Set([
-  "-C",
   "-c",
   "--attr-source",
   "--config-env",
@@ -2367,7 +2365,6 @@ const GIT_VALUE_FLAGS = new Set([
   "--super-prefix",
   "--work-tree",
 ]);
-const GIT_REJECT_READ_PROOF_FLAGS = new Set(["-c", "--config-env"]);
 const GIT_READ_PROOF_WRITE_SUBCOMMANDS = new Set([
   "clone",
   "fetch",
@@ -2510,17 +2507,20 @@ function isProvenReadOnlyArgv(words: readonly string[], execIndex: number): bool
     let i = execIndex + 1;
     let subcommand: string | null = null;
     while (i < words.length) {
-      const n = normalizeToken(words[i] as string);
+      const rawFlag = zipShellWordLiteral(words[i] as string) ?? (words[i] as string);
+      const n = normalizeToken(rawFlag);
       if (n === "--") {
         i++;
         break;
       }
       if (n.startsWith("-")) {
-        const rawFlag = zipShellWordLiteral(words[i] as string) ?? (words[i] as string);
+        // `-c` can configure aliases and external diff/merge commands. Those
+        // commands execute outside Git's argv and cannot receive a read-only proof.
         if (
-          GIT_REJECT_READ_PROOF_FLAGS.has(n) ||
-          n.startsWith("--config-env=") ||
-          (n.startsWith("-c") && !n.startsWith("--"))
+          rawFlag === "-c" ||
+          rawFlag.startsWith("-c") ||
+          rawFlag === "--config-env" ||
+          rawFlag.startsWith("--config-env=")
         ) {
           return false;
         }
@@ -2570,11 +2570,7 @@ function isRelativeLiteralShellPath(raw: string): boolean {
   return true;
 }
 
-function segmentHasRelativeWriterTarget(
-  words: readonly string[],
-  execIndex: number,
-  protectedCwd: string,
-): boolean {
+function segmentRelativeWriterTarget(words: readonly string[], execIndex: number): string | null {
   const name = argv0BareName(words, execIndex);
   if (
     name === null ||
@@ -2582,7 +2578,7 @@ function segmentHasRelativeWriterTarget(
       !ARCHIVE_ALT_WRITE_BINS.has(name) &&
       !SYMLINK_PLANT_BINS.has(name))
   ) {
-    return false;
+    return null;
   }
 
   let lastOperand: string | null = null;
@@ -2598,10 +2594,32 @@ function segmentHasRelativeWriterTarget(
     if (!optionsEnded && normalized.startsWith("-")) continue;
     if (!isEnvAssign(raw)) lastOperand = raw;
   }
-  if (lastOperand === null || !isRelativeLiteralShellPath(lastOperand)) return false;
-  const literal = zipShellWordLiteral(lastOperand);
+  return lastOperand !== null && isRelativeLiteralShellPath(lastOperand) ? lastOperand : null;
+}
+
+function relativePathMayTraverseSymlink(raw: string): boolean {
+  const literal = zipShellWordLiteral(raw);
   if (literal === null) return false;
-  return pathishIsSettingsStoreDir(canonicalizePathish(`${protectedCwd}/${pathishToken(literal)}`));
+  let sawNormalComponent = false;
+  for (const component of literal.replace(/\\/g, "/").split("/")) {
+    if (component.length === 0 || component === ".") continue;
+    if (component === "..") {
+      if (sawNormalComponent) return true;
+      continue;
+    }
+    sawNormalComponent = true;
+  }
+  return false;
+}
+
+function resolvesInsideProtectedCwd(cwd: string, raw: string): boolean {
+  const literal = zipShellWordLiteral(raw);
+  if (literal === null) return false;
+  const normalized = literal.replace(/\\/g, "/");
+  const resolved = normalized.startsWith("/")
+    ? canonicalizePathish(normalized)
+    : canonicalizePathish(`${cwd}/${normalized}`);
+  return pathishIsSettingsStoreDir(resolved);
 }
 
 function hasProtectedCwdRelativeWriter(command: string): boolean {
@@ -2630,16 +2648,20 @@ function hasProtectedCwdRelativeWriter(command: string): boolean {
         target = raw;
         break;
       }
-      if (target === undefined) {
-        protectedCwd = null;
-      } else {
-        const candidate = canonicalizePathish(pathishToken(target));
-        protectedCwd = pathishIsSettingsStoreDir(candidate) ? candidate : null;
-      }
+      protectedCwd =
+        target !== undefined && pathishIsSettingsStoreDir(pathishToken(target))
+          ? canonicalizePathish(pathishToken(target))
+          : null;
       continue;
     }
     if (protectedCwd === null || isProvenReadOnlyArgv(segment.words, segment.execIndex)) continue;
-    if (segmentHasRelativeWriterTarget(segment.words, segment.execIndex, protectedCwd)) return true;
+    const target = segmentRelativeWriterTarget(segment.words, segment.execIndex);
+    if (
+      target !== null &&
+      (resolvesInsideProtectedCwd(protectedCwd, target) || relativePathMayTraverseSymlink(target))
+    ) {
+      return true;
+    }
   }
   return false;
 }
@@ -3405,6 +3427,7 @@ function hasProtectedUnprovenReadOnlyDestOfWrite(command: string): boolean {
     const literal = argv0Literal(segment.words, segment.execIndex);
     const name = argv0BareName(segment.words, segment.execIndex);
     if (name === null) continue;
+    if (name === "cd" || name === "pushd" || name === "set-location") continue;
     if (isArStyleArchiveBin(name)) {
       const rawMode = segment.words[segment.execIndex + 1];
       if (
@@ -3777,7 +3800,7 @@ function forgeHasCloneSubcommand(tokens: readonly string[], start: number): bool
     if (isShellSegmentBreak(raw)) break;
     const n = normalizeToken(raw);
     if (n.startsWith("-")) {
-      if (!n.includes("=") && GH_VALUE_FLAGS_NORMALIZED.has(n)) {
+      if (!n.includes("=") && (GH_VALUE_FLAGS.has(raw) || GH_VALUE_FLAGS.has(n))) {
         const next = tokens[i + 1];
         if (next !== undefined && !String(next).startsWith("-") && !isShellSegmentBreak(next)) {
           i += 2;
@@ -4632,11 +4655,26 @@ function hasEnvExpansion(command: string): boolean {
       }
     }
     if (c === "%" && i + 1 < command.length) {
-      const end = command.indexOf("%", i + 1);
-      if (end <= i + 1) continue;
-      const body = command.slice(i + 1, end);
-      if (/^[A-Za-z_][A-Za-z0-9_]*(?::(?:~[-+0-9,]*|[^=\s%]*=[^\s%]*))?$/.test(body)) {
-        return true;
+      let j = i + 1;
+      while (j < command.length) {
+        const n = command[j] as string;
+        if (
+          n === "_" ||
+          (n >= "A" && n <= "Z") ||
+          (n >= "a" && n <= "z") ||
+          (n >= "0" && n <= "9")
+        ) {
+          j++;
+          continue;
+        }
+        break;
+      }
+      if (j > i + 1 && command[j] === "%") return true;
+      if (j > i + 1 && command[j] === ":") {
+        const name = command.slice(i + 1, j);
+        let end = j + 1;
+        while (end < command.length && command[end] !== "%") end++;
+        if (end < command.length && /^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) return true;
       }
     }
   }
