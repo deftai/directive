@@ -302,6 +302,9 @@ describe("release recovery with changelog fragments (#6315 / #6286 item 6)", () 
     }
     execFileSync("git", ["init", "-q", "-b", "master"], { cwd: root });
     git(root, ["config", "core.autocrlf", "false"]);
+    // Keep the identity in the repo so a run that reaches Step 9 can commit on CI.
+    git(root, ["config", "user.email", "ci@test"]);
+    git(root, ["config", "user.name", "ci"]);
     git(root, ["add", "-A"]);
     git(root, ["commit", "-q", "-m", "init"]);
     return root;
