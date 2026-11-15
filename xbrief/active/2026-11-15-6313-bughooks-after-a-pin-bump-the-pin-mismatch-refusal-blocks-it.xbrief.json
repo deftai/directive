@@ -217,134 +217,134 @@
       "clauses": [
         {
           "id": 1,
-          "text": "Summary After a pin bump lands on master, any checkout or worktree that fast-forwards to it still has the previous runtime installed.",
-          "artifact_path": "CHANGELOG.md",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 2,
-          "text": "The PreToolUse hook then refuses every shell command with: `Directive hook refuse: pinned runtime does not match the installed runtime (pin=0.129.9 installed=0.129.8).",
-          "artifact_path": "packages/runtime/src/hook-dispatch.ts",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 3,
-          "text": "Recovery: Run npm install or pnpm install in this project (use --frozen-lockfile when the lockfile already records the pin).` The recovery it names, `pnpm install --frozen-lockfile` or `npm install`, is itself a shell command, and the same check refuses it (`packages/runtime/src/hook-dispatch.ts`, the `checkCheapInSync` fail-closed branch, about line 371).",
-          "artifact_path": "packages/runtime/src/hook-dispatch.ts",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 4,
-          "text": "On a host whose only shell is hooked, the session cannot recover in-band.",
-          "artifact_path": "CHANGELOG.md",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 5,
-          "text": "It can only use an uninspected tool or a terminal outside the agent.",
-          "artifact_path": "CHANGELOG.md",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 6,
-          "text": "Evidence (2026-11-13, pin bump to 0.129.9 in #6312) - The finalize worker for #6311 fast-forwarded its worktree to master after #6312 merged.",
-          "artifact_path": "CHANGELOG.md",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 7,
-          "text": "Every Bash call was refused, including `pnpm install --frozen-lockfile`.",
-          "artifact_path": "CHANGELOG.md",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 8,
-          "text": "It recovered by running that same command through the PowerShell tool, which the Directive hook does not inspect.",
-          "artifact_path": "CHANGELOG.md",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 9,
-          "text": "That was reported as an incident, not a sanctioned path.",
-          "artifact_path": "CHANGELOG.md",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 10,
-          "text": "The dispatching session hit the identical refusal twice this week, after each pin bump, and recovered the same way.",
-          "artifact_path": "CHANGELOG.md",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 11,
-          "text": "So it is reproducible on every bump.",
-          "artifact_path": "CHANGELOG.md",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 12,
-          "text": "Related: #5892 (an arc parent blocked by install drift in the primary checkout), where the same refusal blocked a read-only session.",
-          "artifact_path": "CHANGELOG.md",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 13,
-          "text": "This issue is the general trap behind it.",
-          "artifact_path": "CHANGELOG.md",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 14,
-          "text": "Expected Remove the trap rather than add a check.",
-          "artifact_path": "CHANGELOG.md",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 15,
-          "text": "When the only fail-closed fault is pin ≠ installed (no overlay, no identity mismatch), the hook admits exactly its own named recovery commands as simple, uncompounded shell commands run at the project root: - `pnpm install --frozen-lockfile` - `npm install` / `npm ci` - the AC9.7 pair it names elsewhere: `npm i -g @deftai/directive`, then `directive install --repair` Everything else stays refused until the install matches the pin.",
-          "artifact_path": "packages/core/src/install-health/recovery-admit.ts",
-          "ambiguous": false,
-          "provenance": "statement"
-        },
-        {
-          "id": 16,
           "text": "Acceptance Criteria - [ ] Given a checkout whose pin is newer than the installed runtime, when the agent runs `pnpm install --frozen-lockfile` at the project root through the hooked shell, then the hook admits it, and after it finishes the next unrelated command is admitted.",
           "artifact_path": "packages/runtime/src/hook-dispatch.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
-          "id": 17,
+          "id": 2,
           "text": "[ ] Given the same state, when the agent runs any other command (including `pnpm install` chained with another command, or run in a different directory), then the hook still refuses with the same recovery text.",
           "artifact_path": "packages/runtime/src/hook-dispatch.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
-          "id": 18,
+          "id": 3,
           "text": "[ ] Given an overlay-present or identity-mismatch fault, the admit does not apply (the existing #5910 recovery stays).",
           "artifact_path": "packages/runtime/src/hook-identity-failclosed.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
-          "id": 19,
+          "id": 4,
           "text": "[ ] Tests beside `hook-dispatch.ts` cover the admit and the refusals above.",
           "artifact_path": "packages/runtime/src/hook-dispatch.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Summary After a pin bump lands on master, any checkout or worktree that fast-forwards to it still has the previous runtime installed.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "The PreToolUse hook then refuses every shell command with: `Directive hook refuse: pinned runtime does not match the installed runtime (pin=0.129.9 installed=0.129.8).",
+          "artifact_path": "packages/runtime/src/hook-dispatch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Recovery: Run npm install or pnpm install in this project (use --frozen-lockfile when the lockfile already records the pin).` The recovery it names, `pnpm install --frozen-lockfile` or `npm install`, is itself a shell command, and the same check refuses it (`packages/runtime/src/hook-dispatch.ts`, the `checkCheapInSync` fail-closed branch, about line 371).",
+          "artifact_path": "packages/runtime/src/hook-dispatch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "On a host whose only shell is hooked, the session cannot recover in-band.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "It can only use an uninspected tool or a terminal outside the agent.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Evidence (2026-11-13, pin bump to 0.129.9 in #6312) - The finalize worker for #6311 fast-forwarded its worktree to master after #6312 merged.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Every Bash call was refused, including `pnpm install --frozen-lockfile`.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "It recovered by running that same command through the PowerShell tool, which the Directive hook does not inspect.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "That was reported as an incident, not a sanctioned path.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "The dispatching session hit the identical refusal twice this week, after each pin bump, and recovered the same way.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "So it is reproducible on every bump.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Related: #5892 (an arc parent blocked by install drift in the primary checkout), where the same refusal blocked a read-only session.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "This issue is the general trap behind it.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Expected Remove the trap rather than add a check.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "When the only fail-closed fault is pin ≠ installed (no overlay, no identity mismatch), the hook admits exactly its own named recovery commands as simple, uncompounded shell commands run at the project root: - `pnpm install --frozen-lockfile` - `npm install` / `npm ci` - the AC9.7 pair it names elsewhere: `npm i -g @deftai/directive`, then `directive install --repair` Everything else stays refused until the install matches the pin.",
+          "artifact_path": "packages/core/src/install-health/recovery-admit.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
