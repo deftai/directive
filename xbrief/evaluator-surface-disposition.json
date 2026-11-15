@@ -1,10 +1,11 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
+  "issue": 6316,
   "surfaces": [
-    "Taskfile.yml",
-    "packages/core/src/check/gate-lists.ts",
+    "packages/core/src/intent-constraint/plan-id-adopter.ts",
+    "packages/core/src/intent-constraint/plan-id-adopter.test.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for #6226: the #6071 cited-skip scan and the #6072 sanctioned-skip baseline share one test-file walk (packages/core/src/check/walk-test-files.ts) that skips .deft-scratch and linked worktrees; sanction rules and baseline tables unchanged. Prior renewal kept: #5942 release:e2e, release:publish and release:rollback ENGINE_CMD pass --project-root \"{{.USER_WORKING_DIR}}\" like release: (#5805). Disclosure only; not #3164 authorization. Refs #6226, #5942."
+  "note": "Renew disclosure for #6316: plan-id adoption accepts a sole deft-story-part: N line for mint selection only (#6310 Bound 1); both lines for one N refuse; hint text names --write-story-line. Adoption semantics for the mark unchanged. Disclosure only; not #3164 authorization. Refs #6316, #6310."
 }
