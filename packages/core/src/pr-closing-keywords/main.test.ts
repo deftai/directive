@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it, vi } from "vitest";
@@ -17,17 +17,26 @@ import {
   briefHasMatchingProductPr,
   cmdPrCheckClosingKeywords,
   evaluateFullStoryMarkAdmission,
+  evaluateStoryLineRequirement,
+  findStoryLineConflicts,
+  findUnparseableDeftStoryPartLines,
   fullStoryCloseIntentFromBody,
   isBriefLandShapedDiff,
   isLeftoverShapedDiff,
+  isProductShapedDiff,
   isSkipActiveDeliveryShape,
   parseAllDeftStoryMarks,
+  parseAllDeftStoryPartLines,
   parseAllowList,
   parseArgs,
   parseDeftStoryMark,
+  parseStoryRefIssues,
   run,
+  storyIssuesForBranch,
+  storyLineAdvice,
+  writeStoryLineToBodyFile,
 } from "./main.js";
-import type { RunGhFn } from "./types.js";
+import type { ReadMergeBaseFileFn, RunGhFn } from "./types.js";
 
 /** Empty merge-base stdout → collectLocalDiffFiles returns null → skip offline admission (#5736). */
 const emptyGit: RunGhFn = () => ({ returncode: 0, stdout: "", stderr: "" });
@@ -1217,5 +1226,540 @@ describe("full-story close intent mark (#4864)", () => {
     expect(stderr.mock.calls.join("")).toContain("Tracking");
     stderr.mockRestore();
     rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("story lines: part line, pre-merge check, --write-story-line (#6316)", () => {
+  const REPO = "deftai/directive";
+  const temps: string[] = [];
+  afterAll(() => {
+    for (const t of temps) {
+      rmSync(t, { recursive: true, force: true });
+    }
+  });
+
+  function makeRoot(): string {
+    const root = mkdtempSync(join(tmpdir(), "deft-story-line-"));
+    temps.push(root);
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    return root;
+  }
+
+  function storyPlan(
+    issue: number,
+    extra: { status?: string; metadata?: Record<string, unknown>; id?: string } = {},
+  ): Record<string, unknown> {
+    return {
+      ...(extra.id !== undefined ? { id: extra.id } : {}),
+      title: `story ${String(issue)}`,
+      status: extra.status ?? "running",
+      references: [
+        {
+          uri: `https://github.com/${REPO}/issues/${String(issue)}`,
+          type: "x-xbrief/github-issue",
+        },
+      ],
+      ...(extra.metadata !== undefined ? { metadata: extra.metadata } : {}),
+    };
+  }
+
+  function writeBrief(root: string, name: string, plan: Record<string, unknown>): string {
+    const rel = `xbrief/active/${name}`;
+    writeFileSync(
+      join(root, rel),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan }),
+      "utf8",
+    );
+    return rel;
+  }
+
+  function liveGh(body: string, files: { filename: string; status: string }[]): RunGhFn {
+    return (cmd) => {
+      const joined = cmd.join(" ");
+      if (joined.includes("/files")) {
+        return { returncode: 0, stdout: JSON.stringify(files), stderr: "" };
+      }
+      if (cmd.includes("body")) {
+        return { returncode: 0, stdout: JSON.stringify({ body }), stderr: "" };
+      }
+      if (cmd.includes("commits")) {
+        return { returncode: 0, stdout: JSON.stringify({ commits: [] }), stderr: "" };
+      }
+      return { returncode: 1, stdout: "", stderr: "unexpected" };
+    };
+  }
+
+  function runLive(root: string, pr: number, runGh: RunGhFn): { code: number; err: string } {
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const code = run(["--pr", String(pr), "--mode", "fp", "--repo", REPO, "--project-root", root], {
+      runGh,
+    });
+    const err = stderr.mock.calls.join("");
+    stderr.mockRestore();
+    return { code, err };
+  }
+
+  const PRODUCT = [{ filename: "packages/core/src/x.ts", status: "modified" }];
+
+  it("parses the part line like the mark and never as a close signal", () => {
+    expect(parseAllDeftStoryPartLines("deft-story-part: 12\n  deft-story-part: 3 \n")).toEqual([
+      3, 12,
+    ]);
+    expect(parseAllDeftStoryPartLines("x deft-story-part: 12\ndeft-story-part: 1a\n")).toEqual([]);
+    expect(parseAllDeftStoryMarks("deft-story-part: 12\n")).toEqual([]);
+    expect(parseDeftStoryMark("deft-story-part: 12\n")).toBeNull();
+    expect(fullStoryCloseIntentFromBody("deft-story-part: 12\n")).toBeNull();
+    expect(findUnparseableDeftStoryPartLines("deft-story-part: github.issue.1\n")).toEqual([
+      "github.issue.1",
+    ]);
+    expect(findUnparseableDeftStoryPartLines("deft-story-part:\n")).toEqual(["(empty)"]);
+    // Line-based scan: case-insensitive, CRLF-safe, linear on long whitespace runs.
+    expect(parseAllDeftStoryPartLines("DEFT-STORY-PART: 4\r\n")).toEqual([4]);
+    const spaces = " ".repeat(50_000);
+    const started = Date.now();
+    expect(parseAllDeftStoryPartLines(`deft-story-part:${spaces}x`)).toEqual([]);
+    expect(findUnparseableDeftStoryPartLines(`deft-story-part:${spaces}x`)).toEqual(["x"]);
+    expect(Date.now() - started).toBeLessThan(1000);
+    expect(findStoryLineConflicts("deft-story: 5\ndeft-story-part: 5\ndeft-story: 6\n")).toEqual([
+      5,
+    ]);
+    expect(storyLineAdvice(7)).toContain("deft-story-part: 7");
+    expect(storyLineAdvice(null)).toContain("--write-story-line");
+  });
+
+  it("reads Refs / Tracking / Related names and skips code and other repos", () => {
+    const body = [
+      "Refs #10, #11 and #12",
+      "Tracking: deftai/directive#13",
+      "Related: https://github.com/deftai/directive/issues/14",
+      "Refs other/repo#15",
+      "See `Refs #16` in prose",
+      "```",
+      "Refs #17",
+      "```",
+      "Prefs #18",
+    ].join("\n");
+    expect(parseStoryRefIssues(body, REPO)).toEqual([10, 11, 12, 13, 14]);
+  });
+
+  it("classifies product-shaped diffs", () => {
+    expect(isProductShapedDiff([])).toBe(false);
+    expect(isProductShapedDiff([{ status: "modified", path: "xbrief/active/a.json" }])).toBe(false);
+    expect(isProductShapedDiff([{ status: "modified", path: "packages/a.ts" }])).toBe(true);
+  });
+
+  it("fails a product PR whose body has Refs #N only, prints both lines and the write command", () => {
+    const root = makeRoot();
+    writeBrief(root, "s-501.xbrief.json", storyPlan(501));
+    const { code, err } = runLive(root, 77, liveGh("Refs #501\n", PRODUCT));
+    expect(code).toBe(EXIT_HITS_FOUND);
+    expect(err).toContain("deft-story: 501");
+    expect(err).toContain("deft-story-part: 501");
+    expect(err).toContain("completes the story");
+    expect(err).toContain("--write-story-line");
+  });
+
+  it("fails the same way when the head brief names the PR as productPullRequest", () => {
+    const root = makeRoot();
+    writeBrief(root, "s-502.xbrief.json", storyPlan(502, { metadata: { productPullRequest: 78 } }));
+    const { code, err } = runLive(root, 78, liveGh("No issue reference.\n", PRODUCT));
+    expect(code).toBe(EXIT_HITS_FOUND);
+    expect(err).toContain("names this PR as metadata.productPullRequest");
+    expect(err).toContain("deft-story-part: 502");
+    expect(err).toContain("--write-story-line");
+  });
+
+  it("passes with a sole mark or part line and ignores non-running or lifecycle-only cases", () => {
+    const root = makeRoot();
+    writeBrief(root, "s-503.xbrief.json", storyPlan(503));
+    writeBrief(root, "s-504.xbrief.json", storyPlan(504, { status: "pending" }));
+    expect(runLive(root, 79, liveGh("Refs #503\n\ndeft-story: 503\n", PRODUCT)).code).toBe(EXIT_OK);
+    expect(runLive(root, 79, liveGh("Refs #503\n\ndeft-story-part: 503\n", PRODUCT)).code).toBe(
+      EXIT_OK,
+    );
+    expect(runLive(root, 79, liveGh("Refs #504\nRefs #999\n", PRODUCT)).code).toBe(EXIT_OK);
+    const result = evaluateStoryLineRequirement({
+      bodyText: "Refs #503\n",
+      prNumber: 79,
+      projectRoot: root,
+      repo: REPO,
+      files: [{ status: "modified", path: "xbrief/active/s-503.xbrief.json" }],
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("fails a body that carries both lines for one issue (live and offline)", () => {
+    const root = makeRoot();
+    writeBrief(root, "s-505.xbrief.json", storyPlan(505));
+    const both = "Refs #505\n\ndeft-story: 505\ndeft-story-part: 505\n";
+    const live = runLive(root, 80, liveGh(both, PRODUCT));
+    expect(live.code).toBe(EXIT_HITS_FOUND);
+    expect(live.err).toContain("both `deft-story: N` and `deft-story-part: N`");
+    const bodyFile = join(root, "both.md");
+    writeFileSync(bodyFile, both, "utf8");
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    expect(run(["--body-file", bodyFile, "--repo", REPO, "--project-root", root], {})).toBe(
+      EXIT_HITS_FOUND,
+    );
+    stderr.mockRestore();
+  });
+
+  describe("part-line admission in evaluateFullStoryMarkAdmission", () => {
+    function admit(root: string, rel: string, body: string, reader?: ReadMergeBaseFileFn) {
+      return evaluateFullStoryMarkAdmission({
+        bodyText: body,
+        prNumber: 90,
+        projectRoot: root,
+        repo: REPO,
+        files: [
+          { status: "modified", path: rel },
+          { status: "modified", path: "packages/core/src/x.ts" },
+        ],
+        ...(reader !== undefined ? { readMergeBaseFile: reader } : {}),
+      });
+    }
+
+    it("passes a part-line PR that stamps evidence and leaves productPullRequest unchanged", () => {
+      const root = makeRoot();
+      const basePlan = storyPlan(601, { metadata: { productPullRequest: 55 } });
+      const headPlan = { ...basePlan, items: [{ title: "a", status: "completed" }] };
+      const rel = writeBrief(root, "s-601.xbrief.json", headPlan);
+      const result = admit(root, rel, "deft-story-part: 601\n", () => ({
+        kind: "ok",
+        text: JSON.stringify({ plan: basePlan }),
+      }));
+      expect(result).toEqual({ ok: true, messages: [] });
+    });
+
+    it("passes when the stamp is unset on both sides, including a brief new at the merge base", () => {
+      const root = makeRoot();
+      const rel = writeBrief(root, "s-602.xbrief.json", storyPlan(602));
+      expect(admit(root, rel, "deft-story-part: 602\n", () => ({ kind: "absent" })).ok).toBe(true);
+    });
+
+    it("fails a part-line PR that sets the stamp to itself", () => {
+      const root = makeRoot();
+      const rel = writeBrief(
+        root,
+        "s-603.xbrief.json",
+        storyPlan(603, { metadata: { productPullRequest: 90 } }),
+      );
+      const result = admit(root, rel, "deft-story-part: 603\n", () => ({ kind: "absent" }));
+      expect(result.ok).toBe(false);
+      expect(result.messages.join("\n")).toContain("sets metadata.productPullRequest to itself");
+    });
+
+    it("fails when the stamp otherwise differs from the merge base", () => {
+      const root = makeRoot();
+      const rel = writeBrief(
+        root,
+        "s-604.xbrief.json",
+        storyPlan(604, { metadata: { productPullRequest: 41 } }),
+      );
+      const result = admit(root, rel, "deft-story-part: 604\n", () => ({
+        kind: "ok",
+        text: JSON.stringify({ plan: storyPlan(604) }),
+      }));
+      expect(result.ok).toBe(false);
+      expect(result.messages.join("\n")).toContain("merge base: unset, head: 41");
+    });
+
+    it("fails closed without a readable merge base", () => {
+      const root = makeRoot();
+      const rel = writeBrief(root, "s-605.xbrief.json", storyPlan(605));
+      expect(admit(root, rel, "deft-story-part: 605\n").messages.join("\n")).toContain(
+        "cannot read merge-base",
+      );
+      expect(
+        admit(root, rel, "deft-story-part: 605\n", () => ({ kind: "error", detail: "boom" }))
+          .messages[0],
+      ).toContain("boom");
+      expect(
+        admit(root, rel, "deft-story-part: 605\n", () => ({ kind: "ok", text: "{not json" })).ok,
+      ).toBe(false);
+    });
+
+    it("fails a brief covered by neither line and keeps mark rules for a marked brief", () => {
+      const root = makeRoot();
+      const rel = writeBrief(root, "s-606.xbrief.json", storyPlan(606));
+      const uncovered = admit(root, rel, "deft-story-part: 1\n", () => ({ kind: "absent" }));
+      expect(uncovered.messages.join("\n")).toContain(
+        "not covered by deft-story or deft-story-part",
+      );
+      const marked = writeBrief(
+        root,
+        "s-607.xbrief.json",
+        storyPlan(607, { metadata: { productPullRequest: 90 } }),
+      );
+      const result = evaluateFullStoryMarkAdmission({
+        bodyText: "deft-story: 607\ndeft-story-part: 606\n",
+        prNumber: 90,
+        projectRoot: root,
+        repo: REPO,
+        files: [
+          { status: "modified", path: marked },
+          { status: "modified", path: rel },
+          { status: "modified", path: "packages/x.ts" },
+        ],
+        readMergeBaseFile: () => ({ kind: "absent" }),
+      });
+      expect(result).toEqual({ ok: true, messages: [] });
+    });
+
+    it("refuses both lines for one issue and points a lineless PR at the write command", () => {
+      const root = makeRoot();
+      const rel = writeBrief(root, "s-608.xbrief.json", storyPlan(608));
+      expect(admit(root, rel, "deft-story: 608\ndeft-story-part: 608\n").ok).toBe(false);
+      expect(admit(root, rel, "Refs #608\n").messages[0]).toContain("--write-story-line");
+    });
+
+    it("reads the merge base through the live run seam", () => {
+      const root = makeRoot();
+      const rel = writeBrief(
+        root,
+        "s-609.xbrief.json",
+        storyPlan(609, { metadata: { productPullRequest: 91 } }),
+      );
+      const calls: string[] = [];
+      const runGh: RunGhFn = (cmd) => {
+        const joined = cmd.join(" ");
+        calls.push(joined);
+        if (joined.includes("/files")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify([
+              { filename: rel, status: "modified" },
+              { filename: "packages/x.ts", status: "modified" },
+            ]),
+            stderr: "",
+          };
+        }
+        if (joined.includes("/compare/")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({ merge_base_commit: { sha: "c".repeat(40) } }),
+            stderr: "",
+          };
+        }
+        if (joined.includes("/contents/")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({
+              type: "file",
+              encoding: "base64",
+              content: Buffer.from(
+                JSON.stringify({ plan: storyPlan(609, { metadata: { productPullRequest: 91 } }) }),
+              ).toString("base64"),
+            }),
+            stderr: "",
+          };
+        }
+        if (joined.includes("/pulls/92")) {
+          return {
+            returncode: 0,
+            stdout: JSON.stringify({
+              base: { sha: "a".repeat(40) },
+              head: { sha: "b".repeat(40) },
+            }),
+            stderr: "",
+          };
+        }
+        return liveGh("Refs #609\n\ndeft-story-part: 609\n", [])(cmd);
+      };
+      expect(runLive(root, 92, runGh).code).toBe(EXIT_OK);
+      expect(calls.some((c) => c.includes("/contents/xbrief/active/s-609.xbrief.json"))).toBe(true);
+
+      const failing: RunGhFn = (cmd) => {
+        const joined = cmd.join(" ");
+        return joined.endsWith("/pulls/92")
+          ? { returncode: 1, stdout: "", stderr: "HTTP 502" }
+          : runGh(cmd);
+      };
+      const bad = runLive(root, 92, failing);
+      expect(bad.code).toBe(EXIT_HITS_FOUND);
+      expect(bad.err).toContain("cannot resolve PR #92 merge base");
+    });
+  });
+
+  describe("--write-story-line", () => {
+    function gitFor(changed: string[], branch = "feat/x"): RunGhFn {
+      return (cmd) => {
+        if (cmd[0] === "merge-base") {
+          return { returncode: 0, stdout: "abc123\n", stderr: "" };
+        }
+        if (cmd[0] === "diff") {
+          return { returncode: 0, stdout: changed.map((p) => `M\0${p}\0`).join(""), stderr: "" };
+        }
+        if (cmd.includes("rev-parse")) {
+          return { returncode: 0, stdout: `${branch}\n`, stderr: "" };
+        }
+        if (cmd.includes("get-url")) {
+          return {
+            returncode: 0,
+            stdout: "https://github.com/deftai/directive.git\n",
+            stderr: "",
+          };
+        }
+        return { returncode: 1, stdout: "", stderr: "unexpected" };
+      };
+    }
+
+    function runWrite(root: string, bodyFile: string, runGit: RunGhFn, extra: string[] = []) {
+      const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+      const code = run(
+        ["--body-file", bodyFile, "--write-story-line", "--project-root", root, ...extra],
+        { runGit },
+      );
+      const err = stderr.mock.calls.join("");
+      stderr.mockRestore();
+      return { code, err };
+    }
+
+    it("appends deft-story: N when the branch changes the running brief and exits 0", () => {
+      const root = makeRoot();
+      const rel = writeBrief(root, "s-701.xbrief.json", storyPlan(701));
+      const bodyFile = join(root, "body.md");
+      writeFileSync(bodyFile, "## Summary\n\nRefs #701", "utf8");
+      const { code, err } = runWrite(root, bodyFile, gitFor([rel]));
+      expect(code).toBe(EXIT_OK);
+      expect(err).toContain("wrote deft-story: 701");
+      expect(readFileSync(bodyFile, "utf8")).toBe("## Summary\n\nRefs #701\n\ndeft-story: 701\n");
+    });
+
+    it("appends deft-story-part: N with --part", () => {
+      const root = makeRoot();
+      const rel = writeBrief(root, "s-702.xbrief.json", storyPlan(702));
+      const bodyFile = join(root, "body.md");
+      writeFileSync(bodyFile, "Body\r\n", "utf8");
+      expect(runWrite(root, bodyFile, gitFor([rel]), ["--part", "--repo", REPO]).code).toBe(
+        EXIT_OK,
+      );
+      expect(readFileSync(bodyFile, "utf8")).toBe("Body\r\n\r\ndeft-story-part: 702\r\n");
+    });
+
+    it("finds the story from the branch name plan id or a body Refs line", () => {
+      const root = makeRoot();
+      writeBrief(root, "s-703.xbrief.json", storyPlan(703, { id: "github.issue.703703" }));
+      writeBrief(root, "s-704.xbrief.json", storyPlan(704));
+      const bodyFile = join(root, "body.md");
+      writeFileSync(bodyFile, "", "utf8");
+      expect(runWrite(root, bodyFile, gitFor([], "swarm/w/github.issue.703703")).code).toBe(
+        EXIT_OK,
+      );
+      expect(readFileSync(bodyFile, "utf8")).toBe("deft-story: 703\n");
+      writeFileSync(bodyFile, "Refs #704\n", "utf8");
+      expect(runWrite(root, bodyFile, gitFor([])).code).toBe(EXIT_OK);
+      expect(readFileSync(bodyFile, "utf8")).toBe("Refs #704\n\ndeft-story: 704\n");
+      expect(
+        storyIssuesForBranch({ projectRoot: root, repo: REPO, bodyText: "", runGit: gitFor([]) }),
+      ).toEqual([]);
+    });
+
+    it("matches the branch plan id as a whole token, not a prefix (#6316 review)", () => {
+      const root = makeRoot();
+      writeBrief(root, "s-711.xbrief.json", storyPlan(711, { id: "github.issue.123" }));
+      writeBrief(root, "s-712.xbrief.json", storyPlan(712, { id: "github.issue.1234" }));
+      const git = gitFor([], "swarm/w/github.issue.1234");
+      expect(
+        storyIssuesForBranch({ projectRoot: root, repo: REPO, bodyText: "", runGit: git }),
+      ).toEqual([712]);
+      expect(
+        storyIssuesForBranch({
+          projectRoot: root,
+          repo: REPO,
+          bodyText: "",
+          runGit: gitFor([], "swarm/w/github.issue.123"),
+        }),
+      ).toEqual([711]);
+    });
+
+    it("keeps a dotted repository name from the origin remote (#6316 review)", () => {
+      const root = makeRoot();
+      writeFileSync(
+        join(root, "xbrief", "active", "s-713.xbrief.json"),
+        JSON.stringify({
+          plan: {
+            status: "running",
+            references: [
+              { uri: "https://github.com/acme/my.app/issues/713", type: "x-xbrief/github-issue" },
+            ],
+          },
+        }),
+        "utf8",
+      );
+      const bodyFile = join(root, "body.md");
+      writeFileSync(bodyFile, "Refs #713\n", "utf8");
+      const result = writeStoryLineToBodyFile({
+        bodyFile,
+        projectRoot: root,
+        repo: null,
+        part: false,
+        runGit: (cmd) =>
+          cmd.includes("get-url")
+            ? { returncode: 0, stdout: "git@github.com:acme/my.app.git\n", stderr: "" }
+            : gitFor([])(cmd),
+      });
+      expect(result.code).toBe(0);
+      expect(readFileSync(bodyFile, "utf8")).toBe("Refs #713\n\ndeft-story: 713\n");
+    });
+
+    it("leaves a body that already has one of the lines unchanged", () => {
+      const root = makeRoot();
+      const rel = writeBrief(root, "s-705.xbrief.json", storyPlan(705));
+      const bodyFile = join(root, "body.md");
+      for (const line of ["deft-story: 705", "deft-story-part: 705"]) {
+        const text = `Refs #705\n\n${line}\n`;
+        writeFileSync(bodyFile, text, "utf8");
+        const { code, err } = runWrite(root, bodyFile, gitFor([rel]));
+        expect(code).toBe(EXIT_OK);
+        expect(err).toContain("unchanged");
+        expect(readFileSync(bodyFile, "utf8")).toBe(text);
+      }
+    });
+
+    it("fails a body with both lines for one issue and leaves no-story branches unchanged", () => {
+      const root = makeRoot();
+      const rel = writeBrief(root, "s-706.xbrief.json", storyPlan(706));
+      const bodyFile = join(root, "body.md");
+      writeFileSync(bodyFile, "deft-story: 706\ndeft-story-part: 706\n", "utf8");
+      expect(runWrite(root, bodyFile, gitFor([rel])).code).toBe(EXIT_HITS_FOUND);
+      const empty = makeRoot();
+      writeFileSync(join(empty, "b.md"), "x\n", "utf8");
+      const none = runWrite(empty, join(empty, "b.md"), gitFor([]));
+      expect(none.code).toBe(EXIT_OK);
+      expect(none.err).toContain("no running story");
+      expect(readFileSync(join(empty, "b.md"), "utf8")).toBe("x\n");
+    });
+
+    it("refuses bad flag combinations and unreadable inputs", () => {
+      const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+      expect(parseArgs(["--write-story-line", "--part"])).toMatchObject({
+        writeStoryLine: true,
+        part: true,
+      });
+      expect(run(["--body-file", "b.md", "--part"])).toBe(EXIT_CONFIG_ERROR);
+      expect(run(["--pr", "1", "--write-story-line"])).toBe(EXIT_CONFIG_ERROR);
+      expect(run(["--write-story-line"])).toBe(EXIT_CONFIG_ERROR);
+      stderr.mockRestore();
+      const root = makeRoot();
+      expect(
+        writeStoryLineToBodyFile({
+          bodyFile: join(root, "missing.md"),
+          projectRoot: root,
+          repo: REPO,
+          part: false,
+        }).code,
+      ).toBe(2);
+      writeFileSync(join(root, "b.md"), "x\n", "utf8");
+      const noRepo = writeStoryLineToBodyFile({
+        bodyFile: join(root, "b.md"),
+        projectRoot: root,
+        repo: null,
+        part: false,
+        runGit: () => ({ returncode: 1, stdout: "", stderr: "" }),
+      });
+      expect(noRepo.code).toBe(2);
+      expect(noRepo.message).toContain("--repo");
+    });
   });
 });

@@ -187,6 +187,47 @@ describe("tryAdoptPlanIdFromPrStory (#5782)", () => {
     expect(result).toEqual({ kind: "id", id: "github.issue.5931637634" });
   });
 
+  it("adopts the plan id for a sole part line on a multi-running tip (#6316)", () => {
+    const root = mkdtempSync(join(tmpdir(), "adopter-part-"));
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(join(root, "xbrief", "active", "a.xbrief.json"), ownedRunningBrief(6316, "s-a"));
+    writeFileSync(join(root, "xbrief", "active", "b.xbrief.json"), ownedRunningBrief(6317, "s-b"));
+    const result = tryAdoptPlanIdFromPrStory({
+      projectRoot: root,
+      pr: "99",
+      repo: "deftai/directive",
+      env: {},
+      runGh: ghBody("Refs #6316\n\ndeft-story-part: 6316\n"),
+    });
+    expect(result).toEqual({ kind: "id", id: "s-a" });
+  });
+
+  it("refuses both lines for one issue, distinct mark and part, and bad part values (#6316)", () => {
+    const run = (body: string) =>
+      tryAdoptPlanIdFromPrStory({
+        projectRoot: process.cwd(),
+        pr: "12",
+        repo: "deftai/directive",
+        env: {},
+        runGh: ghBody(body),
+      });
+    const both = run("deft-story: 10\ndeft-story-part: 10\n");
+    expect(both.kind).toBe("config");
+    if (both.kind === "config") {
+      expect(both.message).toMatch(/both deft-story and deft-story-part/);
+      expect(both.message).toMatch(/--write-story-line/);
+    }
+    const mixed = run("deft-story: 10\ndeft-story-part: 20\n");
+    expect(mixed.kind).toBe("config");
+    if (mixed.kind === "config") expect(mixed.message).toMatch(/multiple distinct/);
+    const bad = run("deft-story-part: github.issue.1\n");
+    expect(bad.kind).toBe("config");
+    if (bad.kind === "config") expect(bad.message).toMatch(/unparseable/);
+    const none = run("Refs #10\n");
+    expect(none.kind).toBe("config");
+    if (none.kind === "config") expect(none.message).toMatch(/deft-story-part: N/);
+  });
+
   it("suppresses adoption on bad-pin + PR", () => {
     const result = tryAdoptPlanIdFromPrStory({
       projectRoot: process.cwd(),
