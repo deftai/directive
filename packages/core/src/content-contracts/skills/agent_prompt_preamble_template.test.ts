@@ -291,6 +291,17 @@ describe("test_agent_prompt_preamble_template", () => {
     expect(swarmPhase3).toContain("Story line per story (#6316)");
   });
 
+  it("template_git_names_worktree_and_forbids_powershell_git_writes_6291", () => {
+    const start = templateText.indexOf("## 3.10 Git commands name your worktree");
+    expect(start).toBeGreaterThanOrEqual(0);
+    const block = templateText.slice(start, templateText.indexOf("## 4.", start));
+    expect(block).toContain("git -C <absolute worktree path>");
+    expect(block).toContain("cd <absolute worktree path> &&");
+    expect(block).toMatch(/⊗ Git writes[^\n]*through the PowerShell tool/);
+    expect(block).toContain("hook matcher does not inspect that tool");
+    expect(block).toContain("#6291");
+  });
+
   it("template_lists_grok_bot_dispatch_provider_4201", () => {
     expect(templateText).toContain("grok-bot");
     expect(templateText).toContain("grok-bot-executor");

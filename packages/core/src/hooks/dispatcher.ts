@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, readdirSync, readlinkSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readlinkSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
   type AuthzDecision,
@@ -164,6 +164,11 @@ import {
 } from "./classify/index.js";
 import { GROK_SPAWN_WRITING_SKIP_CLASS_FIELD, PROCESS_ONLY_FLAG_KEYS } from "./classify/payload.js";
 import {
+  COMMIT_TARGET_ACCEPTED_FORMS,
+  commandHasGitCommitIndexMutatingForm,
+  resolveCommitTarget,
+} from "./commit-target.js";
+import {
   type CursorPlanChoiceDeps,
   defaultCursorPlanChoiceDeps,
   isCursorPlanChoiceManagedPath,
@@ -206,6 +211,7 @@ import {
   inspectActiveScope,
   POSITIVE_GOVERNING_ALLOW_REQUIRED,
   resolveWorktreeStoryBinding,
+  type WorktreeStoryBinding,
 } from "./scope.js";
 import {
   classifyShellWriteTargets,
@@ -4897,112 +4903,16 @@ function composeCursorSessionStartAdditionalContext(
   return parts.join("\n\n");
 }
 
-/**
- * Detect `git commit` as the git subcommand in a Shell command string (#5656).
- * Handles common agent forms (env prefixes, -C/-c globals, &&/; compounds).
- * Obscured forms remain a hooks-installed / `--no-verify` residual.
- */
-export function commandHasGitCommitSubcommand(command: string): boolean {
-  const normalized = command.replace(/\r\n/g, "\n");
-  for (const part of normalized.split(/(?:&&|\|\||;|\n)/)) {
-    const words = part
-      .trim()
-      .split(/\s+/)
-      .filter((w) => w.length > 0);
-    let i = 0;
-    while (i < words.length) {
-      const envTok = words[i];
-      if (envTok === undefined || !/^[A-Za-z_][\w.]*=.*/.test(envTok)) break;
-      i++;
-    }
-    if (i >= words.length) continue;
-    const binTok = words[i];
-    if (binTok === undefined) continue;
-    const bin = binTok.replace(/^.*[/\\]/, "").toLowerCase();
-    if (bin !== "git" && bin !== "git.exe") continue;
-    i++;
-    while (i < words.length) {
-      const w = words[i];
-      if (w === undefined) break;
-      if (w === "-C" || w === "-c" || w === "--git-dir" || w === "--work-tree") {
-        i += 2;
-        continue;
-      }
-      if (
-        w.startsWith("--git-dir=") ||
-        w.startsWith("--work-tree=") ||
-        (w.startsWith("-c") && w.includes("="))
-      ) {
-        i += 1;
-        continue;
-      }
-      if (w.startsWith("-") && w !== "--") {
-        i += 1;
-        continue;
-      }
-      // Non-commit git subcommands must not stop compound scanning (#5656):
-      // `git status && git commit` still needs the later commit part.
-      if (w.toLowerCase() === "commit") return true;
-      break;
-    }
-  }
-  return false;
-}
-
-/**
- * True when a Shell git commit retargets checkout via -C / --git-dir / --work-tree.
- * Prospective scope-cover reads the index at projectRoot; refuse retargets (#5656).
- */
-export function commandHasGitCommitCheckoutRetarget(command: string): boolean {
-  if (!commandHasGitCommitSubcommand(command)) return false;
-  const normalized = command.replace(/\r\n/g, "\n");
-  for (const part of normalized.split(/(?:&&|\|\||;|\n)/)) {
-    const words = part
-      .trim()
-      .split(/\s+/)
-      .filter((w) => w.length > 0);
-    let i = 0;
-    while (i < words.length) {
-      const envTok = words[i];
-      if (envTok === undefined || !/^[A-Za-z_][\w.]*=.*/.test(envTok)) break;
-      i++;
-    }
-    if (i >= words.length) continue;
-    const binTok = words[i];
-    if (binTok === undefined) continue;
-    const bin = binTok.replace(/^.*[/\\]/, "").toLowerCase();
-    if (bin !== "git" && bin !== "git.exe") continue;
-    i++;
-    let sawRetarget = false;
-    let sub: string | undefined;
-    while (i < words.length) {
-      const w = words[i];
-      if (w === undefined) break;
-      if (w === "-C" || w === "--git-dir" || w === "--work-tree") {
-        sawRetarget = true;
-        i += 2;
-        continue;
-      }
-      if (w.startsWith("--git-dir=") || w.startsWith("--work-tree=")) {
-        sawRetarget = true;
-        i += 1;
-        continue;
-      }
-      if (w === "-c" || (w.startsWith("-c") && w.includes("="))) {
-        i += w === "-c" ? 2 : 1;
-        continue;
-      }
-      if (w.startsWith("-") && w !== "--") {
-        i += 1;
-        continue;
-      }
-      sub = w.toLowerCase();
-      break;
-    }
-    if (sub === "commit" && sawRetarget) return true;
-  }
-  return false;
-}
+// Commit recognition, target resolution and the index-mutating check share one
+// quote-aware tokenizer in ./commit-target.ts (#6278); re-exported for callers.
+export {
+  COMMIT_TARGET_ACCEPTED_FORMS,
+  commandHasGitCommitIndexMutatingForm,
+  commandHasGitCommitSubcommand,
+  resolveCommitTarget,
+  splitShellArgvPreservingQuotes,
+  tokenizeShellCommand,
+} from "./commit-target.js";
 
 /** Staged index list result — no throw; caller maps `ok:false` to deny (#5656). */
 export type ListStagedRelPathsResult =
@@ -5039,150 +4949,69 @@ export function listStagedRelPathsIncludingDeletes(projectRoot: string): ListSta
   }
 }
 
-/** Quote-aware argv split so `-m "fix the bug"` stays one message token (#5656). */
-export function splitShellArgvPreservingQuotes(part: string): string[] {
-  const out: string[] = [];
-  let cur = "";
-  let quote: '"' | "'" | null = null;
-  let tokenHadQuote = false;
-  const flush = (): void => {
-    if (cur.length > 0 || tokenHadQuote) {
-      out.push(cur);
-      cur = "";
-      tokenHadQuote = false;
-    }
-  };
-  for (let i = 0; i < part.length; i++) {
-    const ch = part[i];
-    if (ch === undefined) continue;
-    if (quote !== null) {
-      if (ch === quote) {
-        quote = null;
-        continue;
-      }
-      if (ch === "\\" && quote === '"' && i + 1 < part.length) {
-        cur += part[i + 1] ?? "";
-        i += 1;
-        continue;
-      }
-      cur += ch;
-      continue;
-    }
-    if (ch === '"' || ch === "'") {
-      quote = ch;
-      tokenHadQuote = true;
-      continue;
-    }
-    if (/\s/.test(ch)) {
-      flush();
-      continue;
-    }
-    cur += ch;
+/** Commit-target admission result: the checkout root to judge, or a deny (#6278). */
+type CommitTargetRootResult =
+  | { readonly ok: true; readonly root: string }
+  | { readonly ok: false; readonly code: HookDecisionCode; readonly message: string };
+
+function isExistingDirectory(path: string): boolean {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
   }
-  flush();
-  return out;
 }
 
 /**
- * True when a Shell git commit uses -a/--all/-am/--include or trailing pathspecs
- * that can change the checked file set after the pre-tool index snapshot (#5656).
+ * Admit a named commit target through the existing #3794 root admission (#6278).
+ * The path must exist and share `--git-common-dir` with the payload root. There
+ * is no non-repository fallback for a commit target: a path outside every
+ * checkout, or a payload root that is not a repository, is refused.
  */
-export function commandHasGitCommitIndexMutatingForm(command: string): boolean {
-  if (!commandHasGitCommitSubcommand(command)) return false;
-  const normalized = command.replace(/\r\n/g, "\n");
-  for (const part of normalized.split(/(?:&&|\|\||;|\n)/)) {
-    const words = splitShellArgvPreservingQuotes(part.trim());
-    let i = 0;
-    while (i < words.length) {
-      const envTok = words[i];
-      if (envTok === undefined || !/^[A-Za-z_][\w.]*=.*/.test(envTok)) break;
-      i++;
-    }
-    if (i >= words.length) continue;
-    const binTok = words[i];
-    if (binTok === undefined) continue;
-    const bin = binTok.replace(/^.*[/\\]/, "").toLowerCase();
-    if (bin !== "git" && bin !== "git.exe") continue;
-    i++;
-    let sub: string | undefined;
-    while (i < words.length) {
-      const w = words[i];
-      if (w === undefined) break;
-      if (w === "-C" || w === "--git-dir" || w === "--work-tree") {
-        i += 2;
-        continue;
-      }
-      if (w.startsWith("--git-dir=") || w.startsWith("--work-tree=")) {
-        i += 1;
-        continue;
-      }
-      if (w === "-c" || (w.startsWith("-c") && w.includes("="))) {
-        i += w === "-c" ? 2 : 1;
-        continue;
-      }
-      if (w.startsWith("-") && w !== "--") {
-        i += 1;
-        continue;
-      }
-      sub = w.toLowerCase();
-      i += 1;
-      break;
-    }
-    if (sub !== "commit") continue;
-    while (i < words.length) {
-      const w = words[i];
-      if (w === undefined) break;
-      if (w === "--") {
-        return i + 1 < words.length;
-      }
-      if (w === "-a" || w === "--all" || w === "-i" || w === "--include" || w === "-am") {
-        return true;
-      }
-      if (w.startsWith("--message=") || w.startsWith("--file=") || w.startsWith("--author=")) {
-        i += 1;
-        continue;
-      }
-      if (
-        w === "-m" ||
-        w === "-F" ||
-        w === "--message" ||
-        w === "--file" ||
-        w === "--author" ||
-        w === "--date" ||
-        w === "-c" ||
-        w === "-C" ||
-        w === "--reuse-message" ||
-        w === "--reedit-message" ||
-        w === "--fix" ||
-        w === "--cleanup" ||
-        w === "--untracked-files"
-      ) {
-        i += 2;
-        continue;
-      }
-      // Attached value-taking shorts (-mMSG / -Ffile / -cSHA / -CSHA) before
-      // combined-flag scan so letters inside the value are not treated as -a/-i
-      // (#5656 Greptile: `git commit -m"fix parser"` / `-Fmessage.txt`).
-      if (w.startsWith("-") && !w.startsWith("--") && /^[mFcC].+/.test(w.slice(1))) {
-        i += 1;
-        continue;
-      }
-      if (w.startsWith("-") && !w.startsWith("--") && /[ai]/.test(w.slice(1))) {
-        return true;
-      }
-      if (w.startsWith("-") && w !== "--") {
-        i += 1;
-        continue;
-      }
-      return true;
-    }
+function admitCommitTargetRoot(
+  payloadRoot: string,
+  named: string,
+  runGit: GitRunner,
+): CommitTargetRootResult {
+  if (!isExistingDirectory(named)) {
+    return {
+      ok: false,
+      code: "prospective-scope-cover-deny",
+      message: `the commit target ${named} does not exist or is not a directory`,
+    };
   }
-  return false;
+  const admission = admitEffectiveHookRoot(payloadRoot, named, runGit);
+  const candidate = admission.candidate ?? "<none>";
+  if (admission.foreign) {
+    const reason =
+      admission.refusal === "unproven-identity"
+        ? "resolved to a separate Git working tree whose repository identity could not be read"
+        : "is in a different Git repository than the hook payload root";
+    return {
+      ok: false,
+      code: "foreign-repository-deny",
+      message: `the commit target ${reason} (candidate=${candidate})`,
+    };
+  }
+  if (admission.candidate === null || admission.root !== admission.candidate) {
+    return {
+      ok: false,
+      code: "prospective-scope-cover-deny",
+      message:
+        `the commit target ${named} is not a checkout of the hook payload root's repository ` +
+        `(candidate=${candidate})`,
+    };
+  }
+  return { ok: true, root: admission.root };
 }
 
 /**
  * Shell `git commit` → prospective staged/index scope-cover (#5656 limb 3).
- * Returns deny when cover fails; null when the command is not a git commit.
+ * The target root is the checkout the commit names (`git -C <abs>` or one
+ * `cd <abs> &&`), admitted through `admitEffectiveHookRoot`; a commit with
+ * neither is judged at the hook project root as before (#6278). Staged paths and
+ * the worktree story binding are read on that root (#6247). Returns deny when
+ * cover fails; null when the command is not a git commit.
  */
 function decideProspectiveGitCommitScopeCover(
   input: HookDispatchInput,
@@ -5190,15 +5019,16 @@ function decideProspectiveGitCommitScopeCover(
   seams: HookPolicySeams,
 ): HookDecision | null {
   const command = hookShellCommand(input.payload);
-  if (command === null || !commandHasGitCommitSubcommand(command)) return null;
-  if (commandHasGitCommitCheckoutRetarget(command)) {
+  if (command === null) return null;
+  const target = resolveCommitTarget(command);
+  if (target === null) return null;
+  if (target.kind === "unresolvable") {
     return deny(
       input,
       "prospective-scope-cover-deny",
       toolName,
-      `Directive denied ${toolName}: git commit with -C/--git-dir/--work-tree retargets the checkout; ` +
-        "prospective scope-cover reads the index at the hook project root and refuses retargets (#5656). " +
-        "Run the commit in the scoped checkout without checkout-changing globals.",
+      `Directive denied ${toolName}: the git commit target cannot be resolved to one checkout: ` +
+        `${target.reason} (#6278). ${COMMIT_TARGET_ACCEPTED_FORMS}`,
     );
   }
   if (commandHasGitCommitIndexMutatingForm(command)) {
@@ -5211,31 +5041,57 @@ function decideProspectiveGitCommitScopeCover(
         "(git add …) then commit with -m/-F only — no -a/--all and no trailing pathspecs.",
     );
   }
-  const projectRoot = resolve(input.projectRoot);
+  // The payload root stays the identity for authz, kill-switch and deny(); only
+  // the index and story selection move to the target root (#6278).
+  const payloadRoot = resolve(input.projectRoot);
+  let targetRoot = payloadRoot;
+  if (target.kind === "named") {
+    const runGit = memoizeGitRunner(seams.ritualRunGit ?? defaultGitRunner);
+    const admitted = admitCommitTargetRoot(payloadRoot, target.path, runGit);
+    if (!admitted.ok) {
+      return deny(
+        input,
+        admitted.code,
+        toolName,
+        `Directive denied ${toolName}: ${admitted.message} (#6278). payloadRoot=${payloadRoot}`,
+      );
+    }
+    targetRoot = admitted.root;
+  }
+  const rootsNote =
+    targetRoot === payloadRoot ? "" : ` ${formatHookRootNote(payloadRoot, targetRoot)}`;
   let staged: readonly string[];
   if (seams.listStagedRelPaths) {
-    staged = seams.listStagedRelPaths(projectRoot);
+    staged = seams.listStagedRelPaths(targetRoot);
   } else {
-    const listed = listStagedRelPathsIncludingDeletes(projectRoot);
+    const listed = listStagedRelPathsIncludingDeletes(targetRoot);
     if (!listed.ok) {
       return deny(
         input,
         "prospective-scope-cover-deny",
         toolName,
-        `Directive denied ${toolName}: prospective scope-cover could not list staged paths (#5656). ${listed.message}`,
+        `Directive denied ${toolName}: prospective scope-cover could not list staged paths (#5656). ${listed.message}${rootsNote}`,
       );
     }
     staged = listed.paths;
   }
+  const environ = input.environ ?? process.env;
   const cover = evaluateProspectiveScopeCover({
-    projectRoot,
+    projectRoot: targetRoot,
     stagedRelPaths: staged,
     inspectScope: seams.inspectScope,
     loadStoryWriteFence: seams.loadStoryWriteFence,
-    env: input.environ ?? process.env,
+    env: environ,
+    resolveStoryBinding: (root) =>
+      resolveWorktreeStoryBinding(root, {
+        env: environ,
+        ...(seams.readWorkerAuthAssignment !== undefined
+          ? { readWorkerAuthAssignment: seams.readWorkerAuthAssignment }
+          : {}),
+      }),
   });
   if (cover.ok) return null;
-  return deny(input, "prospective-scope-cover-deny", toolName, cover.message);
+  return deny(input, "prospective-scope-cover-deny", toolName, `${cover.message}${rootsNote}`);
 }
 
 /**
@@ -5256,6 +5112,12 @@ export interface ProspectiveScopeCoverInput {
     scopePath: string | null,
   ) => StoryWriteFenceView;
   readonly env?: NodeJS.ProcessEnv;
+  /**
+   * Worktree story binding on `projectRoot` (#6247 / #6233): `bound` selects
+   * that story, `refuse` denies with the resolver's reason, `none` keeps the
+   * earlier selection. Defaults to `resolveWorktreeStoryBinding(projectRoot)`.
+   */
+  readonly resolveStoryBinding?: (projectRoot: string) => WorktreeStoryBinding;
 }
 
 export interface ProspectiveScopeCoverResult {
@@ -5314,8 +5176,22 @@ export function evaluateProspectiveScopeCover(
       scopePath: null,
     };
   }
+  const env = input.env ?? {};
+  const binding = (
+    input.resolveStoryBinding ?? ((root: string) => resolveWorktreeStoryBinding(root, { env }))
+  )(projectRoot);
+  if (binding.kind === "refuse") {
+    // A refusal is not "no binding": never fall back to another eligible story (#6247).
+    return {
+      ok: false,
+      message: `Prospective scope-cover denied (#6247): ${binding.message}`,
+      uncovered: productStaged,
+      scopePath: null,
+    };
+  }
   const scope = (input.inspectScope ?? inspectActiveScope)(projectRoot, {
-    env: input.env ?? {},
+    env,
+    ...(binding.kind === "bound" ? { boundPath: binding.path } : {}),
   });
   if (!scope.ready || scope.path === null) {
     return {
