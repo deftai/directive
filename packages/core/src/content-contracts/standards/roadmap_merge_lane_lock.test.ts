@@ -229,4 +229,19 @@ describe("ROADMAP merge-lane lock (#4316)", () => {
     expect(template).not.toMatch(/updated if this closes a tracked issue/);
     expect(template).not.toMatch(/ROADMAP\.md[^\n]*leftover/i);
   });
+
+  it("PR templates stop advising Closes #N for an active story (#6316)", () => {
+    for (const rel of [
+      ".github/PULL_REQUEST_TEMPLATE.md",
+      "content/templates/PULL_REQUEST_TEMPLATE.md",
+    ]) {
+      const template = readFileSync(join(repoRoot(), rel), "utf8");
+      expect(template).not.toMatch(/Use closing keywords so GitHub auto-closes/);
+      expect(template).toContain("Active story");
+      expect(template).toContain("do not use Closes #N");
+      expect(template).toContain("deft-story: N");
+      expect(template).toContain("deft-story-part: N");
+      expect(template).toContain("--write-story-line");
+    }
+  });
 });

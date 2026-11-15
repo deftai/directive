@@ -4,10 +4,14 @@
 
 ## Related Issues
 
-<!-- Use closing keywords so GitHub auto-closes issues on merge:
-     Closes #42, Fixes #51
-     Place "Closes #N" in this section AND in the PR title/squash commit subject
-     for maximum reliability. -->
+<!-- Active story (running brief in xbrief/active/): do not use Closes #N; the
+     brief completes after merge and finalize closes the issue. Write Refs #N plus
+     exactly one story line on its own line (#6316):
+       deft-story: N        on the PR that completes the story
+       deft-story-part: N   on any other product PR of the story
+     task pr:check-closing-keywords -- --body-file <path> --write-story-line [--part]
+     writes the line. Use Closes #N only for an issue with no active story, when
+     its full DoD is met. -->
 
 ## Documentation impact
 
