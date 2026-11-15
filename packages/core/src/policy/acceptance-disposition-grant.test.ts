@@ -592,4 +592,40 @@ describe("acceptance-disposition review fixes (#6343)", () => {
       },
     });
   });
+  it("a restamp keys bare clause ids (string and number) to clause.N, then replays and rewrites them", () => {
+    const { dest } = cloneWithDest();
+    writeBrief(dest);
+    const minted = mint(dest);
+    if (!minted.ok) throw new Error(minted.reason);
+    for (const bareId of ["2", 2] as const) {
+      const withBare = (text?: string): Record<string, unknown> => {
+        const body = completedPlan(minted.grant.id, text);
+        const item = clause2(body);
+        item.id = bareId;
+        (item[ACCEPTANCE_DISPOSITION_KEY] as Record<string, unknown>).disposition = "waived";
+        return body;
+      };
+      const body = withBare();
+      const checked = checkCitedAcceptanceDispositionGrants({
+        projectRoot: dest,
+        plan: body,
+        now: LATER,
+      });
+      expect(checked, String(bareId)).toMatchObject({ ok: true, rewrittenIds: ["clause.2"] });
+      const item = (body.items as Record<string, unknown>[]).find((i) => i.id === bareId);
+      expect(item?.[ACCEPTANCE_DISPOSITION_KEY], String(bareId)).toMatchObject({
+        disposition: "deferred",
+        provenance: { grantId: minted.grant.id },
+      });
+      // The digest is checked for both forms.
+      expect(
+        checkCitedAcceptanceDispositionGrants({
+          projectRoot: dest,
+          plan: withBare("Reworded."),
+          now: LATER,
+        }),
+        String(bareId),
+      ).toMatchObject({ ok: false, reason: expect.stringMatching(/text of clause\.2 changed/) });
+    }
+  });
 });

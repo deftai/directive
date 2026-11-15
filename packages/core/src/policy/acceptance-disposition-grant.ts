@@ -602,7 +602,27 @@ interface CitedGrant {
   readonly recordedAt: string;
 }
 
-function collectCitedGrants(items: unknown, out: CitedGrant[]): CitedGrant[] {
+/**
+ * Grant key for a plan item id. A bare integer id (`"2"` or `2`) names clause N
+ * when acceptance.clauses has it, the same rule findClauseKeyedItem uses when
+ * the grant is applied (#6343 review); other ids canonicalize as at mint.
+ */
+function citedItemKey(id: unknown, clauseIds: ReadonlySet<number>): string {
+  const raw = typeof id === "number" && Number.isInteger(id) ? String(id) : id;
+  if (typeof raw !== "string") return "";
+  const trimmed = raw.trim();
+  // Exact String(N) only, as findClauseKeyedItem matches it ("02" is not clause 2).
+  if (clauseIds.has(Number(trimmed)) && String(Number(trimmed)) === trimmed) {
+    return `clause.${trimmed}`;
+  }
+  return canonicalAcceptanceDispositionId(trimmed);
+}
+
+function collectCitedGrants(
+  items: unknown,
+  out: CitedGrant[],
+  clauseIds: ReadonlySet<number>,
+): CitedGrant[] {
   if (!Array.isArray(items)) return out;
   for (const entry of items) {
     const item = asRecord(entry);
@@ -610,12 +630,12 @@ function collectCitedGrants(items: unknown, out: CitedGrant[]): CitedGrant[] {
     const disposition = asRecord(item[ACCEPTANCE_DISPOSITION_KEY]);
     const provenance = asRecord(disposition?.provenance);
     const grantId = typeof provenance?.grantId === "string" ? provenance.grantId.trim() : "";
-    const itemId = typeof item.id === "string" ? canonicalAcceptanceDispositionId(item.id) : "";
+    const itemId = citedItemKey(item.id, clauseIds);
     const recordedAt =
       typeof disposition?.recorded_at === "string" ? disposition.recorded_at.trim() : "";
     if (grantId.length > 0 && itemId.length > 0) out.push({ itemId, grantId, recordedAt });
-    collectCitedGrants(item.subItems, out);
-    collectCitedGrants(item.items, out);
+    collectCitedGrants(item.subItems, out, clauseIds);
+    collectCitedGrants(item.items, out, clauseIds);
   }
   return out;
 }
@@ -648,7 +668,8 @@ export function checkCitedAcceptanceDispositionGrants(input: {
       rewrittenIds: readonly string[];
     }
   | { ok: false; reason: string } {
-  const cited = collectCitedGrants(input.plan.items, []);
+  const clauseIds = new Set(readAcceptanceClauses(input.plan.acceptance).map((c) => c.id));
+  const cited = collectCitedGrants(input.plan.items, [], clauseIds);
   if (cited.length === 0) {
     return { ok: true, grantIdsToRecord: [], replacedIds: [], rewrittenIds: [] };
   }
