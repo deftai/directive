@@ -112,7 +112,12 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "feat(review-cycle,pre-pr): lifecycle-only PRs do not need a review-bot pass",
+        "Review decision: `content/skills/deft-directive-review-cycle/SKILL.md` and `content/skills/deft-directive-pre-pr/SKILL.md` state that activation and widen PRs keep the review they have today because they carry new acceptance text, and that mint-record and cancel PRs keep theirs because they carry authority.",
+        "No PR class skips the review bot."
+      ]
     },
     "metadata": {
       "intended_placement": {

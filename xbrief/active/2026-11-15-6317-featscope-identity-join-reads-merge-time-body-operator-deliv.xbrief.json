@@ -297,7 +297,34 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "feat(scope): identity join reads merge-time body; operator delivery attestation (#6310 slice B)",
+        "Summary Slice B of the accepted #6310 design: the identity join reads the merge-time body first, refuses part-line PRs as partial deliveries, settles two PRs with the same mark by the brief on the delivery branch, and accepts an operator attestation for merged work with no basis.",
+        "This is the recovery that lets #6269, #6270, #6271 and #6273 complete.",
+        "Bound contract: successor lean 6887155397 on #6310, Bound 2 and Bound 3 and the matching fixtures of Bound 5 (accepted synthesis 6887284787).",
+        "Slice A (part line and pre-merge check) lands first; slice C (disposition grant) reuses the grant store added here.",
+        "Each slice has its own issue so that each brief completes from exactly one PR with its own `deft-story` line.",
+        "Scope 1.",
+        "The join.",
+        "Before any basis admits a candidate, the attested basis included, the join reads the candidate's merge-time body; an unreadable body refuses, the same as an incomplete scan.",
+        "A candidate whose merge-time body carries the part line for the story is refused as a partial delivery on every basis, and the refusal names the way forward.",
+        "A part-line PR is never a competitor.",
+        "The sole-mark basis keeps its uniqueness refusal with one exception: when other merged, non-excluded PRs carry the same mark, the candidate is admitted only if it equals `metadata.productPullRequest` in the brief as read with `git show origin/<deliveryBranch>:<brief path>` after a fetch, never the working tree; otherwise the refusal names the competitors.",
+        "In `swarm:finalize-cohort`, the #6212 operator bind of an unstamped brief does not bind when that scan finds another merged, non-excluded PR with the same mark; it refuses and names both.",
+        "Completion provenance lists the merged part-line PRs and any competing marked PRs found.",
+        "Attestation.",
+        "`deft authz:grant --template delivery-identity-attest --target <owner>/<repo>#<pr>@<merge_commit_sha> --plan-ref <scopeId> --confirm` runs through the existing human-presence mint gate, `operator-cli` origin only, default expiry 24 hours.",
+        "The join accepts a new basis `operator-attested` when a grant matches the PR number, the merge commit and the plan id, the candidate is not a part-line PR, and the PR passes the existing nonzero-file and delivery-exclusion checks.",
+        "First use must be before expiry and is recorded when the `completed/` write succeeds; a later run for the same plan, PR and merge commit accepts the used grant.",
+        "The grant id is stored in completion provenance.",
+        "One store.",
+        "The mint, every read, the use record, the expired-grant refusal, `authz:revoke` and `authz:show` resolve the store at `mainWorktreeRoot(projectRoot)`; a root that cannot be resolved refuses.",
+        "`StoryPrIdentityBasis` and the accepted-bases text gain the basis, and the refusal names this command in place of the parked migration.",
+        "Acceptance Criteria - Given a story with only a part-line PR merged, then `scope:complete --pr` on it, `swarm:finalize-cohort --stories N`, and an attestation of that PR all refuse.",
+        "Refs #6310.",
+        "design-critique: not warranted, because this slice implements Bounds 2 and 3 of the design already accepted on #6310 (lean 6887155397, synthesis 6887284787) and adds no mechanism."
+      ]
     },
     "id": "github.issue.6398935915",
     "updated": "2026-11-15T02:35:54Z"

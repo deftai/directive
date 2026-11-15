@@ -183,7 +183,28 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "feat(changelog): path test, fragment format, mode and effective view (#6286 slice A)",
+        "Summary Slice A of the accepted #6286 design (CHANGELOG fragments): one shared path test, the fragment format, the mode policy and one effective view of unreleased entries.",
+        "It changes no outcome while the mode is `inline` (the default) and no fragment exists.",
+        "Bound contract: successor lean 6859392664 on #6286, items 1, 2, 3 and 5 (completed-arc record 6859436534).",
+        "Slice B (gate, release, story scope) is a separate child issue.",
+        "Each slice has its own issue so that each brief completes from exactly one PR with its own `deft-story` line until #6310 ships.",
+        "Scope 1.",
+        "A new exported `isChangelogEntryPath`: true for exactly `CHANGELOG.md` and for `changelog.d/<name>.md`, one segment deep, where `<name>` is lowercase letters, digits, `.`, `_` or `-`.",
+        "Every check that matches the literal `CHANGELOG.md` as a path calls it instead: `scope/delivery-evidence.ts` (`isDeliveryBriefLandPath`), `scope-provenance/base-fence.ts`, `class-checks/evaluate.ts`, `verify-ac/evaluate.ts`, `policy/small-change-lane.ts`, `pr-closing-keywords/main.ts`, `presentation-ceiling/evaluate.ts`, `hooks/dispatcher.ts` (the retirement-shaped harvest), `check/session-completed-ac.ts`, `preflight-gh/pre-push.ts`, `coverage-applicability/evaluate.ts`, and `.github/scripts/artifact-only-lifecycle.mjs`.",
+        "Fragment format: a regular file whose first line is `section:` followed by one Keep a Changelog subsection name, then one or more entries that each start with `- ` (continuation lines indented).",
+        "A line that starts with `#`, an empty file, an unknown section, a symlink or a non-regular file is invalid.",
+        "File name: `<issue>-<slug>.md`.",
+        "Mode: `plan.policy.changelog.mode` is `inline` (default), `either` or `fragments`, with `policy:show --field` and a `--confirm` setter.",
+        "`readEffectiveUnreleased` returns the `[Unreleased]` entries of `CHANGELOG.md` plus the entries of all valid fragments, by subsection.",
+        "Every reader of the unreleased section reads through it: `change:changelog:check`, the consumer-readiness census and new-refusal hints, `parseClosesSet`, and the coverage-debt, auto-hatch and skip-ci citation scans.",
+        "Skill text that tells an agent to read `[Unreleased]` names the fragments too.",
+        "Acceptance Criteria - Given a literal `CHANGELOG.md` path match outside `isChangelogEntryPath`, when the contract test runs, then it fails and names the file.",
+        "Refs #6286.",
+        "design-critique: not warranted, because this slice implements items 1, 2, 3 and 5 of the design already accepted on #6286 (lean 6859392664, record 6859436534) and adds no mechanism."
+      ]
     },
     "metadata": {
       "intended_placement": {
@@ -276,7 +297,8 @@
           "content/skills/deft-directive-swarm/references/core-phase-5-6.md",
           "tasks/change.yml",
           "docs/RULE-MAP.md",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "packages/core/src/changelog/index.test.ts"
         ],
         "file_scope_confidence": "medium",
         "readiness": "ready",

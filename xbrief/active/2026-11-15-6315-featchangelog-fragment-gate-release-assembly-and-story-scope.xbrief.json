@@ -301,7 +301,36 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "feat(changelog): fragment gate, release assembly and story scope (#6286 slice B)",
+        "Summary Slice B of the accepted #6286 design (CHANGELOG fragments): the branch-relative changelog gate, release assembly of fragments, story scope, and this repository's move to mode `either`.",
+        "It depends on slice A (path test, format, mode, effective view).",
+        "Bound contract: successor lean 6859392664 on #6286, items 4, 6, 7, 8 (first step) and 9 (completed-arc record 6859436534).",
+        "Each slice has its own issue so that each brief completes from exactly one PR with its own `deft-story` line until #6310 ships.",
+        "Scope 1.",
+        "Gate.",
+        "`verify:changelog-unreleased` in merge-base mode keeps the #680 lifecycle-only exemption and its `inline` behaviour.",
+        "In `fragments` mode it passes only when the change set against the merge base adds at least one valid fragment that is absent at the merge base, and fails when the change set changes `CHANGELOG.md` at all.",
+        "In `either` mode it passes when the change set adds exactly one of the two forms.",
+        "Fragments that other merged PRs put on the branch never satisfy it.",
+        "In every mode, a change set that modifies, renames or deletes a fragment present at the merge base fails, and every fragment it adds must be valid.",
+        "Release.",
+        "`prepareReleaseArtifacts` captures the fragments, applies the changelog read-safety refusal to each, and computes the assembled section in memory (subsection order, then file name).",
+        "It refuses on an invalid fragment, on two fragments with an identical entry line, and when `CHANGELOG.md` already holds a heading for the version being cut.",
+        "`writeReleaseArtifacts` writes `CHANGELOG.md` and deletes exactly the captured fragments; `commitReleaseArtifacts` stages those deletions with the release artifacts.",
+        "A dry run writes and deletes nothing.",
+        "A failure between write and commit names the restore of `CHANGELOG.md`, `ROADMAP.md` and `changelog.d/` to HEAD, and says `--allow-dirty` is not a recovery path.",
+        "The release commit is refused while a captured fragment is still on disk.",
+        "Story scope.",
+        "A story that adds an entry lists its own concrete fragment path in `file_scope`; the brief and PR templates (`.github/PULL_REQUEST_TEMPLATE.md`) and the swarm skill say so.",
+        "`swarm:readiness` is unchanged.",
+        "This repository sets `plan.policy.changelog.mode` to `either` (operator decision, 2026-11-15).",
+        "The move to `fragments` comes later, after a release is cut with fragments, and is the operator's call.",
+        "Acceptance Criteria - Given mode `fragments` and a branch that carries other PRs' fragments and none of its own, then the gate fails; with a valid own fragment, it passes.",
+        "Refs #6286.",
+        "design-critique: not warranted, because this slice implements items 4, 6, 7, 8 and 9 of the design already accepted on #6286 (lean 6859392664, record 6859436534) and adds no mechanism."
+      ]
     },
     "metadata": {
       "intended_placement": {

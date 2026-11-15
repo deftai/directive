@@ -1099,7 +1099,33 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "feat(merge): green PRs merge without manual re-qualification (merge queue or merge train)",
+        "Queue on master: master requires a merge queue (squash as the queue's merge method), and the repository allows auto-merge so the CLI can arm admission while checks run.",
+        "Release and policy commits land through the queue as PRs; direct pushes to master are not part of the normal path.",
+        "Docs say so.",
+        "Checks on the queue: `.github/workflows/ci.yml` also runs on `merge_group`.",
+        "The required checks for master are `TypeScript (build + lint + test)` and `Merge gate (task check)`, reported on PRs and on `merge_group`.",
+        "On `merge_group`, the PR-context checks inside `task check:merge` (closing keywords, scope provenance, intent constraint) are skipped: they were evaluated on the PR head and body at the PR's last CI run, the same assurance a direct merge of an up-to-date PR has today; later body edits are not re-checked, as today, and lifecycle atomicity stays with #6277.",
+        "Review check on the queue: one job named `Greptile Review`, run only on `merge_group`, reports success on the group commit.",
+        "It starts no review and lists no members.",
+        "It is sound because GitHub admits a PR to the queue only after its required checks, including the Greptile app's `Greptile Review`, pass on its head, and refuses any update to a queued PR's branch; changing the PR means leaving the queue and passing the checks again on the new head (measured, 6863745290 observations 1, 2 and 4).",
+        "The job never runs on `pull_request`.",
+        "The org ruleset keeps requiring `Greptile Review`.",
+        "Merge verb, queue mode: `pr:wait-mergeable-and-merge` detects that the delivery branch requires a merge queue (branch rules REST).",
+        "It runs today's pre-merge checks that read the PR head (review verdict, CI on the head, `verify:pr-closeout-attestable`), records the head SHA and the time, and runs `gh pr merge N --match-head-commit <sha>` with no `--admin` and no merge-method flag.",
+        "It then reads the PR once from GitHub (head SHA, merged state and merge commit, merge-queue entry, auto-merge request, and the queue and auto-merge timeline events after the recorded time) and returns exactly one result, checked in this order: `head-changed` (the PR's head differs from the recorded SHA; carries the actual merge commit when the PR has merged; no reconciliation runs); `merged` (merged, with the merge commit); `queued` (entry present); `awaiting-admission` (auto-merge request present, no entry); `removed` (not merged, and a removed-from-queue event after the recorded time, with its reason, which may be empty); `inactive` (none of the above; with the latest auto-merge-disabled reason code if any).",
+        "`--resume --expect-head <sha> --since <time>` repeats that read from any session; on `merged` it runs today's post-merge reconciliation, which must be safe to run more than once.",
+        "The read follows the GraphQL bucket rules (#954).",
+        "Deleted in queue mode: the up-to-date requirement and its update-branch remediation (`semantic-green.ts` stale-base refusal), the #6071 master merge-gate re-read before merge (`cascade.ts`), the update-branch loops, and `--admin`.",
+        "A break-glass direct merge is a separate, named operator path, not the default.",
+        "Closeout check: `verify:pr-closeout-attestable` reads the PR head SHA from REST and evaluates the tree at that SHA, including referenced evidence, instead of requiring local HEAD to equal the PR head.",
+        "It stays at enqueue time until #6277 ships.",
+        "Consumers: a repository without a merge queue keeps today's merge path (minus item 6's pending change).",
+        "To use queue mode a consumer enables the queue on its delivery branch and auto-merge on the repository, adds `merge_group` to the workflows behind its required checks, and adds a job like item 3 for any required app check that does not run on `merge_group`.",
+        "A queue configuration error fails the enqueue; it never falls back to `--admin`."
+      ]
     },
     "id": "github.issue.6375855023",
     "updated": "2026-11-15T02:35:47Z"

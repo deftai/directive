@@ -244,7 +244,30 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "bug(hooks): after a pin bump the pin-mismatch refusal blocks its own named recovery (pnpm install)",
+        "Summary After a pin bump lands on master, any checkout or worktree that fast-forwards to it still has the previous runtime installed.",
+        "The PreToolUse hook then refuses every shell command with: `Directive hook refuse: pinned runtime does not match the installed runtime (pin=0.129.9 installed=0.129.8).",
+        "Recovery: Run npm install or pnpm install in this project (use --frozen-lockfile when the lockfile already records the pin).` The recovery it names, `pnpm install --frozen-lockfile` or `npm install`, is itself a shell command, and the same check refuses it (`packages/runtime/src/hook-dispatch.ts`, the `checkCheapInSync` fail-closed branch, about line 371).",
+        "On a host whose only shell is hooked, the session cannot recover in-band.",
+        "It can only use an uninspected tool or a terminal outside the agent.",
+        "Evidence (2026-11-13, pin bump to 0.129.9 in #6312) - The finalize worker for #6311 fast-forwarded its worktree to master after #6312 merged.",
+        "Every Bash call was refused, including `pnpm install --frozen-lockfile`.",
+        "It recovered by running that same command through the PowerShell tool, which the Directive hook does not inspect.",
+        "That was reported as an incident, not a sanctioned path.",
+        "The dispatching session hit the identical refusal twice this week, after each pin bump, and recovered the same way.",
+        "So it is reproducible on every bump.",
+        "Related: #5892 (an arc parent blocked by install drift in the primary checkout), where the same refusal blocked a read-only session.",
+        "This issue is the general trap behind it.",
+        "Expected Remove the trap rather than add a check.",
+        "When the only fail-closed fault is pin ≠ installed (no overlay, no identity mismatch), the hook admits exactly its own named recovery commands as simple, uncompounded shell commands run at the project root: - `pnpm install --frozen-lockfile` - `npm install` / `npm ci` - the AC9.7 pair it names elsewhere: `npm i -g @deftai/directive`, then `directive install --repair` Everything else stays refused until the install matches the pin.",
+        "Acceptance Criteria - [ ] Given a checkout whose pin is newer than the installed runtime, when the agent runs `pnpm install --frozen-lockfile` at the project root through the hooked shell, then the hook admits it, and after it finishes the next unrelated command is admitted.",
+        "[ ] Given the same state, when the agent runs any other command (including `pnpm install` chained with another command, or run in a different directory), then the hook still refuses with the same recovery text.",
+        "[ ] Given an overlay-present or identity-mismatch fault, the admit does not apply (the existing #5910 recovery stays).",
+        "[ ] Tests beside `hook-dispatch.ts` cover the admit and the refusals above.",
+        "Related: #5892, #6013, #5893, #5910, #6312."
+      ]
     },
     "id": "github.issue.6381141107",
     "updated": "2026-11-15T02:36:08Z"
