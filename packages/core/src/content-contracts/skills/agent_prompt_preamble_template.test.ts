@@ -279,6 +279,18 @@ describe("test_agent_prompt_preamble_template", () => {
     expect(templateText).toContain("#3134");
   });
 
+  it("template_unit_of_work_names_the_story_line_6316", () => {
+    const start = templateText.indexOf("## Unit of work");
+    expect(start).toBeGreaterThanOrEqual(0);
+    const block = templateText.slice(start, templateText.indexOf("## Mandates", start));
+    expect(block).toContain("deft-story: N");
+    expect(block).toContain("deft-story-part: N");
+    expect(block).toContain("--write-story-line");
+    expect(block).toContain("never `Closes #N` for an active story");
+    const swarmPhase3 = readRepoFile("skills/deft-directive-swarm/references/core-phase-3.md");
+    expect(swarmPhase3).toContain("Story line per story (#6316)");
+  });
+
   it("template_lists_grok_bot_dispatch_provider_4201", () => {
     expect(templateText).toContain("grok-bot");
     expect(templateText).toContain("grok-bot-executor");

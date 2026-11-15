@@ -25,6 +25,21 @@ describe("test_pre_pr_skill_closing_keyword_rule", () => {
       expect(text).toContain(tok);
     }
   });
+  it("pre_pr_skill_phase4_writes_story_line_before_pr_open (#6316)", () => {
+    const text = readRepoFile("skills/deft-directive-pre-pr/SKILL.md");
+    const phase4 = text.slice(text.indexOf("### Phase 4 -- Diff"));
+    for (const tok of [
+      "deft-story: N",
+      "deft-story-part: N",
+      "--write-story-line",
+      "--part",
+      "deft pre-pr:run --body-file",
+      "Before opening the PR",
+    ]) {
+      expect(phase4).toContain(tok);
+    }
+    expect(text).toContain("never for an active story");
+  });
   it("pre_pr_skill_phase4_recurrence_record_present", () => {
     const text = readRepoFile("skills/deft-directive-pre-pr/SKILL.md");
     for (const issue_ref of ["#167", "#697", "#401", "#700", "#735"]) {

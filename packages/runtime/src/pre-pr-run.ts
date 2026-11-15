@@ -5,6 +5,7 @@
  * is not completion. Generic mark-complete cannot mint a pass.
  */
 import { readFileSync } from "node:fs";
+import { writeStoryLineToBodyFile } from "@deftai/directive-core/pr-closing-keywords";
 import {
   completeRun,
   computeControllerObservedHash,
@@ -66,6 +67,10 @@ Options:
   --evaluate              evaluate live binding against the private store
   --push-admit            enrolled push admission (#5804); reads pre-push stdin
   --project-root <path>   project root for --push-admit / store resolution
+  --body-file <path>      PR body file: before start, append the story line
+                          (deft-story: N) for the branch's running story (#6316);
+                          alone, runs only that step
+  --part                  with --body-file: write deft-story-part: N instead
   --json
   --help
 `;
@@ -102,6 +107,8 @@ interface ParsedArgs {
   evaluate: boolean;
   pushAdmit: boolean;
   projectRoot: string | null;
+  bodyFile: string | null;
+  part: boolean;
   verifyAcDisposition: VerifyAcDispositionKind | null;
   json: boolean;
   help: boolean;
@@ -141,6 +148,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
     evaluate: false,
     pushAdmit: false,
     projectRoot: null,
+    bodyFile: null,
+    part: false,
     verifyAcDisposition: null,
     json: false,
     help: false,
@@ -251,6 +260,15 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.evaluate = true;
     } else if (arg === "--push-admit") {
       parsed.pushAdmit = true;
+    } else if (arg === "--part") {
+      parsed.part = true;
+    } else if (arg === "--body-file" || arg?.startsWith("--body-file=")) {
+      const value = arg === "--body-file" ? argv[i + 1] : arg.slice("--body-file=".length);
+      if (value === undefined || value.length === 0) {
+        return { ...parsed, error: "argument --body-file: expected one argument" };
+      }
+      parsed.bodyFile = value;
+      if (arg === "--body-file") i += 1;
     } else if (arg === "--project-root" || arg?.startsWith("--project-root=")) {
       const value = arg === "--project-root" ? argv[i + 1] : arg.slice("--project-root=".length);
       if (value === undefined) {
@@ -385,6 +403,19 @@ function asPhaseId(value: string): PrePrPhaseId | null {
 export interface PrePrRunOptions {
   /** Hermetic tests inject this; production CLI never sets it (#6071 Greptile). */
   readonly skipNamedMergeGate?: boolean;
+  /** Story-line writer seam for hermetic tests (#6316). */
+  readonly writeStoryLine?: typeof writeStoryLineToBodyFile;
+}
+
+/** No start binding beyond --repo (which the story-line step also reads). */
+function startArgsAbsent(args: ParsedArgs): boolean {
+  return (
+    args.baseSha.length === 0 &&
+    args.headSha.length === 0 &&
+    args.treeHash.length === 0 &&
+    args.prBodyHash.length === 0 &&
+    args.approvedRevision.length === 0
+  );
 }
 
 export function run(argv: string[], options: PrePrRunOptions = {}): number {
@@ -395,6 +426,10 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
   }
   if (args.error !== undefined) {
     process.stderr.write(`pre_pr_run: ${args.error}\n`);
+    return 2;
+  }
+  if (args.part && args.bodyFile === null) {
+    process.stderr.write("pre_pr_run: --part requires --body-file\n");
     return 2;
   }
   if (args.pushAdmit) {
@@ -566,6 +601,25 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
     });
     emit(args.json, d, d.message, !d.ok);
     return d.ok ? 0 : 1;
+  }
+  // #6316: the story line goes into the PR body file before the PR is opened.
+  if (args.bodyFile !== null) {
+    const writer = options.writeStoryLine ?? writeStoryLineToBodyFile;
+    const written = writer({
+      bodyFile: args.bodyFile,
+      projectRoot: args.projectRoot?.trim() || process.cwd(),
+      repo: args.repo.length > 0 ? args.repo : null,
+      part: args.part,
+    });
+    if (written.code !== 0) {
+      emit(args.json, written, written.message, true);
+      return written.code;
+    }
+    if (startArgsAbsent(args)) {
+      emit(args.json, written, written.message, false);
+      return 0;
+    }
+    if (!args.json) process.stderr.write(`${written.message}\n`);
   }
   if (
     args.repo.length === 0 ||

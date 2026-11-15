@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -461,5 +461,104 @@ describe("deft pre-pr:run", () => {
     expect(parseArgs(["--policy-version", "2"]).policyVersion).toBe("2");
     expect(run(["--nope"])).toBe(2);
     expect(err.join("")).toMatch(/unrecognized/);
+  });
+  it("writes the story line into the PR body file before start (#6316)", () => {
+    const root = join(tmpRoot, "proj");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    const bodyFile = join(tmpRoot, "body.md");
+    writeFileSync(bodyFile, "Refs #6316\n", "utf8");
+    const calls: Array<{ bodyFile: string; part: boolean; repo: string | null }> = [];
+    const writer = (args: {
+      bodyFile: string;
+      projectRoot: string;
+      repo: string | null;
+      part: boolean;
+    }) => {
+      calls.push({ bodyFile: args.bodyFile, part: args.part, repo: args.repo });
+      return {
+        code: 0 as const,
+        message: "OK: wrote deft-story: 6316",
+        issues: [6316],
+        written: [],
+      };
+    };
+    const err: string[] = [];
+    const out: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      err.push(String(chunk));
+      return true;
+    });
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      out.push(String(chunk));
+      return true;
+    });
+    expect(
+      run([...START, "--run-id", "ppr_story", "--body-file", bodyFile, "--project-root", root], {
+        writeStoryLine: writer,
+      }),
+    ).toBe(0);
+    expect(calls).toEqual([{ bodyFile, part: false, repo: "deftai/directive" }]);
+    expect(err.join("")).toContain("wrote deft-story: 6316");
+    expect(out.join("")).toContain("started ppr_story");
+
+    calls.length = 0;
+    expect(run(["--body-file", bodyFile, "--part"], { writeStoryLine: writer })).toBe(0);
+    expect(calls).toEqual([{ bodyFile, part: true, repo: null }]);
+
+    const failing = () => ({
+      code: 1 as const,
+      message: "FAIL: both lines",
+      issues: [],
+      written: [],
+    });
+    expect(run([...START, "--body-file", bodyFile], { writeStoryLine: failing })).toBe(1);
+    expect(err.join("")).toContain("FAIL: both lines");
+  });
+
+  it("runs the real writer on a body file and validates --part / --body-file (#6316)", () => {
+    const root = join(tmpRoot, "proj2");
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "active", "s.xbrief.json"),
+      JSON.stringify({
+        plan: {
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/6316",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const bodyFile = join(tmpRoot, "body2.md");
+    writeFileSync(bodyFile, "Refs #6316\n", "utf8");
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      err.push(String(chunk));
+      return true;
+    });
+    expect(
+      run([
+        "--body-file",
+        bodyFile,
+        "--project-root",
+        root,
+        "--repo",
+        "deftai/directive",
+        "--json",
+      ]),
+    ).toBe(0);
+    expect(readFileSync(bodyFile, "utf8")).toBe("Refs #6316\n\ndeft-story: 6316\n");
+    expect(run(["--part"])).toBe(2);
+    expect(err.join("")).toContain("--part requires --body-file");
+    expect(parseArgs(["--body-file"]).error).toMatch(/expected one argument/);
+    expect(parseArgs(["--body-file=b.md", "--part"])).toMatchObject({
+      bodyFile: "b.md",
+      part: true,
+    });
   });
 });
