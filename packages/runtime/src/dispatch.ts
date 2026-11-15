@@ -330,6 +330,7 @@ export const POLICY_ACTION_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> =
   "policy:disable-host-hooks": "disable-host-hooks",
   "policy:set-ceremony-dial": "set-ceremony-dial",
   "policy:set-coverage-mode": "set-coverage-mode",
+  "policy:set-changelog-mode": "set-changelog-mode",
   "policy:clear-value-feedback": "clear-value-feedback",
   "policy:disable-directive": "disable-directive",
   "policy:enable-directive": "enable-directive",

@@ -28,6 +28,7 @@ function unreleasedSection(changelogText: string): string {
   return next;
 }
 
+/** New-refusal hints in [Unreleased]; callers pass the effective text (#6314). */
 export function collectNewRefusalHints(changelogText: string): RefusalHint[] {
   const section = unreleasedSection(changelogText);
   const hints: RefusalHint[] = [];

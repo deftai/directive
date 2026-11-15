@@ -16,6 +16,7 @@ export * as authz from "./authz/index.js";
 export * as branch from "./branch/index.js";
 export * as cache from "./cache/index.js";
 export * as capacity from "./capacity/index.js";
+export * as changelog from "./changelog/index.js";
 export * as check from "./check/index.js";
 export * as classChecks from "./class-checks/index.js";
 export * as codebase from "./codebase/index.js";

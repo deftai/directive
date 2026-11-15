@@ -137,7 +137,7 @@ review_cycle: skipped:no-reviewer-installed
 
 1. ! Verify `skills/deft-directive-pre-pr/SKILL.md` was run before PR creation -- the PR branch should have passed at least one full pre-PR cycle (Read-Write-Lint-Diff). If not, run it now before proceeding.
 2. ! `PROJECT-DEFINITION.xbrief.json` and `xbrief/` lifecycle folders have scope xBRIEF coverage for all changes in the PR
-3. ! `CHANGELOG.md` has entries under `[Unreleased]` for the PR's changes
+3. ! `CHANGELOG.md` has entries under `[Unreleased]` for the PR's changes, or the PR adds its own `changelog.d/<issue>-<slug>.md` fragment (effective view, #6314)
 4. ! `task check` passes fully (fmt + lint + typecheck + tests + coverage ≥75%)
 5. ! `.github/PULL_REQUEST_TEMPLATE.md` checklist is satisfied in the PR description
 6. ! If the PR touches 3+ files: verify a `/deft:change` `proposal.xbrief.json` exists in `history/changes/` for this branch and was explicitly confirmed by the user (affirmative response, not a broad 'proceed'), or document N/A with reason in the PR checklist
