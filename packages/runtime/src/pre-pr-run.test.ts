@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -492,14 +493,46 @@ describe("deft pre-pr:run", () => {
       out.push(String(chunk));
       return true;
     });
+    const BODY_AFTER = "Refs #6316\n\ndeft-story: 6316\n";
+    // Start without --pr-body-hash: the run binds the body file after the write step.
+    const startNoHash = START.filter(
+      (_, i) => START[i] !== "--pr-body-hash" && START[i - 1] !== "--pr-body-hash",
+    );
     expect(
-      run([...START, "--run-id", "ppr_story", "--body-file", bodyFile, "--project-root", root], {
-        writeStoryLine: writer,
-      }),
+      run(
+        [...startNoHash, "--run-id", "ppr_story", "--body-file", bodyFile, "--project-root", root],
+        {
+          writeStoryLine: (a) => {
+            writeFileSync(a.bodyFile, BODY_AFTER, "utf8");
+            return writer(a);
+          },
+        },
+      ),
     ).toBe(0);
     expect(calls).toEqual([{ bodyFile, part: false, repo: "deftai/directive" }]);
     expect(err.join("")).toContain("wrote deft-story: 6316");
     expect(out.join("")).toContain("started ppr_story");
+    const bound = new FileBackedPrePrStore(tmpRoot).getById("ppr_story");
+    expect(bound?.prBodyHash).toBe(createHash("sha256").update(BODY_AFTER).digest("hex"));
+
+    // A supplied hash taken before the write step no longer matches: refused.
+    expect(
+      run([...START, "--run-id", "ppr_stale", "--body-file", bodyFile, "--project-root", root], {
+        writeStoryLine: writer,
+      }),
+    ).toBe(2);
+    expect(err.join("")).toContain("--pr-body-hash does not match --body-file");
+    const fresh = createHash("sha256").update(readFileSync(bodyFile)).digest("hex");
+    const startFresh = START.map((v, i) => (START[i - 1] === "--pr-body-hash" ? fresh : v));
+    expect(
+      run([...startFresh, "--run-id", "ppr_fresh", "--body-file", bodyFile], {
+        writeStoryLine: writer,
+      }),
+    ).toBe(0);
+    expect(
+      run([...startNoHash, "--body-file", join(tmpRoot, "gone.md")], { writeStoryLine: writer }),
+    ).toBe(2);
+    expect(err.join("")).toContain("cannot hash --body-file");
 
     calls.length = 0;
     expect(run(["--body-file", bodyFile, "--part"], { writeStoryLine: writer })).toBe(0);
@@ -511,7 +544,7 @@ describe("deft pre-pr:run", () => {
       issues: [],
       written: [],
     });
-    expect(run([...START, "--body-file", bodyFile], { writeStoryLine: failing })).toBe(1);
+    expect(run([...startNoHash, "--body-file", bodyFile], { writeStoryLine: failing })).toBe(1);
     expect(err.join("")).toContain("FAIL: both lines");
   });
 

@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { dirname, join, relative, resolve } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import { briefOwnsIssue, issueOriginFromRepoSlug } from "../intake/residual-identity.js";
 import { extractIntentCloserSet } from "../one-pr-unit/closer-set.js";
 import { evaluateOnePrUnit } from "../one-pr-unit/evaluate.js";
@@ -17,6 +18,7 @@ import {
   productPullRequestFromPlan,
 } from "../orphan-active/running-briefs.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
+import { parseGitHubRemoteRepo } from "../text/redos-safe.js";
 import { resolveRepo } from "../triage/queue/repo.js";
 import { EXIT_CONFIG_ERROR, EXIT_HITS_FOUND, EXIT_OK } from "./constants.js";
 import { findAllClosingKeywordHits, findHits, renderHit } from "./detect.js";
@@ -791,31 +793,42 @@ export function fullStoryCloseIntentFromBody(text: string): FullStoryCloseIntent
  * mark. A part line says the PR belongs to story N and does not complete it. It is
  * never a finalize close signal (`parseAllDeftStoryMarks` does not match it).
  */
+const STORY_PART_PREFIX = "deft-story-part:";
+
+/**
+ * Values of every `deft-story-part:` line, trimmed. Line-based scan with no
+ * backtracking regex, so long whitespace runs stay linear (CodeQL js/polynomial-redos).
+ */
+function storyPartLineValues(text: string): string[] {
+  const values: string[] = [];
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    if (line.slice(0, STORY_PART_PREFIX.length).toLowerCase() === STORY_PART_PREFIX) {
+      values.push(line.slice(STORY_PART_PREFIX.length).trim());
+    }
+  }
+  return values;
+}
+
 export function parseAllDeftStoryPartLines(text: string): number[] {
-  const re = /^\s*deft-story-part:\s*(\d+)\s*$/gim;
   const out = new Set<number>();
-  let match = re.exec(text);
-  while (match !== null) {
-    const n = Number(match[1]);
+  for (const value of storyPartLineValues(text)) {
+    if (!/^\d+$/.test(value)) continue;
+    const n = Number(value);
     if (Number.isInteger(n) && n > 0) {
       out.add(n);
     }
-    match = re.exec(text);
   }
   return [...out].sort((a, b) => a - b);
 }
 
 /** Present `deft-story-part:` lines whose value is not a positive decimal issue number. */
 export function findUnparseableDeftStoryPartLines(text: string): string[] {
-  const re = /^\s*deft-story-part:\s*(.*?)\s*$/gim;
   const bad: string[] = [];
-  let match = re.exec(text);
-  while (match !== null) {
-    const value = (match[1] ?? "").trim();
+  for (const value of storyPartLineValues(text)) {
     if (!/^\d+$/.test(value) || Number(value) <= 0) {
       bad.push(value.length > 0 ? value : "(empty)");
     }
-    match = re.exec(text);
   }
   return bad;
 }
@@ -1029,9 +1042,28 @@ function resolveOfflineRepo(
     return repoArg.trim();
   }
   const origin = runGit(["-C", projectRoot, "remote", "get-url", "origin"]);
-  const m = origin.stdout.match(/github\.com[:/]([^/]+\/[^/.\s]+)/i);
-  const slug = m?.[1]?.replace(/\.git$/i, "") ?? null;
-  return slug === null || slug.trim().length === 0 ? null : slug.trim();
+  // Shared remote parser keeps dotted repository names (owner/my.app) intact.
+  return origin.returncode === 0 ? parseGitHubRemoteRepo(origin.stdout) : null;
+}
+
+/**
+ * True when the branch name carries `planId` as a whole token: the characters on
+ * both sides are not id characters, so `github.issue.123` does not match a branch
+ * for `github.issue.1234`.
+ */
+function branchNamesPlanId(branch: string, planId: string): boolean {
+  const idChar = /[A-Za-z0-9._-]/;
+  let from = 0;
+  for (;;) {
+    const at = branch.indexOf(planId, from);
+    if (at < 0) return false;
+    const before = at === 0 ? "" : (branch[at - 1] ?? "");
+    const after = branch[at + planId.length] ?? "";
+    const boundedBefore = before === "" || before === "/" || !idChar.test(before);
+    const boundedAfter = after === "" || after === "/" || !idChar.test(after);
+    if (boundedBefore && boundedAfter) return true;
+    from = at + 1;
+  }
 }
 
 /**
@@ -1061,7 +1093,7 @@ export function storyIssuesForBranch(args: {
   for (const brief of running) {
     const rel = relBriefPath(brief.path, args.projectRoot);
     const planId = typeof brief.plan.id === "string" ? brief.plan.id.trim() : "";
-    const named = changed.has(rel) || (planId.length > 0 && branch.includes(planId));
+    const named = changed.has(rel) || (planId.length > 0 && branchNamesPlanId(branch, planId));
     if (named) {
       for (const issue of storyIssuesOfBrief(brief.plan, args.repo)) {
         out.add(issue);
@@ -1153,7 +1185,9 @@ export function writeStoryLineToBodyFile(args: {
   }
   next += written.map((line) => `${line}${eol}`).join("");
   try {
-    writeFileSync(args.bodyFile, next, "utf8");
+    // Contained write under the operator-named body file's parent (#2951 / #2980 pattern).
+    const abs = resolve(args.bodyFile);
+    containedWrite({ root: dirname(abs), target: abs, data: next, mode: "replace" });
   } catch (err: unknown) {
     return {
       code: 2,

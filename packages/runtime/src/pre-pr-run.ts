@@ -4,6 +4,7 @@
  * `deft pre-pr:run` starts the prescribed workflow. Opening the skill file
  * is not completion. Generic mark-complete cannot mint a pass.
  */
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { writeStoryLineToBodyFile } from "@deftai/directive-core/pr-closing-keywords";
 import {
@@ -69,7 +70,9 @@ Options:
   --project-root <path>   project root for --push-admit / store resolution
   --body-file <path>      PR body file: before start, append the story line
                           (deft-story: N) for the branch's running story (#6316);
-                          alone, runs only that step
+                          alone, runs only that step. With start, the run binds
+                          the sha256 of the file after that step (--pr-body-hash
+                          may be omitted; a different value is refused)
   --part                  with --body-file: write deft-story-part: N instead
   --json
   --help
@@ -620,6 +623,24 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
       return 0;
     }
     if (!args.json) process.stderr.write(`${written.message}\n`);
+    // Bind the body as it stands after the write step, so a later live check of
+    // the PR body matches this record (#6316 Greptile P1).
+    let bodyHash: string;
+    try {
+      bodyHash = createHash("sha256").update(readFileSync(args.bodyFile)).digest("hex");
+    } catch (err: unknown) {
+      process.stderr.write(
+        `pre_pr_run: cannot hash --body-file after the story-line step: ${err instanceof Error ? err.message : String(err)}\n`,
+      );
+      return 2;
+    }
+    if (args.prBodyHash.length > 0 && args.prBodyHash !== bodyHash) {
+      process.stderr.write(
+        `pre_pr_run: --pr-body-hash does not match --body-file after the story-line step; omit it or pass ${bodyHash}\n`,
+      );
+      return 2;
+    }
+    args.prBodyHash = bodyHash;
   }
   if (
     args.repo.length === 0 ||

@@ -1313,6 +1313,13 @@ describe("story lines: part line, pre-merge check, --write-story-line (#6316)", 
       "github.issue.1",
     ]);
     expect(findUnparseableDeftStoryPartLines("deft-story-part:\n")).toEqual(["(empty)"]);
+    // Line-based scan: case-insensitive, CRLF-safe, linear on long whitespace runs.
+    expect(parseAllDeftStoryPartLines("DEFT-STORY-PART: 4\r\n")).toEqual([4]);
+    const spaces = " ".repeat(50_000);
+    const started = Date.now();
+    expect(parseAllDeftStoryPartLines(`deft-story-part:${spaces}x`)).toEqual([]);
+    expect(findUnparseableDeftStoryPartLines(`deft-story-part:${spaces}x`)).toEqual(["x"]);
+    expect(Date.now() - started).toBeLessThan(1000);
     expect(findStoryLineConflicts("deft-story: 5\ndeft-story-part: 5\ndeft-story: 6\n")).toEqual([
       5,
     ]);
@@ -1646,6 +1653,54 @@ describe("story lines: part line, pre-merge check, --write-story-line (#6316)", 
       expect(
         storyIssuesForBranch({ projectRoot: root, repo: REPO, bodyText: "", runGit: gitFor([]) }),
       ).toEqual([]);
+    });
+
+    it("matches the branch plan id as a whole token, not a prefix (#6316 review)", () => {
+      const root = makeRoot();
+      writeBrief(root, "s-711.xbrief.json", storyPlan(711, { id: "github.issue.123" }));
+      writeBrief(root, "s-712.xbrief.json", storyPlan(712, { id: "github.issue.1234" }));
+      const git = gitFor([], "swarm/w/github.issue.1234");
+      expect(
+        storyIssuesForBranch({ projectRoot: root, repo: REPO, bodyText: "", runGit: git }),
+      ).toEqual([712]);
+      expect(
+        storyIssuesForBranch({
+          projectRoot: root,
+          repo: REPO,
+          bodyText: "",
+          runGit: gitFor([], "swarm/w/github.issue.123"),
+        }),
+      ).toEqual([711]);
+    });
+
+    it("keeps a dotted repository name from the origin remote (#6316 review)", () => {
+      const root = makeRoot();
+      writeFileSync(
+        join(root, "xbrief", "active", "s-713.xbrief.json"),
+        JSON.stringify({
+          plan: {
+            status: "running",
+            references: [
+              { uri: "https://github.com/acme/my.app/issues/713", type: "x-xbrief/github-issue" },
+            ],
+          },
+        }),
+        "utf8",
+      );
+      const bodyFile = join(root, "body.md");
+      writeFileSync(bodyFile, "Refs #713\n", "utf8");
+      const result = writeStoryLineToBodyFile({
+        bodyFile,
+        projectRoot: root,
+        repo: null,
+        part: false,
+        runGit: (cmd) =>
+          cmd.includes("get-url")
+            ? { returncode: 0, stdout: "git@github.com:acme/my.app.git\n", stderr: "" }
+            : gitFor([])(cmd),
+      });
+      expect(result.code).toBe(0);
+      expect(readFileSync(bodyFile, "utf8")).toBe("Refs #713\n\ndeft-story: 713\n");
     });
 
     it("leaves a body that already has one of the lines unchanged", () => {
