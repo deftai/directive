@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6280",
-    "updated": "2026-11-15T02:36:01Z"
+    "updated": "2026-11-15T18:05:11Z"
   },
   "plan": {
     "title": "feat(review-cycle,pre-pr): lifecycle-only PRs do not need a review-bot pass",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Lifecycle-only PRs were proposed to skip the review bot. The accepted decision keeps review on every PR class and records why in the review-cycle and pre-PR skills, with completion PRs folded into the last product PR (#6277) or batched under #6303.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6280",
@@ -20,26 +20,59 @@
     "items": [
       {
         "title": "Review decision: `content/skills/deft-directive-review-cycle/SKILL.md` and `content/skills/deft-directive-pre-pr/SKILL.md` state that activation and widen PRs keep the review they have today because they carry new acceptance text, and that mint-record and cancel PRs keep theirs because they carry authority. No PR class skips the review bot.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When the content-contract tests read both SKILL.md files, then each states that activation and widen PRs keep review for new acceptance text, mint-record and cancel PRs keep review for authority, and no PR class skips the review bot."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce84d1882b6da2fd7f0cd9102961164ba7aae5d9",
+          "recorded_at": "2026-11-15T18:05:11Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Completion PRs: the same passages say that a story's completion normally rides in its last product PR (#6277), and that the remaining completion PRs are batched under #6303, which owns their review cost and the reviewer-side setting.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When the content-contract tests read the same passages, then each states that completion normally rides in the last product PR (#6277) and that remaining completion PRs are batched under #6303."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce84d1882b6da2fd7f0cd9102961164ba7aae5d9",
+          "recorded_at": "2026-11-15T18:05:11Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Tests: the content-contract tests for those two skills pin both passages.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When the content-contract tests for the two skills run, then they fail if either passage is removed from either SKILL.md."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce84d1882b6da2fd7f0cd9102961164ba7aae5d9",
+          "recorded_at": "2026-11-15T18:05:11Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ce84d1882b6da2fd7f0cd9102961164ba7aae5d9",
+          "recorded_at": "2026-11-15T18:05:11Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -1109,9 +1142,36 @@
           "#6303"
         ]
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 6338,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "8d2a1abb6ba986f414e1f6b5745901d9f897dd49",
+        "prNumber": 6338,
+        "prBase": "master",
+        "mergeCommit": "ce84d1882b6da2fd7f0cd9102961164ba7aae5d9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "ce84d1882b6da2fd7f0cd9102961164ba7aae5d9",
+        "verifiedAt": "2026-11-15T18:05:11Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-15T18:05:11Z",
+      "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-15T18:05:11Z"
+      }
     },
     "id": "github.issue.6374107041",
-    "updated": "2026-11-15T02:36:01Z"
+    "updated": "2026-11-15T18:05:11Z"
   }
 }
