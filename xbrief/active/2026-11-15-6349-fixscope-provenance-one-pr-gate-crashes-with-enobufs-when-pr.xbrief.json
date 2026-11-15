@@ -1,0 +1,264 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6349",
+    "updated": "2026-11-15T21:07:42Z"
+  },
+  "plan": {
+    "title": "fix(scope-provenance): one-PR gate crashes with ENOBUFS when PROJECT-DEFINITION exceeds 1 MiB",
+    "status": "running",
+    "narratives": {
+      "Description": "The #6273 one-PR gate reads PROJECT-DEFINITION at the merge base through a git helper with Node's 1 MiB default maxBuffer; this repo's PROJECT-DEFINITION is over 1 MiB, so verify:scope-provenance fails with ENOBUFS. This story gives that helper, and the one other core reader of PROJECT-DEFINITION at a ref without a buffer (coverage-applicability), the shared 64 MiB SUBPROCESS_MAX_BUFFER, with a real-git regression test.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6349",
+      "Overview": "## Summary\n\nThe #6273 one-PR gate crashes on its first real use. `verify:scope-provenance` reads `xbrief/PROJECT-DEFINITION.xbrief.json` at the merge base with `git show <base>:<path>`, through a `spawnSync` helper with no `maxBuffer`, so Node uses its 1 MiB default. This repository PROJECT-DEFINITION is 1,092,574 bytes, so the read fails:\n\n`git show 47b312c47:xbrief/PROJECT-DEFINITION.xbrief.json failed: spawnSync git ENOBUFS`\n\nThe path (`resolveOnePrGate` to `readPolicyAtMergeBase`) runs only when a same-PR approval record exists. #6327 is the first such PR, and the #6273 tests use seams, so nothing caught it. Pinned 0.129.9 has the bug, so CI fails the same way.\n\n## Expected\n\n- The `git()` helper in `packages/core/src/scope-provenance/evaluate.ts` sets `maxBuffer: 64 * 1024 * 1024`, the same as `forge-approval.ts` in the same folder.\n- Other readers that run `git show <ref>:xbrief/PROJECT-DEFINITION.xbrief.json` get the same limit (intent-constraint and observable-scope are the known candidates; check the rest).\n\n## Acceptance Criteria\n\n- Given a merge base whose PROJECT-DEFINITION is larger than 1 MiB, when `verify:scope-provenance` runs on a one-PR change set with a valid approval record, then it reads the policy and admits or refuses on the policy, not on ENOBUFS.\n- A regression test reads a blob larger than 1 MiB through the real git helper, not a seam.\n- Every `git show` reader of PROJECT-DEFINITION in core uses the larger buffer.\n\nBlocks #6327. Refs #6273. Refs #6346.",
+      "UserStory": "As a maintainer using the one-PR mint route, I want verify:scope-provenance to read a PROJECT-DEFINITION larger than 1 MiB at the merge base, so that the gate admits or refuses on the policy instead of crashing with ENOBUFS.",
+      "ImplementationPlan": "1. packages/core/src/scope-provenance/evaluate.ts: the `git()` helper passes `maxBuffer: SUBPROCESS_MAX_BUFFER` (../subprocess/max-buffer.js, 64 MiB, the value forge-approval.ts uses).\n2. packages/core/src/coverage-applicability/evaluate.ts: `defaultRunGit` passes the same maxBuffer; it reads PROJECT-DEFINITION at the base and head SHA for the registry-refresh demotion, which today silently stays coverable on ENOBUFS.\n3. packages/core/src/scope-provenance/evaluate-git.test.ts: real-git fixture whose merge-base PROJECT-DEFINITION is over 1 MiB (onePrScopeProof mint, requireHumanMerge true) with a same-PR minted record; no read seam; assert no ENOBUFS and the policy decides. packages/core/src/coverage-applicability/evaluate.test.ts: a registry-refresh-only change to a PROJECT-DEFINITION over 1 MiB is demoted.\n4. One CHANGELOG.md [Unreleased] line.\nOther core readers of PROJECT-DEFINITION at a ref already set 10 MiB or more (class-checks, intent-constraint, observable-scope, pre-push, session/git for branch-sync); no change there.",
+      "Traces": "#6349"
+    },
+    "items": [
+      {
+        "title": "Given a merge base whose PROJECT-DEFINITION is larger than 1 MiB, when `verify:scope-provenance` runs on a one-PR change set with a valid approval record, then it reads the policy and admits or refuses on the policy, not on ENOBUFS.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given a merge base whose PROJECT-DEFINITION is larger than 1 MiB and a one-PR change set with a valid approval record, when `verify:scope-provenance` runs, then it reads the merge-base policy and admits or refuses on that policy, with no ENOBUFS."
+        }
+      },
+      {
+        "title": "A regression test reads a blob larger than 1 MiB through the real git helper, not a seam.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given a real git fixture whose PROJECT-DEFINITION blob is larger than 1 MiB, when the test runs `evaluateScopeProvenance` with no read seam, then the blob is read through the real `git()` helper."
+        }
+      },
+      {
+        "title": "Every `git show` reader of PROJECT-DEFINITION in core uses the larger buffer.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given the core readers that run `git show <ref>:xbrief/PROJECT-DEFINITION.xbrief.json`, then each passes a maxBuffer of at least 10 MiB; scope-provenance/evaluate.ts and coverage-applicability/evaluate.ts gain `SUBPROCESS_MAX_BUFFER` (64 MiB)."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6349",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6349: fix(scope-provenance): one-PR gate crashes with ENOBUFS when PROJECT-DEFINITION exceeds 1 MiB"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6273",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6273"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6346",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6346"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "git show <base>:<path>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "git show <ref>:xbrief/PROJECT-DEFINITION.xbrief.json",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L14"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope-provenance/evaluate.ts",
+          "packages/core/src/scope-provenance/evaluate-git.test.ts",
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "scope-provenance-git",
+        "verify_commands": [
+          "npx vitest run packages/core/src/scope-provenance/evaluate-git.test.ts packages/core/src/coverage-applicability/evaluate.test.ts"
+        ],
+        "expected_outputs": [
+          "scope-provenance git() helper passes SUBPROCESS_MAX_BUFFER",
+          "coverage-applicability defaultRunGit passes SUBPROCESS_MAX_BUFFER",
+          "real-git regression test with a PROJECT-DEFINITION over 1 MiB at the merge base",
+          "one CHANGELOG.md [Unreleased] line"
+        ],
+        "Traces": [
+          "#6349"
+        ],
+        "acceptance_criteria_justification": "Three items, one per acceptance criterion in the #6349 issue body. Clauses 4-14 are the other body sentences (clause 14 is the bare form of the first criterion), one same-text clause each (#5055 / #3550); only the title is confessed."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6409262083,
+        "origin": "deftai/directive#6349",
+        "id": "github.issue.6409262083"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "fix(scope-provenance): one-PR gate crashes with ENOBUFS when PROJECT-DEFINITION exceeds 1 MiB",
+        "Summary The #6273 one-PR gate crashes on its first real use.",
+        "`verify:scope-provenance` reads `xbrief/PROJECT-DEFINITION.xbrief.json` at the merge base with `git show <base>:<path>`, through a `spawnSync` helper with no `maxBuffer`, so Node uses its 1 MiB default.",
+        "This repository PROJECT-DEFINITION is 1,092,574 bytes, so the read fails: `git show 47b312c47:xbrief/PROJECT-DEFINITION.xbrief.json failed: spawnSync git ENOBUFS` The path (`resolveOnePrGate` to `readPolicyAtMergeBase`) runs only when a same-PR approval record exists.",
+        "#6327 is the first such PR, and the #6273 tests use seams, so nothing caught it.",
+        "Pinned 0.129.9 has the bug, so CI fails the same way.",
+        "Expected - The `git()` helper in `packages/core/src/scope-provenance/evaluate.ts` sets `maxBuffer: 64 * 1024 * 1024`, the same as `forge-approval.ts` in the same folder.",
+        "Other readers that run `git show <ref>:xbrief/PROJECT-DEFINITION.xbrief.json` get the same limit (intent-constraint and observable-scope are the known candidates; check the rest).",
+        "Acceptance Criteria - Given a merge base whose PROJECT-DEFINITION is larger than 1 MiB, when `verify:scope-provenance` runs on a one-PR change set with a valid approval record, then it reads the policy and admits or refuses on the policy, not on ENOBUFS.",
+        "A regression test reads a blob larger than 1 MiB through the real git helper, not a seam.",
+        "Every `git show` reader of PROJECT-DEFINITION in core uses the larger buffer.",
+        "Blocks #6327.",
+        "Refs #6273.",
+        "Refs #6346.",
+        "Given a merge base whose PROJECT-DEFINITION is larger than 1 MiB, when `verify:scope-provenance` runs on a one-PR change set with a valid approval record, then it reads the policy and admits or refuses on the policy, not on ENOBUFS."
+      ],
+      "admitted_source_sentences": [
+        "Summary The #6273 one-PR gate crashes on its first real use.",
+        "`verify:scope-provenance` reads `xbrief/PROJECT-DEFINITION.xbrief.json` at the merge base with `git show <base>:<path>`, through a `spawnSync` helper with no `maxBuffer`, so Node uses its 1 MiB default.",
+        "This repository PROJECT-DEFINITION is 1,092,574 bytes, so the read fails: `git show 47b312c47:xbrief/PROJECT-DEFINITION.xbrief.json failed: spawnSync git ENOBUFS` The path (`resolveOnePrGate` to `readPolicyAtMergeBase`) runs only when a same-PR approval record exists.",
+        "#6327 is the first such PR, and the #6273 tests use seams, so nothing caught it.",
+        "Pinned 0.129.9 has the bug, so CI fails the same way.",
+        "Expected - The `git()` helper in `packages/core/src/scope-provenance/evaluate.ts` sets `maxBuffer: 64 * 1024 * 1024`, the same as `forge-approval.ts` in the same folder.",
+        "Other readers that run `git show <ref>:xbrief/PROJECT-DEFINITION.xbrief.json` get the same limit (intent-constraint and observable-scope are the known candidates; check the rest).",
+        "Acceptance Criteria - Given a merge base whose PROJECT-DEFINITION is larger than 1 MiB, when `verify:scope-provenance` runs on a one-PR change set with a valid approval record, then it reads the policy and admits or refuses on the policy, not on ENOBUFS.",
+        "A regression test reads a blob larger than 1 MiB through the real git helper, not a seam.",
+        "Every `git show` reader of PROJECT-DEFINITION in core uses the larger buffer.",
+        "Blocks #6327.",
+        "Refs #6273.",
+        "Refs #6346."
+      ],
+      "admitted_source_digest": "821a4e1f8a2baaf53850907ae5e8cbf735a45c1c97058334e615ed842158b3e4",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Acceptance Criteria - Given a merge base whose PROJECT-DEFINITION is larger than 1 MiB, when `verify:scope-provenance` runs on a one-PR change set with a valid approval record, then it reads the policy and admits or refuses on the policy, not on ENOBUFS.",
+          "artifact_path": "packages/core/src/scope-provenance/evaluate-git.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A regression test reads a blob larger than 1 MiB through the real git helper, not a seam.",
+          "artifact_path": "packages/core/src/scope-provenance/evaluate-git.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Every `git show` reader of PROJECT-DEFINITION in core uses the larger buffer.",
+          "artifact_path": "packages/core/src/scope-provenance/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Summary The #6273 one-PR gate crashes on its first real use.",
+          "artifact_path": "packages/core/src/scope-provenance/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "`verify:scope-provenance` reads `xbrief/PROJECT-DEFINITION.xbrief.json` at the merge base with `git show <base>:<path>`, through a `spawnSync` helper with no `maxBuffer`, so Node uses its 1 MiB default.",
+          "artifact_path": "packages/core/src/scope-provenance/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "This repository PROJECT-DEFINITION is 1,092,574 bytes, so the read fails: `git show 47b312c47:xbrief/PROJECT-DEFINITION.xbrief.json failed: spawnSync git ENOBUFS` The path (`resolveOnePrGate` to `readPolicyAtMergeBase`) runs only when a same-PR approval record exists.",
+          "artifact_path": "packages/core/src/scope-provenance/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "#6327 is the first such PR, and the #6273 tests use seams, so nothing caught it.",
+          "artifact_path": "packages/core/src/scope-provenance/evaluate-git.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Pinned 0.129.9 has the bug, so CI fails the same way.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Expected - The `git()` helper in `packages/core/src/scope-provenance/evaluate.ts` sets `maxBuffer: 64 * 1024 * 1024`, the same as `forge-approval.ts` in the same folder.",
+          "artifact_path": "packages/core/src/scope-provenance/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Other readers that run `git show <ref>:xbrief/PROJECT-DEFINITION.xbrief.json` get the same limit (intent-constraint and observable-scope are the known candidates; check the rest).",
+          "artifact_path": "packages/core/src/coverage-applicability/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Blocks #6327.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Refs #6273.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Refs #6346.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given a merge base whose PROJECT-DEFINITION is larger than 1 MiB, when `verify:scope-provenance` runs on a one-PR change set with a valid approval record, then it reads the policy and admits or refuses on the policy, not on ENOBUFS.",
+          "artifact_path": "packages/core/src/scope-provenance/evaluate-git.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "fix(scope-provenance): one-PR gate crashes with ENOBUFS when PROJECT-DEFINITION exceeds 1 MiB"
+      ]
+    },
+    "id": "github.issue.6409262083",
+    "updated": "2026-11-15T21:07:42Z"
+  }
+}
