@@ -1,11 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 6314,
+  "issue": 6315,
   "surfaces": [
-    "packages/core/src/presentation-ceiling/evaluate.ts",
-    "packages/core/src/presentation-ceiling/evaluate.test.ts",
+    "tasks/verify.yml",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for #6314: presentation-ceiling matches changelog paths through isChangelogEntryPath (CHANGELOG.md or changelog.d/<name>.md, absolute readers included) instead of the literal CHANGELOG.md; outcomes are unchanged at mode inline with no fragment. class-checks/evaluate.ts keeps its literal match until the protected-only follow-up #6327. Disclosure only; not #3164 authorization. Refs #6314, #6286."
+  "note": "Renew disclosure for #6315: tasks/verify.yml changes only the description of verify:changelog-unreleased (ENGINE_CMD unchanged: changelog-check --against-merge-base) to name the plan.policy.changelog.mode behaviour (inline line, fragments, either) and the merge-base fragment rules. The gate's behaviour change is in packages/core/src/task-surface/index.ts and changelog/fragment.ts, and inline mode keeps today's verdicts apart from the new fragment-integrity refusals. Disclosure only; not #3164 authorization. Refs #6315, #6286."
 }
