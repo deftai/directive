@@ -264,6 +264,10 @@ function formatRefusal(
   lines.push(
     "  Trigger is the PR's closing references, not the branch diff. A PR that leaves an unattested",
     "  brief without closing its issue is unaffected.",
+    `  For an active story, do not use Closes ${issues}. Put \`deft-story: N\` on the PR that`,
+    "  completes the story and `deft-story-part: N` on any other product PR of it; `Refs #N` alone",
+    "  is not a completion basis (#6316). Write the line with:",
+    "    task pr:check-closing-keywords -- --body-file <path> --write-story-line [--part]",
   );
   if (proxied) {
     lines.push(PROXIED_CAVEAT);

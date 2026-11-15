@@ -310,6 +310,7 @@ Worked example (cloud background review-monitor on PR #1037):
 ## Unit of work
 
 drive-to: merge-ready on PR #1037 (repo: deftai/deftvisage, branch: fix/visage-repo-org-scoping)
+story line: `deft-story: N` on the PR that completes story N, `deft-story-part: N` on any other product PR of it; never `Closes #N` for an active story. Write it with `task pr:check-closing-keywords -- --body-file <path> --write-story-line [--part]` before the PR opens (#6316).
 
 ## Mandates
 
