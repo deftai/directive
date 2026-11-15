@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6278",
-    "updated": "2026-11-15T02:36:05Z"
+    "updated": "2026-11-15T18:16:51Z"
   },
   "plan": {
     "title": "bug(hooks): a worker cannot commit in its linked worktree with cd-then-commit or git -C forms",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "A worker in a linked worktree cannot commit with `cd <path> && git commit` or `git -C <path> commit`, because the commit gate judges the hook project root's index instead of the named checkout. This story adds one commit-target resolver so the gate reads the index and story binding of the checkout the commit names, and refuses targets it cannot resolve to one checkout.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6278",
@@ -20,58 +20,275 @@
     "items": [
       {
         "title": "One commit-target resolver, in a new module `packages/core/src/hooks/commit-target.ts`, with one quote-aware tokenizer shared by commit recognition, target resolution and the index-mutating-form check. Quoted and unquoted paths resolve the same way; quoted paths with spaces stay whole; Windows backslashes are not rewritten.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given quoted and unquoted forms of the same path, when the one tokenizer in commit-target.ts runs for commit recognition, target resolution and the index-mutating check, then each returns the same path, a quoted path with spaces stays whole and Windows backslashes are kept."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Shapes that name a checkout: `git -C <absolute path> commit …`, and exactly one leading `cd <absolute path> &&` before the commit. A path is absolute when it is a native absolute path; on Windows that is a drive-letter path (`C:\\…` or `C:/…`) or the MSYS drive form (`/c/…`), which the resolver maps to its drive path.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given `git -C <absolute path> commit` or one leading `cd <absolute path> &&`, when the gate resolves the target, then a drive-letter path and its MSYS `/c/...` form resolve to the same drive path."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Target root. For those shapes it is the named path. For a call with no `cd` and no `-C` it is the hook project root, exactly as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given a named-checkout shape, then the target root is the named path; given a commit with no `cd` and no `-C`, then the target root is the hook project root as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A target the gate cannot resolve to one checkout is refused, and the message names the two absolute forms. That covers: a relative path after `cd` or `-C` in a call that holds a commit; more than one `cd` or `-C` before the commit; a variable, `~` or substitution in that path; `--git-dir` and `--work-tree` (refused today); and a `GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE` or `GIT_COMMON_DIR` prefix on the commit. These are the only refusals this design adds. Each is a case where the gate cannot know which index the commit will use; at the pin each one is refused already or is passed on the hook project root's index.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given a relative path, more than one `cd` or `-C`, a variable, `~` or substitution, `--git-dir` or `--work-tree`, or a GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE or GIT_COMMON_DIR prefix, then the gate refuses and the message names the two absolute forms."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Admission. A named path must exist and goes through the existing `admitEffectiveHookRoot`: same git common dir, or deny. A commit target has no non-repository fallback. The payload root stays the identity for authz, kill-switch and deny diagnostics.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given a named path, then it must exist and pass `admitEffectiveHookRoot` (same git common dir) or the hook denies, with no non-repository fallback and the payload root kept as identity."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Index and story on the target root. Staged paths are listed there. `resolveWorktreeStoryBinding` runs on it: `bound` supplies `boundPath` to `inspectActiveScope` and the write fence is loaded for that story; `refuse` is a deny that carries the resolver's reason, with a repair line for `env_pin_conflict`; `none` keeps today's selection. The empty-index and lifecycle-only early returns stay, now read from the target root's index.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given a target root, then staged paths are listed there and `resolveWorktreeStoryBinding` runs on it: `bound` loads that story's fence, `refuse` denies with the resolver's reason, and `none` keeps today's selection."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Fixtures enter at the hook decision and use a real registered linked worktree with two active briefs and no pin: the four attempts of comment 6858441886 (quoted `cd`, `-C`, and unquoted `cd` with MSYS paths are judged against the worktree's index; none passes on another checkout's index); the issue's allow and refuse pairs for `-C` and `cd`; `git -C . commit` and `cd <relative> && git commit` with differing indexes (refused); `cd a && cd b && git commit` (refused); a quoted path with spaces and a Windows drive path; a location-variable prefix (refused); a `-C` into a foreign repository and into a missing directory (denied); a corrupt assignment record and a conflicting pin (denied with the resolver's reason); an unregistered linked worktree; and a main-worktree commit that behaves as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given a real registered linked worktree with two active briefs and no pin, when each listed fixture command reaches the hook decision, then the hook allows or refuses it on the worktree's own index as stated."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "clause.21",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+          "recorded_at": "2026-11-15T18:16:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -802,9 +1019,36 @@
         ],
         "acceptance_criteria_justification": "Seven clauses, one per item of the accepted Bound remedy (lean 6857990436); resolver, shapes, target root, refusals, admission, binding and fixtures are separate behaviours, kept one-to-one so each maps to its own evidence."
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 6339,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "3d76e470157ddacbe616b7924581741b93e8ec22",
+        "prNumber": 6339,
+        "prBase": "master",
+        "mergeCommit": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "af0b4b516b1e467617d39b1107fa79c6549da19c",
+        "verifiedAt": "2026-11-15T18:16:51Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-15T18:16:51Z",
+      "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-15T18:16:51Z"
+      }
     },
     "id": "github.issue.6374105652",
-    "updated": "2026-11-15T02:36:05Z"
+    "updated": "2026-11-15T18:16:51Z"
   }
 }

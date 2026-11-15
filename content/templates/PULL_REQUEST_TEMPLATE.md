@@ -28,7 +28,7 @@ rationale: "Replace this quoted sentence with the actual documentation-impact ra
 ## Checklist
 
 - [ ] Prefer `deft check`; else `task deft:check` on an include-only consumer. One gate, not two runs (validate + lint + test; see `coding/testing.md`)
-- [ ] `CHANGELOG.md` has an `[Unreleased]` entry covering these changes
+- [ ] Changelog entry covering these changes: a line under `CHANGELOG.md` `[Unreleased]`, or a `changelog.d/<issue>-<slug>.md` fragment, as `plan.policy.changelog.mode` allows; a story that adds an entry lists its own fragment path in `file_scope`
 - [ ] All affected vBRIEFs pass `task vbrief:validate`
 - [ ] Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) format
 - [ ] No secrets or `.env` content in the diff

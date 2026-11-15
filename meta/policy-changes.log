@@ -339,3 +339,4 @@
 2026-11-13T06:54:12Z actor=deft policy:enforce-branches allowDirectCommitsToMaster=false previous=True changed=true
 2026-11-13T15:37:00Z actor=deft policy:allow-direct-commits allowDirectCommitsToMaster=true previous=False changed=true
 2026-11-13T22:01:47Z actor=deft policy:enforce-branches allowDirectCommitsToMaster=false previous=True changed=true
+2026-11-15T16:53:24Z actor=policy:set-changelog-mode (wave2a #6315 worker) changelog.mode=either previous=null note=operator decision 2026-11-15 (#6315 / #6286): either during cutover changed=true

@@ -567,3 +567,53 @@ describe("swarm readiness #3718", () => {
     );
   });
 });
+
+describe("swarm readiness with changelog fragment paths (#6315 / #6286 item 7)", () => {
+  function fragmentStory(project: string, id: string, changelogPath: string): string {
+    return writeStory(project, id, {
+      readiness: "ready",
+      parallel_safe: true,
+      file_scope: [`src/${id}.ts`, changelogPath],
+      size: "small",
+      verify_commands: ["pnpm exec vitest run packages/core/src/swarm/readiness-branches.test.ts"],
+      expected_outputs: ["ok"],
+      depends_on: [],
+      conflict_group: id,
+      file_scope_confidence: "high",
+      model_tier: "medium",
+    });
+  }
+
+  function overlapMatrix(report: string): string {
+    const start = report.indexOf("File overlap matrix:");
+    return report.slice(start, report.indexOf("Missing fields:", start));
+  }
+
+  it("two stories that list their own fragment paths do not overlap", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-frag-own-"));
+    try {
+      const a = fragmentStory(project, "frag-a", "changelog.d/101-frag-a.md");
+      const b = fragmentStory(project, "frag-b", "changelog.d/102-frag-b.md");
+      const { exitCode, report } = readinessReport(project, [a, b]);
+      expect(report).toContain("- frag-a");
+      expect(report).toContain("- frag-b");
+      expect(overlapMatrix(report)).toContain("- none");
+      expect(exitCode).toBe(0);
+    } finally {
+      rmSync(project, { recursive: true, force: true });
+    }
+  });
+
+  it("two stories that list the same directory entry overlap as today", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-frag-dir-"));
+    try {
+      const a = fragmentStory(project, "dir-a", "changelog.d/");
+      const b = fragmentStory(project, "dir-b", "changelog.d/");
+      const { exitCode, report } = readinessReport(project, [a, b]);
+      expect(exitCode).toBe(1);
+      expect(overlapMatrix(report)).toContain("- changelog.d/: dir-a, dir-b");
+    } finally {
+      rmSync(project, { recursive: true, force: true });
+    }
+  });
+});

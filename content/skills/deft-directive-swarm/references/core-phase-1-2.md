@@ -18,6 +18,7 @@
 - ! Verify ZERO file overlap between agents — no two agents may modify the same file
 - ! Check **transitive** file touches, not just primary scope — trace each xBRIEF's acceptance criteria to specific files. A task may require changes to files outside its obvious scope (e.g., an enforcement task adding an anti-pattern to a skill file owned by another agent).
 - ! Shared files (CHANGELOG.md) are exceptions — each agent adds entries but does not edit existing content
+- ! A story that adds a changelog entry lists its own concrete fragment path (`changelog.d/<issue>-<slug>.md`) in `file_scope` when `plan.policy.changelog.mode` is `either` or `fragments` (#6315). Two stories with their own fragment paths do not overlap; two that list the same path, directory or glob still overlap in `swarm:readiness`.
 - ! If overlap exists, reassign tasks until overlap is eliminated
 
 ⊗ Proceed to Phase 2 while any file overlap exists between agents (excluding shared append-only files).

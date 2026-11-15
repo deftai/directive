@@ -94,3 +94,30 @@ export function guardChangelogReadSafety(projectRoot: string): ChangelogSafetyRe
   }
   return { ok: true };
 }
+
+/**
+ * The same read-safety refusal for one `changelog.d/` fragment (#6315): no
+ * symlinked ancestor, and the leaf is a regular file. `relPath` is
+ * `changelog.d/<name>.md`. A missing fragment is a refusal (1): the release
+ * captured it a moment ago, so it vanished mid-run.
+ */
+export function guardFragmentReadSafety(
+  projectRoot: string,
+  relPath: string,
+): ChangelogSafetyResult {
+  const fragmentPath = join(projectRoot, ...relPath.split("/"));
+  const floor = symlinkAncestorFloor(projectRoot, fragmentPath);
+  if (!floor.ok) return floor;
+  let stats: BigIntStats;
+  try {
+    stats = lstatSync(fragmentPath, { bigint: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return safetyFail(EXIT_VIOLATION, "unsafe", `${relPath}: ${msg}`);
+  }
+  const kind = classifyReleaseLeaf(stats);
+  if (kind !== null) {
+    return safetyFail(EXIT_VIOLATION, kind, leafRefusalMessage(relPath, kind));
+  }
+  return { ok: true };
+}
