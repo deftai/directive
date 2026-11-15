@@ -4,6 +4,10 @@ on:
   pull_request:
   push:
     branches: [master]
+  # #6295: the merge queue re-runs the required checks (`TypeScript (build + lint
+  # + test)`, `Merge gate (task check)`) on each group commit. PR-context checks
+  # inside `task check:merge` skip themselves on merge_group (they ran on the PR).
+  merge_group:
 
 # actions:read — capacity-watchdog + aggregators poll job status for this run (#2672).
 permissions:
@@ -99,6 +103,11 @@ jobs:
             BASE="origin/${BASE_REF}"
           elif [ "$EVENT_NAME" = "push" ]; then
             BASE="$PUSH_BEFORE"
+          elif [ "$EVENT_NAME" = "merge_group" ]; then
+            # #6295: a group commit always runs the full stack.
+            echo "merge_group; routing to full stack"
+            echo "artifact_only=false" >> "$GITHUB_OUTPUT"
+            exit 0
           else
             echo "Unknown event ${EVENT_NAME}; routing to full stack"
             echo "artifact_only=false" >> "$GITHUB_OUTPUT"

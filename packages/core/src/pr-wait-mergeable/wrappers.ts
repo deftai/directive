@@ -221,12 +221,21 @@ export interface RunGhMergeOptions {
    * (#3235 TOCTOU: refuse merge if PR head advanced after approval gate).
    */
   readonly matchHeadCommit?: string | null;
+  /**
+   * Merge-queue branch (#6295 item 4): `gh pr merge N --match-head-commit <sha>`
+   * with no `--admin` and no merge-method flag; the queue picks the method and
+   * GitHub arms auto-merge until the PR is admitted. Requires matchHeadCommit.
+   */
+  readonly queueMode?: boolean;
   /** Test seam. Production uses requireScmReady with force:true. */
   readonly requireScmReady?: typeof scmReadiness.requireScmReady;
   readonly env?: NodeJS.ProcessEnv;
 }
 
-/** Invoke ``gh pr merge --squash --delete-branch --admin`` [``--match-head-commit``]. */
+/**
+ * Invoke ``gh pr merge --squash --delete-branch --admin`` [``--match-head-commit``],
+ * or in queue mode ``gh pr merge N --match-head-commit <sha>`` (#6295).
+ */
 export function runGhMerge(
   prNumber: number,
   repo: string | null,
@@ -247,7 +256,18 @@ export function runGhMerge(
     const message = err instanceof Error ? err.message : String(err);
     return [-1, "", message];
   }
-  const args = ["pr", "merge", String(prNumber), "--squash", "--delete-branch", "--admin"];
+  const matchHead =
+    typeof options.matchHeadCommit === "string" && options.matchHeadCommit.trim().length > 0
+      ? options.matchHeadCommit.trim()
+      : null;
+  if (options.queueMode === true && matchHead === null) {
+    // Never enqueue an unpinned head: the result read is keyed on this SHA.
+    return [-1, "", "merge-queue enqueue needs a head SHA (--match-head-commit); refusing."];
+  }
+  const args =
+    options.queueMode === true
+      ? ["pr", "merge", String(prNumber)]
+      : ["pr", "merge", String(prNumber), "--squash", "--delete-branch", "--admin"];
   let binary: string;
   try {
     binary = resolveBinaryForArgv("pr", args.slice(1));
@@ -257,10 +277,6 @@ export function runGhMerge(
   if (repo) {
     args.push("--repo", repo);
   }
-  const matchHead =
-    typeof options.matchHeadCommit === "string" && options.matchHeadCommit.trim().length > 0
-      ? options.matchHeadCommit.trim()
-      : null;
   if (matchHead !== null) {
     args.push("--match-head-commit", matchHead);
   }

@@ -2277,3 +2277,67 @@ describe("resolveNumericPrNumber (#6071)", () => {
     expect(n).toBe(6088);
   });
 });
+
+describe("pre-PR master Merge gate refusal (#6295 item 6)", () => {
+  type NamedFn = NonNullable<Parameters<typeof completeRun>[4]>["namedMergeGateFn"];
+  const gate = (disposition: "red" | "pending"): NamedFn =>
+    (() => ({
+      ok: false,
+      outcome: "master-merge-gate-red",
+      exitCode: 1,
+      error: `Merge gate (task check) is ${disposition} on tip`,
+      status: {
+        disposition,
+        tipSha: "f".repeat(40),
+        checkName: "Merge gate (task check)",
+        status: disposition === "pending" ? "in_progress" : "completed",
+        conclusion: disposition === "pending" ? null : "failure",
+        error: null,
+        pendingAgeMs: null,
+      },
+      hotfix: null,
+    })) as unknown as NamedFn;
+
+  function code(
+    namedMergeGateFn: NamedFn,
+    mergeQueueFn?: () => { status: "queue" | "none"; branch: string },
+  ) {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, `ppr_6295_${Math.random().toString(36).slice(2)}`);
+    return completeRun(store, mintPublisher(), rec.id, undefined, {
+      namedMergeGateFn,
+      prNumber: 6295,
+      ...(mergeQueueFn !== undefined ? { mergeQueueFn } : {}),
+    }).code;
+  }
+
+  it("passes the gate while master's named gate is pending (no queue lookup)", () => {
+    const lookups: string[] = [];
+    const result = code(gate("pending"), () => {
+      lookups.push("x");
+      return { status: "none", branch: "master" };
+    });
+    expect(result).not.toBe("deny-master-merge-gate-red");
+    expect(lookups).toEqual([]);
+  });
+
+  it("refuses while master's named gate is red without a merge queue", () => {
+    expect(code(gate("red"), () => ({ status: "none", branch: "master" }))).toBe(
+      "deny-master-merge-gate-red",
+    );
+  });
+
+  it("removes the refusal when the delivery branch requires a merge queue", () => {
+    expect(code(gate("red"), () => ({ status: "queue", branch: "master" }))).not.toBe(
+      "deny-master-merge-gate-red",
+    );
+  });
+
+  it("keeps the refusal when the queue lookup throws", () => {
+    expect(
+      code(gate("red"), () => {
+        throw new Error("network");
+      }),
+    ).toBe("deny-master-merge-gate-red");
+  });
+});

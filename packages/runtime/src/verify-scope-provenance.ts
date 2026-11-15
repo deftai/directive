@@ -18,6 +18,7 @@ import { appendFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { scopeProvenance } from "@deftai/directive-core";
 import { formatMintLevelAdmitBlock, type MintLevelAdmit } from "@deftai/directive-core/policy";
+import { mergeGroupSkip } from "@deftai/directive-core/pr-wait-mergeable";
 import { isDirectEntrypoint } from "./entrypoint.js";
 
 /** Stderr line when argv includes `--enforce`. Exit code is unchanged. */
@@ -145,6 +146,12 @@ export function reportMintLevelAdmits(
 }
 
 export function run(argv: string[], env: NodeJS.ProcessEnv = process.env): number {
+  // #6295: PR-context check; skipped on the merge queue's group commit.
+  const skip = mergeGroupSkip("verify:scope-provenance", env);
+  if (skip !== null) {
+    process.stdout.write(`${skip}\n`);
+    return 0;
+  }
   const args = parseArgs(argv);
   if (args.error !== undefined) {
     process.stderr.write(`verify_scope_provenance: ${args.error}\n`);
