@@ -342,3 +342,4 @@
 2026-11-15T16:53:24Z actor=policy:set-changelog-mode (wave2a #6315 worker) changelog.mode=either previous=null note=operator decision 2026-11-15 (#6315 / #6286): either during cutover changed=true
 2026-11-15T19:06:52Z actor=operator requireHumanMerge=true previous=None note=enable the one-PR mint level (#6273); Refs #6327 changed=true
 2026-11-15T19:09:18Z actor=operator onePrScopeProof=mint previous=null note=enable the one-PR mint level (#6273); Refs #6327 changed=true
+2026-11-15T21:16:05Z actor=deft policy:allow-bot-merge requireHumanMerge=false previous=true changed=true
