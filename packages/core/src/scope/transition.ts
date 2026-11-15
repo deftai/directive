@@ -43,6 +43,7 @@ import type { OriginRef } from "../one-pr-unit/types.js";
 import type { IssueRef } from "../orphan-active/refs.js";
 import {
   applyAcceptanceDispositionGrants,
+  checkCitedAcceptanceDispositionGrants,
   recordAcceptanceDispositionUse,
 } from "../policy/acceptance-disposition-grant.js";
 import { recordDeliveryIdentityAttestUse } from "../policy/delivery-identity-attest-grant.js";
@@ -1408,6 +1409,11 @@ function restampCompletedBrief(args: RestampArgs): TransitionResult {
   if (!gate.ok) {
     return { ok: false, message: gate.message };
   }
+  // #6318: a restamp replays every acceptance-disposition grant the brief cites.
+  const cited = checkCitedAcceptanceDispositionGrants({ projectRoot, plan: planObj, now });
+  if (!cited.ok) {
+    return { ok: false, message: cited.reason };
+  }
   if (gate.provenance !== null) {
     const sessionId = resolveCompletionSessionId(projectRoot);
     stampDeliveryProvenance(
@@ -1457,7 +1463,8 @@ function restampCompletedBrief(args: RestampArgs): TransitionResult {
     message:
       `Restamped ${basename} in completed/ (status: completed, ` +
       `deliveryDisposition=${disposition})` +
-      recordAttestationUse(projectRoot, gate.provenance?.attestationGrantId, now),
+      recordAttestationUse(projectRoot, gate.provenance?.attestationGrantId, now) +
+      recordDispositionGrantUse(projectRoot, cited.grantIdsToRecord, now),
   };
 }
 

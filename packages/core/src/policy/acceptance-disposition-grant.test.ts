@@ -13,6 +13,7 @@ import {
   acceptanceDispositionDigest,
   applyAcceptanceDispositionGrants,
   canonicalAcceptanceDispositionId,
+  checkCitedAcceptanceDispositionGrants,
   formatAcceptanceDispositionCommand,
   isAcceptanceDispositionTemplateName,
   listAcceptanceDispositionGrants,
@@ -400,3 +401,93 @@ function resolveRoot(projectRoot: string): string {
   if (!store.ok) throw new Error(store.reason);
   return store.root;
 }
+
+describe("acceptance-disposition review fixes (#6343)", () => {
+  it("orders grants minted within one second by their millisecond mint time", () => {
+    const { dest } = cloneWithDest();
+    writeBrief(dest);
+    const first = mint(dest, { reason: "first", now: new Date("2026-11-15T10:00:00.100Z") });
+    const second = mint(dest, { reason: "second", now: new Date("2026-11-15T10:00:00.600Z") });
+    if (!first.ok || !second.ok) throw new Error("mint failed");
+    expect(first.grant.origin.mintedAt).toBe(second.grant.origin.mintedAt);
+    const resolved = resolveAcceptanceDispositionGrants({
+      projectRoot: dest,
+      plan: plan(),
+      now: LATER,
+    });
+    expect(resolved).toMatchObject({
+      ok: true,
+      covers: [{ grantId: second.grant.id, reason: "second" }],
+    });
+    // A record with no millisecond surface falls back to origin.mintedAt.
+    const root = resolveRoot(dest);
+    const grant = loadGrant(root, second.grant.id);
+    if (grant === null) throw new Error("grant missing");
+    saveGrant(root, {
+      ...grant,
+      scope: {
+        ...grant.scope,
+        surfaces: grant.scope.surfaces.filter(
+          (s) => !s.startsWith("acceptance-disposition:minted-at:"),
+        ),
+      },
+    });
+    expect(
+      resolveAcceptanceDispositionGrants({ projectRoot: dest, plan: plan(), now: LATER }).ok,
+    ).toBe(true);
+  });
+
+  function completedPlan(grantId: string, text = "Clause two text."): Record<string, unknown> {
+    const body = plan(text);
+    (body.items as Record<string, unknown>[]).push({
+      id: "clause.2",
+      title: "clause.2",
+      status: "completed",
+      [ACCEPTANCE_DISPOSITION_KEY]: {
+        disposition: "deferred",
+        reason: "operator correction",
+        recorded_at: "2026-11-15T11:00:00Z",
+        provenance: { kind: "operator-cli", actor: "operator", grantId },
+      },
+    });
+    return body;
+  }
+
+  it("a restamp replays every cited grant and refuses a changed clause, an unknown grant or an expired unused grant", () => {
+    const { dest } = cloneWithDest();
+    writeBrief(dest);
+    const minted = mint(dest);
+    if (!minted.ok) throw new Error(minted.reason);
+    const id = minted.grant.id;
+    const check = (body: Record<string, unknown>, now = LATER) =>
+      checkCitedAcceptanceDispositionGrants({ projectRoot: dest, plan: body, now });
+    expect(check(plan())).toEqual({ ok: true, grantIdsToRecord: [] });
+    expect(check(completedPlan(id))).toEqual({ ok: true, grantIdsToRecord: [id] });
+    expect(check(completedPlan(id, "Reworded."))).toMatchObject({
+      ok: false,
+      reason: expect.stringMatching(/restamp\): the text of clause\.2 changed.*re-mint/),
+    });
+    expect(check(completedPlan("grant-unknown"))).toMatchObject({
+      ok: false,
+      reason: expect.stringMatching(/grant-unknown is not a live acceptance-disposition grant/),
+    });
+    expect(check(completedPlan(id), AFTER_EXPIRY)).toMatchObject({
+      ok: false,
+      reason: expect.stringMatching(/expired \(or is not active\)/),
+    });
+    const other = mint(dest, { storyIds: ["task-x"], now: LATER });
+    if (!other.ok) throw new Error(other.reason);
+    expect(check(completedPlan(other.grant.id))).toMatchObject({
+      ok: false,
+      reason: expect.stringMatching(/does not cover clause\.2/),
+    });
+    // A used grant replays after its expiry.
+    recordAcceptanceDispositionUse({ projectRoot: dest, grantIds: [id], now: LATER });
+    expect(check(completedPlan(id), AFTER_EXPIRY)).toEqual({ ok: true, grantIdsToRecord: [] });
+    const notGit = mkdtempSync(join(tmpdir(), "disposition-nogit-"));
+    bases.push(notGit);
+    expect(
+      checkCitedAcceptanceDispositionGrants({ projectRoot: notGit, plan: completedPlan(id) }),
+    ).toMatchObject({ ok: false, reason: expect.stringMatching(/store cannot be resolved/) });
+  });
+});

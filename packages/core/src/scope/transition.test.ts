@@ -3503,3 +3503,125 @@ describe("scope:complete applies operator acceptance-disposition grants (#6318)"
     expect(result.message).toMatch(/text of clause\.2 changed.*re-mint/);
   });
 });
+
+describe("scope:complete restamp replays acceptance-disposition grants (#6343 review)", () => {
+  it("restamps a completed deferral while the clause text matches and refuses after it changed", () => {
+    const base = mkdtempSync(join(tmpdir(), "scope-6318-restamp-"));
+    try {
+      const main = join(base, "main");
+      mkdirSync(main);
+      for (const args of [
+        ["init", "-q"],
+        ["config", "user.email", "test@example.com"],
+        ["config", "user.name", "test"],
+      ]) {
+        execFileSync("git", args, { cwd: main });
+      }
+      for (const folder of ["active", "completed"]) {
+        mkdirSync(join(main, "xbrief", folder), { recursive: true });
+      }
+      mkdirSync(join(main, "src"), { recursive: true });
+      writeFileSync(join(main, "src", "product.txt"), "v1\n", "utf8");
+      const name = "2026-11-15-6318-restamp.xbrief.json";
+      const body = "deft-story: 6318";
+      const sha = "6340".repeat(10);
+      writeFile(join(main, "xbrief", "active", name), {
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          id: "github.issue.6318",
+          title: "deferral story",
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/6318",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+          metadata: {
+            kind: "story",
+            swarm: { file_scope: ["src/product.txt"], verify_commands: ["task check"] },
+          },
+          items: [
+            {
+              id: "clause.1",
+              title: "Merge tip ancestry",
+              status: "pending",
+              "x-directive/requires": "merge",
+            },
+          ],
+          acceptance: {
+            commands: [],
+            none_stated: true,
+            source_rung: "derived",
+            ambiguity_attestation: "none_found",
+            clauses: [
+              {
+                id: 1,
+                text: "Merge tip ancestry",
+                artifact_path: "src/product.txt",
+                ambiguous: false,
+              },
+              { id: 2, text: "Deferred clause text.", artifact_path: null, ambiguous: false },
+            ],
+          },
+        },
+      });
+      const minted = mintAcceptanceDispositionTemplateGrant({
+        projectRoot: main,
+        planRef: "github.issue.6318",
+        storyIds: ["clause.2"],
+        deferredTo: "#6400",
+        reason: "operator correction",
+        now: new Date("2026-11-15T12:00:00.000Z"),
+      });
+      if (!minted.ok) throw new Error(minted.reason);
+      const complete = (path: string) =>
+        runTransition("complete", path, new Date("2026-11-15T12:00:00.000Z"), {
+          runGit: (_cwd, args) => {
+            const joined = args.join(" ");
+            if (args[0] === "show") return { code: 128, stdout: "", stderr: "no path" };
+            if (joined.includes("rev-parse") && joined.includes("origin/")) {
+              return { code: 0, stdout: "deliverytip", stderr: "" };
+            }
+            if (joined.includes("symbolic-ref")) {
+              return { code: 0, stdout: "origin/master", stderr: "" };
+            }
+            return { code: 0, stdout: "", stderr: "" };
+          },
+          fetchPrPayload: (n: number) =>
+            n === 6340
+              ? {
+                  merged_at: "2026-11-15T10:00:00Z",
+                  merge_commit_sha: sha,
+                  base: { ref: "master" },
+                  head: { sha: "headsha" },
+                  body,
+                }
+              : null,
+          fetchClosingPrRefs: () => ({ ok: true, refs: [] }),
+          fetchClosingIssueIds: () => [{ repository: "deftai/directive", issueNumber: 6318 }],
+          mergeTimeForge: staticMergeTimeForge({
+            merged: [{ number: 6340, mergedAt: "2026-11-15T10:00:00Z", body, lastEditedAt: null }],
+          }),
+          deliveryEvidence: { prNumber: 6340, mergeCommit: sha, mergedAt: "2026-11-15T10:00:00Z" },
+          acceptanceRunner: () => ({ exitCode: 0, stdout: "ok", stderr: "" }),
+        });
+      const first = complete(join(main, "xbrief", "active", name));
+      expect(first.ok, first.message).toBe(true);
+      const done = join(main, "xbrief", "completed", name);
+      const replay = complete(done);
+      expect(replay.ok, replay.message).toBe(true);
+      expect(replay.message).toMatch(/Restamped/);
+      const raw = JSON.parse(readFileSync(done, "utf8")) as {
+        plan: { acceptance: { clauses: Record<string, unknown>[] } };
+      };
+      (raw.plan.acceptance.clauses[1] as Record<string, unknown>).text = "Reworded clause.";
+      writeFile(done, raw);
+      const refused = complete(done);
+      expect(refused.ok).toBe(false);
+      expect(refused.message).toMatch(/restamp\): the text of clause\.2 changed.*re-mint/);
+    } finally {
+      rmSync(base, { recursive: true, force: true });
+    }
+  });
+});
