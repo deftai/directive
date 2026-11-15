@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -1196,5 +1197,133 @@ describe("evaluate denials under active UAT name human-presence uat-suspend (#46
     expect(d.code).toBe("authz-grant-expired");
     expect(d.reason).toMatch(/authz:uat-suspend/);
     expect(d.reason).not.toMatch(/authz:grant/);
+  });
+});
+
+describe("authz CLI delivery-identity-attest template (#6317)", () => {
+  const SHA = "c".repeat(40);
+  const TARGET = `deftai/directive#6280@${SHA}`;
+
+  function git(cwd: string, args: string[]): string {
+    return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+  }
+
+  function cloneWithDest(): { main: string; dest: string } {
+    const base = tempRoot();
+    const mainRoot = join(base, "main");
+    mkdirSync(mainRoot);
+    git(mainRoot, ["init", "-q"]);
+    git(mainRoot, ["config", "user.email", "test@example.com"]);
+    git(mainRoot, ["config", "user.name", "test"]);
+    writeFileSync(join(mainRoot, "README.md"), "x\n", "utf8");
+    git(mainRoot, ["add", "README.md"]);
+    git(mainRoot, ["commit", "-q", "-m", "init"]);
+    const dest = join(base, "dest");
+    git(mainRoot, ["worktree", "add", "-q", "-b", "dest-branch", dest]);
+    return { main: mainRoot, dest };
+  }
+
+  function capture(): { out: string[]; err: string[] } {
+    const out: string[] = [];
+    const err: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    return { out, err };
+  }
+
+  const grantArgv = (root: string, extra: string[] = []) => [
+    "grant",
+    "--project-root",
+    root,
+    "--template",
+    "delivery-identity-attest",
+    ...extra,
+  ];
+
+  it("mints from a linked dest into the main clone store; show and revoke find it from the dest", () => {
+    const { main: mainRoot, dest } = cloneWithDest();
+    const { out } = capture();
+    expect(runAuthz(grantArgv(dest, ["--target", TARGET, "--plan-ref", "github.issue.6269"]))).toBe(
+      0,
+    );
+    const text = out.join("");
+    expect(text).toMatch(/template=delivery-identity-attest/);
+    expect(text).toMatch(/plan=github\.issue\.6269/);
+    const id = /id=(\S+)/.exec(text)?.[1] ?? "";
+    expect(id.length).toBeGreaterThan(0);
+    const grantFile = join(mainRoot, ".deft", "authz", "grants", `${id}.json`);
+    const stored = JSON.parse(readFileSync(grantFile, "utf8")) as HumanOriginGrant;
+    expect(stored.origin.kind).toBe("operator-cli");
+    expect(stored.semantics.singleUse).toBe(true);
+    expect(stored.semantics.expiresAt).not.toBeNull();
+
+    out.length = 0;
+    expect(runAuthz(["show", "--project-root", dest])).toBe(0);
+    expect(out.join("")).toMatch(/Delivery-identity-attest grants \(main clone store .*\): 1/);
+    expect(out.join("")).toContain(id);
+
+    out.length = 0;
+    expect(runAuthz(["show", "--project-root", dest, "--format", "json"])).toBe(0);
+    const json = JSON.parse(out.join("")) as {
+      deliveryIdentityAttest: { grants: { id: string }[] };
+    };
+    expect(json.deliveryIdentityAttest.grants.map((g) => g.id)).toEqual([id]);
+
+    out.length = 0;
+    expect(runAuthz(["revoke", "--project-root", dest, id])).toBe(0);
+    expect(out.join("")).toMatch(/grant revoked/);
+    const revoked = JSON.parse(readFileSync(grantFile, "utf8")) as HumanOriginGrant;
+    expect(revoked.semantics.revokedAt).not.toBeNull();
+
+    out.length = 0;
+    expect(runAuthz(["show", "--project-root", dest])).toBe(0);
+    expect(out.join("")).toMatch(/revoked=/);
+  });
+
+  it("refuses a missing target or plan ref, a bad target, and an unresolvable store root", () => {
+    const { dest } = cloneWithDest();
+    const { err } = capture();
+    expect(runAuthz(grantArgv(dest, ["--plan-ref", "p"]))).toBe(2);
+    expect(err.join("")).toMatch(/requires --target <owner>\/<repo>#<pr>@<merge_commit_sha>/);
+    expect(runAuthz(grantArgv(dest, ["--target", TARGET]))).toBe(2);
+    expect(err.join("")).toMatch(/requires --plan-ref <scopeId>/);
+    expect(
+      runAuthz(grantArgv(dest, ["--target", "deftai/directive#6280", "--plan-ref", "p"])),
+    ).toBe(2);
+    expect(err.join("")).toMatch(
+      /authz:grant: template delivery-identity-attest requires --target/,
+    );
+    const notGit = tempRoot();
+    expect(runAuthz(grantArgv(notGit, ["--target", TARGET, "--plan-ref", "p"]))).toBe(2);
+    expect(err.join("")).toMatch(/store cannot be resolved/);
+    expect(runAuthz(["show", "--project-root", notGit])).toBe(0);
+  });
+
+  it("refuses an unreadable --expires value", () => {
+    const { main: mainRoot } = cloneWithDest();
+    const { err } = capture();
+    expect(
+      runAuthz(
+        grantArgv(mainRoot, ["--target", TARGET, "--plan-ref", "p", "--expires", "not-a-date"]),
+      ),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/not a readable date/);
+  });
+
+  it("goes through the human-presence mint gate (non-TTY refuses)", () => {
+    const { main: mainRoot } = cloneWithDest();
+    const { err } = capture();
+    expect(
+      main([...grantArgv(mainRoot, ["--target", TARGET, "--plan-ref", "p"]), "--confirm"], {
+        isTty: () => false,
+      }),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/TTY|non-TTY|silent-mint/i);
   });
 });

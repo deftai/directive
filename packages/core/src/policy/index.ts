@@ -142,6 +142,7 @@ export {
 export * from "./decisions.js";
 export * from "./deft-directive-disable.js";
 export * from "./delivery-branch.js";
+export * from "./delivery-identity-attest-grant.js";
 export * from "./destructive-gh-verbs.js";
 export * from "./disclosure.js";
 export * from "./file-size-thresholds.js";
