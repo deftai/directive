@@ -1,7 +1,9 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { isChangelogEntryPath } from "../changelog/entry-path.js";
+import { containedWrite } from "../fs/contained-write.js";
+import { briefOwnsIssue, issueOriginFromRepoSlug } from "../intake/residual-identity.js";
 import { extractIntentCloserSet } from "../one-pr-unit/closer-set.js";
 import { evaluateOnePrUnit } from "../one-pr-unit/evaluate.js";
 import {
@@ -17,17 +19,26 @@ import {
   productPullRequestFromPlan,
 } from "../orphan-active/running-briefs.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
+import { parseGitHubRemoteRepo } from "../text/redos-safe.js";
 import { resolveRepo } from "../triage/queue/repo.js";
 import { EXIT_CONFIG_ERROR, EXIT_HITS_FOUND, EXIT_OK } from "./constants.js";
 import { findAllClosingKeywordHits, findHits, renderHit } from "./detect.js";
-import { defaultRunGh, fetchPrBody, fetchPrCommitMessages } from "./gh.js";
+import {
+  defaultRunGh,
+  fetchPrBody,
+  fetchPrCommitMessages,
+  fetchPrMergeBaseSha,
+  fetchRepoFileAtRef,
+} from "./gh.js";
 import { readCommitsFile, readTextFile } from "./io.js";
 import type {
   ClosingKeywordMode,
   FullStoryCloseIntent,
   Hit,
   ParsedArgs,
+  ReadMergeBaseFileFn,
   RunGhFn,
+  WriteStoryLineResult,
 } from "./types.js";
 
 export interface PrDiffPath {
@@ -534,10 +545,120 @@ export function evaluatePathBActivationAdmit(args: {
   };
 }
 
+/** Raw `metadata.productPullRequest` for equality; `undefined` when unset (#6316). */
+function productPullRequestRaw(plan: Record<string, unknown>): string | undefined {
+  if (isProductPullRequestUnset(plan)) {
+    return undefined;
+  }
+  const metadata = plan.metadata as Record<string, unknown>;
+  return JSON.stringify(metadata.productPullRequest ?? null);
+}
+
+function planFromBriefText(text: string): Record<string, unknown> | null {
+  const raw: unknown = JSON.parse(text);
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    return null;
+  }
+  const plan = (raw as Record<string, unknown>).plan;
+  return typeof plan === "object" && plan !== null && !Array.isArray(plan)
+    ? (plan as Record<string, unknown>)
+    : null;
+}
+
+/**
+ * Part-line admission for one changed nonterminal brief (#6316 / #6310 Bound 1).
+ * A brief covered by a mark keeps the mark's rules. A brief covered only by a part
+ * line passes when its `metadata.productPullRequest` on the head equals the merge
+ * base (unset or unchanged); it fails when the head names this PR or otherwise differs.
+ */
+function bindPartLineBriefPath(args: {
+  readonly projectRoot: string;
+  readonly relPath: string;
+  readonly previousFilename: string | undefined;
+  readonly prNumber: number;
+  readonly repo: string;
+  readonly marks: readonly number[];
+  readonly parts: readonly number[];
+  readonly readMergeBaseFile: ReadMergeBaseFileFn | undefined;
+}): { ok: boolean; detail: string } {
+  const full = join(args.projectRoot, args.relPath);
+  if (!existsSync(full)) {
+    return { ok: false, detail: `changed nonterminal brief ${args.relPath} missing on checkout` };
+  }
+  let headPlan: Record<string, unknown> | null;
+  try {
+    headPlan = planFromBriefText(readFileSync(full, "utf8"));
+  } catch (err: unknown) {
+    return {
+      ok: false,
+      detail: `changed brief ${args.relPath}: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+  if (headPlan === null) {
+    return { ok: false, detail: `changed brief ${args.relPath} lacks plan` };
+  }
+  const issues = storyIssuesOfBrief(headPlan, args.repo);
+  if (issues.some((n) => args.marks.includes(n))) {
+    return bindChangedBriefPath(args);
+  }
+  const partIssue = issues.find((n) => args.parts.includes(n));
+  if (partIssue === undefined) {
+    return {
+      ok: false,
+      detail:
+        `changed brief ${args.relPath} issue #${String(issues[0] ?? "?")} is not covered by ` +
+        "deft-story or deft-story-part lines",
+    };
+  }
+  if (productPullRequestFromPlan(headPlan) === args.prNumber) {
+    return {
+      ok: false,
+      detail:
+        `part-line PR #${String(args.prNumber)} sets metadata.productPullRequest to itself on ` +
+        `${args.relPath}; only the PR that completes #${String(partIssue)} (deft-story: ` +
+        `${String(partIssue)}) is the story's product PR (#6316)`,
+    };
+  }
+  if (args.readMergeBaseFile === undefined) {
+    return {
+      ok: false,
+      detail: `cannot read merge-base ${args.relPath} for part-line admission (#6316)`,
+    };
+  }
+  const base = args.readMergeBaseFile(args.previousFilename ?? args.relPath);
+  if (base.kind === "error") {
+    return { ok: false, detail: `merge-base read for part-line admission failed: ${base.detail}` };
+  }
+  let baseRaw: string | undefined;
+  if (base.kind === "ok") {
+    try {
+      const basePlan = planFromBriefText(base.text);
+      baseRaw = basePlan === null ? undefined : productPullRequestRaw(basePlan);
+    } catch (err: unknown) {
+      return {
+        ok: false,
+        detail: `merge-base ${args.relPath}: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+  }
+  const headRaw = productPullRequestRaw(headPlan);
+  if (headRaw !== baseRaw) {
+    return {
+      ok: false,
+      detail:
+        `part-line PR #${String(args.prNumber)} changes metadata.productPullRequest on ` +
+        `${args.relPath} (merge base: ${baseRaw ?? "unset"}, head: ${headRaw ?? "unset"}); ` +
+        "a part PR leaves that stamp as it was (#6316)",
+    };
+  }
+  return { ok: true, detail: args.relPath };
+}
+
 /**
  * Pre-merge full-story mark producer/admission (#4919 / #4864 / #5387).
  * Order: leftover-admit → skip-active-refuse → Path B activation early-return → stamp gates.
- * Product PRs that touch nonterminal briefs require deft-story + matching metadata.
+ * Product PRs that touch nonterminal briefs require deft-story + matching metadata, or
+ * a `deft-story-part: N` line that leaves the product-PR stamp as it was (#6316).
  */
 export function evaluateFullStoryMarkAdmission(args: {
   readonly bodyText: string | null;
@@ -545,6 +666,8 @@ export function evaluateFullStoryMarkAdmission(args: {
   readonly projectRoot: string;
   readonly repo: string;
   readonly files: readonly PrDiffPath[];
+  /** Merge-base reader for part-line admission (#6316); absent fails a part-line PR closed. */
+  readonly readMergeBaseFile?: ReadMergeBaseFileFn;
 }): { ok: boolean; messages: string[] } {
   const messages: string[] = [];
   if (isLeftoverShapedDiff(args.files)) {
@@ -583,23 +706,42 @@ export function evaluateFullStoryMarkAdmission(args: {
     return { ok: true, messages };
   }
   const marks = parseAllDeftStoryMarks(args.bodyText ?? "");
-  if (marks.length === 0) {
+  const parts = parseAllDeftStoryPartLines(args.bodyText ?? "");
+  const conflicts = marks.filter((n) => parts.includes(n));
+  if (conflicts.length > 0) {
+    return { ok: false, messages: [formatStoryLineConflict(conflicts)] };
+  }
+  if (marks.length === 0 && parts.length === 0) {
     return {
       ok: false,
       messages: [
-        "FAIL: product pull request touches nonterminal xBRIEF without `deft-story: N` (#4864 / #4919).",
+        "FAIL: product pull request touches nonterminal xBRIEF without `deft-story: N` (#4864 / #4919). " +
+          storyLineAdvice(null),
       ],
     };
   }
   // Each changed nonterminal path must itself bind; a stamped sibling cannot satisfy (#4919).
   for (const relPath of changedNonterminal) {
-    const bind = bindChangedBriefPath({
-      projectRoot: args.projectRoot,
-      relPath,
-      prNumber: args.prNumber,
-      repo: args.repo,
-      marks,
-    });
+    const bind =
+      parts.length === 0
+        ? bindChangedBriefPath({
+            projectRoot: args.projectRoot,
+            relPath,
+            prNumber: args.prNumber,
+            repo: args.repo,
+            marks,
+          })
+        : bindPartLineBriefPath({
+            projectRoot: args.projectRoot,
+            relPath,
+            previousFilename: args.files.find((f) => normalizeDiffPath(f.path) === relPath)
+              ?.previousFilename,
+            prNumber: args.prNumber,
+            repo: args.repo,
+            marks,
+            parts,
+            readMergeBaseFile: args.readMergeBaseFile,
+          });
     if (!bind.ok) {
       messages.push(`FAIL: ${bind.detail}`);
     }
@@ -648,6 +790,422 @@ export function fullStoryCloseIntentFromBody(text: string): FullStoryCloseIntent
   return issue === null ? null : { issue, source: "deft-story" };
 }
 
+/**
+ * All distinct `deft-story-part: N` lines (#6316): line start, digits only, like the
+ * mark. A part line says the PR belongs to story N and does not complete it. It is
+ * never a finalize close signal (`parseAllDeftStoryMarks` does not match it).
+ */
+const STORY_PART_PREFIX = "deft-story-part:";
+
+/**
+ * Values of every `deft-story-part:` line, trimmed. Line-based scan with no
+ * backtracking regex, so long whitespace runs stay linear (CodeQL js/polynomial-redos).
+ */
+function storyPartLineValues(text: string): string[] {
+  const values: string[] = [];
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    if (line.slice(0, STORY_PART_PREFIX.length).toLowerCase() === STORY_PART_PREFIX) {
+      values.push(line.slice(STORY_PART_PREFIX.length).trim());
+    }
+  }
+  return values;
+}
+
+export function parseAllDeftStoryPartLines(text: string): number[] {
+  const out = new Set<number>();
+  for (const value of storyPartLineValues(text)) {
+    if (!/^\d+$/.test(value)) continue;
+    const n = Number(value);
+    if (Number.isInteger(n) && n > 0) {
+      out.add(n);
+    }
+  }
+  return [...out].sort((a, b) => a - b);
+}
+
+/** Present `deft-story-part:` lines whose value is not a positive decimal issue number. */
+export function findUnparseableDeftStoryPartLines(text: string): string[] {
+  const bad: string[] = [];
+  for (const value of storyPartLineValues(text)) {
+    if (!/^\d+$/.test(value) || Number(value) <= 0) {
+      bad.push(value.length > 0 ? value : "(empty)");
+    }
+  }
+  return bad;
+}
+
+/** Issues that carry both `deft-story: N` and `deft-story-part: N` in one body (#6316). */
+export function findStoryLineConflicts(text: string): number[] {
+  const parts = new Set(parseAllDeftStoryPartLines(text));
+  return parseAllDeftStoryMarks(text).filter((n) => parts.has(n));
+}
+
+/** The command that writes the story line into a PR body file (#6316). */
+export const WRITE_STORY_LINE_COMMAND =
+  "task pr:check-closing-keywords -- --body-file <path> --write-story-line [--part]";
+
+/**
+ * Shared advice for an active story's PR body (#6316): the two lines, which one to
+ * use, and the command that writes it. Used by refusals and advisories.
+ */
+export function storyLineAdvice(issue: number | null): string {
+  const n = issue === null ? "N" : String(issue);
+  return (
+    `For an active story, do not use Closes #${n}. Put \`deft-story: ${n}\` on the PR that ` +
+    `completes the story and \`deft-story-part: ${n}\` on any other product PR of it; ` +
+    `\`Refs #${n}\` alone is not a completion basis. Write the line with ${WRITE_STORY_LINE_COMMAND}.`
+  );
+}
+
+const STORY_REF_KEYWORD_RE = /\b(?:refs?|tracking|related)\b/gi;
+const STORY_REF_TOKEN_RE =
+  /^(?:https:\/\/github\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)\/issues\/(\d+)|(?:([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+))?#(\d+))/;
+const STORY_REF_FENCE_RE = /^\s*(`{3,}|~{3,})/;
+
+function backticksBefore(line: string, index: number): number {
+  let count = 0;
+  for (let i = 0; i < index; i += 1) {
+    if (line[i] === "`") count += 1;
+  }
+  return count;
+}
+
+/**
+ * Issue numbers a PR body names with `Refs` / `Tracking` / `Related` (#6316).
+ * Accepts `#N`, `owner/repo#N` and issue URLs; lists like `Refs #1, #2`. Other
+ * repositories, fenced code blocks and inline code spans are ignored.
+ */
+export function parseStoryRefIssues(text: string, repo: string): number[] {
+  const out = new Set<number>();
+  const repoLower = repo.toLowerCase();
+  let fence: string | null = null;
+  for (const line of text.split(/\r?\n/)) {
+    const fenceMatch = STORY_REF_FENCE_RE.exec(line);
+    if (fenceMatch !== null) {
+      const ch = (fenceMatch[1] ?? "`")[0] ?? "`";
+      if (fence === null) fence = ch;
+      else if (fence === ch) fence = null;
+      continue;
+    }
+    if (fence !== null) continue;
+    const keywordRe = new RegExp(STORY_REF_KEYWORD_RE.source, "gi");
+    let keyword = keywordRe.exec(line);
+    while (keyword !== null) {
+      if (backticksBefore(line, keyword.index) % 2 === 0) {
+        let rest = line.slice(keyword.index + keyword[0].length).replace(/^[ \t]*:?[ \t]*/, "");
+        for (;;) {
+          const token = STORY_REF_TOKEN_RE.exec(rest);
+          if (token === null) break;
+          const owner = token[1] ?? token[4];
+          const name = token[2] ?? token[5];
+          const number = Number(token[3] ?? token[6]);
+          const sameRepo =
+            owner === undefined || `${owner}/${name ?? ""}`.toLowerCase() === repoLower;
+          if (sameRepo && Number.isInteger(number) && number > 0) {
+            out.add(number);
+          }
+          rest = rest.slice(token[0].length).replace(/^[ \t]*(?:,|\band\b)?[ \t]*/i, "");
+        }
+      }
+      keyword = keywordRe.exec(line);
+    }
+  }
+  return [...out].sort((a, b) => a - b);
+}
+
+/** Story issue numbers of a brief: github-issue references, else the plan-id origin. */
+function storyIssuesOfBrief(plan: Record<string, unknown>, repo: string): number[] {
+  // References only: x-tracking parent/decomposition issues are umbrellas, not the story.
+  const { issues } = collectGithubRefs({ references: plan.references }, repo);
+  const out = issues
+    .filter((ref) => ref.repo.toLowerCase() === repo.toLowerCase())
+    .map((ref) => ref.number);
+  if (out.length > 0) {
+    return [...new Set(out)].sort((a, b) => a - b);
+  }
+  const metadata = plan.metadata;
+  if (typeof metadata === "object" && metadata !== null && !Array.isArray(metadata)) {
+    const binding = (metadata as Record<string, unknown>)["x-directive/plan-id"];
+    if (typeof binding === "object" && binding !== null && !Array.isArray(binding)) {
+      const origin = (binding as Record<string, unknown>).origin;
+      const m = typeof origin === "string" ? /^([^/#\s]+\/[^/#\s]+)#(\d+)$/.exec(origin) : null;
+      if (m !== null && (m[1] ?? "").toLowerCase() === repo.toLowerCase()) {
+        return [Number(m[2])];
+      }
+    }
+  }
+  return [];
+}
+
+/** True when a running brief is the brief for issue N (ownership or github-issue reference). */
+function briefIsForIssue(
+  brief: { readonly plan: Record<string, unknown> },
+  repo: string,
+  issue: number,
+): boolean {
+  const origin = issueOriginFromRepoSlug(repo, issue);
+  if (origin !== null && briefOwnsIssue({ plan: brief.plan }, origin)) {
+    return true;
+  }
+  return storyIssuesOfBrief(brief.plan, repo).includes(issue);
+}
+
+/** Product-shaped diff for the story-line check: not a lifecycle-only land (#6316). */
+export function isProductShapedDiff(files: readonly PrDiffPath[]): boolean {
+  return files.length > 0 && !isLeftoverShapedDiff(files) && !isBriefLandShapedDiff(files);
+}
+
+function formatStoryLineMissing(prNumber: number, issue: number, why: string): string {
+  return [
+    `FAIL: PR #${String(prNumber)} is a product PR of running story #${String(issue)} (${why}) ` +
+      "but carries neither story line (#6316).",
+    "  Add exactly one of these lines to the PR body:",
+    `    deft-story: ${String(issue)}        on the PR that completes the story`,
+    `    deft-story-part: ${String(issue)}   on any other product PR of the story`,
+    `  \`Refs #${String(issue)}\` alone is not a completion basis. Write the line, then update the PR body:`,
+    `    ${WRITE_STORY_LINE_COMMAND}`,
+    `    gh pr edit ${String(prNumber)} --body-file <path>`,
+  ].join("\n");
+}
+
+function formatStoryLineConflict(issues: readonly number[]): string {
+  const list = issues.map((n) => `#${String(n)}`).join(", ");
+  return (
+    `FAIL: PR body carries both \`deft-story: N\` and \`deft-story-part: N\` for ${list} (#6316). ` +
+    "Keep one: the mark on the PR that completes the story, the part line on any other."
+  );
+}
+
+/**
+ * Live pre-merge story-line check (#6316 / #6310 Bound 1). Any body with both lines
+ * for one N fails. A product PR fails when it carries neither a sole `deft-story: N`
+ * nor a sole `deft-story-part: N` and either its body names N with Refs / Tracking /
+ * Related while N has a running brief in `active/`, or a running brief on the head
+ * names this PR as `metadata.productPullRequest`. The mark keeps its own rules.
+ */
+export function evaluateStoryLineRequirement(args: {
+  readonly bodyText: string;
+  readonly prNumber: number;
+  readonly projectRoot: string;
+  readonly repo: string;
+  readonly files: readonly PrDiffPath[];
+}): { ok: boolean; messages: string[]; required: number[] } {
+  const conflicts = findStoryLineConflicts(args.bodyText);
+  if (conflicts.length > 0) {
+    return { ok: false, messages: [formatStoryLineConflict(conflicts)], required: [] };
+  }
+  if (!isProductShapedDiff(args.files)) {
+    return { ok: true, messages: [], required: [] };
+  }
+  const running = listActiveRunningBriefs(args.projectRoot);
+  const required = new Map<number, string>();
+  for (const issue of parseStoryRefIssues(args.bodyText, args.repo)) {
+    const brief = running.find((b) => briefIsForIssue(b, args.repo, issue));
+    if (brief !== undefined) {
+      required.set(
+        issue,
+        `body names #${String(issue)}; running brief ${relBriefPath(brief.path, args.projectRoot)}`,
+      );
+    }
+  }
+  for (const brief of running) {
+    if (productPullRequestFromPlan(brief.plan) !== args.prNumber) continue;
+    for (const issue of storyIssuesOfBrief(brief.plan, args.repo)) {
+      if (!required.has(issue)) {
+        required.set(
+          issue,
+          `running brief ${relBriefPath(brief.path, args.projectRoot)} names this PR as metadata.productPullRequest`,
+        );
+      }
+    }
+  }
+  const marks = new Set(parseAllDeftStoryMarks(args.bodyText));
+  const parts = new Set(parseAllDeftStoryPartLines(args.bodyText));
+  const messages: string[] = [];
+  for (const [issue, why] of [...required.entries()].sort((a, b) => a[0] - b[0])) {
+    if (!marks.has(issue) && !parts.has(issue)) {
+      messages.push(formatStoryLineMissing(args.prNumber, issue, why));
+    }
+  }
+  return {
+    ok: messages.length === 0,
+    messages,
+    required: [...required.keys()].sort((a, b) => a - b),
+  };
+}
+
+function resolveOfflineRepo(
+  projectRoot: string,
+  repoArg: string | null,
+  runGit: RunGhFn,
+): string | null {
+  if (repoArg !== null && repoArg.trim().length > 0) {
+    return repoArg.trim();
+  }
+  const origin = runGit(["-C", projectRoot, "remote", "get-url", "origin"]);
+  // Shared remote parser keeps dotted repository names (owner/my.app) intact.
+  return origin.returncode === 0 ? parseGitHubRemoteRepo(origin.stdout) : null;
+}
+
+/**
+ * True when the branch name carries `planId` as a whole token: the characters on
+ * both sides are not id characters, so `github.issue.123` does not match a branch
+ * for `github.issue.1234`.
+ */
+function branchNamesPlanId(branch: string, planId: string): boolean {
+  const idChar = /[A-Za-z0-9._-]/;
+  let from = 0;
+  for (;;) {
+    const at = branch.indexOf(planId, from);
+    if (at < 0) return false;
+    const before = at === 0 ? "" : (branch[at - 1] ?? "");
+    const after = branch[at + planId.length] ?? "";
+    const boundedBefore = before === "" || before === "/" || !idChar.test(before);
+    const boundedAfter = after === "" || after === "/" || !idChar.test(after);
+    if (boundedBefore && boundedAfter) return true;
+    from = at + 1;
+  }
+}
+
+/**
+ * Running-story issues for the current branch (#6316): a running brief the branch
+ * changes, a running brief whose plan id the branch name carries, or a running
+ * brief for an issue the body names with Refs / Tracking / Related.
+ */
+export function storyIssuesForBranch(args: {
+  readonly projectRoot: string;
+  readonly repo: string;
+  readonly bodyText: string;
+  readonly runGit: RunGhFn;
+}): number[] {
+  const running = listActiveRunningBriefs(args.projectRoot);
+  if (running.length === 0) {
+    return [];
+  }
+  const changed = new Set(
+    (collectLocalDiffFiles(args.projectRoot, args.runGit) ?? [])
+      .filter((f) => f.status.toLowerCase() !== "removed")
+      .map((f) => normalizeDiffPath(f.path)),
+  );
+  const branchResult = args.runGit(["-C", args.projectRoot, "rev-parse", "--abbrev-ref", "HEAD"]);
+  const branch = branchResult.returncode === 0 ? branchResult.stdout.trim() : "";
+  const bodyRefs = parseStoryRefIssues(args.bodyText, args.repo);
+  const out = new Set<number>();
+  for (const brief of running) {
+    const rel = relBriefPath(brief.path, args.projectRoot);
+    const planId = typeof brief.plan.id === "string" ? brief.plan.id.trim() : "";
+    const named = changed.has(rel) || (planId.length > 0 && branchNamesPlanId(branch, planId));
+    if (named) {
+      for (const issue of storyIssuesOfBrief(brief.plan, args.repo)) {
+        out.add(issue);
+      }
+    }
+    for (const issue of bodyRefs) {
+      if (briefIsForIssue(brief, args.repo, issue)) {
+        out.add(issue);
+      }
+    }
+  }
+  return [...out].sort((a, b) => a - b);
+}
+
+/**
+ * `--body-file <path> --write-story-line [--part]` (#6316 amendment): append
+ * `deft-story: N` (or `deft-story-part: N`) for each running story of the branch
+ * whose line the body lacks. A body that already has one of the lines for N is left
+ * unchanged; a body with both lines for one N fails as the live check does.
+ */
+export function writeStoryLineToBodyFile(args: {
+  readonly bodyFile: string;
+  readonly projectRoot: string;
+  readonly repo: string | null;
+  readonly part: boolean;
+  readonly runGit?: RunGhFn;
+}): WriteStoryLineResult {
+  const runGit = args.runGit ?? defaultRunGit;
+  let text: string;
+  try {
+    text = readFileSync(args.bodyFile, "utf8");
+  } catch (err: unknown) {
+    return {
+      code: 2,
+      message: `Error: failed to read ${args.bodyFile}: ${err instanceof Error ? err.message : String(err)}`,
+      issues: [],
+      written: [],
+    };
+  }
+  const conflicts = findStoryLineConflicts(text);
+  if (conflicts.length > 0) {
+    return { code: 1, message: formatStoryLineConflict(conflicts), issues: [], written: [] };
+  }
+  const repo = resolveOfflineRepo(args.projectRoot, args.repo, runGit);
+  if (repo === null) {
+    return {
+      code: 2,
+      message:
+        "FAIL: --write-story-line needs --repo OWNER/REPO (or a github.com origin remote) to match running briefs.",
+      issues: [],
+      written: [],
+    };
+  }
+  const issues = storyIssuesForBranch({
+    projectRoot: args.projectRoot,
+    repo,
+    bodyText: text,
+    runGit,
+  });
+  if (issues.length === 0) {
+    return {
+      code: 0,
+      message: "OK: no running story for this branch; body file unchanged (#6316).",
+      issues,
+      written: [],
+    };
+  }
+  const marks = new Set(parseAllDeftStoryMarks(text));
+  const parts = new Set(parseAllDeftStoryPartLines(text));
+  const label = args.part ? "deft-story-part" : "deft-story";
+  const written = issues
+    .filter((n) => !marks.has(n) && !parts.has(n))
+    .map((n) => `${label}: ${String(n)}`);
+  if (written.length === 0) {
+    return {
+      code: 0,
+      message: "OK: body file already carries the story line; unchanged (#6316).",
+      issues,
+      written,
+    };
+  }
+  const eol = text.includes("\r\n") ? "\r\n" : "\n";
+  let next = text;
+  if (next.length > 0 && !next.endsWith("\n")) {
+    next += eol;
+  }
+  if (next.trim().length > 0 && !/(?:\r?\n){2}$/.test(next)) {
+    next += eol;
+  }
+  next += written.map((line) => `${line}${eol}`).join("");
+  try {
+    // Contained write under the operator-named body file's parent (#2951 / #2980 pattern).
+    const abs = resolve(args.bodyFile);
+    containedWrite({ root: dirname(abs), target: abs, data: next, mode: "replace" });
+  } catch (err: unknown) {
+    return {
+      code: 2,
+      message: `Error: failed to write ${args.bodyFile}: ${err instanceof Error ? err.message : String(err)}`,
+      issues,
+      written: [],
+    };
+  }
+  return {
+    code: 0,
+    message: `OK: wrote ${written.join(", ")} to ${args.bodyFile} (#6316).`,
+    issues,
+    written,
+  };
+}
+
 export function parseAllowList(values: readonly string[]): Set<number> {
   const out = new Set<number>();
   for (const chunk of values) {
@@ -679,6 +1237,8 @@ function emptyParsed(error: string): ParsedArgs {
     mode: "both",
     onePrUnit: null,
     projectRoot: null,
+    writeStoryLine: false,
+    part: false,
     error,
   };
 }
@@ -694,10 +1254,16 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
   const allowClose: string[] = [];
   let onePrUnit: string | null = null;
   let projectRoot: string | null = null;
+  let writeStoryLine = false;
+  let part = false;
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === "--pr") {
+    if (arg === "--write-story-line") {
+      writeStoryLine = true;
+    } else if (arg === "--part") {
+      part = true;
+    } else if (arg === "--pr") {
       const value = argv[i + 1];
       if (value === undefined) {
         return emptyParsed("argument --pr: expected one argument");
@@ -821,6 +1387,8 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
     mode,
     onePrUnit,
     projectRoot,
+    writeStoryLine,
+    part,
   };
 }
 
@@ -922,7 +1490,8 @@ function emitResult(
       `FAIL: ${intentFiltered.length} real closing-keyword hit(s) without allowlist (intent mode / #3015 class D). ` +
         "Default PR bodies use Tracking: #N / Related: #N / Refs #N. Use Closes/Fixes/Resolves only when full " +
         "issue DoD is met, then pass --allow-close <N,M> on the lint (body trailers are not an authorization path). " +
-        "Conditional prose (Phase A / only if / partial) does NOT prevent GitHub auto-close.\n",
+        "Conditional prose (Phase A / only if / partial) does NOT prevent GitHub auto-close. " +
+        `${storyLineAdvice(null)}\n`,
     );
     for (const h of intentFiltered) {
       process.stderr.write(`${renderHit(h)}\n`);
@@ -974,7 +1543,8 @@ function refuseAllowCloseWhileRunning(
   }
   process.stderr.write(
     "FAIL: --allow-close names issue(s) whose brief is still running in xbrief/active/. " +
-      "Use Refs / Tracking until leftover-complete. --allow-close is the #3015 intent-mode allowlist, not leftover-complete consent.\n",
+      "Use Refs / Tracking until leftover-complete. --allow-close is the #3015 intent-mode allowlist, not leftover-complete consent. " +
+      `${storyLineAdvice(hits.length === 1 ? (hits[0]?.issue ?? null) : null)}\n`,
   );
   for (const hit of hits) {
     process.stderr.write(`  --allow-close ${String(hit.issue)} running brief: ${hit.briefPath}\n`);
@@ -1031,6 +1601,27 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
   if (args.error !== undefined) {
     process.stderr.write(`Error: ${args.error}\n`);
     return EXIT_CONFIG_ERROR;
+  }
+  if (args.part && !args.writeStoryLine) {
+    process.stderr.write("Error: --part requires --write-story-line.\n");
+    return EXIT_CONFIG_ERROR;
+  }
+  if (args.writeStoryLine) {
+    if (args.pr !== null || args.bodyFile === null) {
+      process.stderr.write(
+        "Error: --write-story-line is offline only: pass --body-file <path> and no --pr.\n",
+      );
+      return EXIT_CONFIG_ERROR;
+    }
+    const written = writeStoryLineToBodyFile({
+      bodyFile: args.bodyFile,
+      projectRoot: args.projectRoot ?? ".",
+      repo: args.repo,
+      part: args.part,
+      runGit: options.runGit ?? defaultRunGit,
+    });
+    process.stderr.write(`${written.message}\n`);
+    return written.code === 0 ? EXIT_OK : written.code === 1 ? EXIT_HITS_FOUND : EXIT_CONFIG_ERROR;
   }
 
   let fpAllow: Set<number>;
@@ -1155,20 +1746,46 @@ export function run(argv: readonly string[], options: RunOptions = {}): number {
     if (files === null) {
       return EXIT_CONFIG_ERROR;
     }
+    const prNumber = args.pr;
+    let mergeBase: string | null | undefined;
+    const readMergeBaseFile: ReadMergeBaseFileFn = (path) => {
+      if (mergeBase === undefined) {
+        mergeBase = fetchPrMergeBaseSha(prNumber, liveRepo, runGh);
+      }
+      if (mergeBase === null) {
+        return { kind: "error", detail: `cannot resolve PR #${String(prNumber)} merge base` };
+      }
+      return fetchRepoFileAtRef(liveRepo, path, mergeBase, runGh);
+    };
     const admission = evaluateFullStoryMarkAdmission({
       bodyText,
-      prNumber: args.pr,
+      prNumber,
+      projectRoot: args.projectRoot ?? ".",
+      repo: liveRepo,
+      files,
+      readMergeBaseFile,
+    });
+    // #6316: pre-merge story-line check for a product PR of a running story.
+    const storyLine = evaluateStoryLineRequirement({
+      bodyText: bodyText ?? "",
+      prNumber,
       projectRoot: args.projectRoot ?? ".",
       repo: liveRepo,
       files,
     });
-    if (!admission.ok) {
-      for (const message of admission.messages) {
+    if (!admission.ok || !storyLine.ok) {
+      const admissionMessages = admission.ok ? [] : admission.messages;
+      for (const message of [...admissionMessages, ...storyLine.messages]) {
         process.stderr.write(`${message}\n`);
       }
       return EXIT_HITS_FOUND;
     }
   } else if (args.bodyFile !== null) {
+    const conflicts = findStoryLineConflicts(bodyText ?? "");
+    if (conflicts.length > 0) {
+      process.stderr.write(`${formatStoryLineConflict(conflicts)}\n`);
+      return EXIT_HITS_FOUND;
+    }
     const projectRoot = args.projectRoot ?? ".";
     const files = collectLocalDiffFiles(projectRoot, options.runGit ?? defaultRunGit);
     if (files !== null) {

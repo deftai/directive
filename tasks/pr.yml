@@ -31,6 +31,9 @@ tasks:
   # Default --mode both: FP (negation/quote/example/code) + intent (any real
   # Closes/Fixes/Resolves #N unless --allow-close N,M). Body trailers are not
   # an authorization path. Pairs with Layer 3 ``pr:check-protected-issues`` (#701).
+  # Story lines (#6316): live ``--pr`` fails a product PR of a running story
+  # without ``deft-story: N`` / ``deft-story-part: N``; offline
+  # ``--body-file <path> --write-story-line [--part]`` writes the line.
   #
   # Per ``conventions/task-caching.md`` (#574): NO ``sources:`` /
   # ``generates:`` because user-facing recovery flags (``--pr``,

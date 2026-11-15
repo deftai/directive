@@ -11,7 +11,38 @@ export {
   hasFullCloseIntent,
   renderHit,
 } from "./detect.js";
-export { defaultRunGh, fetchPrBody, fetchPrCommitMessages } from "./gh.js";
+export {
+  defaultRunGh,
+  fetchPrBody,
+  fetchPrCommitMessages,
+  fetchPrMergeBaseSha,
+  fetchRepoFileAtRef,
+} from "./gh.js";
 export { readCommitsFile, readTextFile } from "./io.js";
-export { cmdPrCheckClosingKeywords, parseAllowList, parseArgs, run } from "./main.js";
-export type { ClosingKeywordMode, Hit, ParsedArgs, RunGhFn, RunGhResult } from "./types.js";
+export {
+  cmdPrCheckClosingKeywords,
+  evaluateStoryLineRequirement,
+  findStoryLineConflicts,
+  findUnparseableDeftStoryPartLines,
+  parseAllDeftStoryMarks,
+  parseAllDeftStoryPartLines,
+  parseAllowList,
+  parseArgs,
+  parseDeftStoryMark,
+  parseStoryRefIssues,
+  run,
+  storyIssuesForBranch,
+  storyLineAdvice,
+  WRITE_STORY_LINE_COMMAND,
+  writeStoryLineToBodyFile,
+} from "./main.js";
+export type {
+  ClosingKeywordMode,
+  Hit,
+  ParsedArgs,
+  ReadMergeBaseFileFn,
+  RefFileRead,
+  RunGhFn,
+  RunGhResult,
+  WriteStoryLineResult,
+} from "./types.js";

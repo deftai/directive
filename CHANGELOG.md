@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Story lines for product PRs of an active story (#6316).** New `deft-story-part: N` line for a PR that is part of a story and does not complete it. `pr:check-closing-keywords` fails a product PR of a running story with neither line, and a body with both. `--body-file <path> --write-story-line [--part]` and `pre-pr:run --body-file` write the line. PR templates stop advising `Closes #N` for an active story. Refs #6310.
 - Changelog fragments, slice A (#6314): one path test for changelog entry paths (`CHANGELOG.md`, `changelog.d/<issue>-<slug>.md`), the fragment format, `plan.policy.changelog.mode` (`inline` by default; `deft policy:set-changelog-mode`), and one effective view of unreleased entries for every reader. No change while the mode is `inline` and no fragment exists.
 
 ### Changed

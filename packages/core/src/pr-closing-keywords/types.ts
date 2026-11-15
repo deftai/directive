@@ -37,7 +37,34 @@ export interface ParsedArgs {
   /** Distinct one-PR-unit grant id (#4494). Not `--allow-close`. */
   readonly onePrUnit: string | null;
   readonly projectRoot: string | null;
+  /** Offline `--body-file` step: append the story line for the branch's running story (#6316). */
+  readonly writeStoryLine: boolean;
+  /** With `writeStoryLine`: write `deft-story-part: N` instead of `deft-story: N` (#6316). */
+  readonly part: boolean;
   readonly error?: string;
+}
+
+/**
+ * One file read at a fixed git ref (merge base) for part-line admission (#6316).
+ * `absent` means the path did not exist at that ref; `error` fails closed.
+ */
+export type RefFileRead =
+  | { readonly kind: "ok"; readonly text: string }
+  | { readonly kind: "absent" }
+  | { readonly kind: "error"; readonly detail: string };
+
+/** Reads a repo-relative path at the PR merge base (#6316). */
+export type ReadMergeBaseFileFn = (path: string) => RefFileRead;
+
+/** Result of `--write-story-line` on a PR body file (#6316). */
+export interface WriteStoryLineResult {
+  /** 0 written or nothing to write / 1 both lines for one N / 2 config or read error. */
+  readonly code: 0 | 1 | 2;
+  readonly message: string;
+  /** Running-story issues found for the branch. */
+  readonly issues: readonly number[];
+  /** Lines appended to the body file. */
+  readonly written: readonly string[];
 }
 
 /**

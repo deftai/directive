@@ -114,6 +114,10 @@ describe("pr-closeout-attestable evaluate", () => {
     expect(result.findings).toHaveLength(1);
     expect(result.findings[0]?.issue).toBe(3609);
     expect(result.findings[0]?.unattested).toHaveLength(5);
+    // #6316: the refusal advises the story lines instead of Closes #N.
+    expect(result.message).toContain("do not use Closes #3609");
+    expect(result.message).toContain("`deft-story-part: N`");
+    expect(result.message).toContain("--write-story-line");
   });
 
   it("inherits #3819 missing/unrecognized item.status inversion via the shared gate", () => {
