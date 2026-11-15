@@ -305,6 +305,11 @@ export function runWaitMergeable(
       if (result.error !== null) {
         lines.push(`  error:   ${result.error}`);
       }
+      // #6295: every queue result carries its resume command, including merged.
+      const resume = result.mergeQueue?.resume_command;
+      if (typeof resume === "string" && resume.length > 0) {
+        lines.push(`  resume:  ${resume}`);
+      }
       if (result.mergeStdout.trim().length > 0) {
         lines.push("  merge stdout:");
         for (const line of result.mergeStdout.trim().split("\n")) {

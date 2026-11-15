@@ -382,6 +382,7 @@ describe("runWaitMergeable --resume (#6295)", () => {
     const text = stdout.mock.calls.map((c) => String(c[0])).join("");
     expect(text).toContain("QUEUE-PENDING");
     expect(text).toContain("outcome: queued");
+    expect(text).toContain("resume:  task pr:wait-mergeable-and-merge -- 6295");
     stdout.mockRestore();
     stderr.mockRestore();
   });

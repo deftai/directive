@@ -155,6 +155,11 @@ export function rulesRequireMergeQueue(payload: unknown): boolean | null {
  * Detect whether the delivery branch requires a merge queue (branch rules REST).
  * A read failure is an error, never "no queue": the caller must not fall back to
  * a direct `--admin` merge on a queue branch (#6295 item 8).
+ *
+ * With a PR number the branch is always the PR's live `base.ref`; a
+ * `baseBranch` override that names a different branch is an error, so an
+ * override can never steer a queue-branch PR onto the direct path. Without a
+ * PR, `baseBranch` (or the repository default branch) is used.
  */
 export function detectMergeQueue(
   prNumber: number | null,
@@ -162,23 +167,30 @@ export function detectMergeQueue(
   baseBranch: string | null,
   runGh: QueueRunGhFn = liveRunGh(),
 ): MergeQueueDetection {
-  let branch = baseBranch !== null && baseBranch.trim().length > 0 ? baseBranch.trim() : null;
-  if (branch === null && prNumber === null) {
+  const override = baseBranch !== null && baseBranch.trim().length > 0 ? baseBranch.trim() : null;
+  let branch: string;
+  if (prNumber !== null) {
+    const base = fetchPrBaseRef(prNumber, repo, runGh);
+    if (base.ref === null) {
+      return { status: "error", message: base.error ?? "could not resolve PR base branch" };
+    }
+    if (override !== null && override !== base.ref) {
+      return {
+        status: "error",
+        message:
+          `--base-branch ${override} conflicts with PR #${prNumber} base ${base.ref}; ` +
+          "queue detection always reads the PR's live base",
+      };
+    }
+    branch = base.ref;
+  } else if (override !== null) {
+    branch = override;
+  } else {
     const def = fetchDefaultBranch(repo, runGh);
     if (def.ref === null) {
       return { status: "error", message: def.error ?? "could not resolve default branch" };
     }
     branch = def.ref;
-  }
-  if (branch === null && prNumber !== null) {
-    const base = fetchPrBaseRef(prNumber, repo, runGh);
-    if (base.ref === null) {
-      return { status: "error", message: base.error ?? "could not resolve PR base branch" };
-    }
-    branch = base.ref;
-  }
-  if (branch === null) {
-    return { status: "error", message: "could not resolve the delivery branch" };
   }
   const rc = runGh(["gh", "api", `repos/${repo}/rules/branches/${encodeURIComponent(branch)}`]);
   if (rc.returncode !== 0) {

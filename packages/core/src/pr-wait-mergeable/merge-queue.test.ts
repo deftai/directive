@@ -312,12 +312,46 @@ describe("detectMergeQueue (branch rules REST)", () => {
     expect(detectMergeQueue(5, REPO, null, gh.fn)).toEqual({ status: "queue", branch: "master" });
   });
 
-  it("reports none when the rules carry no merge_queue, using an explicit branch", () => {
+  it("reports none when the rules carry no merge_queue, using an explicit branch without a PR", () => {
     const gh = scriptedGh({
       [`repos/${REPO}/rules/branches/main`]: { returncode: 0, stdout: "[]" },
     });
-    expect(detectMergeQueue(5, REPO, "main", gh.fn)).toEqual({ status: "none", branch: "main" });
+    expect(detectMergeQueue(null, REPO, "main", gh.fn)).toEqual({
+      status: "none",
+      branch: "main",
+    });
     expect(gh.calls).toHaveLength(1);
+  });
+
+  it("always reads the PR's live base and rejects a conflicting --base-branch (Greptile P1)", () => {
+    const gh = scriptedGh({
+      [`repos/${REPO}/pulls/5`]: {
+        returncode: 0,
+        stdout: JSON.stringify({ base: { ref: "master" } }),
+      },
+      [`repos/${REPO}/rules/branches/master`]: {
+        returncode: 0,
+        stdout: JSON.stringify([{ type: "merge_queue" }]),
+      },
+      [`repos/${REPO}/rules/branches/side`]: { returncode: 0, stdout: "[]" },
+    });
+    const conflict = detectMergeQueue(5, REPO, "side", gh.fn);
+    expect(conflict.status).toBe("error");
+    expect(gh.calls.some((c) => c.join(" ").includes("rules/branches/side"))).toBe(false);
+    expect(detectMergeQueue(5, REPO, "master", gh.fn)).toEqual({
+      status: "queue",
+      branch: "master",
+    });
+  });
+
+  it("uses the repository default branch without a PR or override", () => {
+    const gh = scriptedGh({
+      [`repos/${REPO}/rules`]: { returncode: 0, stdout: "[]" },
+      [`repos/${REPO}`]: { returncode: 0, stdout: JSON.stringify({ default_branch: "trunk" }) },
+    });
+    expect(detectMergeQueue(null, REPO, null, gh.fn)).toEqual({ status: "none", branch: "trunk" });
+    const bad = scriptedGh({ [`repos/${REPO}`]: { returncode: 1, stdout: "" } });
+    expect(detectMergeQueue(null, REPO, null, bad.fn).status).toBe("error");
   });
 
   it("fails closed on read errors and non-array payloads", () => {
@@ -331,7 +365,7 @@ describe("detectMergeQueue (branch rules REST)", () => {
     ).toBe("error");
     expect(
       detectMergeQueue(
-        5,
+        null,
         REPO,
         "master",
         scriptedGh({ [`repos/${REPO}/rules/branches/master`]: { returncode: 1, stdout: "" } }).fn,
@@ -339,7 +373,7 @@ describe("detectMergeQueue (branch rules REST)", () => {
     ).toBe("error");
     expect(
       detectMergeQueue(
-        5,
+        null,
         REPO,
         "master",
         scriptedGh({ [`repos/${REPO}/rules/branches/master`]: { returncode: 0, stdout: "{}" } }).fn,
