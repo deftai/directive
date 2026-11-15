@@ -2507,6 +2507,7 @@ describe("inactive Shell classifiers (#4709)", () => {
     expect(classifyShellAuthzOps("cat /tmp/f <( touch .deft-directive-disable )")).toContain(
       "settings",
     );
+    expect(classifyShellAuthzOps("cat /tmp/f <( cat .no-deft-directive )")).toEqual([]);
     expect(classifyShellAuthzOps("echo x > .deft/approved-scope-backup/story.json")).toEqual([]);
   });
 

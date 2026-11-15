@@ -2563,7 +2563,8 @@ function isProvenReadOnlyArgv(words: readonly string[], execIndex: number): bool
   return false;
 }
 
-function hasExecutableProcessSubstitution(command: string): boolean {
+function processSubstitutionBodies(command: string): string[] {
+  const bodies: string[] = [];
   let quote: ZipShellQuote = null;
   for (let i = 0; i < command.length; i++) {
     const char = command[i] as string;
@@ -2576,14 +2577,49 @@ function hasExecutableProcessSubstitution(command: string): boolean {
       else if (quote === char) quote = null;
       continue;
     }
-    if (quote === null && char === "<" && command[i + 1] === "(") return true;
+    if (quote !== null || char !== "<" || command[i + 1] !== "(") continue;
+    let depth = 1;
+    let bodyQuote: ZipShellQuote = null;
+    for (let j = i + 2; j < command.length; j++) {
+      const nested = command[j] as string;
+      if (nested === "\\" && bodyQuote !== "'" && j + 1 < command.length) {
+        j++;
+        continue;
+      }
+      if (nested === "'" || nested === '"') {
+        if (bodyQuote === null) bodyQuote = nested;
+        else if (bodyQuote === nested) bodyQuote = null;
+        continue;
+      }
+      if (bodyQuote !== null) continue;
+      if (nested === "(") depth++;
+      else if (nested === ")") {
+        depth--;
+        if (depth === 0) {
+          bodies.push(command.slice(i + 2, j));
+          i = j;
+          break;
+        }
+      }
+    }
+  }
+  return bodies;
+}
+
+function hasWritableProcessSubstitution(command: string): boolean {
+  for (const body of processSubstitutionBodies(command)) {
+    const bodyTokens = shellTokens(body);
+    if (hasWriteShape(body, bodyTokens) || hasWriteCapableProgrammaticShell(body, bodyTokens)) {
+      return true;
+    }
+    if (bodyTokens.some((token) => SYMLINK_PLANT_BINS.has(writeBinName(token)))) return true;
   }
   return false;
 }
 
 /** A shell command is read-only only when every command segment has a proof. */
 function isClosedReadOnlyShellCommand(command: string): boolean {
-  if (hasExecutableProcessSubstitution(command)) return false;
+  if (hasWritableProcessSubstitution(command)) return false;
   const segments = zipStyleCommandSegments(command);
   return (
     segments.length > 0 &&
@@ -4019,7 +4055,6 @@ function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]
   }
   if (!mentionsKill) return false;
   if (hasProtectedArchiveExtract(command)) return true;
-  if (hasExecutableProcessSubstitution(command)) return true;
 
   // Redirect dest region after each `>` operator, including noclobber forms (#4199).
   for (const hay of [lower, stripped]) {
