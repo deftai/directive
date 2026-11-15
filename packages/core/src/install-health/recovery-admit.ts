@@ -5,22 +5,22 @@
  * its refusal names a project install as the recovery. That install is itself
  * a shell command, so without this admit the hook refuses its own recovery.
  *
- * Only the named recovery commands are admitted, only as simple uncompounded
- * commands run at the project root, and only when pin ≠ installed is the sole
- * fault (no overlay; a root/identity mismatch is refused earlier). Everything
- * else stays refused until the install matches the pin.
+ * Only the named project install commands are admitted, only as simple
+ * uncompounded commands run at the project root, and only when pin ≠ installed
+ * is the sole fault (no overlay; a root/identity mismatch is refused earlier).
+ * The global AC9.7 pair (`npm i -g @deftai/directive`, `directive install
+ * --repair`) is not admitted: it is not the pin-mismatch fix (AC9.12) and the
+ * sealed #5956 allow-list bans it. Everything else stays refused until the
+ * install matches the pin.
  */
 
 import type { CheapInSyncResult } from "./types.js";
 
-/** Exact token sequences the pin-mismatch refusal names as recovery (#6313). */
+/** Exact project install token sequences admitted on pin mismatch (#6313). */
 export const PIN_MISMATCH_RECOVERY_COMMANDS: readonly (readonly string[])[] = [
   ["pnpm", "install", "--frozen-lockfile"],
   ["npm", "install"],
   ["npm", "ci"],
-  // AC9.7 pair.
-  ["npm", "i", "-g", "@deftai/directive"],
-  ["directive", "install", "--repair"],
 ];
 
 /**

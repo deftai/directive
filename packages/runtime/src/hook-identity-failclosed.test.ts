@@ -454,12 +454,7 @@ describe("pin-mismatch recovery admit (#6313)", () => {
     expect(next.raw).not.toContain("installation-identity-deny");
   });
 
-  it.each([
-    "npm install",
-    "npm ci",
-    "npm i -g @deftai/directive",
-    "directive install --repair",
-  ])("admits the named recovery %j", (command) => {
+  it.each(["npm install", "npm ci"])("admits the named recovery %j", (command) => {
     const root = tempDir("pin-6313-named");
     const result = dispatchTool({
       projectRoot: root,
@@ -488,6 +483,8 @@ describe("pin-mismatch recovery admit (#6313)", () => {
     ["install chained with another command", "pnpm install --frozen-lockfile && git status"],
     ["install after a directory change", "cd sub && pnpm install --frozen-lockfile"],
     ["install with a directory flag", "pnpm --dir sub install --frozen-lockfile"],
+    ["the global install", "npm i -g @deftai/directive"],
+    ["the repair", "directive install --repair"],
   ])("refuses %s with the same recovery text", (_label, command) => {
     const root = tempDir("pin-6313-refuse");
     const result = dispatchTool({

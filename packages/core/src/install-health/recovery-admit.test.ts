@@ -32,8 +32,6 @@ describe("matchPinMismatchRecoveryCommand (#6313)", () => {
     ["pnpm install --frozen-lockfile", "pnpm install --frozen-lockfile"],
     ["npm install", "npm install"],
     ["npm ci", "npm ci"],
-    ["npm i -g @deftai/directive", "npm i -g @deftai/directive"],
-    ["directive install --repair", "directive install --repair"],
     ["  pnpm   install\t--frozen-lockfile  ", "pnpm install --frozen-lockfile"],
   ])("admits %j", (command, canonical) => {
     expect(matchPinMismatchRecoveryCommand(command)).toBe(canonical);
@@ -57,6 +55,9 @@ describe("matchPinMismatchRecoveryCommand (#6313)", () => {
     "pnpm install --frozen-lockfile --force",
     "npm install left-pad",
     "npm i -g @deftai/directive@latest",
+    // Global AC9.7 pair is not admitted (#6313 operator correction; sealed #5956).
+    "npm i -g @deftai/directive",
+    "directive install --repair",
     "directive install",
     "git status",
     "",
@@ -73,8 +74,6 @@ describe("matchPinMismatchRecoveryCommand (#6313)", () => {
       "pnpm install --frozen-lockfile",
       "npm install",
       "npm ci",
-      "npm i -g @deftai/directive",
-      "directive install --repair",
     ]);
   });
 });
