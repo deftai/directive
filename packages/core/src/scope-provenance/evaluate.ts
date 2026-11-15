@@ -55,6 +55,7 @@ import {
   type OnePrScopeProofGate,
 } from "../policy/one-pr-scope-proof.js";
 import { PROJECT_DEFINITION_REL_PATH } from "../policy/resolve.js";
+import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { loadTestBoundaryPolicy } from "../test-boundary/policy.js";
 import {
   concreteProductionScopeEntries,
@@ -179,6 +180,8 @@ function git(args: string[], projectRoot: string): { status: number; stdout: str
     cwd: projectRoot,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
+    // git show <base>:xbrief/PROJECT-DEFINITION.xbrief.json is over 1 MiB; Node default throws ENOBUFS (#6349).
+    maxBuffer: SUBPROCESS_MAX_BUFFER,
   });
   if (result.error !== undefined) {
     const e = result.error as NodeJS.ErrnoException;

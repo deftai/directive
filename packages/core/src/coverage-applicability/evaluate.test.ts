@@ -518,6 +518,52 @@ describe("evaluateCoverageApplicability", () => {
     }
   });
 
+  it("demotes a registry refresh of a PROJECT-DEFINITION larger than 1 MiB (#6349)", () => {
+    // Node's default spawnSync buffer is 1 MiB; without maxBuffer the blob read
+    // fails and the refresh silently stays coverable.
+    const padding = { narratives: { Padding: "x".repeat(1024 * 1024 + 64 * 1024) } };
+    const root = gitRepo({
+      "README.md": "# base\n",
+      [PROJECT_DEF_PATH]: projectDefDoc({
+        items: [],
+        updated: "2026-10-01T00:00:00Z",
+        stalenessFlags: [],
+        extraPlan: padding,
+      }),
+    });
+    const baseSha = childProcess
+      .execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" })
+      .trim();
+    writeFileSync(
+      join(root, PROJECT_DEF_PATH),
+      projectDefDoc({
+        items: [registryItem("story-a")],
+        updated: "2026-10-09T12:00:00Z",
+        stalenessFlags: [],
+        extraPlan: padding,
+      }),
+    );
+    mkdirSync(join(root, "xbrief/proposed"), { recursive: true });
+    writeFileSync(join(root, "xbrief/proposed/story-a.xbrief.json"), "{}\n");
+    childProcess.execFileSync("git", ["add", "-A"], { cwd: root });
+    childProcess.execFileSync("git", ["commit", "-q", "-m", "registry-refresh"], { cwd: root });
+    const blobBytes = Number(
+      childProcess
+        .execFileSync("git", ["cat-file", "-s", `${baseSha}:${PROJECT_DEF_PATH}`], {
+          cwd: root,
+          encoding: "utf8",
+        })
+        .trim(),
+    );
+    expect(blobBytes).toBeGreaterThan(1024 * 1024);
+    const result = evaluateCoverageApplicability(bindingFor(root, baseSha));
+    expect(result.outcome).toBe("not-applicable");
+    if (result.outcome === "not-applicable") {
+      const pd = result.changes.find((c) => c.path === PROJECT_DEF_PATH);
+      expect(pd?.classification).toBe("inert");
+    }
+  });
+
   it("keeps PROJECT-DEFINITION policy edits applicable (#5479)", () => {
     const root = gitRepo({
       [PROJECT_DEF_PATH]: projectDefDoc({

@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.9.
 
 ### Fixed
+- fix(scope-provenance): `verify:scope-provenance` no longer fails with ENOBUFS when `xbrief/PROJECT-DEFINITION.xbrief.json` at the merge base is larger than 1 MiB; the one-PR gate now reads the policy. Coverage-applicability reads large PROJECT-DEFINITION blobs the same way (#6349).
 - fix(hooks): after a pin bump, the pin-mismatch refusal now admits the project install it names (`pnpm install --frozen-lockfile`, `npm install`, `npm ci`) as a simple command at the project root, when pin ≠ installed is the only fault (#6313).
 - fix(hooks): a worker can commit in its linked worktree with `git -C <absolute path> commit` or `cd <absolute path> && git commit`. The commit gate reads that checkout's staged files and its worktree story binding, so several active briefs no longer refuse the commit as `multiple-eligible`; it refuses a target it cannot resolve to one checkout (relative, repeated or variable path, git location overrides). The preamble and Claude Code host notes say to name the worktree in every git command and not to write git through the PowerShell tool (#6278, #6247, #6291).
 
