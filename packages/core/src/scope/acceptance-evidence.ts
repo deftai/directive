@@ -192,10 +192,16 @@ export interface AcceptanceEvidenceRecord {
 export interface AcceptanceDispositionRecord {
   readonly disposition: AcceptanceDispositionKind;
   readonly reason: string;
-  /** Human-origin provenance (kind + actor required; other GrantOrigin fields optional). */
-  readonly provenance: Pick<GrantOrigin, "kind" | "actor"> & Partial<GrantOrigin>;
+  /**
+   * Human-origin provenance (kind + actor required; other GrantOrigin fields optional).
+   * `grantId` names the acceptance-disposition grant that wrote it (#6318).
+   */
+  readonly provenance: Pick<GrantOrigin, "kind" | "actor"> &
+    Partial<GrantOrigin> & { readonly grantId?: string };
   readonly recorded_at: string;
   readonly resume_when?: string;
+  /** Issue a `deferred` item moved to (#6318 grant). */
+  readonly deferred_to?: string;
 }
 
 export interface CriterionAcceptanceReport {
@@ -616,8 +622,10 @@ export function parseDisposition(raw: unknown):
       ...(originForCheck.mintedAt.length > 0 ? { mintedAt: originForCheck.mintedAt } : {}),
       ...(originForCheck.mintedVia.length > 0 ? { mintedVia: originForCheck.mintedVia } : {}),
       ...(originForCheck.eventRef !== null ? { eventRef: originForCheck.eventRef } : {}),
+      ...(isNonEmptyString(provenance.grantId) ? { grantId: provenance.grantId.trim() } : {}),
     },
     recorded_at: obj.recorded_at.trim(),
+    ...(isNonEmptyString(obj.deferred_to) ? { deferred_to: obj.deferred_to.trim() } : {}),
   };
   if (isNonEmptyString(obj.resume_when)) {
     return {
@@ -1495,7 +1503,87 @@ export function stampNamespacedDisposition(
   if (record.resume_when !== undefined) {
     body.resume_when = record.resume_when;
   }
+  if (record.deferred_to !== undefined) {
+    body.deferred_to = record.deferred_to;
+  }
   item[ACCEPTANCE_DISPOSITION_KEY] = body;
+}
+
+const ACCEPTANCE_STAMP_KEYS = [
+  "evidence",
+  "disposition",
+  ACCEPTANCE_EVIDENCE_KEY,
+  ACCEPTANCE_DISPOSITION_KEY,
+] as const;
+
+/** Covered items' acceptance fields as they were before a grant apply (#6318). */
+export type GrantedDispositionOriginals = ReadonlyMap<string, Readonly<Record<string, unknown>>>;
+
+/** One grant-covered disposition to apply in memory (#6318). */
+export interface GrantedDisposition {
+  readonly itemId: string;
+  readonly record: AcceptanceDispositionRecord;
+}
+
+function findGrantCoveredItem(items: unknown, itemId: string): Record<string, unknown> | null {
+  const clause = CLAUSE_KEYED_PLACEHOLDER_ID_RE.exec(itemId);
+  if (clause !== null) {
+    const keyed = findClauseKeyedItem(items, Number(clause[1]));
+    if (keyed !== null) return keyed;
+  }
+  return findItemByKey(items, itemId);
+}
+
+/**
+ * Apply grant-covered dispositions in memory (#6318). Runs in complete-prep
+ * after persistClauseKeyedPendingItems and before
+ * stampMergeFromCompletionProvenance, so the merge stamper skips these items.
+ * The returned originals let the mid-flight active write leave them out.
+ */
+export function applyGrantedDispositions(
+  plan: Record<string, unknown>,
+  granted: readonly GrantedDisposition[],
+): {
+  readonly appliedIds: readonly string[];
+  readonly missingIds: readonly string[];
+  readonly originals: GrantedDispositionOriginals;
+} {
+  const appliedIds: string[] = [];
+  const missingIds: string[] = [];
+  const originals = new Map<string, Readonly<Record<string, unknown>>>();
+  for (const { itemId, record } of granted) {
+    const item = findGrantCoveredItem(plan.items, itemId);
+    if (item === null) {
+      missingIds.push(itemId);
+      continue;
+    }
+    const before: Record<string, unknown> = {};
+    for (const key of ACCEPTANCE_STAMP_KEYS) {
+      if (key in item) before[key] = structuredClone(item[key]);
+    }
+    originals.set(itemId, before);
+    stampNamespacedDisposition(item, record);
+    appliedIds.push(itemId);
+  }
+  return { appliedIds, missingIds, originals };
+}
+
+/**
+ * Put covered items back as they were before applyGrantedDispositions, on a
+ * copy of the plan written to the active brief mid-flight (#6318).
+ */
+export function restoreGrantedDispositionOriginals(
+  plan: Record<string, unknown>,
+  originals: GrantedDispositionOriginals,
+): void {
+  for (const [itemId, before] of originals) {
+    const item = findGrantCoveredItem(plan.items, itemId);
+    if (item === null) continue;
+    clearAcceptanceStampFields(item);
+    for (const [key, value] of Object.entries(before)) {
+      item[key] = structuredClone(value);
+    }
+  }
 }
 
 function evaluateOneItem(
