@@ -8,56 +8,86 @@
     "title": "feat(scope): part line, pre-merge story-line check and --write-story-line (#6310 slice A)",
     "status": "running",
     "narratives": {
-      "Description": "feat(scope): part line, pre-merge story-line check and --write-story-line (#6310 slice A)",
+      "Description": "Slice A of the accepted #6310 design: a `deft-story-part: N` PR-body line, a pre-merge check that refuses a product PR of a running story without a story line, and a `--write-story-line` tool that appends the line for the author. After it, no product PR of an active story merges without a basis for the identity join.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6316",
       "Overview": "## Summary\n\nSlice A of the accepted #6310 design: the part line, the pre-merge check, and the tool that writes the story line for the author, so that no product PR of an active story merges without a basis for the identity join.\n\nBound contract: successor lean 6887155397 on #6310, Bound 1 and the matching pre-merge fixtures of Bound 5 (accepted synthesis 6887284787), plus the amendment 6887505436 (the tool writes the line). Both are the contract. Slices B (join and attestation) and C (disposition grant) are separate child issues. Each slice has its own issue so that each brief completes from exactly one PR with its own `deft-story` line.\n\n## Scope\n\n1. `deft-story-part: N` is a new PR-body line, parsed like the mark (line start, digits only).\n2. In `pr:check-closing-keywords` (live PR mode), a product PR fails when it carries neither a sole `deft-story: N` nor a sole `deft-story-part: N` and either its body names issue N with `Refs` / `Tracking` / `Related` while N has a running brief in `active/`, or a running brief on the head carries `metadata.productPullRequest` equal to this PR. The failure prints both lines, says which to use, and names the `--write-story-line` command. Both lines for the same N in one body refuse. The mark keeps today's rules.\n3. In `evaluateFullStoryMarkAdmission`, a part-line PR with no mark that changes N's nonterminal brief passes only when the brief's `metadata.productPullRequest` on the head equals its value at the merge base, and fails when the head value names this PR or otherwise differs. The part line is not a finalize close signal. Plan-id adoption on a multi-running tip accepts a sole part line the same way as the mark, for mint selection only.\n4. The same advice goes in the #3781 refusal (`formatRefusal`), the two `Refs` advisories in `pr-closing-keywords/main.ts`, the mark note in `plan-id-adopter.ts`, `scm/github.md`, and the PR template, which stops advising `Closes #N` for an active story.\n5. `pr:check-closing-keywords --body-file <path> --write-story-line` (offline mode): when the branch changes or names a running brief for issue N and the body has neither line, it appends `deft-story: N` to the body file and exits 0. With `--part`, it appends `deft-story-part: N`.\n6. The pre-PR path (`deft-directive-pre-pr` skill and `pre-pr:run`) runs that step on the body file before the PR is opened. The swarm dispatch envelope names the line for each story.\n\n## Acceptance Criteria\n\n- Given a product PR for a running story whose body has `Refs #N` only, when `pr:check-closing-keywords` runs in live mode, then it fails, prints both lines and names `--write-story-line`.\n- Given a PR with no issue reference whose head brief names it as `metadata.productPullRequest`, then the check fails the same way.\n- Given a body with both `deft-story: N` and `deft-story-part: N`, then the check fails.\n- Given a part-line PR that stamps evidence on the brief and leaves `metadata.productPullRequest` unchanged, then it passes; given one that sets that stamp to itself, then it fails.\n- Given a part-line PR on a tip with several running briefs, then plan-id adoption resolves its plan id.\n- Given a body file for a branch that names a running brief for issue N, with neither line, when `pr:check-closing-keywords --body-file <path> --write-story-line` runs, then the file ends with `deft-story: N` and the command exits 0.\n- Given the same input with `--part`, then the file ends with `deft-story-part: N`.\n- Given a body file that already has one of the lines for N, then the file is unchanged.\n- The pre-PR path runs the write step before the PR is opened, and the PR template no longer advises `Closes #N` for an active story.\n\nRefs #6310.\n\ndesign-critique: not warranted, because this slice implements Bound 1 of the design already accepted on #6310 (lean 6887155397, synthesis 6887284787) and its amendment 6887505436, and adds no mechanism.\n\n",
-      "Labels": "framework-gap"
+      "Labels": "framework-gap",
+      "UserStory": "As an agent opening a product PR for an active story, I want the pre-merge check to require a story line and a tool that writes it, so that every merged product PR gives the completion join a basis.",
+      "ImplementationPlan": "1. Parse `deft-story-part: N` like the mark (line start, digits only) in packages/core/src/pr-closing-keywords/main.ts and types.ts.\n2. In live mode of `pr:check-closing-keywords`, fail a product PR that has neither sole line when its body refs a running story or its head brief stamps it as `metadata.productPullRequest`; print both lines and name `--write-story-line`; refuse both lines for one N.\n3. In `evaluateFullStoryMarkAdmission` and intent-constraint/plan-id-adopter.ts, admit a part-line PR only when the head `productPullRequest` equals the merge-base value, and accept a sole part line for plan-id adoption.\n4. Add offline `--body-file <path> --write-story-line [--part]` that appends the line once, and call it from `pre-pr:run` (packages/runtime/src/pre-pr-run.ts) and the pre-PR skill.\n5. Align the advice in scm/github.md, both PR templates (no `Closes #N` for an active story) and the preamble; add main, gh, plan-id-adopter, pre-pr-run and content-contract tests.",
+      "Traces": "#6316, #6310"
     },
     "items": [
       {
         "title": "Given a product PR for a running story whose body has `Refs #N` only, when `pr:check-closing-keywords` runs in live mode, then it fails, prints both lines and names `--write-story-line`.",
         "status": "proposed",
-        "id": "clause.1"
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given a product PR for a running story whose body has only `Refs #N`, when `pr:check-closing-keywords` runs in live mode, then it fails, prints both lines and names `--write-story-line`."
+        }
       },
       {
         "title": "Given a PR with no issue reference whose head brief names it as `metadata.productPullRequest`, then the check fails the same way.",
         "status": "proposed",
-        "id": "clause.2"
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given a PR with no issue reference whose head brief names it as `metadata.productPullRequest`, when the live check runs, then it fails with the same output."
+        }
       },
       {
         "title": "Given a body with both `deft-story: N` and `deft-story-part: N`, then the check fails.",
         "status": "proposed",
-        "id": "clause.3"
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a PR body with both `deft-story: N` and `deft-story-part: N`, when the check runs, then it fails."
+        }
       },
       {
         "title": "Given a part-line PR that stamps evidence on the brief and leaves `metadata.productPullRequest` unchanged, then it passes; given one that sets that stamp to itself, then it fails.",
         "status": "proposed",
-        "id": "clause.4"
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given a part-line PR that stamps evidence on the brief and leaves `metadata.productPullRequest` unchanged, then it passes; given one that sets that stamp to itself, then it fails."
+        }
       },
       {
         "title": "Given a part-line PR on a tip with several running briefs, then plan-id adoption resolves its plan id.",
         "status": "proposed",
-        "id": "clause.5"
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given a part-line PR on a tip with several running briefs, when plan-id adoption runs, then it resolves the PR's plan id."
+        }
       },
       {
         "title": "Given a body file for a branch that names a running brief for issue N, with neither line, when `pr:check-closing-keywords --body-file <path> --write-story-line` runs, then the file ends with `deft-story: N` and the command exits 0.",
         "status": "proposed",
-        "id": "clause.6"
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given a body file on a branch naming a running brief for issue N with neither line, when `--write-story-line` runs, then the file ends with `deft-story: N` and the command exits 0."
+        }
       },
       {
         "title": "Given the same input with `--part`, then the file ends with `deft-story-part: N`.",
         "status": "proposed",
-        "id": "clause.7"
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given the same input with `--part`, when `--write-story-line` runs, then the body file ends with `deft-story-part: N`."
+        }
       },
       {
         "title": "Given a body file that already has one of the lines for N, then the file is unchanged.",
         "status": "proposed",
-        "id": "clause.8"
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given a body file that already holds one of the lines for N, when `--write-story-line` runs, then the file stays unchanged."
+        }
       },
       {
         "title": "The pre-PR path runs the write step before the PR is opened, and the PR template no longer advises `Closes #N` for an active story.",
         "status": "proposed",
-        "id": "clause.9"
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "When the pre-PR path runs, then it writes the story line before the PR opens, and the PR template no longer advises `Closes #N` for an active story."
+        }
       }
     ],
     "tags": [
@@ -115,7 +145,30 @@
           "docs/RULE-MAP.md",
           "CHANGELOG.md"
         ],
-        "file_scope_confidence": "medium"
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "delivery-identity-join",
+        "verify_commands": [
+          "npx vitest run packages/core/src/pr-closing-keywords/main.test.ts packages/core/src/pr-closing-keywords/gh.test.ts packages/core/src/intent-constraint/plan-id-adopter.test.ts packages/core/src/pr-closeout-attestable/evaluate.test.ts packages/runtime/src/pre-pr-run.test.ts packages/core/src/content-contracts/skills/pre_pr_skill_closing_keyword_rule.test.ts packages/core/src/content-contracts/standards/roadmap_merge_lane_lock.test.ts",
+          "npx vitest run packages/core/src/content-contracts/skills/agent_prompt_preamble_template.test.ts"
+        ],
+        "expected_outputs": [
+          "`deft-story-part: N` parsing",
+          "live pre-merge story-line check in `pr:check-closing-keywords`",
+          "part-line admission in `evaluateFullStoryMarkAdmission` and plan-id adoption",
+          "offline `--write-story-line [--part]` on a body file",
+          "pre-PR path runs the write step before PR open",
+          "PR templates and preamble stop advising `Closes #N` for an active story"
+        ],
+        "Traces": [
+          "#6316",
+          "#6310"
+        ],
+        "acceptance_criteria_justification": "Nine clauses, one per acceptance criterion in the #6316 issue body (slice A of #6310 lean 6887155397, Bound 1 with Bound 5 fixtures, plus amendment 6887505436); kept one-to-one so each maps to its own evidence."
       },
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
@@ -128,7 +181,8 @@
         "github_issue_id": 6398935639,
         "origin": "deftai/directive#6316",
         "id": "github.issue.6398935639"
-      }
+      },
+      "kind": "story"
     },
     "acceptance": {
       "commands": [],
@@ -205,69 +259,220 @@
       "clauses": [
         {
           "id": 1,
-          "text": "Given a product PR for a running story whose body has `Refs #N` only, when `pr:check-closing-keywords` runs in live mode, then it fails, prints both lines and names `--write-story-line`.",
-          "artifact_path": null,
+          "text": "Acceptance Criteria - Given a product PR for a running story whose body has `Refs #N` only, when `pr:check-closing-keywords` runs in live mode, then it fails, prints both lines and names `--write-story-line`.",
+          "artifact_path": "packages/core/src/pr-closing-keywords/main.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "Given a PR with no issue reference whose head brief names it as `metadata.productPullRequest`, then the check fails the same way.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/pr-closing-keywords/main.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "Given a body with both `deft-story: N` and `deft-story-part: N`, then the check fails.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/pr-closing-keywords/main.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
           "text": "Given a part-line PR that stamps evidence on the brief and leaves `metadata.productPullRequest` unchanged, then it passes; given one that sets that stamp to itself, then it fails.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/pr-closing-keywords/main.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
           "text": "Given a part-line PR on a tip with several running briefs, then plan-id adoption resolves its plan id.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/intent-constraint/plan-id-adopter.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 6,
           "text": "Given a body file for a branch that names a running brief for issue N, with neither line, when `pr:check-closing-keywords --body-file <path> --write-story-line` runs, then the file ends with `deft-story: N` and the command exits 0.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/pr-closing-keywords/main.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 7,
           "text": "Given the same input with `--part`, then the file ends with `deft-story-part: N`.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/pr-closing-keywords/main.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 8,
           "text": "Given a body file that already has one of the lines for N, then the file is unchanged.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/pr-closing-keywords/main.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 9,
           "text": "The pre-PR path runs the write step before the PR is opened, and the PR template no longer advises `Closes #N` for an active story.",
-          "artifact_path": null,
+          "artifact_path": "packages/runtime/src/pre-pr-run.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Summary Slice A of the accepted #6310 design: the part line, the pre-merge check, and the tool that writes the story line for the author, so that no product PR of an active story merges without a basis for the identity join.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Bound contract: successor lean 6887155397 on #6310, Bound 1 and the matching pre-merge fixtures of Bound 5 (accepted synthesis 6887284787), plus the amendment 6887505436 (the tool writes the line).",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Both are the contract.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Slices B (join and attestation) and C (disposition grant) are separate child issues.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Each slice has its own issue so that each brief completes from exactly one PR with its own `deft-story` line.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Scope 1.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "`deft-story-part: N` is a new PR-body line, parsed like the mark (line start, digits only).",
+          "artifact_path": "packages/core/src/pr-closing-keywords/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "In `pr:check-closing-keywords` (live PR mode), a product PR fails when it carries neither a sole `deft-story: N` nor a sole `deft-story-part: N` and either its body names issue N with `Refs` / `Tracking` / `Related` while N has a running brief in `active/`, or a running brief on the head carries `metadata.productPullRequest` equal to this PR.",
+          "artifact_path": "packages/core/src/pr-closing-keywords/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "The failure prints both lines, says which to use, and names the `--write-story-line` command.",
+          "artifact_path": "packages/core/src/pr-closing-keywords/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Both lines for the same N in one body refuse.",
+          "artifact_path": "packages/core/src/pr-closing-keywords/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "The mark keeps today's rules.",
+          "artifact_path": "packages/core/src/pr-closing-keywords/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "In `evaluateFullStoryMarkAdmission`, a part-line PR with no mark that changes N's nonterminal brief passes only when the brief's `metadata.productPullRequest` on the head equals its value at the merge base, and fails when the head value names this PR or otherwise differs.",
+          "artifact_path": "packages/core/src/pr-closing-keywords/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "The part line is not a finalize close signal.",
+          "artifact_path": "packages/core/src/pr-closeout-attestable/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "Plan-id adoption on a multi-running tip accepts a sole part line the same way as the mark, for mint selection only.",
+          "artifact_path": "packages/core/src/intent-constraint/plan-id-adopter.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "The same advice goes in the #3781 refusal (`formatRefusal`), the two `Refs` advisories in `pr-closing-keywords/main.ts`, the mark note in `plan-id-adopter.ts`, `scm/github.md`, and the PR template, which stops advising `Closes #N` for an active story.",
+          "artifact_path": "content/scm/github.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "`pr:check-closing-keywords --body-file <path> --write-story-line` (offline mode): when the branch changes or names a running brief for issue N and the body has neither line, it appends `deft-story: N` to the body file and exits 0.",
+          "artifact_path": "packages/core/src/pr-closing-keywords/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "With `--part`, it appends `deft-story-part: N`.",
+          "artifact_path": "packages/core/src/pr-closing-keywords/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 27,
+          "text": "The pre-PR path (`deft-directive-pre-pr` skill and `pre-pr:run`) runs that step on the body file before the PR is opened.",
+          "artifact_path": "packages/runtime/src/pre-pr-run.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 28,
+          "text": "The swarm dispatch envelope names the line for each story.",
+          "artifact_path": "content/skills/deft-directive-swarm/references/core-phase-3.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 29,
+          "text": "Refs #6310.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 30,
+          "text": "design-critique: not warranted, because this slice implements Bound 1 of the design already accepted on #6310 (lean 6887155397, synthesis 6887284787) and its amendment 6887505436, and adds no mechanism.",
+          "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "feat(scope): part line, pre-merge story-line check and --write-story-line (#6310 slice A)",
+        "Given a product PR for a running story whose body has `Refs #N` only, when `pr:check-closing-keywords` runs in live mode, then it fails, prints both lines and names `--write-story-line`."
+      ]
     },
     "id": "github.issue.6398935639",
     "updated": "2026-11-15T02:35:51Z"
