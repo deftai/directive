@@ -83,7 +83,7 @@ function isEnvAssign(token: string): boolean {
  * Returns the resource+verb pair when found.
  */
 /** gh global flags that take a separate value token. */
-const GH_VALUE_FLAGS = new Set(["-R", "--repo", "-a", "--app", "-h", "--hostname", "-p", "--jq"]);
+const GH_VALUE_FLAGS = new Set(["-r", "--repo", "-a", "--app", "-h", "--hostname", "-p", "--jq"]);
 
 function findGhResourceVerb(tokens: readonly string[]): { resource: string; verb: string } | null {
   let i = 0;
@@ -2622,8 +2622,21 @@ function resolvesInsideProtectedCwd(cwd: string, raw: string): boolean {
   return pathishIsSettingsStoreDir(resolved);
 }
 
+function resolveShellCwd(cwd: string | null, raw: string): string | null {
+  const literal = zipShellWordLiteral(raw);
+  if (literal === null || literal.length === 0) return null;
+  const normalized = literal.replace(/\\/g, "/");
+  if (normalized.startsWith("/") || /^[A-Za-z]:\//.test(normalized)) {
+    return canonicalizePathish(normalized);
+  }
+  if (cwd === null) return null;
+  return canonicalizePathish(cwd.length > 0 ? `${cwd}/${normalized}` : normalized);
+}
+
 function hasProtectedCwdRelativeWriter(command: string): boolean {
-  let protectedCwd: string | null = null;
+  // Track the lexical cwd so `cd .` and other relative changes cannot erase a
+  // previously established protected directory.
+  let cwd: string | null = "";
   for (const segment of zipStyleCommandSegments(command)) {
     const name = argv0BareName(segment.words, segment.execIndex);
     if (name === "cd" || name === "pushd" || name === "set-location") {
@@ -2648,17 +2661,20 @@ function hasProtectedCwdRelativeWriter(command: string): boolean {
         target = raw;
         break;
       }
-      protectedCwd =
-        target !== undefined && pathishIsSettingsStoreDir(pathishToken(target))
-          ? canonicalizePathish(pathishToken(target))
-          : null;
+      cwd = target === undefined ? null : resolveShellCwd(cwd, target);
       continue;
     }
-    if (protectedCwd === null || isProvenReadOnlyArgv(segment.words, segment.execIndex)) continue;
+    if (
+      cwd === null ||
+      !pathishIsSettingsStoreDir(cwd) ||
+      isProvenReadOnlyArgv(segment.words, segment.execIndex)
+    ) {
+      continue;
+    }
     const target = segmentRelativeWriterTarget(segment.words, segment.execIndex);
     if (
       target !== null &&
-      (resolvesInsideProtectedCwd(protectedCwd, target) || relativePathMayTraverseSymlink(target))
+      (resolvesInsideProtectedCwd(cwd, target) || relativePathMayTraverseSymlink(target))
     ) {
       return true;
     }

@@ -107,6 +107,7 @@ describe("classifyShellAuthzOps (#2944)", () => {
   it("classifies gh with -R/--repo value flags before resource verb", () => {
     expect(classifyShellAuthzOps("gh -R owner/repo pr create --title t")).toContain("pr");
     expect(classifyShellAuthzOps("gh --repo owner/repo pr merge 1")).toContain("merge");
+    expect(classifyShellAuthzOps("gh '-R' owner/repo pr merge 1")).toContain("merge");
   });
 
   it("covers deploy/settings/api and env-prefixed shell", () => {
@@ -2484,6 +2485,9 @@ describe("inactive Shell classifiers (#4709)", () => {
     expect(
       classifyShellAuthzOps("cd .deft/approved-scope && cp story.json ../../story-backup.json"),
     ).toEqual([]);
+    expect(
+      classifyShellAuthzOps("cd .deft/approved-scope && cd . && cp /tmp/g story.json"),
+    ).toContain("settings");
     expect(
       classifyShellAuthzOps("cd .deft/approved-scope && cp /tmp/g link/../../story.json"),
     ).toContain("settings");
