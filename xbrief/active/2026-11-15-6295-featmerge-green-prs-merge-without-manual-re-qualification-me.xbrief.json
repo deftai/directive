@@ -1037,35 +1037,35 @@
       "clauses": [
         {
           "id": 1,
-          "text": "Queue on master: master requires a merge queue (squash as the queue's merge method), and the repository allows auto-merge so the CLI can arm admission while checks run. Release and policy commits land through the queue as PRs; direct pushes to master are not part of the normal path. Docs say so.",
-          "artifact_path": null,
+          "text": "Queue on master: master requires a merge queue (squash as the queue's merge method), and the repository allows auto-merge so the CLI can arm admission while checks run.",
+          "artifact_path": "docs/RELEASING.md",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
-          "text": "Checks on the queue: `.github/workflows/ci.yml` also runs on `merge_group`. The required checks for master are `TypeScript (build + lint + test)` and `Merge gate (task check)`, reported on PRs and on `merge_group`. On `merge_group`, the PR-context checks inside `task check:merge` (closing keywords, scope provenance, intent constraint) are skipped: they were evaluated on the PR head and body at the PR's last CI run, the same assurance a direct merge of an up-to-date PR has today; later body edits are not re-checked, as today, and lifecycle atomicity stays with #6277.",
+          "text": "Checks on the queue: `.github/workflows/ci.yml` also runs on `merge_group`.",
           "artifact_path": ".github/workflows/ci.yml",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
-          "text": "Review check on the queue: one job named `Greptile Review`, run only on `merge_group`, reports success on the group commit. It starts no review and lists no members. It is sound because GitHub admits a PR to the queue only after its required checks, including the Greptile app's `Greptile Review`, pass on its head, and refuses any update to a queued PR's branch; changing the PR means leaving the queue and passing the checks again on the new head (measured, 6863745290 observations 1, 2 and 4). The job never runs on `pull_request`. The org ruleset keeps requiring `Greptile Review`.",
-          "artifact_path": null,
+          "text": "Review check on the queue: one job named `Greptile Review`, run only on `merge_group`, reports success on the group commit.",
+          "artifact_path": ".github/workflows/greptile-review-merge-group.yml",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
-          "text": "Merge verb, queue mode: `pr:wait-mergeable-and-merge` detects that the delivery branch requires a merge queue (branch rules REST). It runs today's pre-merge checks that read the PR head (review verdict, CI on the head, `verify:pr-closeout-attestable`), records the head SHA and the time, and runs `gh pr merge N --match-head-commit <sha>` with no `--admin` and no merge-method flag. It then reads the PR once from GitHub (head SHA, merged state and merge commit, merge-queue entry, auto-merge request, and the queue and auto-merge timeline events after the recorded time) and returns exactly one result, checked in this order: `head-changed` (the PR's head differs from the recorded SHA; carries the actual merge commit when the PR has merged; no reconciliation runs); `merged` (merged, with the merge commit); `queued` (entry present); `awaiting-admission` (auto-merge request present, no entry); `removed` (not merged, and a removed-from-queue event after the recorded time, with its reason, which may be empty); `inactive` (none of the above; with the latest auto-merge-disabled reason code if any). `--resume --expect-head <sha> --since <time>` repeats that read from any session; on `merged` it runs today's post-merge reconciliation, which must be safe to run more than once. The read follows the GraphQL bucket rules (#954).",
-          "artifact_path": null,
+          "text": "Merge verb, queue mode: `pr:wait-mergeable-and-merge` detects that the delivery branch requires a merge queue (branch rules REST).",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/merge-queue.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
-          "text": "Deleted in queue mode: the up-to-date requirement and its update-branch remediation (`semantic-green.ts` stale-base refusal), the #6071 master merge-gate re-read before merge (`cascade.ts`), the update-branch loops, and `--admin`. A break-glass direct merge is a separate, named operator path, not the default.",
+          "text": "Deleted in queue mode: the up-to-date requirement and its update-branch remediation (`semantic-green.ts` stale-base refusal), the #6071 master merge-gate re-read before merge (`cascade.ts`), the update-branch loops, and `--admin`.",
           "artifact_path": "packages/core/src/pr-wait-mergeable/semantic-green.ts",
           "ambiguous": false,
           "provenance": "statement"
@@ -1073,33 +1073,148 @@
         {
           "id": 6,
           "text": "Pre-PR: `deny-master-merge-gate-red` refuses only when master's named gate is red, never while it is pending; in queue mode it is removed.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 7,
-          "text": "Closeout check: `verify:pr-closeout-attestable` reads the PR head SHA from REST and evaluates the tree at that SHA, including referenced evidence, instead of requiring local HEAD to equal the PR head. It stays at enqueue time until #6277 ships.",
-          "artifact_path": null,
+          "text": "Closeout check: `verify:pr-closeout-attestable` reads the PR head SHA from REST and evaluates the tree at that SHA, including referenced evidence, instead of requiring local HEAD to equal the PR head.",
+          "artifact_path": "packages/core/src/pr-closeout-attestable/pr-head-assert.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 8,
-          "text": "Consumers: a repository without a merge queue keeps today's merge path (minus item 6's pending change). To use queue mode a consumer enables the queue on its delivery branch and auto-merge on the repository, adds `merge_group` to the workflows behind its required checks, and adds a job like item 3 for any required app check that does not run on `merge_group`. A queue configuration error fails the enqueue; it never falls back to `--admin`.",
-          "artifact_path": null,
+          "text": "Consumers: a repository without a merge queue keeps today's merge path (minus item 6's pending change).",
+          "artifact_path": "content/scm/github.md",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 9,
           "text": "Tests: queue detected → enqueue without `--admin`, no update-branch call; each of the six results is returned from a recorded GitHub response in the stated order, including a merge whose timeline also holds a removed-from-queue event with reason `merged` (result `merged`), a dequeue then new head then re-queue then merge read with the old expected head (result `head-changed` with the merge commit, no reconciliation), a timeout removal with reason `checks_timed_out` (result `removed`), and a cancelled auto-merge before admission (result `inactive`); `--resume` on `merged` runs reconciliation and a second resume does not break it; the item 3 job runs on `merge_group` only; on `merge_group` the PR-context checks are skipped and the rest run; pre-PR passes while master's gate is pending and refuses when it is red (non-queue); no-queue repositories behave as today.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/pr-wait-mergeable/merge-queue.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Release and policy commits land through the queue as PRs; direct pushes to master are not part of the normal path.",
+          "artifact_path": "docs/RELEASING.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Docs say so.",
+          "artifact_path": "docs/RELEASING.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "The required checks for master are `TypeScript (build + lint + test)` and `Merge gate (task check)`, reported on PRs and on `merge_group`.",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "On `merge_group`, the PR-context checks inside `task check:merge` (closing keywords, scope provenance, intent constraint) are skipped: they were evaluated on the PR head and body at the PR's last CI run, the same assurance a direct merge of an up-to-date PR has today; later body edits are not re-checked, as today, and lifecycle atomicity stays with #6277.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/merge-group-skip.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "It starts no review and lists no members.",
+          "artifact_path": ".github/workflows/greptile-review-merge-group.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "It is sound because GitHub admits a PR to the queue only after its required checks, including the Greptile app's `Greptile Review`, pass on its head, and refuses any update to a queued PR's branch; changing the PR means leaving the queue and passing the checks again on the new head (measured, 6863745290 observations 1, 2 and 4).",
+          "artifact_path": "content/scm/github.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "The job never runs on `pull_request`.",
+          "artifact_path": ".github/workflows/greptile-review-merge-group.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "The org ruleset keeps requiring `Greptile Review`.",
+          "artifact_path": "content/scm/github.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "It runs today's pre-merge checks that read the PR head (review verdict, CI on the head, `verify:pr-closeout-attestable`), records the head SHA and the time, and runs `gh pr merge N --match-head-commit <sha>` with no `--admin` and no merge-method flag.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/merge-queue.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "It then reads the PR once from GitHub (head SHA, merged state and merge commit, merge-queue entry, auto-merge request, and the queue and auto-merge timeline events after the recorded time) and returns exactly one result, checked in this order: `head-changed` (the PR's head differs from the recorded SHA; carries the actual merge commit when the PR has merged; no reconciliation runs); `merged` (merged, with the merge commit); `queued` (entry present); `awaiting-admission` (auto-merge request present, no entry); `removed` (not merged, and a removed-from-queue event after the recorded time, with its reason, which may be empty); `inactive` (none of the above; with the latest auto-merge-disabled reason code if any).",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/merge-queue.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "`--resume --expect-head <sha> --since <time>` repeats that read from any session; on `merged` it runs today's post-merge reconciliation, which must be safe to run more than once.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "The read follows the GraphQL bucket rules (#954).",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/merge-queue.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "A break-glass direct merge is a separate, named operator path, not the default.",
+          "artifact_path": "content/scm/github.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "It stays at enqueue time until #6277 ships.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/merge-queue.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "To use queue mode a consumer enables the queue on its delivery branch and auto-merge on the repository, adds `merge_group` to the workflows behind its required checks, and adds a job like item 3 for any required app check that does not run on `merge_group`.",
+          "artifact_path": "content/scm/github.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "A queue configuration error fails the enqueue; it never falls back to `--admin`.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/merge-queue.ts",
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "feat(merge): green PRs merge without manual re-qualification (merge queue or merge train)"
+      ]
     },
     "id": "github.issue.6375855023",
     "updated": "2026-11-15T02:35:47Z"
