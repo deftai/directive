@@ -2,6 +2,7 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { evaluateIntentConstraint } from "@deftai/directive-core/intent-constraint";
+import { mergeGroupSkip } from "@deftai/directive-core/pr-wait-mergeable";
 
 interface ParsedArgs {
   projectRoot: string;
@@ -82,7 +83,13 @@ export function parseArgs(argv: string[]): ParsedArgs {
 }
 
 /** Run the gate and return the process exit code. */
-export function run(argv: string[]): number {
+export function run(argv: string[], env: NodeJS.ProcessEnv = process.env): number {
+  // #6295: PR-context check; skipped on the merge queue's group commit.
+  const skip = mergeGroupSkip("verify:intent-constraint", env);
+  if (skip !== null) {
+    process.stdout.write(`${skip}\n`);
+    return 0;
+  }
   const args = parseArgs(argv);
   if (args.error !== undefined) {
     process.stderr.write(`verify_intent_constraint: ${args.error}\n`);

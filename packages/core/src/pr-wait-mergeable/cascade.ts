@@ -14,7 +14,22 @@ import { EXIT_NEW_P0_P1, VERDICT_NEW_P0_P1 } from "../pr-watch/constants.js";
 import { watch } from "../pr-watch/watch.js";
 import { reconcileUmbrellas, renderUmbrellasReport } from "../vbrief-reconcile/umbrellas.js";
 import { classifyMonitorOutcome, parseMonitorPayload } from "./classify.js";
-import { EXIT_CONFIG_ERROR, EXIT_MERGED, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
+import {
+  EXIT_CONFIG_ERROR,
+  EXIT_MERGED,
+  EXIT_QUEUE_PENDING,
+  EXIT_TIMEOUT_OR_ESCALATION,
+} from "./constants.js";
+import {
+  classifyQueueRead,
+  detectMergeQueue,
+  formatResumeCommand,
+  type MergeQueueDetectFn,
+  type QueueReadFn,
+  type QueueResultKind,
+  queueResultToDict,
+  readQueueState,
+} from "./merge-queue.js";
 import { makeResult } from "./result.js";
 import { evaluateSemanticGreen, type SemanticGreenFn } from "./semantic-green.js";
 import type {
@@ -114,6 +129,145 @@ export interface WaitMergeableOptions {
    * (same convention as head/closeout gates). Production must not set this.
    */
   readonly skipNamedMergeGate?: boolean;
+  /**
+   * Merge-queue detection (#6295). Live default reads branch rules REST. Skipped
+   * (treated as no queue) when omitted under the test-harness convention
+   * (skipHumanMergeGate or VITEST), like watchFn.
+   */
+  readonly mergeQueueDetectFn?: MergeQueueDetectFn;
+  /** Post-enqueue PR read (#6295). Live default is readQueueState (GraphQL, #954 floor). */
+  readonly queueReadFn?: QueueReadFn;
+  /** Clock seam for the recorded enqueue time (#6295). */
+  readonly nowFn?: () => Date;
+}
+
+function resolveUmbrellaFn(
+  umbrellaReconcileFn: UmbrellaReconcileFn | null | undefined,
+): UmbrellaReconcileFn | null {
+  // null = skip; undefined = live default (skipped under VITEST unless injected).
+  if (umbrellaReconcileFn === null) return null;
+  if (umbrellaReconcileFn !== undefined) return umbrellaReconcileFn;
+  return process.env.VITEST === "true" ? null : defaultPostMergeUmbrellaReconcile;
+}
+
+function runPostMergeReconcile(
+  umbrellaFn: UmbrellaReconcileFn | null,
+  projectRoot: string,
+  repo: string,
+): void {
+  // Best-effort umbrella checklist + current-shape refresh after child merge (#1649).
+  // Failures must not flip a successful merge into an error exit. Safe to repeat.
+  if (umbrellaFn === null) return;
+  try {
+    umbrellaFn(projectRoot, repo);
+  } catch {
+    /* best-effort; merge remains authoritative */
+  }
+}
+
+const QUEUE_EXIT: Readonly<Record<QueueResultKind, number>> = {
+  "head-changed": EXIT_TIMEOUT_OR_ESCALATION,
+  merged: EXIT_MERGED,
+  queued: EXIT_QUEUE_PENDING,
+  "awaiting-admission": EXIT_QUEUE_PENDING,
+  removed: EXIT_TIMEOUT_OR_ESCALATION,
+  inactive: EXIT_TIMEOUT_OR_ESCALATION,
+};
+
+const QUEUE_NOTE: Readonly<Record<QueueResultKind, string | null>> = {
+  "head-changed":
+    "PR head differs from the head this session queued; not reported as this session's merge, " +
+    "no reconciliation ran.",
+  merged: null,
+  queued: "PR is in the merge queue; not merged yet.",
+  "awaiting-admission": "Auto-merge is armed; GitHub admits the PR once required checks pass.",
+  removed: "PR left the merge queue without merging.",
+  inactive: "PR is not queued and auto-merge is not armed.",
+};
+
+export interface QueueReportInput {
+  readonly prNumber: number;
+  readonly repo: string;
+  readonly expectHead: string;
+  readonly since: string;
+  readonly projectRoot: string;
+  readonly queueReadFn?: QueueReadFn;
+  readonly umbrellaReconcileFn?: UmbrellaReconcileFn | null;
+  readonly monitorResult?: Record<string, unknown>;
+  readonly protectedCheck?: Record<string, unknown>;
+  readonly mergeStdout?: string;
+  readonly mergeStderr?: string;
+}
+
+/**
+ * Read the PR once and report exactly one queue result (#6295 item 4). On
+ * `merged` run today's post-merge reconciliation; `head-changed` never does.
+ */
+export function reportMergeQueueState(input: QueueReportInput): WaitMergeableResult {
+  const { prNumber, repo, expectHead, since } = input;
+  const resume = formatResumeCommand(prNumber, repo, expectHead, since);
+  const readFn = input.queueReadFn ?? ((n: number, r: string) => readQueueState(n, r));
+  const read = readFn(prNumber, repo);
+  if (read.status !== "ok") {
+    return makeResult({
+      prNumber,
+      repo,
+      outcome: "queue-read-unavailable",
+      exitCode: EXIT_CONFIG_ERROR,
+      monitorResult: input.monitorResult,
+      protectedCheck: input.protectedCheck,
+      mergeQueue: { resume_command: resume, expected_head: expectHead, since },
+      mergeStdout: input.mergeStdout,
+      mergeStderr: input.mergeStderr,
+      error: `${read.message}\nResume: ${resume}`,
+    });
+  }
+  const result = classifyQueueRead(read.read, expectHead, since);
+  if (result.kind === "merged") {
+    runPostMergeReconcile(resolveUmbrellaFn(input.umbrellaReconcileFn), input.projectRoot, repo);
+  }
+  const note = QUEUE_NOTE[result.kind];
+  const detail =
+    result.kind === "removed"
+      ? ` reason=${result.removalReason === "" ? "(none given)" : result.removalReason}`
+      : result.kind === "inactive" && result.autoMergeDisabledReason !== null
+        ? ` auto-merge disabled: ${result.autoMergeDisabledReason}`
+        : "";
+  return makeResult({
+    prNumber,
+    repo,
+    outcome: result.kind,
+    exitCode: QUEUE_EXIT[result.kind],
+    monitorResult: input.monitorResult,
+    protectedCheck: input.protectedCheck,
+    mergeQueue: queueResultToDict(result, resume),
+    mergeStdout: input.mergeStdout,
+    mergeStderr: input.mergeStderr,
+    error: note === null ? null : `${note}${detail}\nResume: ${resume}`,
+  });
+}
+
+/** `--resume --expect-head <sha> --since <time>`: repeat the read from any session (#6295). */
+export function resumeMergeQueueRead(
+  prNumber: number,
+  repo: string,
+  options: {
+    readonly expectHead: string;
+    readonly since: string;
+    readonly projectRoot?: string;
+    readonly queueReadFn?: QueueReadFn;
+    readonly umbrellaReconcileFn?: UmbrellaReconcileFn | null;
+  },
+): WaitMergeableResult {
+  return reportMergeQueueState({
+    prNumber,
+    repo,
+    expectHead: options.expectHead,
+    since: options.since,
+    projectRoot: options.projectRoot ?? process.cwd(),
+    queueReadFn: options.queueReadFn,
+    umbrellaReconcileFn: options.umbrellaReconcileFn,
+  });
 }
 
 /** Run protected-check -> wait -> merge cascade (#1369). */
@@ -222,26 +376,55 @@ export function waitMergeableAndMerge(
     }
   }
 
+  // #6295: detect a required merge queue on the delivery branch. A read error
+  // fails closed; it never falls back to a direct --admin merge.
+  let queueMode = false;
+  const skipQueueDetect =
+    options.mergeQueueDetectFn === undefined &&
+    (options.skipHumanMergeGate === true || process.env.VITEST === "true");
+  if (!skipQueueDetect) {
+    const detect = options.mergeQueueDetectFn ?? detectMergeQueue;
+    const detection = detect(prNumber, repo, options.baseBranch ?? null);
+    if (detection.status === "error") {
+      return makeResult({
+        prNumber,
+        repo,
+        outcome: "merge-queue-detect-failed",
+        exitCode: EXIT_CONFIG_ERROR,
+        protectedCheck: protectedCheckPayload,
+        error:
+          `could not read the delivery branch rules: ${detection.message}. ` +
+          "Refusing to merge: Directive never falls back to --admin when queue mode is unknown (#6295).",
+      });
+    }
+    queueMode = detection.status === "queue";
+  }
+
+  // Queue mode deletes the up-to-date requirement (stale-base refusal) and the
+  // #6071 master Merge gate waits: the queue re-qualifies each group (#6295 item 5).
   const skipNamedMergeGate =
+    queueMode ||
     options.skipNamedMergeGate === true ||
     (options.skipHumanMergeGate === true && options.semanticGreenFn === undefined);
-  const semanticGreen = semanticGreenFn(prNumber, repo, {
-    cascadeMode: options.cascadeMode,
-    requireMasterCiGreen: options.requireMasterCiGreen,
-    baseBranch: options.baseBranch,
-    skipNamedMergeGate,
-    projectRoot,
-  });
-  if (!semanticGreen.ok) {
-    return makeResult({
-      prNumber,
-      repo,
-      outcome: semanticGreen.outcome ?? "semantic-green-blocked",
-      exitCode: semanticGreen.exitCode ?? EXIT_TIMEOUT_OR_ESCALATION,
-      protectedCheck: protectedCheckPayload,
-      semanticGreen: { ...semanticGreen.payload } as Record<string, unknown>,
-      error: semanticGreen.error,
+  if (!queueMode) {
+    const semanticGreen = semanticGreenFn(prNumber, repo, {
+      cascadeMode: options.cascadeMode,
+      requireMasterCiGreen: options.requireMasterCiGreen,
+      baseBranch: options.baseBranch,
+      skipNamedMergeGate,
+      projectRoot,
     });
+    if (!semanticGreen.ok) {
+      return makeResult({
+        prNumber,
+        repo,
+        outcome: semanticGreen.outcome ?? "semantic-green-blocked",
+        exitCode: semanticGreen.exitCode ?? EXIT_TIMEOUT_OR_ESCALATION,
+        protectedCheck: protectedCheckPayload,
+        semanticGreen: { ...semanticGreen.payload } as Record<string, unknown>,
+        error: semanticGreen.error,
+      });
+    }
   }
 
   let watchProbe: { readonly exitCode: number; readonly verdict: string } | null = null;
@@ -429,6 +612,59 @@ export function waitMergeableAndMerge(
     }
   }
 
+  if (queueMode) {
+    if (matchHeadCommit === null || matchHeadCommit.trim().length === 0) {
+      return makeResult({
+        prNumber,
+        repo,
+        outcome: "config-error",
+        exitCode: EXIT_CONFIG_ERROR,
+        monitorResult: monitorPayload,
+        protectedCheck: protectedCheckPayload,
+        error: `cannot read PR #${prNumber} head SHA; refusing to enqueue an unpinned head (#6295).`,
+      });
+    }
+    const expectHead = matchHeadCommit.trim();
+    const since = (options.nowFn ?? (() => new Date()))().toISOString();
+    const [qRc, qStdout, qStderr] = mergeFn(prNumber, repo, {
+      matchHeadCommit: expectHead,
+      queueMode: true,
+    });
+    if (qRc !== 0) {
+      if (options.skipMergeApprovalHeadGate !== true) {
+        disablePullRequestAutoMerge(prNumber, repo);
+      }
+      const tail = qStderr.trim();
+      return makeResult({
+        prNumber,
+        repo,
+        outcome: qRc === -1 ? "config-error" : "enqueue-failed",
+        exitCode: qRc === -1 ? EXIT_CONFIG_ERROR : EXIT_TIMEOUT_OR_ESCALATION,
+        monitorResult: monitorPayload,
+        protectedCheck: protectedCheckPayload,
+        mergeStdout: qStdout,
+        mergeStderr: qStderr,
+        error:
+          `gh pr merge (merge queue) exited ${qRc}` +
+          (tail.length > 0 ? `. stderr: ${tail.slice(-200)}` : "") +
+          ". No --admin fallback (#6295).",
+      });
+    }
+    return reportMergeQueueState({
+      prNumber,
+      repo,
+      expectHead,
+      since,
+      projectRoot,
+      queueReadFn: options.queueReadFn,
+      umbrellaReconcileFn: options.umbrellaReconcileFn,
+      monitorResult: monitorPayload,
+      protectedCheck: protectedCheckPayload,
+      mergeStdout: qStdout,
+      mergeStderr: qStderr,
+    });
+  }
+
   const [mergeRc, mergeStdout, mergeStderr] = mergeFn(prNumber, repo, {
     matchHeadCommit,
   });
@@ -440,24 +676,7 @@ export function waitMergeableAndMerge(
   }
 
   if (mergeRc === 0) {
-    // Best-effort umbrella checklist + current-shape refresh after child merge (#1649).
-    // Failures must not flip a successful merge into an error exit.
-    // null = skip; undefined = live default (skipped under VITEST unless injected).
-    const umbrellaFn =
-      options.umbrellaReconcileFn === null
-        ? null
-        : options.umbrellaReconcileFn !== undefined
-          ? options.umbrellaReconcileFn
-          : process.env.VITEST === "true"
-            ? null
-            : defaultPostMergeUmbrellaReconcile;
-    if (umbrellaFn !== null) {
-      try {
-        umbrellaFn(projectRoot, repo);
-      } catch {
-        /* best-effort; merge remains authoritative */
-      }
-    }
+    runPostMergeReconcile(resolveUmbrellaFn(options.umbrellaReconcileFn), projectRoot, repo);
     return makeResult({
       prNumber,
       repo,

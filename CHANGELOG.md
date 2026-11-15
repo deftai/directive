@@ -8,8 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Story lines for product PRs of an active story (#6316).** New `deft-story-part: N` line for a PR that is part of a story and does not complete it. `pr:check-closing-keywords` fails a product PR of a running story with neither line, and a body with both. `--body-file <path> --write-story-line [--part]` and `pre-pr:run --body-file` write the line. PR templates stop advising `Closes #N` for an active story. Refs #6310.
+- feat(merge): `pr:wait-mergeable-and-merge` detects a required merge queue and enqueues with `--match-head-commit` (no `--admin`), skips the stale-base and master-gate waits, and reports one result (`merged` / `queued` / `awaiting-admission` / `head-changed` / `removed` / `inactive`) with a `--resume` command. CI runs on `merge_group`, PR-context checks skip there, and a `merge_group`-only job reports `Greptile Review`. Pre-PR no longer refuses while master's gate is pending, and `verify:pr-closeout-attestable` reads briefs at the PR head SHA instead of requiring local HEAD to match. Refs #6295.
 
 ### Changed
+- Minted the intent-constraint record for the #6295 merge-queue exit code (3) and GraphQL floor (500 points). Refs #6295.
 - chore(dogfood): pin Directive to 0.129.9.
 
 ### Fixed

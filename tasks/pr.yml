@@ -84,10 +84,15 @@ tasks:
   # / `--json`) MUST NOT be silently swallowed by go-task's incremental-
   # build cache.
   #
+  # Merge queue (#6295): when the delivery branch requires a merge queue the
+  # verb enqueues with `gh pr merge N --match-head-commit <sha>` (no --admin),
+  # reads the PR once and reports one of merged (0) / queued or
+  # awaiting-admission (3) / head-changed, removed or inactive (1).
+  #
   # Companion script: scripts/pr_wait_mergeable.py
   # Companion test:   tests/cli/test_pr_wait_mergeable.py
   wait-mergeable-and-merge:
-    desc: "Wait until PR is mergeable (resilient cascade, #1368) and squash-merge with admin (#1369); Layer-3 protected-issue check (#701) chains before any merge call"
+    desc: "Wait until PR is mergeable (resilient cascade, #1368) and squash-merge with admin (#1369), or enqueue on a merge-queue branch with no --admin (#6295; --resume --expect-head --since re-reads); Layer-3 protected-issue check (#701) chains before any merge call"
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
