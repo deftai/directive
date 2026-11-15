@@ -782,6 +782,20 @@ describe("test_swarm_skill", () => {
     expect(host).toContain("Nested Agent boundary");
   });
 
+  it("claude_code_step_2g_names_cwd_inheritance_and_explicit_git_targets_6291", () => {
+    const host = readRepoFile("skills/deft-directive-swarm/references/host-claude-code.md");
+    const start = host.indexOf("### Step 2g: Claude Code Launch");
+    expect(start).toBeGreaterThanOrEqual(0);
+    const step = host.slice(start, host.indexOf("## Nested Agent boundary", start));
+    expect(step).toMatch(
+      /inherit the parent's shell cwd and reset to it on every Bash or PowerShell call/,
+    );
+    expect(step).toContain("git -C <absolute worktree path>");
+    expect(step).toContain("cd <absolute worktree path> &&");
+    expect(step).toMatch(/⊗ Git writes through the PowerShell tool/);
+    expect(step).toContain("#6291");
+  });
+
   it("openclaw_agent_host_fc14_hard_stop_and_operator_recovery_3131", () => {
     const doc = readRepoFile("docs/openclaw-agent-host.md");
     expect(doc).toContain("#3131");
