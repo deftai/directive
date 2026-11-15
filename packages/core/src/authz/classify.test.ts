@@ -2519,6 +2519,14 @@ describe("inactive Shell classifiers (#4709)", () => {
     ).toContain("settings");
     expect(
       classifyShellAuthzOps(
+        'awk \'BEGIN { unused = /"/; print "x" | "tee .deft/authz/grants/g" }\'',
+      ),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps('awk \'BEGIN { # "\n print "x" | "tee .deft/authz/grants/g" }\''),
+    ).toContain("settings");
+    expect(
+      classifyShellAuthzOps(
         "GIT_EXTERNAL_DIFF='touch .deft-directive-disable' git diff --no-index /tmp/a /tmp/b",
       ),
     ).toContain("settings");

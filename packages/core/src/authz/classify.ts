@@ -2404,18 +2404,21 @@ function awkPayloadHasWrite(words: readonly string[], execIndex: number): boolea
   }
   let inString = false;
   let escaped = false;
+  let ambiguous = false;
   for (let i = 0; i < payload.length; i++) {
     const ch = payload[i] as string;
-    if (inString) {
+    if (!ambiguous && inString) {
       if (escaped) escaped = false;
       else if (ch === "\\") escaped = true;
       else if (ch === '"') inString = false;
       continue;
     }
-    if (ch === '"') {
+    if (!ambiguous && ch === '"') {
       inString = true;
       continue;
     }
+    // A slash or comment may contain quotes that are not awk string delimiters.
+    if (!ambiguous && (ch === "/" || ch === "#")) ambiguous = true;
     if (ch !== "|") continue;
     let j = i + 1;
     while (j < payload.length && /\s|['"]/.test(payload[j] as string)) j++;
