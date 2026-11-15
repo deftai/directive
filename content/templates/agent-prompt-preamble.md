@@ -260,6 +260,14 @@ Reference: issue #2563; swarm skill Platform Requirements; env scrub + stdio inh
 
 ! Issue-body read-modify-write on win32: `deft scm:body:issue:fetch --out-file` then edit the body file then `deft scm:body:issue:edit --body-file` (fail-closed postcondition verify, #2607). ⊗ Capture-concat of `gh api repos/.../issues/<N> --jq .body` into PowerShell variables — PS string[]/$OFS collapses newlines to spaces and silently destroys live bodies (#2744, #2087, #2741, #1492). Detail: `content/scm/github.md` § #2744.
 
+## 3.10 Git commands name your worktree (#6291 / #6278)
+
+Your shell may start in, and reset to, the parent's cwd on every call (Claude Code in-session sub-agents do), so a cwd-relative git command can act on a sibling worktree.
+
+! Name your worktree's absolute path in every git command: `git -C <absolute worktree path> …`, or one leading `cd <absolute worktree path> && …` in the same call. On Windows Bash use the MSYS form (`/c/…`) or a drive path. The commit gate judges a commit on the checkout these forms name and refuses a relative, repeated or variable target (#6278).
+
+⊗ Git writes (add, commit, reset, checkout, stash, push) through the PowerShell tool (Claude Code's `PowerShell`). The Directive hook matcher does not inspect that tool, so no gate sees the write; use the Bash tool for git (#6291).
+
 ## 4. pre-pr and review-cycle skills
 
 Before pushing any branch:

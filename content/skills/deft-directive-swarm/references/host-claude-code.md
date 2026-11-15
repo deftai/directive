@@ -51,6 +51,7 @@ Probe order (must match engine `probeMonitoringTier` / `resolveDispatchProvider`
    2. The parent starts the session ritual in each worker worktree (`deft session:start`, then `deft verify:session-ritual -- --tier=gated`).
    3. The parent holds no `DEFT_ACTIVE_SCOPE` pin. A pin that names a different story than the worktree's assignment is refused.
    4. The parent gives each sub-agent the absolute path of its worktree, and the sub-agent writes only inside it.
+   5. ! **Name the worktree in every git command (#6291).** In-session sub-agents inherit the parent's shell cwd and reset to it on every Bash or PowerShell call; a `cd` in its own call does not carry over. So the sub-agent uses `git -C <absolute worktree path> …` or one leading `cd <absolute worktree path> && …` in the same call, never a bare cwd-relative git command. On Windows the Bash tool takes the MSYS form (`/c/…`) or a drive path. The commit gate judges a commit on the checkout these forms name (#6278); it refuses a relative, repeated or variable target. ⊗ Git writes through the PowerShell tool: the hook matcher does not inspect that tool, so use the Bash tool for git.
 
    The write fence then reads the story for a registered linked worktree from its assignment record. A reader failure, or an assigned story that is missing, ineligible or ambiguous, refuses the write with the failure kind and one repair step. An unregistered linked worktree and the main worktree keep the earlier selection.
 

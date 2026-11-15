@@ -110,6 +110,15 @@ Live skip detection on deftai/directive additionally requires Limb 5 enrollment 
 - ⊗ Inherit evaluatePrePush empty-stdin allow for the enrolled arm.
 
 
+## Lifecycle-only PRs keep review (#6280)
+
+! No PR class skips the review bot. This includes PRs that change only `xbrief/` lifecycle files. A repo with no reviewer installed is the separate #3630 terminal, not a PR class.
+
+- ! Activation and widen PRs keep the review they have today, because they carry new acceptance text.
+- ! Mint-record and cancel PRs keep their review, because they carry authority.
+- ! A story's completion normally rides in its last product PR (#6277). The remaining completion PRs are batched under #6303, which owns their review cost and the reviewer-side setting.
+- ⊗ Skip the review bot on a lifecycle-only PR, or path-filter the reviewer over the lifecycle folders (that also silences activation review).
+
 ## Loop Phases
 
 Each iteration proceeds through all phases in order. Do NOT skip phases or reorder them.
