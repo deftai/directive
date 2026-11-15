@@ -242,62 +242,227 @@
       "clauses": [
         {
           "id": 1,
-          "text": "Given a story with only a part-line PR merged, then `scope:complete --pr` on it, `swarm:finalize-cohort --stories N`, and an attestation of that PR all refuse.",
-          "artifact_path": null,
+          "text": "Acceptance Criteria - Given a story with only a part-line PR merged, then `scope:complete --pr` on it, `swarm:finalize-cohort --stories N`, and an attestation of that PR all refuse.",
+          "artifact_path": "packages/core/src/scope/transition.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "Given a part-line PR with a Connected link and a failing body read, then the join refuses.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/scope/delivery-evidence.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "Given a second PR that merges with the mark, then the story completes and provenance lists the part-line PR.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/scope/transition.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
           "text": "Given two merged PRs with the same mark, then the one equal to the stamp on the fetched delivery branch completes by `--pr`, by auto-discovery and through finalize; the other refuses and names it; a working-tree stamp that differs from the fetched blob does not win; an unstamped brief with two marked PRs refuses through finalize and names both.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/scope/delivery-evidence.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
           "text": "Given an incomplete scan, then the join refuses.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/scope/delivery-evidence.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 6,
           "text": "Given an attested PR, then it completes from the primary clone, from a linked dest and through finalize; a grant minted from a linked dest is found from the primary.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/scope/transition.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 7,
           "text": "Given an acceptance refusal after the join, then the grant stays unused; a finalize retry and a restamp for the same target pass.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/policy/delivery-identity-attest-grant.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 8,
           "text": "Given an expired unused grant, a grant for another PR, commit or plan, an attested PR with an unreadable body, or an attested lifecycle-only PR, then completion refuses.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/policy/delivery-identity-attest-grant.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Summary Slice B of the accepted #6310 design: the identity join reads the merge-time body first, refuses part-line PRs as partial deliveries, settles two PRs with the same mark by the brief on the delivery branch, and accepts an operator attestation for merged work with no basis.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "This is the recovery that lets #6269, #6270, #6271 and #6273 complete.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Bound contract: successor lean 6887155397 on #6310, Bound 2 and Bound 3 and the matching fixtures of Bound 5 (accepted synthesis 6887284787).",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Slice A (part line and pre-merge check) lands first; slice C (disposition grant) reuses the grant store added here.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Each slice has its own issue so that each brief completes from exactly one PR with its own `deft-story` line.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Scope 1.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "The join.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Before any basis admits a candidate, the attested basis included, the join reads the candidate's merge-time body; an unreadable body refuses, the same as an incomplete scan.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "A candidate whose merge-time body carries the part line for the story is refused as a partial delivery on every basis, and the refusal names the way forward.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "A part-line PR is never a competitor.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "The sole-mark basis keeps its uniqueness refusal with one exception: when other merged, non-excluded PRs carry the same mark, the candidate is admitted only if it equals `metadata.productPullRequest` in the brief as read with `git show origin/<deliveryBranch>:<brief path>` after a fetch, never the working tree; otherwise the refusal names the competitors.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "In `swarm:finalize-cohort`, the #6212 operator bind of an unstamped brief does not bind when that scan finds another merged, non-excluded PR with the same mark; it refuses and names both.",
+          "artifact_path": "packages/core/src/swarm/finalize-cohort.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "Completion provenance lists the merged part-line PRs and any competing marked PRs found.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "Attestation.",
+          "artifact_path": "packages/core/src/policy/delivery-identity-attest-grant.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "`deft authz:grant --template delivery-identity-attest --target <owner>/<repo>#<pr>@<merge_commit_sha> --plan-ref <scopeId> --confirm` runs through the existing human-presence mint gate, `operator-cli` origin only, default expiry 24 hours.",
+          "artifact_path": "packages/runtime/src/authz.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "The join accepts a new basis `operator-attested` when a grant matches the PR number, the merge commit and the plan id, the candidate is not a part-line PR, and the PR passes the existing nonzero-file and delivery-exclusion checks.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "First use must be before expiry and is recorded when the `completed/` write succeeds; a later run for the same plan, PR and merge commit accepts the used grant.",
+          "artifact_path": "packages/core/src/policy/delivery-identity-attest-grant.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "The grant id is stored in completion provenance.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 27,
+          "text": "One store.",
+          "artifact_path": "packages/core/src/policy/delivery-identity-attest-grant.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 28,
+          "text": "The mint, every read, the use record, the expired-grant refusal, `authz:revoke` and `authz:show` resolve the store at `mainWorktreeRoot(projectRoot)`; a root that cannot be resolved refuses.",
+          "artifact_path": "packages/core/src/policy/delivery-identity-attest-grant.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 29,
+          "text": "`StoryPrIdentityBasis` and the accepted-bases text gain the basis, and the refusal names this command in place of the parked migration.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 30,
+          "text": "Refs #6310.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 31,
+          "text": "design-critique: not warranted, because this slice implements Bounds 2 and 3 of the design already accepted on #6310 (lean 6887155397, synthesis 6887284787) and adds no mechanism.",
+          "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "feat(scope): identity join reads merge-time body; operator delivery attestation (#6310 slice B)",
+        "Given a story with only a part-line PR merged, then `scope:complete --pr` on it, `swarm:finalize-cohort --stories N`, and an attestation of that PR all refuse."
+      ]
     },
     "id": "github.issue.6398935915",
     "updated": "2026-11-15T02:35:54Z"
