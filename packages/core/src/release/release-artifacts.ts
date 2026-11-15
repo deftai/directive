@@ -12,6 +12,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   type BigIntStats,
   closeSync,
@@ -30,6 +31,7 @@ import { mergeFragmentsIntoChangelogText } from "../changelog/effective-unreleas
 import {
   type ChangelogFragment,
   type FragmentFs,
+  parseFragmentText,
   readChangelogFragments,
 } from "../changelog/fragment.js";
 import { ContainedWriteError, containedOpenExclusive } from "../fs/contained-write.js";
@@ -56,6 +58,8 @@ export type CapturedFragment = {
   readonly path: string;
   readonly absPath: string;
   readonly identity: FileIdentity;
+  /** sha256 of the bytes Step 6 parsed; Step 7 deletes only while the file still holds them. */
+  readonly contentHash: string;
 };
 
 export type PreparedArtifacts = {
@@ -443,10 +447,34 @@ export function captureReleaseFragments(projectRoot: string, fs?: FragmentFs): F
     if (existing.kind === "missing") {
       return safetyFail(EXIT_VIOLATION, "unsafe", `${fragment.path} vanished during capture`);
     }
+    // Bind the captured bytes: the parse used for assembly must be these bytes,
+    // and Step 7 deletes the file only while it still holds them.
+    let bytes: Buffer;
+    try {
+      bytes = readFileSync(absPath);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return safetyFail(EXIT_VIOLATION, "unsafe", `${fragment.path}: ${msg}`);
+    }
+    const reparsed = parseFragmentText(bytes.toString("utf8"));
+    if (
+      !reparsed.ok ||
+      reparsed.section !== fragment.section ||
+      JSON.stringify(reparsed.entries) !== JSON.stringify(fragment.entries)
+    ) {
+      return safetyFail(
+        EXIT_VIOLATION,
+        "fragment-changed",
+        `${fragment.path} changed during capture; rerun the release`,
+      );
+    }
+    const contentHash = createHash("sha256").update(bytes).digest("hex");
     for (const entry of fragment.entries) {
       const line = entryLine(entry);
       const first = seen.get(line);
-      if (first !== undefined) {
+      // The refusal is for one entry line held by two fragments; repeated first
+      // lines inside one fragment are that fragment's own text.
+      if (first !== undefined && first !== fragment.path) {
         return safetyFail(
           EXIT_VIOLATION,
           "fragment-duplicate",
@@ -455,7 +483,7 @@ export function captureReleaseFragments(projectRoot: string, fs?: FragmentFs): F
       }
       seen.set(line, fragment.path);
     }
-    captured.push({ path: fragment.path, absPath, identity: existing.identity });
+    captured.push({ path: fragment.path, absPath, identity: existing.identity, contentHash });
   }
   return { ok: true, fragments: set.valid, captured };
 }
@@ -798,6 +826,20 @@ function deleteCapturedFragments(
       return writeFail(
         "fragment-identity",
         `${fragment.path} is not the fragment captured in Step 6; refusing to delete it`,
+        true,
+      );
+    }
+    let nowHash: string;
+    try {
+      nowHash = createHash("sha256").update(readFileSync(fragment.absPath)).digest("hex");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return writeFail("fragment-identity", `failed to re-read ${fragment.path}: ${msg}`, true);
+    }
+    if (nowHash !== fragment.contentHash) {
+      return writeFail(
+        "fragment-changed",
+        `${fragment.path} changed after Step 6 captured it; its new text is not in CHANGELOG.md, so it is not deleted`,
         true,
       );
     }

@@ -148,7 +148,7 @@ function isDeliveryBriefLandChangeSet(rows: readonly ChangelogChangeSetEntry[]):
 }
 
 function normalizeEol(text: string): string {
-  return text.replace(/\r\n/g, "\n");
+  return text.replace(/\r\n?/g, "\n");
 }
 
 type MergeBaseVerdict = { readonly exit: number; readonly final: boolean };
@@ -188,14 +188,13 @@ function checkAgainstMergeBase(
     io.writeOut(`WARN: ${resolvedMode.error}; reading changelog mode as inline\n`);
   }
   const mode = resolvedMode.mode;
-  // A failed diff is never exempt (fail closed). Inline mode keeps today's
-  // line compare; the fragment modes cannot judge without the change set.
-  const changeSet = changeSetAgainstMergeBase(root, mergeBase.sha);
-  if (changeSet === null && mode !== "inline") {
+  // A failed diff is config (fail closed) in every mode: the fragment rules
+  // below hold in inline mode too and cannot be judged without the change set.
+  const rows = changeSetAgainstMergeBase(root, mergeBase.sha);
+  if (rows === null) {
     io.writeOut("FAIL: could not list the change set versus merge-base (git diff failed)\n");
     return { exit: 2, final: true };
   }
-  const rows = changeSet ?? [];
   const readFragment = (rel: string) => readChangelogFragment(root, rel);
   // #6315: in every mode a change set only adds fragments, and each is valid.
   const integrity = evaluateFragmentIntegrity(rows, readFragment);
@@ -207,7 +206,7 @@ function checkAgainstMergeBase(
   // paths, the spec-drift ledger only) needs no new entry. Oracle is the
   // committed change set vs merge-base; --no-renames lists rename sources too.
   // An empty change set is not exempt. Product/code diffs keep the requirement.
-  if (changeSet !== null && isDeliveryBriefLandChangeSet(changeSet)) {
+  if (isDeliveryBriefLandChangeSet(rows)) {
     if (total === 0) {
       io.writeOut(
         "OK: CHANGELOG.md [Unreleased] section has 0 entries; lifecycle-only change set needs none (#680)\n",

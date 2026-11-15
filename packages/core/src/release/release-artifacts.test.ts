@@ -530,6 +530,30 @@ describe("changelog fragments in the release (#6315 / #6286 item 6)", () => {
     expect(existsSync(path)).toBe(true);
   });
 
+  it("keeps a fragment edited in place after capture (same file identity)", () => {
+    const root = fragmentRoot({ "20-a.md": "section: Added\n- a (#20)\n" });
+    const prepared = prepareReleaseArtifacts(prepInput(root, false));
+    if (!prepared.ok) throw new Error(prepared.message);
+    const path = join(root, "changelog.d", "20-a.md");
+    writeFileSync(path, "section: Added\n- a (#20)\n- late edit (#20)\n");
+    const written = writeReleaseArtifacts(prepared.prepared);
+    expect(written.ok).toBe(false);
+    if (!written.ok) {
+      expect(written.code).toBe("fragment-changed");
+      expect(written.changelogMutated).toBe(true);
+    }
+    expect(readFileSync(path, "utf8")).toContain("- late edit (#20)");
+  });
+
+  it("accepts repeated first lines inside one fragment", () => {
+    const root = fragmentRoot({
+      "20-a.md":
+        "section: Added\n- same start (#20)\n  first detail\n- same start (#20)\n  second detail\n",
+    });
+    const result = prepareReleaseArtifacts(prepInput(root, true));
+    expect(result.ok).toBe(true);
+  });
+
   it("reports a failed fragment deletion", () => {
     const root = fragmentRoot({ "20-a.md": "section: Added\n- a (#20)\n" });
     const prepared = prepareReleaseArtifacts(prepInput(root, false));
