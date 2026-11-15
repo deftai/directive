@@ -2629,7 +2629,11 @@ function resolveShellCwd(cwd: string | null, raw: string): string | null {
   if (normalized.startsWith("/") || /^[A-Za-z]:\//.test(normalized)) {
     return canonicalizePathish(normalized);
   }
-  if (cwd === null) return null;
+  if (cwd === null) {
+    // An unknown cwd must not hide an explicitly protected relative target.
+    const candidate = canonicalizePathish(normalized);
+    return pathishIsSettingsStoreDir(candidate) ? candidate : null;
+  }
   return canonicalizePathish(cwd.length > 0 ? `${cwd}/${normalized}` : normalized);
 }
 

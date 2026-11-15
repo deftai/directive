@@ -2434,6 +2434,7 @@ describe("inactive Shell classifiers (#4709)", () => {
   it("uses one closed read-only proof for protected stores and kill-switches (#6292)", () => {
     const blocked = [
       "cd .deft/authz/grants && cp ~/f g",
+      "cd && cd repo/.deft/approved-scope && cp /tmp/g story.json",
       "printf %s .deft/authz/grants/g | xargs touch",
       "ar x /tmp/e.a .deft-directive-disable",
       "awk 'BEGIN {system(\"cp /tmp/g .deft/authz/grants/g\")}'",
