@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6349",
-    "updated": "2026-11-15T21:07:42Z"
+    "updated": "2026-11-15T22:20:05Z"
   },
   "plan": {
     "title": "fix(scope-provenance): one-PR gate crashes with ENOBUFS when PROJECT-DEFINITION exceeds 1 MiB",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The #6273 one-PR gate reads PROJECT-DEFINITION at the merge base through a git helper with Node's 1 MiB default maxBuffer; this repo's PROJECT-DEFINITION is over 1 MiB, so verify:scope-provenance fails with ENOBUFS. This story gives that helper, and the one other core reader of PROJECT-DEFINITION at a ref without a buffer (coverage-applicability), the shared 64 MiB SUBPROCESS_MAX_BUFFER, with a real-git regression test.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6349",
@@ -18,26 +18,179 @@
     "items": [
       {
         "title": "Given a merge base whose PROJECT-DEFINITION is larger than 1 MiB, when `verify:scope-provenance` runs on a one-PR change set with a valid approval record, then it reads the policy and admits or refuses on the policy, not on ENOBUFS.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given a merge base whose PROJECT-DEFINITION is larger than 1 MiB and a one-PR change set with a valid approval record, when `verify:scope-provenance` runs, then it reads the merge-base policy and admits or refuses on that policy, with no ENOBUFS."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "21ba40233433c2d23e103f90f3ae3be6a4923031",
+          "recorded_at": "2026-11-15T22:20:05Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A regression test reads a blob larger than 1 MiB through the real git helper, not a seam.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given a real git fixture whose PROJECT-DEFINITION blob is larger than 1 MiB, when the test runs `evaluateScopeProvenance` with no read seam, then the blob is read through the real `git()` helper."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "21ba40233433c2d23e103f90f3ae3be6a4923031",
+          "recorded_at": "2026-11-15T22:20:05Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Every `git show` reader of PROJECT-DEFINITION in core uses the larger buffer.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given the core readers that run `git show <ref>:xbrief/PROJECT-DEFINITION.xbrief.json`, then each passes a maxBuffer of at least 10 MiB; scope-provenance/evaluate.ts and coverage-applicability/evaluate.ts gain `SUBPROCESS_MAX_BUFFER` (64 MiB)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "21ba40233433c2d23e103f90f3ae3be6a4923031",
+          "recorded_at": "2026-11-15T22:20:05Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "clause.4",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "21ba40233433c2d23e103f90f3ae3be6a4923031",
+          "recorded_at": "2026-11-15T22:20:05Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "clause.5",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "21ba40233433c2d23e103f90f3ae3be6a4923031",
+          "recorded_at": "2026-11-15T22:20:05Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "clause.6",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "21ba40233433c2d23e103f90f3ae3be6a4923031",
+          "recorded_at": "2026-11-15T22:20:05Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "21ba40233433c2d23e103f90f3ae3be6a4923031",
+          "recorded_at": "2026-11-15T22:20:05Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "21ba40233433c2d23e103f90f3ae3be6a4923031",
+          "recorded_at": "2026-11-15T22:20:05Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "21ba40233433c2d23e103f90f3ae3be6a4923031",
+          "recorded_at": "2026-11-15T22:20:05Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "21ba40233433c2d23e103f90f3ae3be6a4923031",
+          "recorded_at": "2026-11-15T22:20:05Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "21ba40233433c2d23e103f90f3ae3be6a4923031",
+          "recorded_at": "2026-11-15T22:20:05Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "21ba40233433c2d23e103f90f3ae3be6a4923031",
+          "recorded_at": "2026-11-15T22:20:05Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "21ba40233433c2d23e103f90f3ae3be6a4923031",
+          "recorded_at": "2026-11-15T22:20:05Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "21ba40233433c2d23e103f90f3ae3be6a4923031",
+          "recorded_at": "2026-11-15T22:20:05Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -113,7 +266,34 @@
         "origin": "deftai/directive#6349",
         "id": "github.issue.6409262083"
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 6352,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "f8263baf32dacbc46f1c5897b62a42348bfe2e4c",
+        "prNumber": 6352,
+        "prBase": "master",
+        "mergeCommit": "21ba40233433c2d23e103f90f3ae3be6a4923031",
+        "deliveryBranch": "master",
+        "deliveryCommit": "21ba40233433c2d23e103f90f3ae3be6a4923031",
+        "verifiedAt": "2026-11-15T22:20:05Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-15T22:20:05Z",
+      "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-15T22:20:05Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -259,6 +439,6 @@
       ]
     },
     "id": "github.issue.6409262083",
-    "updated": "2026-11-15T21:07:42Z"
+    "updated": "2026-11-15T22:20:05Z"
   }
 }
