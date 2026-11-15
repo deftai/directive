@@ -1,0 +1,229 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6327",
+    "updated": "2026-11-15T20:17:58Z"
+  },
+  "plan": {
+    "title": "chore(changelog): convert class-checks/evaluate.ts to isChangelogEntryPath; drop the #6314 allowance",
+    "status": "running",
+    "narratives": {
+      "Description": "class-checks/evaluate.ts still exempts the changelog with a literal `CHANGELOG.md` match, so a `changelog.d/` fragment is not exempt there, and entry-path-contract.test.ts carries a TEMPORARY #6327 allowance for that line. This story switches the exemption to `isChangelogEntryPath`, tests a fragment path, and removes the allowance, as one protected-only change set.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6327",
+      "Overview": "## Summary\n\n#6314 (CHANGELOG fragments, slice A of #6286) routes every literal `CHANGELOG.md` path match through `isChangelogEntryPath`, except one: `packages/core/src/class-checks/evaluate.ts`. That file is under the class-4 protected glob `packages/core/src/class-checks/**`, and `verify:class-checks` refuses a story change set that touches a protected path together with product paths. So #6314 keeps the literal match there and carries a named temporary allowance for this file in its `packages/core/src/changelog/entry-path-contract.test.ts` (operator decision, 2026-11-15).\n\nThis follow-up is a protected-only PR, after #6314's PR #6325 merges:\n\n- `packages/core/src/class-checks/evaluate.ts` matches changelog paths through `isChangelogEntryPath`;\n- its test covers a fragment path (`changelog.d/<name>.md`) as well as `CHANGELOG.md`;\n- the temporary allowance for this file is removed from `entry-path-contract.test.ts`, so the contract test again fails on any literal match outside the helper.\n\n## Acceptance Criteria\n\n- Given a change set that contains `changelog.d/6286-x.md`, then class-checks treats it the same way it treats `CHANGELOG.md`.\n- Given the allowance removed, when the entry-path contract test runs, then it passes with no literal `CHANGELOG.md` path match outside `isChangelogEntryPath`.\n- The PR changes only protected-path files and that one test file, so `verify:class-checks` admits it as protected-only.\n\nRefs #6286. Refs #6314.\n\ndesign-critique: not warranted, because this finishes item 1 of the design already accepted on #6286 (lean 6859392664) for the one file a story PR may not touch, and adds no mechanism.\n\n",
+      "Labels": "framework-gap",
+      "UserStory": "As a maintainer, I want class-checks to exempt changelog entry paths through `isChangelogEntryPath`, so that a `changelog.d/` fragment is treated like `CHANGELOG.md` and the entry-path contract test has no allowance left for this file.",
+      "ImplementationPlan": "1. In packages/core/src/class-checks/evaluate.ts, replace the literal `posix === \"CHANGELOG.md\"` exemption in `isExempt` with `isChangelogEntryPath` from ../changelog/entry-path.js.\n2. In packages/core/src/class-checks/evaluate.test.ts, add a case where a change set with `changelog.d/6286-x.md` is exempt the same way as `CHANGELOG.md`.\n3. In packages/core/src/changelog/entry-path-contract.test.ts, remove the TEMPORARY #6327 allowance and its comment.\n4. Add one CHANGELOG.md [Unreleased] line. The change set is the protected class-checks files, that one test file, and the free companions (this brief, its mint record, CHANGELOG.md).",
+      "Traces": "#6327"
+    },
+    "items": [
+      {
+        "title": "Given a change set that contains `changelog.d/6286-x.md`, then class-checks treats it the same way it treats `CHANGELOG.md`.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given a change set that contains `changelog.d/6286-x.md`, when class-checks evaluates it, then the fragment is exempt exactly as `CHANGELOG.md` is, and a test in evaluate.test.ts covers both paths."
+        }
+      },
+      {
+        "title": "Given the allowance removed, when the entry-path contract test runs, then it passes with no literal `CHANGELOG.md` path match outside `isChangelogEntryPath`.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given the TEMPORARY #6327 allowance removed from entry-path-contract.test.ts, when that contract test runs, then it passes and finds no literal `CHANGELOG.md` path match outside `isChangelogEntryPath`."
+        }
+      },
+      {
+        "title": "The PR changes only protected-path files and that one test file, so `verify:class-checks` admits it as protected-only.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given this PR's change set, when `verify:class-checks` runs, then it admits it as protected-only: the class-checks files, entry-path-contract.test.ts and free companions only."
+        }
+      }
+    ],
+    "tags": [
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6327",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6327: chore(changelog): convert class-checks/evaluate.ts to isChangelogEntryPath; drop the #6314 allowance"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6286",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6286"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6314",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6314"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "chore(changelog): convert class-checks/evaluate.ts to isChangelogEntryPath; drop the #6314 allowance",
+        "Summary #6314 (CHANGELOG fragments, slice A of #6286) routes every literal `CHANGELOG.md` path match through `isChangelogEntryPath`, except one: `packages/core/src/class-checks/evaluate.ts`.",
+        "That file is under the class-4 protected glob `packages/core/src/class-checks/`, and `verify:class-checks` refuses a story change set that touches a protected path together with product paths.",
+        "So #6314 keeps the literal match there and carries a named temporary allowance for this file in its `packages/core/src/changelog/entry-path-contract.test.ts` (operator decision, 2026-11-15).",
+        "This follow-up is a protected-only PR, after #6314's PR #6325 merges: - `packages/core/src/class-checks/evaluate.ts` matches changelog paths through `isChangelogEntryPath`; - its test covers a fragment path (`changelog.d/<name>.md`) as well as `CHANGELOG.md`; - the temporary allowance for this file is removed from `entry-path-contract.test.ts`, so the contract test again fails on any literal match outside the helper.",
+        "Acceptance Criteria - Given a change set that contains `changelog.d/6286-x.md`, then class-checks treats it the same way it treats `CHANGELOG.md`.",
+        "Given the allowance removed, when the entry-path contract test runs, then it passes with no literal `CHANGELOG.md` path match outside `isChangelogEntryPath`.",
+        "The PR changes only protected-path files and that one test file, so `verify:class-checks` admits it as protected-only.",
+        "Refs #6286.",
+        "Refs #6314.",
+        "design-critique: not warranted, because this finishes item 1 of the design already accepted on #6286 (lean 6859392664) for the one file a story PR may not touch, and adds no mechanism.",
+        "Given a change set that contains `changelog.d/6286-x.md`, then class-checks treats it the same way it treats `CHANGELOG.md`."
+      ],
+      "admitted_source_sentences": [
+        "Summary #6314 (CHANGELOG fragments, slice A of #6286) routes every literal `CHANGELOG.md` path match through `isChangelogEntryPath`, except one: `packages/core/src/class-checks/evaluate.ts`.",
+        "That file is under the class-4 protected glob `packages/core/src/class-checks/`, and `verify:class-checks` refuses a story change set that touches a protected path together with product paths.",
+        "So #6314 keeps the literal match there and carries a named temporary allowance for this file in its `packages/core/src/changelog/entry-path-contract.test.ts` (operator decision, 2026-11-15).",
+        "This follow-up is a protected-only PR, after #6314's PR #6325 merges: - `packages/core/src/class-checks/evaluate.ts` matches changelog paths through `isChangelogEntryPath`; - its test covers a fragment path (`changelog.d/<name>.md`) as well as `CHANGELOG.md`; - the temporary allowance for this file is removed from `entry-path-contract.test.ts`, so the contract test again fails on any literal match outside the helper.",
+        "Acceptance Criteria - Given a change set that contains `changelog.d/6286-x.md`, then class-checks treats it the same way it treats `CHANGELOG.md`.",
+        "Given the allowance removed, when the entry-path contract test runs, then it passes with no literal `CHANGELOG.md` path match outside `isChangelogEntryPath`.",
+        "The PR changes only protected-path files and that one test file, so `verify:class-checks` admits it as protected-only.",
+        "Refs #6286.",
+        "Refs #6314.",
+        "design-critique: not warranted, because this finishes item 1 of the design already accepted on #6286 (lean 6859392664) for the one file a story PR may not touch, and adds no mechanism."
+      ],
+      "admitted_source_digest": "d92f33270adef1e0ca286e80d97ecf9cd705254923c59fd94a9387eb99daa522",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Acceptance Criteria - Given a change set that contains `changelog.d/6286-x.md`, then class-checks treats it the same way it treats `CHANGELOG.md`.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given the allowance removed, when the entry-path contract test runs, then it passes with no literal `CHANGELOG.md` path match outside `isChangelogEntryPath`.",
+          "artifact_path": "packages/core/src/changelog/entry-path-contract.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The PR changes only protected-path files and that one test file, so `verify:class-checks` admits it as protected-only.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Summary #6314 (CHANGELOG fragments, slice A of #6286) routes every literal `CHANGELOG.md` path match through `isChangelogEntryPath`, except one: `packages/core/src/class-checks/evaluate.ts`.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "That file is under the class-4 protected glob `packages/core/src/class-checks/`, and `verify:class-checks` refuses a story change set that touches a protected path together with product paths.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "So #6314 keeps the literal match there and carries a named temporary allowance for this file in its `packages/core/src/changelog/entry-path-contract.test.ts` (operator decision, 2026-11-15).",
+          "artifact_path": "packages/core/src/changelog/entry-path-contract.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "This follow-up is a protected-only PR, after #6314's PR #6325 merges: - `packages/core/src/class-checks/evaluate.ts` matches changelog paths through `isChangelogEntryPath`; - its test covers a fragment path (`changelog.d/<name>.md`) as well as `CHANGELOG.md`; - the temporary allowance for this file is removed from `entry-path-contract.test.ts`, so the contract test again fails on any literal match outside the helper.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Refs #6286.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Refs #6314.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "design-critique: not warranted, because this finishes item 1 of the design already accepted on #6286 (lean 6859392664) for the one file a story PR may not touch, and adds no mechanism.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given a change set that contains `changelog.d/6286-x.md`, then class-checks treats it the same way it treats `CHANGELOG.md`.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "chore(changelog): convert class-checks/evaluate.ts to isChangelogEntryPath; drop the #6314 allowance"
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6405577313,
+        "origin": "deftai/directive#6327",
+        "id": "github.issue.6405577313"
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/class-checks/evaluate.ts",
+          "packages/core/src/class-checks/evaluate.test.ts",
+          "packages/core/src/changelog/entry-path-contract.test.ts",
+          "CHANGELOG.md",
+          ".deft/approved-scope/github.issue.6405577313.json",
+          ".deft/approved-scope/github.issue.6405577313.intent.json"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "class-checks-protected",
+        "verify_commands": [
+          "npx vitest run packages/core/src/class-checks/evaluate.test.ts packages/core/src/changelog/entry-path-contract.test.ts"
+        ],
+        "expected_outputs": [
+          "class-checks/evaluate.ts exempts changelog entry paths through isChangelogEntryPath",
+          "evaluate.test.ts covers changelog.d/<name>.md and CHANGELOG.md",
+          "TEMPORARY #6327 allowance removed from entry-path-contract.test.ts",
+          "one CHANGELOG.md [Unreleased] line"
+        ],
+        "Traces": [
+          "#6327"
+        ],
+        "acceptance_criteria_justification": "Three items, one per acceptance criterion in the #6327 issue body. Clauses 4-11 are the other body sentences (clause 11 is the bare form of the first criterion), one same-text clause each (#5055 / #3550); only the title is confessed."
+      }
+    },
+    "id": "github.issue.6405577313",
+    "updated": "2026-11-15T20:17:58Z"
+  }
+}

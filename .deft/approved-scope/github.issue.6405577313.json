@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-11-15-6327-chorechangelog-convert-class-checksevaluatets-to-ischangelog.xbrief.json",
+  "planId": "github.issue.6405577313",
+  "approvedAt": "2026-11-15T20:19:58Z",
+  "fileScope": [
+    ".deft/approved-scope/github.issue.6405577313.intent.json",
+    ".deft/approved-scope/github.issue.6405577313.json",
+    "CHANGELOG.md",
+    "packages/core/src/changelog/entry-path-contract.test.ts",
+    "packages/core/src/class-checks/evaluate.test.ts",
+    "packages/core/src/class-checks/evaluate.ts"
+  ],
+  "fileScopeDigest": "8b453a8d48153f9575f91d26473170df0c2a29cfd1b0f07a8d41ffcd77ef3469",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "scott",
+    "mintedAt": "2026-11-15T20:19:57Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "cbb248fe64211ccbfe4e0ebe54bdc53cd16e51d2891fec916f41f1a0ec5c3936",
+  "digestAlgo": "intent-extract-v1",
+  "authHashV1": "sha256:c319e234d8b968c12fe1fa2a88e90d9599f2c3ab06598477bb95013e5eace3a0"
+}

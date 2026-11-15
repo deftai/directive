@@ -29,20 +29,11 @@ const SKIP_DIRS = new Set(["node_modules", "dist", "coverage", ".turbo"]);
  * The one module that owns the path test, and the CI mirror that cannot import
  * core (pinned to the same answers by the parity test below). Each allowance
  * names the only line shape admitted in that file.
- *
- * TEMPORARY (#6327): `class-checks/evaluate.ts` keeps its literal
- * `posix === "CHANGELOG.md"` exemption until #6327 switches it to
- * `isChangelogEntryPath`. `packages/core/src/class-checks/**` is a protected
- * glob, so class checks (class 4) refuse that edit inside a story change set;
- * #6327 lands it as a protected-only change set and removes this allowance.
  */
 const ALLOWED: Readonly<Record<string, RegExp>> = {
   "packages/core/src/changelog/entry-path.ts": /./,
   ".github/scripts/artifact-only-lifecycle.mjs":
     /^\s*return path === "CHANGELOG\.md" \|\| \/\^changelog\\\.d\\\/\[a-z0-9\._-\]\+\\\.md\$\/\.test\(path\);$/,
-  // TEMPORARY #6327: remove when class-checks/evaluate.ts calls isChangelogEntryPath.
-  "packages/core/src/class-checks/evaluate.ts":
-    /^\s*if \(posix === "CHANGELOG\.md"\) return true;$/,
 };
 
 export interface LiteralChangelogPathMatch {

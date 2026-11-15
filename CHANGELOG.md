@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **An operator can defer an acceptance clause without editing the active brief (#6318).** Run `deft authz:grant -- --template acceptance-disposition --plan-ref <scopeId> --story-ids <itemIds> --deferred-to <issue> --reason <text>`; `scope:complete` and finalize then record those items as `deferred` to that issue instead of stamping merge evidence. If the clause text changes or the grant expires unused, completion refuses and asks for a new grant. Refs #6310.
 
 ### Changed
+- Class checks treat a changelog fragment (`changelog.d/<name>.md`) like `CHANGELOG.md`; the entry-path contract test no longer has a temporary allowance (#6327). Refs #6314.
 - This repository sets a typed `plan.policy.requireHumanMerge: true` and `plan.policy.onePrScopeProof: mint`, so a single maintainer can land a brief, its human mint record and its code in one PR (#6273). Refs #6327.
 - Minted the intent-constraint record for the #6295 merge-queue exit code (3) and GraphQL floor (500 points). Refs #6295.
 - chore(dogfood): pin Directive to 0.129.9.

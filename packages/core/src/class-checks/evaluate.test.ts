@@ -416,6 +416,47 @@ describe("evaluateClassChecks (#4980)", () => {
     expect(result.exitCode).toBe(0);
   });
 
+  // #6327: changelog entry paths are exempt through isChangelogEntryPath, so a
+  // fragment is treated the same as CHANGELOG.md. The source roots cover the
+  // entry paths, so a non-exempt path would be story product (class 4).
+  const entryRootsTb = baseTb({
+    sourceRoots: ["changelog.d/**", "CHANGELOG.md", "packages/*/src/**"],
+    testRoots: ["packages/*/src/**/*.test.*"],
+  });
+
+  it.each([
+    "CHANGELOG.md",
+    "changelog.d/6286-x.md",
+  ])("exempts changelog entry path %s next to a protected path (#6327)", (entry) => {
+    const result = evaluateClassChecks("/tmp/proj", {
+      baseRef: "origin/master",
+      changedFiles: ["packages/core/src/class-checks/evaluate.ts", entry],
+      baseTestBoundaryPolicy: entryRootsTb,
+      classChecksPolicy: classPolicy,
+      fileContents: new Map([
+        ["packages/core/src/class-checks/evaluate.ts", "export {}\n"],
+        [entry, "- note\n"],
+      ]),
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.findings).toEqual([]);
+  });
+
+  it("does not exempt a nested changelog.d path (#6327)", () => {
+    const result = evaluateClassChecks("/tmp/proj", {
+      baseRef: "origin/master",
+      changedFiles: ["packages/core/src/class-checks/evaluate.ts", "changelog.d/sub/x.md"],
+      baseTestBoundaryPolicy: entryRootsTb,
+      classChecksPolicy: classPolicy,
+      fileContents: new Map([
+        ["packages/core/src/class-checks/evaluate.ts", "export {}\n"],
+        ["changelog.d/sub/x.md", "- note\n"],
+      ]),
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => f.kind === "protected-glob")).toBe(true);
+  });
+
   it("ignores pre-existing tree violations not in the change set", () => {
     const result = evaluateClassChecks("/tmp/proj", {
       baseRef: "origin/master",
