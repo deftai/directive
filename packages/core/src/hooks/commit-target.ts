@@ -187,12 +187,24 @@ function parseGitInvocation(words: readonly ShellWord[]): GitInvocation | null {
   return { envNames, chdirs, gitDirOrWorkTree, subcommand: null, argsStart: i, words };
 }
 
+/**
+ * The command words of a segment: leading `{` brace-group openers dropped. A
+ * brace group runs in the current shell, so a `cd` or commit inside it is read
+ * like one outside it (`{ cd /x; } && git commit` is a `cd` joined by `;`).
+ * A subshell `( … )` is not unwrapped: its `cd` does not move a later commit.
+ */
+function commandWords(segment: ShellSegment): readonly ShellWord[] {
+  let start = 0;
+  while (segment.words[start]?.value === "{") start++;
+  return start === 0 ? segment.words : segment.words.slice(start);
+}
+
 function commitInvocations(
   segments: readonly ShellSegment[],
 ): { readonly index: number; readonly git: GitInvocation }[] {
   const out: { index: number; git: GitInvocation }[] = [];
   segments.forEach((segment, index) => {
-    const git = parseGitInvocation(segment.words);
+    const git = parseGitInvocation(commandWords(segment));
     if (git !== null && git.subcommand === "commit") out.push({ index, git });
   });
   return out;
@@ -324,7 +336,7 @@ function namedPath(
 }
 
 function isCdSegment(segment: ShellSegment): boolean {
-  return segment.words[0]?.value.toLowerCase() === "cd";
+  return commandWords(segment)[0]?.value.toLowerCase() === "cd";
 }
 
 function resolveOneCommit(
@@ -353,6 +365,12 @@ function resolveOneCommit(
   const cdIndex = cdIndexes[0];
   if (cdIndex === undefined) return { kind: "hook-root" };
   const cd = segments[cdIndex];
+  // `&&` / `||` lists are left-associative: an `||` right before the `cd` skips
+  // it when the earlier command succeeds, and a following `&&` chain still runs
+  // the commit in the inherited cwd (`true || cd /x && git commit`).
+  if (segments[cdIndex - 1]?.next === "||") {
+    return { kind: "unresolvable", reason: "an `||` before the `cd` can skip it" };
+  }
   // The commit runs only after the `cd` succeeded when every operator between
   // them is `&&`; with `;` or `||` the commit can run in the inherited cwd.
   for (let j = cdIndex; j < index; j++) {
@@ -360,7 +378,7 @@ function resolveOneCommit(
       return { kind: "unresolvable", reason: "the `cd` is not joined to the commit by `&&`" };
     }
   }
-  const args = cd?.words.slice(1) ?? [];
+  const args = cd !== undefined ? commandWords(cd).slice(1) : [];
   const pathWord = args[0];
   if (args.length !== 1 || pathWord === undefined || pathWord.value.startsWith("-")) {
     return { kind: "unresolvable", reason: "the `cd` does not name exactly one path" };

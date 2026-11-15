@@ -163,6 +163,24 @@ describe("resolveCommitTarget (#6278)", () => {
       path: "/r/wt",
       shape: "cd",
     });
+    // A brace group runs in the current shell: its `cd` and commit read as unwrapped.
+    expect(resolveCommitTarget("cd /r/wt && { git commit -m x; }", posix)).toMatchObject({
+      kind: "named",
+      path: "/r/wt",
+    });
+    expect(resolveCommitTarget("{ cd /r/wt && git commit -m x; }", posix)).toMatchObject({
+      kind: "named",
+      path: "/r/wt",
+    });
+    // A subshell `cd` does not move a later commit.
+    expect(resolveCommitTarget("(cd /r/wt) && git commit -m x", posix)).toEqual({
+      kind: "hook-root",
+    });
+    // `;` before the `cd` cannot skip it.
+    expect(resolveCommitTarget("false; cd /r/wt && git commit -m x", posix)).toMatchObject({
+      kind: "named",
+      path: "/r/wt",
+    });
   });
 
   it("maps the MSYS and drive forms to the same drive path on Windows", () => {
@@ -191,6 +209,13 @@ describe("resolveCommitTarget (#6278)", () => {
     ["GIT_COMMON_DIR=/r/.git git commit -m x", /GIT_COMMON_DIR=/],
     ["cd /a; git commit -m x", /not joined to the commit/],
     ["cd /a || git commit -m x", /not joined to the commit/],
+    ["true || cd /a && git commit -m x", /`\|\|` before the `cd`/],
+    ["git status && true || cd /a && git commit -m x", /`\|\|` before the `cd`/],
+    ["{ cd /a; } && git commit -m x", /not joined to the commit/],
+    ["{ cd /a && true; } && git commit -m x", /not joined to the commit/],
+    ["{ { cd /a; }; } && git commit -m x", /not joined to the commit/],
+    ["true || { cd /a && git commit -m x; }", /`\|\|` before the `cd`/],
+    ["cd /a | cat && git commit -m x", /exactly one path/],
     ["cd && git commit -m x", /exactly one path/],
     ["cd -P /a && git commit -m x", /exactly one path/],
     ["git -C", null],

@@ -588,6 +588,8 @@ describe("commit gate judges the checkout the commit names (#6278 / #6247)", {
       `cd "${wtA}" && cd "${wtB}" && git commit -m x`,
       `cd "${wtA}" && git -C "${wtB}" commit -m x`,
       "cd $WT && git commit -m x",
+      `true || cd "${wtA}" && git commit -m x`,
+      `{ cd "${wtA}"; } && git commit -m x`,
       `GIT_INDEX_FILE="${join(wtA, "index")}" git commit -m x`,
       `GIT_DIR="${join(primary, ".git")}" git commit -m x`,
       `git --git-dir="${join(primary, ".git")}" commit -m x`,

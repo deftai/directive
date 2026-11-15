@@ -163,7 +163,9 @@ selection. The empty-index and lifecycle-only passes still apply, read from the 
 
 **Refused as unresolvable** (the message names the two absolute forms): a relative path after
 `cd` or `-C`; more than one `cd` or `-C` before the commit; a `cd` joined to the commit by `;` or
-`||`; a variable, `~` or substitution in the path; `--git-dir` / `--work-tree`; and a `GIT_DIR`,
+`||`, or reached through an `||` that can skip it (a `{ … }` brace group runs in the current
+shell, so a `cd` or commit inside one is read the same way; a `( … )` subshell `cd` does not move
+a later commit); a variable, `~` or substitution in the path; `--git-dir` / `--work-tree`; and a `GIT_DIR`,
 `GIT_WORK_TREE`, `GIT_INDEX_FILE` or `GIT_COMMON_DIR` prefix on the commit. In each case the gate
 cannot know which index the commit will use.
 
