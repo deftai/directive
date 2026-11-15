@@ -4,6 +4,7 @@
  */
 
 import * as childProcess from "node:child_process";
+import { isChangelogEntryPath } from "../changelog/entry-path.js";
 import { isPythonRunShimContent } from "../deposit/python-free.js";
 import type { HookHost } from "../hooks/dispatcher.js";
 import {
@@ -1420,6 +1421,9 @@ export function classifyChangedPath(
 
   // #5674: exact VERSION + ten lifecycle .gitkeep markers (after coverable-first).
   if (isResidualDepositInertPath(p)) return "inert";
+
+  // #6314: changelog entry paths (CHANGELOG.md, changelog.d/<name>.md) are prose.
+  if (isChangelogEntryPath(p)) return "inert";
 
   if (INERT_BASENAMES.has(base)) return "inert";
 

@@ -147,6 +147,8 @@ export function filterOpenCoverageDebtIssues(issues: readonly CoverageDebtIssueP
 /**
  * Parse `--allow-coverage-debt=#N` / `allow-coverage-debt=#N` citations from
  * CHANGELOG Unreleased + the last few version sections (legacy hatch ledger).
+ * Callers pass the effective text (`effectiveChangelogText`, #6314) so
+ * `changelog.d/` fragment entries count as Unreleased.
  */
 export function extractCoverageDebtCitationsFromChangelog(
   changelog: string,
@@ -175,6 +177,8 @@ export function extractCoverageDebtCitationsFromChangelog(
  * (recent-window), skip-ci unpaid reuse must see the full spend history so an
  * older closed citation (e.g. #5107 in 0.119.10) stays unpaid after close.
  * Pass a finite `maxVersionSections` only in tests that assert a narrow window.
+ * Callers pass the effective text (`effectiveChangelogText`, #6314) so
+ * `changelog.d/` fragment entries count as Unreleased.
  */
 export function extractSkipCiIncidentCitationsFromChangelog(
   changelog: string,

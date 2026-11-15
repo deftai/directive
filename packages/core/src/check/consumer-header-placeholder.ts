@@ -23,6 +23,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { isChangelogEntryPath } from "../changelog/entry-path.js";
 import { containedWrite } from "../fs/contained-write.js";
 import {
   compareAndSetConsumerHeaderOneLiner,
@@ -122,7 +123,6 @@ const NON_PRODUCT_BASENAMES = new Set([
   // only sessions must not Process-only-pass scaffold edit-me.
   "README.md",
   "LICENSE",
-  "CHANGELOG.md",
 ]);
 
 /**
@@ -148,6 +148,8 @@ export function isNonProductMutationPath(relPath: string): boolean {
   if (ROOT_ONLY_NON_PRODUCT_PATHS.has(posix)) return true;
   const base = posix.includes("/") ? posix.slice(posix.lastIndexOf("/") + 1) : posix;
   if (NON_PRODUCT_BASENAMES.has(base)) return true;
+  // #6314: changelog entry paths; the basename form keeps any nested CHANGELOG.md non-product.
+  if (isChangelogEntryPath(posix) || isChangelogEntryPath(base)) return true;
   return NON_PRODUCT_PATH_PREFIXES.some(
     (prefix) => posix === prefix.slice(0, -1) || posix.startsWith(prefix),
   );

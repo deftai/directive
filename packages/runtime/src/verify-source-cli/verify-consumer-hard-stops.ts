@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { changelog } from "@deftai/directive-core";
 import {
   evaluateConsumerHardStopCensus,
   type HardStopIssue,
@@ -69,7 +70,8 @@ export function run(argv: string[], seams: HardStopCliSeams = {}): number {
   if (changelogText === undefined) {
     const changelogPath = resolve(root, args.changelog ?? "CHANGELOG.md");
     try {
-      changelogText = readFileSync(changelogPath, "utf8");
+      // #6314: the Closes set reads the effective [Unreleased] view (changelog + fragments).
+      changelogText = changelog.effectiveChangelogText(root, readFileSync(changelogPath, "utf8"));
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       process.stderr.write(

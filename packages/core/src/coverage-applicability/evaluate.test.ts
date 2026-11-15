@@ -1664,3 +1664,11 @@ describe("evaluateCoverageApplicability #5677 Prefer-A Bound Recut-1", { timeout
     if (extra.outcome === "refuse") expect(extra.code).toBe("unknown-path");
   });
 });
+
+describe("classifyChangedPath changelog entry paths (#6314)", () => {
+  it("classifies CHANGELOG.md, nested changelogs and fragments as inert", () => {
+    expect(classifyChangedPath("CHANGELOG.md", "M", null)).toBe("inert");
+    expect(classifyChangedPath("changelog.d/6314-x.md", "A", null)).toBe("inert");
+    expect(classifyChangedPath("packages/core/CHANGELOG.md", "M", null)).toBe("inert");
+  });
+});

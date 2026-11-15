@@ -11,6 +11,7 @@ import {
   ALLOW_DESTRUCTIVE_GH_VERBS_CAPABILITY_COST,
   CEREMONY_DEPTHS,
   type CeremonyDepth,
+  CHANGELOG_MODES,
   COVERAGE_MODES,
   type CoverageMode,
   clearValueFeedback,
@@ -51,6 +52,7 @@ import {
   type SpecGuardEnforcement,
   setAllowDestructiveGhVerbs,
   setCeremonyDial,
+  setChangelogMode,
   setCoverageMode,
   setOnePrScopeProof,
   setPolicy,
@@ -91,6 +93,7 @@ interface SetArgs {
     | "clear-value-feedback"
     | "set-ceremony-dial"
     | "set-coverage-mode"
+    | "set-changelog-mode"
     | "set-spec-guard-enforcement"
     | "set-one-pr-scope-proof"
     | "disable-host-hooks"
@@ -111,6 +114,8 @@ interface SetArgs {
   ceremonyEnabled?: boolean;
   /** #5791 coverageMode target for set-coverage-mode. */
   coverageMode?: CoverageMode;
+  /** #6314 plan.policy.changelog.mode target for set-changelog-mode (validated in core). */
+  changelogMode?: string;
   /** #5350 driftGuard.enforcement target for set-spec-guard-enforcement. */
   specGuardEnforcement?: SpecGuardEnforcement;
   /** #6273 onePrScopeProof target for set-one-pr-scope-proof (signed is refused later). */
@@ -273,11 +278,57 @@ function parseSetOnePrScopeProof(argv: string[]): SetArgs {
   };
 }
 
+/** Parse `policy set-changelog-mode` argv (#6314); mode values are validated in core. */
+function parseSetChangelogModeArgs(argv: string[]): SetArgs {
+  let confirm = false;
+  let actor = policyColonInvocation("set-changelog-mode");
+  let note = "";
+  let projectRoot = ".";
+  let changelogMode: string | undefined;
+  for (let i = 1; i < argv.length; i += 1) {
+    const arg = argv[i] ?? "";
+    const eq = arg.indexOf("=");
+    const flag = arg.startsWith("--") && eq > 0 ? arg.slice(0, eq) : arg;
+    if (flag === "--confirm" && eq < 0) {
+      confirm = true;
+      continue;
+    }
+    if (flag === "--") continue;
+    if (flag !== "--actor" && flag !== "--note" && flag !== "--mode" && flag !== "--project-root") {
+      return makeSetError(`unrecognized argument: ${arg}`);
+    }
+    let value: string;
+    if (eq > 0 && arg.startsWith("--")) {
+      value = arg.slice(eq + 1);
+    } else {
+      const next = argv[i + 1];
+      if (next === undefined) return makeSetError(`argument ${flag}: expected one argument`);
+      value = next;
+      i += 1;
+    }
+    if (flag === "--actor") actor = value;
+    else if (flag === "--note") note = value;
+    else if (flag === "--mode") changelogMode = value;
+    else projectRoot = value;
+  }
+  return {
+    cmd: "set-changelog-mode",
+    confirm,
+    actor,
+    note,
+    projectRoot,
+    format: "text",
+    changedOnly: false,
+    field: null,
+    changelogMode,
+  };
+}
+
 /** Parse argv for the policy CLI (show + set subcommands). */
 export function parseArgs(argv: string[]): SetArgs {
   if (argv.length === 0) {
     const usage =
-      "usage: policy [show|enforce-branches|allow-direct-commits|allow-destructive-gh-verbs|enforce-destructive-gh-verbs|allow-bot-merge|enable-value-feedback|clear-value-feedback|set-ceremony-dial|set-coverage-mode|set-spec-guard-enforcement|set-one-pr-scope-proof|disable-host-hooks|disable-directive|enable-directive|resolve] ...";
+      "usage: policy [show|enforce-branches|allow-direct-commits|allow-destructive-gh-verbs|enforce-destructive-gh-verbs|allow-bot-merge|enable-value-feedback|clear-value-feedback|set-ceremony-dial|set-coverage-mode|set-changelog-mode|set-spec-guard-enforcement|set-one-pr-scope-proof|disable-host-hooks|disable-directive|enable-directive|resolve] ...";
     return makeSetError(usage);
   }
 
@@ -349,6 +400,9 @@ export function parseArgs(argv: string[]): SetArgs {
       field: null,
       coverageMode,
     };
+  }
+  if (cmd === "set-changelog-mode") {
+    return parseSetChangelogModeArgs(argv);
   }
   if (cmd === "set-spec-guard-enforcement") {
     let confirm = false;
@@ -939,6 +993,9 @@ export function run(argv: string[]): number {
   if (args.cmd === "set-coverage-mode") {
     return runSetCoverageMode(args);
   }
+  if (args.cmd === "set-changelog-mode") {
+    return runSetChangelogMode(args);
+  }
   if (args.cmd === "set-spec-guard-enforcement") {
     return runSetSpecGuardEnforcement(args);
   }
@@ -988,6 +1045,26 @@ function runSetOnePrScopeProof(args: SetArgs): number {
   }
   const result = setOnePrScopeProof(root, {
     level: args.onePrScopeProof,
+    confirm: args.confirm,
+    actor: args.actor,
+    note: args.note,
+  });
+  process.stdout.write(result.stdout);
+  return result.exitCode;
+}
+
+/** Persist plan.policy.changelog.mode (#6314). */
+function runSetChangelogMode(args: SetArgs): number {
+  const root = pathResolve(args.projectRoot);
+  if (args.changelogMode === undefined) {
+    process.stdout.write(
+      `usage: policy set-changelog-mode -- --mode ${CHANGELOG_MODES.join("|")} [--confirm] [--project-root PATH]\n` +
+        `  Inspect: ${policyColonInvocation("show", " --field=plan.policy.changelog.mode")}\n`,
+    );
+    return 1;
+  }
+  const result = setChangelogMode(root, {
+    mode: args.changelogMode,
     confirm: args.confirm,
     actor: args.actor,
     note: args.note,
