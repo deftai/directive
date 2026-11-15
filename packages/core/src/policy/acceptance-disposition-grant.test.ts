@@ -472,8 +472,18 @@ describe("acceptance-disposition review fixes (#6343)", () => {
     const id = minted.grant.id;
     const check = (body: Record<string, unknown>, now = LATER) =>
       checkCitedAcceptanceDispositionGrants({ projectRoot: dest, plan: body, now });
-    expect(check(plan())).toEqual({ ok: true, grantIdsToRecord: [], replacedIds: [] });
-    expect(check(completedPlan(id))).toEqual({ ok: true, grantIdsToRecord: [id], replacedIds: [] });
+    expect(check(plan())).toEqual({
+      ok: true,
+      grantIdsToRecord: [],
+      replacedIds: [],
+      rewrittenIds: [],
+    });
+    expect(check(completedPlan(id))).toEqual({
+      ok: true,
+      grantIdsToRecord: [id],
+      replacedIds: [],
+      rewrittenIds: ["clause.2"],
+    });
     expect(check(completedPlan(id, "Reworded."))).toMatchObject({
       ok: false,
       reason: expect.stringMatching(
@@ -502,6 +512,7 @@ describe("acceptance-disposition review fixes (#6343)", () => {
       ok: true,
       grantIdsToRecord: [],
       replacedIds: [],
+      rewrittenIds: ["clause.2"],
     });
     const notGit = mkdtempSync(join(tmpdir(), "disposition-nogit-"));
     bases.push(notGit);
@@ -538,11 +549,47 @@ describe("acceptance-disposition review fixes (#6343)", () => {
       ok: true,
       grantIdsToRecord: [fresh.grant.id],
       replacedIds: ["clause.2"],
+      rewrittenIds: [],
     });
     expect(clause2(body)[ACCEPTANCE_DISPOSITION_KEY]).toMatchObject({
       reason: "replacement",
       recorded_at: "2026-11-15T11:30:00Z",
       provenance: { grantId: fresh.grant.id },
+    });
+  });
+  it("a restamp rewrites a hand-edited cited disposition from its grant", () => {
+    const { dest } = cloneWithDest();
+    writeBrief(dest);
+    const minted = mint(dest);
+    if (!minted.ok) throw new Error(minted.reason);
+    const body = completedPlan(minted.grant.id);
+    const item = clause2(body);
+    item[ACCEPTANCE_DISPOSITION_KEY] = {
+      disposition: "waived",
+      reason: "hand-edited reason",
+      recorded_at: "2026-11-15T11:00:00Z",
+      deferred_to: "#1",
+      provenance: { kind: "operator-cli", actor: "someone-else", grantId: minted.grant.id },
+    };
+    const checked = checkCitedAcceptanceDispositionGrants({
+      projectRoot: dest,
+      plan: body,
+      now: LATER,
+    });
+    expect(checked).toMatchObject({ ok: true, rewrittenIds: ["clause.2"] });
+    expect(item[ACCEPTANCE_DISPOSITION_KEY]).toEqual({
+      disposition: "deferred",
+      reason: "operator correction",
+      recorded_at: "2026-11-15T11:00:00Z",
+      deferred_to: "#6400",
+      provenance: {
+        kind: "operator-cli",
+        actor: minted.grant.origin.actor,
+        mintedAt: minted.grant.origin.mintedAt,
+        mintedVia: minted.grant.origin.mintedVia,
+        eventRef: minted.grant.origin.eventRef,
+        grantId: minted.grant.id,
+      },
     });
   });
 });

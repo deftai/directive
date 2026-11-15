@@ -598,6 +598,8 @@ export function applyAcceptanceDispositionGrants(input: {
 interface CitedGrant {
   readonly itemId: string;
   readonly grantId: string;
+  /** Kept on rewrite so a restamp does not churn the date; never proof of use. */
+  readonly recordedAt: string;
 }
 
 function collectCitedGrants(items: unknown, out: CitedGrant[]): CitedGrant[] {
@@ -609,7 +611,9 @@ function collectCitedGrants(items: unknown, out: CitedGrant[]): CitedGrant[] {
     const provenance = asRecord(disposition?.provenance);
     const grantId = typeof provenance?.grantId === "string" ? provenance.grantId.trim() : "";
     const itemId = typeof item.id === "string" ? canonicalAcceptanceDispositionId(item.id) : "";
-    if (grantId.length > 0 && itemId.length > 0) out.push({ itemId, grantId });
+    const recordedAt =
+      typeof disposition?.recorded_at === "string" ? disposition.recorded_at.trim() : "";
+    if (grantId.length > 0 && itemId.length > 0) out.push({ itemId, grantId, recordedAt });
     collectCitedGrants(item.subItems, out);
     collectCitedGrants(item.items, out);
   }
@@ -622,7 +626,9 @@ function collectCitedGrants(items: unknown, out: CitedGrant[]): CitedGrant[] {
  * accepted while it is in the main clone store for this plan, covers the item
  * and matches the digest of the current clause text (or item title), and is
  * used or still live. The brief's own `recorded_at` is never trusted as proof
- * of use (#6343 review). Otherwise the latest used or live grant for the plan that covers the
+ * of use (#6343 review). The cited disposition is rewritten from its grant
+ * (`deferred`, the grant's reason and `deferred_to`, the grant id), so a
+ * hand-edited disposition does not survive a restamp. Otherwise the latest used or live grant for the plan that covers the
  * item with a matching digest replaces it, and its disposition is applied to
  * the plan before the write (an operator mints one for the completed brief).
  * With neither, restamp refuses and names a re-mint. A brief that cites no
@@ -635,10 +641,17 @@ export function checkCitedAcceptanceDispositionGrants(input: {
   readonly recordedAt?: string;
   readonly runGit?: GitRunner;
 }):
-  | { ok: true; grantIdsToRecord: readonly string[]; replacedIds: readonly string[] }
+  | {
+      ok: true;
+      grantIdsToRecord: readonly string[];
+      replacedIds: readonly string[];
+      rewrittenIds: readonly string[];
+    }
   | { ok: false; reason: string } {
   const cited = collectCitedGrants(input.plan.items, []);
-  if (cited.length === 0) return { ok: true, grantIdsToRecord: [], replacedIds: [] };
+  if (cited.length === 0) {
+    return { ok: true, grantIdsToRecord: [], replacedIds: [], rewrittenIds: [] };
+  }
   const planId = typeof input.plan.id === "string" ? input.plan.id.trim() : "";
   const store = resolveAcceptanceDispositionStore(input.projectRoot, input.runGit);
   if (!store.ok) return store;
@@ -650,12 +663,28 @@ export function checkCitedAcceptanceDispositionGrants(input: {
     !used(v) && activeIds.has(v.grant.id) && expiresAfter(v.grant, now);
   const toRecord = new Set<string>();
   const replacements: GrantedDisposition[] = [];
-  for (const { itemId, grantId } of cited) {
+  const rewrites: GrantedDisposition[] = [];
+  const coverOf = (itemId: string, v: GrantView): AcceptanceDispositionGrantCover => ({
+    itemId,
+    grantId: v.grant.id,
+    deferredTo: v.deferredTo,
+    reason: v.reason,
+    replay: used(v),
+    grant: v.grant,
+  });
+  for (const { itemId, grantId, recordedAt } of cited) {
     const text = acceptanceDispositionCoverText(input.plan, itemId);
     const digest = text === null ? null : acceptanceDispositionDigest(text);
     const matches = (v: GrantView): boolean => digest !== null && v.digests.get(itemId) === digest;
     const view = views.find((v) => v.grant.id === grantId);
     if (view !== undefined && matches(view) && (used(view) || live(view))) {
+      rewrites.push({
+        itemId,
+        record: acceptanceDispositionRecordFor(
+          coverOf(itemId, view),
+          recordedAt.length > 0 ? recordedAt : (input.recordedAt ?? now.toISOString()),
+        ),
+      });
       if (!used(view)) toRecord.add(grantId);
       continue;
     }
@@ -663,17 +692,12 @@ export function checkCitedAcceptanceDispositionGrants(input: {
       .filter((v) => v.grant.id !== grantId && (used(v) || live(v)) && matches(v))
       .sort((a, b) => b.mintedMs - a.mintedMs)[0];
     if (replacement !== undefined) {
-      const cover: AcceptanceDispositionGrantCover = {
-        itemId,
-        grantId: replacement.grant.id,
-        deferredTo: replacement.deferredTo,
-        reason: replacement.reason,
-        replay: used(replacement),
-        grant: replacement.grant,
-      };
       replacements.push({
         itemId,
-        record: acceptanceDispositionRecordFor(cover, input.recordedAt ?? now.toISOString()),
+        record: acceptanceDispositionRecordFor(
+          coverOf(itemId, replacement),
+          input.recordedAt ?? now.toISOString(),
+        ),
       });
       if (!used(replacement)) toRecord.add(replacement.grant.id);
       continue;
@@ -698,8 +722,14 @@ export function checkCitedAcceptanceDispositionGrants(input: {
         `brief with \`${remint}\` and run scope:complete again (#6318)`,
     };
   }
+  const rewritten = applyGrantedDispositions(input.plan, rewrites);
   const applied = applyGrantedDispositions(input.plan, replacements);
-  return { ok: true, grantIdsToRecord: [...toRecord], replacedIds: [...applied.appliedIds] };
+  return {
+    ok: true,
+    grantIdsToRecord: [...toRecord],
+    replacedIds: [...applied.appliedIds],
+    rewrittenIds: [...rewritten.appliedIds],
+  };
 }
 
 /** Record first use after the completed/ write succeeds (#6318). */
