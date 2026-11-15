@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- feat(merge): `pr:wait-mergeable-and-merge` detects a required merge queue and enqueues with `--match-head-commit` (no `--admin`), skips the stale-base and master-gate waits, and reports one result (`merged` / `queued` / `awaiting-admission` / `head-changed` / `removed` / `inactive`) with a `--resume` command. CI runs on `merge_group`, PR-context checks skip there, and a `merge_group`-only job reports `Greptile Review`. Pre-PR no longer refuses while master's gate is pending, and `verify:pr-closeout-attestable` reads briefs at the PR head SHA instead of requiring local HEAD to match. Refs #6295.
 
 ### Changed
 - chore(dogfood): pin Directive to 0.129.9.

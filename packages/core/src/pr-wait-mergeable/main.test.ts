@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { prWatchHeartbeatAgentId } from "../pr-watch/main.js";
 import { hasActivePollingHeartbeat } from "../review-monitor/verify.js";
-import { EXIT_CONFIG_ERROR, EXIT_MERGED } from "./constants.js";
+import { EXIT_CONFIG_ERROR, EXIT_MERGED, EXIT_QUEUE_PENDING } from "./constants.js";
 import { cmdPrWaitMergeable, parseWaitMergeableArgs, runWaitMergeable } from "./main.js";
 import type { MergeFn, MonitorFn, ProtectedCheckFn } from "./types.js";
 
@@ -44,6 +44,9 @@ describe("parseWaitMergeableArgs", () => {
       requireMasterCiGreen: false,
       baseBranch: null,
       projectRoot: null,
+      resume: false,
+      expectHead: null,
+      since: null,
     });
   });
 
@@ -289,6 +292,96 @@ describe("runWaitMergeable", () => {
     // Same-ms refresh under load is accepted; live arm was already probed above (#5020).
     expect(Date.parse(secondAt)).toBeGreaterThanOrEqual(Date.parse(firstAt));
     expect(hasActivePollingHeartbeat(root, 5020)).toBe(false);
+    stdout.mockRestore();
+    stderr.mockRestore();
+  });
+});
+
+describe("parseWaitMergeableArgs --resume (#6295)", () => {
+  const sha = "a".repeat(40);
+  const since = "2026-11-15T10:00:00.000Z";
+
+  it("parses --resume --expect-head --since (space and = forms)", () => {
+    const a = parseWaitMergeableArgs(["5", "--resume", "--expect-head", sha, "--since", since]);
+    expect(a.error).toBeUndefined();
+    expect(a.resume).toBe(true);
+    expect(a.expectHead).toBe(sha);
+    expect(a.since).toBe(since);
+    const b = parseWaitMergeableArgs(["5", "--resume", `--expect-head=${sha}`, `--since=${since}`]);
+    expect(b.error).toBeUndefined();
+    expect(b.expectHead).toBe(sha);
+  });
+
+  it("requires a SHA and a time with --resume", () => {
+    expect(parseWaitMergeableArgs(["5", "--resume", "--since", since]).error).toContain(
+      "--expect-head",
+    );
+    expect(parseWaitMergeableArgs(["5", "--resume", "--expect-head", sha]).error).toContain(
+      "--since",
+    );
+    expect(
+      parseWaitMergeableArgs(["5", "--resume", "--expect-head", sha, "--since", "nope"]).error,
+    ).toContain("--since");
+    expect(parseWaitMergeableArgs(["5", "--resume", "--expect-head"]).error).toContain(
+      "expected one argument",
+    );
+  });
+
+  it("rejects --expect-head / --since without --resume", () => {
+    expect(parseWaitMergeableArgs(["5", "--expect-head", sha]).error).toContain("--resume");
+  });
+});
+
+describe("runWaitMergeable --resume (#6295)", () => {
+  const sha = "a".repeat(40);
+  const since = "2026-11-15T10:00:00.000Z";
+  const queued = {
+    data: {
+      repository: {
+        pullRequest: {
+          headRefOid: sha,
+          merged: false,
+          mergeCommit: null,
+          mergeQueueEntry: { state: "QUEUED", position: 3 },
+          autoMergeRequest: null,
+          timelineItems: { nodes: [] },
+        },
+      },
+    },
+  };
+
+  it("repeats the read without gates or a merge call and labels QUEUE-PENDING", async () => {
+    const { parseQueueState } = await import("./merge-queue.js");
+    const root = mkdtempSync(join(tmpdir(), "wait-merge-resume-"));
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const code = runWaitMergeable(
+      [
+        "6295",
+        "--repo",
+        "deftai/directive",
+        "--resume",
+        "--expect-head",
+        sha,
+        "--since",
+        since,
+        "--project-root",
+        root,
+      ],
+      {
+        mergeFn: () => {
+          throw new Error("resume must not merge");
+        },
+        monitorFn: () => {
+          throw new Error("resume must not wait");
+        },
+        queueReadFn: () => ({ status: "ok", read: parseQueueState(queued) as never }),
+      },
+    );
+    expect(code).toBe(EXIT_QUEUE_PENDING);
+    const text = stdout.mock.calls.map((c) => String(c[0])).join("");
+    expect(text).toContain("QUEUE-PENDING");
+    expect(text).toContain("outcome: queued");
     stdout.mockRestore();
     stderr.mockRestore();
   });

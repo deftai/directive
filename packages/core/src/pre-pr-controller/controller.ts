@@ -23,6 +23,7 @@ import { admittedUntiedWorktreeKey, type VerifyAcDispositionKind } from "../hook
 import { isCoverageModeSkipAuthorized, resolveCoverageMode } from "../policy/coverage-mode.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
 import { FIRST_HOTFIX_BOOTSTRAP_RECOVERY } from "../pr-wait-mergeable/constants.js";
+import { detectMergeQueue, type MergeQueueDetectFn } from "../pr-wait-mergeable/merge-queue.js";
 import {
   evaluateAlwaysOnNamedMergeGate,
   type HotfixAdmission,
@@ -813,6 +814,41 @@ export function deriveVerifyAcDisposition(input: {
  * Mint a pass only with publisher credentials. Incomplete/failed/interrupted
  * runs stay non-pass. Agent shells do not receive `publisher`.
  */
+/**
+ * True when the delivery branch requires a merge queue (#6295 item 6). A failed
+ * or offline read keeps today's refusal (fail closed).
+ */
+function masterGateQueueMode(
+  prNumber: number | null,
+  repo: string,
+  options:
+    | {
+        readonly mergeQueueFn?: MergeQueueDetectFn;
+        readonly runGh?: RunGhFn;
+        readonly env?: Readonly<Record<string, string | undefined>>;
+      }
+    | undefined,
+): boolean {
+  if (
+    (options?.env ?? process.env).DEFT_NO_NETWORK === "1" &&
+    options?.mergeQueueFn === undefined
+  ) {
+    return false;
+  }
+  const runGh = options?.runGh;
+  const detect: MergeQueueDetectFn =
+    options?.mergeQueueFn ??
+    ((pr, r, branch) =>
+      runGh === undefined
+        ? detectMergeQueue(pr, r, branch)
+        : detectMergeQueue(pr, r, branch, runGh));
+  try {
+    return detect(prNumber, repo, null).status === "queue";
+  } catch {
+    return false;
+  }
+}
+
 export function completeRun(
   store: PrePrExecutionStore,
   publisher: unknown,
@@ -832,6 +868,12 @@ export function completeRun(
     readonly firstHotfixBootstrap?: boolean;
     /** Numeric PR number — never derive from opaque prNodeId (#6071 Greptile). */
     readonly prNumber?: number | null;
+    /**
+     * Merge-queue detection (#6295 item 6). Consulted only when the named gate
+     * is not green; a required queue removes the refusal. Defaults to branch
+     * rules REST.
+     */
+    readonly mergeQueueFn?: MergeQueueDetectFn;
   },
 ): PrePrDecision {
   const creds = requirePublisher(publisher);
@@ -862,12 +904,17 @@ export function completeRun(
       env: options?.env,
       firstHotfixBootstrap: options?.firstHotfixBootstrap === true || prNumber === null,
     });
-    if (!named.ok) {
-      const bootstrap =
-        named.outcome === "first-hotfix-bootstrap"
-          ? FIRST_HOTFIX_BOOTSTRAP_RECOVERY
-          : (named.error ?? "named Merge gate refused");
-      return deny("deny-master-merge-gate-red", bootstrap);
+    // #6295 item 6: refuse only when master's gate is red, never while it is
+    // pending; with a required merge queue the refusal is removed entirely.
+    if (!named.ok && named.status.disposition !== "pending") {
+      const queue = masterGateQueueMode(prNumber, current.repo, options);
+      if (!queue) {
+        const bootstrap =
+          named.outcome === "first-hotfix-bootstrap"
+            ? FIRST_HOTFIX_BOOTSTRAP_RECOVERY
+            : (named.error ?? "named Merge gate refused");
+        return deny("deny-master-merge-gate-red", bootstrap);
+      }
     }
   }
   const observables = runObservablesComplete(current, options);

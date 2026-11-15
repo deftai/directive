@@ -5,8 +5,13 @@ import {
   WAIT_HEARTBEAT_REFRESH_SECONDS,
   writePrWatchWaitHeartbeat,
 } from "../pr-watch/main.js";
-import { waitMergeableAndMerge } from "./cascade.js";
-import { EXIT_CONFIG_ERROR, EXIT_MERGED, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
+import { resumeMergeQueueRead, waitMergeableAndMerge } from "./cascade.js";
+import {
+  EXIT_CONFIG_ERROR,
+  EXIT_MERGED,
+  EXIT_QUEUE_PENDING,
+  EXIT_TIMEOUT_OR_ESCALATION,
+} from "./constants.js";
 import { toResultDict } from "./result.js";
 
 /** Match Python json.dumps(..., indent=2) default ensure_ascii=True. */
@@ -29,6 +34,10 @@ export interface ParsedWaitMergeableArgs {
   readonly baseBranch: string | null;
   /** Project root for minGreptileConfidence (#3095 / #3102). Null = cwd at run. */
   readonly projectRoot: string | null;
+  /** Merge-queue resume read (#6295): no gates, no merge call. */
+  readonly resume: boolean;
+  readonly expectHead: string | null;
+  readonly since: string | null;
   readonly error?: string;
 }
 
@@ -42,6 +51,9 @@ export function parseWaitMergeableArgs(argv: readonly string[]): ParsedWaitMerge
   let requireMasterCiGreen = false;
   let baseBranch: string | null = null;
   let projectRoot: string | null = null;
+  let resume = false;
+  let expectHead: string | null = null;
+  let since: string | null = null;
 
   const baseReturn = (): Omit<ParsedWaitMergeableArgs, "error"> => ({
     prNumber,
@@ -53,12 +65,29 @@ export function parseWaitMergeableArgs(argv: readonly string[]): ParsedWaitMerge
     requireMasterCiGreen,
     baseBranch,
     projectRoot,
+    resume,
+    expectHead,
+    since,
   });
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--json") {
       emitJson = true;
+    } else if (arg === "--resume") {
+      resume = true;
+    } else if (arg === "--expect-head" || arg === "--since") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...baseReturn(), error: `argument ${arg}: expected one argument` };
+      }
+      if (arg === "--expect-head") expectHead = value;
+      else since = value;
+      i += 1;
+    } else if (arg?.startsWith("--expect-head=")) {
+      expectHead = arg.slice("--expect-head=".length);
+    } else if (arg?.startsWith("--since=")) {
+      since = arg.slice("--since=".length);
     } else if (arg === "--cascade") {
       cascadeMode = true;
     } else if (arg === "--require-master-ci-green") {
@@ -133,6 +162,16 @@ export function parseWaitMergeableArgs(argv: readonly string[]): ParsedWaitMerge
   if (prNumber === null) {
     return { ...baseReturn(), error: "the following arguments are required: pr_number" };
   }
+  if (resume) {
+    if (expectHead === null || !/^[0-9a-f]{7,64}$/i.test(expectHead.trim())) {
+      return { ...baseReturn(), error: "--resume requires --expect-head <sha>" };
+    }
+    if (since === null || !Number.isFinite(Date.parse(since))) {
+      return { ...baseReturn(), error: "--resume requires --since <ISO-8601 time>" };
+    }
+  } else if (expectHead !== null || since !== null) {
+    return { ...baseReturn(), error: "--expect-head and --since are only valid with --resume" };
+  }
 
   return baseReturn();
 }
@@ -145,6 +184,8 @@ function summaryLabelForExit(exitCode: number): string {
       return "TIMEOUT-OR-ESCALATION";
     case EXIT_CONFIG_ERROR:
       return "CONFIG-ERROR";
+    case EXIT_QUEUE_PENDING:
+      return "QUEUE-PENDING";
     default:
       return "UNKNOWN";
   }
@@ -159,6 +200,10 @@ export interface RunWaitMergeableOptions {
   readonly skipMergeApprovalHeadGate?: boolean;
   readonly fetchPrHeadShaFn?: Parameters<typeof waitMergeableAndMerge>[2]["fetchPrHeadShaFn"];
   readonly mergeApprovalHeadFn?: Parameters<typeof waitMergeableAndMerge>[2]["mergeApprovalHeadFn"];
+  readonly mergeQueueDetectFn?: Parameters<typeof waitMergeableAndMerge>[2]["mergeQueueDetectFn"];
+  readonly queueReadFn?: Parameters<typeof waitMergeableAndMerge>[2]["queueReadFn"];
+  readonly nowFn?: Parameters<typeof waitMergeableAndMerge>[2]["nowFn"];
+  readonly umbrellaReconcileFn?: Parameters<typeof waitMergeableAndMerge>[2]["umbrellaReconcileFn"];
   /**
    * Heartbeat refresh interval while the blocking monitor runs (#5020 P1).
    * Defaults to {@link WAIT_HEARTBEAT_REFRESH_SECONDS}; injectable for tests.
@@ -214,24 +259,36 @@ export function runWaitMergeable(
   });
 
   try {
-    const result = waitMergeableAndMerge(prNumber, repo, {
-      capMinutes: args.capMinutes,
-      protected: protectedIssues,
-      protectedFn: options.protectedFn,
-      monitorFn: options.monitorFn,
-      mergeFn: options.mergeFn,
-      semanticGreenFn: options.semanticGreenFn,
-      cascadeMode: args.cascadeMode,
-      requireMasterCiGreen: args.requireMasterCiGreen,
-      baseBranch: args.baseBranch,
-      // Explicit CLI root (or cwd) so remote-target cascade does not resolve
-      // minGreptileConfidence from an unrelated directory (#3102).
-      projectRoot,
-      skipHumanMergeGate: options.skipHumanMergeGate,
-      skipMergeApprovalHeadGate: options.skipMergeApprovalHeadGate,
-      fetchPrHeadShaFn: options.fetchPrHeadShaFn,
-      mergeApprovalHeadFn: options.mergeApprovalHeadFn,
-    });
+    const result = args.resume
+      ? resumeMergeQueueRead(prNumber, repo, {
+          expectHead: (args.expectHead as string).trim(),
+          since: args.since as string,
+          projectRoot,
+          queueReadFn: options.queueReadFn,
+          umbrellaReconcileFn: options.umbrellaReconcileFn,
+        })
+      : waitMergeableAndMerge(prNumber, repo, {
+          capMinutes: args.capMinutes,
+          protected: protectedIssues,
+          protectedFn: options.protectedFn,
+          monitorFn: options.monitorFn,
+          mergeFn: options.mergeFn,
+          semanticGreenFn: options.semanticGreenFn,
+          cascadeMode: args.cascadeMode,
+          requireMasterCiGreen: args.requireMasterCiGreen,
+          baseBranch: args.baseBranch,
+          // Explicit CLI root (or cwd) so remote-target cascade does not resolve
+          // minGreptileConfidence from an unrelated directory (#3102).
+          projectRoot,
+          skipHumanMergeGate: options.skipHumanMergeGate,
+          skipMergeApprovalHeadGate: options.skipMergeApprovalHeadGate,
+          fetchPrHeadShaFn: options.fetchPrHeadShaFn,
+          mergeApprovalHeadFn: options.mergeApprovalHeadFn,
+          mergeQueueDetectFn: options.mergeQueueDetectFn,
+          queueReadFn: options.queueReadFn,
+          nowFn: options.nowFn,
+          umbrellaReconcileFn: options.umbrellaReconcileFn,
+        });
 
     const summaryLabel = summaryLabelForExit(result.exitCode);
     process.stderr.write(
