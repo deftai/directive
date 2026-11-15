@@ -8,41 +8,62 @@
     "title": "feat(changelog): path test, fragment format, mode and effective view (#6286 slice A)",
     "status": "running",
     "narratives": {
-      "Description": "feat(changelog): path test, fragment format, mode and effective view (#6286 slice A)",
+      "Description": "Slice A of the accepted #6286 CHANGELOG fragments design: one shared changelog path test, the fragment format, the `plan.policy.changelog.mode` policy and one effective view of unreleased entries. While the mode is `inline` (the default) and no fragment exists, no check changes its result.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6314",
       "Overview": "## Summary\n\nSlice A of the accepted #6286 design (CHANGELOG fragments): one shared path test, the fragment format, the mode policy and one effective view of unreleased entries. It changes no outcome while the mode is `inline` (the default) and no fragment exists.\n\nBound contract: successor lean 6859392664 on #6286, items 1, 2, 3 and 5 (completed-arc record 6859436534). Slice B (gate, release, story scope) is a separate child issue. Each slice has its own issue so that each brief completes from exactly one PR with its own `deft-story` line until #6310 ships.\n\n## Scope\n\n1. A new exported `isChangelogEntryPath`: true for exactly `CHANGELOG.md` and for `changelog.d/<name>.md`, one segment deep, where `<name>` is lowercase letters, digits, `.`, `_` or `-`. Every check that matches the literal `CHANGELOG.md` as a path calls it instead: `scope/delivery-evidence.ts` (`isDeliveryBriefLandPath`), `scope-provenance/base-fence.ts`, `class-checks/evaluate.ts`, `verify-ac/evaluate.ts`, `policy/small-change-lane.ts`, `pr-closing-keywords/main.ts`, `presentation-ceiling/evaluate.ts`, `hooks/dispatcher.ts` (the retirement-shaped harvest), `check/session-completed-ac.ts`, `preflight-gh/pre-push.ts`, `coverage-applicability/evaluate.ts`, and `.github/scripts/artifact-only-lifecycle.mjs`.\n2. Fragment format: a regular file whose first line is `section:` followed by one Keep a Changelog subsection name, then one or more entries that each start with `- ` (continuation lines indented). A line that starts with `#`, an empty file, an unknown section, a symlink or a non-regular file is invalid. File name: `<issue>-<slug>.md`.\n3. Mode: `plan.policy.changelog.mode` is `inline` (default), `either` or `fragments`, with `policy:show --field` and a `--confirm` setter.\n4. `readEffectiveUnreleased` returns the `[Unreleased]` entries of `CHANGELOG.md` plus the entries of all valid fragments, by subsection. Every reader of the unreleased section reads through it: `change:changelog:check`, the consumer-readiness census and new-refusal hints, `parseClosesSet`, and the coverage-debt, auto-hatch and skip-ci citation scans. Skill text that tells an agent to read `[Unreleased]` names the fragments too.\n\n## Acceptance Criteria\n\n- Given a literal `CHANGELOG.md` path match outside `isChangelogEntryPath`, when the contract test runs, then it fails and names the file.\n- Given `changelog.d/6286-fragments.md`, then `isChangelogEntryPath` is true; given `changelog.d/sub/x.md`, `changelog.d/X.md` or `docs/CHANGELOG.md`, then it is false.\n- Given a fragment with a valid `section:` line and `- ` entries, then it parses; given an empty file, an unknown section, a `#` line, a symlink or a non-regular file, then it is invalid.\n- Given no policy value, then `policy:show --field=plan.policy.changelog.mode` reports `inline`; the setter accepts only `inline`, `either` and `fragments`, with `--confirm`.\n- Given `[Unreleased]` entries and two valid fragments, then `readEffectiveUnreleased` returns all entries in their subsections, and each listed reader sees them.\n- Given mode `inline` and no fragment, then every changed check returns the same result as before this change.\n\nRefs #6286.\n\ndesign-critique: not warranted, because this slice implements items 1, 2, 3 and 5 of the design already accepted on #6286 (lean 6859392664, record 6859436534) and adds no mechanism.\n\n",
-      "Labels": "framework-gap"
+      "Labels": "framework-gap",
+      "UserStory": "As a maintainer moving to CHANGELOG fragments, I want one path test, one fragment format, a mode policy and one effective unreleased view, so that later gate and release work reads changelog entries the same way everywhere.",
+      "ImplementationPlan": "1. Add `isChangelogEntryPath` in packages/core/src/changelog/entry-path.ts and route every literal `CHANGELOG.md` path match (delivery-evidence, base-fence, class-checks, verify-ac, small-change-lane, pr-closing-keywords, presentation-ceiling, hooks dispatcher, session-completed-ac, pre-push, coverage-applicability, artifact-only-lifecycle.mjs) through it, with a contract test that fails on a new literal match.\n2. Add the fragment parser in packages/core/src/changelog/fragment.ts: a `section:` first line and `- ` entries; reject an empty file, an unknown section, a `#` line, a symlink or a non-regular file.\n3. Add `plan.policy.changelog.mode` (`inline` default, `either`, `fragments`) in packages/core/src/policy/changelog-mode.ts, with `policy:show --field` and a `--confirm` setter wired in runtime policy.ts, dispatch.ts and route-argv.ts.\n4. Add `readEffectiveUnreleased` in packages/core/src/changelog/effective-unreleased.ts and move the listed readers (change:changelog:check, consumer-readiness census, parseClosesSet, coverage-debt, auto-hatch, skip-ci) onto it; skill text that says to read `[Unreleased]` names the fragments too.\n5. Add unit tests for each new module and keep the existing tests green to show inline-mode parity.",
+      "Traces": "#6314, #6286"
     },
     "items": [
       {
         "title": "Given a literal `CHANGELOG.md` path match outside `isChangelogEntryPath`, when the contract test runs, then it fails and names the file.",
         "status": "proposed",
-        "id": "clause.1"
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given a literal `CHANGELOG.md` path match in source outside `isChangelogEntryPath`, when the contract test runs, then it fails and names that file."
+        }
       },
       {
         "title": "Given `changelog.d/6286-fragments.md`, then `isChangelogEntryPath` is true; given `changelog.d/sub/x.md`, `changelog.d/X.md` or `docs/CHANGELOG.md`, then it is false.",
         "status": "proposed",
-        "id": "clause.2"
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given `changelog.d/6286-fragments.md`, then `isChangelogEntryPath` returns true; given `changelog.d/sub/x.md`, `changelog.d/X.md` or `docs/CHANGELOG.md`, then it returns false."
+        }
       },
       {
         "title": "Given a fragment with a valid `section:` line and `- ` entries, then it parses; given an empty file, an unknown section, a `#` line, a symlink or a non-regular file, then it is invalid.",
         "status": "proposed",
-        "id": "clause.3"
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a fragment with a valid `section:` line and `- ` entries, then it parses; given an empty file, an unknown section, a `#` line, a symlink or a non-regular file, then the parser rejects it as invalid."
+        }
       },
       {
         "title": "Given no policy value, then `policy:show --field=plan.policy.changelog.mode` reports `inline`; the setter accepts only `inline`, `either` and `fragments`, with `--confirm`.",
         "status": "proposed",
-        "id": "clause.4"
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given no policy value, then `policy:show --field=plan.policy.changelog.mode` returns `inline`, and the setter rejects any value other than `inline`, `either` or `fragments` and requires `--confirm`."
+        }
       },
       {
         "title": "Given `[Unreleased]` entries and two valid fragments, then `readEffectiveUnreleased` returns all entries in their subsections, and each listed reader sees them.",
         "status": "proposed",
-        "id": "clause.5"
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given `[Unreleased]` entries and two valid fragments, then `readEffectiveUnreleased` returns all entries in their subsections and each listed reader sees them."
+        }
       },
       {
         "title": "Given mode `inline` and no fragment, then every changed check returns the same result as before this change.",
         "status": "proposed",
-        "id": "clause.6"
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given mode `inline` and no fragment, then every changed check returns the same result as before this change."
+        }
       }
     ],
     "tags": [
@@ -257,8 +278,34 @@
           "docs/RULE-MAP.md",
           "CHANGELOG.md"
         ],
-        "file_scope_confidence": "medium"
-      }
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "large",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "changelog-fragments",
+        "verify_commands": [
+          "npx vitest run packages/core/src/changelog/entry-path.test.ts packages/core/src/changelog/fragment.test.ts packages/core/src/changelog/effective-unreleased.test.ts packages/core/src/changelog/entry-path-contract.test.ts packages/core/src/policy/changelog-mode.test.ts packages/core/src/scope/delivery-evidence.test.ts packages/core/src/scope-provenance/base-fence.test.ts packages/core/src/class-checks/evaluate.test.ts packages/core/src/verify-ac/evaluate.test.ts",
+          "npx vitest run packages/core/src/policy/small-change-lane.test.ts packages/core/src/pr-closing-keywords/main.test.ts packages/core/src/presentation-ceiling/evaluate.test.ts packages/core/src/hooks/dispatcher.test.ts packages/core/src/check/session-completed-ac.test.ts packages/core/src/preflight-gh/pre-push.test.ts packages/core/src/coverage-applicability/evaluate.test.ts packages/core/src/check/consumer-header-placeholder.test.ts packages/runtime/src/policy.test.ts",
+          "npx vitest run packages/core/src/release/consumer-hard-stops.test.ts packages/core/src/release/consumer-readiness-disclosure.test.ts packages/core/src/release/run-consumer-readiness.test.ts packages/core/src/release/auto-hatch.test.ts packages/core/src/release/coverage-debt-ledger.test.ts packages/runtime/src/verify-source-cli/verify-consumer-hard-stops.test.ts packages/core/src/vitest-runner/coverage-debt-teardown-changelog.test.ts packages/core/src/vitest-runner/coverage-debt.test.ts"
+        ],
+        "expected_outputs": [
+          "`isChangelogEntryPath` in packages/core/src/changelog/entry-path.ts, used by every literal CHANGELOG.md path check",
+          "contract test that fails on a new literal CHANGELOG.md path match",
+          "fragment parser in packages/core/src/changelog/fragment.ts",
+          "`plan.policy.changelog.mode` reader and `--confirm` setter",
+          "`readEffectiveUnreleased` and the listed readers moved onto it",
+          "skill text names fragments where it says to read [Unreleased]",
+          "CHANGELOG Unreleased entry"
+        ],
+        "Traces": [
+          "#6314",
+          "#6286"
+        ],
+        "acceptance_criteria_justification": "Six clauses, one per acceptance criterion in the #6314 issue body (slice A of #6286 lean 6859392664, items 1, 2, 3 and 5); kept one-to-one so each maps to its own evidence."
+      },
+      "kind": "story"
     },
     "id": "github.issue.6398935107",
     "updated": "2026-11-15T02:35:40Z"

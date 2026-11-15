@@ -8,51 +8,78 @@
     "title": "feat(scope): identity join reads merge-time body; operator delivery attestation (#6310 slice B)",
     "status": "running",
     "narratives": {
-      "Description": "feat(scope): identity join reads merge-time body; operator delivery attestation (#6310 slice B)",
+      "Description": "Slice B of the accepted #6310 design: the completion identity join reads each candidate's merge-time body first, refuses part-line PRs as partial deliveries, settles two PRs with the same mark by the stamp on the fetched delivery branch, and accepts an operator delivery attestation grant for merged work with no basis. This is the recovery that lets #6269, #6270, #6271 and #6273 complete.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6317",
       "Overview": "## Summary\n\nSlice B of the accepted #6310 design: the identity join reads the merge-time body first, refuses part-line PRs as partial deliveries, settles two PRs with the same mark by the brief on the delivery branch, and accepts an operator attestation for merged work with no basis. This is the recovery that lets #6269, #6270, #6271 and #6273 complete.\n\nBound contract: successor lean 6887155397 on #6310, Bound 2 and Bound 3 and the matching fixtures of Bound 5 (accepted synthesis 6887284787). Slice A (part line and pre-merge check) lands first; slice C (disposition grant) reuses the grant store added here. Each slice has its own issue so that each brief completes from exactly one PR with its own `deft-story` line.\n\n## Scope\n\n1. The join. Before any basis admits a candidate, the attested basis included, the join reads the candidate's merge-time body; an unreadable body refuses, the same as an incomplete scan. A candidate whose merge-time body carries the part line for the story is refused as a partial delivery on every basis, and the refusal names the way forward. A part-line PR is never a competitor. The sole-mark basis keeps its uniqueness refusal with one exception: when other merged, non-excluded PRs carry the same mark, the candidate is admitted only if it equals `metadata.productPullRequest` in the brief as read with `git show origin/<deliveryBranch>:<brief path>` after a fetch, never the working tree; otherwise the refusal names the competitors. In `swarm:finalize-cohort`, the #6212 operator bind of an unstamped brief does not bind when that scan finds another merged, non-excluded PR with the same mark; it refuses and names both. Completion provenance lists the merged part-line PRs and any competing marked PRs found.\n2. Attestation. `deft authz:grant --template delivery-identity-attest --target <owner>/<repo>#<pr>@<merge_commit_sha> --plan-ref <scopeId> --confirm` runs through the existing human-presence mint gate, `operator-cli` origin only, default expiry 24 hours. The join accepts a new basis `operator-attested` when a grant matches the PR number, the merge commit and the plan id, the candidate is not a part-line PR, and the PR passes the existing nonzero-file and delivery-exclusion checks. First use must be before expiry and is recorded when the `completed/` write succeeds; a later run for the same plan, PR and merge commit accepts the used grant. The grant id is stored in completion provenance.\n3. One store. The mint, every read, the use record, the expired-grant refusal, `authz:revoke` and `authz:show` resolve the store at `mainWorktreeRoot(projectRoot)`; a root that cannot be resolved refuses. `StoryPrIdentityBasis` and the accepted-bases text gain the basis, and the refusal names this command in place of the parked migration.\n\n## Acceptance Criteria\n\n- Given a story with only a part-line PR merged, then `scope:complete --pr` on it, `swarm:finalize-cohort --stories N`, and an attestation of that PR all refuse.\n- Given a part-line PR with a Connected link and a failing body read, then the join refuses.\n- Given a second PR that merges with the mark, then the story completes and provenance lists the part-line PR.\n- Given two merged PRs with the same mark, then the one equal to the stamp on the fetched delivery branch completes by `--pr`, by auto-discovery and through finalize; the other refuses and names it; a working-tree stamp that differs from the fetched blob does not win; an unstamped brief with two marked PRs refuses through finalize and names both.\n- Given an incomplete scan, then the join refuses.\n- Given an attested PR, then it completes from the primary clone, from a linked dest and through finalize; a grant minted from a linked dest is found from the primary.\n- Given an acceptance refusal after the join, then the grant stays unused; a finalize retry and a restamp for the same target pass.\n- Given an expired unused grant, a grant for another PR, commit or plan, an attested PR with an unreadable body, or an attested lifecycle-only PR, then completion refuses.\n\nRefs #6310.\n\ndesign-critique: not warranted, because this slice implements Bounds 2 and 3 of the design already accepted on #6310 (lean 6887155397, synthesis 6887284787) and adds no mechanism.\n\n",
-      "Labels": "framework-gap"
+      "Labels": "framework-gap",
+      "UserStory": "As an operator completing a story whose merged PR has no usable mark, I want the identity join to read merge-time bodies and accept my attestation grant, so that shipped stories complete without hand-edited briefs.",
+      "ImplementationPlan": "1. In packages/core/src/scope/delivery-evidence.ts, read each candidate's merge-time body before any basis; refuse on an unreadable body or a part line; settle same-mark competitors by `git show origin/<deliveryBranch>:<brief path>` after a fetch; list part-line and competing PRs in provenance.\n2. In packages/core/src/swarm/finalize-cohort.ts, refuse the #6212 operator bind when another merged, non-excluded PR carries the same mark, naming both.\n3. Add the `delivery-identity-attest` template (policy/delivery-identity-attest-grant.ts, runtime authz.ts) through the human-presence mint gate, `operator-cli` origin, 24-hour expiry, and the `operator-attested` basis; record first use with the `completed/` write.\n4. Resolve the grant store at `mainWorktreeRoot(projectRoot)` for mint, read, use, revoke and show; refuse when it cannot be resolved.\n5. Cover each clause in delivery-evidence, transition, finalize-cohort, grant and authz tests; document the template in content/contracts/human-origin-authz.md and content/commands.md.",
+      "Traces": "#6317, #6310, #6212"
     },
     "items": [
       {
         "title": "Given a story with only a part-line PR merged, then `scope:complete --pr` on it, `swarm:finalize-cohort --stories N`, and an attestation of that PR all refuse.",
         "status": "proposed",
-        "id": "clause.1"
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given a story with only a part-line PR merged, then `scope:complete --pr`, `swarm:finalize-cohort --stories N` and an attestation of that PR each refuse."
+        }
       },
       {
         "title": "Given a part-line PR with a Connected link and a failing body read, then the join refuses.",
         "status": "proposed",
-        "id": "clause.2"
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given a part-line PR with a Connected link and a failing merge-time body read, when the join runs, then it refuses."
+        }
       },
       {
         "title": "Given a second PR that merges with the mark, then the story completes and provenance lists the part-line PR.",
         "status": "proposed",
-        "id": "clause.3"
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a second PR that merges with the mark after a part-line PR, then the story completes and provenance lists the part-line PR."
+        }
       },
       {
         "title": "Given two merged PRs with the same mark, then the one equal to the stamp on the fetched delivery branch completes by `--pr`, by auto-discovery and through finalize; the other refuses and names it; a working-tree stamp that differs from the fetched blob does not win; an unstamped brief with two marked PRs refuses through finalize and names both.",
         "status": "proposed",
-        "id": "clause.4"
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given two merged PRs with the same mark, then the one equal to the fetched delivery-branch stamp completes by `--pr`, auto-discovery and finalize, the other refuses naming it, a differing working-tree stamp does not win, and an unstamped brief refuses through finalize naming both."
+        }
       },
       {
         "title": "Given an incomplete scan, then the join refuses.",
         "status": "proposed",
-        "id": "clause.5"
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given an incomplete merged-PR scan, when the identity join runs, then it refuses."
+        }
       },
       {
         "title": "Given an attested PR, then it completes from the primary clone, from a linked dest and through finalize; a grant minted from a linked dest is found from the primary.",
         "status": "proposed",
-        "id": "clause.6"
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given an attested PR, then it completes from the primary clone, from a linked dest and through finalize, and a grant minted from a linked dest is found from the primary."
+        }
       },
       {
         "title": "Given an acceptance refusal after the join, then the grant stays unused; a finalize retry and a restamp for the same target pass.",
         "status": "proposed",
-        "id": "clause.7"
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given an acceptance refusal after the join, then the grant stays unused, and a finalize retry and a restamp for the same target both pass."
+        }
       },
       {
         "title": "Given an expired unused grant, a grant for another PR, commit or plan, an attested PR with an unreadable body, or an attested lifecycle-only PR, then completion refuses.",
         "status": "proposed",
-        "id": "clause.8"
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given an expired unused grant, a grant for another PR, commit or plan, an attested PR with an unreadable body, or an attested lifecycle-only PR, then completion refuses."
+        }
       }
     ],
     "tags": [
@@ -97,7 +124,32 @@
           "docs/RULE-MAP.md",
           "CHANGELOG.md"
         ],
-        "file_scope_confidence": "medium"
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [
+          "github.issue.6398935639"
+        ],
+        "conflict_group": "delivery-identity-join",
+        "verify_commands": [
+          "npx vitest run packages/core/src/scope/delivery-evidence.test.ts packages/core/src/scope/transition.test.ts packages/core/src/swarm/finalize-cohort.test.ts packages/core/src/policy/delivery-identity-attest-grant.test.ts packages/runtime/src/authz.test.ts"
+        ],
+        "expected_outputs": [
+          "identity join reads the merge-time body before any basis",
+          "part-line PRs refused as partial deliveries on every basis",
+          "same-mark competitors settled by the fetched delivery-branch stamp",
+          "finalize-cohort operator bind refuses on a same-mark competitor",
+          "`delivery-identity-attest` grant template and `operator-attested` basis",
+          "grant store resolved at `mainWorktreeRoot(projectRoot)`"
+        ],
+        "Traces": [
+          "#6317",
+          "#6310",
+          "#6212"
+        ],
+        "acceptance_criteria_justification": "Eight clauses, one per acceptance criterion in the #6317 issue body (slice B of #6310 lean 6887155397, Bound 2 and 3 with Bound 5 fixtures); kept one-to-one so each maps to its own evidence."
       },
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
@@ -110,7 +162,8 @@
         "github_issue_id": 6398935915,
         "origin": "deftai/directive#6317",
         "id": "github.issue.6398935915"
-      }
+      },
+      "kind": "story"
     },
     "acceptance": {
       "commands": [],

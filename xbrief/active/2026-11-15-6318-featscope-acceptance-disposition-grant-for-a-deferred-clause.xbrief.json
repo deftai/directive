@@ -8,46 +8,70 @@
     "title": "feat(scope): acceptance-disposition grant for a deferred clause (#6310 slice C)",
     "status": "running",
     "narratives": {
-      "Description": "feat(scope): acceptance-disposition grant for a deferred clause (#6310 slice C)",
+      "Description": "Slice C of the accepted #6310 design: an operator `acceptance-disposition` grant records that one acceptance clause is deferred, without editing the active brief. On completion, the covered clause carries the `deferred` disposition and the grant id instead of merge evidence.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6318",
       "Overview": "## Summary\n\nSlice C of the accepted #6310 design: an operator grant records that one acceptance clause is deferred, without editing the active brief, and completion writes the disposition instead of stamping merge evidence on that clause.\n\nBound contract: successor lean 6887155397 on #6310, Bound 4 and the matching fixtures of Bound 5 (accepted synthesis 6887284787). It uses the grant store from slice B. Each slice has its own issue so that each brief completes from exactly one PR with its own `deft-story` line.\n\n## Scope\n\n1. `deft authz:grant --template acceptance-disposition --plan-ref <scopeId> --story-ids <itemIds> --deferred-to <issue> --reason <text> --confirm` runs through the existing human-presence mint gate and the store at `mainWorktreeRoot(projectRoot)`.\n2. At mint it records, for each covered id, a digest of `acceptance.clauses[id].text` resolved by clause id; a covered plan item that is not an acceptance clause uses its title. It is accepted, on first use and on any replay, only for that plan and those ids and only while each digest still matches; a changed clause refuses and names a re-mint. First use must be before expiry and is recorded when the `completed/` write succeeds.\n3. The active brief is not edited and the intent extract is unchanged. In `scope:complete` complete-prep, grant-covered dispositions (`deferred`, the reason, the target issue, the grant id in provenance) are applied in memory after `persistClauseKeyedPendingItems` and before `stampMergeFromCompletionProvenance`, so the merge stamper skips those items; they are left out of the mid-flight write to the active brief and written only with the `completed/` write.\n4. `scope:complete` refuses, instead of stamping, when an expired grant of this template that was never used names the plan and no later unexpired grant covers the same plan and ids; the refusal names a re-mint or `authz:revoke`.\n\n## Acceptance Criteria\n\n- Given a granted deferral, when the story is completed from the primary clone, from a linked dest or through finalize, then that item has no merge evidence and carries the `deferred` disposition with the grant id in provenance.\n- Given a deferral minted on a clause that has no plan item, then it works.\n- Given an acceptance refusal, then the active brief is unchanged.\n- Given an expired unused grant, then completion refuses; after a re-mint from a linked dest, completion passes.\n- Given a grant, then `authz:revoke` from a linked dest finds it.\n- Given a first use or a replay after `acceptance.clauses[].text` changed, then completion refuses and names a re-mint.\n- Given a hand-written disposition on an active brief, then membership still refuses it.\n\nRefs #6310.\n\ndesign-critique: not warranted, because this slice implements Bound 4 of the design already accepted on #6310 (lean 6887155397, synthesis 6887284787) and adds no mechanism.\n\n",
-      "Labels": "framework-gap"
+      "Labels": "framework-gap",
+      "UserStory": "As an operator deferring one acceptance clause to a later issue, I want a grant that completion applies as a deferred disposition, so that the story completes without hand-editing the active brief.",
+      "ImplementationPlan": "1. Add the `acceptance-disposition` template in packages/core/src/policy/acceptance-disposition-grant.ts and runtime authz.ts, minted through the human-presence gate into the store at `mainWorktreeRoot(projectRoot)`.\n2. At mint, store a digest of each covered clause text (or the item title when it is not a clause); accept only for that plan and those ids while each digest matches, else refuse and name a re-mint.\n3. In packages/core/src/scope/transition.ts and acceptance-evidence.ts, apply covered dispositions in memory after `persistClauseKeyedPendingItems` and before `stampMergeFromCompletionProvenance`, keep them out of the mid-flight active write, and write them with the `completed/` write, which also records first use.\n4. Refuse completion on an expired unused grant with no later cover, naming a re-mint or `authz:revoke`.\n5. Cover each clause in acceptance-evidence, transition, complete-cohort-sweep, grant, authz and intent tests; document the template in content/contracts/human-origin-authz.md.",
+      "Traces": "#6318, #6310"
     },
     "items": [
       {
         "title": "Given a granted deferral, when the story is completed from the primary clone, from a linked dest or through finalize, then that item has no merge evidence and carries the `deferred` disposition with the grant id in provenance.",
         "status": "proposed",
-        "id": "clause.1"
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given a granted deferral, when the story completes from the primary clone, a linked dest or finalize, then that item has no merge evidence and carries `deferred` with the grant id in provenance."
+        }
       },
       {
         "title": "Given a deferral minted on a clause that has no plan item, then it works.",
         "status": "proposed",
-        "id": "clause.2"
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given a deferral minted on an acceptance clause that has no plan item, when the story completes, then that clause records the deferred disposition."
+        }
       },
       {
         "title": "Given an acceptance refusal, then the active brief is unchanged.",
         "status": "proposed",
-        "id": "clause.3"
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given an acceptance refusal during completion, then the active brief stays unchanged on disk."
+        }
       },
       {
         "title": "Given an expired unused grant, then completion refuses; after a re-mint from a linked dest, completion passes.",
         "status": "proposed",
-        "id": "clause.4"
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given an expired unused grant, then completion refuses; after a re-mint from a linked dest, then completion passes."
+        }
       },
       {
         "title": "Given a grant, then `authz:revoke` from a linked dest finds it.",
         "status": "proposed",
-        "id": "clause.5"
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given a minted grant, when `authz:revoke` runs from a linked dest, then it finds that grant."
+        }
       },
       {
         "title": "Given a first use or a replay after `acceptance.clauses[].text` changed, then completion refuses and names a re-mint.",
         "status": "proposed",
-        "id": "clause.6"
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given a first use or a replay after `acceptance.clauses[].text` changed, then completion refuses and names a re-mint."
+        }
       },
       {
         "title": "Given a hand-written disposition on an active brief, then membership still refuses it.",
         "status": "proposed",
-        "id": "clause.7"
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given a hand-written disposition on an active brief, when membership runs, then it still refuses that disposition."
+        }
       }
     ],
     "tags": [
@@ -93,7 +117,30 @@
           "docs/RULE-MAP.md",
           "CHANGELOG.md"
         ],
-        "file_scope_confidence": "medium"
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [
+          "github.issue.6398935915"
+        ],
+        "conflict_group": "delivery-identity-join",
+        "verify_commands": [
+          "npx vitest run packages/core/src/scope/acceptance-evidence.test.ts packages/core/src/scope/transition.test.ts packages/core/src/swarm/complete-cohort-sweep.test.ts packages/core/src/policy/acceptance-disposition-grant.test.ts packages/runtime/src/authz.test.ts packages/core/src/scope-provenance/intent.test.ts"
+        ],
+        "expected_outputs": [
+          "`acceptance-disposition` grant template with per-clause digests",
+          "in-memory disposition apply before the merge stamper in `scope:complete`",
+          "deferred disposition and grant id written only with the completed/ write",
+          "expired-unused-grant refusal naming a re-mint or `authz:revoke`",
+          "template documented in human-origin-authz.md"
+        ],
+        "Traces": [
+          "#6318",
+          "#6310"
+        ],
+        "acceptance_criteria_justification": "Seven clauses, one per acceptance criterion in the #6318 issue body (slice C of #6310 lean 6887155397, Bound 4 with Bound 5 fixtures); kept one-to-one so each maps to its own evidence."
       },
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
@@ -106,7 +153,8 @@
         "github_issue_id": 6398936204,
         "origin": "deftai/directive#6318",
         "id": "github.issue.6398936204"
-      }
+      },
+      "kind": "story"
     },
     "acceptance": {
       "commands": [],
