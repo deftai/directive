@@ -30,11 +30,14 @@ import {
   classifyStoredDeliveryDisposition,
   type DeliveryEvidenceInput,
   defaultFetchPrChangedFiles,
+  defaultMergeTimeForge,
   evidenceFromPrPayload,
   type FetchPrChangedFilesFn,
   isDeliveryBriefLandPath,
+  type MergeTimeForge,
   type PrChangedFile,
   SPEC_DRIFT_LEDGER_REL,
+  scanSoleMarkCompetitors,
   verifyDeliveryAncestry,
 } from "../scope/delivery-evidence.js";
 import type { GitRunner } from "../session/git.js";
@@ -139,6 +142,8 @@ export interface FinalizeCohortArgs {
   readonly pmRunner?: WorktreePmRunner;
   /** Test seam: PR changed-files lookup for the lifecycle-shaped PR guard (#6212). */
   readonly fetchPrChangedFiles?: FetchPrChangedFilesFn;
+  /** Test seam: merged-PR reads for the operator-bind same-mark scan (#6317). */
+  readonly mergeTimeForge?: MergeTimeForge;
 }
 
 /**
@@ -1609,6 +1614,11 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
   const fetchPrChangedFiles: FetchPrChangedFilesFn =
     args.fetchPrChangedFiles ??
     ((prNumber, repository) => defaultFetchPrChangedFiles(prNumber, repository, runGh));
+  let liveMergeTimeForge: MergeTimeForge | null = null;
+  const mergeTimeForge = (): MergeTimeForge => {
+    liveMergeTimeForge ??= args.mergeTimeForge ?? defaultMergeTimeForge(runGh);
+    return liveMergeTimeForge;
+  };
   const runGit = args.runGit ?? runText;
   const gitRunner = asGitRunner(runGit);
   const prNumbers = [...(args.prNumbers ?? [])].sort((a, b) => a - b);
@@ -1914,7 +1924,25 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
               } else if (isLifecycleShapedPr(prFiles)) {
                 reason = `PR #${String(prNumber)} changes only lifecycle paths: briefs, CHANGELOG.md, spec-drift ledger`;
               } else {
-                bound = true;
+                // #6317: no bind when another merged, non-excluded PR carries the
+                // same mark; refuse and name both. An incomplete scan fails closed.
+                const scan = scanSoleMarkCompetitors({
+                  repository: repo,
+                  issueNumber: issue,
+                  candidatePr: prNumber,
+                  forge: mergeTimeForge(),
+                });
+                if (!scan.ok) {
+                  reason = `same-mark scan for PR #${String(prNumber)} failed: ${scan.error}`;
+                  lookupFailed = true;
+                } else if (scan.competitors.length > 0) {
+                  const others = scan.competitors.map((n) => `#${String(n)}`).join(", ");
+                  reason =
+                    `PR #${String(prNumber)} and merged PR ${others} carry the same mark; ` +
+                    `stamp metadata.productPullRequest on the delivery branch to choose one (#6317)`;
+                } else {
+                  bound = true;
+                }
               }
             }
           }

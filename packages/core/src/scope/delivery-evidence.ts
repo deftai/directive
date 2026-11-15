@@ -19,7 +19,12 @@ import {
   resolveDeliveryBranch,
   trackingFetchArgv,
 } from "../policy/delivery-branch.js";
-import { parseAllDeftStoryMarks } from "../pr-closing-keywords/main.js";
+import {
+  type DeliveryIdentityAttestLookup,
+  findDeliveryIdentityAttestation,
+  formatDeliveryIdentityAttestCommand,
+} from "../policy/delivery-identity-attest-grant.js";
+import { parseAllDeftStoryMarks, parseAllDeftStoryPartLines } from "../pr-closing-keywords/main.js";
 import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import type { RunGhFn, RunGhResult } from "../pr-protected-issues/types.js";
 import { defaultGitRunner, type GitRunner, gitIsAncestor } from "../session/git.js";
@@ -123,6 +128,12 @@ export interface CompletionProvenance {
    * itself because the issue was linked after merge (#3675 fallback).
    */
   readonly identityBasis?: StoryPrIdentityBasis;
+  /** Grant id when the basis is `operator-attested` (#6317). */
+  readonly attestationGrantId?: string;
+  /** Merged PRs whose merge-time body carries `deft-story-part: N` (#6317). */
+  readonly partLinePrs?: readonly number[];
+  /** Other merged, non-excluded PRs with the same sole mark (#6317). */
+  readonly competingMarkedPrs?: readonly number[];
 }
 
 export interface DeliveryEvidenceInput {
@@ -213,8 +224,15 @@ export interface DeliveryGateOptions {
    * brief-in-PR-diff identity basis (#3675).
    */
   readonly briefBasename?: string;
+  /**
+   * Project-relative path of the brief. The same-mark tie-break reads
+   * `git show origin/<deliveryBranch>:<briefRelPath>` after a fetch (#6317).
+   */
+  readonly briefRelPath?: string;
   /** Test / inject seam: PR changed files for the brief-in-PR-diff basis. */
   readonly fetchPrChangedFiles?: FetchPrChangedFilesFn;
+  /** Test / inject seam: operator delivery attestation lookup (#6317). */
+  readonly findDeliveryAttestation?: FindDeliveryAttestationFn;
 }
 
 export interface DeliveryGateResult {
@@ -591,6 +609,8 @@ export function defaultFetchPrChangedFiles(
  * - `pr-only`: issue-less brief bound by `plan.metadata.productPullRequest` (#5710 P1).
  * - `merge-time-mark` / `merge-time-keyword` / `merge-time-connected`: issue-anchored
  *   association proven as of `merged_at` (#5710 P3 bases a / b / c).
+ * - `operator-attested`: an operator `delivery-identity-attest` grant for the PR,
+ *   its merge commit and the plan (#6317 / #6310 Bound 3).
  */
 export type StoryPrIdentityBasis =
   | "forge-closer"
@@ -598,7 +618,8 @@ export type StoryPrIdentityBasis =
   | "pr-only"
   | "merge-time-mark"
   | "merge-time-keyword"
-  | "merge-time-connected";
+  | "merge-time-connected"
+  | "operator-attested";
 
 const LIFECYCLE_FOLDER_SET: ReadonlySet<string> = new Set(LIFECYCLE_FOLDERS);
 
@@ -713,11 +734,26 @@ export const MERGE_TIME_SCAN_MIN_CORE_REMAINING = 100;
 /** GitHub `pulls/{n}/files` lists at most 3000 files. */
 export const PR_FILES_LISTING_CAP = 3000;
 
-/** The three accepted merge-time bases, named in every stranded-shape refusal (#5710). */
+/** The accepted merge-time bases, named in every stranded-shape refusal (#5710 / #6317). */
 export const MERGE_TIME_ASSOCIATION_BASES =
-  "(a) a unique sole `deft-story: N` mark in the PR body as of merged_at, " +
+  "(a) a unique sole `deft-story: N` mark in the PR body as of merged_at " +
+  "(two marked PRs: the one stamped as productPullRequest on the fetched delivery branch), " +
   "(b) a closing keyword (close/fix/resolve forms) naming the issue in the PR body as of merged_at, " +
-  "(c) a Connected issue link in effect at merged_at";
+  "(c) a Connected issue link in effect at merged_at, " +
+  "(d) an operator `delivery-identity-attest` grant for the PR, its merge commit and this plan";
+
+/** Operator attestation lookup (#6317); see findDeliveryIdentityAttestation. */
+export type FindDeliveryAttestationFn = (query: {
+  readonly repository: string;
+  readonly prNumber: number;
+  readonly mergeCommitSha: string;
+  readonly planId: string;
+}) => DeliveryIdentityAttestLookup;
+
+/** `metadata.productPullRequest` of the brief on the fetched delivery branch (#6317). */
+export type DeliveryBranchStampRead =
+  | { readonly ok: true; readonly productPullRequest: number | null; readonly source: string }
+  | { readonly ok: false; readonly error: string };
 
 /** Budget guards for one identity join; each returns null or the refusal reason. */
 export interface ScanBudget {
@@ -1039,12 +1075,19 @@ function listedMergeTimeBody(
   );
 }
 
+/** True when the body carries `deft-story-part: <issueNumber>` (#6316 / #6317). */
+export function bodyHasStoryPartLine(body: string, issueNumber: number): boolean {
+  return parseAllDeftStoryPartLines(body).includes(issueNumber);
+}
+
 /**
  * Bounded exhaustive uniqueness scan (#5710 basis a). Enumerates every merged
  * PR, reconstructs each merge-time body, and classifies sole-mark hits for
  * `issueNumber`. Returns the non-excluded sole-mark PRs other than the
- * candidate. Any incomplete page, unreadable revision or competitor, truncated
- * listing, or exhausted budget fails closed. No recent-window shortcut.
+ * candidate, and the merged PRs whose merge-time body carries the part line
+ * for the story (#6317: a part-line PR is never a competitor). Any incomplete
+ * page, unreadable revision or competitor, truncated listing, or exhausted
+ * budget fails closed. No recent-window shortcut.
  */
 export function scanSoleMarkCompetitors(input: {
   readonly repository: string;
@@ -1052,10 +1095,11 @@ export function scanSoleMarkCompetitors(input: {
   readonly candidatePr: number;
   readonly forge: MergeTimeForge;
   readonly budget?: ScanBudget;
-}): { ok: true; competitors: number[] } | { ok: false; error: string } {
+}): { ok: true; competitors: number[]; partLinePrs: number[] } | { ok: false; error: string } {
   const { repository, issueNumber, candidatePr, forge } = input;
   const budget = input.budget ?? makeScanBudget(forge);
   const competitors: number[] = [];
+  const partLinePrs: number[] = [];
   let after: string | null = null;
   for (;;) {
     const refused = budget.beforeGraphql();
@@ -1072,6 +1116,10 @@ export function scanSoleMarkCompetitors(input: {
       if (!body.ok) {
         return { ok: false, error: `merged-PR scan: ${body.error}` };
       }
+      if (bodyHasStoryPartLine(body.body, issueNumber)) {
+        partLinePrs.push(node.number);
+        continue;
+      }
       if (soleDeftStoryMark(body.body) !== issueNumber) continue;
       const exclusion = classifyDeliveryExclusion(forge, budget, repository, node.number);
       if (!exclusion.ok) {
@@ -1082,7 +1130,7 @@ export function scanSoleMarkCompetitors(input: {
       }
     }
     if (!page.hasNextPage) {
-      return { ok: true, competitors };
+      return { ok: true, competitors, partLinePrs };
     }
     const next = nextCursor(page.endCursor, after);
     if (next === null) {
@@ -1095,7 +1143,43 @@ export function scanSoleMarkCompetitors(input: {
   }
 }
 
-/** Basis a: unique sole mark among merged non-excluded PRs (#5710). */
+/**
+ * Candidate delivery checks shared by bases (a) and (d): a nonzero-file diff
+ * that is not delivery-brief-land excluded (#5710 / #6317). Null = passes.
+ */
+function candidateDeliveryRefusal(
+  forge: MergeTimeForge,
+  budget: ScanBudget,
+  repository: string,
+  prNumber: number,
+  label: string,
+): string | null {
+  const exclusion = classifyDeliveryExclusion(forge, budget, repository, prNumber);
+  if (!exclusion.ok) {
+    return `${label} ${exclusion.error}`;
+  }
+  if (exclusion.fileCount === 0) {
+    return `${label} PR #${prNumber} changes no files (a zero-file PR carries no delivery)`;
+  }
+  if (exclusion.excluded) {
+    return (
+      `${label} PR #${prNumber} changes only briefs and CHANGELOG.md ` +
+      `(delivery-brief-land excluded; not delivery)`
+    );
+  }
+  return null;
+}
+
+type SoleMarkProof =
+  | { ok: true; competingMarkedPrs: number[]; partLinePrs: number[] }
+  | { ok: false; reason: string };
+
+/**
+ * Basis a: unique sole mark among merged non-excluded PRs (#5710). Uniqueness
+ * keeps one exception (#6317): when other marked PRs exist, the candidate is
+ * admitted only if it equals `metadata.productPullRequest` in the brief on the
+ * fetched delivery branch, never the working tree.
+ */
 function proveSoleMarkBasis(input: {
   readonly forge: MergeTimeForge;
   readonly budget: ScanBudget;
@@ -1103,7 +1187,8 @@ function proveSoleMarkBasis(input: {
   readonly issueNumber: number;
   readonly prNumber: number;
   readonly mergeTimeBody: string;
-}): { ok: true } | { ok: false; reason: string } {
+  readonly readDeliveryBranchStamp?: () => DeliveryBranchStampRead;
+}): SoleMarkProof {
   const { forge, budget, repository, issueNumber, prNumber } = input;
   if (soleDeftStoryMark(input.mergeTimeBody) !== issueNumber) {
     return {
@@ -1111,23 +1196,9 @@ function proveSoleMarkBasis(input: {
       reason: `(a) PR #${prNumber} body as of merged_at has no sole \`deft-story: ${issueNumber}\` mark`,
     };
   }
-  const exclusion = classifyDeliveryExclusion(forge, budget, repository, prNumber);
-  if (!exclusion.ok) {
-    return { ok: false, reason: `(a) ${exclusion.error}` };
-  }
-  if (exclusion.fileCount === 0) {
-    return {
-      ok: false,
-      reason: `(a) PR #${prNumber} changes no files (a zero-file PR carries no delivery)`,
-    };
-  }
-  if (exclusion.excluded) {
-    return {
-      ok: false,
-      reason:
-        `(a) PR #${prNumber} changes only briefs and CHANGELOG.md ` +
-        `(delivery-brief-land excluded; not delivery)`,
-    };
+  const delivery = candidateDeliveryRefusal(forge, budget, repository, prNumber, "(a)");
+  if (delivery !== null) {
+    return { ok: false, reason: delivery };
   }
   const scan = scanSoleMarkCompetitors({
     repository,
@@ -1139,16 +1210,36 @@ function proveSoleMarkBasis(input: {
   if (!scan.ok) {
     return { ok: false, reason: `(a) uniqueness unknown, refusing: ${scan.error}` };
   }
-  if (scan.competitors.length > 0) {
-    const list = scan.competitors.map((n) => `#${n}`).join(", ");
+  if (scan.competitors.length === 0) {
+    return { ok: true, competingMarkedPrs: [], partLinePrs: scan.partLinePrs };
+  }
+  const list = scan.competitors.map((n) => `#${n}`).join(", ");
+  const notUnique =
+    `(a) mark is not unique: merged non-excluded PR(s) ${list} also carry a sole ` +
+    `\`deft-story: ${issueNumber}\` mark`;
+  if (input.readDeliveryBranchStamp === undefined) {
     return {
       ok: false,
-      reason:
-        `(a) mark is not unique: merged non-excluded PR(s) ${list} also carry a sole ` +
-        `\`deft-story: ${issueNumber}\` mark`,
+      reason: `${notUnique}; no delivery-branch brief read is available to settle it`,
     };
   }
-  return { ok: true };
+  const stamp = input.readDeliveryBranchStamp();
+  if (!stamp.ok) {
+    return {
+      ok: false,
+      reason: `${notUnique}; settling by the fetched delivery-branch stamp failed: ${stamp.error}`,
+    };
+  }
+  if (stamp.productPullRequest === prNumber) {
+    return { ok: true, competingMarkedPrs: scan.competitors, partLinePrs: scan.partLinePrs };
+  }
+  const stamped = stamp.productPullRequest === null ? "unset" : `#${stamp.productPullRequest}`;
+  return {
+    ok: false,
+    reason:
+      `${notUnique}; metadata.productPullRequest in ${stamp.source} is ${stamped}, ` +
+      `not #${prNumber} (a working-tree stamp does not count)`,
+  };
 }
 
 /** One GraphQL call through gh; returns `data` or an error (any `errors` entry fails). */
@@ -1482,6 +1573,12 @@ export interface StoryPrMergeIdentityResult {
   readonly identityBasis?: StoryPrIdentityBasis;
   /** Repository the identity was proven in (issue repository or canonical remote). */
   readonly repository?: string;
+  /** Grant id when the basis is `operator-attested` (#6317). */
+  readonly attestationGrantId?: string;
+  /** Merged part-line PRs found by the sole-mark scan (#6317). */
+  readonly partLinePrs?: readonly number[];
+  /** Competing marked PRs settled by the delivery-branch stamp (#6317). */
+  readonly competingMarkedPrs?: readonly number[];
 }
 
 export interface StoryPrMergeIdentityInput {
@@ -1496,6 +1593,14 @@ export interface StoryPrMergeIdentityInput {
   readonly fetchPrChangedFiles?: FetchPrChangedFilesFn;
   /** Canonical remote for the PR-only path (#5710 P1). Absent → that path fails closed. */
   readonly resolveCanonicalRepository?: () => string | null;
+  /**
+   * Same-mark tie-break (#6317): the brief's productPullRequest read with
+   * `git show origin/<deliveryBranch>:<brief path>` after a fetch. Absent →
+   * two marked PRs keep the uniqueness refusal.
+   */
+  readonly readDeliveryBranchStamp?: () => DeliveryBranchStampRead;
+  /** Operator attestation lookup (#6317). Absent → the attested basis is unavailable. */
+  readonly findDeliveryAttestation?: FindDeliveryAttestationFn;
 }
 
 type MergedPayload =
@@ -1589,6 +1694,13 @@ function checkRecordedImplementation(
   );
 }
 
+/** Extra proof facts carried into completion provenance (#6317). */
+interface IdentityProofExtras {
+  readonly attestationGrantId?: string;
+  readonly partLinePrs?: readonly number[];
+  readonly competingMarkedPrs?: readonly number[];
+}
+
 /** Shared tail: head check and the success result. */
 function finishIdentityJoin(input: {
   readonly evidence: DeliveryEvidenceInput;
@@ -1597,6 +1709,7 @@ function finishIdentityJoin(input: {
   readonly repository: string;
   readonly identityBasis: StoryPrIdentityBasis;
   readonly subject: string;
+  readonly extras?: IdentityProofExtras;
 }): StoryPrMergeIdentityResult {
   const { evidence, merged, prNumber } = input;
   const headCheck = checkRecordedImplementation(evidence, merged.payload, prNumber);
@@ -1615,6 +1728,7 @@ function finishIdentityJoin(input: {
     headSha: payloadHeadSha(merged.payload),
     identityBasis: input.identityBasis,
     repository: input.repository,
+    ...(input.extras ?? {}),
   };
 }
 
@@ -1712,36 +1826,25 @@ interface IssueAnchoredTarget {
   readonly issueNumber: number;
   readonly prNumber: number;
   readonly mergedAt: string;
+  readonly mergeCommitSha: string;
   readonly currentBody: string | null;
 }
 
-/** Bases b and c from forge reads; returns the proven basis or appends reasons. */
+/** Bases b and c on the merge-time body already read; returns the basis or appends reasons. */
 function proveKeywordOrConnected(
   forge: MergeTimeForge,
   budget: ScanBudget,
   target: IssueAnchoredTarget,
+  mergeTimeBody: string,
   reasons: string[],
-): { basis: StoryPrIdentityBasis | null; mergeTimeBody: string | null } {
+): StoryPrIdentityBasis | null {
   const { repository, issueNumber, prNumber, mergedAt } = target;
-  let mergeTimeBody: string | null = null;
-  const body = reconstructMergeTimeBody(
-    forge,
-    budget,
-    { repository, prNumber },
-    target.currentBody,
-    mergedAt,
-  );
-  if (body.ok) {
-    mergeTimeBody = body.body;
-    if (bodyHasClosingKeywordFor(body.body, repository, issueNumber)) {
-      return { basis: "merge-time-keyword", mergeTimeBody };
-    }
-    reasons.push(
-      `(b) PR #${prNumber} body as of merged_at has no closing keyword for #${issueNumber}`,
-    );
-  } else {
-    reasons.push(`(a)/(b) ${body.error}`);
+  if (bodyHasClosingKeywordFor(mergeTimeBody, repository, issueNumber)) {
+    return "merge-time-keyword";
   }
+  reasons.push(
+    `(b) PR #${prNumber} body as of merged_at has no closing keyword for #${issueNumber}`,
+  );
 
   const events = collectAllPages(
     (after) => forge.fetchConnectionEventsPage(repository, prNumber, after),
@@ -1750,78 +1853,179 @@ function proveKeywordOrConnected(
   );
   if (!events.ok) {
     reasons.push(`(c) ${events.error}`);
-    return { basis: null, mergeTimeBody };
+    return null;
   }
   const state = connectedAtMergedAt(events.nodes, repository, issueNumber, mergedAt);
   if (state.ok && state.connected) {
-    return { basis: "merge-time-connected", mergeTimeBody };
+    return "merge-time-connected";
   }
   reasons.push(
     state.ok
       ? `(c) no Connected link to #${issueNumber} in effect at merged_at`
       : `(c) ${state.error}`,
   );
-  return { basis: null, mergeTimeBody };
+  return null;
+}
+
+function planIdOf(plan: Record<string, unknown>): string {
+  return typeof plan.id === "string" ? plan.id.trim() : "";
 }
 
 /**
- * Issue-anchored association as of merged_at (#5710 P3). Cheap bases first
- * (b, c, brief-in-PR-diff), then the exhaustive sole-mark scan (a). A failed
- * lookup only removes a basis; success always needs a positive proof.
+ * Basis d (#6317): an operator `delivery-identity-attest` grant for the PR, its
+ * merge commit and the plan id, plus the nonzero-file and delivery-exclusion
+ * checks. The part-line refusal already ran before any basis.
+ */
+function proveAttestedBasis(
+  input: StoryPrMergeIdentityInput,
+  forge: MergeTimeForge,
+  budget: ScanBudget,
+  target: IssueAnchoredTarget,
+): { ok: true; grantId: string } | { ok: false; reason: string } {
+  const { repository, prNumber } = target;
+  if (input.findDeliveryAttestation === undefined) {
+    return { ok: false, reason: "(d) operator attestation lookup is unavailable" };
+  }
+  const planId = planIdOf(input.plan);
+  if (planId.length === 0) {
+    return { ok: false, reason: "(d) the plan has no id to bind an operator attestation to" };
+  }
+  const lookup = input.findDeliveryAttestation({
+    repository,
+    prNumber,
+    mergeCommitSha: target.mergeCommitSha,
+    planId,
+  });
+  if (!lookup.ok) {
+    return { ok: false, reason: `(d) ${lookup.reason}` };
+  }
+  const delivery = candidateDeliveryRefusal(forge, budget, repository, prNumber, "(d)");
+  if (delivery !== null) {
+    return { ok: false, reason: delivery };
+  }
+  return { ok: true, grantId: lookup.grantId };
+}
+
+type IssueAnchoredProof =
+  | { ok: true; basis: StoryPrIdentityBasis; extras: IdentityProofExtras }
+  | { ok: false; message: string };
+
+/**
+ * Issue-anchored association as of merged_at (#5710 P3 / #6317). The
+ * merge-time body is read before any basis; an unreadable body refuses, and a
+ * part-line body refuses as a partial delivery on every basis. A body with the
+ * sole mark settles only by the exhaustive sole-mark scan (a); otherwise the
+ * cheap bases (b, c, brief-in-PR-diff), then the operator attestation (d).
+ * Success always needs a positive proof.
  */
 function proveIssueAnchoredAssociation(
   input: StoryPrMergeIdentityInput,
   target: IssueAnchoredTarget,
-): { ok: true; basis: StoryPrIdentityBasis } | { ok: false; message: string } {
+): IssueAnchoredProof {
   const { repository, issueNumber, prNumber } = target;
-  const reasons: string[] = [];
+  const planId = planIdOf(input.plan);
+  const attestCommand = formatDeliveryIdentityAttestCommand(
+    { repository, prNumber, mergeCommitSha: target.mergeCommitSha },
+    planId.length > 0 ? planId : null,
+  );
+  const refuse = (findings: readonly string[]): IssueAnchoredProof => ({
+    ok: false,
+    message:
+      `Delivery identity join failed: PR #${prNumber} has no merge-time association with ` +
+      `${repository}#${issueNumber}. Accepted bases: ${MERGE_TIME_ASSOCIATION_BASES}. ` +
+      `A mark, keyword or link added after merged_at does not count, and current ` +
+      `closingIssuesReferences alone is insufficient. Findings: ${findings.join("; ")}. ` +
+      `For already-merged work with no merge-time basis, an operator attests it at a ` +
+      `terminal: \`${attestCommand}\` (#6317).`,
+  });
+
   const forge = input.mergeTimeForge;
-  const budget = forge === undefined ? null : makeScanBudget(forge);
-
-  let mergeTimeBody: string | null = null;
-  if (forge !== undefined && budget !== null) {
-    const cheap = proveKeywordOrConnected(forge, budget, target, reasons);
-    if (cheap.basis !== null) {
-      return { ok: true, basis: cheap.basis };
-    }
-    mergeTimeBody = cheap.mergeTimeBody;
-  } else {
-    reasons.push("merge-time association lookups are unavailable");
+  if (forge === undefined) {
+    return refuse([
+      "merge-time body unreadable, refusing before any basis: merge-time association lookups are unavailable",
+    ]);
+  }
+  const budget = makeScanBudget(forge);
+  const body = reconstructMergeTimeBody(
+    forge,
+    budget,
+    { repository, prNumber },
+    target.currentBody,
+    target.mergedAt,
+  );
+  if (!body.ok) {
+    return refuse([`merge-time body unreadable, refusing before any basis: ${body.error}`]);
+  }
+  if (bodyHasStoryPartLine(body.body, issueNumber)) {
+    return {
+      ok: false,
+      message:
+        `Delivery identity join failed: PR #${prNumber} carries \`deft-story-part: ${issueNumber}\` ` +
+        `in its body as of merged_at. It is a partial delivery of ${repository}#${issueNumber} ` +
+        `and cannot complete the story on any basis, operator attestation included. ` +
+        `Way forward: merge a PR whose body carries the completing mark ` +
+        `\`deft-story: ${issueNumber}\`, then complete with that PR (#6317).`,
+    };
   }
 
-  const briefDiff = proveBriefInPrDiff(input, repository, prNumber);
-  if (briefDiff === null) {
-    return { ok: true, basis: "brief-in-pr-diff" };
-  }
-  if (briefDiff.length > 0) {
-    reasons.push(briefDiff);
-  }
-
-  if (forge !== undefined && budget !== null && mergeTimeBody !== null) {
+  // A PR that carries the sole mark settles by the mark (uniqueness, or the
+  // fetched delivery-branch stamp) before any other basis, so a keyword, a
+  // Connected link, the brief diff or an attestation never bypasses a
+  // contested mark (#6317).
+  if (soleDeftStoryMark(body.body) === issueNumber) {
     const mark = proveSoleMarkBasis({
       forge,
       budget,
       repository,
       issueNumber,
       prNumber,
-      mergeTimeBody,
+      mergeTimeBody: body.body,
+      readDeliveryBranchStamp: input.readDeliveryBranchStamp,
     });
     if (mark.ok) {
-      return { ok: true, basis: "merge-time-mark" };
+      return {
+        ok: true,
+        basis: "merge-time-mark",
+        extras: {
+          ...(mark.partLinePrs.length > 0 ? { partLinePrs: mark.partLinePrs } : {}),
+          ...(mark.competingMarkedPrs.length > 0
+            ? { competingMarkedPrs: mark.competingMarkedPrs }
+            : {}),
+        },
+      };
     }
-    reasons.unshift(mark.reason);
+    return refuse([
+      mark.reason,
+      "(b)/(c)/brief-in-PR-diff/(d) not evaluated: the PR carries the sole mark; settle the mark instead",
+    ]);
   }
 
-  return {
-    ok: false,
-    message:
-      `Delivery identity join failed: PR #${prNumber} has no merge-time association with ` +
-      `${repository}#${issueNumber}. Accepted bases: ${MERGE_TIME_ASSOCIATION_BASES}. ` +
-      `A mark, keyword or link added after merged_at does not count, and current ` +
-      `closingIssuesReferences alone is insufficient. Findings: ${reasons.join("; ")}. ` +
-      `Already-merged work with no merge-time basis stays refused until the parked ` +
-      `identity-migration ships (#5710).`,
-  };
+  const reasons: string[] = [
+    `(a) PR #${prNumber} body as of merged_at has no sole \`deft-story: ${issueNumber}\` mark`,
+  ];
+  const cheap = proveKeywordOrConnected(forge, budget, target, body.body, reasons);
+  if (cheap !== null) {
+    return { ok: true, basis: cheap, extras: {} };
+  }
+
+  const briefDiff = proveBriefInPrDiff(input, repository, prNumber);
+  if (briefDiff === null) {
+    return { ok: true, basis: "brief-in-pr-diff", extras: {} };
+  }
+  if (briefDiff.length > 0) {
+    reasons.push(briefDiff);
+  }
+
+  const attested = proveAttestedBasis(input, forge, budget, target);
+  if (attested.ok) {
+    return {
+      ok: true,
+      basis: "operator-attested",
+      extras: { attestationGrantId: attested.grantId },
+    };
+  }
+  reasons.push(attested.reason);
+  return refuse(reasons);
 }
 
 /**
@@ -1833,6 +2037,10 @@ function proveIssueAnchoredAssociation(
  * or by the unchanged brief-in-PR-diff basis. Current-state
  * closingIssuesReferences alone is insufficient, and `productPullRequest === --pr`
  * is not a proof here. A failed issue-anchored check never falls back to the stamp.
+ * #6317: the merge-time body is read before any basis (unreadable refuses), a
+ * `deft-story-part: N` body refuses as a partial delivery, two marked PRs settle
+ * by the fetched delivery-branch stamp, and (d) an operator attestation grant
+ * recovers merged work with no basis.
  *
  * Issue-less briefs use the PR-only identity (#5710 P1). merge_commit_sha must
  * equal the supplied merge commit on both paths (squash-safe).
@@ -1879,6 +2087,7 @@ export function verifyStoryPrMergeIdentity(
     issueNumber: expected.issueNumber,
     prNumber,
     mergedAt: merged.mergedAt,
+    mergeCommitSha: merged.mergeCommitSha,
     currentBody: typeof merged.payload.body === "string" ? merged.payload.body : null,
   });
   if (!association.ok) {
@@ -1891,6 +2100,7 @@ export function verifyStoryPrMergeIdentity(
     repository: expected.repository,
     identityBasis: association.basis,
     subject: `${expected.repository}#${expected.issueNumber}`,
+    extras: association.extras,
   });
 }
 
@@ -2179,6 +2389,58 @@ export function verifyDeliveryAncestry(
   return { ok: true, error: null, remoteTip };
 }
 
+/**
+ * Read `metadata.productPullRequest` of the brief on the delivery branch with
+ * `git show origin/<deliveryBranch>:<path>` after a fetch (#6317). Never the
+ * working tree. Tries the given path, then the same basename in the other
+ * lifecycle folders of its root (the brief may sit in active/ or completed/).
+ */
+export function readDeliveryBranchProductPullRequest(input: {
+  readonly projectRoot: string;
+  readonly deliveryBranch: string;
+  readonly briefRelPath: string;
+  readonly runGit?: GitRunner;
+}): DeliveryBranchStampRead {
+  const runGit = input.runGit ?? defaultGitRunner;
+  const refresh = refreshRemoteDeliveryRef(input.projectRoot, input.deliveryBranch, runGit);
+  if (!refresh.ok) {
+    return { ok: false, error: refresh.error ?? "delivery branch fetch failed" };
+  }
+  const rel = input.briefRelPath.replace(/\\/g, "/").replace(/^\.\//, "");
+  const parts = rel.split("/");
+  const name = parts[parts.length - 1] ?? "";
+  const root = parts.length >= 3 ? parts.slice(0, parts.length - 2).join("/") : "xbrief";
+  const candidates = [rel];
+  for (const folder of LIFECYCLE_FOLDERS) {
+    const candidate = `${root}/${folder}/${name}`;
+    if (!candidates.includes(candidate)) {
+      candidates.push(candidate);
+    }
+  }
+  for (const candidate of candidates) {
+    const spec = `${refresh.remoteRef}:${candidate}`;
+    const shown = runGit(input.projectRoot, ["show", spec]);
+    if (shown.code !== 0) {
+      continue;
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(shown.stdout);
+    } catch {
+      return { ok: false, error: `${spec} is not valid JSON` };
+    }
+    const plan = asRecord(asRecord(parsed)?.plan);
+    if (plan === null) {
+      return { ok: false, error: `${spec} has no plan object` };
+    }
+    return { ok: true, productPullRequest: productPullRequestFromPlan(plan), source: spec };
+  }
+  return {
+    ok: false,
+    error: `brief ${name} is not on ${refresh.remoteRef} (tried ${candidates.join(", ")})`,
+  };
+}
+
 function buildProvenance(input: {
   evidence: DeliveryEvidenceInput | null | undefined;
   deliveryBranch: string;
@@ -2188,6 +2450,7 @@ function buildProvenance(input: {
   verifier: string;
   deliveryCommit?: string | null;
   identityBasis?: StoryPrIdentityBasis;
+  extras?: IdentityProofExtras;
 }): CompletionProvenance {
   const e = input.evidence ?? {};
   return {
@@ -2195,6 +2458,7 @@ function buildProvenance(input: {
     ...(input.identityBasis !== undefined && input.identityBasis !== "forge-closer"
       ? { identityBasis: input.identityBasis }
       : {}),
+    ...(input.extras ?? {}),
     repository: e.repository ?? null,
     implementationCommit: e.implementationCommit ?? null,
     prNumber: e.prNumber ?? null,
@@ -2316,6 +2580,10 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
       : undefined);
   const mergeTimeForge =
     options.mergeTimeForge ?? (liveForge ? defaultMergeTimeForge(runGh) : undefined);
+  // #6317: attestation grants live in the main clone store, resolved by local git.
+  const findDeliveryAttestation: FindDeliveryAttestationFn =
+    options.findDeliveryAttestation ??
+    ((query) => findDeliveryIdentityAttestation({ projectRoot: options.projectRoot, ...query }));
   const resolveCanonicalRepository = () =>
     resolveCanonicalProjectRepository(options.projectRoot, runGit);
   // #5710 P4: the merged-stamp check needs an uncached read; a stale
@@ -2476,6 +2744,12 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
     };
   }
 
+  // #6317: same-mark tie-break reads the brief on the fetched delivery branch.
+  const briefRelPath =
+    options.briefRelPath ??
+    (options.briefBasename !== undefined && options.briefBasename.trim().length > 0
+      ? `xbrief/active/${options.briefBasename.trim()}`
+      : null);
   // Prefer-A story→PR→merge identity join (#3675) — before ancestry or assume bypass.
   const identity = verifyStoryPrMergeIdentity({
     plan: options.plan,
@@ -2486,6 +2760,17 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
     briefBasename: options.briefBasename,
     fetchPrChangedFiles,
     resolveCanonicalRepository,
+    readDeliveryBranchStamp:
+      briefRelPath === null
+        ? undefined
+        : () =>
+            readDeliveryBranchProductPullRequest({
+              projectRoot: options.projectRoot,
+              deliveryBranch,
+              briefRelPath,
+              runGit,
+            }),
+    findDeliveryAttestation,
   });
   if (!identity.ok) {
     return {
@@ -2496,6 +2781,15 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
     };
   }
 
+  const identityExtras: IdentityProofExtras = {
+    ...(identity.attestationGrantId !== undefined
+      ? { attestationGrantId: identity.attestationGrantId }
+      : {}),
+    ...(identity.partLinePrs !== undefined ? { partLinePrs: identity.partLinePrs } : {}),
+    ...(identity.competingMarkedPrs !== undefined
+      ? { competingMarkedPrs: identity.competingMarkedPrs }
+      : {}),
+  };
   const boundEvidence: DeliveryEvidenceInput = {
     ...evidence,
     repository: identity.repository ?? evidence.repository ?? null,
@@ -2516,6 +2810,7 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
       verifier,
       deliveryCommit: boundEvidence.deliveryCommit ?? boundEvidence.mergeCommit,
       identityBasis: identity.identityBasis,
+      extras: identityExtras,
     });
     return {
       ok: true,
@@ -2567,6 +2862,7 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
     verifier,
     deliveryCommit: ancestry.remoteTip,
     identityBasis: identity.identityBasis,
+    extras: identityExtras,
   });
   return {
     ok: true,
@@ -2609,6 +2905,15 @@ export function stampDeliveryProvenance(
       ? { completedSessionId: provenance.completedSessionId.trim() }
       : {}),
     ...(provenance.identityBasis !== undefined ? { identityBasis: provenance.identityBasis } : {}),
+    ...(provenance.attestationGrantId !== undefined
+      ? { attestationGrantId: provenance.attestationGrantId }
+      : {}),
+    ...(provenance.partLinePrs !== undefined && provenance.partLinePrs.length > 0
+      ? { partLinePrs: [...provenance.partLinePrs] }
+      : {}),
+    ...(provenance.competingMarkedPrs !== undefined && provenance.competingMarkedPrs.length > 0
+      ? { competingMarkedPrs: [...provenance.competingMarkedPrs] }
+      : {}),
   };
   meta.deliveryDisposition = provenance.disposition;
   meta.handoffState = provenance.handoffState;

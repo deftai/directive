@@ -584,6 +584,20 @@ describe("test_skills", () => {
     expect(lower).toContain("prohibits a specific command");
     expect(lower).toContain("resolve all contradictions");
   });
+  it("deft_pre_pr_lifecycle_only_prs_keep_review_6280", () => {
+    const text = readSkill(_PRE_PR_PATH);
+    const start = text.indexOf("## Lifecycle-only PRs keep review (#6280)");
+    expect(start).not.toBe(-1);
+    const passage = text.slice(start, text.indexOf("\n## ", start + 1));
+    expect(passage).toContain("! No PR class skips the review bot.");
+    expect(passage).toContain("Activation and widen PRs keep the review they have today");
+    expect(passage).toContain("because they carry new acceptance text");
+    expect(passage).toContain(
+      "Mint-record and cancel PRs keep their review, because they carry authority",
+    );
+    expect(passage).toContain("last product PR (#6277)");
+    expect(passage).toContain("batched under #6303");
+  });
   it("deft_pre_pr_strength_duplicate_rule", () => {
     const text = readSkill(_PRE_PR_PATH);
     expect(text.toLowerCase()).toContain("strengthening a rule");

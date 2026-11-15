@@ -42,6 +42,21 @@ function step6Section(): string {
 }
 
 describe("test_review_cycle_skill", () => {
+  it("lifecycle_only_prs_keep_review_6280", () => {
+    const text = readReviewCycleSkill();
+    const start = text.indexOf("## Lifecycle-only PRs keep review (#6280)");
+    expect(start).not.toBe(-1);
+    const passage = text.slice(start, text.indexOf("\n## ", start + 1));
+    expect(passage).toContain("! No PR class skips the review bot.");
+    expect(passage).toContain("Activation and widen PRs keep the review they have today");
+    expect(passage).toContain("because they carry new acceptance text");
+    expect(passage).toContain(
+      "Mint-record and cancel PRs keep their review, because they carry authority",
+    );
+    expect(passage).toContain("last product PR (#6277)");
+    expect(passage).toContain("batched under #6303");
+  });
+
   it("phase2_step1_late_arriving_bot_review_should_rule_present", () => {
     const section = phase2Step1Section();
     expect(section).toContain("Late-arriving bot review re-check");
