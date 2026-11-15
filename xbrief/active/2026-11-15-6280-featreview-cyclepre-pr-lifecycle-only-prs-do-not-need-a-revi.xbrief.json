@@ -92,7 +92,7 @@
       "clauses": [
         {
           "id": 1,
-          "text": "Review decision: `content/skills/deft-directive-review-cycle/SKILL.md` and `content/skills/deft-directive-pre-pr/SKILL.md` state that activation and widen PRs keep the review they have today because they carry new acceptance text, and that mint-record and cancel PRs keep theirs because they carry authority. No PR class skips the review bot.",
+          "text": "Review decision: `content/skills/deft-directive-review-cycle/SKILL.md` and `content/skills/deft-directive-pre-pr/SKILL.md` state that activation and widen PRs keep the review they have today because they carry new acceptance text, and that mint-record and cancel PRs keep theirs because they carry authority.",
           "artifact_path": "content/skills/deft-directive-review-cycle/SKILL.md",
           "ambiguous": false,
           "provenance": "statement"
@@ -100,19 +100,29 @@
         {
           "id": 2,
           "text": "Completion PRs: the same passages say that a story's completion normally rides in its last product PR (#6277), and that the remaining completion PRs are batched under #6303, which owns their review cost and the reviewer-side setting.",
-          "artifact_path": null,
+          "artifact_path": "content/skills/deft-directive-review-cycle/SKILL.md",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "Tests: the content-contract tests for those two skills pin both passages.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/content-contracts/skills/lifecycle_pr_review_6280.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "No PR class skips the review bot.",
+          "artifact_path": "content/skills/deft-directive-pre-pr/SKILL.md",
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "feat(review-cycle,pre-pr): lifecycle-only PRs do not need a review-bot pass"
+      ]
     },
     "metadata": {
       "intended_placement": {

@@ -213,55 +213,157 @@
       "clauses": [
         {
           "id": 1,
-          "text": "Given a granted deferral, when the story is completed from the primary clone, from a linked dest or through finalize, then that item has no merge evidence and carries the `deferred` disposition with the grant id in provenance.",
-          "artifact_path": null,
+          "text": "Acceptance Criteria - Given a granted deferral, when the story is completed from the primary clone, from a linked dest or through finalize, then that item has no merge evidence and carries the `deferred` disposition with the grant id in provenance.",
+          "artifact_path": "packages/core/src/scope/transition.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "Given a deferral minted on a clause that has no plan item, then it works.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "Given an acceptance refusal, then the active brief is unchanged.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/scope/transition.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
           "text": "Given an expired unused grant, then completion refuses; after a re-mint from a linked dest, completion passes.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/scope/transition.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
           "text": "Given a grant, then `authz:revoke` from a linked dest finds it.",
-          "artifact_path": null,
+          "artifact_path": "packages/runtime/src/authz.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 6,
           "text": "Given a first use or a replay after `acceptance.clauses[].text` changed, then completion refuses and names a re-mint.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/policy/acceptance-disposition-grant.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 7,
           "text": "Given a hand-written disposition on an active brief, then membership still refuses it.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Summary Slice C of the accepted #6310 design: an operator grant records that one acceptance clause is deferred, without editing the active brief, and completion writes the disposition instead of stamping merge evidence on that clause.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Bound contract: successor lean 6887155397 on #6310, Bound 4 and the matching fixtures of Bound 5 (accepted synthesis 6887284787).",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "It uses the grant store from slice B.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Each slice has its own issue so that each brief completes from exactly one PR with its own `deft-story` line.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Scope 1.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "`deft authz:grant --template acceptance-disposition --plan-ref <scopeId> --story-ids <itemIds> --deferred-to <issue> --reason <text> --confirm` runs through the existing human-presence mint gate and the store at `mainWorktreeRoot(projectRoot)`.",
+          "artifact_path": "packages/runtime/src/authz.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "At mint it records, for each covered id, a digest of `acceptance.clauses[id].text` resolved by clause id; a covered plan item that is not an acceptance clause uses its title.",
+          "artifact_path": "packages/core/src/policy/acceptance-disposition-grant.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "It is accepted, on first use and on any replay, only for that plan and those ids and only while each digest still matches; a changed clause refuses and names a re-mint.",
+          "artifact_path": "packages/core/src/policy/acceptance-disposition-grant.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "First use must be before expiry and is recorded when the `completed/` write succeeds.",
+          "artifact_path": "packages/core/src/policy/acceptance-disposition-grant.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "The active brief is not edited and the intent extract is unchanged.",
+          "artifact_path": "packages/core/src/scope-provenance/intent.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "In `scope:complete` complete-prep, grant-covered dispositions (`deferred`, the reason, the target issue, the grant id in provenance) are applied in memory after `persistClauseKeyedPendingItems` and before `stampMergeFromCompletionProvenance`, so the merge stamper skips those items; they are left out of the mid-flight write to the active brief and written only with the `completed/` write.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "`scope:complete` refuses, instead of stamping, when an expired grant of this template that was never used names the plan and no later unexpired grant covers the same plan and ids; the refusal names a re-mint or `authz:revoke`.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Refs #6310.",
+          "artifact_path": "CHANGELOG.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "design-critique: not warranted, because this slice implements Bound 4 of the design already accepted on #6310 (lean 6887155397, synthesis 6887284787) and adds no mechanism.",
+          "artifact_path": "CHANGELOG.md",
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "feat(scope): acceptance-disposition grant for a deferred clause (#6310 slice C)",
+        "Given a granted deferral, when the story is completed from the primary clone, from a linked dest or through finalize, then that item has no merge evidence and carries the `deferred` disposition with the grant id in provenance."
+      ]
     },
     "id": "github.issue.6398936204",
     "updated": "2026-11-15T02:35:58Z"
