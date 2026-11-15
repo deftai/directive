@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6318",
-    "updated": "2026-11-15T02:35:58Z"
+    "updated": "2026-11-15T19:54:33Z"
   },
   "plan": {
     "title": "feat(scope): acceptance-disposition grant for a deferred clause (#6310 slice C)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Slice C of the accepted #6310 design: an operator `acceptance-disposition` grant records that one acceptance clause is deferred, without editing the active brief. On completion, the covered clause carries the `deferred` disposition and the grant id instead of merge evidence.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6318",
@@ -19,58 +19,275 @@
     "items": [
       {
         "title": "Given a granted deferral, when the story is completed from the primary clone, from a linked dest or through finalize, then that item has no merge evidence and carries the `deferred` disposition with the grant id in provenance.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given a granted deferral, when the story completes from the primary clone, a linked dest or finalize, then that item has no merge evidence and carries `deferred` with the grant id in provenance."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a deferral minted on a clause that has no plan item, then it works.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given a deferral minted on an acceptance clause that has no plan item, when the story completes, then that clause records the deferred disposition."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an acceptance refusal, then the active brief is unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given an acceptance refusal during completion, then the active brief stays unchanged on disk."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an expired unused grant, then completion refuses; after a re-mint from a linked dest, completion passes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given an expired unused grant, then completion refuses; after a re-mint from a linked dest, then completion passes."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a grant, then `authz:revoke` from a linked dest finds it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given a minted grant, when `authz:revoke` runs from a linked dest, then it finds that grant."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a first use or a replay after `acceptance.clauses[].text` changed, then completion refuses and names a re-mint.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given a first use or a replay after `acceptance.clauses[].text` changed, then completion refuses and names a re-mint."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a hand-written disposition on an active brief, then membership still refuses it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given a hand-written disposition on an active brief, when membership runs, then it still refuses that disposition."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "clause.21",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+          "recorded_at": "2026-11-15T19:54:33Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -154,7 +371,34 @@
         "origin": "deftai/directive#6318",
         "id": "github.issue.6398936204"
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 6343,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "a19ac49140dcf7ec4f8431e2a8c64bc6b8d00a08",
+        "prNumber": 6343,
+        "prBase": "master",
+        "mergeCommit": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "bb67dc6970cce1da555f198cb2678b17f43ae91d",
+        "verifiedAt": "2026-11-15T19:54:33Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-15T19:54:33Z",
+      "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-15T19:54:33Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -366,6 +610,6 @@
       ]
     },
     "id": "github.issue.6398936204",
-    "updated": "2026-11-15T02:35:58Z"
+    "updated": "2026-11-15T19:54:33Z"
   }
 }
