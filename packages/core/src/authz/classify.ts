@@ -2399,7 +2399,25 @@ function awkPayloadHasWrite(words: readonly string[], execIndex: number): boolea
     const literal = zipShellWordLiteral(raw);
     if (literal !== null) payload += ` ${literal}`;
   }
-  return /\bsystem\s*\(/i.test(payload) || /\b(?:print|printf)\s*(?:>>|>)/i.test(payload);
+  if (/\bsystem\s*\(/i.test(payload) || /\b(?:print|printf)\s*(?:>>|>)/i.test(payload)) {
+    return true;
+  }
+  for (let i = 0; i < payload.length; i++) {
+    if (payload[i] !== "|") continue;
+    let j = i + 1;
+    while (j < payload.length && /\s|['"]/.test(payload[j] as string)) j++;
+    const start = j;
+    while (j < payload.length && !/\s|['"();|]/.test(payload[j] as string)) j++;
+    const bin = writeBinName(payload.slice(start, j));
+    if (
+      INDIRECT_WRITE_BINS.has(bin) ||
+      SYMLINK_PLANT_BINS.has(bin) ||
+      ARCHIVE_ALT_WRITE_BINS.has(bin)
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function wrapperBinName(raw: string): string | null {
