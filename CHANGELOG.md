@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changelog fragments now count at the gate and at release (#6315). `verify:changelog-unreleased` follows `plan.policy.changelog.mode`: a change adds its own fragment, a line, or (in `either`) exactly one of the two, and never edits a fragment already on master. The release folds fragments into the new version and deletes them in the release commit. This repository now runs mode `either`.
 
 ### Changed
+- This repository sets a typed `plan.policy.requireHumanMerge: true` and `plan.policy.onePrScopeProof: mint`, so a single maintainer can land a brief, its human mint record and its code in one PR (#6273). Refs #6327.
 - Minted the intent-constraint record for the #6295 merge-queue exit code (3) and GraphQL floor (500 points). Refs #6295.
 - chore(dogfood): pin Directive to 0.129.9.
 
