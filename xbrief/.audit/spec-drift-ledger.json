@@ -104,6 +104,12 @@
       "completedAt": "2026-11-15T16:14:09Z"
     },
     {
+      "scopeId": "github.issue.6398935107",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-15T16:32:48Z"
+    },
+    {
       "scopeId": "github.issue.6398935915",
       "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
       "specImpact": null,

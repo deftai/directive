@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6314",
-    "updated": "2026-11-15T02:35:40Z"
+    "updated": "2026-11-15T16:29:30Z"
   },
   "plan": {
     "title": "feat(changelog): path test, fragment format, mode and effective view (#6286 slice A)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Slice A of the accepted #6286 CHANGELOG fragments design: one shared changelog path test, the fragment format, the `plan.policy.changelog.mode` policy and one effective view of unreleased entries. While the mode is `inline` (the default) and no fragment exists, no check changes its result.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6314",
@@ -19,50 +19,296 @@
     "items": [
       {
         "title": "Given a literal `CHANGELOG.md` path match outside `isChangelogEntryPath`, when the contract test runs, then it fails and names the file.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given a literal `CHANGELOG.md` path match in source outside `isChangelogEntryPath`, when the contract test runs, then it fails and names that file."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `changelog.d/6286-fragments.md`, then `isChangelogEntryPath` is true; given `changelog.d/sub/x.md`, `changelog.d/X.md` or `docs/CHANGELOG.md`, then it is false.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given `changelog.d/6286-fragments.md`, then `isChangelogEntryPath` returns true; given `changelog.d/sub/x.md`, `changelog.d/X.md` or `docs/CHANGELOG.md`, then it returns false."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a fragment with a valid `section:` line and `- ` entries, then it parses; given an empty file, an unknown section, a `#` line, a symlink or a non-regular file, then it is invalid.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given a fragment with a valid `section:` line and `- ` entries, then it parses; given an empty file, an unknown section, a `#` line, a symlink or a non-regular file, then the parser rejects it as invalid."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given no policy value, then `policy:show --field=plan.policy.changelog.mode` reports `inline`; the setter accepts only `inline`, `either` and `fragments`, with `--confirm`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given no policy value, then `policy:show --field=plan.policy.changelog.mode` returns `inline`, and the setter rejects any value other than `inline`, `either` or `fragments` and requires `--confirm`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `[Unreleased]` entries and two valid fragments, then `readEffectiveUnreleased` returns all entries in their subsections, and each listed reader sees them.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given `[Unreleased]` entries and two valid fragments, then `readEffectiveUnreleased` returns all entries in their subsections and each listed reader sees them."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given mode `inline` and no fragment, then every changed check returns the same result as before this change.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given mode `inline` and no fragment, then every changed check returns the same result as before this change."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "clause.16",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "clause.17",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "clause.18",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "clause.19",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "clause.20",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "clause.21",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.22",
+        "title": "clause.22",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.23",
+        "title": "clause.23",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+          "recorded_at": "2026-11-15T16:29:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -429,9 +675,36 @@
         ],
         "acceptance_criteria_justification": "Six clauses, one per acceptance criterion in the #6314 issue body (slice A of #6286 lean 6859392664, items 1, 2, 3 and 5); kept one-to-one so each maps to its own evidence."
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 6325,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "0d2605051033f725f876b7b12566aeeccc67173c",
+        "prNumber": 6325,
+        "prBase": "master",
+        "mergeCommit": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5b5029c1b799873ab6b8032dbd976acd82a7ec26",
+        "verifiedAt": "2026-11-15T16:29:30Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-15T16:29:30Z",
+      "completedSessionId": "host:claude:v1:MjAxY2ZjYWEtYzllMC00NGIxLTg2MGEtMWUyZjRlNmZjYjc5",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-15T16:29:30Z"
+      }
     },
     "id": "github.issue.6398935107",
-    "updated": "2026-11-15T02:35:40Z"
+    "updated": "2026-11-15T16:29:30Z"
   }
 }
