@@ -471,6 +471,7 @@ describe("pin-mismatch recovery admit (#6313)", () => {
       projectRoot: root,
       toolName: "Shell",
       toolInput: { command: "pnpm install --frozen-lockfile" },
+      cwd: root,
       host: "cursor",
       cheapInSync: () => cheapPinMismatchOnly(),
     });
@@ -519,6 +520,65 @@ describe("pin-mismatch recovery admit (#6313)", () => {
         projectRoot: root,
         host: "codex",
         toolInput: { command: "pnpm install --frozen-lockfile", workdir: sub },
+        cwd: root,
+        cheapInSync: () => cheapPinMismatchOnly(),
+      }).body,
+    );
+  });
+
+  it("refuses the install when no run directory is sent", () => {
+    const root = tempDir("pin-6313-nodir");
+    expectPinRefusal(
+      dispatchTool({
+        projectRoot: root,
+        toolInput: { command: "pnpm install --frozen-lockfile" },
+        cheapInSync: () => cheapPinMismatchOnly(),
+      }).body,
+    );
+  });
+
+  it("refuses the install on codex when only the session cwd is sent (#4998)", () => {
+    const root = tempDir("pin-6313-codex-outer");
+    expectPinRefusal(
+      dispatchTool({
+        projectRoot: root,
+        host: "codex",
+        toolInput: { command: "pnpm install --frozen-lockfile" },
+        cwd: root,
+        cheapInSync: () => cheapPinMismatchOnly(),
+      }).body,
+    );
+  });
+
+  it("admits the install on codex when the tool input workdir is the project root", () => {
+    const root = tempDir("pin-6313-codex-nested");
+    const result = dispatchTool({
+      projectRoot: root,
+      host: "codex",
+      toolInput: { command: "pnpm install --frozen-lockfile", workdir: root },
+      cwd: root,
+      cheapInSync: () => cheapPinMismatchOnly(),
+    });
+    expect(isDeny(result.body)).toBe(false);
+  });
+
+  it.each([
+    ["an empty tool input workdir", { workdir: "" }],
+    ["tool input directories that disagree", { workdir: "ROOT", cwd: "SUB" }],
+  ])("refuses the install with %s, even when the outer cwd is the root", (_label, dirs) => {
+    const root = tempDir("pin-6313-nested-bad");
+    const sub = join(root, "sub");
+    mkdirSync(sub);
+    const toolDirs = Object.fromEntries(
+      Object.entries(dirs).map(([key, value]) => [
+        key,
+        value === "ROOT" ? root : value === "SUB" ? sub : value,
+      ]),
+    );
+    expectPinRefusal(
+      dispatchTool({
+        projectRoot: root,
+        toolInput: { command: "pnpm install --frozen-lockfile", ...toolDirs },
         cwd: root,
         cheapInSync: () => cheapPinMismatchOnly(),
       }).body,

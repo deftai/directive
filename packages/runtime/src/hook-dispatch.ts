@@ -158,16 +158,32 @@ function installationIdentityDeny(
   };
 }
 
+/** Tool-input fields that name a shell call's run directory (#6313). */
+const SHELL_RUN_DIRECTORY_FIELDS = ["workdir", "cwd", "working_directory", "workingDirectory"];
+
 /**
- * Directory a shell tool call runs in, from the host payload (#6313). Tool
- * input fields first (Codex `workdir`, others `cwd`), then the payload `cwd`.
- * Null when the host sends none.
+ * Directories that prove where a shell tool call runs (#6313). Empty when
+ * nothing proves it, so the recovery admit stays off.
+ *
+ * Tool-input fields come first; when any is present, every present one must be
+ * a non-empty string (no fallback to the outer `cwd`). Otherwise the payload
+ * `cwd` counts, except on Codex: its outer `cwd` is the session directory and
+ * live captures drop `exec_command` `workdir` (#4998), so it proves nothing.
  */
-function shellCommandCwd(payload: unknown): string | null {
+function shellRunDirectories(host: HookHost, payload: unknown): string[] {
   const input = record(payload);
-  if (input === null) return null;
+  if (input === null) return [];
   const toolInput = toolInputRecord(input);
-  return firstString([toolInput?.workdir, toolInput?.cwd, toolInput?.working_directory, input.cwd]);
+  if (toolInput !== null && toolInput !== input) {
+    const present = SHELL_RUN_DIRECTORY_FIELDS.filter((field) => field in toolInput);
+    if (present.length > 0) {
+      const values = present.map((field) => firstString([toolInput[field]]));
+      return values.every((value) => value !== null) ? (values as string[]) : [];
+    }
+  }
+  if (host === "codex") return [];
+  const outer = firstString([input.cwd]);
+  return outer === null ? [] : [outer];
 }
 
 /**
@@ -184,12 +200,14 @@ function pinMismatchRecoveryAdmit(
 ): HookDecision | null {
   if (event !== "tool.before") return null;
   const toolName = hookToolName(payload, host);
-  const cwd = shellCommandCwd(payload);
+  const runDirectories = shellRunDirectories(host, payload);
   const admitted = admitPinMismatchRecovery({
     cheap,
     shellTool: toolName !== null && isShellTool(toolName),
     command: hookShellCommand(payload),
-    atProjectRoot: cwd === null || rootsMatch(normalizeHookProjectRoot(cwd), projectRoot),
+    atProjectRoot:
+      runDirectories.length > 0 &&
+      runDirectories.every((dir) => rootsMatch(normalizeHookProjectRoot(dir), projectRoot)),
   });
   if (admitted === null) return null;
   return {
