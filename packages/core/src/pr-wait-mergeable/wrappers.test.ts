@@ -216,3 +216,42 @@ describe("runMonitor", () => {
     expect(stderr).toContain("executable not found");
   });
 });
+
+describe("runGhMerge queue mode (#6295)", () => {
+  it("enqueues with no --admin, --squash or --delete-branch", () => {
+    const resolve = vi.spyOn(callShape, "resolveBinaryForArgv").mockReturnValue(process.execPath);
+    wrappers.runGhMerge(5, "deftai/directive", {
+      requireScmReady: readyStub,
+      queueMode: true,
+      matchHeadCommit: "a".repeat(40),
+    });
+    expect(resolve).toHaveBeenCalledWith("pr", ["merge", "5"]);
+    vi.restoreAllMocks();
+  });
+
+  it("keeps the direct --admin squash merge outside queue mode", () => {
+    const resolve = vi.spyOn(callShape, "resolveBinaryForArgv").mockReturnValue(process.execPath);
+    wrappers.runGhMerge(5, "deftai/directive", { requireScmReady: readyStub });
+    expect(resolve).toHaveBeenCalledWith("pr", [
+      "merge",
+      "5",
+      "--squash",
+      "--delete-branch",
+      "--admin",
+    ]);
+    vi.restoreAllMocks();
+  });
+
+  it("refuses to enqueue without a head SHA", () => {
+    const resolve = vi.spyOn(callShape, "resolveBinaryForArgv");
+    const [rc, , stderr] = wrappers.runGhMerge(5, "deftai/directive", {
+      requireScmReady: readyStub,
+      queueMode: true,
+      matchHeadCommit: "  ",
+    });
+    expect(rc).toBe(-1);
+    expect(stderr).toContain("needs a head SHA");
+    expect(resolve).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+});

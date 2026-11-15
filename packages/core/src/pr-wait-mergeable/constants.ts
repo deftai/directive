@@ -2,6 +2,11 @@
 export const EXIT_MERGED = 0;
 export const EXIT_TIMEOUT_OR_ESCALATION = 1;
 export const EXIT_CONFIG_ERROR = 2;
+/**
+ * Merge-queue mode (#6295): the PR is queued or awaiting admission. Not merged
+ * yet; run the printed resume command later. Never reported as merged.
+ */
+export const EXIT_QUEUE_PENDING = 3;
 
 /** Exact GitHub check-run name for the always-on master tip gate (#6071). */
 export const MERGE_GATE_TASK_CHECK_NAME = "Merge gate (task check)" as const;

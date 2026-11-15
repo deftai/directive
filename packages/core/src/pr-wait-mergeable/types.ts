@@ -6,6 +6,8 @@ export interface WaitMergeableResult {
   readonly monitorResult: Record<string, unknown>;
   readonly protectedCheck: Record<string, unknown>;
   readonly semanticGreen: Record<string, unknown>;
+  /** Merge-queue mode result and resume command (#6295); empty outside queue mode. */
+  readonly mergeQueue?: Record<string, unknown>;
   readonly mergeStdout: string;
   readonly mergeStderr: string;
   readonly error: string | null;
@@ -29,7 +31,11 @@ export type MonitorFn = (
 export type MergeFn = (
   prNumber: number,
   repo: string | null,
-  options?: { readonly matchHeadCommit?: string | null },
+  options?: {
+    readonly matchHeadCommit?: string | null;
+    /** Enqueue on a merge-queue branch: no `--admin`, no merge-method flag (#6295). */
+    readonly queueMode?: boolean;
+  },
 ) => SubprocessTriple;
 
 /** Merge-time closeout attestability gate (#3781): 0 attestable / 1 unattested / 2 lookup. */

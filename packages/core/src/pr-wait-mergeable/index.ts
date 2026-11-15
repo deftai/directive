@@ -3,6 +3,7 @@ export { classifyMonitorOutcome, parseMonitorPayload } from "./classify.js";
 export {
   EXIT_CONFIG_ERROR,
   EXIT_MERGED,
+  EXIT_QUEUE_PENDING,
   EXIT_TIMEOUT_OR_ESCALATION,
   FIRST_HOTFIX_BOOTSTRAP_RECOVERY,
   HOTFIX_LABEL,
@@ -17,6 +18,34 @@ export {
   OUTCOME_UNSANCTIONED_TEST_SKIP,
 } from "./constants.js";
 export { cmdPrWaitMergeable, parseWaitMergeableArgs, runWaitMergeable } from "./main.js";
+export {
+  isMergeGroupEvent,
+  MERGE_GROUP_EVENT,
+  MERGE_GROUP_SKIPPED_CHECKS,
+  type MergeGroupSkippedCheck,
+  mergeGroupSkip,
+  mergeGroupSkipNotice,
+} from "./merge-group-skip.js";
+export {
+  classifyQueueRead,
+  detectMergeQueue,
+  formatResumeCommand,
+  MERGE_QUEUE_GRAPHQL_FLOOR,
+  MERGE_QUEUE_RULE_TYPE,
+  type MergeQueueDetectFn,
+  type MergeQueueDetection,
+  parseQueueState,
+  QUEUE_RESULT_KINDS,
+  type QueueEvent,
+  type QueueRead,
+  type QueueReadFn,
+  type QueueReadResult,
+  type QueueResult,
+  type QueueResultKind,
+  queueResultToDict,
+  readQueueState,
+  rulesRequireMergeQueue,
+} from "./merge-queue.js";
 export { makeResult, toResultDict } from "./result.js";
 export {
   evaluateAlwaysOnNamedMergeGate,

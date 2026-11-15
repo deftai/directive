@@ -34,7 +34,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | platforms | Platform-specific guidance. | 2 | 94 | 63 | 19 | 16 | 12 |
 | references | External references and citations backing the guidance. | 4 | 19 | 1 | 19 | 0 | 0 |
 | resilience | Failure handling, recovery, and robustness rules. | 2 | 16 | 14 | 15 | 1 | 2 |
-| scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 112 | 34 | 38 | 1 | 3 |
+| scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 119 | 34 | 40 | 1 | 3 |
 | skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 42 | 626 | 121 | 745 | 0 | 19 |
 | strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 17 | 342 | 97 | 157 | 0 | 15 |
 | swarm | Multi-agent (swarm) coordination guidance. | 1 | 75 | 15 | 22 | 0 | 0 |
