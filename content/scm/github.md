@@ -164,7 +164,9 @@ On hit, repair via the fetch → UTF-8 file edit → edit path above. `verify:en
 
 - ! Create feature branches from `master` (or the project's default branch)
 - ! Each branch serves a single purpose -- one issue or one cohesive change. "One cohesive change" is not silent multi-origin close. Default: one origin → one PR. Closing more than one origin requires a distinct operator-origin one-PR-unit grant (not #1378 dispatch consent, not `--allow-close`, not file overlap). On `swarm:readiness` failure, serialize N PRs.
-- ! Include closing keywords in the PR body (`Closes #N`, `Fixes #N`) so GitHub auto-closes issues on merge
+- ! Include closing keywords in the PR body (`Closes #N`, `Fixes #N`) so GitHub auto-closes issues on merge, only for an issue with no active story (running brief in `xbrief/active/`)
+- ! For an active story, write `Refs #N` plus one story line instead (#6316): `deft-story: N` on the PR that completes the story, `deft-story-part: N` on any other product PR of it. `task pr:check-closing-keywords -- --body-file <path> --write-story-line [--part]` writes the line; the pre-PR path runs it before the PR opens. The live check fails a product PR of a running story that has neither line, and any body with both lines for one N
+- ⊗ Use `Closes #N` for an active story — the brief is still running when the issue closes (#3781)
 - ! Delete the branch after merge (`--delete-branch` flag on `gh pr merge`)
 - ⊗ Reuse a branch for a second PR after the first has merged
 - ~ Name branches descriptively: `docs/add-github-guide`, `fix/bootstrap-loop`, `feat/swarm-phase0`
@@ -174,10 +176,10 @@ On hit, repair via the fetch → UTF-8 file edit → edit path above. `verify:en
 - ! Use Conventional Commits format for PR titles
 - ~ Keep PRs small (< 400 lines changed ideal)
 - ! Ensure all CI checks pass before requesting review
-- ~ Link to related issues using closing keywords
+- ~ Link to related issues using closing keywords (an active story uses `Refs #N` plus its story line)
 - ~ Explain "why" not just "what" in the PR description
 - ! Run `task check` before opening a PR
-- ! On multi-active tips, product PRs that need merge-gate mint selection should carry a sole `deft-story: N` (positive issue number). That mark asserts #4864 delivery bind (`metadata.productPullRequest` must equal this PR before leftover finalize) and whole-story close at cohort finalize — only use it on the PR that is the delivery for #N. `verify:intent-constraint` / `verify:observable-scope` adopt the matching running `plan.id` from that mark (#5782); do not put plan-id shaped values on the mark line.
+- ! On multi-active tips, product PRs that need merge-gate mint selection should carry a sole `deft-story: N` (positive issue number). That mark asserts #4864 delivery bind (`metadata.productPullRequest` must equal this PR before leftover finalize) and whole-story close at cohort finalize — only use it on the PR that completes #N. Any other product PR of the story carries a sole `deft-story-part: N`, which never completes the story and may not set `metadata.productPullRequest` to itself (#6316). `verify:intent-constraint` / `verify:observable-scope` adopt the matching running `plan.id` from the sole mark or part line (#5782 / #6316); do not put plan-id shaped values on either line.
 
 ### Review Guidelines
 
