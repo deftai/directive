@@ -2466,6 +2466,16 @@ function argv0BareName(words: readonly string[], execIndex: number): string | nu
   return writeBinName(literal);
 }
 
+function hasGitBehaviorChangingEnvAssignment(words: readonly string[], execIndex: number): boolean {
+  for (let i = 0; i < execIndex; i++) {
+    const literal = zipShellWordLiteral(words[i] as string);
+    if (literal === null) continue;
+    const eq = literal.indexOf("=");
+    if (eq > 0 && literal.slice(0, eq).toUpperCase().startsWith("GIT_")) return true;
+  }
+  return false;
+}
+
 function isArStyleArchiveBin(name: string): boolean {
   return name === "ar" || name === "llvm-ar" || name === "gcc-ar";
 }
@@ -2504,6 +2514,9 @@ function isProvenReadOnlyArgv(words: readonly string[], execIndex: number): bool
     return true;
   }
   if (name === "git") {
+    // GIT_* assignments can install external diff/merge commands or otherwise
+    // change Git's execution path outside the argv proof below.
+    if (hasGitBehaviorChangingEnvAssignment(words, execIndex)) return false;
     let i = execIndex + 1;
     let subcommand: string | null = null;
     while (i < words.length) {
@@ -2550,8 +2563,27 @@ function isProvenReadOnlyArgv(words: readonly string[], execIndex: number): bool
   return false;
 }
 
+function hasExecutableProcessSubstitution(command: string): boolean {
+  let quote: ZipShellQuote = null;
+  for (let i = 0; i < command.length; i++) {
+    const char = command[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < command.length) {
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === char) quote = null;
+      continue;
+    }
+    if (quote === null && char === "<" && command[i + 1] === "(") return true;
+  }
+  return false;
+}
+
 /** A shell command is read-only only when every command segment has a proof. */
 function isClosedReadOnlyShellCommand(command: string): boolean {
+  if (hasExecutableProcessSubstitution(command)) return false;
   const segments = zipStyleCommandSegments(command);
   return (
     segments.length > 0 &&
@@ -3987,6 +4019,7 @@ function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]
   }
   if (!mentionsKill) return false;
   if (hasProtectedArchiveExtract(command)) return true;
+  if (hasExecutableProcessSubstitution(command)) return true;
 
   // Redirect dest region after each `>` operator, including noclobber forms (#4199).
   for (const hay of [lower, stripped]) {
