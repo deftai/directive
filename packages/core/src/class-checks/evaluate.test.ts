@@ -740,29 +740,3 @@ describe("evaluateClassChecks (#4980)", () => {
     expect(result.exitCode).toBe(1);
   });
 });
-
-describe("class-checks changelog entry exemption (#6314)", () => {
-  it("exempts a changelog.d fragment like CHANGELOG.md but not a nested path", () => {
-    const result = evaluateClassChecks("/tmp/proj", {
-      baseRef: "origin/master",
-      changedFiles: ["src/app.ts", "changelog.d/6314-x.md", "changelog.d/sub/x.md", "CHANGELOG.md"],
-      baseTestBoundaryPolicy: baseTb({ sourceRoots: ["src/**"], testRoots: ["tests/**"] }),
-      classChecksPolicy: {
-        ...defaultClassChecksPolicy(),
-        protectedGlobs: ["changelog.d/**", "CHANGELOG.md"],
-      },
-      fileContents: new Map([
-        ["src/app.ts", "export const app = 1;\n"],
-        ["changelog.d/6314-x.md", "section: Added\n- x\n"],
-        ["changelog.d/sub/x.md", "section: Added\n- y\n"],
-        ["CHANGELOG.md", "## [Unreleased]\n"],
-      ]),
-    });
-    const protectedPaths = result.findings
-      .filter((f) => f.kind === "protected-glob")
-      .map((f) => f.path);
-    expect(protectedPaths).toContain("changelog.d/sub/x.md");
-    expect(protectedPaths).not.toContain("changelog.d/6314-x.md");
-    expect(protectedPaths).not.toContain("CHANGELOG.md");
-  });
-});

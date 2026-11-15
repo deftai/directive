@@ -207,3 +207,15 @@ describe("readChangelogFragments (#6314)", () => {
     });
   });
 });
+
+describe("parseFragmentText blank lines inside an entry (#6314 review)", () => {
+  it("keeps a blank line before an indented continuation and drops it at an entry boundary", () => {
+    expect(
+      parseFragmentText("section: Fixed\n- First\n  > quote\n\n  after the quote\n\n- Second\n"),
+    ).toEqual({
+      ok: true,
+      section: "Fixed",
+      entries: ["- First\n  > quote\n\n  after the quote", "- Second"],
+    });
+  });
+});

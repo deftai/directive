@@ -121,21 +121,27 @@ export function parseFragmentText(text: string): FragmentParse {
   }
   const entries: string[] = [];
   let current: string[] | null = null;
+  // Blank lines seen since the last content line. Kept inside an entry when an
+  // indented continuation follows (they can end a blockquote); dropped at an
+  // entry boundary, where the merge supplies its own separator.
+  let pendingBlanks = 0;
   for (let i = 1; i < lines.length; i += 1) {
     const line = lines[i] ?? "";
     if (line.startsWith("#")) {
       return invalid("heading-line", `line ${String(i + 1)} starts with '#'`);
     }
     if (line.trim().length === 0) {
-      // A blank line ends nothing by itself; the next `- ` starts a new entry.
+      pendingBlanks += 1;
       continue;
     }
     if (line.startsWith("- ")) {
       if (current !== null) entries.push(current.join("\n"));
       current = [line.trimEnd()];
+      pendingBlanks = 0;
       continue;
     }
     if (/^[ \t]/.test(line) && current !== null) {
+      for (; pendingBlanks > 0; pendingBlanks -= 1) current.push("");
       current.push(line.trimEnd());
       continue;
     }

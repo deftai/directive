@@ -184,9 +184,19 @@ export function mergeFragmentsIntoChangelogText(
   const { lines, eol } = splitLines(changelogText);
   if (unreleasedBounds(lines) === null) return changelogText;
   for (const section of CHANGELOG_SUBSECTIONS) {
-    const entryLines = fragments
-      .filter((fragment) => fragment.section === section)
-      .flatMap((fragment) => fragment.entries.flatMap((entry) => entry.split("\n")));
+    const entryLines: string[] = [];
+    for (const fragment of fragments) {
+      if (fragment.section !== section) continue;
+      for (const entry of fragment.entries) {
+        // Same rule as the subsection boundary: an entry that does not end as a
+        // plain list item (blockquote, fence, inner blank) gets a blank separator
+        // so the next entry's close claim is not read as part of it.
+        if (entryLines.length > 0 && !endsPlainListEntry(entryLines, 0, entryLines.length - 1)) {
+          entryLines.push("");
+        }
+        entryLines.push(...entry.split("\n"));
+      }
+    }
     if (entryLines.length === 0) continue;
     const bounds = unreleasedBounds(lines);
     if (bounds === null) return changelogText;

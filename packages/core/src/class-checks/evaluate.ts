@@ -8,7 +8,6 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { isChangelogEntryPath } from "../changelog/entry-path.js";
 import { isLifecycleArtifactPath } from "../layout/resolve.js";
 import { unquoteGitPath } from "../scope-provenance/evaluate.js";
 import {
@@ -445,7 +444,7 @@ function isUnderAnyRoot(relPath: string, roots: readonly string[]): boolean {
 
 function isExempt(relPath: string, testRoots: readonly string[]): boolean {
   const posix = normalizeRepoRelPath(relPath);
-  if (isChangelogEntryPath(posix)) return true;
+  if (posix === "CHANGELOG.md") return true;
   return isUnderAnyRoot(posix, testRoots);
 }
 

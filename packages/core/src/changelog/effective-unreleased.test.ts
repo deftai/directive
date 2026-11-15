@@ -10,7 +10,7 @@ import {
   parseUnreleasedEntries,
   readEffectiveUnreleased,
 } from "./effective-unreleased.js";
-import type { ChangelogFragment } from "./fragment.js";
+import { type ChangelogFragment, parseFragmentText } from "./fragment.js";
 
 const CHANGELOG = [
   "# Changelog",
@@ -154,6 +154,26 @@ describe("mergeFragmentsIntoChangelogText (#6314)", () => {
     expect(
       mergeFragmentsIntoChangelogText(prose, [frag("changelog.d/1-a.md", "Added", ["- b"])]),
     ).toBe("## [Unreleased]\n### Added\nSome prose.\n\n- b\n");
+  });
+
+  it("separates merged entries after a quoted entry so later close claims survive (#6314 review)", () => {
+    const parsed = parseFragmentText(
+      "section: Fixed\n- First\n  > quoted example\n\n- Fixed (Closes #77)\n",
+    );
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const merged = mergeFragmentsIntoChangelogText("## [Unreleased]\n\n### Fixed\n\n## [0.1.0]\n", [
+      frag("changelog.d/77-x.md", "Fixed", [...parsed.entries]),
+    ]);
+    expect(merged).toBe(
+      "## [Unreleased]\n\n### Fixed\n\n- First\n  > quoted example\n\n- Fixed (Closes #77)\n\n## [0.1.0]\n",
+    );
+    expect(parseClosesSet(merged)).toEqual(new Set([77]));
+
+    const plain = mergeFragmentsIntoChangelogText("## [Unreleased]\n### Added\n", [
+      frag("changelog.d/1-a.md", "Added", ["- a\n  more", "- b"]),
+    ]);
+    expect(plain).toBe("## [Unreleased]\n### Added\n\n- a\n  more\n- b\n");
   });
 
   it("keeps CRLF and pads a subsection heading followed directly by another heading", () => {
