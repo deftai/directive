@@ -8,57 +8,87 @@
     "title": "feat(merge): green PRs merge without manual re-qualification (merge queue or merge train)",
     "status": "running",
     "narratives": {
-      "Description": "feat(merge): green PRs merge without manual re-qualification (merge queue or merge train)",
+      "Description": "Green PRs on master need manual re-qualification today: update-branch loops, a merge-gate re-read and `--admin` merges. This story moves master to a GitHub merge queue, runs CI and a stand-in `Greptile Review` check on `merge_group`, and gives `pr:wait-mergeable-and-merge` a queue mode that enqueues and reports exactly one of six results.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6295",
       "Overview": "\n1. Queue on master: master requires a merge queue (squash as the queue's merge method), and the repository allows auto-merge so the CLI can arm admission while checks run. Release and policy commits land through the queue as PRs; direct pushes to master are not part of the normal path. Docs say so.\n2. Checks on the queue: `.github/workflows/ci.yml` also runs on `merge_group`. The required checks for master are `TypeScript (build + lint + test)` and `Merge gate (task check)`, reported on PRs and on `merge_group`. On `merge_group`, the PR-context checks inside `task check:merge` (closing keywords, scope provenance, intent constraint) are skipped: they were evaluated on the PR head and body at the PR's last CI run, the same assurance a direct merge of an up-to-date PR has today; later body edits are not re-checked, as today, and lifecycle atomicity stays with #6277.\n3. Review check on the queue: one job named `Greptile Review`, run only on `merge_group`, reports success on the group commit. It starts no review and lists no members. It is sound because GitHub admits a PR to the queue only after its required checks, including the Greptile app's `Greptile Review`, pass on its head, and refuses any update to a queued PR's branch; changing the PR means leaving the queue and passing the checks again on the new head (measured, 6863745290 observations 1, 2 and 4). The job never runs on `pull_request`. The org ruleset keeps requiring `Greptile Review`.\n4. Merge verb, queue mode: `pr:wait-mergeable-and-merge` detects that the delivery branch requires a merge queue (branch rules REST). It runs today's pre-merge checks that read the PR head (review verdict, CI on the head, `verify:pr-closeout-attestable`), records the head SHA and the time, and runs `gh pr merge N --match-head-commit <sha>` with no `--admin` and no merge-method flag. It then reads the PR once from GitHub (head SHA, merged state and merge commit, merge-queue entry, auto-merge request, and the queue and auto-merge timeline events after the recorded time) and returns exactly one result, checked in this order: `head-changed` (the PR's head differs from the recorded SHA; carries the actual merge commit when the PR has merged; no reconciliation runs); `merged` (merged, with the merge commit); `queued` (entry present); `awaiting-admission` (auto-merge request present, no entry); `removed` (not merged, and a removed-from-queue event after the recorded time, with its reason, which may be empty); `inactive` (none of the above; with the latest auto-merge-disabled reason code if any). `--resume --expect-head <sha> --since <time>` repeats that read from any session; on `merged` it runs today's post-merge reconciliation, which must be safe to run more than once. The read follows the GraphQL bucket rules (#954).\n5. Deleted in queue mode: the up-to-date requirement and its update-branch remediation (`semantic-green.ts` stale-base refusal), the #6071 master merge-gate re-read before merge (`cascade.ts`), the update-branch loops, and `--admin`. A break-glass direct merge is a separate, named operator path, not the default.\n6. Pre-PR: `deny-master-merge-gate-red` refuses only when master's named gate is red, never while it is pending; in queue mode it is removed.\n7. Closeout check: `verify:pr-closeout-attestable` reads the PR head SHA from REST and evaluates the tree at that SHA, including referenced evidence, instead of requiring local HEAD to equal the PR head. It stays at enqueue time until #6277 ships.\n8. Consumers: a repository without a merge queue keeps today's merge path (minus item 6's pending change). To use queue mode a consumer enables the queue on its delivery branch and auto-merge on the repository, adds `merge_group` to the workflows behind its required checks, and adds a job like item 3 for any required app check that does not run on `merge_group`. A queue configuration error fails the enqueue; it never falls back to `--admin`.\n9. Tests: queue detected → enqueue without `--admin`, no update-branch call; each of the six results is returned from a recorded GitHub response in the stated order, including a merge whose timeline also holds a removed-from-queue event with reason `merged` (result `merged`), a dequeue then new head then re-queue then merge read with the old expected head (result `head-changed` with the merge commit, no reconciliation), a timeout removal with reason `checks_timed_out` (result `removed`), and a cancelled auto-merge before admission (result `inactive`); `--resume` on `merged` runs reconciliation and a second resume does not break it; the item 3 job runs on `merge_group` only; on `merge_group` the PR-context checks are skipped and the rest run; pre-PR passes while master's gate is pending and refuses when it is red (non-queue); no-queue repositories behave as today.\n\n\n",
       "Constraint": "- A Directive merge train; enabling the queue with `--admin` in the merge call; removing `Greptile Review` from the required checks; reporting `merged` on enqueue success; PR-context checks on the group commit without a PR number; making `one-pr-unit` required in this change (closed findings in Stop 1 6864022280).\n- A group census for the review check (6862736649 finding 1): the measured branch freeze makes it unnecessary.\n- Treating any removed-from-queue event as a failure, or reporting a merge as this session's without checking the head (6864102574 finding 1).",
-      "Labels": "design-critique:ingest-ready, framework-gap"
+      "Labels": "design-critique:ingest-ready, framework-gap",
+      "UserStory": "As an operator merging green PRs, I want master to use a merge queue that the merge verb enqueues into, so that green PRs merge without update-branch loops, re-qualification or `--admin`.",
+      "ImplementationPlan": "1. Run `.github/workflows/ci.yml` on `merge_group`, skip the PR-context checks of `task check:merge` there (packages/core/src/pr-wait-mergeable/merge-group-skip.ts), and add a `Greptile Review` job in greptile-review-merge-group.yml that runs only on `merge_group`.\n2. Add packages/core/src/pr-wait-mergeable/merge-queue.ts: detect a required queue via branch rules REST, run today's head checks, call `gh pr merge N --match-head-commit <sha>` without `--admin`, then one read that returns head-changed, merged, queued, awaiting-admission, removed or inactive; add `--resume --expect-head --since`.\n3. In queue mode remove the stale-base refusal (semantic-green.ts), the master merge-gate re-read (cascade.ts), the update-branch loops and `--admin`.\n4. Make `deny-master-merge-gate-red` in the pre-PR controller refuse only on red, and make `verify:pr-closeout-attestable` evaluate the tree at the REST head SHA (tree-at-sha.ts).\n5. Document queue setup for master and consumers in content/scm/github.md, content/commands.md and docs/RELEASING.md, and add merge-queue, merge-group-skip, tree-at-sha and merge_queue_6295 tests with recorded GitHub responses.",
+      "Traces": "#6295, #1704, #1369, #6071, #6286, #6277, #954"
     },
     "items": [
       {
         "title": "Queue on master: master requires a merge queue (squash as the queue's merge method), and the repository allows auto-merge so the CLI can arm admission while checks run. Release and policy commits land through the queue as PRs; direct pushes to master are not part of the normal path. Docs say so.",
         "status": "proposed",
-        "id": "clause.1"
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given master's branch rules, then a merge queue with squash is required and repository auto-merge is on, and the docs state that release and policy commits land as PRs through the queue."
+        }
       },
       {
         "title": "Checks on the queue: `.github/workflows/ci.yml` also runs on `merge_group`. The required checks for master are `TypeScript (build + lint + test)` and `Merge gate (task check)`, reported on PRs and on `merge_group`. On `merge_group`, the PR-context checks inside `task check:merge` (closing keywords, scope provenance, intent constraint) are skipped: they were evaluated on the PR head and body at the PR's last CI run, the same assurance a direct merge of an up-to-date PR has today; later body edits are not re-checked, as today, and lifecycle atomicity stays with #6277.",
         "status": "proposed",
-        "id": "clause.2"
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given a `merge_group` event, when ci.yml runs, then `TypeScript (build + lint + test)` and `Merge gate (task check)` report on the group commit with the closing-keyword, scope-provenance and intent-constraint checks skipped."
+        }
       },
       {
         "title": "Review check on the queue: one job named `Greptile Review`, run only on `merge_group`, reports success on the group commit. It starts no review and lists no members. It is sound because GitHub admits a PR to the queue only after its required checks, including the Greptile app's `Greptile Review`, pass on its head, and refuses any update to a queued PR's branch; changing the PR means leaving the queue and passing the checks again on the new head (measured, 6863745290 observations 1, 2 and 4). The job never runs on `pull_request`. The org ruleset keeps requiring `Greptile Review`.",
         "status": "proposed",
-        "id": "clause.3"
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a `merge_group` event, then one `Greptile Review` job reports success on the group commit without starting a review; given a `pull_request` event, then that job does not run."
+        }
       },
       {
         "title": "Merge verb, queue mode: `pr:wait-mergeable-and-merge` detects that the delivery branch requires a merge queue (branch rules REST). It runs today's pre-merge checks that read the PR head (review verdict, CI on the head, `verify:pr-closeout-attestable`), records the head SHA and the time, and runs `gh pr merge N --match-head-commit <sha>` with no `--admin` and no merge-method flag. It then reads the PR once from GitHub (head SHA, merged state and merge commit, merge-queue entry, auto-merge request, and the queue and auto-merge timeline events after the recorded time) and returns exactly one result, checked in this order: `head-changed` (the PR's head differs from the recorded SHA; carries the actual merge commit when the PR has merged; no reconciliation runs); `merged` (merged, with the merge commit); `queued` (entry present); `awaiting-admission` (auto-merge request present, no entry); `removed` (not merged, and a removed-from-queue event after the recorded time, with its reason, which may be empty); `inactive` (none of the above; with the latest auto-merge-disabled reason code if any). `--resume --expect-head <sha> --since <time>` repeats that read from any session; on `merged` it runs today's post-merge reconciliation, which must be safe to run more than once. The read follows the GraphQL bucket rules (#954).",
         "status": "proposed",
-        "id": "clause.4"
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given a queue-required delivery branch, when `pr:wait-mergeable-and-merge` runs, then it runs the head checks, enqueues with `--match-head-commit` and no `--admin`, and returns exactly one of the six results in the stated order; `--resume` repeats the read."
+        }
       },
       {
         "title": "Deleted in queue mode: the up-to-date requirement and its update-branch remediation (`semantic-green.ts` stale-base refusal), the #6071 master merge-gate re-read before merge (`cascade.ts`), the update-branch loops, and `--admin`. A break-glass direct merge is a separate, named operator path, not the default.",
         "status": "proposed",
-        "id": "clause.5"
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given queue mode, when the merge verb runs, then it makes no update-branch call, no stale-base refusal, no master merge-gate re-read and no `--admin` merge."
+        }
       },
       {
         "title": "Pre-PR: `deny-master-merge-gate-red` refuses only when master's named gate is red, never while it is pending; in queue mode it is removed.",
         "status": "proposed",
-        "id": "clause.6"
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given master's named gate pending, then `deny-master-merge-gate-red` lets pre-PR pass; given it red without a queue, then it refuses; in queue mode the deny is removed."
+        }
       },
       {
         "title": "Closeout check: `verify:pr-closeout-attestable` reads the PR head SHA from REST and evaluates the tree at that SHA, including referenced evidence, instead of requiring local HEAD to equal the PR head. It stays at enqueue time until #6277 ships.",
         "status": "proposed",
-        "id": "clause.7"
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given local HEAD differs from the PR head, when `verify:pr-closeout-attestable` runs, then it reads the head SHA from REST and evaluates the tree and referenced evidence at that SHA."
+        }
       },
       {
         "title": "Consumers: a repository without a merge queue keeps today's merge path (minus item 6's pending change). To use queue mode a consumer enables the queue on its delivery branch and auto-merge on the repository, adds `merge_group` to the workflows behind its required checks, and adds a job like item 3 for any required app check that does not run on `merge_group`. A queue configuration error fails the enqueue; it never falls back to `--admin`.",
         "status": "proposed",
-        "id": "clause.8"
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given a repository without a merge queue, then the merge verb returns today's results; given a queue configuration error, then the enqueue fails and never falls back to `--admin`."
+        }
       },
       {
         "title": "Tests: queue detected → enqueue without `--admin`, no update-branch call; each of the six results is returned from a recorded GitHub response in the stated order, including a merge whose timeline also holds a removed-from-queue event with reason `merged` (result `merged`), a dequeue then new head then re-queue then merge read with the old expected head (result `head-changed` with the merge commit, no reconciliation), a timeout removal with reason `checks_timed_out` (result `removed`), and a cancelled auto-merge before admission (result `inactive`); `--resume` on `merged` runs reconciliation and a second resume does not break it; the item 3 job runs on `merge_group` only; on `merge_group` the PR-context checks are skipped and the rest run; pre-PR passes while master's gate is pending and refuses when it is red (non-queue); no-queue repositories behave as today.",
         "status": "proposed",
-        "id": "clause.9"
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "When the merge-queue tests run, then each listed fixture holds: enqueue without `--admin`, the six results from recorded GitHub responses in order, `--resume` reconciliation safe to run twice, the job on `merge_group` only, skipped PR-context checks, and no-queue parity."
+        }
       }
     ],
     "tags": [
@@ -164,7 +194,37 @@
           "docs/RULE-MAP.md",
           "CHANGELOG.md"
         ],
-        "file_scope_confidence": "medium"
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "large",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "merge-queue",
+        "verify_commands": [
+          "npx vitest run packages/core/src/pr-wait-mergeable/merge-queue.test.ts packages/core/src/pr-wait-mergeable/merge-group-skip.test.ts packages/core/src/pr-wait-mergeable/wrappers.test.ts packages/core/src/pr-wait-mergeable/cascade.test.ts packages/core/src/pr-wait-mergeable/semantic-green.test.ts packages/core/src/pr-wait-mergeable/main.test.ts packages/core/src/pr-monitor/main.test.ts packages/core/src/pre-pr-controller/controller.test.ts",
+          "npx vitest run packages/core/src/pr-closeout-attestable/evaluate.test.ts packages/core/src/pr-closeout-attestable/pr-head-assert.test.ts packages/core/src/pr-closeout-attestable/tree-at-sha.test.ts packages/core/src/orphan-active/running-briefs.test.ts packages/runtime/src/verify-source-cli/verify-closing-keywords.test.ts packages/runtime/src/verify-scope-provenance.test.ts packages/runtime/src/verify-intent-constraint.test.ts",
+          "npx vitest run packages/core/src/content-contracts/standards/merge_queue_6295.test.ts packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts"
+        ],
+        "expected_outputs": [
+          "ci.yml runs on `merge_group` with PR-context checks skipped there",
+          "`Greptile Review` job that runs only on `merge_group`",
+          "queue mode in `pr:wait-mergeable-and-merge` with six results and `--resume`",
+          "update-branch, stale-base, merge-gate re-read and `--admin` paths removed in queue mode",
+          "`deny-master-merge-gate-red` refuses only on red",
+          "`verify:pr-closeout-attestable` evaluates the tree at the REST head SHA",
+          "queue setup docs for master and consumers"
+        ],
+        "Traces": [
+          "#6295",
+          "#1704",
+          "#1369",
+          "#6071",
+          "#6286",
+          "#6277",
+          "#954"
+        ],
+        "acceptance_criteria_justification": "Nine clauses, one per item of the accepted Bound remedy (lean 6864123854); queue setup, CI, review check, merge verb, removals, pre-PR, closeout, consumers and tests are separate surfaces, kept one-to-one so each maps to its own evidence."
       },
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
@@ -910,7 +970,8 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "63196e2b2b911b2d881d40fad0b18f0d6aff5466deac70d02db15172a7b0dfa1"
-      }
+      },
+      "kind": "story"
     },
     "acceptance": {
       "commands": [],

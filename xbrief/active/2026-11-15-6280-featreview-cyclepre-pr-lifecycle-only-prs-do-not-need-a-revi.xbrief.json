@@ -8,27 +8,39 @@
     "title": "feat(review-cycle,pre-pr): lifecycle-only PRs do not need a review-bot pass",
     "status": "running",
     "narratives": {
-      "Description": "feat(review-cycle,pre-pr): lifecycle-only PRs do not need a review-bot pass",
+      "Description": "Lifecycle-only PRs were proposed to skip the review bot. The accepted decision keeps review on every PR class and records why in the review-cycle and pre-PR skills, with completion PRs folded into the last product PR (#6277) or batched under #6303.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6280",
       "Overview": "\n1. Review decision: `content/skills/deft-directive-review-cycle/SKILL.md` and `content/skills/deft-directive-pre-pr/SKILL.md` state that activation and widen PRs keep the review they have today because they carry new acceptance text, and that mint-record and cancel PRs keep theirs because they carry authority. No PR class skips the review bot.\n2. Completion PRs: the same passages say that a story's completion normally rides in its last product PR (#6277), and that the remaining completion PRs are batched under #6303, which owns their review cost and the reviewer-side setting.\n3. Tests: the content-contract tests for those two skills pin both passages.\n\n\n",
       "Constraint": "- A completion-PR classifier, a reviewer skip state, a skip label or a policy switch for this (joint-arc retraction map 6861004147; Scott's option 2).\n- A reviewer-side path filter over the lifecycle folders, which would also silence activation reviews (carried from the first #6280 arc).",
-      "Labels": "consumer-example, design-critique:ingest-ready, framework-gap"
+      "Labels": "consumer-example, design-critique:ingest-ready, framework-gap",
+      "UserStory": "As a maintainer reading the review-cycle and pre-PR skills, I want them to state which lifecycle PRs keep review and where completion PRs go, so that no agent skips the review bot on a lifecycle-only PR.",
+      "ImplementationPlan": "1. In content/skills/deft-directive-review-cycle/SKILL.md and content/skills/deft-directive-pre-pr/SKILL.md, add a passage: activation and widen PRs keep today's review because they carry new acceptance text, mint-record and cancel PRs keep theirs because they carry authority, and no PR class skips the review bot.\n2. In the same passages, state that a story's completion normally rides in its last product PR (#6277) and that remaining completion PRs are batched under #6303.\n3. Pin both passages in content-contract tests (review_cycle_skill.test.ts, skills.test.ts and a new lifecycle_pr_review_6280.test.ts), and refresh the skills pack file and docs/RULE-MAP.md.",
+      "Traces": "#6280, #680, #3630, #2308, #6277, #6303"
     },
     "items": [
       {
         "title": "Review decision: `content/skills/deft-directive-review-cycle/SKILL.md` and `content/skills/deft-directive-pre-pr/SKILL.md` state that activation and widen PRs keep the review they have today because they carry new acceptance text, and that mint-record and cancel PRs keep theirs because they carry authority. No PR class skips the review bot.",
         "status": "proposed",
-        "id": "clause.1"
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When the content-contract tests read both SKILL.md files, then each states that activation and widen PRs keep review for new acceptance text, mint-record and cancel PRs keep review for authority, and no PR class skips the review bot."
+        }
       },
       {
         "title": "Completion PRs: the same passages say that a story's completion normally rides in its last product PR (#6277), and that the remaining completion PRs are batched under #6303, which owns their review cost and the reviewer-side setting.",
         "status": "proposed",
-        "id": "clause.2"
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When the content-contract tests read the same passages, then each states that completion normally rides in the last product PR (#6277) and that remaining completion PRs are batched under #6303."
+        }
       },
       {
         "title": "Tests: the content-contract tests for those two skills pin both passages.",
         "status": "proposed",
-        "id": "clause.3"
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When the content-contract tests for the two skills run, then they fail if either passage is removed from either SKILL.md."
+        }
       }
     ],
     "tags": [
@@ -1062,8 +1074,32 @@
           "packages/core/src/content-contracts/skills/lifecycle_pr_review_6280.test.ts",
           "CHANGELOG.md"
         ],
-        "file_scope_confidence": "medium"
-      }
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "skill-review-decision",
+        "verify_commands": [
+          "npx vitest run packages/core/src/content-contracts/skills/review_cycle_skill.test.ts packages/core/src/content-contracts/skills/skills.test.ts packages/core/src/content-contracts/skills/lifecycle_pr_review_6280.test.ts"
+        ],
+        "expected_outputs": [
+          "review decision passage in the review-cycle SKILL.md",
+          "matching passage in the pre-PR SKILL.md",
+          "content-contract test pinning both passages",
+          "skills pack and RULE-MAP refreshed"
+        ],
+        "Traces": [
+          "#6280",
+          "#680",
+          "#3630",
+          "#2308",
+          "#6277",
+          "#6303"
+        ]
+      },
+      "kind": "story"
     },
     "id": "github.issue.6374107041",
     "updated": "2026-11-15T02:36:01Z"

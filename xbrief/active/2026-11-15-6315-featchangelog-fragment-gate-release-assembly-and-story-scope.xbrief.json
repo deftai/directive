@@ -8,71 +8,110 @@
     "title": "feat(changelog): fragment gate, release assembly and story scope (#6286 slice B)",
     "status": "running",
     "narratives": {
-      "Description": "feat(changelog): fragment gate, release assembly and story scope (#6286 slice B)",
+      "Description": "Slice B of the accepted #6286 CHANGELOG fragments design: a branch-relative changelog gate, release assembly that folds fragments into CHANGELOG.md and deletes them in the release commit, story scope that lists its own fragment path, and this repository's move to mode `either`. It depends on slice A (#6314).",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6315",
       "Overview": "## Summary\n\nSlice B of the accepted #6286 design (CHANGELOG fragments): the branch-relative changelog gate, release assembly of fragments, story scope, and this repository's move to mode `either`. It depends on slice A (path test, format, mode, effective view).\n\nBound contract: successor lean 6859392664 on #6286, items 4, 6, 7, 8 (first step) and 9 (completed-arc record 6859436534). Each slice has its own issue so that each brief completes from exactly one PR with its own `deft-story` line until #6310 ships.\n\n## Scope\n\n1. Gate. `verify:changelog-unreleased` in merge-base mode keeps the #680 lifecycle-only exemption and its `inline` behaviour. In `fragments` mode it passes only when the change set against the merge base adds at least one valid fragment that is absent at the merge base, and fails when the change set changes `CHANGELOG.md` at all. In `either` mode it passes when the change set adds exactly one of the two forms. Fragments that other merged PRs put on the branch never satisfy it. In every mode, a change set that modifies, renames or deletes a fragment present at the merge base fails, and every fragment it adds must be valid.\n2. Release. `prepareReleaseArtifacts` captures the fragments, applies the changelog read-safety refusal to each, and computes the assembled section in memory (subsection order, then file name). It refuses on an invalid fragment, on two fragments with an identical entry line, and when `CHANGELOG.md` already holds a heading for the version being cut. `writeReleaseArtifacts` writes `CHANGELOG.md` and deletes exactly the captured fragments; `commitReleaseArtifacts` stages those deletions with the release artifacts. A dry run writes and deletes nothing. A failure between write and commit names the restore of `CHANGELOG.md`, `ROADMAP.md` and `changelog.d/` to HEAD, and says `--allow-dirty` is not a recovery path. The release commit is refused while a captured fragment is still on disk.\n3. Story scope. A story that adds an entry lists its own concrete fragment path in `file_scope`; the brief and PR templates (`.github/PULL_REQUEST_TEMPLATE.md`) and the swarm skill say so. `swarm:readiness` is unchanged.\n4. This repository sets `plan.policy.changelog.mode` to `either` (operator decision, 2026-11-15). The move to `fragments` comes later, after a release is cut with fragments, and is the operator's call.\n\n## Acceptance Criteria\n\n- Given mode `fragments` and a branch that carries other PRs' fragments and none of its own, then the gate fails; with a valid own fragment, it passes.\n- Given mode `fragments` and a valid own fragment together with any edit to `CHANGELOG.md`, then the gate fails.\n- Given mode `either` and both forms in one change set, then the gate fails; with exactly one form, it passes.\n- Given any mode and a change set that modifies, renames or deletes a fragment present at the merge base, then the gate fails; an invalid added fragment fails.\n- Given a lifecycle-only change set, then the gate is exempt as today.\n- Given a release cut with several fragments, then the promoted section holds each entry once in the right subsection, no fragment remains, and the deletions are in the release commit.\n- Given a dry run, then nothing is written or deleted.\n- Given a failure injected after the write and before deletion, and one after deletion and before the commit, then a rerun without a restore is refused, and a rerun after the restore gives each entry once and one version section.\n- Given a changelog that already holds the version heading, duplicate entry text in two fragments, or a symlinked fragment, then the release refuses.\n- Given two stories that list their own fragment paths, then `swarm:readiness` reports no overlap; given two stories that list the same directory entry, then the overlap is reported as today.\n- Given two branches that each add a fragment, when they merge in either order, then there is no conflict.\n- This repository's policy reads `either`.\n\nRefs #6286.\n\ndesign-critique: not warranted, because this slice implements items 4, 6, 7, 8 and 9 of the design already accepted on #6286 (lean 6859392664, record 6859436534) and adds no mechanism.\n\n",
-      "Labels": "framework-gap"
+      "Labels": "framework-gap",
+      "UserStory": "As a maintainer running parallel stories, I want each PR to add its own changelog fragment that the gate checks and the release assembles, so that changelog edits stop conflicting between branches.",
+      "ImplementationPlan": "1. Extend `verify:changelog-unreleased` merge-base mode (packages/core/src/task-surface/index.ts, tasks/verify.yml, check/named-cause.ts) for `fragments` and `either` modes; keep the lifecycle-only exemption and `inline` behaviour; fail on a changed, renamed or deleted merge-base fragment or an invalid added one.\n2. In packages/core/src/release (release-artifacts.ts, changelog.ts, pipeline.ts, git.ts), capture fragments, assemble the section in memory, refuse invalid, duplicate-entry and existing-version cases, write CHANGELOG.md, delete exactly the captured fragments and stage the deletions in the release commit; a dry run writes nothing; a mid-run failure names the restore.\n3. State in the PR templates, the swarm skill and the release skill that a story lists its own `changelog.d/<issue>-<slug>.md` path in file_scope; `swarm:readiness` stays unchanged.\n4. Set `plan.policy.changelog.mode` to `either` in xbrief/PROJECT-DEFINITION.xbrief.json and add this story's own fragment file.\n5. Cover each clause with release, pipeline, rollback, readiness-branches and content-contract tests.",
+      "Traces": "#6315, #6286, #6314, #680"
     },
     "items": [
       {
         "title": "Given mode `fragments` and a branch that carries other PRs' fragments and none of its own, then the gate fails; with a valid own fragment, it passes.",
         "status": "proposed",
-        "id": "clause.1"
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given mode `fragments` and a branch carrying other PRs' fragments but none of its own, then the gate fails; with a valid own fragment, then it passes."
+        }
       },
       {
         "title": "Given mode `fragments` and a valid own fragment together with any edit to `CHANGELOG.md`, then the gate fails.",
         "status": "proposed",
-        "id": "clause.2"
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given mode `fragments`, a valid own fragment and any edit to `CHANGELOG.md` in the same change set, then the gate fails."
+        }
       },
       {
         "title": "Given mode `either` and both forms in one change set, then the gate fails; with exactly one form, it passes.",
         "status": "proposed",
-        "id": "clause.3"
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given mode `either` and both forms in one change set, then the gate fails; given exactly one form, then it passes."
+        }
       },
       {
         "title": "Given any mode and a change set that modifies, renames or deletes a fragment present at the merge base, then the gate fails; an invalid added fragment fails.",
         "status": "proposed",
-        "id": "clause.4"
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given any mode and a change set that modifies, renames or deletes a fragment present at the merge base, or adds an invalid fragment, then the gate fails."
+        }
       },
       {
         "title": "Given a lifecycle-only change set, then the gate is exempt as today.",
         "status": "proposed",
-        "id": "clause.5"
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given a lifecycle-only change set, when the changelog gate runs, then it stays exempt exactly as it is today."
+        }
       },
       {
         "title": "Given a release cut with several fragments, then the promoted section holds each entry once in the right subsection, no fragment remains, and the deletions are in the release commit.",
         "status": "proposed",
-        "id": "clause.6"
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given a release cut with several fragments, then the promoted section holds each entry once in its subsection, no fragment remains, and the release commit records the deletions."
+        }
       },
       {
         "title": "Given a dry run, then nothing is written or deleted.",
         "status": "proposed",
-        "id": "clause.7"
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given a release dry run with fragments present, then nothing is written to disk and no fragment is deleted."
+        }
       },
       {
         "title": "Given a failure injected after the write and before deletion, and one after deletion and before the commit, then a rerun without a restore is refused, and a rerun after the restore gives each entry once and one version section.",
         "status": "proposed",
-        "id": "clause.8"
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given a failure injected after the write and before deletion, or after deletion and before the commit, then a rerun without a restore is refused and a rerun after the restore gives each entry once in one version section."
+        }
       },
       {
         "title": "Given a changelog that already holds the version heading, duplicate entry text in two fragments, or a symlinked fragment, then the release refuses.",
         "status": "proposed",
-        "id": "clause.9"
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given a changelog that already holds the version heading, duplicate entry text in two fragments, or a symlinked fragment, then the release refuses."
+        }
       },
       {
         "title": "Given two stories that list their own fragment paths, then `swarm:readiness` reports no overlap; given two stories that list the same directory entry, then the overlap is reported as today.",
         "status": "proposed",
-        "id": "clause.10"
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given two stories that each list their own fragment path, then `swarm:readiness` reports no overlap; given two that list the same directory entry, then it reports the overlap as today."
+        }
       },
       {
         "title": "Given two branches that each add a fragment, when they merge in either order, then there is no conflict.",
         "status": "proposed",
-        "id": "clause.11"
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given two branches that each add a fragment, when they merge in either order, then git reports no conflict."
+        }
       },
       {
         "title": "This repository's policy reads `either`.",
         "status": "proposed",
-        "id": "clause.12"
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "When `policy:show --field=plan.policy.changelog.mode` runs in this repository, then it returns `either`."
+        }
       }
     ],
     "tags": [
@@ -324,8 +363,36 @@
           "CHANGELOG.md",
           "changelog.d/6315-changelog-fragments.md"
         ],
-        "file_scope_confidence": "medium"
-      }
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "large",
+        "model_tier": "standard",
+        "depends_on": [
+          "github.issue.6398935107"
+        ],
+        "conflict_group": "changelog-fragments",
+        "verify_commands": [
+          "npx vitest run packages/core/src/task-surface/index.test.ts packages/core/src/release/release-artifacts.test.ts packages/core/src/release/changelog.test.ts packages/core/src/release/pipeline.test.ts packages/core/src/release/changelog-read-safety.test.ts packages/core/src/release/pipeline-branches.test.ts packages/core/src/release/coverage-boost.test.ts packages/core/src/release/coverage-extra.test.ts packages/core/src/release-rollback/rollback.test.ts",
+          "npx vitest run packages/core/src/swarm/readiness-branches.test.ts packages/core/src/content-contracts/standards/pre_pr_remainder_633.test.ts packages/core/src/content-contracts/standards/release_workflow.test.ts packages/core/src/content-contracts/skills/swarm_skill.test.ts"
+        ],
+        "expected_outputs": [
+          "branch-relative `verify:changelog-unreleased` for `fragments` and `either` modes",
+          "release assembly of fragments with in-commit deletion and refusals",
+          "dry-run and mid-run failure restore guidance",
+          "story-scope rule for own fragment paths in PR templates and skills",
+          "`plan.policy.changelog.mode` set to `either` in PROJECT-DEFINITION",
+          "changelog.d/6315-changelog-fragments.md"
+        ],
+        "Traces": [
+          "#6315",
+          "#6286",
+          "#6314",
+          "#680"
+        ],
+        "acceptance_criteria_justification": "Twelve clauses, one per acceptance criterion in the #6315 issue body (slice B of #6286 lean 6859392664, items 4, 6, 7, 8 and 9); gate, release and story-scope cases are distinct and kept one-to-one so each maps to its own evidence."
+      },
+      "kind": "story"
     },
     "id": "github.issue.6398935329",
     "updated": "2026-11-15T02:35:44Z"
