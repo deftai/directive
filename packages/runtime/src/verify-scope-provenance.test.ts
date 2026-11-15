@@ -76,7 +76,8 @@ function captureRun(argv: string[]): { code: number; stdout: string; stderr: str
     return true;
   });
   try {
-    return { code: run(argv), stdout, stderr };
+    // Pin a non-merge_group event so a merge_group CI lane still runs the check (#6295).
+    return { code: run(argv, { ...process.env, GITHUB_EVENT_NAME: "" }), stdout, stderr };
   } finally {
     out.mockRestore();
     err.mockRestore();
@@ -307,5 +308,21 @@ describe("mint-level admit visibility (#6273)", () => {
     );
     expect(bad.stdout).toContain("plan id: story-6273");
     expect(bad.stderr).toContain("GITHUB_STEP_SUMMARY");
+  });
+});
+
+describe("verify:scope-provenance on merge_group (#6295)", () => {
+  it("skips with exit 0 and never parses arguments", () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    // An invalid flag would exit 2 if the check ran.
+    expect(run(["--nope"], { GITHUB_EVENT_NAME: "merge_group" })).toBe(0);
+    expect(stdout.mock.calls.join("")).toContain("verify:scope-provenance: skipped on merge_group");
+    stdout.mockRestore();
+  });
+
+  it("still runs on pull_request", () => {
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    expect(run(["--nope"], { GITHUB_EVENT_NAME: "pull_request" })).toBe(2);
+    stderr.mockRestore();
   });
 });

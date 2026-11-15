@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { parseArgs, run } from "./verify-intent-constraint.js";
 
 describe("verify-intent-constraint CLI (#4541)", () => {
@@ -26,6 +26,23 @@ describe("verify-intent-constraint CLI (#4541)", () => {
     expect(parsed.originRef).toBe("origin/master");
   });
   it("returns 2 on unrecognized arguments", () => {
-    expect(run(["--nope"])).toBe(2);
+    expect(run(["--nope"], {})).toBe(2);
+  });
+});
+
+describe("verify:intent-constraint on merge_group (#6295)", () => {
+  it("skips with exit 0 and never parses arguments", () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    expect(run(["--nope"], { GITHUB_EVENT_NAME: "merge_group" })).toBe(0);
+    expect(stdout.mock.calls.join("")).toContain(
+      "verify:intent-constraint: skipped on merge_group",
+    );
+    stdout.mockRestore();
+  });
+
+  it("still runs on pull_request", () => {
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    expect(run(["--nope"], { GITHUB_EVENT_NAME: "pull_request" })).toBe(2);
+    stderr.mockRestore();
   });
 });

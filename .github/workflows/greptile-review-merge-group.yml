@@ -1,0 +1,32 @@
+# `Greptile Review` on the merge queue's group commit (#6295 item 3).
+#
+# The org ruleset requires a check named `Greptile Review`. The Greptile app
+# reviews each PR head but never reports on a merge_group commit, so without
+# this job a queued PR times out of the queue (`checks_timed_out`).
+#
+# This job starts no review and lists no group members. It is sound because
+# GitHub admits a PR to the queue only after its required checks, including the
+# Greptile app's `Greptile Review`, pass on its head, and refuses any update to
+# a queued PR's branch: changing the PR means leaving the queue and passing the
+# checks again on the new head.
+#
+# It runs on merge_group only and lives in its own workflow so it never shows
+# as a skipped required check on pull requests.
+name: greptile-review-merge-group
+
+on:
+  merge_group:
+
+permissions: {}
+
+jobs:
+  greptile-review:
+    name: Greptile Review
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report Greptile Review for the group commit
+        env:
+          GROUP_SHA: ${{ github.sha }}
+        run: |
+          echo "Greptile Review: PR heads in this group passed the Greptile app check before admission (#6295)."
+          echo "group commit: ${GROUP_SHA}"

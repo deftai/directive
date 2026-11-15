@@ -27,6 +27,29 @@ function planOf(data: Record<string, unknown> | null): Record<string, unknown> |
 }
 
 /**
+ * Parse brief JSON text and return its plan when plan.status is running (#6295).
+ * Shared by the working-tree walk below and the tree-at-SHA reader used by
+ * verify:pr-closeout-attestable, so both apply the same running filter.
+ */
+export function runningPlanFromJsonText(text: string): Record<string, unknown> | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  const data =
+    typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  const plan = planOf(data);
+  if (plan === null || String(plan.status ?? "").toLowerCase() !== "running") {
+    return null;
+  }
+  return plan;
+}
+
+/**
  * Enumerate running briefs under an already-resolved lifecycle root.
  * Shared by orphan-active, closeout-attestable, and --allow-close (#4628).
  */
