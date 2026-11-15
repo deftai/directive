@@ -302,6 +302,10 @@ Per #716 default-draft hardening, this lands the release as a `--draft` on the r
 
 ! Wait for `task release` to exit 0 before continuing. A non-zero exit means the pipeline halted partway through; consult Phase 7's `task release:rollback` recovery before retrying.
 
+! **Changelog fragments (#6315).** Step 6 captures the `changelog.d/` fragments and assembles the promoted section in memory (subsection order, then file name). It refuses an invalid or symlinked fragment, an entry line held by two fragments, and a `CHANGELOG.md` that already holds the version heading. Step 7 writes `CHANGELOG.md`, then deletes exactly the captured fragments; Step 9 stages those deletions in the release commit, and refuses while a captured fragment is still on disk. A dry run writes and deletes nothing.
+! **Failure between the write and the commit (#6315).** Restore `CHANGELOG.md`, `ROADMAP.md` and `changelog.d/` to HEAD (`git restore --source=HEAD --staged --worktree -- CHANGELOG.md ROADMAP.md changelog.d/`), then rerun. After the release commit exists, recovery is `task release:rollback`; its revert restores the fragments.
+⊗ Rerun a failed cut with `--allow-dirty` -- it skips the dirty-tree guard and is not a recovery path (#6315).
+
 ⊗ Pass `--no-draft` here unless the operator has explicitly opted into direct-publish (e.g. automated security patch). The default-draft contract is the foundation of the safety hardening surface.
 
 ⊗ Skip the post-create verify-isDraft gate -- the gate is the only reliable safety net against "create call exited 0 but the release somehow landed as public" variants (#724). If `task release` is invoked manually outside the canonical `task release` flow, the operator MUST run `gh release view v<version> --json isDraft` followed by `gh release edit --draft=true` on `isDraft=false` BEFORE handing off to Phase 5.

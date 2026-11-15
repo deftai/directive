@@ -268,3 +268,118 @@ export function readChangelogFragments(
   }
   return { valid, invalid: bad };
 }
+
+/** Changelog entry mode as the gate reads it (`plan.policy.changelog.mode`). */
+export type ChangelogGateMode = "inline" | "either" | "fragments";
+
+/** One row of `git diff --name-status --no-renames <merge-base>...HEAD`. */
+export interface ChangelogChangeSetEntry {
+  /** Status letter: `A`, `M`, `D`, `T`, ... (no renames: a rename is `D` + `A`). */
+  readonly status: string;
+  readonly path: string;
+}
+
+export interface FragmentGateInput {
+  readonly mode: ChangelogGateMode;
+  readonly changeSet: readonly ChangelogChangeSetEntry[];
+  /** True when the change set changes `CHANGELOG.md` at all. */
+  readonly changelogChanged: boolean;
+  /** `- ` lines under `[Unreleased]` that are new versus the merge base. */
+  readonly addedInlineEntries: number;
+  readonly readFragment: (relPath: string) => ChangelogFragment | InvalidChangelogFragment;
+}
+
+export interface FragmentGateResult {
+  readonly ok: boolean;
+  /** Valid fragments this change set adds (absent at the merge base). */
+  readonly addedFragments: readonly ChangelogFragment[];
+  /** One line per failure; empty when `ok`. */
+  readonly problems: readonly string[];
+}
+
+function changedFragmentProblem(entry: ChangelogChangeSetEntry): string {
+  const verb = entry.status.startsWith("D") ? "deletes or renames" : "modifies";
+  return (
+    `change set ${verb} ${entry.path}, a fragment present at the merge base; ` +
+    "an ordinary change only adds fragments (the release commit removes them)"
+  );
+}
+
+/**
+ * Fragment rules that hold in every mode (#6315 / #6286 item 4): a change set
+ * never modifies, renames or deletes a fragment present at the merge base, and
+ * every fragment it adds is valid. Pure; `readFragment` reads the added files.
+ */
+export function evaluateFragmentIntegrity(
+  changeSet: readonly ChangelogChangeSetEntry[],
+  readFragment: FragmentGateInput["readFragment"],
+): FragmentGateResult {
+  const problems: string[] = [];
+  const added: ChangelogFragment[] = [];
+  const sorted = [...changeSet].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  for (const entry of sorted) {
+    if (!isChangelogFragmentPath(entry.path)) continue;
+    if (!entry.status.startsWith("A")) {
+      problems.push(changedFragmentProblem(entry));
+      continue;
+    }
+    const read = readFragment(entry.path);
+    if (isValidChangelogFragment(read)) added.push(read);
+    else problems.push(`invalid changelog fragment ${read.path} (${read.reason}: ${read.detail})`);
+  }
+  return { ok: problems.length === 0, addedFragments: added, problems };
+}
+
+/**
+ * Branch-relative changelog gate (#6315 / #6286 item 4). Pure.
+ *
+ * - every mode: {@link evaluateFragmentIntegrity}.
+ * - `inline`: the change set adds a `- ` line under `[Unreleased]` (today).
+ * - `fragments`: it adds at least one valid fragment absent at the merge base,
+ *   and does not change `CHANGELOG.md` at all.
+ * - `either`: it adds exactly one of the two forms.
+ *
+ * Fragments that other merged PRs put on the branch are present at the merge
+ * base, so they are not in the change set and never satisfy the gate. The
+ * #680 lifecycle-only exemption is the caller's, before this runs.
+ */
+export function evaluateChangelogGate(input: FragmentGateInput): FragmentGateResult {
+  const integrity = evaluateFragmentIntegrity(input.changeSet, input.readFragment);
+  if (!integrity.ok) return integrity;
+  const hasFragment = integrity.addedFragments.length > 0;
+  const hasInline = input.addedInlineEntries > 0;
+  const fail = (problem: string): FragmentGateResult => ({
+    ok: false,
+    addedFragments: integrity.addedFragments,
+    problems: [problem],
+  });
+  const noFragment =
+    "change set adds no changelog.d/<issue>-<slug>.md fragment " +
+    "(fragments already on the branch from other changes do not count)";
+  if (input.mode === "fragments") {
+    if (input.changelogChanged) {
+      return fail(
+        "change set changes CHANGELOG.md; in fragments mode add a changelog.d/ fragment " +
+          "and leave CHANGELOG.md to the release commit",
+      );
+    }
+    if (!hasFragment) return fail(noFragment);
+    return integrity;
+  }
+  if (input.mode === "either") {
+    if (hasFragment && hasInline) {
+      return fail(
+        "change set adds both a CHANGELOG.md [Unreleased] line and a changelog.d/ fragment; " +
+          "in either mode add exactly one",
+      );
+    }
+    if (!hasFragment && !hasInline) {
+      return fail(
+        "change set adds neither a CHANGELOG.md [Unreleased] line nor a changelog.d/ fragment",
+      );
+    }
+    return integrity;
+  }
+  if (!hasInline) return fail('[Unreleased] section has no new "- " entries versus merge-base');
+  return integrity;
+}

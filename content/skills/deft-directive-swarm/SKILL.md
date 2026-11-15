@@ -115,6 +115,8 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 ! After operator proceed on a cohort, do not schedule `scope:record-approved-scope` / mint stops. Fence is merge-base brief `file_scope`; depth: [`references/core-phase-0.md`](references/core-phase-0.md) § Proceed and scope ceremony, `docs/scope-provenance.md`.
 ⊗ Mid-cohort leave-harness mint or remint for proceed / file_scope growth (#4956).
 
+! **Changelog story scope (#6315):** a story that adds a changelog entry lists its own concrete fragment path `changelog.d/<issue>-<slug>.md` in `file_scope` (mode `either` / `fragments`), not `CHANGELOG.md` or the `changelog.d/` directory. `swarm:readiness` is unchanged: a shared path, directory or glob still overlaps. Depth: `content/scm/changelog.md`.
+
 ### Worktree isolation before parallel spawn
 
 ! One isolated git worktree per parallel agent (Phase 2). Create worktrees or consume a worktree-map **before** dispatch.

@@ -90,6 +90,16 @@ export function promoteChangelog(
   return newBody + newFooter;
 }
 
+/**
+ * True when the changelog already holds a `## [<version>]` heading (#6315).
+ * A release refuses then: it never promotes the same version twice, so a rerun
+ * after a partly written run must start from a tree restored to HEAD.
+ */
+export function hasVersionHeading(text: string, version: string): boolean {
+  const escaped = version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`^##\\s+\\[${escaped}\\]`, "m").test(text);
+}
+
 /** Extract the body of ## [<version>] - <date> for use as release notes. */
 export function sectionForVersion(text: string, version: string): string {
   const escaped = version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

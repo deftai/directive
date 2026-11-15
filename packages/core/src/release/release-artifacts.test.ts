@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import {
   closeSync,
   existsSync,
@@ -14,6 +15,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { EXIT_VIOLATION } from "./constants.js";
+import { commitReleaseArtifacts } from "./git.js";
 import { runPipeline } from "./pipeline.js";
 import { paidSkipCiLedgerSeam } from "./pipeline-fixture.js";
 import {
@@ -305,4 +307,268 @@ describe("runPipeline artifact steps (#4318)", () => {
     expect(rc).toBe(EXIT_VIOLATION);
     expect(readFileSync(join(root, "CHANGELOG.md"))).toEqual(before);
   });
+});
+
+describe("changelog fragments in the release (#6315 / #6286 item 6)", () => {
+  const BASE =
+    "## [Unreleased]\n\n### Added\n\n- inline added (#1)\n\n## [0.20.0] - 2026-04-01\n\n- old\n";
+  const FRAGMENTS: Record<string, string> = {
+    "30-fix-b.md": "section: Fixed\n- fix b (#30)\n",
+    "20-feat-a.md": "section: Added\n- feat a (#20)\n  continued line\n",
+    "25-change.md": "section: Changed\n- change c (#25)\n- change d (#25)\n",
+  };
+
+  function git(root: string, args: string[]): string {
+    return execFileSync("git", ["-c", "user.email=ci@test", "-c", "user.name=ci", ...args], {
+      cwd: root,
+      encoding: "utf8",
+    });
+  }
+
+  function fragmentRoot(fragments: Record<string, string> = FRAGMENTS): string {
+    const root = tempRoot();
+    writeFileSync(join(root, "CHANGELOG.md"), BASE);
+    mkdirSync(join(root, "changelog.d"));
+    for (const [name, text] of Object.entries(fragments)) {
+      writeFileSync(join(root, "changelog.d", name), text);
+    }
+    return root;
+  }
+
+  function gitRoot(fragments: Record<string, string> = FRAGMENTS): string {
+    const root = fragmentRoot(fragments);
+    execFileSync("git", ["init", "-q", "-b", "master"], { cwd: root });
+    git(root, ["config", "core.autocrlf", "false"]);
+    git(root, ["add", "-A"]);
+    git(root, ["commit", "-q", "-m", "init"]);
+    return root;
+  }
+
+  function count(text: string, needle: string): number {
+    return text.split(needle).length - 1;
+  }
+
+  function promotedSection(text: string): string {
+    const start = text.indexOf("## [0.21.0]");
+    const end = text.indexOf("## [0.20.0]");
+    return text.slice(start, end);
+  }
+
+  it("folds each entry once into its subsection and deletes every captured fragment", () => {
+    const root = fragmentRoot();
+    const prepared = prepareReleaseArtifacts(prepInput(root, false));
+    expect(prepared.ok).toBe(true);
+    if (!prepared.ok) return;
+    expect(prepared.prepared.fragments.map((f) => f.path)).toEqual([
+      "changelog.d/20-feat-a.md",
+      "changelog.d/25-change.md",
+      "changelog.d/30-fix-b.md",
+    ]);
+    const written = writeReleaseArtifacts(prepared.prepared);
+    expect(written).toEqual({
+      ok: true,
+      deletedFragments: [
+        "changelog.d/20-feat-a.md",
+        "changelog.d/25-change.md",
+        "changelog.d/30-fix-b.md",
+      ],
+    });
+    const text = readFileSync(join(root, "CHANGELOG.md"), "utf8");
+    const section = promotedSection(text);
+    for (const entry of [
+      "- inline added (#1)",
+      "- feat a (#20)",
+      "- change c (#25)",
+      "- change d (#25)",
+      "- fix b (#30)",
+    ]) {
+      expect(count(text, entry)).toBe(1);
+      expect(section).toContain(entry);
+    }
+    expect(section).toContain("- feat a (#20)\n  continued line");
+    // Subsection order: Added, Changed, Fixed.
+    const added = section.indexOf("### Added");
+    const changed = section.indexOf("### Changed");
+    const fixed = section.indexOf("### Fixed");
+    expect(added).toBeGreaterThan(-1);
+    expect(added).toBeLessThan(section.indexOf("- feat a (#20)"));
+    expect(changed).toBeLessThan(section.indexOf("- change c (#25)"));
+    expect(fixed).toBeLessThan(section.indexOf("- fix b (#30)"));
+    expect(added).toBeLessThan(changed);
+    expect(changed).toBeLessThan(fixed);
+    expect(count(text, "## [0.21.0]")).toBe(1);
+    for (const name of Object.keys(FRAGMENTS)) {
+      expect(existsSync(join(root, "changelog.d", name))).toBe(false);
+    }
+  });
+
+  it("the release commit records the fragment deletions", () => {
+    const root = gitRoot();
+    const prepared = prepareReleaseArtifacts(prepInput(root, false));
+    if (!prepared.ok) throw new Error(prepared.message);
+    const written = writeReleaseArtifacts(prepared.prepared);
+    if (!written.ok) throw new Error(written.message);
+    const [ok, reason] = commitReleaseArtifacts(root, "0.21.0", {}, written.deletedFragments);
+    expect(reason).toContain("committed release artifacts");
+    expect(ok).toBe(true);
+    const shown = git(root, ["show", "--name-status", "--format=", "HEAD"]);
+    expect(shown).toContain("M\tCHANGELOG.md");
+    for (const name of Object.keys(FRAGMENTS)) {
+      expect(shown).toContain(`D\tchangelog.d/${name}`);
+    }
+    expect(git(root, ["status", "--porcelain"]).trim()).toBe("");
+  });
+
+  it("refuses the release commit while a captured fragment is still on disk", () => {
+    const root = gitRoot();
+    const [ok, reason] = commitReleaseArtifacts(root, "0.21.0", {}, ["changelog.d/20-feat-a.md"]);
+    expect(ok).toBe(false);
+    expect(reason).toContain("still on disk: changelog.d/20-feat-a.md");
+    expect(git(root, ["log", "--oneline"]).trim().split("\n")).toHaveLength(1);
+  });
+
+  it("a dry run writes and deletes nothing", () => {
+    const root = fragmentRoot();
+    const prepared = prepareReleaseArtifacts(prepInput(root, true));
+    expect(prepared.ok).toBe(true);
+    if (prepared.ok) {
+      expect(prepared.prepared.fragments).toHaveLength(3);
+      expect(prepared.prepared.changelogBytes.toString("utf8")).toContain("- fix b (#30)");
+    }
+    const cap = capture();
+    try {
+      expect(runPipeline(pipelineConfig(root, { dryRun: true, skipTag: false }), seams())).toBe(0);
+      expect(cap.text()).toContain("then delete 3 captured changelog fragment(s)");
+    } finally {
+      cap.restore();
+    }
+    expect(readFileSync(join(root, "CHANGELOG.md"), "utf8")).toBe(BASE);
+    expect(readFileSync(join(root, "ROADMAP.md"), "utf8")).toBe(ROADMAP);
+    for (const [name, text] of Object.entries(FRAGMENTS)) {
+      expect(readFileSync(join(root, "changelog.d", name), "utf8")).toBe(text);
+    }
+  });
+
+  it("refuses a changelog that already holds the version heading", () => {
+    const root = fragmentRoot();
+    writeFileSync(
+      join(root, "CHANGELOG.md"),
+      BASE.replace("## [0.20.0]", "## [0.21.0] - 2026-04-27\n\n- x\n\n## [0.20.0]"),
+    );
+    for (const dry of [true, false]) {
+      const result = prepareReleaseArtifacts(prepInput(root, dry));
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.code).toBe("version-exists");
+        expect(result.exitCode).toBe(EXIT_VIOLATION);
+        expect(result.message).toContain(
+          "restore CHANGELOG.md, ROADMAP.md and changelog.d/ to HEAD",
+        );
+      }
+    }
+  });
+
+  it("refuses two fragments with an identical entry line", () => {
+    const root = fragmentRoot({
+      "20-a.md": "section: Added\n- same text (#20)\n",
+      "21-b.md": "section: Fixed\n- same text (#20)\n",
+    });
+    const result = prepareReleaseArtifacts(prepInput(root, false));
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.code).toBe("fragment-duplicate");
+      expect(result.message).toContain("changelog.d/20-a.md and changelog.d/21-b.md");
+    }
+  });
+
+  it("refuses an invalid fragment and opens no destination", () => {
+    const root = fragmentRoot({ "20-a.md": "# heading\n" });
+    const result = prepareReleaseArtifacts(prepInput(root, false));
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.code).toBe("fragment-invalid");
+      expect(result.message).toContain("changelog.d/20-a.md");
+    }
+  });
+
+  itPosix("refuses a symlinked fragment", () => {
+    const root = fragmentRoot({ "20-a.md": "section: Added\n- a (#20)\n" });
+    const outside = mkdtempSync(join(tmpdir(), "rel-frag-outside-"));
+    roots.push(outside);
+    writeFileSync(join(outside, "x.md"), "section: Added\n- stolen (#21)\n");
+    symlinkSync(join(outside, "x.md"), join(root, "changelog.d", "21-link.md"));
+    const result = prepareReleaseArtifacts(prepInput(root, false));
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.code).toBe("fragment-invalid");
+      expect(result.message).toContain("symlink");
+    }
+    expect(readFileSync(join(root, "CHANGELOG.md"), "utf8")).toBe(BASE);
+  });
+
+  it("refuses a hard-linked fragment (read-safety nlink rule)", () => {
+    const root = fragmentRoot({ "20-a.md": "section: Added\n- a (#20)\n" });
+    linkSync(join(root, "changelog.d", "20-a.md"), join(root, "ROADMAP-copy.md"));
+    const result = prepareReleaseArtifacts(prepInput(root, false));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("nlink");
+  });
+
+  it("refuses to delete a fragment replaced after capture", () => {
+    const root = fragmentRoot({ "20-a.md": "section: Added\n- a (#20)\n" });
+    const prepared = prepareReleaseArtifacts(prepInput(root, false));
+    if (!prepared.ok) throw new Error(prepared.message);
+    const path = join(root, "changelog.d", "20-a.md");
+    renameSync(path, `${path}.moved`);
+    writeFileSync(path, "section: Added\n- swapped (#20)\n");
+    const written = writeReleaseArtifacts(prepared.prepared);
+    expect(written.ok).toBe(false);
+    if (!written.ok) {
+      expect(written.code).toBe("fragment-identity");
+      expect(written.changelogMutated).toBe(true);
+    }
+    expect(existsSync(path)).toBe(true);
+  });
+
+  it("reports a failed fragment deletion", () => {
+    const root = fragmentRoot({ "20-a.md": "section: Added\n- a (#20)\n" });
+    const prepared = prepareReleaseArtifacts(prepInput(root, false));
+    if (!prepared.ok) throw new Error(prepared.message);
+    const written = writeReleaseArtifacts(prepared.prepared, {
+      unlink: () => {
+        throw new Error("EPERM injected");
+      },
+    });
+    expect(written.ok).toBe(false);
+    if (!written.ok) {
+      expect(written.code).toBe("fragment-delete");
+      expect(written.message).toContain("EPERM injected");
+    }
+  });
+
+  for (const order of [
+    ["one", "two"],
+    ["two", "one"],
+  ] as const) {
+    it(`two branches that each add a fragment merge (${order.join(" then ")}) with no conflict`, () => {
+      const root = gitRoot({});
+      for (const branch of ["one", "two"]) {
+        git(root, ["checkout", "-q", "-b", branch, "master"]);
+        mkdirSync(join(root, "changelog.d"), { recursive: true });
+        writeFileSync(
+          join(root, "changelog.d", `4${branch === "one" ? "1" : "2"}-${branch}.md`),
+          `section: Added\n- ${branch} (#4)\n`,
+        );
+        git(root, ["add", "-A"]);
+        git(root, ["commit", "-q", "-m", branch]);
+      }
+      git(root, ["checkout", "-q", "master"]);
+      for (const branch of order) {
+        git(root, ["merge", "-q", "--no-ff", "--no-edit", branch]);
+      }
+      expect(git(root, ["status", "--porcelain"]).trim()).toBe("");
+      expect(existsSync(join(root, "changelog.d", "41-one.md"))).toBe(true);
+      expect(existsSync(join(root, "changelog.d", "42-two.md"))).toBe(true);
+    });
+  }
 });

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { guardChangelogReadSafety } from "./changelog-read-safety.js";
+import { guardChangelogReadSafety, guardFragmentReadSafety } from "./changelog-read-safety.js";
 import { EXIT_CONFIG_ERROR, EXIT_VIOLATION } from "./constants.js";
 import { runPipeline } from "./pipeline.js";
 import { passReleaseInputs } from "./release-input.js";
@@ -152,5 +152,43 @@ describe("runPipeline Step 5 CHANGELOG guard (#4318)", () => {
     mkdirSync(join(root, "CHANGELOG.md"));
     expect(runPipeline(baseConfig(root, { dryRun: true }), seams())).toBe(EXIT_VIOLATION);
     expect(runPipeline(baseConfig(root, { skipCi: true }), seams())).toBe(EXIT_VIOLATION);
+  });
+});
+
+describe("guardFragmentReadSafety (#6315)", () => {
+  it("accepts a regular fragment file", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "changelog.d"));
+    writeFileSync(join(root, "changelog.d", "20-a.md"), "section: Added\n- a (#20)\n");
+    expect(guardFragmentReadSafety(root, "changelog.d/20-a.md")).toEqual({ ok: true });
+  });
+
+  it("refuses a missing fragment", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "changelog.d"));
+    const result = guardFragmentReadSafety(root, "changelog.d/20-gone.md");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.exitCode).toBe(EXIT_VIOLATION);
+      expect(result.message).toContain("changelog.d/20-gone.md");
+    }
+  });
+
+  it("refuses a directory in place of a fragment", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, "changelog.d", "20-dir.md"), { recursive: true });
+    const result = guardFragmentReadSafety(root, "changelog.d/20-dir.md");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("directory");
+  });
+
+  itPosix("refuses a fragment under a symlinked changelog.d", () => {
+    const root = tempRoot();
+    const outside = tempRoot();
+    writeFileSync(join(outside, "20-a.md"), "section: Added\n- a (#20)\n");
+    symlinkSync(outside, join(root, "changelog.d"));
+    const result = guardFragmentReadSafety(root, "changelog.d/20-a.md");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("symlink");
   });
 });

@@ -3,6 +3,12 @@
  *
  * Do not use containedWrite create|replace|append for these two sinks.
  * native-steps is not the ROADMAP writer on this path.
+ *
+ * Changelog fragments (#6315 / #6286 item 6): prepare captures the
+ * `changelog.d/` fragments, refuses an invalid or unsafe one and an entry line
+ * held by two fragments, and assembles the promoted section in memory. Write
+ * deletes exactly the captured fragments after CHANGELOG.md; the release commit
+ * stages those deletions. A dry run writes and deletes nothing.
  */
 
 import { execFileSync } from "node:child_process";
@@ -16,18 +22,26 @@ import {
   lstatSync,
   openSync,
   readFileSync,
+  unlinkSync,
   writeSync,
 } from "node:fs";
 import { basename, dirname, join } from "node:path";
+import { mergeFragmentsIntoChangelogText } from "../changelog/effective-unreleased.js";
+import {
+  type ChangelogFragment,
+  type FragmentFs,
+  readChangelogFragments,
+} from "../changelog/fragment.js";
 import { ContainedWriteError, containedOpenExclusive } from "../fs/contained-write.js";
 import { resolveLifecycleFolder } from "../layout/resolve.js";
 import { renderRoadmapToBufferResult } from "../render/roadmap-render.js";
-import { promoteChangelog } from "./changelog.js";
+import { hasVersionHeading, promoteChangelog } from "./changelog.js";
 import {
   type ChangelogSafetyFail,
   type ChangelogSafetyResult,
   changelogPathOf,
   classifyReleaseLeaf,
+  guardFragmentReadSafety,
   roadmapPathOf,
   safetyFail,
   symlinkAncestorFloor,
@@ -35,6 +49,14 @@ import {
 import { EXIT_CONFIG_ERROR, EXIT_VIOLATION } from "./constants.js";
 
 export type FileIdentity = { readonly dev: bigint; readonly ino: bigint };
+
+/** One fragment the release captured in Step 6 and deletes in Step 7 (#6315). */
+export type CapturedFragment = {
+  /** Repository-relative path, `changelog.d/<name>.md`. */
+  readonly path: string;
+  readonly absPath: string;
+  readonly identity: FileIdentity;
+};
 
 export type PreparedArtifacts = {
   readonly projectRoot: string;
@@ -46,12 +68,18 @@ export type PreparedArtifacts = {
   readonly roadmapFd: number | null;
   readonly missingRoadmapParent: FileIdentity | null;
   readonly missingRoadmapParentFd: number | null;
+  /** Fragments folded into the promoted section; Step 7 deletes exactly these. */
+  readonly fragments: readonly CapturedFragment[];
 };
 
 export type PrepareOk = { readonly ok: true; readonly prepared: PreparedArtifacts };
 export type PrepareResult = PrepareOk | ChangelogSafetyFail;
 
-export type WriteArtifactsOk = { readonly ok: true };
+export type WriteArtifactsOk = {
+  readonly ok: true;
+  /** Repository-relative fragment paths deleted after the CHANGELOG.md write. */
+  readonly deletedFragments: readonly string[];
+};
 export type WriteArtifactsFail = ChangelogSafetyFail & {
   readonly changelogMutated: boolean;
 };
@@ -64,6 +92,13 @@ export interface PrepareReleaseArtifactsInput {
   readonly today: string;
   readonly summary: string | null;
   readonly dryRun: boolean;
+  /** Fragment read seam (tests). */
+  readonly fragmentFs?: FragmentFs;
+}
+
+/** Write-step seams (tests): inject a failure at fragment deletion. */
+export interface WriteReleaseArtifactsOptions {
+  readonly unlink?: (absPath: string) => void;
 }
 
 function closeQuiet(fd: number): void {
@@ -369,6 +404,62 @@ function openExisting(path: string): { ok: true; fd: number } | ChangelogSafetyF
   }
 }
 
+type FragmentCapture =
+  | {
+      readonly ok: true;
+      readonly fragments: readonly ChangelogFragment[];
+      readonly captured: readonly CapturedFragment[];
+    }
+  | ChangelogSafetyFail;
+
+/** First line of an entry (`- ...`), the text the duplicate check compares. */
+function entryLine(entry: string): string {
+  return (entry.split("\n")[0] ?? "").trim();
+}
+
+/**
+ * Capture `changelog.d/` fragments for this release (#6315). Refuses an invalid
+ * fragment, one that fails the changelog read-safety refusal, and an entry line
+ * that two fragments hold. Reads only.
+ */
+export function captureReleaseFragments(projectRoot: string, fs?: FragmentFs): FragmentCapture {
+  const set = readChangelogFragments(projectRoot, fs);
+  const bad = set.invalid[0];
+  if (bad !== undefined) {
+    return safetyFail(
+      EXIT_VIOLATION,
+      "fragment-invalid",
+      `changelog fragment ${bad.path} is invalid (${bad.reason}: ${bad.detail}); fix or remove it before the release`,
+    );
+  }
+  const captured: CapturedFragment[] = [];
+  const seen = new Map<string, string>();
+  for (const fragment of set.valid) {
+    const safe = guardFragmentReadSafety(projectRoot, fragment.path);
+    if (!safe.ok) return safe;
+    const absPath = join(projectRoot, ...fragment.path.split("/"));
+    const existing = inspectExistingOutput(absPath, fragment.path);
+    if (!("kind" in existing)) return existing;
+    if (existing.kind === "missing") {
+      return safetyFail(EXIT_VIOLATION, "unsafe", `${fragment.path} vanished during capture`);
+    }
+    for (const entry of fragment.entries) {
+      const line = entryLine(entry);
+      const first = seen.get(line);
+      if (first !== undefined) {
+        return safetyFail(
+          EXIT_VIOLATION,
+          "fragment-duplicate",
+          `changelog fragments ${first} and ${fragment.path} hold the same entry line: ${line}`,
+        );
+      }
+      seen.set(line, fragment.path);
+    }
+    captured.push({ path: fragment.path, absPath, identity: existing.identity });
+  }
+  return { ok: true, fragments: set.valid, captured };
+}
+
 export function prepareReleaseArtifacts(input: PrepareReleaseArtifactsInput): PrepareResult {
   const changelogPath = changelogPathOf(input.projectRoot);
   const roadmapPath = roadmapPathOf(input.projectRoot);
@@ -402,6 +493,10 @@ export function prepareReleaseArtifacts(input: PrepareReleaseArtifactsInput): Pr
     );
   }
 
+  // #6315: capture fragments before any descriptor opens, so a refusal leaks none.
+  const capture = captureReleaseFragments(input.projectRoot, input.fragmentFs);
+  if (!capture.ok) return capture;
+
   if (input.dryRun) {
     let readFd: number;
     try {
@@ -424,7 +519,7 @@ export function prepareReleaseArtifacts(input: PrepareReleaseArtifactsInput): Pr
       return safetyFail(EXIT_CONFIG_ERROR, "read", `CHANGELOG.md read failed: ${msg}`);
     }
     closeQuiet(readFd);
-    const dry = buffersFromChangelogText(input, changelogPath, changelogText);
+    const dry = buffersFromChangelogText(input, changelogPath, capture.fragments, changelogText);
     if (!dry.ok) return dry;
     return {
       ok: true,
@@ -438,6 +533,7 @@ export function prepareReleaseArtifacts(input: PrepareReleaseArtifactsInput): Pr
         roadmapFd: null,
         missingRoadmapParent: null,
         missingRoadmapParentFd: null,
+        fragments: capture.captured,
       },
     };
   }
@@ -563,7 +659,7 @@ export function prepareReleaseArtifacts(input: PrepareReleaseArtifactsInput): Pr
     return safetyFail(EXIT_CONFIG_ERROR, "read", `CHANGELOG.md read failed: ${msg}`);
   }
 
-  const buffers = buffersFromChangelogText(input, changelogPath, changelogText);
+  const buffers = buffersFromChangelogText(input, changelogPath, capture.fragments, changelogText);
   if (!buffers.ok) {
     closeQuiet(openedCl.fd);
     if (missingRoadmapParentFd !== null) closeQuiet(missingRoadmapParentFd);
@@ -583,6 +679,7 @@ export function prepareReleaseArtifacts(input: PrepareReleaseArtifactsInput): Pr
       roadmapFd,
       missingRoadmapParent,
       missingRoadmapParentFd,
+      fragments: capture.captured,
     },
   };
 }
@@ -590,6 +687,7 @@ export function prepareReleaseArtifacts(input: PrepareReleaseArtifactsInput): Pr
 function buffersFromChangelogText(
   input: PrepareReleaseArtifactsInput,
   changelogPath: string,
+  fragments: readonly ChangelogFragment[],
   changelogText?: string,
 ):
   | { readonly ok: true; readonly changelogBytes: Buffer; readonly roadmapBytes: Buffer }
@@ -603,9 +701,21 @@ function buffersFromChangelogText(
       return safetyFail(EXIT_CONFIG_ERROR, "read", `CHANGELOG.md read failed: ${msg}`);
     }
   }
+  // #6315: one recovery rule. A changelog that already holds this version was
+  // promoted (perhaps by a failed run); restore to HEAD, then rerun.
+  if (hasVersionHeading(text, input.version)) {
+    return safetyFail(
+      EXIT_VIOLATION,
+      "version-exists",
+      `CHANGELOG.md already holds a ## [${input.version}] heading; a release never promotes a version twice. ` +
+        "If a failed run wrote it, restore CHANGELOG.md, ROADMAP.md and changelog.d/ to HEAD, then rerun",
+    );
+  }
   let promoted: string;
   try {
-    promoted = promoteChangelog(text, input.version, input.repo, input.today, input.summary);
+    // Fragment entries join [Unreleased] in memory (subsection order, then file name).
+    const assembled = mergeFragmentsIntoChangelogText(text, fragments);
+    promoted = promoteChangelog(assembled, input.version, input.repo, input.today, input.summary);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return safetyFail(EXIT_CONFIG_ERROR, "promote", msg);
@@ -672,7 +782,40 @@ function writeFail(code: string, message: string, changelogMutated: boolean): Wr
   };
 }
 
-export function writeReleaseArtifacts(prepared: PreparedArtifacts): WriteArtifactsResult {
+/**
+ * Delete exactly the captured fragments (#6315). Each must still be the same
+ * regular file Step 6 captured; anything else is refused, never deleted.
+ */
+function deleteCapturedFragments(
+  prepared: PreparedArtifacts,
+  unlink: (absPath: string) => void,
+): { ok: true; deleted: string[] } | WriteArtifactsFail {
+  const deleted: string[] = [];
+  for (const fragment of prepared.fragments) {
+    const now = inspectExistingOutput(fragment.absPath, fragment.path);
+    if (!("kind" in now)) return writeFail(now.code, now.message, true);
+    if (now.kind === "missing" || !identitiesMatch(now.identity, fragment.identity)) {
+      return writeFail(
+        "fragment-identity",
+        `${fragment.path} is not the fragment captured in Step 6; refusing to delete it`,
+        true,
+      );
+    }
+    try {
+      unlink(fragment.absPath);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return writeFail("fragment-delete", `failed to delete ${fragment.path}: ${msg}`, true);
+    }
+    deleted.push(fragment.path);
+  }
+  return { ok: true, deleted };
+}
+
+export function writeReleaseArtifacts(
+  prepared: PreparedArtifacts,
+  options: WriteReleaseArtifactsOptions = {},
+): WriteArtifactsResult {
   if (prepared.changelogFd === null) {
     return writeFail("dry-run", "write-open was not performed (dry-run)", false);
   }
@@ -753,5 +896,7 @@ export function writeReleaseArtifacts(prepared: PreparedArtifacts): WriteArtifac
   if (!clWrite.ok) {
     return writeFail("changelog-write", clWrite.message, true);
   }
-  return { ok: true };
+  const removed = deleteCapturedFragments(prepared, options.unlink ?? unlinkSync);
+  if (!removed.ok) return removed;
+  return { ok: true, deletedFragments: removed.deleted };
 }

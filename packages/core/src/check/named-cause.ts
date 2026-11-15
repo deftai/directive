@@ -84,7 +84,7 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
   "verify:forward-coverage":
     "Add tests for new source files and uncovered changed branches (task verify:forward-coverage)",
   "verify:changelog-unreleased":
-    "Add a `- ` entry under CHANGELOG.md [Unreleased] (same language as task change:changelog:check)",
+    "Add a `- ` entry under CHANGELOG.md [Unreleased], or a changelog.d/<issue>-<slug>.md fragment, as plan.policy.changelog.mode allows; never edit a merge-base fragment",
   "verify:test-boundary":
     "Move tests to the allowed placement or update plan.policy test-boundary allowlist",
   "verify:sanctioned-skip-count-baseline":

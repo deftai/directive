@@ -23887,7 +23887,10 @@
       "review": {
         "minGreptileConfidence": 4
       },
-      "coverageMode": "full"
+      "coverageMode": "full",
+      "changelog": {
+        "mode": "either"
+      }
     },
     "updated": "2026-07-02T14:32:31Z",
     "x-directive/onboarding": {

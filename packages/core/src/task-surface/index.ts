@@ -3,11 +3,23 @@ import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { LEGACY_VBRIEF_VERSION } from "@deftai/directive-types";
 import { readEffectiveUnreleased } from "../changelog/effective-unreleased.js";
+import {
+  CHANGELOG_FILE_REL,
+  isChangelogEntryPath,
+  isChangelogFragmentPath,
+} from "../changelog/entry-path.js";
+import {
+  type ChangelogChangeSetEntry,
+  evaluateChangelogGate,
+  evaluateFragmentIntegrity,
+  readChangelogFragment,
+} from "../changelog/fragment.js";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import {
   assertProjectionContained,
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
+import { resolveChangelogMode } from "../policy/changelog-mode.js";
 import { isDeliveryBriefLandExcluded } from "../scope/delivery-evidence.js";
 
 export interface TaskSurfaceIo {
@@ -107,66 +119,127 @@ function resolveChangelogMergeBase(root: string): { sha: string } | { error: str
   };
 }
 
-/** `git diff --name-only --no-renames <merge-base>...HEAD`, or null on failure. */
-function changeSetAgainstMergeBase(root: string, mergeBaseSha: string): string[] | null {
-  const out = gitText(root, ["diff", "--name-only", "--no-renames", `${mergeBaseSha}...HEAD`]);
+/**
+ * `git diff --name-status --no-renames <merge-base>...HEAD`, or null on failure.
+ * With no renames a renamed file is a `D` row plus an `A` row.
+ */
+function changeSetAgainstMergeBase(
+  root: string,
+  mergeBaseSha: string,
+): ChangelogChangeSetEntry[] | null {
+  const out = gitText(root, ["diff", "--name-status", "--no-renames", `${mergeBaseSha}...HEAD`]);
   if (out === null) {
     return null;
   }
-  return out
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
-}
-
-function isDeliveryBriefLandChangeSet(root: string, mergeBaseSha: string): boolean {
-  const files = changeSetAgainstMergeBase(root, mergeBaseSha);
-  if (files === null) {
-    return false;
+  const rows: ChangelogChangeSetEntry[] = [];
+  for (const line of out.split(/\r?\n/)) {
+    const [status, path] = line.split("\t");
+    if (status !== undefined && path !== undefined && status.trim().length > 0) {
+      rows.push({ status: status.trim(), path: path.trim() });
+    }
   }
-  return isDeliveryBriefLandExcluded(files.map((filename) => ({ status: "modified", filename })));
+  return rows;
 }
 
-/** Merge-base resolves, HEAD has commits past it, and they are lifecycle-only (#680 P4). */
-function isLifecycleOnlyAgainstMergeBase(root: string): boolean {
-  const mergeBase = resolveChangelogMergeBase(root);
-  if ("error" in mergeBase) {
-    return false;
-  }
-  const head = gitText(root, ["rev-parse", "HEAD"])?.trim();
-  return head !== mergeBase.sha && isDeliveryBriefLandChangeSet(root, mergeBase.sha);
+function isDeliveryBriefLandChangeSet(rows: readonly ChangelogChangeSetEntry[]): boolean {
+  return isDeliveryBriefLandExcluded(
+    rows.map((row) => ({ status: "modified", filename: row.path })),
+  );
 }
 
-function compareUnreleasedAgainstMergeBase(
+function normalizeEol(text: string): string {
+  return text.replace(/\r\n/g, "\n");
+}
+
+type MergeBaseVerdict = { readonly exit: number; readonly final: boolean };
+
+const NO_ENTRIES = 'FAIL: [Unreleased] section has no entries (no lines starting with "- ")\n';
+
+/**
+ * Merge-base half of `verify:changelog-unreleased` (#633 / #680 / #6315).
+ * `final` means the caller returns `exit` without its own OK line.
+ */
+function checkAgainstMergeBase(
   root: string,
-  currentEntries: readonly string[],
+  text: string,
+  entries: readonly string[],
+  total: number,
   io: TaskSurfaceIo,
-): number {
+): MergeBaseVerdict {
   const mergeBase = resolveChangelogMergeBase(root);
   if ("error" in mergeBase) {
+    if (total === 0) {
+      io.writeOut(NO_ENTRIES);
+      return { exit: 1, final: true };
+    }
     io.writeOut(`FAIL: ${mergeBase.error}\n`);
-    return 2;
+    return { exit: 2, final: true };
   }
   const head = gitText(root, ["rev-parse", "HEAD"])?.trim();
   if (head === mergeBase.sha) {
-    return 0;
+    if (total === 0) {
+      io.writeOut(NO_ENTRIES);
+      return { exit: 1, final: true };
+    }
+    return { exit: 0, final: false };
   }
-  // #680 P4: a delivery-brief-land change set (lifecycle briefs, CHANGELOG, the
-  // spec-drift ledger only) needs no new entry. Oracle is the committed change
-  // set vs merge-base; --no-renames lists rename sources too. A failed or empty
-  // diff is not exempt (fail closed). Product/code diffs keep the requirement.
-  if (isDeliveryBriefLandChangeSet(root, mergeBase.sha)) {
-    return 0;
+  const resolvedMode = resolveChangelogMode(root);
+  if (resolvedMode.error !== null) {
+    io.writeOut(`WARN: ${resolvedMode.error}; reading changelog mode as inline\n`);
   }
-  const baseText = gitText(root, ["show", `${mergeBase.sha}:CHANGELOG.md`]);
-  const baseEntries = baseText === null ? [] : extractUnreleasedDashEntries(baseText);
-  const baseSet = new Set(baseEntries);
-  const added = currentEntries.filter((entry) => !baseSet.has(entry));
-  if (added.length === 0) {
-    io.writeOut('FAIL: [Unreleased] section has no new "- " entries versus merge-base\n');
-    return 1;
+  const mode = resolvedMode.mode;
+  // A failed diff is never exempt (fail closed). Inline mode keeps today's
+  // line compare; the fragment modes cannot judge without the change set.
+  const changeSet = changeSetAgainstMergeBase(root, mergeBase.sha);
+  if (changeSet === null && mode !== "inline") {
+    io.writeOut("FAIL: could not list the change set versus merge-base (git diff failed)\n");
+    return { exit: 2, final: true };
   }
-  return 0;
+  const rows = changeSet ?? [];
+  const readFragment = (rel: string) => readChangelogFragment(root, rel);
+  // #6315: in every mode a change set only adds fragments, and each is valid.
+  const integrity = evaluateFragmentIntegrity(rows, readFragment);
+  if (!integrity.ok) {
+    for (const problem of integrity.problems) io.writeOut(`FAIL: ${problem}\n`);
+    return { exit: 1, final: true };
+  }
+  // #680 P4: a delivery-brief-land change set (lifecycle briefs, changelog entry
+  // paths, the spec-drift ledger only) needs no new entry. Oracle is the
+  // committed change set vs merge-base; --no-renames lists rename sources too.
+  // An empty change set is not exempt. Product/code diffs keep the requirement.
+  if (changeSet !== null && isDeliveryBriefLandChangeSet(changeSet)) {
+    if (total === 0) {
+      io.writeOut(
+        "OK: CHANGELOG.md [Unreleased] section has 0 entries; lifecycle-only change set needs none (#680)\n",
+      );
+      return { exit: 0, final: true };
+    }
+    return { exit: 0, final: false };
+  }
+  if (total === 0) {
+    io.writeOut(NO_ENTRIES);
+    return { exit: 1, final: true };
+  }
+  const baseText = gitText(root, ["show", `${mergeBase.sha}:${CHANGELOG_FILE_REL}`]);
+  const baseSet = new Set(baseText === null ? [] : extractUnreleasedDashEntries(baseText));
+  const addedInline = entries.filter((entry) => !baseSet.has(entry)).length;
+  const changelogChanged =
+    rows.some((row) => isChangelogEntryPath(row.path) && !isChangelogFragmentPath(row.path)) ||
+    baseText === null ||
+    normalizeEol(baseText) !== normalizeEol(text);
+  const verdict = evaluateChangelogGate({
+    mode,
+    changeSet: rows,
+    changelogChanged,
+    addedInlineEntries: addedInline,
+    readFragment,
+  });
+  if (!verdict.ok) {
+    for (const problem of verdict.problems) io.writeOut(`FAIL: ${problem}\n`);
+    if (mode !== "inline") io.writeOut(`  changelog mode: ${mode} (plan.policy.changelog.mode)\n`);
+    return { exit: 1, final: true };
+  }
+  return { exit: 0, final: false };
 }
 
 /** Port of ``task change:changelog:check`` inline Python (#2022 Phase 2). */
@@ -193,8 +266,6 @@ export function runChangelogCheck(
   const entries = extractUnreleasedDashEntries(text);
   // #6314: the presence check reads the effective view: `[Unreleased]` lines plus
   // the entries of valid `changelog.d/` fragments. With no fragment it is unchanged.
-  // The merge-base comparison below still reads `CHANGELOG.md` only; the fragment
-  // gate (which fragments a branch adds) is a later slice of #6286.
   const effective = readEffectiveUnreleased(root, { changelogText: text });
   for (const bad of effective.invalidFragments) {
     io.writeOut(
@@ -203,23 +274,15 @@ export function runChangelogCheck(
   }
   const fragmentEntryCount = effective.entries.length - effective.changelogEntries.length;
   const total = entries.length + fragmentEntryCount;
-  if (total === 0) {
-    // #680 P4: after a release `[Unreleased]` is empty; a lifecycle-only change set
-    // still needs no line. Against-merge-base mode only; the heading stays required.
-    if (options.againstMergeBase === true && isLifecycleOnlyAgainstMergeBase(root)) {
-      io.writeOut(
-        "OK: CHANGELOG.md [Unreleased] section has 0 entries; lifecycle-only change set needs none (#680)\n",
-      );
-      return 0;
-    }
-    io.writeOut('FAIL: [Unreleased] section has no entries (no lines starting with "- ")\n');
-    return 1;
-  }
   if (options.againstMergeBase === true) {
-    const compared = compareUnreleasedAgainstMergeBase(root, entries, io);
-    if (compared !== 0) {
-      return compared;
+    // #6315: the merge-base gate reads plan.policy.changelog.mode and the change set.
+    const verdict = checkAgainstMergeBase(root, text, entries, total, io);
+    if (verdict.final || verdict.exit !== 0) {
+      return verdict.exit;
     }
+  } else if (total === 0) {
+    io.writeOut(NO_ENTRIES);
+    return 1;
   }
   if (fragmentEntryCount > 0) {
     io.writeOut(

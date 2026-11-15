@@ -1,4 +1,4 @@
-import { existsSync, statSync } from "node:fs";
+import { existsSync, lstatSync, statSync } from "node:fs";
 import {
   BRANCH_GATE_BYPASS_ENV,
   DESTRUCTIVE_GH_GATE_BYPASS_ENV,
@@ -52,11 +52,36 @@ export function releaseCommitSubject(version: string): string {
   return `chore(release): v${version} -- promote CHANGELOG + ROADMAP`;
 }
 
+/** True when anything (file, symlink, directory) is at `absPath`. */
+function onDisk(absPath: string): boolean {
+  try {
+    lstatSync(absPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Stage the release artifacts plus the deletion of each captured fragment and
+ * commit (#6315). `fragmentPaths` are the repository-relative fragments Step 6
+ * captured; the commit is refused while any of them is still on disk, so the
+ * fragments always leave in the release commit (and a revert restores them).
+ */
 export function commitReleaseArtifacts(
   projectRoot: string,
   version: string,
   seams: ReleaseSeams = {},
+  fragmentPaths: readonly string[] = [],
 ): [boolean, string] {
+  const remaining = fragmentPaths.filter((rel) => onDisk(`${projectRoot}/${rel}`));
+  if (remaining.length > 0) {
+    return [
+      false,
+      `refusing the release commit: captured changelog fragment(s) still on disk: ${remaining.join(", ")}`,
+    ];
+  }
+
   const exists =
     seams.fileExists ??
     ((p: string) => {
@@ -68,13 +93,26 @@ export function commitReleaseArtifacts(
     });
 
   const pathsToStage = RELEASE_ARTIFACTS.filter((rel) => exists(`${projectRoot}/${rel}`));
-  if (pathsToStage.length === 0) {
+  if (pathsToStage.length === 0 && fragmentPaths.length === 0) {
     return [true, "no release artifacts to commit (none exist)"];
   }
 
-  const add = runGit(projectRoot, ["add", "--", ...pathsToStage], seams);
-  if (add.status !== 0) {
-    return [false, `git add failed: ${add.stderr.trim()}`];
+  if (pathsToStage.length > 0) {
+    const add = runGit(projectRoot, ["add", "--", ...pathsToStage], seams);
+    if (add.status !== 0) {
+      return [false, `git add failed: ${add.stderr.trim()}`];
+    }
+  }
+  if (fragmentPaths.length > 0) {
+    // Stage each deletion; --ignore-unmatch skips a fragment that was never tracked.
+    const rm = runGit(
+      projectRoot,
+      ["rm", "--cached", "--quiet", "--ignore-unmatch", "--", ...fragmentPaths],
+      seams,
+    );
+    if (rm.status !== 0) {
+      return [false, `git rm --cached (fragment deletions) failed: ${rm.stderr.trim()}`];
+    }
   }
 
   const diff = runGit(projectRoot, ["diff", "--cached", "--quiet"], seams);
