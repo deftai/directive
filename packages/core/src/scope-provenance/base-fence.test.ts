@@ -365,3 +365,34 @@ describe("forge-approval membership authority (#6203)", () => {
     expect(hit?.kind).toBe("active-xbrief-modified-without-digest");
   });
 });
+
+describe("changelog entry paths on the fence and membership (#6314)", () => {
+  it("frees a changelog.d fragment in membership like CHANGELOG.md", () => {
+    const hit = evaluateApprovedScopeMembership({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      xbriefModifiedInChangeSet: true,
+      baseApprovedFileScope: ["packages/core/src/a.ts"],
+      allowlistAuthority: "mint",
+      changedFiles: [
+        "xbrief/active/story.xbrief.json",
+        "packages/core/src/a.ts",
+        "CHANGELOG.md",
+        "changelog.d/6314-x.md",
+      ],
+    });
+    expect(hit).toBeNull();
+  });
+
+  it("still flags a nested changelog.d path outside the approved scope", () => {
+    const hit = evaluateApprovedScopeMembership({
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      planId: "story-1",
+      xbriefModifiedInChangeSet: true,
+      baseApprovedFileScope: ["packages/core/src/a.ts"],
+      allowlistAuthority: "mint",
+      changedFiles: ["xbrief/active/story.xbrief.json", "changelog.d/sub/x.md"],
+    });
+    expect(hit?.expandedPaths).toContain("changelog.d/sub/x.md");
+  });
+});

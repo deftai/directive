@@ -524,3 +524,13 @@ describe("gitPathToProjectRel (#5477 nested)", () => {
     ).toBe("keep-targeting");
   });
 });
+
+describe("isLifecycleMaintenancePath changelog entry paths (#6314)", () => {
+  it("keeps CHANGELOG.md and adds changelog.d fragments through the one path test", () => {
+    expect(isLifecycleMaintenancePath("CHANGELOG.md")).toBe(true);
+    expect(isLifecycleMaintenancePath("./CHANGELOG.md")).toBe(true);
+    expect(isLifecycleMaintenancePath("changelog.d/6314-x.md")).toBe(true);
+    expect(isLifecycleMaintenancePath("changelog.d/X.md")).toBe(false);
+    expect(isLifecycleMaintenancePath("docs/CHANGELOG.md")).toBe(false);
+  });
+});

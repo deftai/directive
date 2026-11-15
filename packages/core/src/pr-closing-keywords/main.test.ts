@@ -1229,6 +1229,26 @@ describe("full-story close intent mark (#4864)", () => {
   });
 });
 
+describe("isBriefLandShapedDiff changelog entry paths (#6314)", () => {
+  it("admits a changelog.d fragment beside a nonterminal brief, like CHANGELOG.md", () => {
+    expect(
+      isBriefLandShapedDiff([
+        { status: "modified", path: "xbrief/active/story.xbrief.json" },
+        { status: "added", path: "changelog.d/6314-x.md" },
+      ]),
+    ).toBe(true);
+  });
+
+  it("refuses a nested fragment directory path", () => {
+    expect(
+      isBriefLandShapedDiff([
+        { status: "modified", path: "xbrief/active/story.xbrief.json" },
+        { status: "added", path: "changelog.d/sub/x.md" },
+      ]),
+    ).toBe(false);
+  });
+});
+
 describe("story lines: part line, pre-merge check, --write-story-line (#6316)", () => {
   const REPO = "deftai/directive";
   const temps: string[] = [];

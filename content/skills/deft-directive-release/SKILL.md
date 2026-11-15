@@ -111,7 +111,7 @@ The release pipeline's Step 9/10/11 git mutations carry the bypass in subprocess
 ## When to Use
 
 - User says "release", "cut release", "v0.X.Y", "publish release", "ship a release"
-- The framework's `[Unreleased]` CHANGELOG section is non-empty and the operator wants to cut a tagged release
+- The framework's effective `[Unreleased]` (CHANGELOG section plus `changelog.d/` fragments, #6314) is non-empty and the operator wants to cut a tagged release
 - A previous release rehearsal succeeded and the operator is ready for the production cut
 
 ## Phase 1 — Pre-flight
@@ -183,7 +183,7 @@ See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Fixable check failure d
      gh issue list --repo <owner>/<repo> --state open --search "coverage-debt in:title,body" --limit 20
      gh issue list --repo <owner>/<repo> --state open --search "allow-coverage-debt in:body" --limit 20
      ```
-   - **CHANGELOG citation scan** (legacy hatch issues filed before markers were mandatory): parse `CHANGELOG.md` `[Unreleased]` plus the last three `## [version]` sections for `--allow-coverage-debt=#N` / `allow-coverage-debt=#N` citations; for each `#N`, probe issue state via REST — `OPEN` (or unknown) counts as unpaid debt even when title/body lack the new markers (#2866).
+   - **CHANGELOG citation scan** (legacy hatch issues filed before markers were mandatory): parse `CHANGELOG.md` `[Unreleased]` and `changelog.d/` fragments plus the last three `## [version]` sections for `--allow-coverage-debt=#N` / `allow-coverage-debt=#N` citations; for each `#N`, probe issue state via REST — `OPEN` (or unknown) counts as unpaid debt even when title/body lack the new markers (#2866).
 2. If **no open coverage-debt issue exists** → auto-hatch files `#N` (or operator files manually) with title prefix `coverage-debt:` and body containing both markers. The open `#N` remains WIP until coverage is restored and the issue is closed.
 3. If an **open coverage-debt issue from a prior hatch still exists** → ⊗ soft-pass again; restore real coverage (all four metrics ≥ 85%) and close the debt issue before the cut proceeds.
 
@@ -216,9 +216,9 @@ See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Routine vs hard cut for
 ~ **Go installer deleted (AC10.10 / #1912 lineage):** `cmd/deft-install/` is absent. Do **not** rebuild Go installer binaries or roll `LAST_GO_INSTALLER` forward to ship them. `release.yml` skips the Go build; npm/`directive` is the only channel. Historical freeze-gate notes live in [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Frozen Go-installer bridge — historical only.
 
 1. ! Verify the operator is on the configured base branch (default `master`) and the working tree is clean
-2. ! Confirm the next version number (`X.Y.Z`) with the user. Major / minor / patch decision flows from the `[Unreleased]` content (breaking change → major; new feature → minor; fix-only → patch)
+2. ! Confirm the next version number (`X.Y.Z`) with the user. Major / minor / patch decision flows from the `[Unreleased]` content, including `changelog.d/` fragments (breaking change → major; new feature → minor; fix-only → patch)
 ! After the version is confirmed, name the mint CLI for that version. The operator runs it immediately before Phase 4 (not now): `deft authz:grant -- --template release-publish --target <version> --confirm` plus typed `mint` on a real TTY. Do **not** wait for a live grant before Phase 3 — a grant for the cut version cannot satisfy rehearsal `target=0.0.1` in a clone with no `.deft/authz`, and a Phase-1 mint can expire (`1h`) during long e2e before production Step 10. ⊗ `task authz:grant` (not a Taskfile target). ⊗ Treat a live grant as a Phase 3 precondition.
-3. ! Inspect `[Unreleased]` content vs the proposed version bump. If a breaking change appears in `### Changed` / `### Removed` but only a patch is proposed, surface the mismatch and ask the user to choose
+3. ! Inspect `[Unreleased]` content (with `changelog.d/` fragments) vs the proposed version bump. If a breaking change appears in `### Changed` / `### Removed` but only a patch is proposed, surface the mismatch and ask the user to choose
 4. ! Verify GitHub is usable: `gh api rate_limit` must exit 0
 5. ! Verify identity: `task verify:gh-auth -- --repo <owner>/<repo> --expected-login <maintainer>`, or compare `gh api user --jq .login` to the expected login
 6. ! **Run `task reconcile:issues -- --apply-lifecycle-fixes` to clear any closed-issue / non-completed-folder xBRIEFs before invoking `task release`** (#734). The release pipeline carries the deterministic gate at Step 3 (`task reconcile:issues -- --apply-lifecycle-fixes`, refuses with `EXIT_VIOLATION` on any Section (c) mismatch), but Phase 1 is the operator's first-line defence -- running the apply-mode flag here is the canonical clean path; `--allow-vbrief-drift` on the pipeline exists only as the explicit-acknowledgment escape hatch (analogous to `--allow-dirty`). The recurrence record is the v0.21.0 cut, which surfaced 13 stranded xBRIEFs (8 cycle-relevant + 5 historical residue) post-publish; the gate now blocks that drift before any irreversible action

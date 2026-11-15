@@ -29,6 +29,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { basename, dirname, extname, join } from "node:path";
 import type * as TS from "typescript";
+import { isChangelogEntryPath } from "../changelog/entry-path.js";
 import { atomicWriteBrief } from "../scope/brief-io.js";
 import { isTestOrFixturePath } from "../scope-provenance/base-fence.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
@@ -279,7 +280,7 @@ export const defaultSmallChangeLaneGitRunner: SmallChangeLaneGitRunner = (args, 
 export function isLaneLifecyclePath(relPath: string): boolean {
   const p = relPath.replace(/\\/g, "/");
   return (
-    p === "CHANGELOG.md" ||
+    isChangelogEntryPath(p) ||
     p.startsWith("xbrief/") ||
     p.startsWith("vbrief/") ||
     p.startsWith(".deft/") ||

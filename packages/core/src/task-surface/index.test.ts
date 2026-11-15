@@ -396,3 +396,46 @@ describe("task-surface symlink containment (#2807)", () => {
     rmSync(escapeDir, { recursive: true, force: true });
   });
 });
+
+describe("change:changelog:check effective view (#6314)", () => {
+  function withFragments(changelog: string, fragments: Record<string, string>): string {
+    const project = makeProject();
+    writeFileSync(join(project, "CHANGELOG.md"), changelog, "utf8");
+    mkdirSync(join(project, "changelog.d"));
+    for (const [name, text] of Object.entries(fragments)) {
+      writeFileSync(join(project, "changelog.d", name), text, "utf8");
+    }
+    return project;
+  }
+
+  it("counts valid fragment entries with [Unreleased] lines", () => {
+    const project = withFragments("## [Unreleased]\n\n- Inline\n\n## [0.1.0]\n", {
+      "6314-a.md": "section: Added\n- Frag one\n- Frag two\n",
+      "6315-b.md": "section: Fixed\n- Frag three\n",
+    });
+    const { lines, io } = captureIo();
+    expect(runChangelogCheck(project, io)).toBe(0);
+    expect(lines.join("")).toContain("4 entries (1 in CHANGELOG.md, 3 in changelog.d/)");
+  });
+
+  it("passes on fragments alone and warns on an invalid fragment", () => {
+    const project = withFragments("## [Unreleased]\n\n### Added\n\n## [0.1.0]\n", {
+      "6314-a.md": "section: Added\n- Frag one\n",
+      "6316-bad.md": "section: Notes\n- x\n",
+    });
+    const { lines, io } = captureIo();
+    expect(runChangelogCheck(project, io)).toBe(0);
+    const out = lines.join("");
+    expect(out).toContain("WARN: ignoring invalid changelog fragment changelog.d/6316-bad.md");
+    expect(out).toContain("1 entries (0 in CHANGELOG.md, 1 in changelog.d/)");
+  });
+
+  it("still fails when only invalid fragments exist", () => {
+    const project = withFragments("## [Unreleased]\n\n## [0.1.0]\n", {
+      "6316-bad.md": "",
+    });
+    const { lines, io } = captureIo();
+    expect(runChangelogCheck(project, io)).toBe(1);
+    expect(lines.join("")).toContain("has no entries");
+  });
+});

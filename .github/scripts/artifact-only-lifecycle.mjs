@@ -2,9 +2,11 @@
 /**
  * Artifact-only lifecycle predicate (#3678).
  *
- * Allowlist is exactly {xbrief/completed/**, CHANGELOG.md}. Widening it is a
- * gate change, not maintenance. Evaluated on the complete merge-base diff
- * (caller supplies the path list); any other path takes the full CI stack.
+ * Allowlist is exactly {xbrief/completed/**, changelog entry paths}. A changelog
+ * entry path is root CHANGELOG.md or changelog.d/<name>.md, one segment deep,
+ * <name> in [a-z0-9._-] (#6314). Widening it is a gate change, not maintenance.
+ * Evaluated on the complete merge-base diff (caller supplies the path list);
+ * any other path takes the full CI stack.
  *
  * Empty input fails closed to the full stack.
  *
@@ -21,11 +23,21 @@ export function normalizeRepoPath(path) {
     .replaceAll("\\", "/");
 }
 
+/**
+ * Mirror of `isChangelogEntryPath` in packages/core/src/changelog/entry-path.ts
+ * (#6314). CI runs this file standalone from the base commit, so it cannot
+ * import core; the core contract test pins the two to the same answers.
+ * @param {string} path
+ */
+export function isChangelogEntryPath(path) {
+  return path === "CHANGELOG.md" || /^changelog\.d\/[a-z0-9._-]+\.md$/.test(path);
+}
+
 /** @param {string} path */
 export function isAllowlistedLifecyclePath(path) {
   const n = normalizeRepoPath(path);
   if (!n) return false;
-  if (n === "CHANGELOG.md") return true;
+  if (isChangelogEntryPath(n)) return true;
   return n.startsWith("xbrief/completed/");
 }
 

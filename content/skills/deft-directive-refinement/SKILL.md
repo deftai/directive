@@ -360,7 +360,7 @@ After all refinement work is complete:
 
 ! Run all pre-flight checks BEFORE committing and pushing:
 
-1. ! Verify `CHANGELOG.md` has an `[Unreleased]` entry covering the refinement changes
+1. ! Verify `CHANGELOG.md` has an `[Unreleased]` entry (or a `changelog.d/` fragment) covering the refinement changes
 2. ! Run `task check` -- all checks must pass
 3. ! Verify `.github/PULL_REQUEST_TEMPLATE.md` checklist is satisfiable for this PR. If the file is **missing**, do NOT block — copy the canonical template from `templates/PULL_REQUEST_TEMPLATE.md` (ship-with-deft) to `.github/PULL_REQUEST_TEMPLATE.md` in the consumer project, then proceed with pre-flight (#531). If the file exists but contains unsatisfiable checklist items for this PR, call them out to the user before pushing.
 4. ! **Mandatory file review**: Re-read ALL modified files before committing. Explicitly check for:
