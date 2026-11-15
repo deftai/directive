@@ -15,12 +15,15 @@ import {
   SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE,
 } from "../check/rapid-zero-verified.js";
 import { evaluateVerifyAcFromPlan } from "../product-first-done-gate/evaluate.js";
+import { evaluateScopeProvenance } from "../scope-provenance/evaluate.js";
+import { mintApprovedScopeArtifacts } from "../scope-provenance/mint-artifacts.js";
 import { ITEM_CORE, scanVbrief } from "../vbrief-validate/conformance.js";
 import { collectPlanItemAcceptanceSurface } from "../verify-ac/clauses.js";
 import {
   ACCEPTANCE_DISPOSITION_KEY,
   ACCEPTANCE_EVIDENCE_KEY,
   ACCEPTANCE_REQUIRES_KEY,
+  applyGrantedDispositions,
   bindPlanItemIdsToClauses,
   CLAUSE_KEYED_ITEM_ID_PREFIX,
   clauseKeyedItemId,
@@ -41,6 +44,7 @@ import {
   migrateNoneStatedForHistoricalShip,
   persistClauseKeyedPendingItems,
   readNamespacedAcceptanceFields,
+  restoreGrantedDispositionOriginals,
   SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION,
   stampDeclaredMergeEvidence,
   stampDeclaredTestEvidence,
@@ -3619,5 +3623,160 @@ describe("historical ship-closeout (#5403)", () => {
     });
     expect(result.skipped[0]?.reason).toBe("undeclared-merge");
     expect(item[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
+  });
+});
+
+describe("grant-covered dispositions in complete-prep (#6318)", () => {
+  const SHA = "6340".repeat(10);
+  const grantRecord = {
+    disposition: "deferred" as const,
+    reason: "operator correction",
+    provenance: {
+      kind: "operator-cli",
+      actor: "operator",
+      mintedAt: "2026-11-15T10:00:00Z",
+      mintedVia: "deft authz:grant",
+      eventRef: "template:acceptance-disposition",
+      grantId: "grant-6318",
+    },
+    recorded_at: "2026-11-15T12:00:00Z",
+    deferred_to: "#6400",
+  };
+
+  function plan(): Record<string, unknown> {
+    return {
+      id: "github.issue.6318",
+      title: "story",
+      status: "running",
+      acceptance: {
+        clauses: [
+          { id: 1, text: "Merge tip ancestry" },
+          { id: 2, text: "Deferred clause text." },
+        ],
+      },
+      items: [
+        {
+          id: "clause.1",
+          title: "Merge tip ancestry",
+          status: "pending",
+          [ACCEPTANCE_REQUIRES_KEY]: "merge",
+        },
+      ],
+    };
+  }
+
+  function byId(p: Record<string, unknown>, id: string): Record<string, unknown> | undefined {
+    return (p.items as Record<string, unknown>[]).find((item) => item.id === id);
+  }
+
+  it("clause.2: a deferral on a clause with no plan item applies after persist and the merge stamper skips it", () => {
+    const p = plan();
+    persistClauseKeyedPendingItems(p);
+    const applied = applyGrantedDispositions(p, [{ itemId: "clause:2", record: grantRecord }]);
+    expect(applied.appliedIds).toEqual(["clause:2"]);
+    expect(applied.missingIds).toEqual([]);
+    const stamp = stampDeclaredMergeEvidence(p, {
+      recorded_by: "scope:complete",
+      mergeCommit: SHA,
+      projectRoot: "/repo",
+      deliveryBranch: "master",
+      verifyAncestry: () => ({ ok: true, error: null, remoteTip: SHA }),
+      admitUndeclaredMerge: true,
+    });
+    expect(stamp.stampedIds).toEqual(["clause.1"]);
+    expect(stamp.skipped).toContainEqual({ clauseId: 2, reason: "already-stamped" });
+    const gate = evaluateAcceptanceEvidenceGate(p);
+    expect(gate.ok).toBe(true);
+    const report = gate.reports.find((r) => r.title === "clause.2");
+    expect(report?.outcome).toBe("disposition");
+    expect(report?.disposition).toMatchObject({
+      disposition: "deferred",
+      deferred_to: "#6400",
+      provenance: { grantId: "grant-6318" },
+    });
+    expect(byId(p, "clause.2")?.[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
+  });
+
+  it("restores covered items to their pre-apply fields for the mid-flight write", () => {
+    const p = plan();
+    const prior = {
+      kind: "merge",
+      pointer: SHA,
+      recorded_at: "2026-11-14T00:00:00Z",
+      recorded_by: "scope:complete",
+    };
+    (p.items as Record<string, unknown>[]).push({
+      id: "clause.2",
+      title: "Deferred clause text.",
+      status: "pending",
+      [ACCEPTANCE_EVIDENCE_KEY]: prior,
+    });
+    const applied = applyGrantedDispositions(p, [
+      { itemId: "clause.2", record: grantRecord },
+      { itemId: "nope", record: grantRecord },
+    ]);
+    expect(applied.missingIds).toEqual(["nope"]);
+    expect(byId(p, "clause.2")?.[ACCEPTANCE_EVIDENCE_KEY]).toBeUndefined();
+    const midFlight = structuredClone(p);
+    restoreGrantedDispositionOriginals(midFlight, applied.originals);
+    expect(byId(midFlight, "clause.2")?.[ACCEPTANCE_EVIDENCE_KEY]).toEqual(prior);
+    expect(byId(midFlight, "clause.2")?.[ACCEPTANCE_DISPOSITION_KEY]).toBeUndefined();
+    // The in-memory plan keeps the disposition for the completed/ write.
+    expect(byId(p, "clause.2")?.[ACCEPTANCE_DISPOSITION_KEY]).toMatchObject({
+      disposition: "deferred",
+    });
+    // An item missing from the copy is skipped.
+    restoreGrantedDispositionOriginals({ items: [] }, applied.originals);
+  });
+
+  it("clause.7: a hand-written disposition on an active brief is still refused by membership", () => {
+    const payload = {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        ...plan(),
+        narratives: { Description: "story" },
+        metadata: { swarm: { file_scope: ["packages/core/src/scope"] } },
+        references: [
+          {
+            uri: "https://github.com/deftai/directive/issues/6318",
+            type: "x-xbrief/github-issue",
+          },
+        ],
+      },
+    };
+    const live = structuredClone(payload);
+    stampNamespacedDisposition(
+      (live.plan.items as Record<string, unknown>[])[0] as Record<string, unknown>,
+      grantRecord,
+    );
+    const mintRoot = mkdtempSync(join(tmpdir(), "accept-ev-6318-"));
+    const evalRoot = mkdtempSync(join(tmpdir(), "accept-ev-6318-eval-"));
+    try {
+      const rel = "xbrief/active/story.xbrief.json";
+      const minted = mintApprovedScopeArtifacts({
+        xbriefRelPath: rel,
+        payload,
+        rawText: `${JSON.stringify(payload)}\n`,
+        projectRoot: mintRoot,
+        humanApproval: { kind: "operator", actor: "scott", mintedAt: "2026-11-15T00:00:00Z" },
+        extract: { projectRoot: mintRoot, approvedReposSeed: ["deftai/directive"] },
+      });
+      const result = evaluateScopeProvenance(evalRoot, {
+        changedFiles: [rel],
+        activeXbriefs: new Map([[rel, JSON.stringify(live)]]),
+        approvedRecords: [minted.record],
+        baseApprovedRecords: new Map([[minted.record.planId, minted.record]]),
+        readAtBase: (path) =>
+          path.endsWith(".intent.json") ? JSON.stringify(minted.preimage) : null,
+        enforce: true,
+      });
+      expect(result.exitCode).toBe(1);
+      expect(
+        result.findings.some((f) => f.kind === "unclassified-key" || f.kind === "intent-drift"),
+      ).toBe(true);
+    } finally {
+      rmSync(mintRoot, { recursive: true, force: true });
+      rmSync(evalRoot, { recursive: true, force: true });
+    }
   });
 });

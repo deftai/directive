@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { hasArtifactSuffix, resolveLifecycleRoot, stripArtifactSuffix } from "../layout/resolve.js";
+import { applyAcceptanceDispositionGrants } from "../policy/acceptance-disposition-grant.js";
 import {
   evaluateAcceptanceEvidenceGate,
   persistClauseKeyedPendingItems,
@@ -249,6 +250,17 @@ function dryRunAcceptanceEvidenceGate(path: string): { ok: true } | { ok: false;
   persistClauseKeyedPendingItems(clone);
   // path is …/xbrief/<lifecycle>/<file>; project root is two levels up.
   const projectRoot = dirname(dirname(dirname(resolve(path))));
+  // #6318: grant-covered deferrals apply on the clone as they do in scope:complete.
+  const now = new Date();
+  const granted = applyAcceptanceDispositionGrants({
+    projectRoot,
+    plan: clone,
+    now,
+    recordedAt: now.toISOString(),
+  });
+  if (!granted.ok) {
+    return { ok: false, detail: granted.reason };
+  }
   const gate = evaluateAcceptanceEvidenceGate(clone, { projectRoot });
   if (!gate.ok) {
     return { ok: false, detail: gate.message };
