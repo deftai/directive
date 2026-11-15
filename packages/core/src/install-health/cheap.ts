@@ -90,6 +90,7 @@ export function checkCheapInSync(projectRoot: string, seams: FsSeams = {}): Chea
     identityMatch,
     readinessValid,
     failClosed,
+    pinMismatchOnly: identityMismatch && !hasOverlay,
     allowSetup,
     recoveryGuidance,
   };

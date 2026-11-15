@@ -2,28 +2,35 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isShellTool } from "@deftai/directive-core/dist/hooks/tools.js";
 import { checkCheapInSync } from "@deftai/directive-core/dist/install-health/cheap.js";
 import {
   HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE,
   INSTALLATION_RECOVERY_GUIDANCE,
 } from "@deftai/directive-core/dist/install-health/constants.js";
+import { admitPinMismatchRecovery } from "@deftai/directive-core/dist/install-health/recovery-admit.js";
 import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-health/types.js";
 import {
   decideHook,
+  firstString,
   type HookDecision,
   type HookEvent,
   type HookHost,
   type HookPayloadContext,
   hookPayloadTopLevelKeys,
+  hookShellCommand,
+  hookToolName,
   isHookEvent,
   isHookHost,
   mergeHookDispatchEnviron,
   normalizeHookProjectRoot,
   parseHookStdin,
   projectRootFromHookPayload,
+  record,
   renderHostDecision,
   runSessionEndHook,
   type SessionEndHookSeams,
+  toolInputRecord,
 } from "@deftai/directive-core/hooks";
 import { readProjectDataStatus } from "./data-status.js";
 import { maybeSelfCompleteSetup } from "./self-complete.js";
@@ -147,6 +154,73 @@ function installationIdentityDeny(
     toolName: null,
     projectRoot: normalizeHookProjectRoot(projectRoot),
     message,
+    scopePath: null,
+  };
+}
+
+/** Tool-input fields that name a shell call's run directory (#6313). */
+const SHELL_RUN_DIRECTORY_FIELDS = ["workdir", "cwd", "working_directory", "workingDirectory"];
+
+/**
+ * Directories that prove where a shell tool call runs (#6313). Empty when
+ * nothing proves it, so the recovery admit stays off.
+ *
+ * Tool-input fields come first; when any is present, every present one must be
+ * a non-empty string (no fallback to the outer `cwd`). Otherwise the payload
+ * `cwd` counts, except on Codex: its outer `cwd` is the session directory and
+ * live captures drop `exec_command` `workdir` (#4998), so it proves nothing.
+ */
+function shellRunDirectories(host: HookHost, payload: unknown): string[] {
+  const input = record(payload);
+  if (input === null) return [];
+  const toolInput = toolInputRecord(input);
+  if (toolInput !== null && toolInput !== input) {
+    const present = SHELL_RUN_DIRECTORY_FIELDS.filter((field) => field in toolInput);
+    if (present.length > 0) {
+      const values = present.map((field) => firstString([toolInput[field]]));
+      return values.every((value) => value !== null) ? (values as string[]) : [];
+    }
+  }
+  if (host === "codex") return [];
+  const outer = firstString([input.cwd]);
+  return outer === null ? [] : [outer];
+}
+
+/**
+ * Admit the pin-mismatch refusal's own named recovery (#6313): a simple
+ * recovery command through a shell tool at the project root, when pin ≠
+ * installed is the only fault. Returns null to keep the refusal.
+ */
+function pinMismatchRecoveryAdmit(
+  host: HookHost,
+  event: HookEvent,
+  projectRoot: string,
+  payload: unknown,
+  cheap: CheapInSyncResult,
+): HookDecision | null {
+  if (event !== "tool.before") return null;
+  const toolName = hookToolName(payload, host);
+  const runDirectories = shellRunDirectories(host, payload);
+  const admitted = admitPinMismatchRecovery({
+    cheap,
+    shellTool: toolName !== null && isShellTool(toolName),
+    command: hookShellCommand(payload),
+    atProjectRoot:
+      runDirectories.length > 0 &&
+      runDirectories.every((dir) => rootsMatch(normalizeHookProjectRoot(dir), projectRoot)),
+  });
+  if (admitted === null) return null;
+  return {
+    verdict: "allow",
+    code: "shell-op-ready",
+    event,
+    host,
+    toolName,
+    projectRoot: normalizeHookProjectRoot(projectRoot),
+    message:
+      `Directive hook admitted the pin-mismatch recovery \`${admitted}\` ` +
+      `(pin=${cheap.pinVersion ?? "?"} installed=${cheap.installedVersion ?? "?"}). ` +
+      "Other commands stay refused until the install matches the pin.",
     scopePath: null,
   };
 }
@@ -372,6 +446,14 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   // names frozen-lockfile restore then overlay retirement.
   const cheap = (seams.cheapInSync ?? checkCheapInSync)(projectRoot);
   if (cheap.failClosed) {
+    // #6313: admit the refusal's own named recovery when pin ≠ installed is the
+    // only fault; no setup and no policy dispatch on this path either.
+    const admit = pinMismatchRecoveryAdmit(args.host, args.event, projectRoot, payload, cheap);
+    if (admit !== null) {
+      const rendered = renderHostDecision(args.host, admit);
+      if (rendered.length > 0) writeOut(`${rendered}\n`);
+      return 0;
+    }
     const guidance = cheap.recoveryGuidance ?? INSTALLATION_RECOVERY_GUIDANCE;
     const identityLine = cheap.identityMatch
       ? `Directive hook refuse: materialize-runtime overlay is present; identity cannot pass until the overlay is retired after exact restore ` +

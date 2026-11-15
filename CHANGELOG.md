@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.9.
 
 ### Fixed
+- fix(hooks): after a pin bump, the pin-mismatch refusal now admits the project install it names (`pnpm install --frozen-lockfile`, `npm install`, `npm ci`) as a simple command at the project root, when pin ≠ installed is the only fault (#6313).
 
 ### Removed
 
