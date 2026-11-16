@@ -135,6 +135,26 @@ type ChangedFilesResult =
       readonly message: string;
     };
 
+type CandidateTreeBase =
+  | { readonly ok: true; readonly sha: string }
+  | { readonly ok: false; readonly kind: "not-found" | "git-error"; readonly message: string };
+
+/**
+ * Merge base of `baseRef` and HEAD for the candidate tree (#6336). A missing
+ * merge base (shallow clone, unrelated history) falls back to the base ref so
+ * the walk still runs; a missing git binary stays a config error.
+ */
+function candidateTreeBase(projectRoot: string, baseRef: string): CandidateTreeBase {
+  const ran = git(["merge-base", baseRef, "HEAD"], projectRoot);
+  if (!ran.ok) {
+    if (ran.kind === "not-found") return { ok: false, kind: "not-found", message: ran.message };
+    return { ok: false, kind: "git-error", message: ran.message };
+  }
+  const sha = ran.stdout.trim();
+  if (ran.status === 0 && sha.length > 0) return { ok: true, sha };
+  return { ok: true, sha: baseRef };
+}
+
 function changedFilesVsBase(projectRoot: string, baseRef: string): ChangedFilesResult {
   const inside = git(["rev-parse", "--is-inside-work-tree"], projectRoot);
   if (!inside.ok) {
@@ -177,8 +197,15 @@ function changedFilesVsBase(projectRoot: string, baseRef: string): ChangedFilesR
     const t = normalizeRepoRelPath(unquoteGitPath(raw));
     if (t.length > 0) out.add(t);
   };
-  const range = `${resolved}...HEAD`;
-  const diff = git(["diff", "--name-only", range], projectRoot);
+  // #6336 item 5: one candidate tree — the working tree against the merge base,
+  // plus untracked files. A change committed and then reverted in the working
+  // tree nets out; base-only commits never enter the set. On a clean committed
+  // tip this equals CI's `<base>...HEAD`.
+  const mergeBase = candidateTreeBase(projectRoot, resolved);
+  if (!mergeBase.ok) {
+    return { ok: false, kind: mergeBase.kind, message: mergeBase.message };
+  }
+  const diff = git(["diff", "--name-only", mergeBase.sha], projectRoot);
   if (!diff.ok) {
     if (diff.kind === "not-found") {
       return { ok: false, kind: "not-found", message: diff.message };
@@ -189,25 +216,10 @@ function changedFilesVsBase(projectRoot: string, baseRef: string): ChangedFilesR
     return {
       ok: false,
       kind: "git-error",
-      message: `git diff --name-only ${range} failed (exit ${diff.status})`,
+      message: `git diff --name-only ${mergeBase.sha} failed (exit ${diff.status})`,
     };
   }
   for (const line of diff.stdout.split("\n")) addPath(line);
-  const vsHead = git(["diff", "--name-only", "HEAD"], projectRoot);
-  if (!vsHead.ok) {
-    if (vsHead.kind === "not-found") {
-      return { ok: false, kind: "not-found", message: vsHead.message };
-    }
-    return { ok: false, kind: "git-error", message: vsHead.message };
-  }
-  if (vsHead.status !== 0) {
-    return {
-      ok: false,
-      kind: "git-error",
-      message: `git diff --name-only HEAD failed (exit ${vsHead.status})`,
-    };
-  }
-  for (const line of vsHead.stdout.split("\n")) addPath(line);
   const untracked = git(["ls-files", "--others", "--exclude-standard"], projectRoot);
   if (!untracked.ok) {
     if (untracked.kind === "not-found") {

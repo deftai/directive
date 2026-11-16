@@ -743,7 +743,9 @@ describe("launch occupancy record lifecycle (#4595)", () => {
       ...stubGates(),
     });
     expect(groupOnly.exitCode).not.toBe(0);
-    const allowed = swarmLaunch({
+    // #4433 clauses 3/13: while a plan file is present the consent pair is
+    // not an admission path; named and unnamed launches share the refuse.
+    const named = swarmLaunch({
       ...TEST_WORKER_AUTH,
       stories: ["coh-a", "coh-b"],
       allocationPlanId: "plan-1",
@@ -754,8 +756,178 @@ describe("launch occupancy record lifecycle (#4595)", () => {
       environ: { DEFT_ROUTING_PATH: join(project, ".deft", "routing.local.json") },
       ...stubGates(),
     });
-    expect(allowed.exitCode).toBe(0);
+    expect(named.exitCode).not.toBe(0);
+    expect(named.stderr).toContain("not authorized by the active ordered-plan sequence");
+    expect(named.stderr).toContain("story:coh-a");
     rmSync(project, { recursive: true, force: true });
+  });
+
+  describe("roster admission against the ordered plan (#4433)", () => {
+    function writePlan(
+      project: string,
+      plan: { entries: unknown[]; batching_allowed?: boolean; exhausted?: boolean },
+    ): void {
+      mkdirSync(join(project, ".deft"), { recursive: true });
+      writeFileSync(
+        join(project, ".deft", "plan-sequence.json"),
+        JSON.stringify({
+          sequence_id: "seq-4433",
+          sequence_kind: "cohort",
+          entries: plan.entries,
+          current_index: 0,
+          batching_allowed: plan.batching_allowed ?? false,
+          continuation_past_final: false,
+          exhausted: plan.exhausted ?? false,
+          authorized_by: "test",
+          created_at: "2026-11-16T00:00:00Z",
+          updated_at: "2026-11-16T00:00:00Z",
+        }),
+        "utf8",
+      );
+    }
+
+    function launch(project: string, stories: string[], extra: Record<string, unknown> = {}) {
+      return swarmLaunch({
+        ...TEST_WORKER_AUTH,
+        stories,
+        projectRoot: project,
+        autonomous: true,
+        sessionId: "test-session",
+        environ: { DEFT_ROUTING_PATH: join(project, ".deft", "routing.local.json") },
+        ...stubGates(),
+        ...extra,
+      });
+    }
+
+    function cohortProject(prefix: string): string {
+      const project = mkdtempSync(join(tmpdir(), prefix));
+      writeProjectDef(project);
+      writeLaunchStory(project, "coh-a", 45951);
+      writeLaunchStory(project, "coh-b", 45952);
+      writeLaunchStory(project, "coh-c", 45953);
+      return project;
+    }
+
+    const batchEntries = [
+      { id: "coh-a", kind: "story", batch: "w1" },
+      { id: "coh-b", kind: "story", batch: "w1" },
+      { id: "coh-c", kind: "story", batch: "w2" },
+    ];
+
+    it("clauses 9/10: a solo launch is checked; the real roster member must be current", () => {
+      const project = cohortProject("plan-solo-");
+      writePlan(project, { entries: [{ id: "coh-a", kind: "story" }] });
+      const refused = launch(project, ["coh-b"]);
+      expect(refused.exitCode).not.toBe(0);
+      expect(refused.stderr).toContain(
+        "Launch roster member story:coh-b (issues #45952) is not the current ordered-plan entry (story:coh-a).",
+      );
+      expect(launch(project, ["coh-a"]).exitCode).toBe(0);
+      rmSync(project, { recursive: true, force: true });
+    });
+
+    it("clause 7: a current story:swarm-cohort entry does not admit the real roster", () => {
+      const project = cohortProject("plan-sentinel-");
+      writePlan(project, { entries: [{ id: "swarm-cohort", kind: "story" }] });
+      const refused = launch(project, ["coh-a", "coh-b"]);
+      expect(refused.exitCode).not.toBe(0);
+      expect(refused.stderr).toContain("story:coh-a");
+      rmSync(project, { recursive: true, force: true });
+    });
+
+    it("clauses 11/30/31: batching_allowed admits the current batch only; false keeps one entry", () => {
+      const project = cohortProject("plan-batch-");
+      writePlan(project, { entries: batchEntries, batching_allowed: true });
+      expect(launch(project, ["coh-a", "coh-b"]).exitCode).toBe(0);
+      const later = launch(project, ["coh-a", "coh-c"]);
+      expect(later.exitCode).not.toBe(0);
+      expect(later.stderr).toContain('in the current ordered-plan batch "w1"');
+      writePlan(project, { entries: batchEntries, batching_allowed: false });
+      const serial = launch(project, ["coh-a", "coh-b"], {
+        allocationPlanId: "plan-1",
+        batchingRationale: "approved",
+      });
+      expect(serial.exitCode).not.toBe(0);
+      expect(serial.stderr).toContain("story:coh-b");
+      rmSync(project, { recursive: true, force: true });
+    });
+
+    it("clause 6: launch admission reads the derived cursor (terminal origins passed)", () => {
+      const project = cohortProject("plan-derived-");
+      writePlan(project, {
+        entries: [
+          { id: "prior-story", kind: "story" },
+          { id: "coh-a", kind: "story" },
+        ],
+      });
+      mkdirSync(join(project, "xbrief", "completed"), { recursive: true });
+      writeFileSync(
+        join(project, "xbrief", "completed", "prior-story.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8" },
+          plan: { id: "prior-story", title: "prior-story", status: "completed", items: [] },
+        }),
+        "utf8",
+      );
+      expect(launch(project, ["coh-a"]).exitCode).toBe(0);
+      rmSync(project, { recursive: true, force: true });
+    });
+
+    it("clauses 15/16/17: an exhausted plan is active and refuses even with consent", () => {
+      const project = cohortProject("plan-exhausted-");
+      writePlan(project, {
+        entries: [{ id: "coh-a", kind: "story", status: "completed" }],
+        exhausted: true,
+      });
+      const cohort = launch(project, ["coh-a", "coh-b"], {
+        allocationPlanId: "plan-1",
+        batchingRationale: "approved",
+      });
+      expect(cohort.exitCode).not.toBe(0);
+      expect(cohort.stderr).toContain("I have completed the approved sequence");
+      const single = launch(project, ["coh-a"], { group: "wave7" });
+      expect(single.exitCode).not.toBe(0);
+      expect(single.stderr).toContain("I have completed the approved sequence");
+      expect(admitSwarmLaunchPlanSequence(project, []).ok).toBe(false);
+      rmSync(project, { recursive: true, force: true });
+    });
+
+    it("clause 19: an issue-kind entry admits the story that resolves to that issue", () => {
+      const project = cohortProject("plan-issue-");
+      writePlan(project, { entries: [{ id: "45951", kind: "issue", issue: 45951 }] });
+      expect(launch(project, ["coh-a"]).exitCode).toBe(0);
+      const other = launch(project, ["coh-b"]);
+      expect(other.exitCode).not.toBe(0);
+      rmSync(project, { recursive: true, force: true });
+    });
+
+    it("clause 19: related Traces mentions and PR links do not join the story's issue set", () => {
+      const project = cohortProject("plan-traces-");
+      writeFileSync(
+        join(project, "xbrief", "active", "coh-t.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8" },
+          plan: {
+            id: "coh-t",
+            title: "coh-t",
+            status: "running",
+            narratives: { Traces: "#45951; related #6205, #2402" },
+            references: [
+              {
+                uri: "https://github.com/deftai/directive/issues/45954",
+                type: "x-xbrief/github-issue",
+              },
+              { uri: "https://github.com/deftai/directive/pull/6381", type: "x-xbrief/github-pr" },
+            ],
+            metadata: { kind: "story", swarm: { readiness: "ready" } },
+          },
+        }),
+        "utf8",
+      );
+      writePlan(project, { entries: [{ id: "45954", kind: "issue", issue: 45954 }] });
+      expect(launch(project, ["coh-t"]).exitCode).toBe(0);
+      rmSync(project, { recursive: true, force: true });
+    });
   });
 });
 

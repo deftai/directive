@@ -26,7 +26,11 @@ import {
   renderReport,
   reportBlocking,
 } from "../orchestration/verify-judgment-gates.js";
-import { readPlanSequence, verifyPlanTarget } from "../plan-sequence/index.js";
+import {
+  collectTerminalLifecycleOrigins,
+  readPlanSequence,
+  verifyPlanStory,
+} from "../plan-sequence/index.js";
 import type { PlanSequenceVerifyResult } from "../plan-sequence/types.js";
 import { DEFT_ALLOW_JUDGMENT_GATE_ENFORCE } from "../policy/capacity.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
@@ -1284,12 +1288,46 @@ export function retractLaunchOccupancyRecord(
   }).removed;
 }
 
+/** One resolved `swarm:launch` roster member checked against the plan (#4433). */
+export interface LaunchRosterMember {
+  readonly story_id: string;
+  readonly path: string;
+}
+
+/**
+ * Ordered-plan admission for a launch roster (#4433). With no plan file the
+ * result is `missing`, and the caller keeps the #1378 consent-token rule for
+ * cohorts. With a plan file (exhausted counts) every real roster member, solo
+ * included, must be in the current authorized set on the derived cursor
+ * (#6205): the current entry, or with `batching_allowed: true` any pending
+ * entry of the current batch. A member's issues are its typed github-issue
+ * references only; related `#N` mentions in Traces do not count. The first
+ * refusal is returned.
+ */
 export function admitSwarmLaunchPlanSequence(
   projectRoot: string,
-  target = "swarm-cohort",
+  roster: readonly LaunchRosterMember[] = [],
 ): PlanSequenceVerifyResult {
   const seq = readPlanSequence(projectRoot);
-  return verifyPlanTarget(seq, { targetKind: "story", target });
+  if (seq === null) {
+    return verifyPlanStory(null, { storyId: "", issues: [] });
+  }
+  const terminalOrigins = collectTerminalLifecycleOrigins(projectRoot);
+  let admitted: PlanSequenceVerifyResult = {
+    ok: false,
+    code: "mismatch",
+    message: "swarm:launch has no roster member to check against the ordered plan.",
+  };
+  for (const member of roster) {
+    const data = loadJson(member.path);
+    // Work issues only: typed github-issue references, not Traces mentions or PR links.
+    const issues = data === null ? new Set<number>() : issueNumbersFromPlan(planOf(data));
+    admitted = verifyPlanStory(seq, { storyId: member.story_id, issues, terminalOrigins });
+    if (!admitted.ok) {
+      return admitted;
+    }
+  }
+  return admitted;
 }
 
 export function resolveLaunchOccupancySessionId(
@@ -1794,12 +1832,21 @@ export function swarmLaunch(args: LaunchArgs): {
     args.operatorApproval ??
     `task swarm:launch (${args.autonomous ? "autonomous" : "interactive"})`;
 
-  if (dispatchKind === "swarm-cohort") {
-    const admission = admitSwarmLaunchPlanSequence(projectRoot);
+  // #4433: while a plan file is present it owns admission for every roster,
+  // solo included; the #1378 consent token admits a cohort only with no plan.
+  const admission = admitSwarmLaunchPlanSequence(projectRoot, ordered);
+  if (!admission.ok) {
+    if (admission.code !== "missing") {
+      return {
+        exitCode: EXIT_GATE_FAILED,
+        stdout: "",
+        stderr: `Error: swarm:launch roster is not authorized by the active ordered-plan sequence. ${admission.message}\n`,
+      };
+    }
     const explicitConsent =
       (args.allocationPlanId ?? "").trim().length > 0 &&
       (args.batchingRationale ?? "").trim().length > 0;
-    if (!admission.ok && !explicitConsent) {
+    if (dispatchKind === "swarm-cohort" && !explicitConsent) {
       return {
         exitCode: EXIT_GATE_FAILED,
         stdout: "",

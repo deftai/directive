@@ -26,10 +26,12 @@ export {
   isPlanSequenceTracked,
 } from "./complete-advance.js";
 export {
+  type AuthorizedPlanEntry,
   cursorMovedPastStored,
   type DerivedCursorStop,
   type DerivedFinishedEntry,
   type DerivedPlanCursor,
+  derivePlanBatch,
   derivePlanCursor,
   findFinishingOrigin,
   findInsertApproval,
@@ -91,8 +93,11 @@ export {
   type PlanSequenceKind,
   type PlanSequenceVerifyInput,
   type PlanSequenceVerifyResult,
+  type PlanStoryVerifyInput,
   type PlanTargetKind,
   parsePlanSequence,
+  planBatchError,
   resolveContinuation,
+  verifyPlanStory,
   verifyPlanTarget,
 } from "./types.js";
