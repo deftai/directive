@@ -42,6 +42,10 @@ import { enforceLiveOnePrUnitCheck, resolveProductionAppStore } from "../one-pr-
 import type { OriginRef } from "../one-pr-unit/types.js";
 import type { IssueRef } from "../orphan-active/refs.js";
 import {
+  advancePlanAfterComplete,
+  type CompleteAdvanceSeams,
+} from "../plan-sequence/complete-advance.js";
+import {
   applyAcceptanceDispositionGrants,
   checkCitedAcceptanceDispositionGrants,
   recordAcceptanceDispositionUse,
@@ -191,6 +195,8 @@ export interface TransitionOptions {
   readonly resolveIssueCloseKind?: (ref: IssueRef) => IssueCloseKind;
   /** Test seam: override completed tip-twin probe for cancel refuse. */
   readonly hasCompletedTipTwin?: (ref: IssueRef) => CompletedTipTwinResult;
+  /** Test seams for the post-complete plan cursor catch-up (#6205). */
+  readonly planAdvanceSeams?: CompleteAdvanceSeams;
 }
 
 /** REST node_id for one-PR-unit binding; mirrors pr-closing-keywords live path. */
@@ -1316,7 +1322,9 @@ export function runTransition(
       const attestUse =
         act === "complete"
           ? recordAttestationUse(projectRoot, attestationGrantId, now) +
-            recordDispositionGrantUse(projectRoot, dispositionGrantIds, now)
+            recordDispositionGrantUse(projectRoot, dispositionGrantIds, now) +
+            // #6205: one named plan line; never fails or rolls back the completion.
+            `\n${advancePlanAfterComplete({ projectRoot, completedPath: destPath, now: nowIso, seams: options.planAdvanceSeams }).line}`
           : "";
       const moveMsg =
         `${actionLabel} ${basename}: ${currentFolder}/ -> ${targetFolder}/ (status: ${targetStatus})` +
@@ -1527,7 +1535,9 @@ function restampCompletedBrief(args: RestampArgs): TransitionResult {
       `Restamped ${basename} in completed/ (status: completed, ` +
       `deliveryDisposition=${disposition})` +
       recordAttestationUse(projectRoot, gate.provenance?.attestationGrantId, now) +
-      recordDispositionGrantUse(projectRoot, cited.grantIdsToRecord, now),
+      recordDispositionGrantUse(projectRoot, cited.grantIdsToRecord, now) +
+      // #6205: a restamp reports and attempts the same plan catch-up.
+      `\n${advancePlanAfterComplete({ projectRoot, completedPath: resolvedPath, now: nowIso, seams: options.planAdvanceSeams }).line}`,
   };
 }
 

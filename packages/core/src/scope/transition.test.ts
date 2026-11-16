@@ -3640,3 +3640,121 @@ describe("scope:complete restamp replays acceptance-disposition grants (#6343 re
     }
   });
 });
+
+describe("scope:complete plan cursor catch-up (#6205)", () => {
+  let root = "";
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  /** Plan whose first entry is the story completed by writeVbrief's default name. */
+  function seedPlan(at: string, body?: string): string {
+    const path = join(at, ".deft", "plan-sequence.json");
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(
+      path,
+      body ??
+        JSON.stringify({
+          sequence_id: "seq",
+          sequence_kind: "swarm",
+          entries: [
+            { id: "story", kind: "story", status: "pending" },
+            { id: "next-story", kind: "story", status: "pending" },
+          ],
+          current_index: 0,
+          batching_allowed: false,
+          continuation_past_final: false,
+          exhausted: false,
+          authorized_by: "operator",
+          created_at: "2026-11-16T00:00:00Z",
+          updated_at: "2026-11-16T00:00:00Z",
+          generation: 1,
+          source_revision: "",
+        }),
+    );
+    return path;
+  }
+
+  const untracked = { isPlanTracked: () => false };
+
+  it("clause.6: prints one advanced line and moves the stored cursor", () => {
+    root = makeRepo();
+    const plan = seedPlan(root);
+    const file = writeVbrief(root, "active", "running");
+    const result = runTransition("complete", file, undefined, { planAdvanceSeams: untracked });
+    expect(result.ok, result.message).toBe(true);
+    const lines = result.message.split("\n").filter((l) => l.startsWith("plan-sequence:"));
+    expect(lines).toEqual([
+      "plan-sequence: advanced (current story:next-story index=1 generation=2)",
+    ]);
+    expect(JSON.parse(readFileSync(plan, "utf8")).current_index).toBe(1);
+  });
+
+  it("clause.5 / clause.7: a store failure during completion leaves the completion in place", () => {
+    root = makeRepo();
+    const plan = seedPlan(root);
+    const before = readFileSync(plan, "utf8");
+    const file = writeVbrief(root, "active", "running");
+    const result = runTransition("complete", file, undefined, {
+      planAdvanceSeams: {
+        ...untracked,
+        writePlan: () => ({
+          ok: false,
+          code: "persist-error",
+          current_generation: 1,
+          source_revision: "",
+          message: "injected plan write failure",
+        }),
+      },
+    });
+    expect(result.ok, result.message).toBe(true);
+    expect(result.message).toContain("plan-sequence: store-failed (injected plan write failure");
+    expect(existsSync(join(root, "xbrief", "completed", "2026-01-01-story.xbrief.json"))).toBe(
+      true,
+    );
+    expect(existsSync(file)).toBe(false);
+    expect(readFileSync(plan, "utf8")).toBe(before);
+  });
+
+  it("clause.5: an unreadable plan never fails the completion", () => {
+    root = makeRepo();
+    seedPlan(root, "{not json");
+    const file = writeVbrief(root, "active", "running");
+    const result = runTransition("complete", file);
+    expect(result.ok, result.message).toBe(true);
+    expect(result.message).toMatch(/plan-sequence: store-failed \(/);
+  });
+
+  it("clause.6: prints no-sequence without a plan file", () => {
+    root = makeRepo();
+    const file = writeVbrief(root, "active", "running");
+    const result = runTransition("complete", file);
+    expect(result.ok).toBe(true);
+    expect(result.message).toContain("plan-sequence: no-sequence");
+  });
+
+  it("clause.6: a restamp of a completed brief reports and attempts the same catch-up", () => {
+    root = makeRepo();
+    const plan = seedPlan(root);
+    const done = writeVbrief(root, "completed", "completed");
+    const result = runTransition("complete", done, undefined, { planAdvanceSeams: untracked });
+    expect(result.ok, result.message).toBe(true);
+    expect(result.message).toContain("Restamped");
+    expect(result.message).toContain("plan-sequence: advanced (current story:next-story");
+    expect(JSON.parse(readFileSync(plan, "utf8")).current_index).toBe(1);
+  });
+
+  it("clause.5: scope:cancel does not read the plan", () => {
+    root = makeRepo();
+    seedPlan(root, "{not json");
+    const file = writeVbrief(root, "active", "running");
+    const result = runTransition("cancel", file, undefined, {
+      skipCancelShippedOriginRefuse: true,
+    });
+    expect(result.ok, result.message).toBe(true);
+    expect(result.message).not.toContain("plan-sequence:");
+  });
+});

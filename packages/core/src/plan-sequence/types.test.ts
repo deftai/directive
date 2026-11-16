@@ -79,4 +79,39 @@ describe("plan-sequence types", () => {
       }),
     ).toThrow(/requires id and kind/);
   });
+
+  it("clause.12: the closed shape admits insert_approvals rows and entry keys stay closed (#6205)", () => {
+    const created = createPlanSequence({
+      sequence_id: "ins",
+      sequence_kind: "delivery",
+      authorized_by: "t",
+      entries: [{ id: "a", kind: "issue", issue: 1 }],
+    });
+    const row = { entry_id: "a", grant_id: "grant-1", approved_at: "2026-11-16T00:00:00Z" };
+    const withRow = { ...created, insert_approvals: [row] };
+    expect(isClosedPlanSequenceShape(withRow)).toBe(true);
+    expect(parsePlanSequence(withRow).insert_approvals).toEqual([row]);
+    expect(isClosedPlanSequenceShape({ ...created, insert_approvals: [] })).toBe(true);
+    for (const bad of [
+      "rows",
+      [{ ...row, note: "x" }],
+      [{ ...row, grant_id: "" }],
+      [null],
+      [{ entry_id: "a", grant_id: "g" }],
+    ]) {
+      expect(isClosedPlanSequenceShape({ ...created, insert_approvals: bad })).toBe(false);
+    }
+    expect(
+      isClosedPlanSequenceShape({
+        ...created,
+        entries: [{ id: "a", kind: "issue", approval: "grant-1" }],
+      }),
+    ).toBe(false);
+    // Parse keeps well-formed rows only and omits the key when absent.
+    expect(
+      parsePlanSequence({ ...created, insert_approvals: [row, { entry_id: "x" }] })
+        .insert_approvals,
+    ).toEqual([row]);
+    expect(parsePlanSequence(created)).not.toHaveProperty("insert_approvals");
+  });
 });

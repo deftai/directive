@@ -57,7 +57,8 @@ task verify:plan-sequence -- --target-kind <entry-kind> --target <entry-id>
 - ! Exit non-zero → fail closed; do not open an unauthorized PR.
 - ! Exit 0 with "skipped (no active ordered-plan sequence)" → proceed under normal pre-PR rules.
 - ⊗ Hardcode `--target-kind pr` when the current entry is `kind=story` or `kind=issue` — the verifier matches entry kind exactly (#2662).
-- ! After the PR's review cycle completes successfully, run `task plan-sequence:advance` so "next" resolves to the following entry (or exhausted).
+- ! An entry that has a brief moves on by itself: once `scope:complete` puts its brief in `completed/`, readers derive the next entry (#6205). Do not advance it at CLEAN. Only an entry with no brief (a task, phase, checklist or review entry with no issue) needs `task plan-sequence:advance` after its review cycle completes.
+- ! An unplanned fix enters the plan only through `task plan-sequence:insert`. Under `plan.policy.requireBoundPrePrPush: true` it needs an operator `plan-sequence-approval` grant minted at a terminal; never hand-edit `.deft/plan-sequence.json`.
 - ⊗ Treat skill-chaining or "what's next?" as permission to open a PR outside the current sequence entry.
 
 ## Three-axis candidate validation (#4888)

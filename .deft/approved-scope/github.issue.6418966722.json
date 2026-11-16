@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-11-16-6398-bugscope-delivery-attest-lookup-reads-grant-expiry-from-wall.xbrief.json",
+  "planId": "github.issue.6418966722",
+  "approvedAt": "2026-11-16T14:59:52Z",
+  "fileScope": [
+    ".deft/approved-scope/github.issue.6418966722.intent.json",
+    ".deft/approved-scope/github.issue.6418966722.json",
+    "CHANGELOG.md",
+    "packages/core/src/scope/delivery-evidence.ts",
+    "xbrief/active/2026-11-16-6398-bugscope-delivery-attest-lookup-reads-grant-expiry-from-wall.xbrief.json"
+  ],
+  "fileScopeDigest": "c4f022af83ca1cfb7abc95907a83389f2f703b57cd5cd7d8037907ce19edd988",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "MScottAdams",
+    "mintedAt": "2026-11-16T14:59:52Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "1f0995cf10ad74f38cfd576097d0b08ca9576eaaa32545cc56795447261ba5e3",
+  "digestAlgo": "intent-extract-v1",
+  "authHashV1": "sha256:91188669888151a5bdf2d0dea9245227ef1e6a7ae65201bcdd85e1774de4a87d"
+}

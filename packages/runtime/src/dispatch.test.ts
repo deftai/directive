@@ -428,6 +428,20 @@ describe("dispatch", () => {
     expect(err.join("")).toContain("deft plan-sequence:current");
     expect(err.join("")).toContain("is not a verb");
     expect(err.join("")).not.toMatch(/prefer `task plan-sequence:status`/);
+    expect(err.join("")).toContain("set|current|clear|advance|insert");
+  });
+
+  it("routes plan-sequence:insert to the plan-sequence engine (#6205)", async () => {
+    const err: string[] = [];
+    const code = await dispatch(["plan-sequence:insert", "--kind", "task"], {
+      writeOut: () => {},
+      writeErr: (text) => {
+        err.push(text);
+      },
+    });
+    // Reaches the insert verb: it names its own missing --id, not an unknown verb.
+    expect(code).toBe(2);
+    expect(err.join("")).not.toContain("unknown verb");
   });
 
   it("scm:body:* unknown-hint suggests task dual-invoke, never failing deft spelling (#5521)", () => {

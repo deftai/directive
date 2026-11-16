@@ -2603,9 +2603,15 @@ export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGate
   const mergeTimeForge =
     options.mergeTimeForge ?? (liveForge ? defaultMergeTimeForge(runGh) : undefined);
   // #6317: attestation grants live in the main clone store, resolved by local git.
+  // #6398: judge grant expiry at the transition clock, not wall time.
   const findDeliveryAttestation: FindDeliveryAttestationFn =
     options.findDeliveryAttestation ??
-    ((query) => findDeliveryIdentityAttestation({ projectRoot: options.projectRoot, ...query }));
+    ((query) =>
+      findDeliveryIdentityAttestation({
+        projectRoot: options.projectRoot,
+        now: new Date(options.nowIso),
+        ...query,
+      }));
   const resolveCanonicalRepository = () =>
     resolveCanonicalProjectRepository(options.projectRoot, runGit);
   // #5710 P4: the merged-stamp check needs an uncached read; a stale

@@ -50,7 +50,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 ! When the review-cycle exit condition is met (no P0/P1 remaining / CLEAN verdict):
 
 1. Return control to the caller — do **not** discover adjacent backlog work.
-2. If an ordered-plan sequence is active and this PR matched the current entry, run `task plan-sequence:advance`.
+2. If an ordered-plan sequence is active and this PR matched the current entry, do not advance an entry that has a brief: `scope:complete` moves its brief to `completed/` and readers derive the next entry (#6205). Run `task plan-sequence:advance` only for an entry with no brief (a task, phase, checklist or review entry with no issue).
 3. If another entry remains, the caller may continue **only** to that entry (one unit).
 4. If the sequence is exhausted, stop and ask. Do not open another PR from queue intuition or chaining text.
 
