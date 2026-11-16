@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6377",
-    "updated": "2026-11-16T17:44:40Z"
+    "updated": "2026-11-16T19:48:19Z"
   },
   "plan": {
     "title": "bug(review-cycle): SLizard re-posts an answered P1 on every push, so its check stays red",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The review-cycle skill teaches the worker to record each answered SLizard finding with the bot's own label command, by fingerprint, under the evidence rules the skill already has, and it states the one sequence that clears a red SLizard check for an answered finding: label, acknowledgement, re-review, `pr:merge-ready`. `parseSlizardCheckRunSummary` also reads the `Fingerprints (actionable)` line, and the blocked message of `evaluateSlizardGate` prints those ids and names that sequence before `--skip-slizard`. The gate's ready, blocked and weather decisions do not change, and Directive keeps no store of answered findings.",
       "UserStory": "As a worker agent whose pull request carries an answered SLizard P1, I want to record the answer where the bot reads it and to know the one sequence that clears the red check, so that I stop re-answering the same finding on every push and do not reach for `--skip-slizard`.",
@@ -20,114 +20,212 @@
     "items": [
       {
         "title": "Record the answer where the bot reads it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given content/skills/deft-directive-review-cycle/SKILL.md, then the review-cycle skill names the bot's label command (`@slizard label`) as the way to record an answered SLizard finding."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "In the review-cycle skill, after the existing classify step, the worker records each SLizard finding's disposition with the bot's label command, as one top-level pull-request comment per review round.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given content/skills/deft-directive-review-cycle/SKILL.md, then after the classify step it tells the worker to post one top-level pull-request comment per review round that labels each answered SLizard finding by fingerprint with `@slizard label`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A false-positive label is used only for a finding disproved by the existing head-blob check, and its reason cites the head SHA and the path.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given content/skills/deft-directive-review-cycle/SKILL.md, then the review-cycle skill limits the false-positive label to a finding disproved by the head-blob check, and its reason cites the head SHA and the path."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A risk label is used only for a finding accepted under the existing HEAD-policy rule, and its reason cites that anchor.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given content/skills/deft-directive-review-cycle/SKILL.md, then the review-cycle skill limits the risk label to a finding accepted under the HEAD-policy rule, and its reason cites that anchor."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "An in-model defect is fixed and is not labelled.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given content/skills/deft-directive-review-cycle/SKILL.md, then the review-cycle skill says that an in-model defect is fixed and not labelled."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The skill states that a free-text reply alone is not recorded by the bot.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given content/skills/deft-directive-review-cycle/SKILL.md, then the review-cycle skill says that a free-text reply alone does not stop a finding from returning."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The sentence at SKILL.md line 262 (\"A one-line falsification reply … is enough\") is reworded: that line is the reason text of the label.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given content/skills/deft-directive-review-cycle/SKILL.md, then the head-blob check rule no longer says that a one-line falsification reply is enough, and says that the falsification line is the reason text of the `fp` label; the CHANGELOG.md entry names the reworded sentence."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The clearing sequence is stated in the skill: label, read the bot's acknowledgement, request a re-review with the bot's existing review command when no further push follows, then run `pr:merge-ready` again.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given a pull request whose only red check is the SLizard check for an answered finding, then content/skills/deft-directive-review-cycle/SKILL.md names the one sequence that clears it: label, acknowledgement, re-review (`@slizard review` when no further push follows), `pr:merge-ready`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Directive's SLizard gate keeps reading the bot's verdict and nothing else.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given any check-run input, when `evaluateSlizardGate` in packages/core/src/pr-merge-readiness/slizard-gate.ts runs, then it reads only the SLizard check-run and its `ready_state` is the same as today; a labelled finding is not treated as ready before the bot's next verdict."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`parseSlizardCheckRunSummary` also reads the `Fingerprints (actionable)` line.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given a SLizard check-run summary that carries a `Fingerprints (actionable)` line, when `parseSlizardCheckRunSummary` in packages/core/src/content-contracts/skills/greptile-detector.ts reads it, then the parsed verdict holds those fingerprints; given a summary with no such line, then the parsed verdict holds an empty fingerprint list and every other field is the same as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The blocked message of `evaluateSlizardGate` prints those ids, says that the list can be capped and that the tip review body is the complete list, and names the sequence of item 3 before it names `--skip-slizard`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given a blocking SLizard verdict with fingerprints, when `evaluateSlizardGate` in packages/core/src/pr-merge-readiness/slizard-gate.ts runs, then its failure message prints the fingerprints, says the list can be capped and the tip review body is the complete list, and names the label sequence before `--skip-slizard`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The ready, blocked and weather decisions do not change.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given any check-run input, when `evaluateSlizardGate` in packages/core/src/pr-merge-readiness/slizard-gate.ts runs, then its `ready_state` is the same as today for ready, blocked, not-ready-yet and weather inputs."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Limits are written next to the rule: a label covers the finding identities the bot recognises; a finding that returns under a new fingerprint is labelled again; a finding that returns although it was labelled is reported on slizard#3847.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given content/skills/deft-directive-review-cycle/SKILL.md, then next to the label rule it says that a label covers the finding identities the bot recognises, that a finding returning under a new fingerprint is labelled again, and that a finding returning although it was labelled is reported on slizard#3847."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Issue #6377 links slizard#3847 as the bot-side report.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given issue #6377, then a comment on it links slizard#3847 and records the label sequence as the workaround, and content/skills/deft-directive-review-cycle/SKILL.md names slizard#3847 as the bot-side report."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+          "recorded_at": "2026-11-16T19:48:19Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -590,9 +688,36 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "e367c4dc71feb2eb0a60f61d1a87828c375c7b6eedfee5b9b72235b160e037ea"
+      },
+      "productPullRequest": 6438,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "2d4725f6a808c71c5684a826fdd3e044a8015a65",
+        "prNumber": 6438,
+        "prBase": "master",
+        "mergeCommit": "4c2378490f5ebe23fb5a0010422b206ad9300a02",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+        "verifiedAt": "2026-11-16T19:48:19Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T19:48:19Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T19:48:19Z"
       }
     },
     "id": "github.issue.6414486025",
-    "updated": "2026-11-16T17:44:40Z"
+    "updated": "2026-11-16T19:48:19Z"
   }
 }

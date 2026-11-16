@@ -722,6 +722,8 @@ Dispatchers (this orchestrator, swarm Phase 4 dispatch, monitor agents, schedule
 
 ! **Dest leaf ceremony (#5145):** Linked dest Prefer-A inherits primary top-level `finalize_owed` (deferred or ok) so dest `--rearm` skips tip inventory after the head ceremony without dest `--defer-owed`. Primary/main `--rearm` alone still needs `--defer-owed=<reason>`. Standalone linked worktrees without a primary `finalize_owed` record still fail-close. Keep `--defer=cache_fresh=…` soft paths. ⊗ Stampede N dest cold tip inventories before primary records `finalize_owed` / before Prefer-A is on tip.
 
+! **Owed completions are reported, not refused (#6409):** mutation `session:start` (cold / `--rearm`) runs the finalize-owed inventory every time, and owed rows, `unknown` included, never refuse a worker. One always-on `finalize owed report:` line gives the count and names `deft swarm:finalize-owed`; `--json` carries `finalize_owed_count`. Only an unresolvable repository still refuses (`--defer-owed` clears it). The owner checks before `DONE` (§11) are unchanged.
+
 Dispatchers MUST run `deft verify:cache-fresh --for-issue <N>` immediately before any `start_agent` invocation that will dispatch an implementation sub-agent for upstream issue N, and MUST refuse dispatch on any non-zero exit. The cache gate follows the session ritual gate in the canonical pre-`start_agent` gate stack documented in `AGENTS.md` (`verify:session-ritual` -> Story Start Gate -> Implementation Intent Gate -> `verify:cache-fresh` -> branch-policy gate -> `start_agent`).
 
 The gate is detection-bound and has three exit states (mirrors the #747 branch gate):

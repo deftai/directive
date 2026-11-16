@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseArgs, run } from "./scope-record-intent-constraint.js";
 
 const temps: string[] = [];
@@ -61,9 +61,20 @@ describe("scope-record-intent-constraint CLI (#4541)", () => {
       }),
       "utf8",
     );
-    expect(run([xbrief, "--actor", "scott", "--confirm", "--project-root", root], humanSeams)).toBe(
-      0,
-    );
+    const out: string[] = [];
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      out.push(String(chunk));
+      return true;
+    });
+    try {
+      expect(
+        run([xbrief, "--actor", "scott", "--confirm", "--project-root", root], humanSeams),
+      ).toBe(0);
+    } finally {
+      stdout.mockRestore();
+    }
+    // #6335: the mint message names the part line for the authority-record PR.
+    expect(out.join("")).toContain("authority-record PR with `deft-story-part: N`");
     const rec = JSON.parse(
       readFileSync(join(root, ".deft", "intent-constraint", "story-1.json"), "utf8"),
     ) as { humanApproval: { kind: string }; constraints: unknown[] };

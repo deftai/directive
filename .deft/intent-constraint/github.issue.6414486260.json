@@ -1,0 +1,45 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.6414486260",
+  "xbriefRelPath": "xbrief/active/2026-11-16-6378-bugscope-provenance-verifyscope-provenance-runs-past-5-minut.xbrief.json",
+  "approvedAt": "2026-11-16T22:12:27Z",
+  "constraints": [
+    {
+      "value": "git-call-timeout-enforce",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "git-call-timeout-enforce",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "git-call-timeout-enforce",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "git-call-timeout-enforce",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "120",
+      "unit": "seconds",
+      "rejectionScope": "operation"
+    },
+    {
+      "value": "1000000",
+      "unit": "seconds",
+      "rejectionScope": "operation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "MScottAdams",
+    "mintedAt": "2026-11-16T22:12:27Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "ada3b367b7ea2be227f5cbf9dafc7ce7746ac727fe49b8b945c52d34d35435af"
+}

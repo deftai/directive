@@ -1335,6 +1335,25 @@ describe("design-critique contract + brief template + thin skill (#3434)", () =>
     expect(skill.split("\n").length).toBeLessThanOrEqual(MAX_SKILL_LINES);
   });
 
+  it("locks launcher output capture and the two-step Claude CLI seat form (#6412 / #6410)", () => {
+    const dispatch = markdownSection(
+      readText("docs/grok-build-subscription-setup.md"),
+      "## Design-critique dispatch",
+    );
+    expect(dispatch).toContain("### Launcher commands from a Bash tool (#6412 / #6410)");
+    expect(dispatch).toContain("A redirect on a launcher command (`> file`) is refused");
+    expect(dispatch).toContain("`codex exec … -o <file>`");
+    expect(dispatch).toContain("**Claude** and **Grok**: the tool's own output capture");
+    expect(dispatch).toContain("takes its dest from the shell working directory");
+    expect(dispatch).toContain(
+      "One call that only changes the working directory into the arc dest (`cd <dest>`).",
+    );
+    expect(dispatch).toContain("The bare launcher command in the next call");
+    expect(dispatch).toContain("changes the working directory back to the primary checkout");
+    expect(dispatch).toContain("step back out before doing anything else");
+    expect(dispatch).toContain("proves launchability only");
+  });
+
   it("locks run-posture front door tokens and fixtures (#4072)", () => {
     const text = readText(CONTRACT);
     const stop1 = markdownSection(text, "## Stop 1 \u2014 Gate");

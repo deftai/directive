@@ -1390,6 +1390,24 @@ describe("story lines: part line, pre-merge check, --write-story-line (#6316)", 
     expect(err).toContain("--write-story-line");
   });
 
+  it("names the part line for an authority-record PR (intent-constraint only) (#6335)", () => {
+    const root = makeRoot();
+    writeBrief(root, "s-510.xbrief.json", storyPlan(510));
+    const result = evaluateStoryLineRequirement({
+      bodyText: "Refs #510\n",
+      prNumber: 81,
+      projectRoot: root,
+      repo: REPO,
+      files: [{ status: "added", path: ".deft/intent-constraint/github.issue.510.json" }],
+    });
+    expect(result.ok).toBe(false);
+    const text = result.messages.join("\n");
+    expect(text).toContain("authority-record PR");
+    expect(text).toContain("deft-story-part: 510");
+    expect(storyLineAdvice(510)).toContain("authority-record PR");
+    expect(storyLineAdvice(510)).toContain("deft-story-part: 510");
+  });
+
   it("passes with a sole mark or part line and ignores non-running or lifecycle-only cases", () => {
     const root = makeRoot();
     writeBrief(root, "s-503.xbrief.json", storyPlan(503));

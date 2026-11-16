@@ -215,6 +215,21 @@ That CLI is classified launcher-family argv (#4219): dest-present linked dest is
 
 Keep process-only plus one `gh issue comment --body-file` post. `claude agents` may report print-mode as `kind: interactive`; do not kill it as a TTY leftover.
 
+### Launcher commands from a Bash tool (#6412 / #6410)
+
+The launcher hook needs each launcher command as a single simple command. A redirect on a launcher command (`> file`) is refused, and so is any other segment on the same line (`;`, `&&`, a pipe, a leading `cd`). Capture output without a redirect:
+
+- **Codex**: the output-file flag, `codex exec … -o <file>`.
+- **Claude** and **Grok**: the tool's own output capture (for example the Bash tool's background output file). Do not add `>`.
+
+**Claude CLI seat.** The `claude` family takes its dest from the shell working directory. When the parent's shell is not in the dest, launch in three Bash calls:
+
+1. One call that only changes the working directory into the arc dest (`cd <dest>`). The tool keeps that directory for the next call.
+2. The bare launcher command in the next call, for example the Launch probe pong or `claude -p "Read and follow <envelope-path>" …`.
+3. One call that changes the working directory back to the primary checkout.
+
+While the shell is in the dest, other tools are judged by the dest too (the Write hook reads the same working directory), so step back out before doing anything else. A pong from step 2 proves launchability only, as for every launch probe. A real critic seat still needs its envelope and a read-only permission posture.
+
 ### Critic-spawn hygiene + progress (#5478)
 
 Claude Critic-spawn hygiene MUST before claiming the seat live (Prefer-A Bound #5478):

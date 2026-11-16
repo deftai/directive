@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+- chore(dogfood): pin Directive to 0.129.11.
+
+### Fixed
+
+### Removed
+
+## [0.129.11] - 2026-11-16
+
+> Wave 2b: in-PR story completion, plan upkeep and batched plans, faster session start, worktree-bound commits, per-story spec-drift rows, and SLizard label answers.
+
+### Added
+- `swarm:pre-dispatch` begin now writes a story-binding record for the worker's linked worktree (path or branch target), so solo, hand-started and large story workers commit in-scope files with several briefs active and no `DEFT_ACTIVE_SCOPE`; a merge commit of the fetched default branch is admitted for files that arrive unchanged, and `file_scope` still comes from the merge base (#6379).
 - Ordered plan stays current: readers derive the plan cursor from completed briefs, `scope:complete` prints one `plan-sequence:` line, and `plan-sequence:insert` adds an unplanned fix; under `requireBoundPrePrPush: true`, insert, replace and clear need a single-use `plan-sequence-approval` grant (#6205).
 - A story's last product PR can complete the story with `scope:complete --in-pr`, so no separate completion PR is needed; the human product merge plus the identity join on the landing commit is the completion proof, and stories whose acceptance rests on a merge keep the post-merge path (#6277).
 - `scope:promote`, `scope:activate` and `xbrief:preflight` now list the clauses that `scope:complete` will hold to deploy, smoke, UAT or observed-behaviour evidence, using the same classifier, so the wording or `x-directive/requires` can be fixed in the brief PR. Advisory only; exit codes are unchanged (#6272).
@@ -15,9 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The review-cycle skill records an answered SLizard finding with the bot's `@slizard label` command, one comment per round (`fp` after the head-blob check, `risk` under the HEAD-policy rule), and names the clearing sequence: label, acknowledgement, `@slizard review`, `pr:merge-ready`. The old line "A one-line falsification reply … is enough" now says that line is the label reason. The SLizard gate's blocked message prints the actionable fingerprints and names that sequence before `--skip-slizard`; its decisions do not change (#6377).
 
 ### Changed
+- Mutation `session:start` no longer refuses a session for owed completions. The inventory still runs; one always-on `finalize owed report:` line gives the count and names `deft swarm:finalize-owed` (the form that runs; `task swarm:finalize-owed` never existed), and `--json` carries `finalize_owed_count`. Only an unresolvable repository still refuses (#6409; #5914 part 1).
 - chore(dogfood): pin Directive to 0.129.10.
 - chore(xbrief): widen the #6361 brief to `known-machine.ts` (import-cycle fix) and land its one-PR mint record (#6361).
 - After a context compaction, the write hook restores the ritual clock for the session that owns the live lease and the ritual, and denies one call with the alignment lines instead of every write until a manual re-arm. Other stale-ritual denials print their recovery command with the caller's `--session-id` (#6279).
+- **Spec-drift row files**: each story completion writes its spec-drift rows to its own file, `xbrief/.audit/spec-drift/<scopeId>.json`, and no longer appends to `xbrief/.audit/spec-drift-ledger.json`, so parallel completion PRs merge without a manual merge round. The rewrite proof reads both fingerprints from the story's own delivery commits. An authority-record PR carries `deft-story-part: N` (#6335)
+- Minted the intent-constraint record for the #6379 story-binding lock stale age (300000 ms). Refs #6379.
 
 ### Fixed
 - The finalize-owed scan in `session:start` and `swarm:finalize-owed` reads origin issue state from one paged open-issue list instead of one `gh api issues/N` call per brief, so cold `session:start` no longer spends minutes there; a failed list keeps items unverified or unknown, never closed (#5927).
@@ -27,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - An approved parallel wave in the ordered plan now runs in parallel: push and `swarm:launch` admit every pending entry of the current batch. Before, `batching_allowed: true` was stored but had no effect (a misleading setting and lost throughput, not a security issue). To use it, give the entries that run together the same `batch` label; `plan-sequence:current` lists the batch, and `set` refuses unlabeled or split batches. While a plan file is present, `swarm:launch` also checks its real roster, solo included, against the current entry or batch (#4433).
 - fix(scope): a one-PR story now has a worker path. The write fence admits a brief absent from the merge base when the merge-base level is `mint` and the same-PR record matches that exact brief (same checks as CI, never cached), `swarm:launch -- --base-branch <branch>` accepts such a brief from the pushed branch and builds the dest from it, and `task policy:set-one-pr-scope-proof` works. Refs #6361.
 - `pr:watch` and the merge verbs score the newest run per check and app, count every red conclusion as a named failure, and `pr:watch` names missing required checks and prints red bot checks as advisory; pre-PR `lint_iteration` runs `verify:class-checks` and `verify:evaluator-surface`; `verify:intent-constraint` lists every fact; `pre-pr:run --complete` names a missing PR; the body hash ignores CRLF and trailing newlines (#6336).
+- **finalize-cohort / design-critique playbook**: a finalize run stopped by a killed run's leftover branch now names that branch and worktree and prints the commands that remove them; the playbook says how to capture launcher output without a redirect and names the two-step Claude CLI seat launch (#6421, #6410, #6412)
 
 ### Removed
 
@@ -8079,7 +8097,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.129.10...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.129.11...HEAD
+[0.129.11]: https://github.com/deftai/directive/compare/v0.129.10...v0.129.11
 [0.129.10]: https://github.com/deftai/directive/compare/v0.129.9...v0.129.10
 [0.129.9]: https://github.com/deftai/directive/compare/v0.129.8...v0.129.9
 [0.129.8]: https://github.com/deftai/directive/compare/v0.129.7...v0.129.8
