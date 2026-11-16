@@ -12,6 +12,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  type AuthorizedPlanEntry,
   advancePlanSequence,
   type ClearPlanSequenceResult,
   claimPlanSequenceApproval,
@@ -19,6 +20,7 @@ import {
   collectTerminalLifecycleOrigins,
   createPlanSequence,
   type DerivedPlanCursor,
+  derivePlanBatch,
   derivePlanCursor,
   insertApprovedPlanEntry,
   inspectMissingSequenceKind,
@@ -31,6 +33,7 @@ import {
   type PlanSequenceKind,
   type PlanTargetKind,
   parsePlanSequence,
+  planBatchError,
   planSequenceApprovalRequired,
   planSequencePath,
   readPlanSequence,
@@ -203,7 +206,7 @@ function requireExpectedGeneration(parsed: Parsed): number | { error: string } {
   return parsed.expectedGeneration;
 }
 
-function loadSetPayload(parsed: Parsed, root: string): PlanSequence {
+function loadSetPayload(parsed: Parsed, root: string): PlanSequence | { readonly refusal: string } {
   const text = parsed.file ? readFileSync(resolve(root, parsed.file), "utf8") : parsed.jsonInline;
   if (text === null || text === undefined) {
     throw new Error("plan-sequence set requires --file <path> or --from-json <json>");
@@ -213,6 +216,18 @@ function loadSetPayload(parsed: Parsed, root: string): PlanSequence {
     throw new Error("plan-sequence set: --file/--from-json must contain a JSON object");
   }
   const raw = payload as Record<string, unknown>;
+  // #4433: unusable batch labels are a caller input refusal; fix the payload and retry.
+  const batchRefusal = Array.isArray(raw.entries)
+    ? planBatchError(
+        raw.entries.filter(
+          (e): e is Record<string, unknown> => typeof e === "object" && e !== null,
+        ),
+        raw.batching_allowed === true,
+      )
+    : null;
+  if (batchRefusal !== null) {
+    return { refusal: batchRefusal };
+  }
   if (typeof raw.current_index === "number" || raw.exhausted === true) {
     return parsePlanSequence(raw);
   }
@@ -301,7 +316,9 @@ function replaceOrClearGuard(
 }
 
 function runSet(parsed: Parsed, root: string, expected: number): number {
-  const seq = loadSetPayload(parsed, root);
+  const loaded = loadSetPayload(parsed, root);
+  if ("refusal" in loaded) return fail(loaded.refusal);
+  const seq = loaded;
   const guard = replaceOrClearGuard(root, "replace");
   if ("error" in guard) return fail(guard.error);
   const written = approvedWrite({
@@ -347,10 +364,15 @@ function runClear(parsed: Parsed, root: string, expected: number): number {
 }
 
 /** Read the plan and derive its cursor; null when there is no plan file. */
-function readDerived(root: string): { seq: PlanSequence; cursor: DerivedPlanCursor } | null {
+function readDerived(
+  root: string,
+): { seq: PlanSequence; cursor: DerivedPlanCursor; authorized: AuthorizedPlanEntry[] } | null {
   const seq = readPlanSequence(root);
   if (seq === null) return null;
-  return { seq, cursor: derivePlanCursor(seq, collectTerminalLifecycleOrigins(root)) };
+  const terminals = collectTerminalLifecycleOrigins(root);
+  const cursor = derivePlanCursor(seq, terminals);
+  // #4433: the set `verify:plan-sequence` admits (the current batch when batching).
+  return { seq, cursor, authorized: derivePlanBatch(seq, cursor, terminals) };
 }
 
 function runCurrent(parsed: Parsed, root: string): number {
@@ -367,7 +389,7 @@ function runCurrent(parsed: Parsed, root: string): number {
   if (read === null) {
     return fail("No active ordered-plan sequence (.deft/plan-sequence.json missing).");
   }
-  const { seq, cursor } = read;
+  const { seq, cursor, authorized } = read;
   // The derived view: what readers act on (#6205). Stored fields stay visible.
   const view = materializeDerivedCursor(seq, cursor, seq.updated_at);
   const derived = cursor.derivedFinished.map((d) => ({
@@ -376,12 +398,20 @@ function runCurrent(parsed: Parsed, root: string): number {
     kind: d.entry.kind,
     origin_path: d.originPath,
   }));
+  const authorizedRows = authorized.map((a) => ({
+    index: a.index,
+    id: a.entry.id,
+    kind: a.entry.kind,
+    ...(a.entry.issue !== undefined ? { issue: a.entry.issue } : {}),
+    ...(a.entry.batch !== undefined ? { batch: a.entry.batch } : {}),
+  }));
   if (parsed.emitJson) {
     const payload: Record<string, unknown> = {
       ...view,
       stored_current_index: seq.current_index,
       stored_exhausted: seq.exhausted,
       derived_finished: derived,
+      authorized: authorizedRows,
     };
     if (cursor.stop !== null) {
       payload.terminal_lifecycle_drift = {
@@ -406,6 +436,10 @@ function runCurrent(parsed: Parsed, root: string): number {
     if (cursor.entry !== null) {
       const issue = cursor.entry.issue !== undefined ? ` (#${cursor.entry.issue})` : "";
       process.stdout.write(`current: ${cursor.entry.kind}:${cursor.entry.id}${issue}\n`);
+      if (authorized.length > 1) {
+        const ids = authorizedRows.map((a) => `${a.kind}:${a.id}`).join(", ");
+        process.stdout.write(`authorized batch "${cursor.entry.batch ?? ""}": ${ids}\n`);
+      }
     } else {
       process.stdout.write("current: (exhausted — fresh approval required)\n");
     }

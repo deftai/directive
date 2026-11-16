@@ -156,6 +156,50 @@ export function derivePlanCursor(
   return exhausted(derivedFinished);
 }
 
+/** One entry the plan gate admits now (#4433). */
+export interface AuthorizedPlanEntry {
+  readonly index: number;
+  readonly entry: PlanSequenceEntry;
+}
+
+/**
+ * The current authorized set (#4433). It is the derived current entry alone
+ * when `batching_allowed` is false or that entry has no `batch` label. With
+ * `batching_allowed: true` it also holds every later entry of the adjacent run
+ * that shares the current entry's label, minus entries that are not pending
+ * or whose origin is in `completed/` or `cancelled/`. Empty when the cursor
+ * is exhausted or stopped. Later batches are never in the set.
+ */
+export function derivePlanBatch(
+  sequence: PlanSequence,
+  cursor: DerivedPlanCursor,
+  terminals: readonly TerminalLifecycleOrigin[],
+): AuthorizedPlanEntry[] {
+  if (cursor.stop !== null || cursor.exhausted || cursor.entry === null) {
+    return [];
+  }
+  const authorized: AuthorizedPlanEntry[] = [{ index: cursor.index, entry: cursor.entry }];
+  const label = cursor.entry.batch;
+  if (sequence.batching_allowed !== true || label === undefined) {
+    return authorized;
+  }
+  for (let index = cursor.index + 1; index < sequence.entries.length; index += 1) {
+    const entry = sequence.entries[index];
+    if (entry === undefined || entry.batch !== label) {
+      break;
+    }
+    if (
+      !isPending(entry) ||
+      findFinishingOrigin(entry, terminals) !== null ||
+      findStoppingOrigin(entry, terminals) !== null
+    ) {
+      continue;
+    }
+    authorized.push({ index, entry });
+  }
+  return authorized;
+}
+
 /**
  * Write the derived cursor into a sequence value: entries finished by a
  * completed brief become `completed`, and the stored cursor moves to the

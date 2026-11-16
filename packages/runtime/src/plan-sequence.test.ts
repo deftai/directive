@@ -175,8 +175,8 @@ describe("plan-sequence CLI (#2402)", () => {
         sequence_kind: "delivery",
         authorized_by: "t",
         entries: [
-          { id: "p1", kind: "pr", issue: 1 },
-          { id: "p2", kind: "pr", issue: 2 },
+          { id: "p1", kind: "pr", issue: 1, batch: "w" },
+          { id: "p2", kind: "pr", issue: 2, batch: "w" },
         ],
         current_index: 0,
         batching_allowed: true,
@@ -499,6 +499,84 @@ describe("plan-sequence CLI (#2402)", () => {
     };
     expect(unchanged.generation).toBe(1);
     expect(unchanged.sequence_id).toBe("cas");
+  });
+
+  it("set refuses unusable batch labels and current enumerates the authorized batch (#4433)", () => {
+    const root = mkdtempSync(join(tmpdir(), "ps-cli-batch-"));
+    roots.push(root);
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    try {
+      const plan = {
+        sequence_id: "waves",
+        sequence_kind: "cohort",
+        authorized_by: "operator",
+        batching_allowed: true,
+        entries: [
+          { id: "A1", kind: "issue", issue: 512, batch: "a" },
+          { id: "A2", kind: "issue", issue: 515, batch: "a" },
+          { id: "B1", kind: "issue", issue: 520, batch: "b" },
+        ],
+      };
+      const unlabeled = { ...plan, entries: plan.entries.map(({ batch: _b, ...e }) => e) };
+      const set = (payload: unknown, generation: string) =>
+        planSequenceMain([
+          "set",
+          "--project-root",
+          root,
+          "--from-json",
+          JSON.stringify(payload),
+          "--expected-generation",
+          generation,
+        ]);
+      expect(set(unlabeled, "0")).toBe(1);
+      expect(set({ ...unlabeled, current_index: 0 }, "0")).toBe(1);
+      const stderr = err.mock.calls.map((c) => String(c[0])).join("");
+      expect(stderr).toContain('no entry has a "batch" label');
+      expect(set(plan, "0")).toBe(0);
+
+      out.mockClear();
+      expect(planSequenceMain(["current", "--project-root", root])).toBe(0);
+      const text = out.mock.calls.map((c) => String(c[0])).join("");
+      expect(text).toContain("current: issue:A1 (#512)");
+      expect(text).toContain('authorized batch "a": issue:A1, issue:A2');
+
+      out.mockClear();
+      expect(planSequenceMain(["current", "--project-root", root, "--json"])).toBe(0);
+      const json = JSON.parse(out.mock.calls.map((c) => String(c[0])).join("")) as {
+        authorized: { id: string; batch?: string; issue?: number }[];
+      };
+      expect(json.authorized).toEqual([
+        { index: 0, id: "A1", kind: "issue", issue: 512, batch: "a" },
+        { index: 1, id: "A2", kind: "issue", issue: 515, batch: "a" },
+      ]);
+      // The set current shows is the set verify:plan-sequence admits.
+      for (const row of json.authorized) {
+        expect(
+          verifyPlanSequenceMain([
+            "--project-root",
+            root,
+            "--target-kind",
+            "issue",
+            "--target",
+            row.id,
+          ]),
+        ).toBe(0);
+      }
+      expect(
+        verifyPlanSequenceMain([
+          "--project-root",
+          root,
+          "--target-kind",
+          "issue",
+          "--target",
+          "B1",
+        ]),
+      ).toBe(1);
+    } finally {
+      err.mockRestore();
+      out.mockRestore();
+    }
   });
 });
 
