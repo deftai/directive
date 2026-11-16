@@ -200,6 +200,14 @@ import {
   restampOwnerLivenessOnHookEvent,
 } from "./owner-liveness.js";
 import {
+  classifyPlanningPublicationSet,
+  type ListStagedIndexEntriesResult,
+  listStagedIndexEntries,
+  readStagedBlob,
+  type StagedIndexEntry,
+  stagedRelPathsFromEntries,
+} from "./planning-publication.js";
+import {
   appliesGrokSpawnDestContract,
   isAssistPosture,
   isEphemeralSpawn,
@@ -777,9 +785,18 @@ export interface HookPolicySeams {
   }) => string;
   /**
    * Test seam for #5656 prospective git-commit scope-cover staged paths.
-   * Defaults to `git diff --cached --name-only`.
+   * Paths only: no planning-publication admission (#5839). Without either
+   * staged seam the hook reads `listStagedIndexEntries`.
    */
   readonly listStagedRelPaths?: (projectRoot: string) => readonly string[];
+  /**
+   * Widened staged seam (#5839): staged index entries with change kind, mode
+   * and blob. Wins over `listStagedRelPaths`; defaults to
+   * `listStagedIndexEntries` when neither seam is set.
+   */
+  readonly listStagedIndexEntries?: (projectRoot: string) => ListStagedIndexEntriesResult;
+  /** Index blob reader for the planning-publication plan-sequence check (#5839). */
+  readonly readStagedBlob?: (projectRoot: string, blob: string) => string | null;
 }
 
 /** POSIX-ish project-relative path for lifecycle matching. */
@@ -5106,10 +5123,11 @@ function decideProspectiveGitCommitScopeCover(
   const rootsNote =
     targetRoot === payloadRoot ? "" : ` ${formatHookRootNote(payloadRoot, targetRoot)}`;
   let staged: readonly string[];
-  if (seams.listStagedRelPaths) {
+  let stagedEntries: readonly StagedIndexEntry[] | undefined;
+  if (seams.listStagedRelPaths && !seams.listStagedIndexEntries) {
     staged = seams.listStagedRelPaths(targetRoot);
   } else {
-    const listed = listStagedRelPathsIncludingDeletes(targetRoot);
+    const listed = (seams.listStagedIndexEntries ?? listStagedIndexEntries)(targetRoot);
     if (!listed.ok) {
       return deny(
         input,
@@ -5118,12 +5136,15 @@ function decideProspectiveGitCommitScopeCover(
         `Directive denied ${toolName}: prospective scope-cover could not list staged paths (#5656). ${listed.message}${rootsNote}`,
       );
     }
-    staged = listed.paths;
+    stagedEntries = listed.entries;
+    staged = stagedRelPathsFromEntries(listed.entries);
   }
   const environ = input.environ ?? process.env;
   const cover = evaluateProspectiveScopeCover({
     projectRoot: targetRoot,
     stagedRelPaths: staged,
+    ...(stagedEntries !== undefined ? { stagedEntries } : {}),
+    ...(seams.readStagedBlob !== undefined ? { readStagedBlob: seams.readStagedBlob } : {}),
     inspectScope: seams.inspectScope,
     loadStoryWriteFence: seams.loadStoryWriteFence,
     env: environ,
@@ -5145,6 +5166,8 @@ function decideProspectiveGitCommitScopeCover(
  * allow `file_scope`. Does not rewrite or bless historical uncovered commits.
  * Lifecycle/installer-only staged sets skip product coverage (setup deposits +
  * xBRIEF lifecycle commits before the first activate) (#5656 Greptile).
+ * A planning-publication staged set (#5839, see ./planning-publication.ts) is
+ * admitted before the story binding and ready-scope guard.
  * Reachability residuals: `verify:hooks-installed` and `--no-verify`.
  */
 export interface ProspectiveScopeCoverInput {
@@ -5163,6 +5186,14 @@ export interface ProspectiveScopeCoverInput {
    * earlier selection. Defaults to `resolveWorktreeStoryBinding(projectRoot)`.
    */
   readonly resolveStoryBinding?: (projectRoot: string) => WorktreeStoryBinding;
+  /**
+   * Raw staged index entries for the same index as `stagedRelPaths` (#5839).
+   * When present, the planning-publication classifier runs on them before
+   * path normalization; when absent, no planning-publication admission.
+   */
+  readonly stagedEntries?: readonly StagedIndexEntry[];
+  /** Index blob reader; defaults to `git cat-file blob` on `projectRoot` (#5839). */
+  readonly readStagedBlob?: (projectRoot: string, blob: string) => string | null;
 }
 
 export interface ProspectiveScopeCoverResult {
@@ -5200,6 +5231,15 @@ export function evaluateProspectiveScopeCover(
   input: ProspectiveScopeCoverInput,
 ): ProspectiveScopeCoverResult {
   const projectRoot = resolve(input.projectRoot);
+  // Planning-publication whole-set classifier (#5839): raw git paths, before the
+  // backslash normalization below. A refuse is never a deny; it falls through.
+  const blobReader = input.readStagedBlob ?? readStagedBlob;
+  const planning =
+    input.stagedEntries === undefined
+      ? null
+      : classifyPlanningPublicationSet(input.stagedEntries, (blob) =>
+          blobReader(projectRoot, blob),
+        );
   const staged = input.stagedRelPaths
     .map((p) => p.replace(/\\/g, "/").replace(/^\.\//, ""))
     .filter((p) => p.length > 0);
@@ -5220,6 +5260,11 @@ export function evaluateProspectiveScopeCover(
       uncovered: [],
       scopePath: null,
     };
+  }
+  if (planning?.admitted === true) {
+    // Before the story binding and ready-scope guard: a planning-only set needs
+    // no implementation scope. Stamps nothing; no merge-time credit (#5839).
+    return { ok: true, message: planning.message, uncovered: [], scopePath: null };
   }
   const env = input.env ?? {};
   const binding = (
