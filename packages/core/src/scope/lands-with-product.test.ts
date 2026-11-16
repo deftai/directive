@@ -260,7 +260,13 @@ describe("pinNamesLandsWithProductMove (#6277)", () => {
   it("follows a pin to the moved brief by either path or basename, and nothing else", () => {
     const root = resolve(tmpdir(), "proj");
     expect(pinNamesLandsWithProductMove(root, ACTIVE, move)).toBe(true);
-    expect(pinNamesLandsWithProductMove(root, COMPLETED.replace(/\//g, "\\"), move)).toBe(true);
+    // Backslashes and letter case fold only on win32 (as matchPinnedActiveScope does).
+    const backslashed = COMPLETED.replace(/\//g, "\\");
+    const upper = ACTIVE.replace("story", "Story");
+    expect(pinNamesLandsWithProductMove(root, backslashed, move, "win32")).toBe(true);
+    expect(pinNamesLandsWithProductMove(root, upper, move, "win32")).toBe(true);
+    expect(pinNamesLandsWithProductMove(root, backslashed, move, "linux")).toBe(false);
+    expect(pinNamesLandsWithProductMove(root, upper, move, "linux")).toBe(false);
     expect(pinNamesLandsWithProductMove(root, join(root, ...COMPLETED.split("/")), move)).toBe(
       true,
     );

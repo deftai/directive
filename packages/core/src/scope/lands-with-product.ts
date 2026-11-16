@@ -425,21 +425,30 @@ export function discoverLandsWithProductMoves(
  * True when a story pin (`DEFT_ACTIVE_SCOPE` or a bound path) names this move's
  * brief: its old `active/` path, its new `completed/` path (relative or
  * absolute), or its basename. A pin set before `scope:complete --in-pr` keeps
- * naming the story after the move (#6277).
+ * naming the story after the move (#6277). Like `matchPinnedActiveScope`,
+ * backslashes and letter case are folded only on win32; elsewhere two names
+ * that differ by case are two stories.
  */
 export function pinNamesLandsWithProductMove(
   projectRoot: string,
   pin: string,
   move: LandsWithProductMove,
+  platform: NodeJS.Platform = process.platform,
 ): boolean {
   const raw = pin.trim();
   if (raw.length === 0) return false;
-  const rel = isAbsolute(raw) ? relative(resolve(projectRoot), resolve(raw)) : raw;
-  const want = normalize(rel).toLowerCase();
+  const win32 = platform === "win32";
+  const fold = (path: string): string => {
+    const posix = win32 ? path.replace(/\\/g, "/") : path;
+    const trimmed = posix.replace(/^\.\//, "");
+    return win32 ? trimmed.toLowerCase() : trimmed;
+  };
+  const rel = isAbsolute(raw)
+    ? relative(resolve(projectRoot), resolve(raw)).replace(/\\/g, "/")
+    : raw;
+  const want = fold(rel);
   const name = move.completedRel.split("/").pop() ?? "";
-  return [move.activeRel, move.completedRel, name].some(
-    (candidate) => normalize(candidate).toLowerCase() === want,
-  );
+  return [move.activeRel, move.completedRel, name].some((candidate) => fold(candidate) === want);
 }
 
 /** The single lands-with-product move of this change set, or null (none or several). */
