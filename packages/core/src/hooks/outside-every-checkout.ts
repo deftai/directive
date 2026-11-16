@@ -467,6 +467,11 @@ function classifyWithContext(
   if (target.trim().length === 0) return out("empty target");
   if (hasDeviceOrSharePrefix(target)) return out("device or network-share prefix");
   if (!isHostAbsolute(target, ctx.platform)) return out("relative typed path");
+  // On POSIX a backslash is a filename character, not a separator; reading it
+  // as one would judge a different path than the write reaches.
+  if (ctx.platform !== "win32" && target.includes("\\")) {
+    return out("backslash in a POSIX typed path");
+  }
   // Normalizing `..` before links are followed would judge a different place
   // than the write reaches (`/tmp/link/../x`), so parent and current steps are
   // doubt, not something to collapse.
@@ -484,6 +489,10 @@ function classifyWithContext(
     return out("existing target file has more than one hard link");
   }
   if (!isOutsideProjectRootWrite(payloadRoot, target)) return out("inside the payload root");
+  // Both paths must pass: walk the typed ancestors too, so a project or
+  // repository that a link points out of still keeps the target out.
+  const typedWalk = walkVerdict(dirname(typed), ctx);
+  if (typedWalk !== null) return out(`typed path: ${typedWalk}`);
   const walk = walkVerdict(physical.deepestDir, ctx);
   if (walk !== null) return out(walk);
   const git = gitVerdict(physical.deepestDir, ctx);

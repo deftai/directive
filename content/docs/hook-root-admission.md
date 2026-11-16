@@ -106,8 +106,9 @@ with the native resolver, the missing rest appended unchanged). Both paths must 
    directory whose name starts with a dot or is `Library` or `AppData` (any letter case), or a
    directory named by `APPDATA`, `LOCALAPPDATA` or an `XDG_*` base directory variable. When a path
    is inside both a configuration area and the temp directory, the innermost of the two decides.
-3. **No repository and no Directive project.** No `.git` or `.deft` entry beside any ancestor, no
-   ancestor that is itself a Git directory, a Git toplevel lookup that ran and reported no
+3. **No repository and no Directive project.** No `.git` or `.deft` entry beside any ancestor of
+   the typed path or of the physical destination, no ancestor that is itself a Git directory, a
+   Git toplevel lookup that ran and reported no
    repository, and outside the payload root (`isOutsideProjectRootWrite`).
 4. **Exclusions** (any letter case): a component that contains `deft` or `directive` or is named
    `.git`; a path equal to or inside a path named by any `DEFT_*` or `DIRECTIVE_*` variable or by
@@ -118,7 +119,8 @@ with the native resolver, the missing rest appended unchanged). Both paths must 
    through a link; a relative value is read against the hook's working directory and the payload
    root.
 5. **Doubt rules.** Out of the class: a relative path; a `..` or `.` step anywhere in the typed
-   path (it is never collapsed before links are followed); a component that ends with a dot or a
+   path (it is never collapsed before links are followed); a backslash in a POSIX path (a filename
+   character there, not a separator); a component that ends with a dot or a
    space, has the Windows short-name form (`~1`) or holds a colon after the drive; a device or
    network-share prefix; a walk directory that cannot be read; a Git lookup that could not run or
    disagrees with the walk; a home or temp directory that cannot be resolved; an existing file with

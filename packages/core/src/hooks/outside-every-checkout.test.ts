@@ -167,8 +167,21 @@ describe("no repository and no Directive project (#6376 item 4)", () => {
     writeFileSync(join(bare, "HEAD"), "ref: refs/heads/main\n");
     expect(classify(join(bare, "x"))).toEqual({
       inClass: false,
-      reason: "an ancestor is a Git directory",
+      reason: "typed path: an ancestor is a Git directory",
     });
+  });
+
+  it("walks the typed ancestors too: a project a link points out of keeps the target out", () => {
+    const project = join(home, "project");
+    mkdirSync(join(project, ".deft"), { recursive: true });
+    const plain = join(temp, "plain");
+    mkdirSync(plain);
+    if (!linkDir(plain, join(project, "alias"))) return;
+    expect(classify(join(project, "alias", "note.md"))).toEqual({
+      inClass: false,
+      reason: "typed path: an ancestor holds a .git or .deft entry",
+    });
+    expect(classify(join(plain, "note.md")).inClass).toBe(true);
   });
 
   it("refuses when the Git lookup fails to run or reports a repository", () => {
@@ -208,7 +221,23 @@ describe("no repository and no Directive project (#6376 item 4)", () => {
         },
       },
     );
-    expect(verdict).toEqual({ inClass: false, reason: "a directory on the walk cannot be read" });
+    expect(verdict).toEqual({
+      inClass: false,
+      reason: "typed path: a directory on the walk cannot be read",
+    });
+  });
+
+  it("refuses a backslash in a POSIX typed path", () => {
+    const posix = {
+      platform: "linux" as const,
+      homedir: () => "/home/u",
+      tmpdir: () => "/tmp",
+      realpath: (p: string) => p,
+    };
+    expect(classify("/tmp/alias\\name/file.ts", {}, posix)).toEqual({
+      inClass: false,
+      reason: "backslash in a POSIX typed path",
+    });
   });
 });
 
