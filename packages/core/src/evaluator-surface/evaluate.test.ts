@@ -1,9 +1,11 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   classifyEvaluatorSurfacePaths,
+  collectChangedPaths,
   DISPOSITION_KIND_DISCLOSURE,
   DISPOSITION_REL,
   DISPOSITION_SCHEMA,
@@ -239,6 +241,110 @@ describe("resolveDefaultBaseRef deliveryBranch (#5520)", () => {
       return null;
     });
     expect(resolved).toBe("origin/master");
+  });
+});
+
+describe("candidate tree: working tree against the merge base (#6336)", () => {
+  function git(root: string, ...args: string[]): string {
+    return execFileSync(
+      "git",
+      [
+        "-c",
+        "user.name=t",
+        "-c",
+        "user.email=t@example.com",
+        "-c",
+        "commit.gpgsign=false",
+        ...args,
+      ],
+      { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+    );
+  }
+
+  function disposition(surfaces: string[]): string {
+    return `${JSON.stringify({ ...disclosure, surfaces }, null, 2)}\n`;
+  }
+
+  /** master holds the base; branch `story` is checked out on top of it. */
+  function seedRepo(): string {
+    const root = seedRoot();
+    git(root, "init", "-q", "-b", "master");
+    writeFileSync(join(root, "README.md"), "base\n");
+    git(root, "add", "-A");
+    git(root, "commit", "-q", "-m", "base");
+    git(root, "checkout", "-q", "-b", "story");
+    return root;
+  }
+
+  it("leaves changes that exist only on the base out of the file set", () => {
+    const root = seedRepo();
+    writeFileSync(join(root, "README.md"), "story\n");
+    git(root, "commit", "-q", "-am", "story");
+    git(root, "checkout", "-q", "master");
+    writeFileSync(join(root, "Taskfile.yml"), "version: 3\n");
+    git(root, "add", "-A");
+    git(root, "commit", "-q", "-m", "base moves on");
+    git(root, "checkout", "-q", "story");
+    expect(collectChangedPaths(root, { baseRef: "master" })).toEqual(["README.md"]);
+    const result = evaluate({ projectRoot: root, baseRef: "master" });
+    expect(result.code).toBe(0);
+    expect(result.skipped).toBe(true);
+  });
+
+  it("counts an uncommitted edit and an untracked surface", () => {
+    const root = seedRepo();
+    writeFileSync(join(root, "README.md"), "edited\n");
+    writeFileSync(join(root, "vitest.config.ts"), "export default {};\n");
+    const paths = collectChangedPaths(root, { baseRef: "master" });
+    expect(Array.isArray(paths) ? [...paths].sort() : paths).toEqual([
+      "README.md",
+      "vitest.config.ts",
+    ]);
+    const result = evaluate({ projectRoot: root, baseRef: "master" });
+    expect(result.code).toBe(1);
+    expect(result.message).toMatch(/vitest\.config\.ts/);
+  });
+
+  it("reads the disposition from the working tree, and a clean committed tip equals CI", () => {
+    const root = seedRepo();
+    writeFileSync(join(root, "Taskfile.yml"), "version: 3\n");
+    writeFileSync(join(root, DISPOSITION_REL), disposition([DISPOSITION_REL]));
+    git(root, "add", "-A");
+    git(root, "commit", "-q", "-m", "surface without cover");
+    expect(evaluate({ projectRoot: root, baseRef: "master" }).code).toBe(1);
+
+    // Uncommitted edit adds the missing surface: the working tree is the candidate.
+    writeFileSync(join(root, DISPOSITION_REL), disposition(["Taskfile.yml", DISPOSITION_REL]));
+    const local = evaluate({ projectRoot: root, baseRef: "master" });
+    expect(local.code).toBe(0);
+
+    git(root, "commit", "-q", "-am", "cover the surface");
+    const committedLocal = evaluate({ projectRoot: root, baseRef: "master" });
+    const ciPaths = git(root, "diff", "--name-only", "master...HEAD")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    const ci = evaluate({ projectRoot: root, paths: ciPaths });
+    expect(committedLocal).toEqual(ci);
+    expect(committedLocal.code).toBe(0);
+  });
+
+  it("falls back to the base ref when no merge base exists", () => {
+    const root = seedRepo();
+    git(root, "checkout", "-q", "--orphan", "lonely");
+    git(root, "rm", "-q", "-r", "--cached", ".");
+    writeFileSync(join(root, "Taskfile.yml"), "version: 3\n");
+    git(root, "add", "Taskfile.yml");
+    git(root, "commit", "-q", "-m", "unrelated");
+    const paths = collectChangedPaths(root, { baseRef: "master" });
+    expect(Array.isArray(paths)).toBe(true);
+    expect(paths).toContain("Taskfile.yml");
+  });
+
+  it("returns an error for an unknown base ref", () => {
+    const root = seedRepo();
+    const paths = collectChangedPaths(root, { baseRef: "no-such-ref" });
+    expect(Array.isArray(paths)).toBe(false);
   });
 });
 

@@ -148,6 +148,28 @@ function gitNameOnlyDiff(projectRoot: string, args: string[]): string[] | { erro
   }
 }
 
+function gitLines(projectRoot: string, args: string[]): string[] | { error: string } {
+  try {
+    const stdout = execFileSync("git", ["-C", projectRoot, ...args], {
+      encoding: "utf8",
+      maxBuffer: 10 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return stdout
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+  } catch (err: unknown) {
+    return { error: String(err) };
+  }
+}
+
+/**
+ * Candidate tree (#6336 item 5): the working tree against the merge base of
+ * `baseRef` and HEAD, plus untracked files. Base-only commits stay out; an
+ * uncommitted edit is in. On a clean committed tip this equals CI's
+ * `<base>...HEAD`. No merge base (shallow clone) falls back to the base ref.
+ */
 export function collectChangedPaths(
   projectRoot: string,
   options: { baseRef?: string; staged?: boolean },
@@ -156,7 +178,14 @@ export function collectChangedPaths(
     return gitNameOnlyDiff(projectRoot, ["--cached"]);
   }
   if (options.baseRef !== undefined && options.baseRef.length > 0) {
-    return gitNameOnlyDiff(projectRoot, [options.baseRef, "HEAD"]);
+    const mergeBase = gitLines(projectRoot, ["merge-base", options.baseRef, "HEAD"]);
+    const base =
+      Array.isArray(mergeBase) && mergeBase[0] !== undefined ? mergeBase[0] : options.baseRef;
+    const tracked = gitNameOnlyDiff(projectRoot, [base]);
+    if (!Array.isArray(tracked)) return tracked;
+    const untracked = gitLines(projectRoot, ["ls-files", "--others", "--exclude-standard"]);
+    if (!Array.isArray(untracked)) return untracked;
+    return [...new Set([...tracked, ...untracked])];
   }
   return [];
 }
