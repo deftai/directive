@@ -1045,8 +1045,11 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
           return { returncode: 1, stdout: "", stderr: "unexpected" };
         },
       });
-      expect(issueReads).toHaveLength(1);
-      expect(issueReads[0]).not.toContain("\u001b");
+      // Two confirming list reads (#5927), both plain JSON.
+      expect(issueReads).toHaveLength(2);
+      for (const read of issueReads) {
+        expect(read).not.toContain("\u001b");
+      }
       expect(inventory.stories.some((s) => s.state === "stale-unverified")).toBe(false);
       expect(inventoryHasBlockingOwed(inventory)).toBe(false);
       expect(inventory.stories).toEqual([]);
@@ -2420,10 +2423,11 @@ describe("finalize-owed origin issue state from one open-issue list (#5927)", ()
       runGit: tipGit(seedTip(root)),
       runGh: forge(ghCalls, () => openIssueList([101, 102, 4242])),
     });
+    // One paged list, read twice to confirm the set; no per-issue read.
     const listCalls = ghCalls.filter((c) => isOpenIssueList(c));
-    expect(listCalls).toEqual([
-      "gh api --paginate --slurp repos/deftai/directive/issues?state=open&per_page=100",
-    ]);
+    const listArgv =
+      "gh api --paginate --slurp repos/deftai/directive/issues?state=open&per_page=100";
+    expect(listCalls).toEqual([listArgv, listArgv]);
     expect(ghCalls.some((c) => /\/issues\/\d+/.test(c))).toBe(false);
     const byPath = new Map(inventory.stories.map((s) => [s.relPath, s]));
     expect(byPath.get(OPEN_ACTIVE)?.state).toBe("owed");
@@ -2494,7 +2498,46 @@ describe("createOriginIssueStateLookup (#5927)", () => {
     expect(lookup(7)).toEqual({ state: "open", protectedUmbrella: false, error: null });
     expect(lookup(8)).toEqual({ state: "open", protectedUmbrella: true, error: null });
     expect(lookup(9)).toEqual({ state: "closed", protectedUmbrella: false, error: null });
-    expect(calls).toHaveLength(1);
+    // Two confirming reads, memoized across lookups.
+    expect(calls).toHaveLength(2);
+  });
+
+  it("fails closed when an open issue is missing from one of the two reads", () => {
+    // A row skipped by a page shift (issue closed mid-read) must not read as closed.
+    const reads = [openIssueList([7, 8]), openIssueList([8])];
+    const calls: string[][] = [];
+    const lookup = createOriginIssueStateLookup("deftai/directive", (args) => {
+      calls.push([...args]);
+      return reads[calls.length - 1] ?? openIssueList([]);
+    });
+    for (const issue of [7, 8, 9]) {
+      const state = lookup(issue);
+      expect(state.state).toBeNull();
+      expect(state.error).toContain("open issues changed between two reads");
+    }
+    expect(calls).toHaveLength(2);
+  });
+
+  it("fails closed when the confirming read fails", () => {
+    const reads = [openIssueList([7]), { returncode: 1, stdout: "", stderr: "HTTP 502" }];
+    let n = 0;
+    const lookup = createOriginIssueStateLookup("deftai/directive", () => {
+      n += 1;
+      return reads[n - 1] ?? openIssueList([]);
+    });
+    expect(lookup(7).state).toBeNull();
+    expect(lookup(7).error).toContain("HTTP 502");
+    expect(n).toBe(2);
+  });
+
+  it("fails closed when two reads have the same size but different issues", () => {
+    const reads = [openIssueList([7, 8]), openIssueList([7, 9])];
+    let n = 0;
+    const lookup = createOriginIssueStateLookup("deftai/directive", () => {
+      n += 1;
+      return reads[n - 1] ?? openIssueList([]);
+    });
+    expect(lookup(7).error).toContain("open issues changed between two reads");
   });
 
   it.each([
@@ -2566,7 +2609,7 @@ describe("createOriginIssueStateLookup (#5927)", () => {
         return openIssueList([77]);
       },
     });
-    expect(listCalls).toHaveLength(1);
+    expect(listCalls).toHaveLength(2);
     expect(ghCalls.some((c) => isOpenIssueList(c))).toBe(false);
     expect(inventory.stories.map((s) => s.state)).toEqual(["close-owed"]);
     rmSync(root, { recursive: true, force: true });

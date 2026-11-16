@@ -471,10 +471,50 @@ type OpenIssueList =
   | { readonly ok: true; readonly open: ReadonlyMap<number, Record<string, unknown>> }
   | { readonly ok: false; readonly error: string };
 
+function sameIssueNumbers(
+  a: ReadonlyMap<number, unknown>,
+  b: ReadonlyMap<number, unknown>,
+): boolean {
+  if (a.size !== b.size) {
+    return false;
+  }
+  for (const n of a.keys()) {
+    if (!b.has(n)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Complete open-issue set, or a failure (#5927). Page-based pagination can skip
+ * a still-open row when an already-read issue closes between page fetches, so a
+ * single read cannot prove absence. Two full reads must list the same numbers:
+ * any such removal during the first read leaves that issue out of the second.
+ * Any difference (churn during the window) fails closed, never closed-by-absence.
+ */
 function listOpenIssues(repo: string, runGhApiFn: RunGhApiFn): OpenIssueList {
   if (parseRepo(repo) === null) {
     return { ok: false, error: `invalid repo: ${repo}` };
   }
+  const first = readOpenIssuesOnce(repo, runGhApiFn);
+  if (!first.ok) {
+    return first;
+  }
+  const second = readOpenIssuesOnce(repo, runGhApiFn);
+  if (!second.ok) {
+    return second;
+  }
+  if (!sameIssueNumbers(first.open, second.open)) {
+    return {
+      ok: false,
+      error: "open-issue list failed: open issues changed between two reads; list not confirmed",
+    };
+  }
+  return second;
+}
+
+function readOpenIssuesOnce(repo: string, runGhApiFn: RunGhApiFn): OpenIssueList {
   // Success with empty stdout is not an empty list: `--slurp` always prints JSON.
   let emptyStdout = false;
   const runner: RunGhApiFn = (args, opts) => {
@@ -506,9 +546,10 @@ function listOpenIssues(repo: string, runGhApiFn: RunGhApiFn): OpenIssueList {
 /**
  * Origin issue state from one paged open-issue list per discover run (#5927),
  * in place of one `gh api issues/N` read per brief. Listed on first demand and
- * memoized. An issue absent from a complete list is closed. A failed, empty or
- * partial list fails every lookup, so each item keeps its issue-verify-failed
- * outcome (unverified / unknown / stale-unverified), never closed.
+ * memoized (two confirming reads, see listOpenIssues). An issue absent from a
+ * complete list is closed. A failed, empty, partial or unconfirmed list fails
+ * every lookup, so each item keeps its issue-verify-failed outcome
+ * (unverified / unknown / stale-unverified), never closed.
  */
 export function createOriginIssueStateLookup(
   repo: string,
