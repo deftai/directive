@@ -13,7 +13,7 @@ import {
 import { GREPTILE_ERRORED_SENTINEL } from "../pr-merge-readiness/constants.js";
 import type { RunGhResult } from "../pr-merge-readiness/types.js";
 import { printWatchHuman, watchResultToJson } from "./main.js";
-import { fetchPrLifecycleRest, probeOnce } from "./probe.js";
+import { fetchCommitStatusContexts, fetchPrLifecycleRest, probeOnce } from "./probe.js";
 import { watch } from "./watch.js";
 
 /** The last_reviewed sha embedded in the BODY_AC4_* / BODY_TIER2_P1_ONLY fixtures. */
@@ -797,10 +797,19 @@ describe("pr:watch names the CI cause (#6336)", () => {
   ) as { check_runs: unknown[] };
 
   /** makeFakeGh plus base.ref on pulls and a ruleset naming `required` contexts. */
-  function fakeWithBase(cfg: FakeGhConfig, required: readonly string[] | "error") {
+  function fakeWithBase(
+    cfg: FakeGhConfig,
+    required: readonly string[] | "error",
+    statuses: readonly string[] | "error" = [],
+  ) {
     const inner = makeFakeGh(cfg);
     return (cmd: readonly string[]): RunGhResult => {
       const joined = cmd.join(" ");
+      if (joined.includes("/commits/") && joined.endsWith("/status")) {
+        if (statuses === "error") return { returncode: 1, stdout: "", stderr: "HTTP 502" };
+        const body = { state: "success", statuses: statuses.map((context) => ({ context })) };
+        return { returncode: 0, stdout: JSON.stringify(body), stderr: "" };
+      }
       if (joined.includes("/rules/branches/")) {
         if (required === "error") return { returncode: 1, stdout: "", stderr: "HTTP 500" };
         const rules = [
@@ -862,6 +871,43 @@ describe("pr:watch names the CI cause (#6336)", () => {
     const result = watch(6336, "deftai/directive", { oneShot: true, runGh });
     expect(printWatchHuman(result)).toContain("Missing required:   Merge gate (task check)");
     expect(watchResultToJson(result).ci_absent_required).toEqual(["Merge gate (task check)"]);
+  });
+
+  it("does not name a required context that is reported as a commit status", () => {
+    const runGh = fakeWithBase(
+      { headSha: FIXTURE_SHA, body: BODY_AC4_MARKDOWN_LINK_CLEAN, checkRuns: GREEN_CI },
+      ["TypeScript (build + lint + test)", "legacy/ci"],
+      ["legacy/ci"],
+    );
+    const probe = probeOnce(6336, "deftai/directive", runGh);
+    expect(probe.ciAbsentRequired).toEqual([]);
+    expect(probe.ciReadyState).toBe("ready");
+    expect(probe.isClean).toBe(true);
+  });
+
+  it("names nothing missing when the commit statuses cannot be read", () => {
+    const runGh = fakeWithBase(
+      { headSha: FIXTURE_SHA, body: BODY_AC4_MARKDOWN_LINK_CLEAN, checkRuns: GREEN_CI },
+      ["Merge gate (task check)"],
+      "error",
+    );
+    const probe = probeOnce(6336, "deftai/directive", runGh);
+    expect(probe.ciAbsentRequired).toEqual([]);
+    expect(probe.ciReadyState).toBe("ready");
+  });
+
+  it("fetchCommitStatusContexts reads context names and refuses odd payloads", () => {
+    const ok = (stdout: string) => () => ({ returncode: 0, stdout, stderr: "" });
+    expect(
+      fetchCommitStatusContexts(
+        "o/r",
+        "sha",
+        ok(JSON.stringify({ statuses: [{ context: "a" }, { context: "" }, null, { x: 1 }] })),
+      ),
+    ).toEqual(new Set(["a"]));
+    expect(fetchCommitStatusContexts("o/r", "sha", ok("{}"))).toBeNull();
+    expect(fetchCommitStatusContexts("o/r", "sha", ok("not-json"))).toBeNull();
+    expect(fetchCommitStatusContexts("o/r", "sha", ok(""))).toBeNull();
   });
 
   it("degrades to present checks when the required inventory cannot be read", () => {

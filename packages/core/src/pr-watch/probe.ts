@@ -65,10 +65,46 @@ export function resolveWatchRequiredContexts(
   repo: string,
   baseRef: string | null | undefined,
   runGh: RunGhFn,
+  headSha?: string | null,
 ): readonly RequiredStatusContext[] {
   if (baseRef === null || baseRef === undefined || baseRef.length === 0) return [];
   const resolved = fetchRequiredStatusContexts(repo, baseRef, runGh);
-  return resolved.resolutionFailed === true ? [] : resolved.contexts;
+  if (resolved.resolutionFailed === true || resolved.contexts.length === 0) return [];
+  if (headSha === null || headSha === undefined || headSha.length === 0) {
+    return resolved.contexts;
+  }
+  // A required context reported through the Commit Status API is present on
+  // HEAD even though it has no check-run; never name it missing (#6336 review).
+  const statusContexts = fetchCommitStatusContexts(repo, headSha, runGh);
+  if (statusContexts === null) return [];
+  return resolved.contexts.filter((ctx) => !statusContexts.has(ctx.name));
+}
+
+/**
+ * Context names reported on a commit through the Commit Status API (REST
+ * combined status). Null when the read fails, so the caller names nothing missing.
+ */
+export function fetchCommitStatusContexts(
+  repo: string,
+  sha: string,
+  runGh: RunGhFn,
+): Set<string> | null {
+  const rc = runGh(["gh", "api", `repos/${repo}/commits/${sha}/status`]);
+  if (rc.returncode !== 0 || !rc.stdout.trim()) return null;
+  try {
+    const payload = JSON.parse(rc.stdout) as { statuses?: unknown };
+    if (!Array.isArray(payload.statuses)) return null;
+    const names = new Set<string>();
+    for (const status of payload.statuses) {
+      if (status !== null && typeof status === "object") {
+        const context = (status as Record<string, unknown>).context;
+        if (typeof context === "string" && context.length > 0) names.add(context);
+      }
+    }
+    return names;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -275,7 +311,7 @@ export function probeOnce(
       // #6336 item 3: name a required context with no run on HEAD, the way
       // merge-readiness does; which present checks count does not change.
       const ci = evaluateCiGate(check.checkRuns, {
-        requiredContexts: resolveWatchRequiredContexts(repo, baseRef, runGh),
+        requiredContexts: resolveWatchRequiredContexts(repo, baseRef, runGh, headSha),
       });
       ciFailedChecks = ci.summary.failed_required;
       ciFailures = ciFailedChecks.length;
