@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -121,11 +121,16 @@ describe("originOnePrBriefAdmitted (#6361)", () => {
   const RECORD_REL = `.deft/approved-scope/${PLAN_ID}.json`;
   const INTENT_REL = `.deft/approved-scope/${PLAN_ID}.intent.json`;
   const SCOPE = ["src/a.ts", RECORD_REL, INTENT_REL];
+  const PARENT_REL = "xbrief/active/parent-6361.xbrief.json";
 
   function write(root: string, rel: string, text: string): void {
     const abs = join(root, ...rel.split("/"));
     mkdirSync(join(abs, ".."), { recursive: true });
     writeFileSync(abs, text, "utf8");
+  }
+
+  function sha(root: string, ref: string): string {
+    return execFileSync("git", ["rev-parse", ref], { cwd: root }).toString().trim();
   }
 
   function pd(policy: Record<string, unknown> | null): string {
@@ -142,6 +147,8 @@ describe("originOnePrBriefAdmitted (#6361)", () => {
     basePolicy: Record<string, unknown> | null;
     headPolicy?: Record<string, unknown>;
     mintScope?: readonly string[] | null;
+    /** Brief names a parent (planRef) that exists only on the one-PR branch. */
+    withParent?: boolean;
   }): string {
     const root = mkdtempSync(join(tmpdir(), "oab-6361-"));
     temps.push(root);
@@ -156,12 +163,16 @@ describe("originOnePrBriefAdmitted (#6361)", () => {
     if (options.headPolicy !== undefined) {
       write(root, "xbrief/PROJECT-DEFINITION.xbrief.json", pd(options.headPolicy));
     }
+    if (options.withParent === true) {
+      write(root, PARENT_REL, JSON.stringify({ plan: { id: "parent-6361", title: "P" } }));
+    }
     const payload = {
       xBRIEFInfo: { version: "0.8" },
       plan: {
         id: PLAN_ID,
         title: "S",
         status: "running",
+        ...(options.withParent === true ? { planRef: PARENT_REL } : {}),
         metadata: { swarm: { file_scope: SCOPE } },
       },
     };
@@ -172,7 +183,8 @@ describe("originOnePrBriefAdmitted (#6361)", () => {
         ...payload,
         plan: { ...payload.plan, metadata: { swarm: { file_scope: [...mintScope] } } },
       };
-      const extracted = extractIntentFromRaw(JSON.stringify(minted), {});
+      // Mint while the parent is in the working tree (as the mint verb would).
+      const extracted = extractIntentFromRaw(JSON.stringify(minted), { projectRoot: root });
       if (!extracted.ok) throw new Error(extracted.error);
       const record = {
         ...buildApprovedScopeRecord({
@@ -200,14 +212,54 @@ describe("originOnePrBriefAdmitted (#6361)", () => {
 
   const MINT = { onePrScopeProof: "mint" };
 
-  it("admits a pushed one-PR brief and returns the ref to build the dest from", () => {
+  it("admits a pushed one-PR brief and returns the pinned commit to build the dest from", () => {
     const root = repo({ basePolicy: MINT });
     expect(originActiveBriefPresent(root, "master", BRIEF_REL, runText).present).toBe(false);
     expect(originOnePrBriefAdmitted(root, "master", "one-pr", BRIEF_REL, runText)).toEqual({
       present: true,
       error: null,
-      ref: "origin/one-pr",
+      ref: sha(root, "origin/one-pr"),
     });
+  });
+
+  it("reads a planRef parent from the pushed commit, not the local checkout", () => {
+    const root = repo({ basePolicy: MINT, withParent: true });
+    // The local checkout is master, which has no parent brief.
+    expect(existsSync(join(root, ...PARENT_REL.split("/")))).toBe(false);
+    expect(originOnePrBriefAdmitted(root, "master", "one-pr", BRIEF_REL, runText)).toMatchObject({
+      present: true,
+      ref: sha(root, "origin/one-pr"),
+    });
+  });
+
+  it("checks a pinned commit without fetching, even after the branch moves", () => {
+    const root = repo({ basePolicy: MINT });
+    const pinned = sha(root, "origin/one-pr");
+    // The branch advances and drops the mint record.
+    const git = (...args: string[]) => execFileSync("git", args, { cwd: root });
+    git("checkout", "-q", "one-pr");
+    git("rm", "-q", RECORD_REL);
+    git("commit", "-q", "-m", "drop record");
+    git("push", "-q", "origin", "one-pr");
+    git("checkout", "-q", "master");
+    const calls: string[] = [];
+    const spy: typeof runText = (cmd, opts) => {
+      calls.push(String(cmd[1]));
+      return runText(cmd, opts);
+    };
+    expect(originOnePrBriefAdmitted(root, "master", "one-pr", BRIEF_REL, spy, pinned)).toEqual({
+      present: true,
+      error: null,
+      ref: pinned,
+    });
+    expect(calls).not.toContain("fetch");
+    // A fresh probe sees the moved tip and refuses.
+    expect(originOnePrBriefAdmitted(root, "master", "one-pr", BRIEF_REL, runText).error).toBe(
+      "no same-PR approved-scope record",
+    );
+    expect(
+      originOnePrBriefAdmitted(root, "master", "one-pr", BRIEF_REL, runText, "not-a-sha").error,
+    ).toBe("pinned commit is not a SHA");
   });
 
   it("refuses when the level is off, the record is missing or mismatched, or the head changes policy", () => {
@@ -273,9 +325,11 @@ describe("originOnePrBriefAdmitted refusals with a scripted git (#6361)", () => 
     mergeBase?: TextCaptureResult;
     brief?: TextCaptureResult;
     record?: TextCaptureResult;
+    revParse?: TextCaptureResult;
   }) {
     return (cmd: readonly string[]): TextCaptureResult => {
       if (cmd[1] === "fetch") return ok();
+      if (cmd[1] === "rev-parse") return overrides.revParse ?? ok(`${"a".repeat(40)}\n`);
       if (cmd[1] === "cat-file") return ok("blob\n");
       if (cmd[1] === "merge-base") return overrides.mergeBase ?? ok("abc123\n");
       if (cmd[1] === "show") {
@@ -295,6 +349,12 @@ describe("originOnePrBriefAdmitted refusals with a scripted git (#6361)", () => 
 
   it("refuses an unsafe delivery branch name", () => {
     expect(probe(git({}), "--upload-pack=x").error).toMatch(/Invalid|must match/i);
+  });
+
+  it("refuses when the fetched branch does not resolve to a commit", () => {
+    for (const revParse of [fail, ok("not-a-sha\n")]) {
+      expect(probe(git({ revParse })).error).toBe("git rev-parse origin/one-pr failed");
+    }
   });
 
   it("refuses when merge-base fails", () => {

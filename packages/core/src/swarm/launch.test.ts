@@ -1674,12 +1674,15 @@ describe("swarmLaunch from a pushed one-PR branch (#6361)", { timeout: 60_000 },
     });
   }
 
-  it("proceeds for a minted brief absent from origin/master and builds the dest from origin/<base-branch>", () => {
+  it("proceeds for a minted brief absent from origin/master and builds the dest from the pinned origin/<base-branch> commit", () => {
     const project = onePrProject({ mint: true });
+    const pinned = execFileSync("git", ["rev-parse", "origin/one-pr"], { cwd: project })
+      .toString()
+      .trim();
     const seen: string[] = [];
     const result = launch(project, "one-pr", seen);
     expect(result.exitCode, result.stderr).toBe(0);
-    expect(seen).toEqual(["origin/one-pr", "origin/one-pr"]);
+    expect(seen).toEqual([pinned, pinned]);
     const dest = join(project, "wt-6361");
     for (const rel of [BRIEF_REL, RECORD_REL, INTENT_REL]) {
       expect(existsSync(join(dest, ...rel.split("/")))).toBe(true);

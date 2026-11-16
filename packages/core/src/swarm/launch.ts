@@ -47,7 +47,11 @@ import {
   evaluateLeftoverBeforeActivation,
   type LeftoverLandEvidence,
 } from "./leftover-before-activation.js";
-import { originActiveBriefPresent, originOnePrBriefAdmitted } from "./origin-active-brief.js";
+import {
+  type OnePrOriginBriefResult,
+  originActiveBriefPresent,
+  originOnePrBriefAdmitted,
+} from "./origin-active-brief.js";
 import { readinessReport } from "./readiness.js";
 import {
   loadRoutingFile,
@@ -1656,7 +1660,7 @@ export function swarmLaunch(args: LaunchArgs): {
 
   const runGit = args.runGit ?? runText;
   const requireOriginActive = args.requireOriginActiveBrief !== false;
-  /** `origin/<base-branch>` when a one-PR brief was admitted there (#6361). */
+  /** Pinned commit of `origin/<base-branch>` when a one-PR brief was admitted there (#6361). */
   let onePrWorktreeBase: string | null = null;
   if (requireOriginActive) {
     const inside = runGit(["git", "rev-parse", "--is-inside-work-tree"], { cwd: projectRoot });
@@ -1673,7 +1677,9 @@ export function swarmLaunch(args: LaunchArgs): {
         const probe = originActiveBriefPresent(projectRoot, delivery.branch, story.relpath, runGit);
         if (probe.present) continue;
         // #6361: a one-PR brief lives on the pushed --base-branch, not the delivery tip.
-        const onePr =
+        // The first admit pins that branch's commit; later stories are checked
+        // against the same commit (no refetch), and the dests are built from it.
+        const onePr: OnePrOriginBriefResult | null =
           onePrBase.length > 0 && onePrBase !== delivery.branch
             ? originOnePrBriefAdmitted(
                 projectRoot,
@@ -1681,6 +1687,7 @@ export function swarmLaunch(args: LaunchArgs): {
                 onePrBase,
                 story.relpath,
                 runGit,
+                onePrWorktreeBase ?? undefined,
               )
             : null;
         if (onePr?.present === true && onePr.ref !== null) {

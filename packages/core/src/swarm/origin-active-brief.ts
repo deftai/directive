@@ -2,6 +2,7 @@
  * Origin-resident active brief probe (#4714 R2 lite).
  * swarm:launch / finalize require the selected active path on fetched delivery tip.
  */
+import { isAbsolute, relative, resolve, sep } from "node:path";
 import { assertSafeBranchName, trackingFetchArgv } from "../policy/delivery-branch.js";
 import {
   evaluateMintLevelRecord,
@@ -66,8 +67,18 @@ export function originActiveBriefPresent(
 export interface OnePrOriginBriefResult {
   readonly present: boolean;
   readonly error: string | null;
-  /** `origin/<baseBranch>` when admitted; the dest worktree is created from it. */
+  /**
+   * The commit SHA of `origin/<baseBranch>` that was checked, when admitted.
+   * The dest worktree is created from this fixed commit, not the moving ref.
+   */
   readonly ref: string | null;
+}
+
+/** Map an absolute path under `projectRoot` to a repo-relative POSIX path, or null. */
+function repoRel(projectRoot: string, absPath: string): string | null {
+  const rel = relative(resolve(projectRoot), resolve(absPath));
+  if (rel.length === 0 || rel.startsWith("..") || isAbsolute(rel)) return null;
+  return rel.split(sep).join("/");
 }
 
 function showAtRef(
@@ -99,8 +110,11 @@ function parseRecord(raw: string | null): ApprovedScopeRecord | null {
  * branch) and the same evaluators CI uses admit it at that tip against its
  * merge base with the delivery tip: the merge base sets the one-PR level
  * (`evaluateOnePrScopeProofGate`) and the record on the tip matches the tip's
- * brief exactly (`evaluateMintLevelRecord`). Nothing is copied: the caller
- * builds the dest worktree from the returned ref. Never throws.
+ * brief exactly (`evaluateMintLevelRecord`). Every read, including parent
+ * briefs named by `planRef`, comes from one fixed commit of that tip, and the
+ * caller builds the dest worktree from that commit (`ref`). Pass
+ * `pinnedCommit` to check further stories of one launch against the same
+ * commit without fetching again. Nothing is copied. Never throws.
  */
 export function originOnePrBriefAdmitted(
   projectRoot: string,
@@ -108,6 +122,7 @@ export function originOnePrBriefAdmitted(
   baseBranch: string,
   relPath: string,
   runGit: typeof runText,
+  pinnedCommit?: string,
 ): OnePrOriginBriefResult {
   const refuse = (error: string): OnePrOriginBriefResult => ({ present: false, error, ref: null });
   try {
@@ -116,24 +131,39 @@ export function originOnePrBriefAdmitted(
     if (!safeDelivery.ok) return refuse(safeDelivery.error);
     const safeBase = assertSafeBranchName(baseBranch, "baseBranch");
     if (!safeBase.ok) return refuse(safeBase.error);
-    const fetchArgv = trackingFetchArgv("origin", safeBase.branch);
-    if (!fetchArgv.ok) return refuse(fetchArgv.error);
-    const fetch = runGit(["git", ...fetchArgv.argv], { cwd: projectRoot });
-    if (fetch.returncode !== 0) {
-      return refuse(
-        `git fetch origin ${safeBase.branch} failed: ${fetch.stderr.trim() || fetch.stdout.trim()}`,
-      );
+    const label = `origin/${safeBase.branch}`;
+    let tip: string;
+    if (pinnedCommit !== undefined) {
+      if (!/^[0-9a-f]{40}$/i.test(pinnedCommit)) return refuse("pinned commit is not a SHA");
+      tip = pinnedCommit;
+    } else {
+      const fetchArgv = trackingFetchArgv("origin", safeBase.branch);
+      if (!fetchArgv.ok) return refuse(fetchArgv.error);
+      const fetch = runGit(["git", ...fetchArgv.argv], { cwd: projectRoot });
+      if (fetch.returncode !== 0) {
+        return refuse(
+          `git fetch origin ${safeBase.branch} failed: ${fetch.stderr.trim() || fetch.stdout.trim()}`,
+        );
+      }
+      // Pin the moving ref once: admission and the dest use this one commit.
+      const parsed = runGit(["git", "rev-parse", "--verify", `${label}^{commit}`], {
+        cwd: projectRoot,
+      });
+      const sha = parsed.stdout.trim();
+      if (parsed.returncode !== 0 || !/^[0-9a-f]{40}$/i.test(sha)) {
+        return refuse(`git rev-parse ${label} failed`);
+      }
+      tip = sha;
     }
-    const tip = `origin/${safeBase.branch}`;
     const deliveryTip = `origin/${safeDelivery.branch}`;
     const kind = runGit(["git", "cat-file", "-t", `${tip}:${rel}`], { cwd: projectRoot });
     if (kind.returncode !== 0 || kind.stdout.trim() !== "blob") {
-      return refuse(`${tip} has no active brief ${rel}`);
+      return refuse(`${label} has no active brief ${rel}`);
     }
     const mb = runGit(["git", "merge-base", deliveryTip, tip], { cwd: projectRoot });
     const mergeBase = mb.stdout.trim();
     if (mb.returncode !== 0 || mergeBase.length === 0) {
-      return refuse(`git merge-base ${deliveryTip} ${tip} failed`);
+      return refuse(`git merge-base ${deliveryTip} ${label} failed`);
     }
     const gate = evaluateOnePrScopeProofGate({
       baseRaw: showAtRef(projectRoot, mergeBase, PROJECT_DEFINITION_REL_PATH, runGit),
@@ -144,12 +174,12 @@ export function originOnePrBriefAdmitted(
     }
     if (gate.kind === "refuse") return refuse(gate.reason);
     const headRaw = showAtRef(projectRoot, tip, rel, runGit);
-    if (headRaw === null) return refuse(`${tip}:${rel} unreadable`);
+    if (headRaw === null) return refuse(`${label}:${rel} unreadable`);
     let payload: unknown;
     try {
       payload = JSON.parse(headRaw) as unknown;
     } catch {
-      return refuse(`${tip}:${rel} is not valid JSON`);
+      return refuse(`${label}:${rel} is not valid JSON`);
     }
     const planId = extractPlanId(payload);
     if (planId === null) return refuse("head brief has no plan.id");
@@ -160,7 +190,14 @@ export function originOnePrBriefAdmitted(
       xbriefRelPath: rel,
       headPayload: payload,
       headRaw,
-      extract: { projectRoot },
+      // Parent briefs (planRef) are read from the same commit, not the local checkout.
+      extract: {
+        projectRoot,
+        readFile: (absPath) => {
+          const fileRel = repoRel(projectRoot, absPath);
+          return fileRel === null ? null : showAtRef(projectRoot, tip, fileRel, runGit);
+        },
+      },
       decisionExists: (decisionRel) => {
         const probe = runGit(["git", "cat-file", "-t", `${tip}:${decisionRel}`], {
           cwd: projectRoot,
