@@ -5,7 +5,7 @@ import type { ReleaseSeams } from "./types.js";
 
 /** Seed a real on-disk project root for pipeline write-path tests (#2470). */
 export function seedReleaseProjectDir(changelog = `## [Unreleased]\n\n### Added\n- x\n`): string {
-  const dir = mkdtempSync(join(tmpdir(), "release-proj-"));
+  const dir = mkdtempSync(join(tmpdir(), "deft-release-proj-"));
   writeFileSync(join(dir, "CHANGELOG.md"), changelog, "utf8");
   writeFileSync(join(dir, "ROADMAP.md"), "# Roadmap\n", "utf8");
   return dir;

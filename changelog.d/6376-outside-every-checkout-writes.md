@@ -1,0 +1,2 @@
+section: Changed
+- Hooks: a Write or Edit to a file in the OS temp directory or an ordinary home folder outside every checkout is no longer refused for a stale session ritual or another session's lease (decision `write-outside-every-checkout-ready`), and a ritual refusal names the judged checkout with one `--project-root` recovery command. Directive temp folders now all carry `deft` in their names (#6376).

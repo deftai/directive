@@ -81,6 +81,7 @@ import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import {
   type ApplyingHostTransport,
   evaluateApplyingHostLifecycleAdmission,
+  evaluateOccupancyCeremonyEligibility,
   evaluateOccupancyWriteGate,
   formatOccupancyLeaseViewNote,
   liveOccupant,
@@ -106,6 +107,7 @@ import {
 } from "../session/posture.js";
 import { emitSessionRitualBlockedProcessCost } from "../session/process-cost.js";
 import { markRitualStaleAfterCompact } from "../session/ritual-sentinel.js";
+import { formatSessionStartRecoveryCommand } from "../session/session-start.js";
 import { runSessionStartHookWrite } from "../session/session-start-hook.js";
 import {
   allocatedWorktreeMatches,
@@ -194,6 +196,12 @@ import {
 import { appendGitDestructiveRecord, GIT_DESTRUCTIVE_LOG_ENV } from "./git-destructive-log.js";
 import { classifyLauncherFamilyArgv, type LauncherArgvClass } from "./launcher-argv.js";
 import { excuseMergeArrivals } from "./merge-commit-excuse.js";
+import {
+  allTargetsOutsideEveryCheckout,
+  OUTSIDE_EVERY_CHECKOUT_READY_CODE,
+  type OutsideEveryCheckoutSeams,
+  targetsKeepOriginalSpelling,
+} from "./outside-every-checkout.js";
 import { isLexicalOutsideProjectRoot, isOutsideProjectRootWrite } from "./outside-project-root.js";
 import {
   type OwnerLivenessInput,
@@ -360,6 +368,8 @@ export type HookDecisionCode =
   | "write-completed-ready"
   /** Allowlisted assist/scratch write without active xBRIEF (#1802). */
   | "write-assist-scratch-ready"
+  /** Direct write whose every target is outside every checkout (#6376). */
+  | "write-outside-every-checkout-ready"
   /** Tracked docs/specs after occupancy under requirements posture (#4444). */
   | "write-requirements-ready"
   | "write-requirements-out-of-class"
@@ -761,6 +771,8 @@ export interface HookPolicySeams {
   readonly prepareArcDest?: typeof prepareGithubOnlyDest;
   /** Test seam for Cursor planning-choice store/clock (#4973). */
   readonly cursorPlanChoice?: CursorPlanChoiceDeps;
+  /** Test seams for the outside-every-checkout class test (#6376). */
+  readonly outsideEveryCheckout?: OutsideEveryCheckoutSeams;
   /**
    * Tip seam for #5278 `evaluatePreCancel` green (#5281 Prefer-A).
    * When absent, equivalent `.deft-scratch/subagent-kill-attestation/` is required.
@@ -1237,6 +1249,50 @@ export function projectRootFromHookPayload(payload: unknown, fallback: string): 
 /** Interpolate both roots so a deny names the tree that was judged (#3794). */
 export function formatHookRootNote(payloadRoot: string, effectiveRoot: string): string {
   return `payloadRoot=${payloadRoot} effectiveRoot=${effectiveRoot}`;
+}
+
+/**
+ * A path as one literal shell argument (#6376), or null when no spelling is
+ * literal in both POSIX shells and PowerShell. Plain paths print bare; other
+ * paths are single-quoted, which neither shell expands (`$`, backticks, `"`).
+ * A path holding a single quote or a control character gets no command.
+ */
+function printedPathArg(path: string): string | null {
+  if (/^[A-Za-z0-9_.:\\/+-]+$/.test(path)) return path;
+  for (const ch of path) {
+    const code = ch.charCodeAt(0);
+    if (ch === "'" || code < 0x20 || code === 0x7f) return null;
+  }
+  return `'${path}'`;
+}
+
+/**
+ * Ritual denial recovery that names the judged checkout (#6376). Appends the
+ * checkout and one `session:start` command carrying `--project-root` for it, so
+ * the command runs as printed from any directory. When occupancy does not admit
+ * the ceremony for this actor (#4290), only the checkout is named: a command
+ * the occupancy gate would refuse is never printed.
+ */
+export function formatJudgedCheckoutRecovery(
+  text: string,
+  judgedRoot: string,
+  tier: "rearm" | "cold",
+  sessionId: string | null | undefined,
+  admitCeremony: boolean,
+): string {
+  const named = `Judged checkout: ${judgedRoot}.`;
+  if (!admitCeremony) return `${text} ${named}`;
+  const rootArg = printedPathArg(judgedRoot);
+  if (rootArg === null) {
+    return `${text} ${named} Run the recovery from that checkout; its path cannot be printed as a literal shell argument.`;
+  }
+  const command =
+    `${fillRecoveryCommandSessionId(formatSessionStartRecoveryCommand(tier), sessionId)} ` +
+    `--project-root=${rootArg}`;
+  return (
+    `${text} ${named} Recovery for that checkout (runs as printed from any directory; ` +
+    `the commands above act on the current directory): \`${command}\`.`
+  );
 }
 
 /** Why a mutation target was refused, so the deny message can be specific (#3794). */
@@ -2050,6 +2106,11 @@ function inspectMutationGates(
     /** When true, authz permission checks run but single-use grants are not spent (#6136). */
     deferGrantConsume?: boolean;
     pendingConsumeOut?: string[];
+    /**
+     * Bare host direct-write surface only (#6376). Shell reissue, MCP and proxy
+     * writes never set it, so the outside-every-checkout class cannot reach them.
+     */
+    outsideEveryCheckoutEligible?: boolean;
   },
 ): HookDecision {
   // payloadRoot stays authoritative for authz grant scoping, the authz audit
@@ -2158,6 +2219,55 @@ function inspectMutationGates(
     }
   }
 
+  // #6376: a bare direct write whose every target is proven to be outside every
+  // checkout (OS temp directory or an ordinary home folder; see
+  // outside-every-checkout.ts) skips occupancy, the gated ritual, active scope and
+  // the story write fence. admitMutationTargetSet already ran above, unchanged.
+  // Authz and runtime authority run on the payload root as on the assist-scratch
+  // path; the #1193 intent ceiling that the mutation path evaluates after the
+  // ritual runs here too, so its result is unchanged. No lease refresh, no
+  // product-mutation marker. Any doubt falls through to the gates below.
+  if (
+    options.outsideEveryCheckoutEligible === true &&
+    !isSpawnTool(toolName) &&
+    // The harvest trims and decodes targets; a target whose original spelling
+    // differs is judged as today, never under its trimmed name (#6376).
+    targetsKeepOriginalSpelling(input.payload, mutationTargets) &&
+    allTargetsOutsideEveryCheckout(payloadRoot, mutationTargets, environ, {
+      runGit: dispatchGit,
+      ...seams.outsideEveryCheckout,
+    })
+  ) {
+    const authzDeny = authzForMutationTargets(input, toolName, seams, {
+      isDirectWrite: true,
+      scopePath: null,
+      runGit: dispatchGit,
+      projectRoot,
+      deferGrantConsume: options.deferGrantConsume === true,
+      pendingConsumeOut: options.pendingConsumeOut,
+    });
+    if (authzDeny !== null) return authzDeny;
+    const runtimeDeny = runtimeAuthorityForDirectWrite(input, toolName, seams, null, payloadRoot);
+    if (runtimeDeny !== null) return runtimeDeny;
+    const intent = evaluateIntentCeilingFromEnv("implement", environ);
+    if (!intent.allowed) {
+      return deny(input, "intent-ceiling-deny", toolName, intent.reason);
+    }
+    return {
+      verdict: "allow",
+      code: OUTSIDE_EVERY_CHECKOUT_READY_CODE,
+      event: input.event,
+      host: input.host,
+      toolName,
+      projectRoot,
+      message:
+        `Directive write gate allowed ${toolName}: every target is outside every checkout ` +
+        "(OS temp directory or an ordinary home folder), so occupancy and the session " +
+        "ritual were not required (#6376).",
+      scopePath: null,
+    };
+  }
+
   const actor = isSpawnTool(toolName) ? null : resolveMutationActor(input, environ);
   const occupancyGate = isSpawnTool(toolName)
     ? {
@@ -2200,10 +2310,21 @@ function inspectMutationGates(
     );
   // #6279: ritual denials print recovery commands with the caller's id, after
   // the occupancy-aware rewrite so stripped commands stay stripped.
+  // #6376: they also name the judged checkout and print one command for it.
   const ritualRecoveryText = (message: string, recoveryTier: "rearm" | "cold"): string =>
-    fillRecoveryCommandSessionId(
-      occupancyAwareText(message, recoveryTier),
+    formatJudgedCheckoutRecovery(
+      fillRecoveryCommandSessionId(
+        occupancyAwareText(message, recoveryTier),
+        actor?.sessionId ?? environ.DEFT_SESSION_ID,
+      ),
+      effectiveRoot,
+      recoveryTier,
       actor?.sessionId ?? environ.DEFT_SESSION_ID,
+      // Same eligibility the occupancy-aware rewrite applied (#4290).
+      evaluateOccupancyCeremonyEligibility(effectiveRoot, {
+        sessionId: actor?.sessionId ?? environ.DEFT_SESSION_ID,
+        env: environ,
+      }).admitCeremony,
     );
 
   const ritualDetailForOccupancyDeny = (): VerifyResult | null => {
@@ -4894,6 +5015,8 @@ function routeHookDecision(
   return inspectMutationGates(input, toolName, seams, {
     proposedLifecycleExempt: true,
     observation,
+    // #6376: only the bare host direct-write surface reaches the class.
+    outsideEveryCheckoutEligible: !isMcpTool(toolName),
   });
 }
 
