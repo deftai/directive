@@ -7,6 +7,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { buildApprovedScopeRecord } from "./digest.js";
 import {
   evaluateScopeProvenance,
   forgeApprovalGitFromRunner,
@@ -271,6 +272,52 @@ describe("evaluateScopeProvenance with the batched census (#6378)", () => {
     });
     expect(result.exitCode).toBe(2);
     expect(result.message).toContain('phase "base resolution"');
+  });
+
+  it("bounds the base approval-record read with the same runner", () => {
+    const root = mkdtempSync(join(tmpdir(), "scope-prov-approval-"));
+    roots.push(root);
+    g(root, ["init", "-q"]);
+    g(root, ["checkout", "-q", "-b", "main"]);
+    g(root, ["config", "core.autocrlf", "false"]);
+    const scope = ["packages/core/src/foo.ts"];
+    const rel = "xbrief/active/story.xbrief.json";
+    writeTracked(root, rel, brief("story-1", scope));
+    const record = buildApprovedScopeRecord({
+      xbriefRelPath: rel,
+      payload: JSON.parse(brief("story-1", scope)) as unknown,
+      approvedAt: "2026-08-01T00:00:00Z",
+      humanApproval: {
+        kind: "operator",
+        actor: "scott",
+        mintedAt: "2026-08-01T00:00:00Z",
+        mintedVia: "scope:record-approved-scope",
+      },
+    });
+    writeTracked(root, ".deft/approved-scope/story-1.json", `${JSON.stringify(record, null, 2)}\n`);
+    writeTracked(root, "packages/core/src/foo.ts", "export const a = 1;\n");
+    g(root, ["commit", "-q", "-m", "base"]);
+    g(root, ["branch", "base"]);
+    g(root, ["checkout", "-q", "-b", "impl"]);
+    writeTracked(root, "packages/core/src/foo.ts", "export const a = 2;\n");
+    writeTracked(root, rel, brief("story-1", scope).replace("\n}", ',\n  "note": "x"\n}'));
+    g(root, ["commit", "-q", "-m", "impl"]);
+
+    const approvalRead = (args: readonly string[]): boolean =>
+      args[0] === "show" && (args[1] ?? "").includes(".deft/approved-scope/story-1.json");
+    const seen = recording();
+    evaluateScopeProvenance(root, { ...BASE, gitSpawn: seen.spawn });
+    expect(seen.calls.some((c) => approvalRead(c.args))).toBe(true);
+
+    const rec = recording((args, r) => (approvalRead(args) ? timedOut(r) : r));
+    const result = evaluateScopeProvenance(root, {
+      ...BASE,
+      gitSpawn: rec.spawn,
+      gitTimeoutMode: "enforce",
+    });
+    expect(result.exitCode).toBe(2);
+    expect(result.message).toContain("scope-provenance-git-call-timeout (enforce)");
+    expect(result.message).toContain(".deft/approved-scope/story-1.json");
   });
 
   it("keeps a census that throws a non-timeout error a census read failure", () => {

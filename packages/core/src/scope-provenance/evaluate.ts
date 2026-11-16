@@ -1169,6 +1169,7 @@ function evaluateWithRunner(
           xbriefRelPath: rel,
           currentDigest,
           currentApproved: approved,
+          git: runner,
         });
         if (!baseAuthorizes) {
           approvalDiskOnly = true;

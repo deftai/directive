@@ -445,7 +445,14 @@ describe("phase lines and per-call git limit (#6378)", () => {
         240,
       ),
     ).toBe(
-      'deft verify:scope-provenance --project-root "C:/a b" --quiet --git-timeout-seconds 240',
+      "deft verify:scope-provenance --project-root 'C:/a b' --quiet --git-timeout-seconds 240",
+    );
+  });
+
+  it("keeps dollar signs, backticks and quotes literal in the printed remedy", () => {
+    const remedy = formatGitTimeoutRemedy(["--project-root", "/tmp/$cash/`x`/it's"], 240);
+    expect(remedy).toBe(
+      "deft verify:scope-provenance --project-root '/tmp/$cash/`x`/it''s' --git-timeout-seconds 240",
     );
   });
 
@@ -551,9 +558,9 @@ describe("phase lines and per-call git limit (#6378)", () => {
     const remedy = /Remedy: (.+)$/m.exec(refused.stderr)?.[1] ?? "";
     expect(remedy).toMatch(/^deft verify:scope-provenance .*--git-timeout-seconds 240$/);
     // Run the remedy exactly as printed: the argv after the verb.
-    const argv = (remedy.match(/"(?:[^"\\]|\\.)*"|\S+/g) ?? [])
+    const argv = (remedy.match(/'(?:[^']|'')*'|\S+/g) ?? [])
       .slice(2)
-      .map((a) => (a.startsWith('"') ? (JSON.parse(a) as string) : a));
+      .map((a) => (a.startsWith("'") ? a.slice(1, -1).replace(/''/g, "'") : a));
     const again = harness(slowListing);
     const done = captured(() => run(argv, env, { ...again.seams, gitTimeoutMode: "enforce" }));
     expect(done.code).toBe(0);

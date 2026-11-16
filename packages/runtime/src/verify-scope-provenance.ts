@@ -168,9 +168,13 @@ export function reportMintLevelAdmits(
   }
 }
 
-/** Quote one argument for the printed remedy only when it needs it. */
+/**
+ * Quote one argument for the printed remedy only when it needs it. Single
+ * quotes keep `$` and backticks literal in both bash and PowerShell; an
+ * embedded single quote is doubled (the PowerShell form).
+ */
 function remedyArg(arg: string): string {
-  return /^[^\s"'`$&|;<>()*?[\]{}#~!]+$/.test(arg) ? arg : JSON.stringify(arg);
+  return /^[^\s"'`$&|;<>()*?[\]{}#~!]+$/.test(arg) ? arg : `'${arg.replace(/'/g, "''")}'`;
 }
 
 /**
