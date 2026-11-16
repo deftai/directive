@@ -1345,7 +1345,8 @@ export function applyMergeGateConfigure(
   const encoded = encodeURIComponent(input.branch);
   // defaultRunGh closes stdin; write JSON to a temp file and pass --input <path>
   // so PUT bodies reach GitHub (#1517 Greptile P1).
-  const bodyDir = mkdtempSync(join(tmpdir(), "mge-put-"));
+  // #6376: `deft` in the created name keeps this file out of the outside-every-checkout class.
+  const bodyDir = mkdtempSync(join(tmpdir(), "deft-mge-put-"));
   const bodyPath = join(bodyDir, "protection.json");
   let putRc: RunGhResult;
   try {

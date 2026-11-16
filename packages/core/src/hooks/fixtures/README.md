@@ -92,6 +92,7 @@ Agents, host adapters, and tests **must** key permission outcomes off `HookDecis
 | `write-propose-ready` | allow | Write to proposed lifecycle path allowed |
 | `write-completed-ready` | allow | Write to completed lifecycle path allowed (all-targets, #4422) |
 | `write-assist-scratch-ready` | allow | Allowlisted assist/scratch write without active xBRIEF (#1802) |
+| `write-outside-every-checkout-ready` | allow | Direct write whose every target is outside every checkout; no occupancy or ritual (#6376) |
 | `write-ready` | allow | Direct write allowed under ready gates |
 | `read-only-deny` | deny | `DEFT_HOOK_READ_ONLY` / read-only posture |
 | `spawn-explore-ready` | allow | Explore-class spawn allowed |

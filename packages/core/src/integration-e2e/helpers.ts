@@ -9,6 +9,7 @@ import {
   setSleepFn,
 } from "../cache/fetch.js";
 import { auditPath } from "../cache/paths.js";
+import { deftTempName } from "../hooks/outside-every-checkout.js";
 import { restIssueView } from "../scm/gh-rest.js";
 
 export const REPO = "deftai/directive";
@@ -26,7 +27,8 @@ afterEach(() => {
 });
 
 export function makeTempRoot(prefix: string): string {
-  const root = mkdtempSync(join(tmpdir(), prefix));
+  // #6376: a caller-supplied prefix gains `deft` when it lacks it.
+  const root = mkdtempSync(join(tmpdir(), deftTempName(prefix)));
   tempRoots.push(root);
   return root;
 }

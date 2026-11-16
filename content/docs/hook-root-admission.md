@@ -6,10 +6,12 @@ Every PreToolUse mutation carries **two** roots, and they are not interchangeabl
 - **effective root** — the working tree the write target actually lands in, chosen by
   `admitEffectiveHookRoot` from the target path.
 
-Deny messages name both: `payloadRoot=<path> effectiveRoot=<path>`.
+Deny messages name both: `payloadRoot=<path> effectiveRoot=<path>`. A session-ritual deny also
+names the judged checkout and prints one recovery command for it (#6376).
 
 This page publishes what root admission decides, which gate reads which root, and why the
-no-toplevel case behaves the way it does. It describes shipped behaviour; it changes none of it.
+no-toplevel case behaves the way it does. It describes shipped behaviour. One narrowing has
+shipped: the [outside-every-checkout class](#the-outside-every-checkout-class-6376) (#6376).
 
 ## The outcomes of root admission
 
@@ -86,6 +88,78 @@ directory. Relieving it costs a change to the authority contract, not a bug fix.
 Read that table as the answer to "what does the lease actually protect here". The case is not a
 lease question with one disposition; it is a root-selection question with a disposition per gate.
 
+## The outside-every-checkout class (#6376)
+
+A direct Write or Edit whose every target is in this class is allowed without the payload root's
+occupancy lease and gated session ritual. The class is closed: any doubt keeps a target out, and a
+target out of the class is judged exactly as the table above says. The class adds no deny.
+Accepted design: [#6376, lean 6908601625](https://github.com/deftai/directive/issues/6376#issuecomment-6908601625).
+Code: `packages/core/src/hooks/outside-every-checkout.ts`.
+
+**Which targets are in the class.** For each target the test builds two paths: the typed path
+(the target as given, normalized) and the physical destination (each existing component resolved
+with the native resolver, the missing rest appended unchanged). Both paths must pass every rule:
+
+1. **Positive location.** Inside the physical OS temp directory, or inside a home directory (the
+   OS home directory, `HOME`, `USERPROFILE`).
+2. **Not a configuration area.** A configuration area is a directory directly under a home
+   directory whose name starts with a dot or is `Library` or `AppData` (any letter case), or a
+   directory named by `APPDATA`, `LOCALAPPDATA` or an `XDG_*` base directory variable. When a path
+   is inside both a configuration area and the temp directory, the innermost of the two decides.
+3. **No repository and no Directive project.** No `.git` or `.deft` entry beside any ancestor, no
+   ancestor that is itself a Git directory, a Git toplevel lookup that ran and reported no
+   repository, and outside the payload root (`isOutsideProjectRootWrite`).
+4. **Exclusions** (any letter case): a component that contains `deft` or `directive` or is named
+   `.git`; a path equal to or inside a path named by any `DEFT_*` or `DIRECTIVE_*` variable or by
+   `OPENCLAW_STATE_DIR`, `CODEX_HOME`, `GH_CONFIG_DIR`, `PNPM_HOME`, `GIT_DIR`, `GIT_WORK_TREE`,
+   `GITHUB_EVENT_PATH`, `GITHUB_STEP_SUMMARY`; a path inside a `PATH` directory; a path inside the
+   running Directive runtime package.
+5. **Doubt rules.** Out of the class: a relative path; a component that ends with a dot or a
+   space, has the Windows short-name form (`~1`) or holds a colon after the drive; a device or
+   network-share prefix; a walk directory that cannot be read; a Git lookup that could not run or
+   disagrees with the walk; a home or temp directory that cannot be resolved; an existing file with
+   more than one hard link; a link that cannot be resolved.
+
+**Combining rule.** `admitMutationTargetSet` runs first and unchanged, so `foreign-repository`,
+`unproven-identity` and `worktree-span` keep precedence. The class applies only when every target
+of the mutation is in it. Only the bare host direct-write tools reach it; shell writes, generic MCP
+writes and proxy wrappers are classified as before.
+
+**Gates for a write in the class.**
+
+| Gate | Disposition |
+| --- | --- |
+| Kill switch, read-only posture deny, Cursor planning-choice store check | **Run**, unchanged (upstream). |
+| Protected-store authz, runtime authority | **Run** on the payload root, in the assist-scratch order. |
+| Mutation intent ceiling (#1193) | **Runs**, so a non-implement slash verb still refuses. |
+| Occupancy lease, gated session ritual, active scope, story write fence | **Do not run.** |
+| Write-gate lease refresh and product-mutation marker | **None.** |
+| General owner-liveness renewal | Unchanged. |
+
+The allow carries the decision code `write-outside-every-checkout-ready`. The class selects no
+ritual, lease, story or worktree registration, and it has no posture condition: a write in the
+class is also allowed under requirements posture.
+
+**What this gives up, on purpose.** Before #6376 a session with no valid ritual could not use Write
+or Edit on a file in the OS temp directory or an ordinary home folder; now it can. Shell writes to
+the same files never needed a ritual. A file in a configuration area (for example an agent memory
+folder under a host's dot-folder) and a folder outside the home and temp directories stay judged
+as before. A link created between the check and the write is not caught (the same check/use
+residual as #3953).
+
+**Naming rule for Directive code.** A file or folder that Directive keeps outside a checkout has
+`deft` or `directive` in its name or in a parent folder name, lives in a configuration area, or is
+named by a `DEFT_*` or `DIRECTIVE_*` variable. Every file or folder Directive creates under the OS
+temp directory carries `deft` in its created name (`deftTempName` helps a caller-supplied prefix).
+A unit test in `packages/core/src/hooks/dispatcher-outside-root.test.ts` scans the non-test source
+of `packages/core/src`, `packages/runtime/src` and `packages/cli/src` and fails on a temp name
+without `deft`.
+
+**Ritual recovery names the judged checkout.** A direct write refused on the session ritual ends
+with `Judged checkout: <path>.` and one command, for example
+`deft session:start --rearm --session-id=<id> --project-root=<path>`, that runs as printed from any
+directory. When occupancy refuses the ceremony (#4290), only the checkout is named.
+
 ## Three surfaces, three behaviours
 
 The fallback is a **direct-write** behaviour. It does not generalise across transports.
@@ -133,6 +207,10 @@ A narrowing is refused *as filed*, not forever. A viable successor design would:
 5. Canonicalize targets first (#4023).
 
 None of that would make #4013's filed premise — that the fallback is a defect — true.
+
+#6376 is the narrowing that shipped. It answers these points without canonicalizing relative
+targets: a relative target is never in its class, and every other target falls back to the rows
+above. See [The outside-every-checkout class](#the-outside-every-checkout-class-6376).
 
 ## Commit targets — which checkout a `git commit` is judged against (#6278 / #6247)
 

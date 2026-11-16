@@ -342,7 +342,8 @@ export const PUBLIC_HELPERS = [
 ] as const;
 
 function writeJsonPayload(payload: Record<string, unknown>): { path: string; dir: string } {
-  const dir = mkdtempSync(join(tmpdir(), "gh_rest_payload_"));
+  // #6376: `deft` in the created name keeps this file out of the outside-every-checkout class.
+  const dir = mkdtempSync(join(tmpdir(), "deft-gh-rest-payload-"));
   const path = join(dir, "payload.json");
   writeFileSync(path, JSON.stringify(payload), "utf8");
   return { path, dir };
