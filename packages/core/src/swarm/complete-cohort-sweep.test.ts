@@ -900,6 +900,34 @@ describe("launch occupancy record lifecycle (#4595)", () => {
       expect(other.exitCode).not.toBe(0);
       rmSync(project, { recursive: true, force: true });
     });
+
+    it("clause 19: related Traces mentions and PR links do not join the story's issue set", () => {
+      const project = cohortProject("plan-traces-");
+      writeFileSync(
+        join(project, "xbrief", "active", "coh-t.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8" },
+          plan: {
+            id: "coh-t",
+            title: "coh-t",
+            status: "running",
+            narratives: { Traces: "#45951; related #6205, #2402" },
+            references: [
+              {
+                uri: "https://github.com/deftai/directive/issues/45954",
+                type: "x-xbrief/github-issue",
+              },
+              { uri: "https://github.com/deftai/directive/pull/6381", type: "x-xbrief/github-pr" },
+            ],
+            metadata: { kind: "story", swarm: { readiness: "ready" } },
+          },
+        }),
+        "utf8",
+      );
+      writePlan(project, { entries: [{ id: "45954", kind: "issue", issue: 45954 }] });
+      expect(launch(project, ["coh-t"]).exitCode).toBe(0);
+      rmSync(project, { recursive: true, force: true });
+    });
   });
 });
 

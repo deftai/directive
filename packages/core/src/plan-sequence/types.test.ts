@@ -171,9 +171,11 @@ describe("batching_allowed batches (#4433)", () => {
       code: "mismatch",
       message: 'Target issue:B1 is not in the current ordered-plan batch "a" (issue:A1, issue:A2).',
     });
-    const kind = verifyPlanTarget(plan, { targetKind: "pr", target: "A2" });
-    expect(kind.ok).toBe(false);
-    if (!kind.ok) expect(kind.code).toBe("kind-mismatch");
+    expect(verifyPlanTarget(plan, { targetKind: "pr", target: "A2" })).toEqual({
+      ok: false,
+      code: "kind-mismatch",
+      message: "Current ordered-plan entry is kind=issue id=A1; requested kind=pr target=A2.",
+    });
   });
 
   it("clauses 5/31: batching_allowed false keeps the single derived current entry", () => {

@@ -1300,7 +1300,9 @@ export interface LaunchRosterMember {
  * cohorts. With a plan file (exhausted counts) every real roster member, solo
  * included, must be in the current authorized set on the derived cursor
  * (#6205): the current entry, or with `batching_allowed: true` any pending
- * entry of the current batch. The first refusal is returned.
+ * entry of the current batch. A member's issues are its typed github-issue
+ * references only; related `#N` mentions in Traces do not count. The first
+ * refusal is returned.
  */
 export function admitSwarmLaunchPlanSequence(
   projectRoot: string,
@@ -1318,7 +1320,8 @@ export function admitSwarmLaunchPlanSequence(
   };
   for (const member of roster) {
     const data = loadJson(member.path);
-    const issues = data === null ? new Set<number>() : issueNumbers(planOf(data));
+    // Work issues only: typed github-issue references, not Traces mentions or PR links.
+    const issues = data === null ? new Set<number>() : issueNumbersFromPlan(planOf(data));
     admitted = verifyPlanStory(seq, { storyId: member.story_id, issues, terminalOrigins });
     if (!admitted.ok) {
       return admitted;
