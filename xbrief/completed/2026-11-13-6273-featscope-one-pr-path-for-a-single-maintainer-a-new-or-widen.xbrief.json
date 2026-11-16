@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6273",
-    "updated": "2026-11-13T16:11:54Z"
+    "updated": "2026-11-16T03:45:34Z"
   },
   "plan": {
     "title": "feat(scope): one-PR path for a single maintainer: a new or widened brief lands with its code without a second human reviewer",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "A single maintainer cannot land a new or widened brief together with its code in one PR, because membership trusts file_scope only from the merge base and the #6203 path needs a second human reviewer. This story adds an owner-chosen proof level, plan.policy.onePrScopeProof (off by default, mint, signed), read from the merge base together with requireHumanMerge. At the mint level, the existing human-presence mint stamps the head brief auth-hash, the record rides in the same PR, and verify:scope-provenance admits it only on an exact scope match and prints the admitted scope with the line that CI cannot tell a real mint from a forged one. The signed level is deferred to #5862.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6273",
@@ -21,50 +21,200 @@
     "items": [
       {
         "title": "Policy level: `plan.policy.onePrScopeProof` with values `off` (default), `mint`, `signed`. It is read together with `plan.policy.requireHumanMerge` from the merge base (`git show <merge-base>:xbrief/PROJECT-DEFINITION.xbrief.json`), never from the head. A PR that changes either field cannot use the one-PR path. Setter: `deft policy:set-one-pr-scope-proof -- --set off|mint --confirm`, in the shape of the existing policy setters. `signed` is reserved and the setter refuses it with a pointer to #5862 until that story lands.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given `plan.policy.onePrScopeProof` (`off` default, `mint`, `signed`) and `plan.policy.requireHumanMerge` in `xbrief/PROJECT-DEFINITION.xbrief.json`, verify:scope-provenance reads both only with `git show <merge-base>:`, never from the head; when a PR changes either field, the one-PR path is refused. `deft policy:set-one-pr-scope-proof -- --set off|mint --confirm` writes the field in the shape of the existing policy setters, and `--set signed` exits non-zero with a pointer to #5862; one-pr-scope-proof.test.ts and policy.test.ts pass."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98c010c58cd6bb352345aca7c7db5e626ab8f56",
+          "recorded_at": "2026-11-16T03:45:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Mint level: admitted only when the merge-base level is `mint` and merge-base `requireHumanMerge` is true. `scope:record-approved-scope` (unchanged human-presence gate) also stamps `authHashV1`, the head brief's auth-hash v1 (`computeAuthHashV1`), into the record. The `self-authorizing-scope-expansion` guard admits a same-PR `.deft/approved-scope/<id>.json` (and its `.intent.json`) only under that level, and only when all of these hold: the record's `authHashV1` equals the head brief's auth-hash; the record's `planId` and `xbriefRelPath` match the head brief; the record's normalized `fileScope` equals the head brief's normalized `file_scope` exactly and its `fileScopeDigest` matches that list; the head brief's `file_scope` has no glob entry (concrete-only, like `forge-approval`); and `isHumanApprovalStamp` passes. Membership then uses that record as `mint` authority. In every other case the guard is unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When the merge-base level is `mint` and merge-base `requireHumanMerge` is true, `scope:record-approved-scope` (human-presence gate unchanged) stores `authHashV1` from `computeAuthHashV1` in the record, and the `self-authorizing-scope-expansion` guard admits a same-PR `.deft/approved-scope/<id>.json` and `.intent.json` only when `authHashV1`, `planId`, `xbriefRelPath`, the exact normalized `fileScope` and its `fileScopeDigest` all match the head brief, the head `file_scope` has no glob, and `isHumanApprovalStamp` passes. Membership then uses that record as `mint` authority; in every other case the guard returns today's finding. evaluate.test.ts and scope-record-approved-scope.test.ts pass."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98c010c58cd6bb352345aca7c7db5e626ab8f56",
+          "recorded_at": "2026-11-16T03:45:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Visibility: on a mint-level admit, `verify:scope-provenance` prints the plan id, the admitted `file_scope`, the production-file count and the line \"CI cannot tell this mint from a file an agent wrote; the human merge is the control\". It appends the same block to `$GITHUB_STEP_SUMMARY` when that variable is set.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When a mint-level admit happens, verify:scope-provenance prints the plan id, the admitted `file_scope`, the production-file count and the line \"CI cannot tell this mint from a file an agent wrote; the human merge is the control\", and appends the same block to `$GITHUB_STEP_SUMMARY` when that variable is set; verify-scope-provenance.test.ts passes."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98c010c58cd6bb352345aca7c7db5e626ab8f56",
+          "recorded_at": "2026-11-16T03:45:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Unchanged: the #4956 production fence (merge-base only), Path B, the separate mint-record PR, #6203 forge approval, and `requireHumanMerge` semantics.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When a mint-level repo runs verify:scope-provenance, the #4956 production fence still reads only merge-base scope, and each of Path B, the separate mint-record PR, #6203 forge approval and requireHumanMerge semantics returns today's result; evaluate-git.test.ts passes."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98c010c58cd6bb352345aca7c7db5e626ab8f56",
+          "recorded_at": "2026-11-16T03:45:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Docs: `docs/scope-provenance.md` names the three levels, says the mint level is a human-merge trust anchor that CI cannot verify (the same anchor as today's record PR), says a bot-merge repo cannot use it, and keeps the earlier lean's non-goals (#6207, #4956).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When a reader opens content/docs/scope-provenance.md, it shows the three levels, states that the mint level is a human-merge trust anchor CI cannot verify (the same anchor as today's record PR), states that a bot-merge repo cannot use it, and keeps the earlier lean's non-goals (#6207, #4956) without claiming #6207 delivers them."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98c010c58cd6bb352345aca7c7db5e626ab8f56",
+          "recorded_at": "2026-11-16T03:45:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Tests: mint level with `requireHumanMerge` true and a matching `authHashV1` admits a new brief and a widened-past-mint brief in one change set; the same with `requireHumanMerge` false is refused; a level set only in the head is refused; an `authHashV1` that differs from the head brief is refused; a record whose `fileScope` differs from the head brief (with a matching hash) is refused; a glob added to the head brief after the mint is refused; head brief drift after the mint is refused; the valid case runs with both the `.json` and `.intent.json` in the changed-file set and in the declared scope; level `off` (and an absent field) gives today's behaviour; the setter refuses `signed`; the step-summary block is written when `$GITHUB_STEP_SUMMARY` is set.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When the test suite runs: mint level with `requireHumanMerge` true and a matching `authHashV1` admits a new brief and a widened-past-mint brief in one change set; `requireHumanMerge` false, a level set only in the head, a differing `authHashV1`, a differing `fileScope` with a matching hash, a glob added after the mint, and head brief drift after the mint are each refused; the valid case has the `.json` and `.intent.json` in the changed-file set and the declared scope; level `off` or an absent field returns today's behaviour; the setter refuses `signed`; the step-summary block is written when `$GITHUB_STEP_SUMMARY` is set. The verify command exits 0."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98c010c58cd6bb352345aca7c7db5e626ab8f56",
+          "recorded_at": "2026-11-16T03:45:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "clause.7",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98c010c58cd6bb352345aca7c7db5e626ab8f56",
+          "recorded_at": "2026-11-16T03:45:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "clause.8",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98c010c58cd6bb352345aca7c7db5e626ab8f56",
+          "recorded_at": "2026-11-16T03:45:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "clause.9",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98c010c58cd6bb352345aca7c7db5e626ab8f56",
+          "recorded_at": "2026-11-16T03:45:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "clause.10",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98c010c58cd6bb352345aca7c7db5e626ab8f56",
+          "recorded_at": "2026-11-16T03:45:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "clause.11",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98c010c58cd6bb352345aca7c7db5e626ab8f56",
+          "recorded_at": "2026-11-16T03:45:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "clause.12",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98c010c58cd6bb352345aca7c7db5e626ab8f56",
+          "recorded_at": "2026-11-16T03:45:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "clause.13",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98c010c58cd6bb352345aca7c7db5e626ab8f56",
+          "recorded_at": "2026-11-16T03:45:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "clause.14",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98c010c58cd6bb352345aca7c7db5e626ab8f56",
+          "recorded_at": "2026-11-16T03:45:34Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "clause.15",
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98c010c58cd6bb352345aca7c7db5e626ab8f56",
+          "recorded_at": "2026-11-16T03:45:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -1171,9 +1321,38 @@
           "#4956"
         ],
         "acceptance_criteria_justification": "Each admitted sentence of the accepted Bound remedy (successor lean 6857242405) is one clause bound to an existing test or doc file in file_scope, or null where the clause names tokens only the implementation adds (as #6189 did). The issue title is the only confession. The lean's Reject list is carried as must-not constraints in narratives.Constraints."
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "e4439a13faddefb6b341ab9f037af4e3dedd4af7",
+        "prNumber": 6299,
+        "prBase": "master",
+        "mergeCommit": "d98c010c58cd6bb352345aca7c7db5e626ab8f56",
+        "deliveryBranch": "master",
+        "deliveryCommit": "cfa3ce1fcae5d661ed79baab1fd85c04cc244707",
+        "verifiedAt": "2026-11-16T03:45:34Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark",
+        "competingMarkedPrs": [
+          6308
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T03:45:34Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T03:45:34Z"
       }
     },
     "id": "github.issue.6373272102",
-    "updated": "2026-11-13T16:11:54Z"
+    "updated": "2026-11-16T03:45:34Z"
   }
 }

@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6271",
-    "updated": "2026-11-13T15:09:10Z"
+    "updated": "2026-11-16T03:54:37Z"
   },
   "plan": {
     "title": "bug(init,security): the consumer .gitignore baseline misses the private pre-PR store and the plan-sequence lock files",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The consumer .gitignore baseline written by install and refresh does not cover the private pre-PR store (.deft/pre-pr-execution-private/, which holds the HMAC secret that signs pre-PR execution records) or the plan-sequence generation, lock and lock-claim files. This story adds the four entries to the canonical baseline so refresh heals existing installs, and adds a doctor warning when the secret is already tracked, without untracking it.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6271",
@@ -19,119 +19,197 @@
     "items": [
       {
         "title": "Summary The consumer `.gitignore` baseline written by install and refresh (`packages/core/src/init-deposit/gitignore.ts`) does not cover: - `.deft/pre-pr-execution-private/`: the process-surviving private pre-PR store (`packages/core/src/pre-pr-controller/store.ts`, `PRE_PR_PRIVATE_STORE_DIR`).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When install or refresh writes the consumer .gitignore, the file contains .deft/pre-pr-execution-private/; a test in packages/core/src/init-deposit/ asserts it."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e504aa1a57ff2b68a542231712ebfbac156c4092",
+          "recorded_at": "2026-11-16T03:54:37Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "It holds the MAC secret that signs pre-PR execution records.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a refreshed consumer checkout with .deft/pre-pr-execution-private/hmac-secret on disk, when git check-ignore runs on that path, then it reports the path as ignored."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e504aa1a57ff2b68a542231712ebfbac156c4092",
+          "recorded_at": "2026-11-16T03:54:37Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`.deft/plan-sequence.json.generation`, `.deft/plan-sequence.json.lock` and `.deft/plan-sequence.json.lock.claim-*`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When refresh writes the baseline, the file contains .deft/plan-sequence.json.generation, .deft/plan-sequence.json.lock and .deft/plan-sequence.json.lock.claim-*; a test asserts each entry."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e504aa1a57ff2b68a542231712ebfbac156c4092",
+          "recorded_at": "2026-11-16T03:54:37Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The framework repo does not see this because its own `.gitignore` ignores `.deft/*` and lists the plan-sequence files (lines 177-179).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a consumer .gitignore that holds only the canonical baseline (no blanket .deft/* line), when git check-ignore runs on the four paths, then each one is reported as ignored."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e504aa1a57ff2b68a542231712ebfbac156c4092",
+          "recorded_at": "2026-11-16T03:54:37Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Consumers get only the named baseline.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When the baseline is computed for a consumer, CANONICAL_GITIGNORE_BASELINE itself contains the four entries; a test asserts it."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e504aa1a57ff2b68a542231712ebfbac156c4092",
+          "recorded_at": "2026-11-16T03:54:37Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Impact - `deft check` fails on a consumer checkout until these files are moved aside, and an agent then leaves a stash it may not drop.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a refreshed consumer checkout with these files present, when git status runs, then they are not listed as untracked, so deft check does not fail on them."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e504aa1a57ff2b68a542231712ebfbac156c4092",
+          "recorded_at": "2026-11-16T03:54:37Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A consumer can commit the MAC secret.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a refreshed consumer checkout with the secret file present, when git add -A runs, then the secret file is not staged."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e504aa1a57ff2b68a542231712ebfbac156c4092",
+          "recorded_at": "2026-11-16T03:54:37Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Anyone with the repository could then forge pre-PR execution records, which the controller trusts as proof that pre-PR ran.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given the secret file is tracked, when doctor runs, then it emits a warning that the secret can forge pre-PR execution records."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e504aa1a57ff2b68a542231712ebfbac156c4092",
+          "recorded_at": "2026-11-16T03:54:37Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Expected - Add `.deft/pre-pr-execution-private/`, `.deft/plan-sequence.json.generation`, `.deft/plan-sequence.json.lock` and `.deft/plan-sequence.json.lock.claim-*` to the canonical baseline, so refresh heals existing installs.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given an existing install whose .gitignore lacks the four entries, when refresh runs, then it appends them; a test shows the healed file."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e504aa1a57ff2b68a542231712ebfbac156c4092",
+          "recorded_at": "2026-11-16T03:54:37Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "If the secret file is already tracked, doctor warns and names the remediation (untrack and rotate).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given .deft/pre-pr-execution-private/hmac-secret is tracked in the index, when doctor runs, then it returns a warning that names untracking with git rm --cached and rotating the secret."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e504aa1a57ff2b68a542231712ebfbac156c4092",
+          "recorded_at": "2026-11-16T03:54:37Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Do not untrack it silently.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given the secret file is tracked, when doctor runs, then the git index is unchanged after doctor returns; a test asserts no untrack command runs."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e504aa1a57ff2b68a542231712ebfbac156c4092",
+          "recorded_at": "2026-11-16T03:54:37Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Acceptance - After `directive upgrade` on a consumer checkout, `git check-ignore` reports all four paths as ignored.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a consumer checkout after directive upgrade, when git check-ignore runs on all four paths, then it reports each as ignored."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e504aa1a57ff2b68a542231712ebfbac156c4092",
+          "recorded_at": "2026-11-16T03:54:37Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A test in `packages/core/src/init-deposit/` asserts the baseline contains them.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When npx vitest run packages/core/src/init-deposit/gitignore.test.ts runs, then the test that asserts the baseline contains the four entries passes."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e504aa1a57ff2b68a542231712ebfbac156c4092",
+          "recorded_at": "2026-11-16T03:54:37Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -359,9 +437,36 @@
           "#6271"
         ],
         "acceptance_criteria_justification": "The ingest admitted every sentence of the issue body, and verify:ac requires each admitted sentence as a clause (#5055), so the brief has one clause and one item per sentence, each bound to gitignore.ts, gitignore.test.ts or checks.test.ts. The issue title is the one confession."
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "81a1aea0d225fc0d1e088db8286d70b6af19e962",
+        "prNumber": 6300,
+        "prBase": "master",
+        "mergeCommit": "e504aa1a57ff2b68a542231712ebfbac156c4092",
+        "deliveryBranch": "master",
+        "deliveryCommit": "cfa3ce1fcae5d661ed79baab1fd85c04cc244707",
+        "verifiedAt": "2026-11-16T03:54:37Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "operator-attested",
+        "attestationGrantId": "grant-20261116034327-dd5264"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T03:54:37Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T03:54:37Z"
       }
     },
     "id": "github.issue.6373189286",
-    "updated": "2026-11-13T15:09:10Z"
+    "updated": "2026-11-16T03:54:37Z"
   }
 }
