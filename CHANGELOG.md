@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - `git commit` of planning files only (`docs/design/*.md`, `docs/decisions/*.md`, proposed/pending/completed/cancelled briefs, decision records, `CHANGELOG.md`, a shape-checked `.deft/plan-sequence.json`) is no longer denied for want of a ready scope. Recovery: upgrade, commit these before `scope:promote`, then commit root plan/specification/PROJECT-DEFINITION and `active/` changes separately; any other path keeps today's rules (#5839).
+- Ordered plan `batching_allowed: true` was stored but had no effect, so an approved parallel wave ran one entry at a time (a misleading setting and lost throughput, not a security issue). Entries now take a `batch` label: the push plan gate and `swarm:launch` admit every pending entry of the current batch, `plan-sequence:current` lists it, and `set` refuses unlabeled or split batches. `swarm:launch` now checks its real roster, solo included, against the derived current entry or batch while a plan file is present (#4433).
 
 ### Removed
 
