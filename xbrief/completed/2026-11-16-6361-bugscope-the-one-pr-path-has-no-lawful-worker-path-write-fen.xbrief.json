@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6361",
-    "updated": "2026-11-16T04:06:33Z"
+    "updated": "2026-11-16T18:53:43Z"
   },
   "plan": {
     "title": "bug(scope): the one-PR path has no lawful worker path (write fence reads the merge base; swarm:launch needs origin; no task alias)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The #6273 one-PR path has no lawful worker path: the #5656 write fence reads a brief's file_scope only from the merge base, so a one-PR brief gets an empty fence; swarm:launch refuses a brief absent from origin/<deliveryBranch>; and tasks/policy.yml has no set-one-pr-scope-proof alias. This story lets the existing one-PR mint proof (evaluateOnePrScopeProofGate plus evaluateMintLevelRecord) stand in for the merge-base read in one shared fence loader and in the swarm:launch origin probe, adds the task alias and corrects the control wording. It adds no new gate, command, approval or stop; the bound contract is successor lean comment 6906450838 on #6361, with the verified-claims table in comment 6906496136.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6361",
@@ -21,265 +21,496 @@
       {
         "id": "clause.1",
         "title": "One fence loader.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the fence loader, when any caller asks for a story fence, then it returns one shared loader result through the existing loadStoryWriteFence seam."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.2",
         "title": "Behind the existing `loadStoryWriteFence` seam, the loader returns the merge-base brief's fence when the brief exists on the merge base (unchanged).",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a brief that exists on the merge base, when the fence loads, then it returns the merge-base file_scope exactly as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.3",
         "title": "When the brief is absent there, it returns the working-tree brief's `file_scope` only if `evaluateOnePrScopeProofGate` (PROJECT-DEFINITION at the fence's own resolved merge-base SHA against the head copy) returns `mint` and `evaluateMintLevelRecord` admits the head record, intent preimage and brief.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a brief absent from the merge base, when the merge-base level is mint and evaluateMintLevelRecord admits the head record, intent preimage and brief, then the fence returns the working-tree file_scope."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.4",
         "title": "Any other result is today's empty fence.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a brief absent from the merge base and any gate or record result other than an admit, when the fence loads, then it returns today's empty fence."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.5",
         "title": "Every caller uses this one loader: `hooks/scope.ts` positive allow and the eligible partition, and the three defaults in `hooks/dispatcher.ts`.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the scope.ts positive allow, the eligible partition and the three dispatcher defaults, when each loads a fence, then each calls the one shared loader and returns the same fence."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.6",
         "title": "No stale admission.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a mint-admitted fence, when the head brief, record, intent preimage or PROJECT-DEFINITION changes, then the next load returns the changed result and never a stale admit."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.7",
         "title": "A mint-admitted fence is not served from the memo keyed on the merge-base SHA.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a mint-admitted fence, when the fence loads twice at the same merge-base SHA, then the second load does not return a memo keyed on that SHA alone."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.8",
         "title": "It is evaluated again on each call, or keyed on the digests of the head brief, record, intent preimage and PROJECT-DEFINITION.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a mint-admitted fence, when it loads, then it is evaluated again on each call or keyed on the head brief, record, intent preimage and PROJECT-DEFINITION digests."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.9",
         "title": "The hook path fails closed and never throws.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a loader error or unreadable record, when the hook path loads the fence, then it fails closed with a deny and never throws."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.10",
         "title": "The record stays protected.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a mint-admitted file_scope, when Write or Edit targets the approved-scope record pair, then the hook rejects the write."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.11",
         "title": "The always-on protected-store deny on `.deft/approved-scope/` keeps running before story allow, so a mint-admitted `file_scope` that lists the record pair does not admit Write or Edit to those files.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a mint-admitted file_scope that lists the record pair, when Write or Edit targets those files, then the protected-store deny runs before story allow and rejects the write."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.12",
         "title": "Honest deny text.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a merge-base level of mint and a brief absent from the merge base, when the #5656 deny fires, then it shows the mint reject reason."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.13",
         "title": "When the merge-base level is `mint` and the selected brief is absent from the merge base, the #5656 deny prints the mint reject reason and names `scope:record-approved-scope`, not promote or activate.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a merge-base level of mint and a selected brief absent from the merge base, when the #5656 deny fires, then the text names scope:record-approved-scope and not promote or activate."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.14",
         "title": "Launch from the pushed one-PR branch.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a one-PR brief on a pushed branch, when swarm:launch runs with that branch as --base-branch, then the launch proceeds from that branch."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.15",
         "title": "When a selected brief is not a blob on `origin/<deliveryBranch>`, `swarm:launch` accepts it if it is a blob on `origin/<base-branch>` (the pushed one-PR branch passed as `--base-branch`) and the same two evaluators admit it at that ref's tip against its merge base with the delivery branch.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a brief that is not a blob on origin/<deliveryBranch>, when it is a blob on origin/<base-branch> and both evaluators admit it at that tip, then the origin probe returns present."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.16",
         "title": "The dest worktree is created from that ref.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an accepted one-PR brief, when swarm:launch creates the dest worktree, then the worktree is created from the origin/<base-branch> ref."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.17",
         "title": "No brief or record bytes are copied.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an accepted one-PR brief, when swarm:launch creates the dest worktree, then it copies no brief or record bytes from the operator working tree."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.18",
         "title": "Finalize and fresh-clone rules of #4714 are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a brief already on origin/<deliveryBranch>, when swarm:launch and finalize run, then the #4714 finalize and fresh-clone rules behave as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.19",
         "title": "Task alias.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given this repo, when an operator runs task policy:set-one-pr-scope-proof, then the task forwards to the deft verb and returns its exit code."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.20",
         "title": "`tasks/policy.yml` gains `set-one-pr-scope-proof`, in the same shape as `set-spec-guard-enforcement`.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given tasks/policy.yml, when the alias test reads it, then set-one-pr-scope-proof forwards via engine:invoke in the set-spec-guard-enforcement shape."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.21",
         "title": "Control wording.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a mint-level admit without a human merge, when verify:scope-provenance prints the control line, then it names the local mint gate and the protected-store deny."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.22",
         "title": "`MINT_LEVEL_LOCAL_CONTROL_LINE` and `content/docs/scope-provenance.md` name the control without a human merge as the local mint gate plus the protected-store deny on `.deft/approved-scope/`, and say that the shell-write residual (#3597, #3595) also reaches local scope admission.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given MINT_LEVEL_LOCAL_CONTROL_LINE and content/docs/scope-provenance.md, when read, then both name the local mint gate plus the protected-store deny and state the shell-write residual (#3597, #3595) reaches local scope admission."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.23",
         "title": "Given a running one-PR brief that is absent from the merge base and covered by a valid mint, when a worker edits a path inside its `file_scope` with Write or Edit, then the write fence admits the edit.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a running one-PR brief that is absent from the merge base and covered by a valid mint, when a worker edits a path inside its `file_scope` with Write or Edit, then the write fence admits the edit."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.24",
         "title": "Given the same brief, when an edit targets a path outside its `file_scope`, then the fence refuses the edit.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the same brief, when an edit targets a path outside its `file_scope`, then the fence refuses the edit."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.25",
         "title": "Given the same brief, when the brief is edited after the mint, then the next Write is refused with the mint reject reason.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the same brief, when the brief is edited after the mint, then the next Write is refused with the mint reject reason."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.26",
         "title": "Given a mint-admitted `file_scope` that lists `.deft/approved-scope/<plan-id>.json`, when Write or Edit targets that file, then the write is refused.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a mint-admitted `file_scope` that lists `.deft/approved-scope/<plan-id>.json`, when Write or Edit targets that file, then the write is refused."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.27",
         "title": "Given a merge base whose one-PR level is off, when a brief is absent from the merge base, then the fence result is the same as today.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a merge base whose one-PR level is off, when a brief is absent from the merge base, then the fence result is the same as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.28",
         "title": "Given a head that changes `onePrScopeProof` or `requireHumanMerge`, when the fence loads, then the head brief is not admitted.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a head that changes `onePrScopeProof` or `requireHumanMerge`, when the fence loads, then the head brief is not admitted."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.29",
         "title": "Given a brief that exists on the merge base, when the fence loads, then the merge-base `file_scope` is used and the head copy is ignored.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a brief that exists on the merge base, when the fence loads, then the merge-base `file_scope` is used and the head copy is ignored."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.30",
         "title": "Given a mint-admitted brief, when implement spawn and brief selection run, then they reach the same admit as Write.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a mint-admitted brief, when implement spawn and brief selection run, then they reach the same admit as Write."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.31",
         "title": "Given a one-PR brief on a pushed branch and absent from `origin/<deliveryBranch>`, when `swarm:launch` runs with that branch as `--base-branch`, then the launch proceeds and the dest worktree holds the brief and the record pair.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a one-PR brief on a pushed branch and absent from `origin/<deliveryBranch>`, when `swarm:launch` runs with that branch as `--base-branch`, then the launch proceeds and the dest worktree holds the brief and the record pair."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.32",
         "title": "Given a brief that is on neither ref, when `swarm:launch` runs, then the launch refuses as today.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a brief that is on neither ref, when `swarm:launch` runs, then the launch refuses as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.33",
         "title": "`task policy:set-one-pr-scope-proof` runs the `deft` verb in this repo.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given this repo, when task policy:set-one-pr-scope-proof runs, then it forwards to the deft policy set-one-pr-scope-proof verb and returns that verb's exit code."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+          "recorded_at": "2026-11-16T18:53:43Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -974,9 +1205,39 @@
           "#4714"
         ],
         "acceptance_criteria_justification": "33 clauses: #5055 requires every admitted Bound-remedy sentence (22, lean 6906450838) to stay a same-text clause, and the lean's 11 Acceptance Criteria (a superset of the issue body's 4) are separate observable behaviours, each mapped to its own test file."
+      },
+      "productPullRequest": 6420,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ebede7d1140bf3e87b2cca28ef4520b86b8c302e",
+        "prNumber": 6420,
+        "prBase": "master",
+        "mergeCommit": "a8dc45ee2ce2084e3afd59c2853f53f41fdb320d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "4e3190d437a1be321b84b905571c054b999c3423",
+        "verifiedAt": "2026-11-16T18:53:43Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6401
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T18:53:43Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T18:53:43Z"
       }
     },
     "id": "github.issue.6413052919",
-    "updated": "2026-11-16T04:06:33Z"
+    "updated": "2026-11-16T18:53:43Z"
   }
 }
