@@ -40,7 +40,13 @@ describe("changedFilesVsBase enumeration failures (#4980)", () => {
   });
 
   function mockHealthyUntil(
-    failAt: "diff-range" | "diff-head" | "ls-files" | "spawn-diff" | "signal-diff",
+    failAt:
+      | "diff-range"
+      | "no-merge-base"
+      | "merge-base-spawn"
+      | "ls-files"
+      | "spawn-diff"
+      | "signal-diff",
   ) {
     spawnSyncMock.mockImplementation((_cmd: string, args: string[]) => {
       const a = args ?? [];
@@ -50,7 +56,18 @@ describe("changedFilesVsBase enumeration failures (#4980)", () => {
       if (a[0] === "rev-parse" && a.includes("--verify")) {
         return gitOk("");
       }
-      if (a[0] === "diff" && a.includes("--name-only") && a.some((x) => x.includes("..."))) {
+      if (a[0] === "merge-base") {
+        if (failAt === "no-merge-base") return gitStatus(1);
+        if (failAt === "merge-base-spawn") {
+          return {
+            status: null,
+            stdout: "",
+            error: Object.assign(new Error("spawn git EIO"), { code: "EIO" }),
+          };
+        }
+        return gitOk("mbsha\n");
+      }
+      if (a[0] === "diff" && a.includes("--name-only")) {
         if (failAt === "diff-range") return gitStatus(128);
         if (failAt === "spawn-diff") {
           return {
@@ -69,10 +86,6 @@ describe("changedFilesVsBase enumeration failures (#4980)", () => {
         }
         return gitOk("src/ok.ts\n");
       }
-      if (a[0] === "diff" && a.includes("--name-only") && a.includes("HEAD")) {
-        if (failAt === "diff-head") return gitStatus(1);
-        return gitOk("");
-      }
       if (a[0] === "ls-files") {
         if (failAt === "ls-files") return gitStatus(2);
         return gitOk("");
@@ -90,12 +103,30 @@ describe("changedFilesVsBase enumeration failures (#4980)", () => {
     expect(result.message).toMatch(/diff --name-only/);
   });
 
-  it("returns exit 2 when git diff HEAD enumeration fails", () => {
-    mockHealthyUntil("diff-head");
+  it("diffs the working tree against the merge base, not a range (#6336)", () => {
+    mockHealthyUntil("ls-files");
+    evaluateClassChecks("/tmp/proj", baseOpts());
+    const diffCalls = spawnSyncMock.mock.calls
+      .map((call) => (call[1] as string[]) ?? [])
+      .filter((a) => a[0] === "diff");
+    expect(diffCalls).toEqual([["diff", "--name-only", "mbsha"]]);
+  });
+
+  it("falls back to the base ref when there is no merge base (#6336)", () => {
+    mockHealthyUntil("no-merge-base");
+    const result = evaluateClassChecks("/tmp/proj", baseOpts());
+    const diffCalls = spawnSyncMock.mock.calls
+      .map((call) => (call[1] as string[]) ?? [])
+      .filter((a) => a[0] === "diff");
+    expect(diffCalls).toEqual([["diff", "--name-only", "origin/master"]]);
+    expect(result.exitCode).not.toBe(2);
+  });
+
+  it("returns exit 2 when the merge-base spawn fails (#6336)", () => {
+    mockHealthyUntil("merge-base-spawn");
     const result = evaluateClassChecks("/tmp/proj", baseOpts());
     expect(result.exitCode).toBe(2);
     expect(result.message).toMatch(/git failed/i);
-    expect(result.message).toMatch(/diff --name-only HEAD/);
   });
 
   it("returns exit 2 when git ls-files enumeration fails", () => {

@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - After a context compaction, the write hook restores the ritual clock for the session that owns the live lease and the ritual, and denies one call with the alignment lines instead of every write until a manual re-arm. Other stale-ritual denials print their recovery command with the caller's `--session-id` (#6279).
 
 ### Fixed
+- `verify:class-checks` and `verify:evaluator-surface --base-ref` read one candidate tree: the working tree against the merge base, plus untracked files. A reverted protected path passes before its commit, and base-only commits stay out (#6336).
 
 ### Removed
 
