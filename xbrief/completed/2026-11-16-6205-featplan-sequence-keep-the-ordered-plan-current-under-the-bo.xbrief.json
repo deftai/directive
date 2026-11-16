@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6205",
-    "updated": "2026-11-16T04:27:52Z"
+    "updated": "2026-11-16T07:31:17Z"
   },
   "plan": {
     "title": "feat(plan-sequence): keep the ordered plan current under the bound pre-push gate (advance on scope:complete, completion PR inherits entry, sanctioned unplanned-fix insert)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Under the bound pre-push gate the ordered plan needs hand edits after almost every story: a finished entry stays current, and an unplanned fix has no sanctioned way in. This story derives the plan cursor from completed briefs wherever the plan is read, so the plan moves on when the completed brief arrives. It adds `plan-sequence:insert`, which needs a single-use operator grant minted at a terminal, and guards replace and clear with the same grant class when `plan.policy.requireBoundPrePrPush` is true (operator ruling 6906744687). Completion-PR admission is out of scope and carried on #6303.",
       "UserStory": "As an operator running the bound pre-push gate, I want the ordered plan to move on by itself when a story's brief is completed, and a sanctioned, attributable way to insert an unplanned fix, so that I stop hand-editing `.deft/plan-sequence.json` after every story.",
@@ -21,137 +21,256 @@
       {
         "id": "clause.1",
         "title": "Derived cursor: wherever the plan is read (`plan-sequence:current`, `verify:plan-sequence`, every plan verb before it writes), an entry is finished when it is marked completed or when its lifecycle origin, matched by the issue and story-id keys of `resolvePlanEntryLifecycleOrigin` (never by title alone), is a brief in `completed/` in that checkout.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a pending plan entry whose issue or story id matches a brief in `completed/` of the same checkout, when `plan-sequence:current`, `verify:plan-sequence` or a plan verb reads the plan, then that entry counts as finished; a title-only match does not."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "347085d0d6566698825a65ce8a455e07e7db87d2",
+          "recorded_at": "2026-11-16T07:31:17Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.2",
         "title": "The effective current entry is the first pending entry from the stored cursor on that is not finished; when none remains the plan is effectively exhausted.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a stale stored cursor on a finished entry, when the plan is read, then the effective current entry is the next unfinished pending entry, or the plan reads as exhausted when none remains."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "347085d0d6566698825a65ce8a455e07e7db87d2",
+          "recorded_at": "2026-11-16T07:31:17Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.3",
         "title": "An entry whose origin is in `cancelled/` stops with `terminal-lifecycle`, as #4129 does today.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a pending entry whose origin is in `cancelled/`, when the plan is read, then the reader stops on that entry with code `terminal-lifecycle`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "347085d0d6566698825a65ce8a455e07e7db87d2",
+          "recorded_at": "2026-11-16T07:31:17Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.4",
         "title": "An entry with no lifecycle origin follows the stored cursor.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a task, phase, checklist or review entry with no issue, when the plan is read, then it stays current until it is advanced by hand."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "347085d0d6566698825a65ce8a455e07e7db87d2",
+          "recorded_at": "2026-11-16T07:31:17Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.5",
         "title": "No second record: `scope:complete` and `scope:cancel` never depend on the plan and are never rolled back for it.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an unreadable or unwritable plan, when `scope:complete` runs, then the completion still succeeds and is not rolled back; `scope:cancel` does not read the plan."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "347085d0d6566698825a65ce8a455e07e7db87d2",
+          "recorded_at": "2026-11-16T07:31:17Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.6",
         "title": "After a completion, `scope:complete` writes the stored cursor forward only when its own checkout holds an untracked plan, never a tracked plan or another checkout's plan, and prints one named line (`advanced`, `derived-only`, `no-sequence`, `no-entry`, `not-current`, `store-failed`).",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a completion, then the stored cursor is written only for an untracked plan in the same checkout, and exactly one line names `advanced`, `derived-only`, `no-sequence`, `no-entry`, `not-current` or `store-failed`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "347085d0d6566698825a65ce8a455e07e7db87d2",
+          "recorded_at": "2026-11-16T07:31:17Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.7",
         "title": "A failed write changes nothing else, because readers derive.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a plan write that fails during completion, then the line reads `store-failed`, the completed brief stays in `completed/`, and readers still derive the next entry."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "347085d0d6566698825a65ce8a455e07e7db87d2",
+          "recorded_at": "2026-11-16T07:31:17Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.8",
         "title": "One advance owner: the CLEAN-time `plan-sequence:advance` step leaves the review-cycle and pre-pr skills for entries that have a brief.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the pre-pr and review-cycle skills, then neither tells the agent to run `plan-sequence:advance` at CLEAN for an entry that has a brief."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "347085d0d6566698825a65ce8a455e07e7db87d2",
+          "recorded_at": "2026-11-16T07:31:17Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.9",
         "title": "The #4129 remediation text keeps the operator stop for the cancelled case only.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a terminal-lifecycle message, then the stop-and-ask-the-operator text appears for a cancelled or failed origin and not for a completed one."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "347085d0d6566698825a65ce8a455e07e7db87d2",
+          "recorded_at": "2026-11-16T07:31:17Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.10",
         "title": "Approved insert: `plan-sequence:insert` adds one pending entry at the effective cursor or at a named later index.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a matching grant, when `plan-sequence:insert` runs, then one pending entry is added at the effective cursor or at the named later index, and an earlier index is refused."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "347085d0d6566698825a65ce8a455e07e7db87d2",
+          "recorded_at": "2026-11-16T07:31:17Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.11",
         "title": "It needs a human-origin grant minted on a TTY through the existing `authz:grant` machinery (one new template), bound to the repository, `sequence_id`, generation, entry kind and id, and position, and usable once.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the `plan-sequence-approval` template, then its grant is minted only through `authz:grant` human presence, binds repository, sequence_id, generation, entry kind and id and position, and is spent on first use."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "347085d0d6566698825a65ce8a455e07e7db87d2",
+          "recorded_at": "2026-11-16T07:31:17Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.12",
         "title": "It writes an approval row (entry id, grant id, time) under one new closed top-level key; entry keys are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an approved insert, then the plan carries one `insert_approvals` row with entry_id, grant_id and approved_at, the closed-shape check admits it, and entry keys are unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "347085d0d6566698825a65ce8a455e07e7db87d2",
+          "recorded_at": "2026-11-16T07:31:17Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.13",
         "title": "`verify:plan-sequence` prints that row for the current entry.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an inserted entry that is current, when `verify:plan-sequence` matches it, then the output shows its approval row in text and JSON."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "347085d0d6566698825a65ce8a455e07e7db87d2",
+          "recorded_at": "2026-11-16T07:31:17Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.14",
         "title": "No unapproved chain: `plan-sequence:set` in a checkout that already holds a plan file (live or exhausted) and `plan-sequence:clear` need the same grant class.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given `plan.policy.requireBoundPrePrPush` true and an existing plan file, when `set` or `clear` runs without a matching grant, then it refuses; with it false or absent, no grant is needed (ruling 6906744687)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "347085d0d6566698825a65ce8a455e07e7db87d2",
+          "recorded_at": "2026-11-16T07:31:17Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.15",
         "title": "A first `set` in a checkout with no plan file is unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given no plan file, when `plan-sequence:set` runs under any policy, then it writes the plan with no grant."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "347085d0d6566698825a65ce8a455e07e7db87d2",
+          "recorded_at": "2026-11-16T07:31:17Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.16",
         "title": "Tests: a completed brief with a stale stored cursor; a store failure during completion; a tracked plan (never written by completion); a linked worktree with no plan; a cancelled origin; a title-only match (not finished); a manual advance after a derived advance; an insert without a grant, with a grant for another entry or position, and with a reused grant; advance to exhaustion then `set` without a grant; `clear` without a grant.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the test suite, then each listed case has a named regression test."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "347085d0d6566698825a65ce8a455e07e7db87d2",
+          "recorded_at": "2026-11-16T07:31:17Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.17",
         "title": "One disposable consumer fixture with the bound pre-push gate enrolled runs complete, next-story push, approved insert and fix push through the real pre-PR controller and pre-push gate.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a disposable git fixture with `requireBoundPrePrPush: true`, then completing a story admits the next story's push, an unplanned fix push is refused before insert and admitted after an approved insert, all through the real pre-PR controller and pre-push gate."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "347085d0d6566698825a65ce8a455e07e7db87d2",
+          "recorded_at": "2026-11-16T07:31:17Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -1031,9 +1150,39 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "93475839d787fcd01d2b25dcdb034324b38b7e41205015341eb796f7c06c3e47"
+      },
+      "productPullRequest": 6381,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "a0875791f5aeea361abda9c6ca3922f1c8b74281",
+        "prNumber": 6381,
+        "prBase": "master",
+        "mergeCommit": "347085d0d6566698825a65ce8a455e07e7db87d2",
+        "deliveryBranch": "master",
+        "deliveryCommit": "b39b91aeeb7d9459d34b431a4371b039435adf0f",
+        "verifiedAt": "2026-11-16T07:31:17Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6368
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T07:31:17Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T07:31:17Z"
       }
     },
     "id": "github.issue.6339767609",
-    "updated": "2026-11-16T04:27:52Z"
+    "updated": "2026-11-16T07:31:17Z"
   }
 }
