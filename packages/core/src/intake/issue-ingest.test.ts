@@ -18,7 +18,10 @@ import {
   DesignCritiqueIngestBlockedError,
   hashIssueBodyBytes,
 } from "../design-critique/completed-arc-record.js";
+import { hashHarvestIdentity } from "../design-critique/pain-audit-follow-through-gate.js";
 import { INTENDED_PLACEMENT_SCHEMA } from "../preflight/intended-placement.js";
+import { extractAdmittedSourceSentencesFromText } from "../product-first-done-gate/acceptance.js";
+import { evaluateVerifyAcFromPlan } from "../product-first-done-gate/evaluate.js";
 import type { CompletedProcess } from "../scm/call.js";
 import * as scm from "../scm/call.js";
 import { clauseKeyedItemId, persistClauseKeyedPendingItems } from "../scope/acceptance-evidence.js";
@@ -50,6 +53,7 @@ import {
   stripRenderedIssueHeader,
 } from "./issue-ingest.js";
 import { extractBoundRemedyHarvest } from "./markdown-scanners.js";
+import { readSpecPathSourceRecord, resolveSpecPathLiveIdentities } from "./spec-path-source.js";
 
 /** Tester 1 Issue A body from nheroux-bit/show-env-report-uat#1 (#4671). */
 const TESTER1_ISSUE_A_BODY = [
@@ -170,10 +174,13 @@ describe("buildIssueVbrief", () => {
       "https://github.com/owner/repo",
     );
     const plan = vbrief.plan as Record<string, unknown>;
-    expect(plan.items).toEqual([
-      { id: "clause.1", title: "Widget renders", status: "proposed" },
-      { id: "clause.2", title: "Spec updated", status: "completed" },
+    expect(plan.items).toMatchObject([
+      { title: "Widget renders", status: "proposed" },
+      { title: "Spec updated", status: "completed" },
     ]);
+    // #6333 item 7: one clause per sentence-list entry, same text, in order.
+    const acceptance = plan.acceptance as { sentences: string[]; clauses: { text: string }[] };
+    expect(acceptance.clauses.map((clause) => clause.text)).toEqual(acceptance.sentences);
     expect((plan.narratives as Record<string, string>).Overview).toContain("Acceptance Criteria");
     const metadata = plan.metadata as {
       intended_placement?: { schema?: string; files?: unknown };
@@ -205,15 +212,20 @@ describe("buildIssueVbrief", () => {
       none_stated: boolean;
       source_rung: string;
       quality_notice?: string;
+      sentences: string[];
       clauses: { text: string }[];
     };
     expect(acceptance.none_stated).toBe(true);
     expect(acceptance.source_rung).toBe("derived");
-    expect(acceptance.clauses.map((c) => c.text)).toEqual([
-      "The report is valid JSON.",
-      "It contains `os`, `nodeVersion`, and `cwd`.",
-      "It contains a `generatedAt` field with the current time in ISO 8601 format.",
-    ]);
+    // #6333 item 7: every sentence-list entry is a clause, the item sentences included.
+    expect(acceptance.clauses.map((c) => c.text)).toEqual(acceptance.sentences);
+    expect(acceptance.clauses.map((c) => c.text)).toEqual(
+      expect.arrayContaining([
+        "The report is valid JSON.",
+        "It contains `os`, `nodeVersion`, and `cwd`.",
+        "It contains a `generatedAt` field with the current time in ISO 8601 format.",
+      ]),
+    );
     expect(acceptance.quality_notice ?? "").not.toContain("plan.items is empty after body harvest");
     expect(formatIngestCreatedMessage("proposed", "issue-a.xbrief.json", plan)).toBe(
       "CREATED proposed/issue-a.xbrief.json",
@@ -277,13 +289,16 @@ describe("buildIssueVbrief", () => {
       none_stated: boolean;
       source_rung: string;
       commands: unknown[];
+      sentences: string[];
       clauses: { id: number; text: string; artifact_path: string | null }[];
     };
     expect(acceptance.none_stated).toBe(true);
     expect(acceptance.source_rung).toBe("derived");
     expect(acceptance.commands).toEqual([]);
-    expect(acceptance.clauses).toHaveLength(3);
-    expect(acceptance.clauses.map((c) => c.id)).toEqual([1, 2, 3]);
+    expect(acceptance.clauses).toHaveLength(acceptance.sentences.length);
+    expect(acceptance.clauses.map((c) => c.id)).toEqual(
+      acceptance.sentences.map((_, index) => index + 1),
+    );
     // #3835: an ingested clause carries no artifact binding — the issue body and
     // its comment thread are untrusted, so they may not select a file to read.
     expect(acceptance.clauses.every((c) => c.artifact_path === null)).toBe(true);
@@ -334,7 +349,8 @@ describe("buildIssueVbrief", () => {
       expect(stamp?.schema_version).toBe(1);
       expect(stamp?.payload.rung).toBe("derived");
       expect(stamp?.payload.none_stated).toBe(true);
-      expect(stamp?.payload.clause_count).toBe(1);
+      // #6333 item 7: title sentence plus the body sentence.
+      expect(stamp?.payload.clause_count).toBe(2);
     } finally {
       if (prev === undefined) {
         delete process.env.DEFT_RUN_SUMMARY_PATH;
@@ -3403,5 +3419,415 @@ describe("ingestOne residual mode (#5177 Prefer-A)", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe("ingested briefs are launch-ready (#6333)", () => {
+  const PLAIN =
+    "## In plain English\n\nThe problem was hand-built acceptance clauses.\n\n" +
+    "The accepted design harvests both lists of the lean.\n\n";
+  const STOP1 = 7300000001;
+  const LEAN = 7300000002;
+  const AUDIT = 7300000003;
+  const TABLE = 7300000004;
+  const SYNTHESIS = 7300000005;
+  const BOUND = ["Harvest both lists. Keep the list order.", "Record the source of the harvest."];
+  const CRITERIA = [
+    "Given a lean, when it is ingested, then both lists are harvested.",
+    "Given a brief, then it records the source.",
+  ];
+
+  function leanBody(options: { criteria?: readonly string[]; extra?: string } = {}): string {
+    const criteria = options.criteria ?? CRITERIA;
+    return (
+      `${PLAIN}**Lean:** bind.\n\nSpec-path: Bound remedy on this lean\n\nrelieves: P1\n\n` +
+      `## Bound remedy\n${BOUND.map((t, i) => `${i + 1}. ${t}`).join("\n")}\n\n` +
+      (criteria.length > 0
+        ? `## Acceptance Criteria\n${criteria.map((t) => `- ${t}`).join("\n")}\n`
+        : "") +
+      (options.extra ?? "")
+    );
+  }
+
+  function auditBody(lean: string, digest: string | null = hashHarvestIdentity(lean)): string {
+    return (
+      "role: critic\n\naudit-targets: pain-P1\nfinding-classes: footnote\nharvest-changed: false\n" +
+      (digest === null ? "" : `harvest-digest: sha256:${digest}\n`)
+    );
+  }
+
+  function arc(lean: string, audit: string = auditBody(lean)): { id: number; body: string }[] {
+    return [
+      {
+        id: STOP1,
+        body: "role: parent\n\ndesign-critique: warranted, because hand work.\n\npain: P1\n",
+      },
+      { id: LEAN, body: lean },
+      { id: AUDIT, body: audit },
+      { id: TABLE, body: "## Verified-claims table\n" },
+      {
+        id: SYNTHESIS,
+        body:
+          `${PLAIN}design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n` +
+          `Bound contract: successor lean ${LEAN}, verified-claims table ${TABLE}.\n`,
+      },
+    ];
+  }
+
+  function issue(number: number, body: string, thread: { id: number; body: string }[] = []) {
+    return {
+      number,
+      title: `issue ${number}`,
+      html_url: `https://github.com/o/r/issues/${number}`,
+      body,
+      labels: [{ name: "design-critique:ingest-ready" }],
+      [ISSUE_COMMENT_THREAD_KEY]: thread,
+    };
+  }
+
+  function withRoot<T>(fn: (root: string, xbriefDir: string) => T): T {
+    const root = mkdtempSync(join(tmpdir(), "ingest-6333-"));
+    const xbriefDir = join(root, "xbrief");
+    mkdirSync(xbriefDir, { recursive: true });
+    try {
+      return fn(root, xbriefDir);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  /** scmCall that serves one parent issue and its comment thread over REST. */
+  function parentScm(parent: number, body: string, thread: { id: number; body: string }[]) {
+    return (_source: string, _verb: string, args: readonly string[]): CompletedProcess => {
+      const path = args[0] ?? "";
+      if (path === `repos/o/r/issues/${parent}`) {
+        return completed(
+          JSON.stringify({ number: parent, title: "parent", body, labels: [] }),
+          "",
+          0,
+        );
+      }
+      if (path.startsWith(`repos/o/r/issues/${parent}/comments`)) {
+        return completed(JSON.stringify(thread), "", 0);
+      }
+      return completed("[]", "", 0);
+    };
+  }
+
+  function ingest(
+    root: string,
+    xbriefDir: string,
+    input: Record<string, unknown>,
+    scmCall: (source: string, verb: string, args: readonly string[]) => CompletedProcess = () =>
+      completed("[]", "", 0),
+  ) {
+    return ingestOne(input, {
+      vbriefDir: xbriefDir,
+      status: "proposed",
+      repoUrl: "https://github.com/o/r",
+      cwd: root,
+      scmCall,
+      printIngestAdvisory: false,
+    });
+  }
+
+  function readPlan(path: string | null): Record<string, unknown> {
+    return (JSON.parse(readFileSync(path as string, "utf8")) as { plan: Record<string, unknown> })
+      .plan;
+  }
+
+  function verify(
+    root: string,
+    plan: Record<string, unknown>,
+    thread: { id: number; body: string }[],
+    body = "",
+  ) {
+    return evaluateVerifyAcFromPlan(plan, {
+      projectRoot: root,
+      captureFromNarratives: false,
+      hasSuiteFloor: true,
+      bankOnPass: false,
+      reuseMode: "never",
+      admittedSourceMergeBase: null,
+      fetchAdmittedSourceText: () => ({ ok: true, text: body }),
+      fetchSpecPathLiveIdentities: (record) =>
+        resolveSpecPathLiveIdentities({ comments: thread, record }),
+    });
+  }
+
+  it("harvests Bound remedy items then Acceptance Criteria items, one clause and pin entry each, ids in list order", () => {
+    withRoot((root, xbriefDir) => {
+      const lean = leanBody();
+      const thread = arc(lean);
+      const [result, path] = ingest(root, xbriefDir, issue(6333, "Body prose.", thread));
+      expect(result).toBe("created");
+      const plan = readPlan(path);
+      const titles = [...BOUND, ...CRITERIA];
+      const items = plan.items as { id: string; title: string }[];
+      expect(items.map((item) => item.title)).toEqual(titles);
+      expect(items.map((item) => item.id)).toEqual(titles.map((_, i) => clauseKeyedItemId(i + 1)));
+      const acceptance = plan.acceptance as Record<string, unknown>;
+      const clauses = acceptance.clauses as { id: number; text: string }[];
+      expect(clauses.map((clause) => clause.text)).toEqual(titles);
+      expect(clauses.map((clause) => clause.id)).toEqual([1, 2, 3, 4]);
+      // A two-sentence item is one plan item, one clause and one pin entry.
+      expect(acceptance.admitted_source_sentences).toEqual(titles);
+      expect(acceptance.sentences).toEqual(titles);
+      expect(acceptance.sentences).not.toContain("issue 6333");
+      const record = readSpecPathSourceRecord(plan);
+      expect(record).toEqual({
+        repo: "o/r",
+        issue: 6333,
+        leanCommentId: LEAN,
+        harvestDigest: hashHarvestIdentity(lean),
+        slice: null,
+      });
+      // verify:ac with no hand edit: no #3550 and no #5055 finding.
+      const verdict = verify(root, plan, thread);
+      expect(verdict.cause).toBeUndefined();
+      expect(verdict.ok).toBe(true);
+      expect(verdict.unmappedSentenceCount).toBe(0);
+    });
+  });
+
+  it("does not harvest a fenced Acceptance Criteria example", () => {
+    withRoot((root, xbriefDir) => {
+      const lean = leanBody({
+        criteria: [],
+        extra: "\n```\n## Acceptance Criteria\n- Fenced sample.\n```\n",
+      });
+      const [result, path] = ingest(root, xbriefDir, issue(6334, "Body.", arc(lean)));
+      expect(result).toBe("created");
+      expect((readPlan(path).items as { title: string }[]).map((item) => item.title)).toEqual(
+        BOUND,
+      );
+    });
+  });
+
+  it("refuses when the Acceptance Criteria list is edited after its pain-audit", () => {
+    withRoot((root, xbriefDir) => {
+      const audited = leanBody();
+      const edited = leanBody({
+        criteria: [...CRITERIA, "Given an edit, then the audit stops counting."],
+      });
+      expect(() =>
+        ingest(root, xbriefDir, issue(6335, "Body.", arc(edited, auditBody(audited)))),
+      ).toThrow(/no targeting audit counts for lean/);
+      expect(readdirSync(join(xbriefDir))).toEqual([]);
+    });
+  });
+
+  it("refuses a lean with an Acceptance Criteria list whose only pain-audit records no digest", () => {
+    withRoot((root, xbriefDir) => {
+      const lean = leanBody();
+      expect(() =>
+        ingest(root, xbriefDir, issue(6336, "Body.", arc(lean, auditBody(lean, null)))),
+      ).toThrow(DesignCritiqueIngestBlockedError);
+      // A lean with no Acceptance Criteria list still accepts a digestless audit.
+      const plain = leanBody({ criteria: [] });
+      const [result] = ingest(
+        root,
+        xbriefDir,
+        issue(6337, "Body.", arc(plain, auditBody(plain, null))),
+      );
+      expect(result).toBe("created");
+    });
+  });
+
+  it("refuses other harvest failures without writing a brief", () => {
+    withRoot((root, xbriefDir) => {
+      const bad = leanBody({ extra: "\n## Slices\n- slice-a: B9\n" });
+      const [result, path, message] = ingest(root, xbriefDir, issue(6338, "Body.", arc(bad)));
+      expect(result).toBe("refused");
+      expect(path).toBeNull();
+      expect(message).toContain("B9");
+    });
+  });
+
+  it("refuses a Spec-path or slice ingest that cannot name a GitHub repository", () => {
+    withRoot((root, xbriefDir) => {
+      const options = {
+        vbriefDir: xbriefDir,
+        status: "proposed" as const,
+        repoUrl: "https://example.com/o/r",
+        cwd: root,
+        scmCall: () => completed("[]", "", 0),
+        printIngestAdvisory: false,
+      };
+      const lean = leanBody();
+      const [spec, , specMessage] = ingestOne(issue(6339, "Body.", arc(lean)), options);
+      expect(spec).toBe("refused");
+      expect(specMessage).toContain("without a GitHub repository");
+      const [slice, , sliceMessage] = ingestOne(issue(6340, "deft-slice: 6333 slice-a\n"), options);
+      expect(slice).toBe("refused");
+      expect(sliceMessage).toContain("needs a GitHub repository");
+    });
+  });
+
+  describe("slices (#6333 item 6)", () => {
+    const sliced = leanBody({ extra: "\n## Slices\n- slice-a: B1, A1\n- slice-b: A2\n" });
+
+    it("ingests a slice issue from the parent's accepted lean, not from its own body", () => {
+      withRoot((root, xbriefDir) => {
+        const thread = arc(sliced);
+        const writes: string[] = [];
+        const spy = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+          writes.push(String(chunk));
+          return true;
+        });
+        try {
+          const body =
+            "Slice body with its own text.\n\n- [ ] body checkbox that must not win\n\ndeft-slice: 6333 slice-a\n";
+          const [result, path] = ingest(
+            root,
+            xbriefDir,
+            issue(6401, body),
+            parentScm(6333, "Parent body.", thread),
+          );
+          expect(result).toBe("created");
+          const plan = readPlan(path);
+          const titles = (plan.items as { title: string }[]).map((item) => item.title);
+          expect(titles).toEqual([BOUND[0], CRITERIA[0]]);
+          expect(titles).not.toContain("body checkbox that must not win");
+          expect((plan.narratives as Record<string, string>).Overview).not.toContain("Slice body");
+          expect(readSpecPathSourceRecord(plan)).toMatchObject({ issue: 6333, slice: "slice-a" });
+          expect(writes.join("")).toContain("that no brief records: slice-b");
+          expect(verify(root, plan, thread).ok).toBe(true);
+
+          // A second issue that claims the same label is refused and names the holder.
+          const [second, , message] = ingest(
+            root,
+            xbriefDir,
+            issue(6402, "deft-slice: 6333 slice-a\n"),
+            parentScm(6333, "Parent body.", thread),
+          );
+          expect(second).toBe("refused");
+          expect(message).toContain("already recorded by proposed/");
+          expect(message).toContain("6401");
+
+          // The parent's own ingest takes the items with no label.
+          writes.length = 0;
+          const [parentResult, parentPath] = ingest(
+            root,
+            xbriefDir,
+            issue(6333, "Parent body.", thread),
+          );
+          expect(parentResult).toBe("created");
+          expect(
+            (readPlan(parentPath).items as { title: string }[]).map((item) => item.title),
+          ).toEqual([BOUND[1]]);
+          expect(writes.join("")).toContain("that no brief records: slice-b");
+        } finally {
+          spy.mockRestore();
+        }
+      });
+    });
+
+    it("refuses a malformed slice line, a self parent, an unknown label and an unreadable parent", () => {
+      withRoot((root, xbriefDir) => {
+        const thread = arc(sliced);
+        const scmCall = parentScm(6333, "Parent body.", thread);
+        expect(ingest(root, xbriefDir, issue(6403, "deft-slice: x\n"), scmCall)[2]).toContain(
+          "slice line must read",
+        );
+        expect(ingest(root, xbriefDir, issue(6333, "deft-slice: 6333 a\n"), scmCall)[2]).toContain(
+          "its own parent",
+        );
+        expect(
+          ingest(root, xbriefDir, issue(6404, "deft-slice: 6333 slice-z\n"), scmCall)[2],
+        ).toContain("no slice 'slice-z'");
+        const down = () => completed("", "HTTP 502", 1);
+        expect(
+          ingest(root, xbriefDir, issue(6405, "deft-slice: 6333 slice-a\n"), down)[2],
+        ).toContain("could not be read");
+        const noArc = parentScm(6333, "Parent body.", []);
+        expect(
+          ingest(root, xbriefDir, issue(6406, "deft-slice: 6333 slice-a\n"), noArc)[2],
+        ).toContain("no completed-arc record");
+        const notSpec = parentScm(6333, "Parent body.", arc(sliced.replace("Spec-path:", "Path:")));
+        expect(
+          ingest(root, xbriefDir, issue(6407, "deft-slice: 6333 slice-a\n"), notSpec)[2],
+        ).toContain("is not Spec-path");
+        expect(readdirSync(xbriefDir)).toEqual([]);
+      });
+    });
+
+    it("checks the Target-digest against the parent body", () => {
+      withRoot((root, xbriefDir) => {
+        const parentBody = "Parent body.";
+        const pinned = `Target-digest: sha256:${hashIssueBodyBytes(parentBody)}\n${sliced}`;
+        const thread = arc(pinned);
+        const [ok, path] = ingest(
+          root,
+          xbriefDir,
+          issue(6408, "deft-slice: 6333 slice-b\n"),
+          parentScm(6333, parentBody, thread),
+        );
+        expect(ok).toBe("created");
+        expect(
+          (readPlan(path).metadata as Record<string, unknown>)[ADMITTED_TARGET_DIGEST_META_KEY],
+        ).toBeTruthy();
+        const [stale, , message] = ingest(
+          root,
+          xbriefDir,
+          issue(6409, "deft-slice: 6333 slice-a\n"),
+          parentScm(6333, "Edited parent body.", thread),
+        );
+        expect(stale).toBe("refused");
+        expect(message).toContain("Target-digest");
+      });
+    });
+  });
+
+  describe("body route (#6333 item 7)", () => {
+    const BODY = [
+      "Summary sentence one.",
+      "",
+      "## Acceptance Criteria",
+      "",
+      "- Given a body, when it is ingested, then each sentence has a clause.",
+      "",
+      "Refs #6286.",
+      "",
+    ].join("\n");
+
+    it("writes one clause per sentence-list entry and keeps today's pin", () => {
+      withRoot((root, xbriefDir) => {
+        const [result, path] = ingest(root, xbriefDir, issue(6410, BODY));
+        expect(result).toBe("created");
+        const plan = readPlan(path);
+        const acceptance = plan.acceptance as Record<string, unknown>;
+        const sentences = acceptance.sentences as string[];
+        expect(sentences[0]).toBe("issue 6410");
+        expect(sentences).toContain("Refs #6286.");
+        expect((acceptance.clauses as { text: string }[]).map((clause) => clause.text)).toEqual(
+          sentences,
+        );
+        const overview = (plan.narratives as Record<string, string>).Overview;
+        expect(acceptance.admitted_source_sentences).toEqual(
+          extractAdmittedSourceSentencesFromText(overview),
+        );
+        expect(readSpecPathSourceRecord(plan)).toBeNull();
+        const verdict = verify(root, plan, [], BODY);
+        expect(verdict.cause).toBeUndefined();
+        expect(verdict.ok).toBe(true);
+      });
+    });
+
+    it("adds a same-text clause for a pinned sentence the list folded into another spelling", () => {
+      const [vbrief] = buildIssueVbrief(
+        { number: 6411, title: "Ship it.", body: "ship it.\n", labels: [] },
+        "proposed",
+        "https://github.com/o/r",
+      );
+      const acceptance = (vbrief.plan as Record<string, unknown>).acceptance as Record<
+        string,
+        unknown
+      >;
+      expect((acceptance.clauses as { text: string }[]).map((clause) => clause.text)).toEqual([
+        "Ship it.",
+        "ship it.",
+      ]);
+    });
   });
 });

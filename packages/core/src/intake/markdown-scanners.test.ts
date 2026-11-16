@@ -3,12 +3,132 @@ import {
   extractBoundRemedyHarvest,
   findAcHeading,
   findBoundRemedyHeading,
+  findLeanAcceptanceCriteriaHeading,
+  leanAcceptanceCriteriaItems,
+  leanSlicesSectionLines,
   parseCheckboxItems,
+  parseLeanSlices,
   parseListItems,
+  parseSliceLine,
   sliceAcSection,
+  sliceBoundRemedySection,
+  sliceLeanAcceptanceCriteriaSection,
   stripCodeBlocks,
   stripFencedCodeBlocks,
 } from "./markdown-scanners.js";
+
+describe("lean Acceptance Criteria heading (#6333 item 1)", () => {
+  const lean = [
+    "**Lean:** bind.",
+    "",
+    "## Bound remedy",
+    "1. Limb one.",
+    "",
+    "## Acceptance Criteria",
+    "- Given a lean, then both lists are harvested.",
+    "- Given a brief, then it records the source.",
+    "",
+    "## Reject",
+    "- Not this.",
+    "",
+  ].join("\n");
+
+  it("matches a level-2 heading and slices to the next level-2 heading", () => {
+    expect(findLeanAcceptanceCriteriaHeading(lean)?.level).toBe(2);
+    expect(leanAcceptanceCriteriaItems(lean).map((item) => item.title)).toEqual([
+      "Given a lean, then both lists are harvested.",
+      "Given a brief, then it records the source.",
+    ]);
+    expect(sliceLeanAcceptanceCriteriaSection(lean)).not.toContain("Not this.");
+    expect(sliceBoundRemedySection(lean)).not.toContain("Given a lean");
+  });
+
+  it("ignores other heading levels, quoted headings and an empty text", () => {
+    expect(findLeanAcceptanceCriteriaHeading("### Acceptance Criteria\n- x.\n")).toBeNull();
+    expect(findLeanAcceptanceCriteriaHeading("> ## Acceptance Criteria\n- x.\n")).toBeNull();
+    expect(findLeanAcceptanceCriteriaHeading("")).toBeNull();
+    expect(sliceLeanAcceptanceCriteriaSection("no heading")).toBeNull();
+    expect(leanAcceptanceCriteriaItems("no heading")).toEqual([]);
+  });
+
+  it("does not harvest a fenced example that contains an Acceptance Criteria heading", () => {
+    const fenced = "## Bound remedy\n1. Limb.\n\n```\n## Acceptance Criteria\n- Fenced.\n```\n";
+    expect(findLeanAcceptanceCriteriaHeading(fenced)).toBeNull();
+    expect(leanAcceptanceCriteriaItems(fenced)).toEqual([]);
+  });
+
+  it("ends the slice at a closed trailer label", () => {
+    const trailer = "## Acceptance Criteria\n- Kept.\n\nReject:\n- Dropped.\n";
+    expect(leanAcceptanceCriteriaItems(trailer).map((item) => item.title)).toEqual(["Kept."]);
+  });
+});
+
+describe("lean Slices section (#6333 item 6)", () => {
+  it("parses label lines and ignores prose", () => {
+    const text = "## Slices\nGive each item a slice.\n- slice-a: B1, A2\n- `slice-b`: B2\n";
+    expect(leanSlicesSectionLines(text)).toEqual([
+      "Give each item a slice.",
+      "- slice-a: B1, A2",
+      "- `slice-b`: B2",
+    ]);
+    expect(parseLeanSlices(text)).toEqual({
+      present: true,
+      assignments: [
+        {
+          label: "slice-a",
+          refs: [
+            { list: "B", index: 1 },
+            { list: "A", index: 2 },
+          ],
+        },
+        { label: "slice-b", refs: [{ list: "B", index: 2 }] },
+      ],
+      errors: [],
+    });
+  });
+
+  it("reports absent sections and grammar errors", () => {
+    expect(parseLeanSlices("## Bound remedy\n1. x\n")).toEqual({ present: false });
+    expect(leanSlicesSectionLines("")).toBeNull();
+    const bad = parseLeanSlices(
+      "## Slices\n- Bad Label: B1\n- a: B1\n- a: B2\n- b: C1\n- c: B0\n- d:\n",
+    );
+    expect(bad.present && bad.errors).toEqual([
+      "slice line is not '- <label>: B<n>, A<n>': Bad Label: B1",
+      "slice label 'a' is listed twice",
+      "slice 'b' has a reference that is not B<n> or A<n>: C1",
+      "slice 'c' has a reference that is not B<n> or A<n>: B0",
+      "slice 'd' assigns no items",
+    ]);
+    expect(parseLeanSlices("## Slices\nprose only\n")).toMatchObject({
+      errors: ["Slices section assigns no items"],
+    });
+  });
+});
+
+describe("parseSliceLine (#6333 item 6)", () => {
+  it("reads one closed slice line", () => {
+    expect(parseSliceLine("Body.\n\ndeft-slice: 6333 slice-a\n")).toEqual({
+      kind: "slice",
+      parent: 6333,
+      label: "slice-a",
+    });
+    expect(parseSliceLine("deft-slice: #6333 slice-a\r\ndeft-slice: 6333 slice-a\n")).toMatchObject(
+      { kind: "slice", parent: 6333 },
+    );
+  });
+
+  it("ignores fenced lines and refuses malformed or conflicting lines", () => {
+    expect(parseSliceLine("```\ndeft-slice: 6333 slice-a\n```\n")).toEqual({ kind: "none" });
+    expect(parseSliceLine("no slice")).toEqual({ kind: "none" });
+    expect(parseSliceLine("deft-slice: slice-a")).toMatchObject({ kind: "malformed" });
+    expect(parseSliceLine("deft-slice: 1 a\ndeft-slice: 2 a\n")).toEqual({
+      kind: "malformed",
+      detail: "issue body names more than one slice",
+    });
+    expect(parseSliceLine("deft-slice: 0 a")).toMatchObject({ kind: "malformed" });
+  });
+});
 
 describe("stripCodeBlocks", () => {
   it("removes fenced and inline code", () => {

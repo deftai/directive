@@ -278,6 +278,14 @@ export function sliceBoundRemedySection(text: string): string | null {
   if (heading === null) {
     return null;
   }
+  return sliceLeanSection(text, heading);
+}
+
+/**
+ * One lean-section slicer (#6265 / #6333): from the heading to the next heading
+ * of the same or higher level, or the first closed trailer label, outside fences.
+ */
+function sliceLeanSection(text: string, heading: AcHeadingMatch): string {
   const section = text.slice(heading.sectionStart);
   let offset = 0;
   let fenced = false;
@@ -296,6 +304,211 @@ export function sliceBoundRemedySection(text: string): string | null {
     offset += line.length + 1;
   }
   return section;
+}
+
+/** Level-2 lean heading whose text matches `re`, outside fences, quotes and code (#6333). */
+function findLeanLevel2Heading(text: string, re: RegExp): AcHeadingMatch | null {
+  let offset = 0;
+  for (const line of text.split("\n")) {
+    const trimmed = line.replace(/\r$/, "");
+    if (trimmed.startsWith("## ") && classifyPosition(text, offset) === null) {
+      const headingText = trimmed.slice(3).trim().toLowerCase();
+      if (re.test(headingText)) {
+        return { level: 2, sectionStart: offset + line.length };
+      }
+    }
+    offset += line.length + 1;
+  }
+  return null;
+}
+
+const LEAN_AC_HEADING_RE = /^acceptance\s+criteria\b/;
+const LEAN_SLICES_HEADING_RE = /^slices\b/;
+
+/**
+ * Lean `## Acceptance Criteria` heading (#6333 item 1): matched like the Bound
+ * remedy heading (level 2, position-aware, fence-aware).
+ */
+export function findLeanAcceptanceCriteriaHeading(text: string): AcHeadingMatch | null {
+  return text.length === 0 ? null : findLeanLevel2Heading(text, LEAN_AC_HEADING_RE);
+}
+
+/** Lean Acceptance Criteria slice, or null when the heading is absent (#6333). */
+export function sliceLeanAcceptanceCriteriaSection(text: string): string | null {
+  const heading = findLeanAcceptanceCriteriaHeading(text);
+  return heading === null ? null : sliceLeanSection(text, heading);
+}
+
+/** Lean Acceptance Criteria list items, outside fenced examples (#6333). */
+export function leanAcceptanceCriteriaItems(text: string): CheckboxItem[] {
+  const slice = sliceLeanAcceptanceCriteriaSection(text);
+  return slice === null ? [] : parseListItems(stripFencedCodeBlocks(slice));
+}
+
+/**
+ * Non-empty lines of a lean `## Slices` section outside fences (#6333 item 6),
+ * or null when the heading is absent. The harvest identity hashes these lines.
+ */
+export function leanSlicesSectionLines(text: string): string[] | null {
+  if (text.length === 0) {
+    return null;
+  }
+  const heading = findLeanLevel2Heading(text, LEAN_SLICES_HEADING_RE);
+  if (heading === null) {
+    return null;
+  }
+  return stripFencedCodeBlocks(sliceLeanSection(text, heading))
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
+export interface LeanSliceRef {
+  /** `B` = Bound remedy list, `A` = Acceptance Criteria list. */
+  readonly list: "B" | "A";
+  /** 1-based position in that list. */
+  readonly index: number;
+}
+
+export interface LeanSliceAssignment {
+  readonly label: string;
+  readonly refs: readonly LeanSliceRef[];
+}
+
+export type LeanSlices =
+  | { readonly present: false }
+  | {
+      readonly present: true;
+      readonly assignments: readonly LeanSliceAssignment[];
+      readonly errors: readonly string[];
+    };
+
+const SLICE_LABEL_RE = /^[a-z0-9][a-z0-9-]*$/;
+const SLICE_REF_RE = /^([BA])(\d+)$/;
+
+/**
+ * Parse a lean `## Slices` section (#6333 item 6). Closed grammar: one list
+ * line per label, `- <label>: B1, B2, A3`, where `B<n>` is the n-th Bound
+ * remedy item and `A<n>` the n-th Acceptance Criteria item. Prose lines are
+ * ignored; a list line outside the grammar is an error.
+ */
+export function parseLeanSlices(text: string): LeanSlices {
+  const lines = leanSlicesSectionLines(text);
+  if (lines === null) {
+    return { present: false };
+  }
+  const assignments: LeanSliceAssignment[] = [];
+  const errors: string[] = [];
+  const labels = new Set<string>();
+  for (const line of lines) {
+    const item = matchListItemLine(line);
+    if (item === null) {
+      continue;
+    }
+    const colon = item.indexOf(":");
+    const label = colon < 0 ? "" : item.slice(0, colon).trim().replace(/^`|`$/g, "");
+    if (!SLICE_LABEL_RE.test(label)) {
+      errors.push(`slice line is not '- <label>: B<n>, A<n>': ${item}`);
+      continue;
+    }
+    if (labels.has(label)) {
+      errors.push(`slice label '${label}' is listed twice`);
+      continue;
+    }
+    const refs: LeanSliceRef[] = [];
+    let bad = false;
+    for (const token of item
+      .slice(colon + 1)
+      .split(",")
+      .map((part) => part.trim())
+      .filter((part) => part.length > 0)) {
+      const ref = SLICE_REF_RE.exec(token);
+      if (ref === null || Number(ref[2]) < 1) {
+        errors.push(`slice '${label}' has a reference that is not B<n> or A<n>: ${token}`);
+        bad = true;
+        break;
+      }
+      refs.push({ list: ref[1] === "B" ? "B" : "A", index: Number(ref[2]) });
+    }
+    if (bad) {
+      continue;
+    }
+    if (refs.length === 0) {
+      errors.push(`slice '${label}' assigns no items`);
+      continue;
+    }
+    labels.add(label);
+    assignments.push({ label, refs });
+  }
+  if (assignments.length === 0 && errors.length === 0) {
+    errors.push("Slices section assigns no items");
+  }
+  return { present: true, assignments, errors };
+}
+
+export type SliceLine =
+  | { readonly kind: "none" }
+  | { readonly kind: "slice"; readonly parent: number; readonly label: string }
+  | { readonly kind: "malformed"; readonly detail: string };
+
+const SLICE_LINE_START_RE = /^deft-slice:/i;
+const SLICE_LINE_RE = /^deft-slice:[ \t]+#?(\d+)[ \t]+([a-z0-9][a-z0-9-]*)[ \t]*$/;
+
+/**
+ * Closed slice line on a slice issue body (#6333 item 6): one operative line
+ * `deft-slice: <parent issue> <label>`, outside fences, quotes and code.
+ */
+export function parseSliceLine(body: string): SliceLine {
+  let offset = 0;
+  const found: { parent: number; label: string }[] = [];
+  for (const raw of body.split("\n")) {
+    const line = raw.replace(/\r$/, "").trim();
+    if (SLICE_LINE_START_RE.test(line) && classifyPosition(body, offset) === null) {
+      const match = SLICE_LINE_RE.exec(line);
+      if (match === null) {
+        return {
+          kind: "malformed",
+          detail: `slice line must read 'deft-slice: <parent issue> <label>': ${line}`,
+        };
+      }
+      found.push({ parent: Number(match[1]), label: match[2] ?? "" });
+    }
+    offset += raw.length + 1;
+  }
+  if (found.length === 0) {
+    return { kind: "none" };
+  }
+  const first = found[0] as { parent: number; label: string };
+  if (found.some((entry) => entry.parent !== first.parent || entry.label !== first.label)) {
+    return { kind: "malformed", detail: "issue body names more than one slice" };
+  }
+  if (!Number.isSafeInteger(first.parent) || first.parent < 1) {
+    return { kind: "malformed", detail: "slice line names no parent issue number" };
+  }
+  return { kind: "slice", parent: first.parent, label: first.label };
+}
+
+/**
+ * True when a list item in `sectionText` wraps onto an indented continuation
+ * line (outside fences). The line-based item reader would drop that text (#6333).
+ */
+export function hasWrappedListItem(sectionText: string): boolean {
+  let inItem = false;
+  for (const line of stripFencedCodeBlocks(sectionText).split("\n")) {
+    if (line.trim().length === 0) {
+      inItem = false;
+      continue;
+    }
+    if (matchListItemLine(line) !== null) {
+      inItem = true;
+      continue;
+    }
+    if (inItem && /^[ \t]/.test(line)) {
+      return true;
+    }
+    inItem = false;
+  }
+  return false;
 }
 
 /** Bound-remedy limb titles: list items of the slice outside fenced examples. */
@@ -484,6 +697,31 @@ function isHeadingAtOrAbove(line: string, level: number): boolean {
     return false;
   }
   return hashes <= level && (hashes >= line.length || line[hashes] === " ");
+}
+
+/**
+ * List items in list order with no de-duplication (#6333): slice references
+ * `B<n>` / `A<n>` count list positions, so a repeated title keeps its slot.
+ */
+export function parseListItemsByPosition(sectionText: string): CheckboxItem[] {
+  const items: CheckboxItem[] = [];
+  for (const line of sectionText.split("\n")) {
+    const bullet = matchListItemLine(line);
+    if (bullet === null) {
+      continue;
+    }
+    let title = bullet.trim();
+    let status: "proposed" | "completed" = "proposed";
+    const cb = matchLeadingCheckbox(title);
+    if (cb !== null) {
+      title = cb.title.trim();
+      status = cb.checked ? "completed" : "proposed";
+    }
+    if (title.length > 0) {
+      items.push({ title, status });
+    }
+  }
+  return items;
 }
 
 /** Parse bullet/numbered list items within a section. */
