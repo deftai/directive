@@ -34,12 +34,14 @@ import {
   fenceUntrustedAcceptanceText,
   formatAcceptanceCompletionListing,
   formatScopeStatus,
+  formatStrictAxisAdvisory,
   HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION,
   HISTORICAL_SHIP_CLOSEOUT_ADMIT_MESSAGE,
   inferRequiredStrictAxes,
   isClauseKeyedTitleFollowsIdPlaceholder,
   isEvidenceKindSuitable,
   itemDeclaresMergeRequirement,
+  listStrictAxisRequirements,
   MERGE_POINTER_SHAPE_REMEDIATION,
   migrateNoneStatedForHistoricalShip,
   persistClauseKeyedPendingItems,
@@ -52,6 +54,7 @@ import {
   stampMergeFromCompletionProvenance,
   stampNamespacedDisposition,
   stampNamespacedEvidence,
+  strictAxisAdvisoryLines,
   TEST_POINTER_SHAPE_REMEDIATION,
   UAT_POINTER_SHAPE_REMEDIATION,
 } from "./acceptance-evidence.js";
@@ -3778,5 +3781,107 @@ describe("grant-covered dispositions in complete-prep (#6318)", () => {
       rmSync(mintRoot, { recursive: true, force: true });
       rmSync(evalRoot, { recursive: true, force: true });
     }
+  });
+});
+
+describe("strict-axis listing before completion (#6272)", () => {
+  const strictPlan = (): Record<string, unknown> => ({
+    title: "T",
+    status: "running",
+    items: [
+      {
+        id: "clause.1",
+        title: "clause.1",
+        status: "pending",
+        narrative: { Acceptance: "The service answers after deployment to staging." },
+      },
+      { id: "clause.2", title: "Unit tests cover the parser.", status: "pending" },
+      {
+        id: "clause.3",
+        title: "Run the smoke check after deploy.",
+        status: "pending",
+        subItems: [{ id: "clause.3a", title: "UAT sign-off recorded.", status: "pending" }],
+      },
+      {
+        id: "clause.4",
+        title: "deploy note",
+        status: "pending",
+        [ACCEPTANCE_REQUIRES_KEY]: "merge",
+      },
+      { id: "clause.5", title: "Edit .github/workflows/deploy-dev.yml.", status: "pending" },
+    ],
+  });
+
+  it("clause.2: lists per-item axes from the plan text alone", () => {
+    expect(listStrictAxisRequirements(strictPlan())).toEqual([
+      { path: "plan.items[0]", id: "clause.1", axes: ["deploy"] },
+      { path: "plan.items[2]", id: "clause.3", axes: ["smoke", "deploy"] },
+      { path: "plan.items[2].subItems[0]", id: "clause.3a", axes: ["uat"] },
+    ]);
+    expect(listStrictAxisRequirements(null)).toEqual([]);
+    expect(listStrictAxisRequirements({ items: [null, "x", { title: "smoke" }] })).toEqual([
+      { path: "plan.items[2]", id: null, axes: ["smoke"] },
+    ]);
+  });
+
+  it("clause.11: the listing and the completion gate use the same function", () => {
+    const plan = strictPlan();
+    const listed = listStrictAxisRequirements(plan);
+    // Listing axes equal inferRequiredStrictAxes (the gate's function) per item.
+    const items = plan.items as Record<string, unknown>[];
+    const third = items[2] as Record<string, unknown>;
+    const sub = (third.subItems as Record<string, unknown>[])[0] as Record<string, unknown>;
+    expect(listed.map((r) => r.axes)).toEqual(
+      [items[0], third, sub].map((item) =>
+        inferRequiredStrictAxes(item as Record<string, unknown>),
+      ),
+    );
+    // The gate refuses review evidence on exactly the listed items, with the same axes.
+    const reviewEvidence = {
+      kind: "review",
+      pointer: "PR #1",
+      recorded_at: "2026-08-10T12:00:00Z",
+      recorded_by: "vitest",
+    };
+    const stamp = (items: unknown): void => {
+      if (!Array.isArray(items)) return;
+      for (const item of items as Record<string, unknown>[]) {
+        delete item[ACCEPTANCE_REQUIRES_KEY];
+        item[ACCEPTANCE_EVIDENCE_KEY] = { ...reviewEvidence };
+        stamp(item.subItems);
+      }
+    };
+    const gatePlan = strictPlan();
+    stamp(gatePlan.items);
+    const gate = evaluateAcceptanceEvidenceGate(gatePlan);
+    const refused = gate.reports
+      .filter((r) => r.outcome === "invalid")
+      .map((r) => ({ path: r.path, axes: /\[([^\]]+)\]/.exec(r.detail)?.[1] }));
+    const listedForGate = listStrictAxisRequirements(gatePlan).map((r) => ({
+      path: r.path,
+      axes: r.axes.join("|"),
+    }));
+    expect(refused).toEqual(listedForGate);
+    expect(listedForGate.map((r) => r.path)).toContain("plan.items[3]");
+  });
+
+  it("clause.6: formats clause ids, axes and the x-directive/requires pointer", () => {
+    const lines = strictAxisAdvisoryLines({ plan: strictPlan() });
+    expect(lines[0]).toMatch(/3 clause\(s\) will need strict-axis evidence at scope:complete/);
+    expect(lines).toContain("  clause.1: deploy");
+    expect(lines).toContain("  clause.3: smoke, deploy");
+    expect(lines.at(-1)).toContain(ACCEPTANCE_REQUIRES_KEY);
+    expect(lines.at(-1)).toContain("exit code unchanged");
+    expect(strictAxisAdvisoryLines(strictPlan())).toEqual(lines);
+    expect(formatStrictAxisAdvisory([])).toEqual([]);
+    expect(strictAxisAdvisoryLines("not an object")).toEqual([]);
+    expect(formatStrictAxisAdvisory([{ path: "plan.items[9]", id: null, axes: ["uat"] }])[1]).toBe(
+      "  plan.items[9]: uat",
+    );
+  });
+
+  it("clause.12: identifiers such as deploy-dev.yml are not listed (#6270 classifier)", () => {
+    const ids = listStrictAxisRequirements(strictPlan()).map((r) => r.id);
+    expect(ids).not.toContain("clause.5");
   });
 });
