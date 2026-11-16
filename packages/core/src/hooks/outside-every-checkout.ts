@@ -59,6 +59,8 @@ export interface OutsideEveryCheckoutSeams {
   readonly realpath?: (path: string) => string;
   readonly lstat?: (path: string) => Stats;
   readonly stat?: (path: string) => Stats;
+  /** Working directory that relative exclusion values resolve against. */
+  readonly cwd?: () => string;
   readonly runGit?: GitRunner;
   /** Physical package directory of the running Directive runtime; null skips the rule. */
   readonly runtimePackageDir?: string | null;
@@ -157,25 +159,58 @@ function tryRealpath(path: string, realpath: (p: string) => string): string | nu
 }
 
 /**
+ * Physical form of a path that may not exist yet: its deepest existing ancestor
+ * resolved natively, with the missing rest appended unchanged. Null when no
+ * ancestor resolves.
+ */
+function physicalOf(path: string, realpath: (p: string) => string): string | null {
+  const rest: string[] = [];
+  let current = path;
+  for (;;) {
+    const resolved = tryRealpath(current, realpath);
+    if (resolved !== null) return rest.length === 0 ? resolved : join(resolved, ...rest);
+    const parent = dirname(current);
+    if (parent === current) return null;
+    rest.unshift(current.slice(parent.length).replace(/^[\\/]+/, ""));
+    current = parent;
+  }
+}
+
+function anchorOfAbsolute(given: string, realpath: (p: string) => string): Anchor {
+  const physical = physicalOf(given, realpath);
+  return { forms: physical === null || physical === given ? [given] : [given, physical] };
+}
+
+/**
  * Anchor for an environment or host directory. `required` anchors (home, temp)
- * must resolve physically; optional ones keep their given form when absent.
+ * must exist and resolve physically. Optional ones also carry the physical form
+ * of their deepest existing ancestor, so a missing file below a link is caught.
+ * With `relativeBases`, a relative value is resolved against each base.
  */
 function anchorFor(
   value: string | undefined,
   platform: NodeJS.Platform,
   realpath: (p: string) => string,
   required: boolean,
+  relativeBases: readonly string[] = [],
 ): Anchor | "unresolvable" | null {
   const raw = value?.trim() ?? "";
   if (raw.length === 0) return required ? "unresolvable" : null;
-  if (!isHostAbsolute(raw, platform) || hasDeviceOrSharePrefix(raw)) {
-    return required ? "unresolvable" : null;
+  if (hasDeviceOrSharePrefix(raw)) return required ? "unresolvable" : null;
+  if (!isHostAbsolute(raw, platform)) {
+    if (required || relativeBases.length === 0) return required ? "unresolvable" : null;
+    const forms = relativeBases.flatMap(
+      (base) => anchorOfAbsolute(resolve(base, raw), realpath).forms,
+    );
+    return { forms };
   }
   const given = resolve(raw);
-  const physical = tryRealpath(given, realpath);
-  if (physical === null && required) return "unresolvable";
-  const forms = physical === null || physical === given ? [given] : [given, physical];
-  return { forms };
+  if (required) {
+    const physical = tryRealpath(given, realpath);
+    if (physical === null) return "unresolvable";
+    return { forms: physical === given ? [given] : [given, physical] };
+  }
+  return anchorOfAbsolute(given, realpath);
 }
 
 function envLookup(environ: NodeJS.ProcessEnv, name: string, platform: NodeJS.Platform): string {
@@ -212,6 +247,7 @@ export function defaultRuntimePackageDir(): string | null {
 }
 
 function buildContext(
+  payloadRoot: string,
   environ: NodeJS.ProcessEnv,
   seams: OutsideEveryCheckoutSeams,
 ): Context | { readonly error: string } {
@@ -233,8 +269,11 @@ function buildContext(
   if (temp === "unresolvable" || temp === null) {
     return { error: "the OS temp directory cannot be resolved" };
   }
-  const optional = (value: string): Anchor | null => {
-    const anchor = anchorFor(value, platform, realpath, false);
+  // A relative exclusion value is read the way its consumer reads it: against
+  // the process working directory (and, to be safe, the payload root).
+  const relativeBases = [(seams.cwd ?? process.cwd)(), resolve(payloadRoot)];
+  const optional = (value: string, bases: readonly string[] = []): Anchor | null => {
+    const anchor = anchorFor(value, platform, realpath, false, bases);
     return anchor === "unresolvable" ? null : anchor;
   };
   const configEnvAreas: Anchor[] = [];
@@ -249,13 +288,13 @@ function buildContext(
     if (!(upper.startsWith("DEFT_") || upper.startsWith("DIRECTIVE_") || named.has(upper))) {
       continue;
     }
-    const anchor = optional(value ?? "");
+    const anchor = optional(value ?? "", relativeBases);
     if (anchor !== null) excludedEnv.push(anchor);
   }
   const pathDirs: Anchor[] = [];
   const pathValue = envLookup(environ, "PATH", platform);
   for (const entry of pathValue.split(platform === "win32" ? ";" : delimiter)) {
-    const anchor = optional(entry);
+    const anchor = optional(entry, relativeBases);
     if (anchor !== null) pathDirs.push(anchor);
   }
   const runtimeValue =
@@ -428,6 +467,12 @@ function classifyWithContext(
   if (target.trim().length === 0) return out("empty target");
   if (hasDeviceOrSharePrefix(target)) return out("device or network-share prefix");
   if (!isHostAbsolute(target, ctx.platform)) return out("relative typed path");
+  // Normalizing `..` before links are followed would judge a different place
+  // than the write reaches (`/tmp/link/../x`), so parent and current steps are
+  // doubt, not something to collapse.
+  if (target.split(/[\\/]+/).some((part) => part === ".." || part === ".")) {
+    return out("parent or current-directory step in the typed path");
+  }
   const typed = resolve(target);
   const typedDoubt = locationVerdict(typed, ctx);
   if (typedDoubt !== null) return out(`typed path: ${typedDoubt}`);
@@ -454,7 +499,7 @@ export function classifyOutsideEveryCheckoutTarget(
   seams: OutsideEveryCheckoutSeams = {},
 ): OutsideEveryCheckoutVerdict {
   try {
-    const ctx = buildContext(environ, seams);
+    const ctx = buildContext(payloadRoot, environ, seams);
     if ("error" in ctx) return out(ctx.error);
     return classifyWithContext(payloadRoot, target, ctx);
   } catch (cause) {
@@ -471,7 +516,7 @@ export function allTargetsOutsideEveryCheckout(
 ): boolean {
   if (targets.length === 0) return false;
   try {
-    const ctx = buildContext(environ, seams);
+    const ctx = buildContext(payloadRoot, environ, seams);
     if ("error" in ctx) return false;
     return targets.every((target) => classifyWithContext(payloadRoot, target, ctx).inClass);
   } catch {

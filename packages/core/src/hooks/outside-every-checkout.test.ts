@@ -230,6 +230,25 @@ describe("exclusions (#6376 item 5)", () => {
     expect(classify(user, { DEFT_SESSION_ID: "host:claude:v1:x" }).inClass).toBe(true);
   });
 
+  it("resolves a relative exclusion value against the working directory", () => {
+    mkdirSync(join(home, "notes"));
+    const user = join(home, "notes", "USER.md");
+    const verdict = classify(
+      user,
+      { DEFT_USER_PATH: join("notes", "USER.md") },
+      { cwd: () => home },
+    );
+    expect(verdict.inClass).toBe(false);
+  });
+
+  it("catches a not-yet-existing excluded file named through a link", () => {
+    mkdirSync(join(home, "notes"));
+    if (!linkDir(join(home, "notes"), join(home, "alias"))) return;
+    const typedThroughAlias = join(home, "alias", "USER.md");
+    const verdict = classify(join(home, "notes", "USER.md"), { DEFT_USER_PATH: typedThroughAlias });
+    expect(verdict.inClass).toBe(false);
+  });
+
   it("refuses a target inside a directory listed in PATH", () => {
     const bin = join(home, "bin");
     const sepChar = process.platform === "win32" ? ";" : ":";
@@ -251,6 +270,19 @@ describe("doubt rules (#6376 item 6)", () => {
   it("refuses a relative typed path and a non-drive path on Windows", () => {
     expect(classify("notes/x.md")).toEqual({ inClass: false, reason: "relative typed path" });
     expect(classify("/tmp/x.md", {}, { platform: "win32" }).inClass).toBe(false);
+  });
+
+  it("refuses parent and current-directory steps instead of collapsing them", () => {
+    const repo = join(base, "repo");
+    mkdirSync(join(repo, "build"), { recursive: true });
+    mkdirSync(join(repo, ".git"));
+    linkDir(join(repo, "build"), join(temp, "link"));
+    const parentStep = `${join(temp, "link")}/../file.md`;
+    expect(classify(parentStep)).toEqual({
+      inClass: false,
+      reason: "parent or current-directory step in the typed path",
+    });
+    expect(classify(`${temp}/./file.md`).inClass).toBe(false);
   });
 
   it("refuses device and network-share prefixes", () => {

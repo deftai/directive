@@ -113,8 +113,12 @@ with the native resolver, the missing rest appended unchanged). Both paths must 
    `.git`; a path equal to or inside a path named by any `DEFT_*` or `DIRECTIVE_*` variable or by
    `OPENCLAW_STATE_DIR`, `CODEX_HOME`, `GH_CONFIG_DIR`, `PNPM_HOME`, `GIT_DIR`, `GIT_WORK_TREE`,
    `GITHUB_EVENT_PATH`, `GITHUB_STEP_SUMMARY`; a path inside a `PATH` directory; a path inside the
-   running Directive runtime package.
-5. **Doubt rules.** Out of the class: a relative path; a component that ends with a dot or a
+   running Directive runtime package. Each excluded value is compared in its typed form and in the
+   physical form of its deepest existing folder, so a file that does not exist yet is still caught
+   through a link; a relative value is read against the hook's working directory and the payload
+   root.
+5. **Doubt rules.** Out of the class: a relative path; a `..` or `.` step anywhere in the typed
+   path (it is never collapsed before links are followed); a component that ends with a dot or a
    space, has the Windows short-name form (`~1`) or holds a colon after the drive; a device or
    network-share prefix; a walk directory that cannot be read; a Git lookup that could not run or
    disagrees with the walk; a home or temp directory that cannot be resolved; an existing file with
@@ -158,7 +162,9 @@ without `deft`.
 **Ritual recovery names the judged checkout.** A direct write refused on the session ritual ends
 with `Judged checkout: <path>.` and one command, for example
 `deft session:start --rearm --session-id=<id> --project-root=<path>`, that runs as printed from any
-directory. When occupancy refuses the ceremony (#4290), only the checkout is named.
+directory. A path with characters other than letters, digits and `_.:\/+-` is single-quoted, which
+neither POSIX shells nor PowerShell expand; a path holding a single quote or a control character
+gets no printed command. When occupancy refuses the ceremony (#4290), only the checkout is named.
 
 ## Three surfaces, three behaviours
 

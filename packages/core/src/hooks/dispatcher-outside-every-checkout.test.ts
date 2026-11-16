@@ -289,13 +289,29 @@ describe("ritual recovery names the judged checkout (#6376 item 10)", () => {
     expect(existsSync(resolve(primary))).toBe(true);
   });
 
-  it("quotes a path with spaces, omits an unsafe session id, and keeps stripped text", () => {
+  it("single-quotes a path with spaces, omits an unsafe session id, and keeps stripped text", () => {
     expect(formatJudgedCheckoutRecovery("Run `deft session:start`.", "/a b/c", "cold", "")).toBe(
       "Run `deft session:start`. Judged checkout: /a b/c. Recovery for that checkout " +
-        '(runs as printed from any directory): `deft session:start --project-root="/a b/c"`.',
+        "(runs as printed from any directory; the commands above act on the current directory): " +
+        "`deft session:start --project-root='/a b/c'`.",
     );
     expect(formatJudgedCheckoutRecovery("Occupied by another session.", "/r", "rearm", "s1")).toBe(
       "Occupied by another session. Judged checkout: /r.",
     );
+  });
+
+  it("never prints a path the shell would expand or split", () => {
+    const dollar = formatJudgedCheckoutRecovery(
+      "deft session:start",
+      "/home/u/$work/r",
+      "cold",
+      "",
+    );
+    expect(dollar).toContain("--project-root='/home/u/$work/r'");
+    for (const root of ["/home/u/it's", "/home/u/a\nb", "/home/u/a\u007fb"]) {
+      const text = formatJudgedCheckoutRecovery("deft session:start", root, "cold", "");
+      expect(text).not.toContain("--project-root");
+      expect(text).toContain("cannot be printed as a literal shell argument");
+    }
   });
 });

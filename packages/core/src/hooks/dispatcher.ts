@@ -1248,9 +1248,19 @@ export function formatHookRootNote(payloadRoot: string, effectiveRoot: string): 
   return `payloadRoot=${payloadRoot} effectiveRoot=${effectiveRoot}`;
 }
 
-/** Quote a path for a printed command only when it needs it (#6376). */
-function printedPathArg(path: string): string {
-  return /^[A-Za-z0-9_.:\\/+-]+$/.test(path) ? path : `"${path}"`;
+/**
+ * A path as one literal shell argument (#6376), or null when no spelling is
+ * literal in both POSIX shells and PowerShell. Plain paths print bare; other
+ * paths are single-quoted, which neither shell expands (`$`, backticks, `"`).
+ * A path holding a single quote or a control character gets no command.
+ */
+function printedPathArg(path: string): string | null {
+  if (/^[A-Za-z0-9_.:\\/+-]+$/.test(path)) return path;
+  for (const ch of path) {
+    const code = ch.charCodeAt(0);
+    if (ch === "'" || code < 0x20 || code === 0x7f) return null;
+  }
+  return `'${path}'`;
 }
 
 /**
@@ -1267,10 +1277,17 @@ export function formatJudgedCheckoutRecovery(
 ): string {
   const named = `Judged checkout: ${judgedRoot}.`;
   if (!/\bsession:(?:start|ready)\b/.test(text)) return `${text} ${named}`;
+  const rootArg = printedPathArg(judgedRoot);
+  if (rootArg === null) {
+    return `${text} ${named} Run the recovery from that checkout; its path cannot be printed as a literal shell argument.`;
+  }
   const command =
     `${fillRecoveryCommandSessionId(formatSessionStartRecoveryCommand(tier), sessionId)} ` +
-    `--project-root=${printedPathArg(judgedRoot)}`;
-  return `${text} ${named} Recovery for that checkout (runs as printed from any directory): \`${command}\`.`;
+    `--project-root=${rootArg}`;
+  return (
+    `${text} ${named} Recovery for that checkout (runs as printed from any directory; ` +
+    `the commands above act on the current directory): \`${command}\`.`
+  );
 }
 
 /** Why a mutation target was refused, so the deny message can be specific (#3794). */
