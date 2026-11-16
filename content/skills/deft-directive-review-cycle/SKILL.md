@@ -259,7 +259,27 @@ Working name `deft-directive-review-response`. This is **how to respond while co
 - In-model -> patch in the same review-round batch.
 - Out-of-model -> accepted-risk reply citing the HEAD anchor on the pushed SHA, not a worktree mid-edit.
 
-! **Head-blob check (slizard#2694).** Any deterministic arity/wiring claim MUST include `git show <head-sha>:<file>` before it can be confirmed. When the PR itself changes the named symbol, presume false and verify. Blanket dismissal is wrong -- check every time (dead export on #3440 was real). A one-line falsification reply citing slizard#2694 is enough when the head blob matches.
+! **Head-blob check (slizard#2694).** Any deterministic arity/wiring claim MUST include `git show <head-sha>:<file>` before it can be confirmed. When the PR itself changes the named symbol, presume false and verify. Blanket dismissal is wrong -- check every time (dead export on #3440 was real). When the head blob matches, the one-line falsification citing slizard#2694 is the reason text of the SLizard `fp` label below, not a free-text reply.
+
+! **Record SLizard answers by label (#6377).** SLizard records an answered finding only through its own disposition commands, keyed by fingerprint. After the classify step, record every answered SLizard finding in **one top-level pull-request comment per review round**, using the bot's label command (one line per fingerprint):
+
+```text
+@slizard label
+<fingerprint> fp head <sha> <path>: <falsification line>
+<fingerprint> risk <HEAD anchor>: <accepted-risk reason>
+```
+
+- `fp` only for a finding disproved by the head-blob check above. The reason cites the head SHA and the path.
+- `risk` only for a finding accepted out-of-model under the HEAD-policy rule above. The reason cites that anchor.
+- An in-model defect is fixed in the round batch and is not labelled.
+- A free-text reply alone does not stop a finding from returning on the next push. The bot also honours an inline `@slizard dismiss` reply or a thumbs-down on the finding as the same record; the batch label comment is the taught route.
+- Fingerprints are the 16-hex `fp:` ids on the bot's review body. The check-run summary lists the actionable ones, and that list can be capped; the tip review body is the complete list.
+
+! **SLizard clearing sequence (#6377).** A red SLizard check for an answered finding clears in this order: (1) label, as above; (2) read the bot's acknowledgement comment and confirm it accepted each fingerprint; (3) when no further push follows, request a re-review with `@slizard review` (a new push triggers one anyway); (4) run `pr:merge-ready` again. Directive's SLizard gate reads only the bot's verdict; a label does not clear the current check by itself.
+
+! **Label limits (#6377).** A label covers the finding identities the bot recognises. A finding that returns under a new fingerprint is labelled again. A finding that returns although it was labelled is a bot defect: report it on slizard#3847, the bot-side report.
+
+⊗ Offer `fp` and `risk` as interchangeable ways to turn the SLizard check green, or label an in-model defect (#6377).
 
 ! **Batch discipline.** One consolidated push per review round. Local review pass before that push. Never push per finding. Riders are allowed on mechanical rebases.
 
@@ -553,7 +573,7 @@ REDISPATCH_OK: yes|no
 
 ! When `pr:merge-ready` / wait-mergeable reports **SLizard blocked** (parseable `request_changes` or `merge_impact=blocking` with non-zero findings) — especially Greptile CLEAN + SLizard blocked — before re-arming merge-ready wait or `pr:wait-mergeable-and-merge` the owner MUST read the tip SLizard **review body** in full, enumerate new and Previously mentioned fingerprints / deterministic tool names, and for each open P0/P1 falsify with `git show <head>:<path>` (slizard#2694) or fix in one residual batch. Do not idle-poll. Keep `pr:watch` Greptile ownership unchanged (#5102 / #2189 / #4387).
 
-! Compose existing head-blob check, same-fingerprint stop (#3448), and `--skip-slizard` override. Do not invent a third poller. `--skip-slizard` is explicit override only — not the default babysit escape.
+! Compose existing head-blob check, the label record and clearing sequence (Policy-anchored review-response, #6377), same-fingerprint stop (#3448), and `--skip-slizard` override. Do not invent a third poller. `--skip-slizard` is explicit override only — not the default babysit escape.
 
 ! Parseable blocking findings with open tip fingerprints are **unfinished residual**, not weather. Cross-link: `packages/core/src/pr-merge-readiness/slizard-gate.ts` (`evaluateSlizardGate`).
 

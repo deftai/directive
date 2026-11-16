@@ -7,6 +7,7 @@ import type { CheckRunRecord } from "./gh.js";
 import {
   evaluateSlizardGate,
   isSlizardCheck,
+  LABEL_SEQUENCE_TEXT,
   parseSlizardVerdict,
   SLIZARD_CHECK_NAME,
 } from "./slizard-gate.js";
@@ -304,5 +305,81 @@ describe("computeGateResult SLizard integration", () => {
       skipSlizard: true,
     });
     expect(result.failures.some((f) => f.includes("SLizard"))).toBe(false);
+  });
+});
+
+/** Live capture: deftai/directive PR #6404 at 9d84827 (trimmed); fps answered in free text for three rounds. */
+const pr6404Summary = readFileSync(
+  join(
+    dirname(fileURLToPath(import.meta.url)),
+    "fixtures/slizard-check-run-6404-9d84827.summary.txt",
+  ),
+  "utf8",
+);
+
+describe("evaluateSlizardGate label sequence message (#6377)", () => {
+  it("prints the fingerprints and names the label sequence before --skip-slizard", () => {
+    const result = evaluateSlizardGate([
+      slizardRun({ conclusion: "failure", summary: pr6404Summary }),
+    ]);
+    expect(result.summary.ready_state).toBe("blocked");
+    const message = result.failures[0] ?? "";
+    expect(message).toContain("efbca6f66dbe2b64");
+    expect(message).toContain("46b127fb5ffa9702");
+    expect(message).toContain("can be capped");
+    expect(message).toContain("tip review body is the complete list");
+    const label = message.indexOf("@slizard label");
+    const ack = message.indexOf("acknowledgement");
+    const review = message.indexOf("@slizard review");
+    const mergeReady = message.indexOf("pr:merge-ready");
+    const skip = message.indexOf("--skip-slizard");
+    expect(label).toBeGreaterThan(-1);
+    expect(ack).toBeGreaterThan(label);
+    expect(review).toBeGreaterThan(ack);
+    expect(mergeReady).toBeGreaterThan(review);
+    expect(skip).toBeGreaterThan(mergeReady);
+    expect(message).toContain("Unfinished residual");
+    expect(message).toContain(LABEL_SEQUENCE_TEXT);
+  });
+
+  it("points at the tip review body when the summary lists no fingerprints", () => {
+    const result = evaluateSlizardGate([
+      slizardRun({ conclusion: "failure", summary: BLOCKING_SUMMARY }),
+    ]);
+    const message = result.failures[0] ?? "";
+    expect(message).toContain("lists no actionable fingerprints");
+    expect(message.indexOf("@slizard label")).toBeLessThan(message.indexOf("--skip-slizard"));
+  });
+
+  it("keeps ready_state unchanged for ready, blocked, pending and weather inputs", () => {
+    const zero = [
+      "**Decision**: request_changes",
+      "**Merge impact**: blocking",
+      "**Findings**: 0 actionable, 0 advisory",
+      "**Severity counts**: P0: 0, P1: 0, P2: 0, P3: 0",
+      "**Fingerprints (actionable)**: ",
+    ].join("\n");
+    const cases: Array<[CheckRunRecord, string]> = [
+      [slizardRun(), "ready"],
+      [slizardRun({ conclusion: "failure", summary: pr6404Summary }), "blocked"],
+      [slizardRun({ conclusion: "success", summary: pr6404Summary }), "blocked"],
+      [slizardRun({ conclusion: "failure", summary: capturedSummary }), "blocked"],
+      [slizardRun({ conclusion: "failure", summary: zero }), "ready"],
+      [slizardRun({ conclusion: "timed_out", summary: "" }), "ready"],
+      [slizardRun({ conclusion: "failure", summary: "" }), "blocked"],
+      [slizardRun({ status: "in_progress", conclusion: "none", summary: "" }), "not_ready_yet"],
+    ];
+    for (const [run, expected] of cases) {
+      expect(evaluateSlizardGate([run]).summary.ready_state).toBe(expected);
+    }
+    expect(evaluateSlizardGate([]).summary.ready_state).toBe("skipped");
+  });
+
+  it("does not expose fingerprints on the gate verdict; it reads only the check-run", () => {
+    const result = evaluateSlizardGate([
+      slizardRun({ conclusion: "failure", summary: pr6404Summary }),
+    ]);
+    expect(result.summary.verdict).not.toHaveProperty("fingerprints");
+    expect(parseSlizardVerdict(pr6404Summary)).not.toHaveProperty("fingerprints");
   });
 });
