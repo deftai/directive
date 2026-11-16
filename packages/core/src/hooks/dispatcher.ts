@@ -193,6 +193,7 @@ import {
 } from "./dispatcher-plan-choice.js";
 import { appendGitDestructiveRecord, GIT_DESTRUCTIVE_LOG_ENV } from "./git-destructive-log.js";
 import { classifyLauncherFamilyArgv, type LauncherArgvClass } from "./launcher-argv.js";
+import { excuseMergeArrivals } from "./merge-commit-excuse.js";
 import { isLexicalOutsideProjectRoot, isOutsideProjectRootWrite } from "./outside-project-root.js";
 import {
   type OwnerLivenessInput,
@@ -5194,6 +5195,8 @@ export interface ProspectiveScopeCoverInput {
   readonly stagedEntries?: readonly StagedIndexEntry[];
   /** Index blob reader; defaults to `git cat-file blob` on `projectRoot` (#5839). */
   readonly readStagedBlob?: (projectRoot: string, blob: string) => string | null;
+  /** Merge-commit excuse (#6379 item 6); defaults to {@link excuseMergeArrivals}. */
+  readonly excuseMergeArrivals?: typeof excuseMergeArrivals;
 }
 
 export interface ProspectiveScopeCoverResult {
@@ -5315,7 +5318,19 @@ export function evaluateProspectiveScopeCover(
       scopePath: scope.path,
     };
   }
-  const uncovered = productStaged.filter((rel) => !matchAny(fence.fileScope, rel));
+  const outside = productStaged.filter((rel) => !matchAny(fence.fileScope, rel));
+  // A merge commit excuses only staged entries identical to an authoritative
+  // MERGE_HEAD entry; file_scope itself still comes from the merge base (#6379).
+  const merge =
+    outside.length === 0
+      ? null
+      : (input.excuseMergeArrivals ?? excuseMergeArrivals)({
+          projectRoot,
+          paths: outside,
+          stagedEntries: input.stagedEntries,
+          deliveryRef: fence.baseRef,
+        });
+  const uncovered = merge === null ? outside : [...merge.remaining];
   if (uncovered.length > 0) {
     return {
       ok: false,
@@ -5329,7 +5344,11 @@ export function evaluateProspectiveScopeCover(
   }
   return {
     ok: true,
-    message: `Prospective scope-cover passed for ${String(productStaged.length)} product staged path(s).`,
+    message:
+      `Prospective scope-cover passed for ${String(productStaged.length)} product staged path(s)` +
+      (merge !== null && merge.excused.length > 0
+        ? ` (${String(merge.excused.length)} unchanged from the fetched default branch in this merge, #6379).`
+        : "."),
     uncovered: [],
     scopePath: scope.path,
   };
