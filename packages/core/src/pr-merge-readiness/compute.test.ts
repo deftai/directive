@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { evaluateAlwaysOnNamedMergeGate } from "../pr-wait-mergeable/semantic-green.js";
+import { probeOnce } from "../pr-watch/probe.js";
 import { type ComputeGateOptions, computeGateResult } from "./compute.js";
 import { isMergeReady } from "./evaluate.js";
 import { exitCodeFor, printHuman } from "./output.js";
@@ -254,6 +255,36 @@ describe("computeGateResult #2260 reconciliation", () => {
     expect(mergeability.mergeable_state).toBe("clean");
     expect(printHuman(result)).toContain("Result: MERGE-READY");
     expect(exitCodeFor(result)).toBe(0);
+  });
+
+  it("reads an older failed run and a newer passed run the same as pr:watch (#6336)", () => {
+    const checks = JSON.stringify({
+      check_runs: [
+        {
+          id: 1,
+          name: "closing-keywords",
+          status: "completed",
+          conclusion: "failure",
+          app: { id: 15368 },
+        },
+        {
+          id: 2,
+          name: "closing-keywords",
+          status: "completed",
+          conclusion: "success",
+          app: { id: 15368 },
+        },
+      ],
+    });
+    const runGh = fakeRunGh({ commentBody: cleanGreptileBody(HEAD), checks });
+    const merge = computeGate(6336, "deftai/directive", runGh);
+    expect(merge.failures).toEqual([]);
+    const ci = (merge.partialData as Record<string, unknown>).ci as Record<string, unknown>;
+    expect(ci.ready_state).toBe("ready");
+    const watch = probeOnce(6336, "deftai/directive", runGh);
+    expect(watch.ciReadyState).toBe(ci.ready_state);
+    expect(watch.ciFailures).toBe(0);
+    expect(watch.ciFailedChecks).toEqual([]);
   });
 
   it("does not MERGE-READY an empty failure list when GitHub is not clean (#4883)", () => {

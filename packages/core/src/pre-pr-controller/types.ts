@@ -51,6 +51,14 @@ export interface PrePrInputBinding {
   readonly approvedRevisionSha: string;
 }
 
+/** One CI gate result recorded on the lint_iteration observation (#6336 item 4). */
+export interface PrePrGateCheckResult {
+  readonly gate: "verify:class-checks" | "verify:evaluator-surface";
+  readonly exitCode: number;
+  /** The gate's own message, the same text the CI step prints. */
+  readonly message: string;
+}
+
 export interface CommandObservation {
   readonly phaseId: PrePrPhaseId;
   readonly command: string;
@@ -65,6 +73,13 @@ export interface CommandObservation {
    * authenticator: anyone who can edit the run store can set it.
    */
   readonly observedProjectRoot?: string | null;
+  /**
+   * lint_iteration only (#6336): `verify:class-checks` and
+   * `verify:evaluator-surface` results, run in process by the pre-PR runtime on
+   * observe. Both must exit 0 for the phase to pass, also under the
+   * authorized mode skip. Same trust level as observedProjectRoot.
+   */
+  readonly gateChecks?: readonly PrePrGateCheckResult[];
 }
 
 export interface SemanticEvidence {

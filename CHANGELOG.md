@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - After a context compaction, the write hook restores the ritual clock for the session that owns the live lease and the ritual, and denies one call with the alignment lines instead of every write until a manual re-arm. Other stale-ritual denials print their recovery command with the caller's `--session-id` (#6279).
 
 ### Fixed
+- `pr:watch` and the merge verbs score the newest run per check and app, count every red conclusion as a named failure, and `pr:watch` names missing required checks and prints red bot checks as advisory; pre-PR `lint_iteration` runs `verify:class-checks` and `verify:evaluator-surface`; `verify:intent-constraint` lists every fact; `pre-pr:run --complete` names a missing PR; the body hash ignores CRLF and trailing newlines (#6336).
 
 ### Removed
 

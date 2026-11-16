@@ -1,6 +1,7 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   BODY_AC4_MARKDOWN_LINK_CLEAN,
@@ -11,7 +12,9 @@ import {
 } from "../content-contracts/skills/greptile-detector.js";
 import { GREPTILE_ERRORED_SENTINEL } from "../pr-merge-readiness/constants.js";
 import type { RunGhResult } from "../pr-merge-readiness/types.js";
+import { printWatchHuman, watchResultToJson } from "./main.js";
 import { fetchPrLifecycleRest, probeOnce } from "./probe.js";
+import { watch } from "./watch.js";
 
 /** The last_reviewed sha embedded in the BODY_AC4_* / BODY_TIER2_P1_ONLY fixtures. */
 const FIXTURE_SHA = "abcdef1234567";
@@ -765,5 +768,163 @@ describe("fetchPrLifecycleRest (#4288)", () => {
     expect(life.error).toBeNull();
     expect(life.state).toBe("open");
     expect(life.merged).toBeNull();
+  });
+
+  it("reads base.ref from the same payload (#6336)", () => {
+    const life = fetchPrLifecycleRest(1, "o/r", () => ({
+      returncode: 0,
+      stdout: JSON.stringify({ state: "open", merged: false, base: { ref: "master" } }),
+      stderr: "",
+    }));
+    expect(life.baseRef).toBe("master");
+    const none = fetchPrLifecycleRest(1, "o/r", () => ({
+      returncode: 0,
+      stdout: JSON.stringify({ state: "open", merged: false, base: "master" }),
+      stderr: "",
+    }));
+    expect(none.baseRef).toBeNull();
+  });
+});
+
+describe("pr:watch names the CI cause (#6336)", () => {
+  const STALL_FIXTURE = JSON.parse(
+    readFileSync(
+      fileURLToPath(
+        new URL("../pr-merge-readiness/fixtures/pr-6322-stall-check-runs.json", import.meta.url),
+      ),
+      "utf8",
+    ),
+  ) as { check_runs: unknown[] };
+
+  /** makeFakeGh plus base.ref on pulls and a ruleset naming `required` contexts. */
+  function fakeWithBase(cfg: FakeGhConfig, required: readonly string[] | "error") {
+    const inner = makeFakeGh(cfg);
+    return (cmd: readonly string[]): RunGhResult => {
+      const joined = cmd.join(" ");
+      if (joined.includes("/rules/branches/")) {
+        if (required === "error") return { returncode: 1, stdout: "", stderr: "HTTP 500" };
+        const rules = [
+          {
+            type: "required_status_checks",
+            parameters: { required_status_checks: required.map((context) => ({ context })) },
+          },
+        ];
+        return { returncode: 0, stdout: JSON.stringify(rules), stderr: "" };
+      }
+      if (joined.includes("/protection")) {
+        return { returncode: 1, stdout: "", stderr: "HTTP 404: Not Found" };
+      }
+      if (joined.includes("/pulls/") && !joined.includes("/comments")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            head: { sha: cfg.headSha ?? FIXTURE_SHA },
+            state: "open",
+            merged: false,
+            base: { ref: "master" },
+          }),
+          stderr: "",
+        };
+      }
+      return inner(cmd);
+    };
+  }
+
+  it("the reported stall inventory with a startup_failure is CI_BLOCKED and names the check", () => {
+    const runGh = fakeWithBase(
+      {
+        headSha: FIXTURE_SHA,
+        body: BODY_AC4_MARKDOWN_LINK_CLEAN,
+        checkRuns: STALL_FIXTURE.check_runs,
+      },
+      [],
+    );
+    const probe = probeOnce(6322, "deftai/directive", runGh);
+    expect(probe.ciReadyState).toBe("ci_failures");
+    expect(probe.ciFailedChecks).toEqual(["Merge gate (task check) (startup_failure)"]);
+    const result = watch(6322, "deftai/directive", { oneShot: true, runGh });
+    expect(result.verdict).toBe("CI_BLOCKED");
+    const firstLine = printWatchHuman(result).split("\n")[0] ?? "";
+    expect(firstLine).toContain("CI_BLOCKED");
+    expect(firstLine).toContain("Merge gate (task check) (startup_failure)");
+  });
+
+  it("names a required context that has no check-run on the head", () => {
+    const runGh = fakeWithBase(
+      { headSha: FIXTURE_SHA, body: BODY_AC4_MARKDOWN_LINK_CLEAN, checkRuns: GREEN_CI },
+      ["TypeScript (build + lint + test)", "Merge gate (task check)"],
+    );
+    const probe = probeOnce(6336, "deftai/directive", runGh);
+    expect(probe.ciReadyState).toBe("ci_absent_required");
+    expect(probe.ciAbsentRequired).toEqual(["Merge gate (task check)"]);
+    expect(probe.isClean).toBe(false);
+    expect(probe.cleanGateHoldout).toBe("ci_absent_required");
+    const result = watch(6336, "deftai/directive", { oneShot: true, runGh });
+    expect(printWatchHuman(result)).toContain("Missing required:   Merge gate (task check)");
+    expect(watchResultToJson(result).ci_absent_required).toEqual(["Merge gate (task check)"]);
+  });
+
+  it("degrades to present checks when the required inventory cannot be read", () => {
+    const runGh = fakeWithBase(
+      { headSha: FIXTURE_SHA, body: BODY_AC4_MARKDOWN_LINK_CLEAN, checkRuns: GREEN_CI },
+      "error",
+    );
+    const probe = probeOnce(6336, "deftai/directive", runGh);
+    expect(probe.ciReadyState).toBe("ready");
+    expect(probe.ciAbsentRequired).toEqual([]);
+  });
+
+  it("prints a red bot review check as advisory and does not count it", () => {
+    const runGh = fakeWithBase(
+      {
+        headSha: FIXTURE_SHA,
+        body: BODY_AC4_MARKDOWN_LINK_CLEAN,
+        checkRuns: [
+          ...GREEN_CI,
+          { name: "SLizard", status: "completed", conclusion: "failure", app: { id: 3532919 } },
+        ],
+      },
+      [],
+    );
+    const probe = probeOnce(6336, "deftai/directive", runGh);
+    expect(probe.ciReadyState).toBe("ready");
+    expect(probe.ciFailures).toBe(0);
+    expect(probe.ciAdvisoryChecks).toEqual(["SLizard (failure)"]);
+    const result = watch(6336, "deftai/directive", { oneShot: true, runGh });
+    expect(result.verdict).not.toBe("CI_BLOCKED");
+    expect(printWatchHuman(result)).toContain(
+      "Advisory (bot):     SLizard (failure) (not counted)",
+    );
+    expect(watchResultToJson(result).ci_advisory_checks).toEqual(["SLizard (failure)"]);
+  });
+
+  it("judges by the newest run when an older run of the same check failed", () => {
+    const runGh = fakeWithBase(
+      {
+        headSha: FIXTURE_SHA,
+        body: BODY_AC4_MARKDOWN_LINK_CLEAN,
+        checkRuns: [
+          {
+            id: 1,
+            name: "closing-keywords",
+            status: "completed",
+            conclusion: "failure",
+            app: { id: 15368 },
+          },
+          {
+            id: 2,
+            name: "closing-keywords",
+            status: "completed",
+            conclusion: "success",
+            app: { id: 15368 },
+          },
+        ],
+      },
+      [],
+    );
+    const probe = probeOnce(6319, "deftai/directive", runGh);
+    expect(probe.ciReadyState).toBe("ready");
+    expect(probe.ciFailedChecks).toEqual([]);
+    expect(probe.isClean).toBe(true);
   });
 });

@@ -21,6 +21,8 @@ export interface ConstraintFact {
   readonly kind: FactKind;
   readonly id: string;
   readonly value?: string;
+  /** 1-based source line, for naming the fact; not part of its identity (#6336). */
+  readonly line?: number;
 }
 
 export interface SurfaceSnapshot {

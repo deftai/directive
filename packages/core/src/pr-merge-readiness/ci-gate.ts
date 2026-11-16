@@ -80,6 +80,60 @@ export function isAuthoritativeSuiteAggregator(name: string): boolean {
   return false;
 }
 
+function createdAtMs(run: CheckRunRecord): number | null {
+  if (typeof run.created_at !== "string") return null;
+  const ms = Date.parse(run.created_at);
+  return Number.isFinite(ms) ? ms : null;
+}
+
+/** True when `candidate` is a newer run than `current` (created_at, then run id). */
+function isNewerRun(candidate: CheckRunRecord, current: CheckRunRecord): boolean {
+  const a = createdAtMs(candidate);
+  const b = createdAtMs(current);
+  if (a !== null && b !== null && a !== b) return a > b;
+  const ida = typeof candidate.runId === "number" ? candidate.runId : null;
+  const idb = typeof current.runId === "number" ? current.runId : null;
+  if (ida !== null && idb !== null && ida !== idb) return ida > idb;
+  return ida !== null && idb === null;
+}
+
+/**
+ * Keep one run for each pair of app id and check name: the newest by
+ * `created_at`, with the run id as the tie-break (#6336). A re-run on the same
+ * head (body edit, re-trigger) no longer lets an older red run score. The same
+ * name from another app stays a separate check. Order follows first sighting.
+ */
+export function newestRunPerCheck(checkRuns: readonly CheckRunRecord[]): CheckRunRecord[] {
+  const kept = new Map<string, CheckRunRecord>();
+  for (const run of checkRuns) {
+    const key = `${run.appId ?? ""}\u0000${run.name}`;
+    const current = kept.get(key);
+    if (current === undefined || isNewerRun(run, current)) {
+      kept.set(key, run);
+    }
+  }
+  return [...kept.values()];
+}
+
+/** Completed with a conclusion outside success / neutral / skipped / cancelled (#6336). */
+export function isRedCompletedRun(run: CheckRunRecord): boolean {
+  if (FAILURE_CONCLUSIONS.has(run.conclusion)) return true;
+  if (run.status !== "completed") return false;
+  if (SUCCESS_CONCLUSIONS.has(run.conclusion)) return false;
+  if (CANCELLED_CONCLUSIONS.has(run.conclusion)) return false;
+  return run.conclusion !== "none" && run.conclusion.length > 0;
+}
+
+/**
+ * Red bot review checks on the newest runs (#6336 item 3). Printed as advisory
+ * by pr:watch; never counted in the CI verdict.
+ */
+export function advisoryBotReviewFailures(checkRuns: readonly CheckRunRecord[]): string[] {
+  return newestRunPerCheck(checkRuns)
+    .filter((run) => isBotReviewCheck(run.name) && isRedCompletedRun(run))
+    .map((run) => `${run.name} (${run.conclusion})`);
+}
+
 export type CiReadyState =
   | "ready"
   | "blocked"
@@ -214,9 +268,11 @@ export function buildCiSummaryLine(summary: CiGateSummary): string {
  * - `not_ready_yet` / `ready` / `blocked` / `skipped` — legacy + residual
  */
 export function evaluateCiGate(
-  checkRuns: readonly CheckRunRecord[],
+  allCheckRuns: readonly CheckRunRecord[],
   options: CiGateOptions = {},
 ): CiGateResult {
+  // #6336 item 1: score only the newest run per (app id, check name).
+  const checkRuns = newestRunPerCheck(allCheckRuns);
   const requiredSpecs = normalizeRequiredContexts(options.requiredContexts);
   const requiredContextLabels = requiredSpecs.map(requiredContextLabel);
   if (options.skipCi === true) {
@@ -276,6 +332,13 @@ export function evaluateCiGate(
     if (isPending(run.status, run.conclusion)) {
       pendingRequired.push(`${run.name} (${run.status})`);
       pendingProbes.push(run);
+      continue;
+    }
+
+    // #6336 item 2: any other completed conclusion (startup_failure,
+    // action_required, stale, ...) is a failed check with a name.
+    if (isRedCompletedRun(run)) {
+      failedProduct.push(`${run.name} (${run.conclusion})`);
     }
   }
 

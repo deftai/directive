@@ -8,17 +8,19 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
-import { isAbsolute, join } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import {
   inspectGateOverrideGrant,
   isGateOverrideEligibleRefuseCode,
   loadGateOverrideAdmission,
 } from "../authz/gate-override.js";
+import { evaluateClassChecks } from "../class-checks/evaluate.js";
 import {
   type CoverageApplicabilityDeps,
   evaluateCoverageApplicability,
 } from "../coverage-applicability/index.js";
 import { evaluateCoverageHotspots } from "../coverage-hotspots/evaluate.js";
+import { evaluate as evaluateEvaluatorSurface } from "../evaluator-surface/evaluate.js";
 import { admittedUntiedWorktreeKey, type VerifyAcDispositionKind } from "../hooks/scope.js";
 import { isCoverageModeSkipAuthorized, resolveCoverageMode } from "../policy/coverage-mode.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
@@ -107,6 +109,7 @@ import {
   PRE_PR_PUSH_STAGE_MARKER,
   type PrePrDecision,
   type PrePrExecutionRecord,
+  type PrePrGateCheckResult,
   type PrePrInputBinding,
   type PrePrPushBinding,
   PUBLISHER_REQUIRED,
@@ -115,6 +118,61 @@ import {
   sha256Hex,
   utcIso,
 } from "./types.js";
+
+/** The two CI gates the lint_iteration observation records (#6336 item 4; #6040 lane). */
+export const PRE_PR_LINT_GATE_CHECKS = ["verify:class-checks", "verify:evaluator-surface"] as const;
+
+/**
+ * Run `verify:class-checks` and `verify:evaluator-surface` in process against
+ * the candidate tree (#6336 items 4 and 5). Same evaluators and messages as the
+ * CI steps; no `deft check`, no test run, no whole-repo scan.
+ */
+export function runPrePrGateChecks(projectRoot: string): PrePrGateCheckResult[] {
+  const root = resolve(projectRoot);
+  const classChecks = evaluateClassChecks(root, {});
+  const surface = evaluateEvaluatorSurface({ projectRoot: root });
+  return [
+    { gate: "verify:class-checks", exitCode: classChecks.exitCode, message: classChecks.message },
+    { gate: "verify:evaluator-surface", exitCode: surface.code, message: surface.message },
+  ];
+}
+
+/**
+ * PR body text as pre-PR hashes it (#6336 item 8): CRLF / CR become LF and
+ * trailing newlines are dropped, so a local body file and the body GitHub
+ * stores hash the same when the text is the same.
+ */
+export function normalizePrBodyForHash(text: string): string {
+  return text.replace(/\r\n?/g, "\n").replace(/\n+$/, "");
+}
+
+/** sha256 hex of the normalised PR body (#6336 item 8). */
+export function hashPrBody(text: string): string {
+  return sha256Hex(normalizePrBodyForHash(text));
+}
+
+/** `--complete` on a head with no pull request (#6336 item 7). */
+export function noPullRequestForHeadMessage(headSha: string): string {
+  return (
+    `No pull request exists for head ${headSha}. Next: push the branch and open it ` +
+    "with `gh pr create --body-file <file>`."
+  );
+}
+
+/** Both gate results are recorded on the row and each exited 0 (#6336). */
+export function gateChecksSatisfied(row: CommandObservation): boolean {
+  const recorded = row.gateChecks ?? [];
+  return PRE_PR_LINT_GATE_CHECKS.every((gate) =>
+    recorded.some((result) => result.gate === gate && result.exitCode === 0),
+  );
+}
+
+/** Failing gate results as one message, the gates' own text joined (#6336). */
+export function gateChecksFailureMessage(results: readonly PrePrGateCheckResult[]): string | null {
+  const failed = results.filter((result) => result.exitCode !== 0);
+  if (failed.length === 0) return null;
+  return failed.map((result) => `${result.gate}: ${result.message}`).join("\n");
+}
 
 /**
  * Independently hash reviewed-file contents. Callers cannot mint
@@ -314,6 +372,9 @@ export function observeCommandPhase(
       skipReason: observation.skipReason,
       completedAt: utcIso(observation.now),
       ...(recordsRoot ? { observedProjectRoot: resolveObservedRoot(projectRoot) } : {}),
+      ...(observation.phaseId === "lint_iteration" && observation.gateChecks !== undefined
+        ? { gateChecks: [...observation.gateChecks] }
+        : {}),
     };
     const next: PrePrExecutionRecord = {
       ...record,
@@ -327,6 +388,13 @@ export function observeCommandPhase(
     };
     return next;
   });
+  // #6336 item 4: a red gate result is recorded on the row (completion then
+  // refuses with deny-omitted-phase) and named now with the gate's CI message.
+  // The run is not marked failed: fix the change and observe again.
+  if (decision.ok && observation.phaseId === "lint_iteration") {
+    const failure = gateChecksFailureMessage(observation.gateChecks ?? []);
+    if (failure !== null) return deny("deny-command-failure", failure);
+  }
   return decision;
 }
 
@@ -627,6 +695,8 @@ function commandSatisfied(
   // #5814 lint_iteration mode arm: exit 5 + distinct token; re-read coverageMode;
   // report-present guard refuses skip when coverage/coverage-final.json exists.
   if (phaseId === "lint_iteration") {
+    // #6336 item 4: both CI gate results are required, also under the mode skip.
+    if (!gateChecksSatisfied(row)) return false;
     if (row.exitCode === 0) return true;
     if (row.exitCode !== 5) return false;
     if (row.skipReason !== LINT_ITERATION_MODE_SKIP) return false;
@@ -885,6 +955,8 @@ export function completeRun(
     return deny("deny-missing-record", `pre-PR run ${runId} is not in the private store`);
   }
   // #6071: pre-PR refuses ordinary changes while master's named Merge gate is red.
+  // #6336 item 7: a head with no pull request is named as such, with the next command.
+  let noPullRequest: string | null = null;
   if (options?.skipNamedMergeGate !== true) {
     // Numeric PR only — pass opaque prNodeId so resolveNumericPrNumber can ignore it
     // (never digit-parse GraphQL node_id; #6071 Greptile sticky).
@@ -896,24 +968,32 @@ export function completeRun(
       runGh: options?.runGh,
       prNodeId: current.prNodeId,
     });
+    const bootstrapRequested = options?.firstHotfixBootstrap === true;
+    if (prNumber === null && !bootstrapRequested) {
+      noPullRequest = noPullRequestForHeadMessage(current.headSha);
+    }
     const namedFn = options?.namedMergeGateFn ?? evaluateAlwaysOnNamedMergeGate;
     const named = namedFn(prNumber, current.repo, {
       runGh: options?.runGh,
       projectRoot: options?.projectRoot,
       hotfixAdmission: options?.hotfixAdmission,
       env: options?.env,
-      firstHotfixBootstrap: options?.firstHotfixBootstrap === true || prNumber === null,
+      // #6336 item 7: bootstrap only when requested, never because the PR number is missing.
+      firstHotfixBootstrap: bootstrapRequested,
     });
     // #6295 item 6: refuse only when master's gate is red, never while it is
     // pending; with a required merge queue the refusal is removed entirely.
     if (!named.ok && named.status.disposition !== "pending") {
       const queue = masterGateQueueMode(prNumber, current.repo, options);
       if (!queue) {
-        const bootstrap =
+        const cause =
           named.outcome === "first-hotfix-bootstrap"
             ? FIRST_HOTFIX_BOOTSTRAP_RECOVERY
             : (named.error ?? "named Merge gate refused");
-        return deny("deny-master-merge-gate-red", bootstrap);
+        return deny(
+          "deny-master-merge-gate-red",
+          noPullRequest === null ? cause : `${noPullRequest} ${cause}`,
+        );
       }
     }
   }
@@ -980,7 +1060,11 @@ export function completeRun(
     publishedAt: utcIso(now),
   };
   store.put(published);
-  return { ok: true, code: "allow-pass", message: `published ${runId}` };
+  return {
+    ok: true,
+    code: "allow-pass",
+    message: noPullRequest === null ? `published ${runId}` : `published ${runId}; ${noPullRequest}`,
+  };
 }
 
 export function controllerPublisher(): PrePrPublisher {

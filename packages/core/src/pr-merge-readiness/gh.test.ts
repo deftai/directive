@@ -158,6 +158,27 @@ describe("fetchCheckRunsRest", () => {
     const runGh: RunGhFn = () => ({ returncode: 0, stdout: "{}", stderr: "" });
     expect(fetchCheckRunsRest("sha", "deftai/directive", runGh).summary).toBeNull();
   });
+
+  it("carries the check-run id as runId (#6336)", () => {
+    const runGh: RunGhFn = () => ({
+      returncode: 0,
+      stdout: JSON.stringify({
+        check_runs: [
+          {
+            id: 132676039469,
+            name: "closing-keywords",
+            status: "completed",
+            conclusion: "success",
+          },
+          { id: "not-a-number", name: "odd", status: "completed", conclusion: "success" },
+        ],
+      }),
+      stderr: "",
+    });
+    const [first, second] = fetchCheckRunsRest("sha", "deftai/directive", runGh).checkRuns;
+    expect(first?.runId).toBe(132676039469);
+    expect(second && "runId" in second).toBe(false);
+  });
 });
 
 describe("required status contexts (#3234)", () => {

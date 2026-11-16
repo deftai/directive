@@ -12,7 +12,7 @@ import {
 } from "../content-contracts/skills/greptile-detector.js";
 import { resolveMinGreptileConfidence } from "../policy/min-greptile-confidence.js";
 import { resolveReviewers } from "../policy/reviewers.js";
-import { evaluateCiGate } from "../pr-merge-readiness/ci-gate.js";
+import { advisoryBotReviewFailures, evaluateCiGate } from "../pr-merge-readiness/ci-gate.js";
 import { GREPTILE_ERRORED_SENTINEL } from "../pr-merge-readiness/constants.js";
 import {
   defaultRunGh,
@@ -21,6 +21,8 @@ import {
   fetchGreptileCommentBody,
   fetchPrHeadSha,
   fetchPrHeadShaRest,
+  fetchRequiredStatusContexts,
+  type RequiredStatusContext,
   resolveRepo,
 } from "../pr-merge-readiness/gh.js";
 import {
@@ -42,6 +44,31 @@ export interface PrLifecycleRest {
   readonly state: string | null;
   readonly merged: boolean | null;
   readonly error: string | null;
+  /** `base.ref` from the same pulls payload (#6336 required contexts); null when absent. */
+  readonly baseRef?: string | null;
+}
+
+function baseRefOf(pr: Record<string, unknown>): string | null {
+  const base = pr.base;
+  if (base === null || typeof base !== "object" || Array.isArray(base)) return null;
+  const ref = (base as Record<string, unknown>).ref;
+  return typeof ref === "string" && ref.length > 0 ? ref : null;
+}
+
+/**
+ * The base branch's required status-check contexts for pr:watch (#6336 item 3),
+ * read the way merge-readiness reads them (rulesets + classic protection, REST).
+ * An unresolvable inventory degrades to none: pr:watch then scores the present
+ * checks only, as before, and the merge gate keeps its own fail-closed read.
+ */
+export function resolveWatchRequiredContexts(
+  repo: string,
+  baseRef: string | null | undefined,
+  runGh: RunGhFn,
+): readonly RequiredStatusContext[] {
+  if (baseRef === null || baseRef === undefined || baseRef.length === 0) return [];
+  const resolved = fetchRequiredStatusContexts(repo, baseRef, runGh);
+  return resolved.resolutionFailed === true ? [] : resolved.contexts;
 }
 
 /**
@@ -80,7 +107,7 @@ export function fetchPrLifecycleRest(
   const state = typeof rawState === "string" ? rawState : null;
   // GitHub emits boolean `merged`; coerce only when the key is present as boolean.
   const merged = typeof pr.merged === "boolean" ? pr.merged : null;
-  return { state, merged, error: null };
+  return { state, merged, error: null, baseRef: baseRefOf(pr) };
 }
 
 function errorProbe(headSha: string | null, message: string): WatchProbe {
@@ -177,8 +204,10 @@ export function probeOnce(
   // Open PRs (or unresolved lifecycle) fall through to today's Greptile path.
   let prState: string | null = null;
   let prMerged: boolean | null = null;
+  let baseRef: string | null = null;
   if (repo !== null) {
     const lifecycle = fetchPrLifecycleRest(prNumber, repo, runGh);
+    baseRef = lifecycle.baseRef ?? null;
     if (lifecycle.error !== null) {
       // Soft fail-closed (#4288): do not fall through to Greptile CLEAN, and do
       // not terminal CONFIG on transient REST (429/503). Keep polling.
@@ -228,6 +257,8 @@ export function probeOnce(
   let ciFailedChecks: readonly string[] = [];
   let ciReadyState: string | null = null;
   let ciCapacityStalledChecks: readonly string[] = [];
+  let ciAbsentRequired: readonly string[] = [];
+  let ciAdvisoryChecks: readonly string[] = [];
   let terminalCheckRun = true;
   let greptileReviewTerminal = false;
   // Fail-closed (#5162 P1): unknown/unreachable check-run inventory is treated as
@@ -241,11 +272,17 @@ export function probeOnce(
     if (check.summary !== null) {
       checkRunsUnknown = false;
       botCheckPresent = botReviewCheckPresent(check.checkRuns);
-      const ci = evaluateCiGate(check.checkRuns, {});
+      // #6336 item 3: name a required context with no run on HEAD, the way
+      // merge-readiness does; which present checks count does not change.
+      const ci = evaluateCiGate(check.checkRuns, {
+        requiredContexts: resolveWatchRequiredContexts(repo, baseRef, runGh),
+      });
       ciFailedChecks = ci.summary.failed_required;
       ciFailures = ciFailedChecks.length;
       ciReadyState = ci.summary.ready_state;
       ciCapacityStalledChecks = ci.summary.capacity_stalled_required;
+      ciAbsentRequired = ci.summary.absent_required;
+      ciAdvisoryChecks = advisoryBotReviewFailures(check.checkRuns);
       terminalCheckRun = ci.summary.pending_required.length === 0;
       const greptileRun = check.checkRuns.find((run) => run.name === "Greptile Review");
       greptileReviewTerminal = isGreptileReviewTerminal(
@@ -328,6 +365,7 @@ export function probeOnce(
       ciReadyState === "runner_capacity_stall" ||
       ciReadyState === "ci_cancelled_no_failover" ||
       ciReadyState === "ci_failures" ||
+      ciReadyState === "ci_absent_required" ||
       ciReadyState === "blocked" ||
       ciReadyState === "not_ready_yet")
   ) {
@@ -386,6 +424,8 @@ export function probeOnce(
     ciFailedChecks,
     ciReadyState,
     ciCapacityStalledChecks,
+    ciAbsentRequired,
+    ciAdvisoryChecks,
     terminalCheckRun,
     greptileReviewTerminal,
     greptileReviewInFlight,
