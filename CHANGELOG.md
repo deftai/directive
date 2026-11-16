@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `issue:ingest` writes the acceptance clauses itself: one per item of the accepted lean's Bound remedy and Acceptance Criteria lists, or one per body sentence. Leans can split items across slice issues, and pain-audits record a `harvest-digest:` (#6333). One-time cost: a Spec-path brief that is still only in a working tree fails `verify:ac` until it is ingested again (`task issue:ingest -- <N>`).
 
 ### Changed
+- Mutation `session:start` no longer refuses a session for owed completions. The inventory still runs; one always-on `finalize owed report:` line gives the count and names `deft swarm:finalize-owed` (the form that runs; `task swarm:finalize-owed` never existed), and `--json` carries `finalize_owed_count`. Only an unresolvable repository still refuses (#6409; #5914 part 1).
 - chore(dogfood): pin Directive to 0.129.10.
 - chore(xbrief): widen the #6361 brief to `known-machine.ts` (import-cycle fix) and land its one-PR mint record (#6361).
 - After a context compaction, the write hook restores the ritual clock for the session that owns the live lease and the ritual, and denies one call with the alignment lines instead of every write until a manual re-arm. Other stale-ritual denials print their recovery command with the caller's `--session-id` (#6279).

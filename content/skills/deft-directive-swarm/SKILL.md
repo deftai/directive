@@ -129,6 +129,7 @@ Large multi-host skills use a **host-neutral core** plus **one** per-host adapte
 ! When dest `.deft/ritual-state.json` already exists, prefer `session:start --rearm` (maintainer: `task session:start -- --rearm`) over a full cold start — dest rearm Prefer-A when primary ritual top-level `finalize_owed` is already recorded (no dest `--defer-owed` required).
 ! Linked dest Prefer-A inherits primary top-level `finalize_owed` (deferred or ok). `--rearm` alone on primary/main still scans unless `--defer-owed=<reason>` is set. Keep `--defer=cache_fresh=…` soft paths. Standalone linked worktrees without a primary `finalize_owed` record still fail-closed.
 ⊗ Stampede N dest cold tip inventories before primary records finalize_owed / before Prefer-A is on tip. Depth: `templates/agent-prompt-preamble.md` §12.
+! Owed completions are reported, not refused (#6409): every mutation `session:start` (cold / `--rearm`) runs the inventory, and owed rows, `unknown` included, never refuse a leaf. The always-on `finalize owed report:` line gives the count and names `deft swarm:finalize-owed` (the cleanup entry point; one run need not clear every row). Only an unresolvable repository still refuses; `--defer-owed` clears that and is otherwise only recorded. Owners still pass `verify:orphan-active` / `verify:completed-tracked` before `DONE`.
 
 ### Next-phase tool dispatch (#2934)
 

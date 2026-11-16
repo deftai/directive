@@ -22,6 +22,7 @@ Same rules as the managed `## Session routing (#2176)` below: at session start, 
 ## Session-start ritual (#1149)
 
 Same as managed `## Session-start ritual` below; substitute `task` for `deft` (`task session:start`, `task session:ready`, `task verify:session-ritual -- --tier=gated`, `task verify:tools`, `task doctor`, `task verify:cache-fresh`, `task agents:refresh`, `npm i -g @deftai/directive@latest`).
+! Owed completions are reported, not refused (#6409): mutation `session:start` (cold / `--rearm`) runs the finalize-owed inventory; owed rows, `unknown` included, never refuse it. One always-on `finalize owed report:` line gives the count and `deft swarm:finalize-owed`. Only an unresolvable repository refuses (`--defer-owed` clears it). Managed copy: `content/templates/agents-entry.md`.
 
 ## Session routing (#2176)
 
