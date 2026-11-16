@@ -13,11 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - chore(dogfood): pin Directive to 0.129.10.
+- chore(xbrief): widen the #6361 brief to `known-machine.ts` (import-cycle fix) and land its one-PR mint record (#6361).
 - After a context compaction, the write hook restores the ritual clock for the session that owns the live lease and the ritual, and denies one call with the alignment lines instead of every write until a manual re-arm. Other stale-ritual denials print their recovery command with the caller's `--session-id` (#6279).
 
 ### Fixed
 - `scope:complete` judges a `delivery-identity-attest` grant's expiry at the transition clock, not wall time; this turns master CI green again (#6398).
 - `git commit` of planning files only (`docs/design/*.md`, `docs/decisions/*.md`, proposed/pending/completed/cancelled briefs, decision records, `CHANGELOG.md`, a shape-checked `.deft/plan-sequence.json`) is no longer denied for want of a ready scope. Recovery: upgrade, commit these before `scope:promote`, then commit root plan/specification/PROJECT-DEFINITION and `active/` changes separately; any other path keeps today's rules (#5839).
+- `verify:class-checks` and `verify:evaluator-surface --base-ref` read one candidate tree: the working tree against the merge base, plus untracked files. A reverted protected path passes before its commit, and base-only commits stay out (#6336).
 - fix(scope): a one-PR story now has a worker path. The write fence admits a brief absent from the merge base when the merge-base level is `mint` and the same-PR record matches that exact brief (same checks as CI, never cached), `swarm:launch -- --base-branch <branch>` accepts such a brief from the pushed branch and builds the dest from it, and `task policy:set-one-pr-scope-proof` works. Refs #6361.
 
 ### Removed

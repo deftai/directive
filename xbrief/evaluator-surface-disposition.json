@@ -1,10 +1,11 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 6315,
+  "issue": 6336,
   "surfaces": [
-    "tasks/verify.yml",
+    "packages/core/src/class-checks/**",
+    "packages/core/src/evaluator-surface/**",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for #6315: tasks/verify.yml changes only the description of verify:changelog-unreleased (ENGINE_CMD unchanged: changelog-check --against-merge-base) to name the plan.policy.changelog.mode behaviour (inline line, fragments, either) and the merge-base fragment rules. The gate's behaviour change is in packages/core/src/task-surface/index.ts and changelog/fragment.ts, and inline mode keeps today's verdicts apart from the new fragment-integrity refusals. Disclosure only; not #3164 authorization. Refs #6315, #6286."
+  "note": "Renew disclosure for #6336 Bound item 5 (one candidate tree): verify:class-checks and verify:evaluator-surface --base-ref now take their file set from the working tree against the merge base of the base ref and HEAD, plus untracked files. A committed change that is reverted in the working tree nets out, and base-only commits no longer enter the evaluator-surface set (it used a two-dot base..HEAD diff). On a clean committed tip the set equals CI's <base>...HEAD, so CI verdicts do not change. No merge base falls back to the base ref. Disclosure only; not #3164 authorization. Refs #6336."
 }
