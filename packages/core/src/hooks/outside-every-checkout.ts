@@ -16,7 +16,7 @@
  */
 import { lstatSync, realpathSync, type Stats, statSync } from "node:fs";
 import { homedir as osHomedir, tmpdir as osTmpdir } from "node:os";
-import { delimiter, dirname, join, parse, resolve } from "node:path";
+import { delimiter, dirname, join, parse, posix, resolve, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defaultGitRunner, type GitRunner } from "../session/git.js";
 import { isOutsideProjectRootWrite } from "./outside-project-root.js";
@@ -131,11 +131,23 @@ function doubtfulComponent(part: string): string | null {
   return null;
 }
 
-/** Root of a path, with a Windows drive letter upper-cased (drive letters carry no case). */
-function rootOf(path: string, platform: NodeJS.Platform): string {
-  const root = parse(path).root;
-  if (platform !== "win32") return root;
-  return root.replace(/\//g, "\\").replace(/^[a-z]:/, (drive) => drive.toUpperCase());
+/** Root and components parsed by the given platform's path rules, not the host's. */
+function platformParts(
+  path: string,
+  platform: NodeJS.Platform,
+): { readonly root: string; readonly parts: string[] } {
+  const rules = platform === "win32" ? win32 : posix;
+  const raw = rules.parse(path).root;
+  const root =
+    platform === "win32"
+      ? raw.replace(/\//g, "\\").replace(/^[a-z]:/, (drive) => drive.toUpperCase())
+      : raw;
+  const separators = platform === "win32" ? /[\\/]+/ : /\/+/;
+  const parts = path
+    .slice(raw.length)
+    .split(separators)
+    .filter((part) => part.length > 0);
+  return { root, parts };
 }
 
 /**
@@ -153,9 +165,11 @@ export function pathInside(
   const ignoreCase = compare === "exclusion" && caseFold(platform);
   const same = (a: string, b: string): boolean =>
     ignoreCase ? a.toLowerCase() === b.toLowerCase() : a === b;
-  if (!same(rootOf(parent, platform), rootOf(child, platform))) return null;
-  const parentParts = components(parent);
-  const childParts = components(child);
+  const parentPath = platformParts(parent, platform);
+  const childPath = platformParts(child, platform);
+  if (!same(parentPath.root, childPath.root)) return null;
+  const parentParts = parentPath.parts;
+  const childParts = childPath.parts;
   if (childParts.length < parentParts.length) return null;
   for (const [index, part] of parentParts.entries()) {
     if (!same(part, childParts[index] as string)) return null;
