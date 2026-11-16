@@ -1465,3 +1465,107 @@ describe("authz CLI acceptance-disposition template (#6318)", () => {
     expect(err.join("")).toMatch(/TTY|non-TTY|silent-mint/i);
   });
 });
+
+describe("authz CLI plan-sequence-approval template (#6205)", () => {
+  function gitRepo(): string {
+    const root = tempRoot();
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    execFileSync("git", ["remote", "add", "origin", "https://github.com/acme/app.git"], {
+      cwd: root,
+    });
+    return root;
+  }
+
+  function capture(): { out: string[]; err: string[] } {
+    const out: string[] = [];
+    const err: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    return { out, err };
+  }
+
+  const insertArgv = (root: string) => [
+    "grant",
+    "--project-root",
+    root,
+    "--template",
+    "plan-sequence-approval",
+    "--target",
+    "insert:issue:900",
+    "--plan-ref",
+    "seq-6205",
+    "--generation",
+    "3",
+    "--position",
+    "1",
+    "--issue-ids",
+    "900",
+  ];
+
+  it("clause.11: mints a single-use operator-cli grant bound to repo, sequence, generation, entry and position", () => {
+    const root = gitRepo();
+    const { out } = capture();
+    expect(runAuthz(insertArgv(root))).toBe(0);
+    const text = out.join("");
+    expect(text).toMatch(/template=plan-sequence-approval/);
+    expect(text).toContain("repo=acme/app");
+    const id = /id=(\S+)/.exec(text)?.[1] ?? "";
+    const grant = JSON.parse(
+      readFileSync(join(root, ".deft", "authz", "grants", `${id}.json`), "utf8"),
+    ) as HumanOriginGrant;
+    expect(grant.origin.kind).toBe("operator-cli");
+    expect(grant.semantics.singleUse).toBe(true);
+    expect(grant.scope.surfaces).toEqual(
+      expect.arrayContaining([
+        "plan-sequence-approval:generation:3",
+        "plan-sequence-approval:position:1",
+        "plan-sequence-approval:entry:issue:900",
+      ]),
+    );
+  });
+
+  it("names each missing argument and refuses a malformed --generation or --position", () => {
+    const root = gitRepo();
+    const { err } = capture();
+    const base = ["grant", "--project-root", root, "--template", "plan-sequence-approval"];
+    expect(runAuthz(base)).toBe(2);
+    expect(err.join("")).toContain("requires --target");
+    err.length = 0;
+    expect(runAuthz([...base, "--target", "clear"])).toBe(2);
+    expect(err.join("")).toContain("requires --plan-ref");
+    err.length = 0;
+    expect(runAuthz([...base, "--target", "clear", "--plan-ref", "s"])).toBe(2);
+    expect(err.join("")).toContain("requires --generation");
+    err.length = 0;
+    expect(runAuthz([...base, "--generation", "x"])).toBe(2);
+    expect(err.join("")).toContain("--generation requires a non-negative integer");
+    err.length = 0;
+    expect(runAuthz([...base, "--position", "-2"])).toBe(2);
+    expect(err.join("")).toContain("--position requires a non-negative integer");
+    err.length = 0;
+    expect(
+      runAuthz([...base, "--target", "insert:issue:1", "--plan-ref", "s", "--generation", "0"]),
+    ).toBe(2);
+    expect(err.join("")).toContain("insert requires --position");
+  });
+
+  it("refuses an agent shell through the human-presence gate", () => {
+    const root = gitRepo();
+    const { out } = capture();
+    expect(
+      main([...insertArgv(root), "--confirm"], {
+        isTty: () => true,
+        hasControllingTerminal: () => true,
+        readInteractiveConfirm: () => "mint",
+        environ: { CLAUDECODE: "1" },
+      }),
+    ).toBe(2);
+    expect(out.join("")).not.toContain("template=plan-sequence-approval");
+  });
+});

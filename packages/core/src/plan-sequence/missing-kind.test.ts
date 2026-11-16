@@ -118,9 +118,9 @@ describe("inspectMissingSequenceKind (#4843)", () => {
     expect(current?.terminalLifecycle?.code).toBe("terminal-lifecycle");
     expect(current?.terminalLifecycle?.folder).toBe("completed");
     expect(current?.message).toContain("issue:285");
-    expect(current?.message).toContain(
-      "Stop and ask the operator whether to advance, replace, or clear",
-    );
+    // #6205: a completed origin finishes the entry; no operator stop text.
+    expect(current?.message).toContain("Its completed brief finishes the entry");
+    expect(current?.message).not.toContain("Stop and ask the operator");
     expect(current?.message).not.toContain("every entry");
     if (current === null) {
       throw new Error("expected missing-kind report");
@@ -142,6 +142,15 @@ describe("inspectMissingSequenceKind (#4843)", () => {
     expect(later?.terminalLifecycle).toBeNull();
     expect(later?.message).not.toContain("terminal in");
     expect(later?.message).toContain(planSequencePath(laterOnly));
+
+    const cancelled = tempRoot();
+    writeOrigin(cancelled, 285, "cancelled");
+    writeSequence(cancelled, legacy([{ id: "285", kind: "issue", issue: 285 }]));
+    const stopped = inspectMissingSequenceKind(cancelled);
+    expect(stopped?.terminalLifecycle?.folder).toBe("cancelled");
+    expect(stopped?.message).toContain(
+      "Stop and ask the operator whether to advance, replace, or clear",
+    );
   });
 
   it("keeps the pending current terminal-lifecycle fact when a later kind is epic", () => {

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Ordered plan stays current: readers derive the plan cursor from completed briefs, `scope:complete` prints one `plan-sequence:` line, and `plan-sequence:insert` adds an unplanned fix; under `requireBoundPrePrPush: true`, insert, replace and clear need a single-use `plan-sequence-approval` grant (#6205).
 - `scope:promote`, `scope:activate` and `xbrief:preflight` now list the clauses that `scope:complete` will hold to deploy, smoke, UAT or observed-behaviour evidence, using the same classifier, so the wording or `x-directive/requires` can be fixed in the brief PR. Advisory only; exit codes are unchanged (#6272).
 
 ### Changed
