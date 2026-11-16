@@ -3644,6 +3644,26 @@ describe("ingested briefs are launch-ready (#6333)", () => {
     });
   });
 
+  it("refuses a Spec-path or slice ingest that cannot name a GitHub repository", () => {
+    withRoot((root, xbriefDir) => {
+      const options = {
+        vbriefDir: xbriefDir,
+        status: "proposed" as const,
+        repoUrl: "https://example.com/o/r",
+        cwd: root,
+        scmCall: () => completed("[]", "", 0),
+        printIngestAdvisory: false,
+      };
+      const lean = leanBody();
+      const [spec, , specMessage] = ingestOne(issue(6339, "Body.", arc(lean)), options);
+      expect(spec).toBe("refused");
+      expect(specMessage).toContain("without a GitHub repository");
+      const [slice, , sliceMessage] = ingestOne(issue(6340, "deft-slice: 6333 slice-a\n"), options);
+      expect(slice).toBe("refused");
+      expect(sliceMessage).toContain("needs a GitHub repository");
+    });
+  });
+
   describe("slices (#6333 item 6)", () => {
     const sliced = leanBody({ extra: "\n## Slices\n- slice-a: B1, A1\n- slice-b: A2\n" });
 

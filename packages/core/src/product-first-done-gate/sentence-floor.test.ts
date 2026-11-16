@@ -1582,6 +1582,13 @@ describe("Spec-path merge-base boundary and live lean compare (#6333 items 4 and
         });
         expect(result.ok).toBe(false);
         expect(result.cause).toBe(SPEC_PATH_SOURCE_RECORD_MISSING_CAUSE);
+        // scope:complete evaluates the plan with an xbriefPath hint: same probe.
+        const byPlan = evaluateVerifyAcFromPlan(specPathBrief(false), {
+          ...baseOptions(root),
+          xbriefPath: path,
+          fetchSpecPathLiveIdentities: liveFromThread,
+        });
+        expect(byPlan.cause).toBe(SPEC_PATH_SOURCE_RECORD_MISSING_CAUSE);
       } finally {
         if (prior === undefined) delete process.env.DEFT_BASE_REF;
         else process.env.DEFT_BASE_REF = prior;
