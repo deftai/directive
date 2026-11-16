@@ -202,7 +202,7 @@ export interface ScopeProvenanceOptions {
   readonly gitTimeoutSeconds?: number;
   /** Mode of `scope-provenance-git-call-timeout` (test seam). Absent: the declared mode. */
   readonly gitTimeoutMode?: DeclaredRefusalMode;
-  /** Sink for the warn-mode timeout line. Absent: a synchronous write to fd 2. */
+  /** Sink for the warn-mode timeout line. Absent: stderr (the CLI passes a synchronous fd-2 writer). */
   readonly onGitTimeoutWarning?: (line: string) => void;
   /** Remedy text for a larger limit (the CLI prints its own argv). */
   readonly gitTimeoutRemedy?: (largerSeconds: number) => string;

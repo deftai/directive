@@ -19,7 +19,6 @@
  */
 
 import { type SpawnSyncOptions, type SpawnSyncReturns, spawnSync } from "node:child_process";
-import { writeSync } from "node:fs";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 
 export type DeclaredRefusalMode = "warn" | "enforce";
@@ -154,7 +153,7 @@ export interface ScopeProvenanceGitOptions {
   readonly timeoutSeconds?: number;
   /** Mode override (tests). Absent: the declared row's mode. */
   readonly mode?: DeclaredRefusalMode;
-  /** Sink for the warn line. Absent: a synchronous write to fd 2. */
+  /** Sink for the warn line. Absent: stderr. */
   readonly report?: (line: string) => void;
   /** Remedy text for a larger limit. Absent: {@link defaultGitTimeoutRemedy}. */
   readonly remedy?: (largerSeconds: number) => string;
@@ -188,12 +187,12 @@ export function isGitCallTimeout(result: { readonly error?: Error }): boolean {
   return (result.error as NodeJS.ErrnoException | undefined)?.code === "ETIMEDOUT";
 }
 
-function writeLineToFd2(line: string): void {
-  try {
-    writeSync(2, `${line}\n`);
-  } catch {
-    // stderr closed: the line is diagnostics only.
-  }
+/**
+ * Default warn sink: stderr. The CLI passes its own synchronous fd-2 writer;
+ * core keeps no raw write sink (#2951 contained writes).
+ */
+function writeLineToStderr(line: string): void {
+  process.stderr.write(`${line}\n`);
 }
 
 export function createScopeProvenanceGit(
@@ -202,7 +201,7 @@ export function createScopeProvenanceGit(
   const baseEnv = options.env ?? process.env;
   const timeoutSeconds = options.timeoutSeconds ?? resolveGitTimeoutSeconds(undefined, baseEnv);
   const mode = options.mode ?? SCOPE_PROVENANCE_GIT_CALL_TIMEOUT.mode;
-  const report = options.report ?? writeLineToFd2;
+  const report = options.report ?? writeLineToStderr;
   const remedy = options.remedy ?? defaultGitTimeoutRemedy;
   const spawn: GitSpawn = options.spawn ?? (spawnSync as GitSpawn);
   const maxBuffer = options.maxBuffer ?? SUBPROCESS_MAX_BUFFER;

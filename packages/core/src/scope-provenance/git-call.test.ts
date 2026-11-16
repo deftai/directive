@@ -3,7 +3,7 @@
  */
 import type { SpawnSyncOptions, SpawnSyncReturns } from "node:child_process";
 import { spawnSync } from "node:child_process";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   createScopeProvenanceGit,
   DEFAULT_GIT_TIMEOUT_SECONDS,
@@ -172,6 +172,22 @@ describe("a call that reaches the limit (#6378 item 10)", () => {
     expect(git.phase()).toBe("census");
     expect(git.setPhase("per-story evaluation")).toBe("census");
     expect(git.phase()).toBe("per-story evaluation");
+  });
+
+  it("warn mode writes the line to stderr by default", () => {
+    const s = scripted([timedOut(), ok("second")]);
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    try {
+      createScopeProvenanceGit({ timeoutSeconds: 120, env: {}, spawn: s.spawn }).runText(
+        ["rev-parse", "HEAD"],
+        ".",
+      );
+      expect(spy.mock.calls.map((c) => String(c[0])).join("")).toContain(
+        "scope-provenance-git-call-timeout (warn)",
+      );
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("enforce mode: throws the refusal line and keeps it", () => {
