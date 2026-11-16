@@ -543,10 +543,6 @@ export function createPlanSequence(input: {
   if (input.entries.length === 0) {
     throw new Error("plan-sequence: entries must be non-empty");
   }
-  const batchError = planBatchError(input.entries, input.batching_allowed ?? false);
-  if (batchError !== null) {
-    throw new Error(batchError);
-  }
   const now = input.now ?? new Date().toISOString();
   return {
     sequence_id: input.sequence_id,

@@ -206,7 +206,7 @@ function requireExpectedGeneration(parsed: Parsed): number | { error: string } {
   return parsed.expectedGeneration;
 }
 
-function loadSetPayload(parsed: Parsed, root: string): PlanSequence {
+function loadSetPayload(parsed: Parsed, root: string): PlanSequence | { readonly refusal: string } {
   const text = parsed.file ? readFileSync(resolve(root, parsed.file), "utf8") : parsed.jsonInline;
   if (text === null || text === undefined) {
     throw new Error("plan-sequence set requires --file <path> or --from-json <json>");
@@ -216,19 +216,19 @@ function loadSetPayload(parsed: Parsed, root: string): PlanSequence {
     throw new Error("plan-sequence set: --file/--from-json must contain a JSON object");
   }
   const raw = payload as Record<string, unknown>;
+  // #4433: unusable batch labels are a caller input refusal; fix the payload and retry.
+  const batchRefusal = Array.isArray(raw.entries)
+    ? planBatchError(
+        raw.entries.filter(
+          (e): e is Record<string, unknown> => typeof e === "object" && e !== null,
+        ),
+        raw.batching_allowed === true,
+      )
+    : null;
+  if (batchRefusal !== null) {
+    return { refusal: batchRefusal };
+  }
   if (typeof raw.current_index === "number" || raw.exhausted === true) {
-    // #4433: a full plan payload gets the same batch-label check as create.
-    const batchError = Array.isArray(raw.entries)
-      ? planBatchError(
-          raw.entries.filter(
-            (e): e is Record<string, unknown> => typeof e === "object" && e !== null,
-          ),
-          raw.batching_allowed === true,
-        )
-      : null;
-    if (batchError !== null) {
-      throw new Error(batchError);
-    }
     return parsePlanSequence(raw);
   }
   return createPlanSequence({
@@ -316,7 +316,9 @@ function replaceOrClearGuard(
 }
 
 function runSet(parsed: Parsed, root: string, expected: number): number {
-  const seq = loadSetPayload(parsed, root);
+  const loaded = loadSetPayload(parsed, root);
+  if ("refusal" in loaded) return fail(loaded.refusal);
+  const seq = loaded;
   const guard = replaceOrClearGuard(root, "replace");
   if ("error" in guard) return fail(guard.error);
   const written = approvedWrite({

@@ -264,32 +264,12 @@ describe("batching_allowed batches (#4433)", () => {
   });
 
   it("set-time batch labels fail closed with one remediation", () => {
-    const base = {
-      sequence_id: "s",
-      sequence_kind: "cohort" as const,
-      authorized_by: "t",
-    };
-    expect(() =>
-      createPlanSequence({
-        ...base,
-        batching_allowed: true,
-        entries: [
-          { id: "A", kind: "issue" },
-          { id: "B", kind: "issue" },
-        ],
-      }),
-    ).toThrow(/no entry has a "batch" label/);
-    expect(() =>
-      createPlanSequence({
-        ...base,
-        batching_allowed: true,
-        entries: [
-          { id: "A", kind: "issue", batch: "a" },
-          { id: "B", kind: "issue", batch: "b" },
-          { id: "C", kind: "issue", batch: "a" },
-        ],
-      }),
-    ).toThrow(/batch "a" is split by other entries at entries\[2\]/);
+    expect(planBatchError([{}, {}], true)).toBe(
+      'plan-sequence: batching_allowed is true but no entry has a "batch" label. Give the entries that run together the same "batch" value, or set batching_allowed to false.',
+    );
+    expect(planBatchError([{ batch: "a" }, { batch: "b" }, { batch: "a" }], true)).toBe(
+      'plan-sequence: batch "a" is split by other entries at entries[2]. Put the entries of one batch next to each other.',
+    );
     expect(planBatchError([{ batch: "a" }, {}, { batch: "a" }], true)).toMatch(
       /split by other entries at entries\[2\]/,
     );
