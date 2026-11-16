@@ -9,7 +9,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 ## Overview
 
 - **Rules:** 25 groupings, 291 documents
-- **Tasks:** 66 namespaces, 291 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
+- **Tasks:** 66 namespaces, 292 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (721 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
@@ -434,7 +434,7 @@ _How agents prove work is done: gates, validators, coverage, review._
 | ownership | WSL root-runtime ownership doctor/fix (#1617). | 2 |
 | packs | Pack-slicing surface (#1283 design, #1294 lessons pilot, #1295 skills pack, | 8 |
 | plan-sequence | Set the active ordered-plan sequence from --file JSON (#2402) | 5 |
-| policy | Inspect every registered typed-policy field on vbrief/PROJECT-DEFINITION.vbrief.json (#1148 / N8). -- task policy:show [--… | 12 |
+| policy | Inspect every registered typed-policy field on vbrief/PROJECT-DEFINITION.vbrief.json (#1148 / N8). -- task policy:show [--… | 13 |
 | pr | PR-level merge-discipline checks. | 6 |
 | prd | Export resolved project narratives to a read-only PRD.md | 1 |
 | product-signal | Show product-signal enable/consent/sink status (#2693). -- task product-signal:status | 5 |
