@@ -1,0 +1,2 @@
+section: Fixed
+- `verify:scope-provenance` reads the lifecycle census in a few batched `git cat-file` reads instead of one `git show` per brief, so it finishes in seconds instead of minutes. It prints one stderr line per phase (`--quiet` hides them), and each git call has a 120-second limit (`--git-timeout-seconds`, `DEFT_SCOPE_PROVENANCE_GIT_TIMEOUT_SECONDS`) that only warns in this release (#6378).

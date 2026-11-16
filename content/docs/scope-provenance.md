@@ -172,6 +172,16 @@ The verb remains for historical intent-pin minting and for `authz`-shared human-
 
 and lists on-disk `xbrief/active/` files. Presence in the working tree is what matters for discovery. The **fence list** still comes from the merge-base brief bytes.
 
+## Run time, phase lines and the per-call git limit (#6378)
+
+The lifecycle census reads every brief under `xbrief/{pending,active,completed,cancelled}/` at the base ref. It lists each folder with `git ls-tree`, then reads the listed briefs with one `git cat-file --batch-check` and a few `git cat-file --batch` chunks. Each chunk stays under the subprocess buffer limit. A name that is not printable ASCII, an entry that is not a file, a brief too large for one chunk, and any batch fault use the single `git show` read as before. The verdict and the exit codes do not change. The texts the census read serve the later base reads of the same run. Nothing is kept between runs.
+
+Before each phase (base resolution, change-set read, census with its brief count, per-story evaluation) the check writes one `verify_scope_provenance: phase: <name>` line to stderr. `--quiet` turns these lines off.
+
+Every git call of the check has a time limit. The default is 120 seconds per call. `--git-timeout-seconds <n>` changes it, and `0` means no limit. `DEFT_SCOPE_PROVENANCE_GIT_TIMEOUT_SECONDS` sets it for runs that cannot pass the flag; the flag wins. At the limit the git process is ended with `SIGKILL`; git calls run with `GIT_OPTIONAL_LOCKS=0`. The limit ends the git process the check started, not a helper that git started (a credential helper, or a fetch in a partial clone).
+
+The limit is the declared refusal `scope-provenance-git-call-timeout`. It ships in `warn` mode: a call that reaches the limit prints one line with the phase, the git command, the elapsed seconds and the remedy, and then runs once more with no limit. In `enforce` mode (a later release) the same line is the refusal and the check exits 2. The remedy is the verb with a larger `--git-timeout-seconds` value, for example `deft verify:scope-provenance --git-timeout-seconds 240`.
+
 ## Cohort proceed
 
 On in-harness proceed for an N-story cohort: do not stop for scope. Land planner briefs (with `file_scope` when declared) on the base before workers branch. After proceed, schedule no scope ceremony — see `deft-directive-swarm` and the AGENTS managed pin (#4956).

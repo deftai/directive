@@ -13,8 +13,12 @@
  *
  * A one-PR mint-level admit (#6273) prints its block on stdout and appends the
  * same block to `$GITHUB_STEP_SUMMARY` when that variable is set.
+ *
+ * #6378: one line per phase on fd 2 (synchronous write) unless `--quiet`, and
+ * `--git-timeout-seconds <n>` (0 = no limit; env
+ * `DEFT_SCOPE_PROVENANCE_GIT_TIMEOUT_SECONDS`; default 120) for every git call.
  */
-import { appendFileSync } from "node:fs";
+import { appendFileSync, writeSync } from "node:fs";
 import { resolve } from "node:path";
 import { scopeProvenance } from "@deftai/directive-core";
 import { formatMintLevelAdmitBlock, type MintLevelAdmit } from "@deftai/directive-core/policy";
@@ -36,8 +40,15 @@ interface ParsedArgs {
   prNumber: number | null;
   /** OWNER/NAME for the forge-approval admit; empty means resolve. */
   repo: string;
+  /** `--git-timeout-seconds` value (#6378); null when absent. */
+  gitTimeoutSeconds: number | null;
   error?: string;
 }
+
+/** Prefix of each phase line on fd 2 (#6378 item 7). */
+export const PHASE_LINE_PREFIX = "verify_scope_provenance: phase: ";
+
+const GIT_TIMEOUT_FLAG = "--git-timeout-seconds";
 
 const PR_DIGITS = /^[1-9][0-9]*$/;
 
@@ -56,10 +67,22 @@ export function parseArgs(argv: string[]): ParsedArgs {
     quiet: false,
     prNumber: null,
     repo: "",
+    gitTimeoutSeconds: null,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === "--quiet") {
+    if (arg === GIT_TIMEOUT_FLAG || arg?.startsWith(`${GIT_TIMEOUT_FLAG}=`)) {
+      const value = arg === GIT_TIMEOUT_FLAG ? argv[i + 1] : arg.slice(GIT_TIMEOUT_FLAG.length + 1);
+      if (arg === GIT_TIMEOUT_FLAG) i += 1;
+      const seconds = value === undefined ? null : scopeProvenance.parseGitTimeoutSeconds(value);
+      if (seconds === null) {
+        return {
+          ...parsed,
+          error: `argument ${GIT_TIMEOUT_FLAG}: expected a whole number of seconds (0 = no limit)`,
+        };
+      }
+      parsed.gitTimeoutSeconds = seconds;
+    } else if (arg === "--quiet") {
       parsed.quiet = true;
     } else if (arg === "--enforce") {
       parsed.enforce = true;
@@ -145,7 +168,54 @@ export function reportMintLevelAdmits(
   }
 }
 
-export function run(argv: string[], env: NodeJS.ProcessEnv = process.env): number {
+/** Quote one argument for the printed remedy only when it needs it. */
+function remedyArg(arg: string): string {
+  return /^[^\s"'`$&|;<>()*?[\]{}#~!]+$/.test(arg) ? arg : JSON.stringify(arg);
+}
+
+/**
+ * The verb as it was run, with a larger `--git-timeout-seconds` value (#6378
+ * item 10). Running it exactly as printed repeats this check with that limit.
+ */
+export function formatGitTimeoutRemedy(argv: readonly string[], largerSeconds: number): string {
+  const kept: string[] = [];
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i] as string;
+    if (arg === GIT_TIMEOUT_FLAG) {
+      i += 1;
+      continue;
+    }
+    if (arg.startsWith(`${GIT_TIMEOUT_FLAG}=`)) continue;
+    kept.push(arg);
+  }
+  return ["deft", "verify:scope-provenance", ...kept, GIT_TIMEOUT_FLAG, String(largerSeconds)]
+    .map(remedyArg)
+    .join(" ");
+}
+
+/** Test seams for {@link run}. */
+export interface RunSeams {
+  /** Synchronous stderr writer (default: `fs.writeSync(2, ...)`). */
+  readonly writeStderrSync?: (text: string) => void;
+  /** spawnSync seam for every git call. */
+  readonly gitSpawn?: scopeProvenance.GitSpawn;
+  /** Mode of `scope-provenance-git-call-timeout` (default: the declared mode). */
+  readonly gitTimeoutMode?: scopeProvenance.DeclaredRefusalMode;
+}
+
+function writeFd2(text: string): void {
+  try {
+    writeSync(2, text);
+  } catch {
+    // stderr closed: phase lines are diagnostics only.
+  }
+}
+
+export function run(
+  argv: string[],
+  env: NodeJS.ProcessEnv = process.env,
+  seams: RunSeams = {},
+): number {
   // #6295: PR-context check; skipped on the merge queue's group commit.
   const skip = mergeGroupSkip("verify:scope-provenance", env);
   if (skip !== null) {
@@ -159,10 +229,20 @@ export function run(argv: string[], env: NodeJS.ProcessEnv = process.env): numbe
   }
   const projectRoot = resolve(args.projectRoot);
   const forgeApproval = resolveForgeContext(args, env);
+  const writeStderrSync = seams.writeStderrSync ?? writeFd2;
   const result = scopeProvenance.evaluateScopeProvenance(projectRoot, {
     ...(args.baseRef.length > 0 ? { baseRef: args.baseRef } : {}),
     enforce: args.enforce,
     ...(forgeApproval !== null ? { forgeApproval } : {}),
+    gitTimeoutSeconds: scopeProvenance.resolveGitTimeoutSeconds(args.gitTimeoutSeconds, env),
+    ...(seams.gitTimeoutMode !== undefined ? { gitTimeoutMode: seams.gitTimeoutMode } : {}),
+    ...(seams.gitSpawn !== undefined ? { gitSpawn: seams.gitSpawn } : {}),
+    gitTimeoutRemedy: (larger: number) => formatGitTimeoutRemedy(argv, larger),
+    onGitTimeoutWarning: (line: string) => writeStderrSync(`${line}\n`),
+    // Phase lines go out with a synchronous write before each phase starts (#6378 item 7).
+    ...(args.quiet
+      ? {}
+      : { onPhase: (phase: string) => writeStderrSync(`${PHASE_LINE_PREFIX}${phase}\n`) }),
   });
   if (args.enforcePresent) {
     process.stderr.write(`${ENFORCE_NOOP_NOTICE}\n`);
