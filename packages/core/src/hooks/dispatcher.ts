@@ -200,6 +200,7 @@ import {
   allTargetsOutsideEveryCheckout,
   OUTSIDE_EVERY_CHECKOUT_READY_CODE,
   type OutsideEveryCheckoutSeams,
+  targetsKeepOriginalSpelling,
 } from "./outside-every-checkout.js";
 import { isLexicalOutsideProjectRoot, isOutsideProjectRootWrite } from "./outside-project-root.js";
 import {
@@ -2229,6 +2230,9 @@ function inspectMutationGates(
   if (
     options.outsideEveryCheckoutEligible === true &&
     !isSpawnTool(toolName) &&
+    // The harvest trims and decodes targets; a target whose original spelling
+    // differs is judged as today, never under its trimmed name (#6376).
+    targetsKeepOriginalSpelling(input.payload, mutationTargets) &&
     allTargetsOutsideEveryCheckout(payloadRoot, mutationTargets, environ, {
       runGit: dispatchGit,
       ...seams.outsideEveryCheckout,

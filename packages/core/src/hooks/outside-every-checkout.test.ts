@@ -24,6 +24,8 @@ import {
   defaultRuntimePackageDir,
   deftTempName,
   type OutsideEveryCheckoutSeams,
+  pathInside,
+  targetsKeepOriginalSpelling,
 } from "./outside-every-checkout.js";
 
 let base = "";
@@ -466,6 +468,65 @@ describe("combining rule (#6376 item 8)", () => {
         },
       ),
     ).toBe(false);
+  });
+});
+
+describe("native path identity, no case folding for location (#6376 round 3)", () => {
+  it("compares names exactly for location and folds only for exclusions", () => {
+    expect(pathInside("/Users/ALICE/x.md", "/Users/alice", "darwin", "exact")).toBeNull();
+    expect(pathInside("/Users/ALICE/x.md", "/Users/alice", "darwin", "exclusion")).toEqual([
+      "x.md",
+    ]);
+    expect(pathInside("/Users/ALICE/x.md", "/Users/alice", "linux", "exclusion")).toBeNull();
+    expect(pathInside("C:\\USERS\\a\\x", "C:\\Users\\a", "win32", "exact")).toBeNull();
+    expect(pathInside("c:\\Users\\a\\x", "C:\\Users\\a", "win32", "exact")).toEqual(["x"]);
+    expect(pathInside("/a", "/a/b", "linux", "exact")).toBeNull();
+    expect(pathInside("/a/b", "/a/b", "linux", "exact")).toEqual([]);
+  });
+
+  it("keeps a case-variant sibling of home out on a case-sensitive volume", () => {
+    const alice = join(base, "alice");
+    const upper = join(base, "ALICE");
+    mkdirSync(alice);
+    let distinct = false;
+    try {
+      mkdirSync(upper);
+      distinct = statSync(alice).ino !== statSync(upper).ino;
+    } catch {
+      distinct = false;
+    }
+    // A case-insensitive volume has only one folder; the simulation needs two.
+    if (!distinct) return;
+    const verdict = classify(
+      join(upper, "n.md"),
+      {},
+      { homedir: () => alice, platform: process.platform === "win32" ? "win32" : "darwin" },
+    );
+    expect(verdict.inClass).toBe(false);
+    expect(classify(join(alice, "n.md"), {}, { homedir: () => alice }).inClass).toBe(true);
+  });
+});
+
+describe("original target spelling (#6376 round 3)", () => {
+  it("keeps a target the harvest trimmed or decoded out of the class", () => {
+    const t = "/tmp/note";
+    expect(targetsKeepOriginalSpelling({ tool_input: { file_path: t } }, [t])).toBe(true);
+    expect(targetsKeepOriginalSpelling({ tool_input: { file_path: `${t} ` } }, [t])).toBe(false);
+    expect(targetsKeepOriginalSpelling({ tool_input: { file_path: ` ${t}` } }, [t])).toBe(false);
+    expect(targetsKeepOriginalSpelling({ tool_input: { file_path: `file://${t}` } }, [t])).toBe(
+      false,
+    );
+    expect(targetsKeepOriginalSpelling({ tool_input: { file_path: t } }, [])).toBe(false);
+  });
+
+  it("reads ApplyPatch headers verbatim", () => {
+    const body = (line: string) => ({
+      tool_input: { patch: `*** Begin Patch\n${line}\n+x\n*** End Patch` },
+    });
+    expect(targetsKeepOriginalSpelling(body("*** Update File: /tmp/a"), ["/tmp/a"])).toBe(true);
+    expect(targetsKeepOriginalSpelling(body("*** Update File: /tmp/a "), ["/tmp/a"])).toBe(false);
+    expect(targetsKeepOriginalSpelling(body("*** Add File:  /tmp/a"), ["/tmp/a"])).toBe(false);
+    expect(targetsKeepOriginalSpelling(body("*** Move to: /tmp/a"), ["/tmp/a"])).toBe(true);
   });
 });
 

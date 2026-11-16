@@ -16,7 +16,7 @@
  */
 import { lstatSync, realpathSync, type Stats, statSync } from "node:fs";
 import { homedir as osHomedir, tmpdir as osTmpdir } from "node:os";
-import { delimiter, dirname, isAbsolute, join, parse, relative, resolve, sep } from "node:path";
+import { delimiter, dirname, join, parse, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defaultGitRunner, type GitRunner } from "../session/git.js";
 import { isOutsideProjectRootWrite } from "./outside-project-root.js";
@@ -91,13 +91,17 @@ interface Context {
 
 const out = (reason: string): OutsideEveryCheckoutVerdict => ({ inClass: false, reason });
 
+/**
+ * Hosts whose usual filesystems ignore letter case. Used only to widen an
+ * exclusion (a conservative direction); positive location never folds case,
+ * because a volume can be case-sensitive (#6376 round 3).
+ */
 function caseFold(platform: NodeJS.Platform): boolean {
   return platform === "win32" || platform === "darwin";
 }
 
-function fold(path: string, platform: NodeJS.Platform): string {
-  return caseFold(platform) ? path.toLowerCase() : path;
-}
+/** How a containment test compares names. */
+type Compare = "exact" | "exclusion";
 
 /** Absolute in the host's own form: a drive path on Windows, `/` elsewhere. */
 function isHostAbsolute(path: string, platform: NodeJS.Platform): boolean {
@@ -127,11 +131,36 @@ function doubtfulComponent(part: string): string | null {
   return null;
 }
 
-function relativeInside(child: string, parent: string, platform: NodeJS.Platform): string | null {
-  const rel = relative(fold(parent, platform), fold(child, platform));
-  if (rel === "") return "";
-  if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) return null;
-  return rel;
+/** Root of a path, with a Windows drive letter upper-cased (drive letters carry no case). */
+function rootOf(path: string, platform: NodeJS.Platform): string {
+  const root = parse(path).root;
+  if (platform !== "win32") return root;
+  return root.replace(/\//g, "\\").replace(/^[a-z]:/, (drive) => drive.toUpperCase());
+}
+
+/**
+ * Components of `child` below `parent` when `child` is equal to or inside it,
+ * else null. `exact` compares native names exactly (no case folding on any
+ * platform); `exclusion` folds case on hosts whose usual filesystems ignore it,
+ * which can only widen an exclusion.
+ */
+export function pathInside(
+  child: string,
+  parent: string,
+  platform: NodeJS.Platform,
+  compare: Compare,
+): string[] | null {
+  const ignoreCase = compare === "exclusion" && caseFold(platform);
+  const same = (a: string, b: string): boolean =>
+    ignoreCase ? a.toLowerCase() === b.toLowerCase() : a === b;
+  if (!same(rootOf(parent, platform), rootOf(child, platform))) return null;
+  const parentParts = components(parent);
+  const childParts = components(child);
+  if (childParts.length < parentParts.length) return null;
+  for (const [index, part] of parentParts.entries()) {
+    if (!same(part, childParts[index] as string)) return null;
+  }
+  return childParts.slice(parentParts.length);
 }
 
 /** Depth of `parent` when `child` is equal to or inside it, else -1. */
@@ -140,11 +169,12 @@ function containDepth(
   anchor: Anchor,
   platform: NodeJS.Platform,
   strict: boolean,
+  compare: Compare,
 ): number {
   let best = -1;
   for (const form of anchor.forms) {
-    const rel = relativeInside(child, form, platform);
-    if (rel === null || (strict && rel === "")) continue;
+    const rest = pathInside(child, form, platform, compare);
+    if (rest === null || (strict && rest.length === 0)) continue;
     best = Math.max(best, components(form).length);
   }
   return best;
@@ -378,15 +408,18 @@ function locationVerdict(path: string, ctx: Context): string | null {
     }
     if (lower === ".git") return "a path component is named .git";
   }
-  const tempDepth = containDepth(path, ctx.temp, platform, true);
+  // Positive location compares native names exactly; configuration areas and
+  // exclusions may fold case, which only keeps more paths out.
+  const tempDepth = containDepth(path, ctx.temp, platform, true, "exact");
   let homeInside = false;
   let configDepth = -1;
   for (const home of ctx.homes) {
     for (const form of home.forms) {
-      const rel = relativeInside(path, form, platform);
-      if (rel === null || rel === "") continue;
-      homeInside = true;
-      const first = rel.split(sep)[0] ?? "";
+      const exact = pathInside(path, form, platform, "exact");
+      if (exact !== null && exact.length > 0) homeInside = true;
+      const loose = pathInside(path, form, platform, "exclusion");
+      if (loose === null || loose.length === 0) continue;
+      const first = loose[0] ?? "";
       if (first.startsWith(".") || CONFIG_NAMES.has(first.toLowerCase())) {
         configDepth = Math.max(configDepth, components(form).length + 1);
       }
@@ -396,7 +429,7 @@ function locationVerdict(path: string, ctx: Context): string | null {
     return "not inside the OS temp directory or a home directory";
   }
   for (const area of ctx.configEnvAreas) {
-    configDepth = Math.max(configDepth, containDepth(path, area, platform, false));
+    configDepth = Math.max(configDepth, containDepth(path, area, platform, false, "exclusion"));
   }
   // The innermost of the configuration areas and the temp directory decides; a
   // tie goes to the configuration area.
@@ -404,16 +437,19 @@ function locationVerdict(path: string, ctx: Context): string | null {
     return "inside a configuration area";
   }
   for (const anchor of ctx.excludedEnv) {
-    if (containDepth(path, anchor, platform, false) >= 0) {
+    if (containDepth(path, anchor, platform, false, "exclusion") >= 0) {
       return "inside a path named by a Directive or tool environment variable";
     }
   }
   for (const anchor of ctx.pathDirs) {
-    if (containDepth(path, anchor, platform, false) >= 0) {
+    if (containDepth(path, anchor, platform, false, "exclusion") >= 0) {
       return "inside a directory listed in PATH";
     }
   }
-  if (ctx.runtimeDir !== null && containDepth(path, ctx.runtimeDir, platform, false) >= 0) {
+  if (
+    ctx.runtimeDir !== null &&
+    containDepth(path, ctx.runtimeDir, platform, false, "exclusion") >= 0
+  ) {
     return "inside the running Directive runtime package";
   }
   return null;
@@ -528,6 +564,58 @@ export function allTargetsOutsideEveryCheckout(
     const ctx = buildContext(payloadRoot, environ, seams);
     if ("error" in ctx) return false;
     return targets.every((target) => classifyWithContext(payloadRoot, target, ctx).inClass);
+  } catch {
+    return false;
+  }
+}
+
+/** ApplyPatch headers that name a mutation target (same ops the harvest reads). */
+const PATCH_TARGET_HEADER_RE =
+  /^\*\*\* (?:Add File|Update File|Delete File|Move File|Rename File|Move to): (.*)$/;
+
+function collectStrings(value: unknown, into: string[], depth: number): void {
+  if (depth > 8 || into.length > 5000) return;
+  if (typeof value === "string") {
+    into.push(value);
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) collectStrings(item, into, depth + 1);
+    return;
+  }
+  if (typeof value === "object" && value !== null) {
+    for (const item of Object.values(value as Record<string, unknown>)) {
+      collectStrings(item, into, depth + 1);
+    }
+  }
+}
+
+/**
+ * True only when every harvested target is spelled in the payload exactly as
+ * the class test reads it (#6376 round 3). The harvest trims surrounding
+ * whitespace and decodes `file:` URIs; on POSIX `/tmp/note ` and `/tmp/note`
+ * are different files, so a target whose original spelling differs from the
+ * harvested one is kept out of the class. Never throws.
+ */
+export function targetsKeepOriginalSpelling(payload: unknown, targets: readonly string[]): boolean {
+  if (targets.length === 0) return false;
+  try {
+    const strings: string[] = [];
+    collectStrings(payload, strings, 0);
+    const headerCaptures: string[] = [];
+    for (const text of strings) {
+      for (const line of text.split(/\r?\n/)) {
+        const match = PATCH_TARGET_HEADER_RE.exec(line);
+        if (match !== null) headerCaptures.push(match[1] ?? "");
+      }
+    }
+    return targets.every((target) => {
+      const altered = [...strings, ...headerCaptures].some(
+        (s) => s !== target && s.trim() === target,
+      );
+      if (altered) return false;
+      return strings.includes(target) || headerCaptures.includes(target);
+    });
   } catch {
     return false;
   }

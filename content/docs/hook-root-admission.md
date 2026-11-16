@@ -117,8 +117,12 @@ with the native resolver, the missing rest appended unchanged). Both paths must 
    running Directive runtime package. Each excluded value is compared in its typed form and in the
    physical form of its deepest existing folder, so a file that does not exist yet is still caught
    through a link; a relative value is read against the hook's working directory and the payload
-   root.
-5. **Doubt rules.** Out of the class: a relative path; a `..` or `.` step anywhere in the typed
+   root. Positive location compares native names exactly, with no case folding on any platform,
+   because a volume can be case-sensitive; configuration areas and exclusions may fold case, which
+   only keeps more paths out.
+5. **Doubt rules.** Out of the class: a target whose original spelling in the payload differs
+   from the harvested one (surrounding whitespace trimmed, a `file:` URI decoded); a relative
+   path; a `..` or `.` step anywhere in the typed
    path (it is never collapsed before links are followed); a backslash in a POSIX path (a filename
    character there, not a separator); a component that ends with a dot or a
    space, has the Windows short-name form (`~1`) or holds a colon after the drive; a device or

@@ -266,6 +266,16 @@ describe("writes out of the class are judged as today (#6376)", () => {
     expect(decision).toMatchObject({ verdict: "deny", code: "foreign-repository-deny" });
   });
 
+  it("judges a trailing-space target (which may link into a checkout) as today", () => {
+    const { ritualRoots, seams } = staleSeams();
+    // On POSIX `<temp>/note ` is a different name from `<temp>/note` and can be a
+    // link into a checkout; the harvest trims it, so the class must not judge it.
+    const decision = decideHook(write(`${join(temp, "note")} `), seams);
+    expect(decision.code).not.toBe(OUTSIDE_EVERY_CHECKOUT_READY_CODE);
+    expect(decision).toMatchObject({ verdict: "deny", code: "ritual-not-ready" });
+    expect(ritualRoots).toEqual([resolve(primary)]);
+  });
+
   it("does not reach MCP-shaped writes", () => {
     const { seams } = staleSeams();
     const decision = decideHook(
