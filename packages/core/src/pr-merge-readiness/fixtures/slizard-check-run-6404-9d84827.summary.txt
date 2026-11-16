@@ -1,0 +1,17 @@
+slizard v0.3.7828 reviewed PR #6404 at `9d84827`.
+
+**Decision**: request_changes
+**Merge impact**: blocking
+**Review confidence**: 0.90
+**Decision confidence**: 0.73
+**Finding confidence**: 0.73
+**Reason**: Verified blocking finding policy triggered by 1 finding(s).
+**Findings**: 11 actionable, 7 advisory
+**Severity counts**: P0: 0, P1: 2, P2: 4, P3: 5
+**Fingerprints (actionable)**: `2e50b84cc83e0332`, `46b127fb5ffa9702`, `516a200b4447119a`, `6297f4599d9d505d`, `6da49b99719cc41d`, `7ad838952956edd6`, `b4eeafd9144068e0`, `df26844dc12a50e1`, `efbca6f66dbe2b64`, `f7197a3dbf36d217`, `fc1bc053bac83b9a`
+**Duration**: 123s
+**Reviewed files**: 30
+**Skipped files**: 4
+**Context notes**: 4
+
+**Important files**: `packages/core/src/lifecycle/completed-tracked-on-delivery.ts` (P1, 2 finding(s), confidence 0.95); `packages/core/src/scope/lands-with-product.ts` (P1, 2 finding(s), confidence 0.82); `packages/core/src/lifecycle/lands-with-product-proof.test.ts` (P2, 2 finding(s), confidence 0.94)
