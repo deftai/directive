@@ -9,7 +9,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 ## Overview
 
 - **Rules:** 25 groupings, 291 documents
-- **Tasks:** 66 namespaces, 290 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
+- **Tasks:** 66 namespaces, 291 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (721 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
@@ -35,7 +35,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | references | External references and citations backing the guidance. | 4 | 19 | 1 | 19 | 0 | 0 |
 | resilience | Failure handling, recovery, and robustness rules. | 2 | 16 | 14 | 15 | 1 | 2 |
 | scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 121 | 34 | 40 | 1 | 3 |
-| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 42 | 633 | 121 | 747 | 0 | 19 |
+| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 42 | 634 | 121 | 747 | 0 | 19 |
 | strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 17 | 342 | 97 | 157 | 0 | 15 |
 | swarm | Multi-agent (swarm) coordination guidance. | 1 | 75 | 15 | 22 | 0 | 0 |
 | templates | Reusable document/scaffold templates. | 11 | 104 | 10 | 55 | 1 | 5 |
@@ -433,7 +433,7 @@ _How agents prove work is done: gates, validators, coverage, review._
 | occupancy | Lease-only confirmed steal (#3433/#3611). Flags: --confirm --occupant <reported-session-id>; manual/Grok owner: --session-id… | 4 |
 | ownership | WSL root-runtime ownership doctor/fix (#1617). | 2 |
 | packs | Pack-slicing surface (#1283 design, #1294 lessons pilot, #1295 skills pack, | 8 |
-| plan-sequence | Set the active ordered-plan sequence from --file JSON (#2402) | 4 |
+| plan-sequence | Set the active ordered-plan sequence from --file JSON (#2402) | 5 |
 | policy | Inspect every registered typed-policy field on vbrief/PROJECT-DEFINITION.vbrief.json (#1148 / N8). -- task policy:show [--… | 12 |
 | pr | PR-level merge-discipline checks. | 6 |
 | prd | Export resolved project narratives to a read-only PRD.md | 1 |

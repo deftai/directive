@@ -148,12 +148,12 @@ describe("plan-sequence (#2402)", () => {
     ).toBe(true);
   });
 
-  it("verifyPlanTarget fail-closes terminal-lifecycle before mismatch (#4129)", () => {
+  it("verifyPlanTarget fail-closes terminal-lifecycle on a cancelled origin before mismatch (#4129 / #6205)", () => {
     const seq = twoPrPlan();
     const terminals = [
       {
-        path: "xbrief/completed/2120.xbrief.json",
-        folder: "completed" as const,
+        path: "xbrief/cancelled/2120.xbrief.json",
+        folder: "cancelled" as const,
         issueNumbers: [2120],
         prNumbers: [2120],
         storyIds: [],
