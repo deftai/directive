@@ -9,7 +9,7 @@
  * then pre-dispatch begin again — never concurrent dual active.
  */
 
-import { existsSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, normalize, resolve } from "node:path";
 import {
   type AttemptTrigger,
@@ -27,6 +27,8 @@ import {
   saveUnitLedger,
   withUnitLock,
 } from "../delivery-attempt/index.js";
+import { listActiveLifecycleArtifacts, matchPinnedActiveScope } from "../hooks/scope.js";
+import { briefOwnsIssue } from "../intake/residual-identity.js";
 import { defaultScratchDir } from "../orchestration/subagent-monitor.js";
 import {
   defaultFirstSeenDir,
@@ -34,9 +36,18 @@ import {
   evaluatePreCancel,
   type PreCancelVerdict,
 } from "../orchestration/subagent-steer.js";
+import {
+  defaultGitRunner,
+  type GitRunner,
+  gitCommonDir,
+  worktreePathOrNull,
+} from "../session/git.js";
+import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_OK } from "./constants.js";
+import { ensureStoryBindingRecord, removeStoryBindingAttempts } from "./story-binding-record.js";
 import { ensureSubagentStatusDir, looksLikeWorktreeDir } from "./subagent-status-dir.js";
 import { runText } from "./subprocess.js";
+import { resolveWorkerAuthDestPath, storyIdForBrief } from "./worker-auth-assignment.js";
 
 /** Default workflow id for drive-to:merge-ready implement leaves. */
 export const IMPLEMENT_LEAF_WORKFLOW_ID = "drive-to:merge-ready";
@@ -93,6 +104,12 @@ export interface SwarmPreDispatchResult {
   readonly workflowId: string;
   readonly attempt: DeliveryAttemptRecord | null;
   readonly activeAttemptIds: readonly string[];
+  /**
+   * One line about the worktree's story-binding record (#6379): written,
+   * not written (and why), or attempt ids removed. Absent when begin, cancel
+   * or complete had no attempt id to record or remove.
+   */
+  readonly storyBinding?: string;
 }
 
 export function resolveSourceRevision(projectRoot: string, explicit?: string): string {
@@ -273,7 +290,237 @@ export function parseDecisionFromError(message: string): {
   };
 }
 
+export type StoryBindingTargetResult =
+  | { readonly ok: true; readonly worktreePath: string; readonly commonDir: string }
+  | { readonly ok: false; readonly reason: string };
+
+export type StoryBindingScopeResult =
+  | { readonly ok: true; readonly storyId: string; readonly briefPath: string }
+  | { readonly ok: false; readonly reason: string };
+
+function sameRepoPath(left: string, right: string): boolean {
+  const a = resolve(left);
+  const b = resolve(right);
+  return process.platform === "win32" ? a.toLowerCase() === b.toLowerCase() : a === b;
+}
+
+function isDirectory(path: string): boolean {
+  try {
+    return existsSync(path) && statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/** Linked worktree paths with the branch each has checked out (`git worktree list`). */
+function linkedWorktreesOnBranch(
+  projectRoot: string,
+  branch: string,
+  runGit: GitRunner,
+): string[] | null {
+  const listed = runGit(projectRoot, ["worktree", "list", "--porcelain"]);
+  if (listed.code !== 0) return null;
+  const want = `refs/heads/${branch.replace(/^refs\/heads\//, "")}`;
+  const hits: string[] = [];
+  let first = true;
+  for (const block of listed.stdout.replace(/\r/g, "").split(/\n\n+/)) {
+    const lines = block.split("\n");
+    const path = lines.find((line) => line.startsWith("worktree "))?.slice("worktree ".length);
+    if (path === undefined) continue;
+    // The first block is the main worktree: only a linked worktree can be bound.
+    const isMain = first;
+    first = false;
+    if (isMain) continue;
+    if (lines.some((line) => line === `branch ${want}`)) hits.push(resolve(path));
+  }
+  return hits;
+}
+
+function linkedTarget(
+  projectCommon: string,
+  dir: string,
+  label: string,
+  runGit: GitRunner,
+): StoryBindingTargetResult {
+  const top = worktreePathOrNull(dir, runGit);
+  if (top === null) return { ok: false, reason: `target ${label} is not inside a Git worktree` };
+  if (!isLinkedWorktreePath(top)) {
+    return { ok: false, reason: `target ${label} is not a linked worktree` };
+  }
+  const commonDir = gitCommonDir(top, runGit);
+  if (commonDir === null || !sameRepoPath(projectCommon, commonDir)) {
+    return { ok: false, reason: `target ${label} is not a worktree of this repository` };
+  }
+  return { ok: true, worktreePath: resolveWorkerAuthDestPath(top, runGit), commonDir };
+}
+
+/**
+ * Resolve a begin target to one linked worktree (#6379 item 2): an existing
+ * directory is a worktree path; anything else is a branch name that exactly
+ * one linked worktree has checked out.
+ */
+export function resolveStoryBindingTarget(
+  projectRoot: string,
+  targetId: string,
+  runGit: GitRunner = defaultGitRunner,
+): StoryBindingTargetResult {
+  const raw = targetId.trim();
+  const label = JSON.stringify(raw);
+  if (raw.length === 0) return { ok: false, reason: "target is empty" };
+  const projectCommon = gitCommonDir(projectRoot, runGit);
+  if (projectCommon === null) {
+    return { ok: false, reason: "the project root is not inside a Git repository" };
+  }
+  const candidate = isAbsolute(raw) ? raw : resolve(projectRoot, raw);
+  if (isDirectory(candidate)) return linkedTarget(projectCommon, candidate, label, runGit);
+  const onBranch = linkedWorktreesOnBranch(projectRoot, raw, runGit);
+  if (onBranch === null) {
+    return {
+      ok: false,
+      reason: `target ${label} is not a directory and worktrees cannot be listed`,
+    };
+  }
+  const only = onBranch[0];
+  if (onBranch.length !== 1 || only === undefined) {
+    return {
+      ok: false,
+      reason: `target ${label} is not a directory, and ${onBranch.length} linked worktrees have that branch checked out`,
+    };
+  }
+  return linkedTarget(projectCommon, only, label, runGit);
+}
+
+function readBriefPlan(path: string): {
+  data: Record<string, unknown> | null;
+  plan: Record<string, unknown> | null;
+} {
+  try {
+    const raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+      return { data: null, plan: null };
+    }
+    const data = raw as Record<string, unknown>;
+    const plan = data.plan;
+    return {
+      data,
+      plan:
+        plan !== null && typeof plan === "object" && !Array.isArray(plan)
+          ? (plan as Record<string, unknown>)
+          : null,
+    };
+  } catch {
+    return { data: null, plan: null };
+  }
+}
+
+/**
+ * Resolve a scope id to exactly one brief under `xbrief/active/` in the
+ * worktree (#6379 item 2): by brief path, story id (plan.id or filename stem)
+ * or owned issue number (`6379` or `#6379`).
+ */
+export function resolveStoryBindingScope(
+  worktreePath: string,
+  scopeId: string,
+): StoryBindingScopeResult {
+  const id = scopeId.trim();
+  const label = JSON.stringify(id);
+  const scanned = listActiveLifecycleArtifacts(worktreePath).paths;
+  const matches = new Set<string>();
+  const byPath = id.length > 0 ? matchPinnedActiveScope(worktreePath, id, scanned) : null;
+  if (byPath !== null) matches.add(byPath);
+  const issue = /^#?(\d+)$/.exec(id);
+  const issueNumber = issue?.[1] !== undefined ? Number.parseInt(issue[1], 10) : null;
+  for (const path of scanned) {
+    const { data, plan } = readBriefPlan(path);
+    if (id.length > 0 && storyIdForBrief(path, plan) === id) matches.add(path);
+    if (issueNumber !== null && data !== null && briefOwnsIssue(data, issueNumber)) {
+      matches.add(path);
+    }
+  }
+  const only = [...matches][0];
+  if (matches.size !== 1 || only === undefined) {
+    return {
+      ok: false,
+      reason: `scope id ${label} matches ${matches.size} active briefs in ${worktreePath} (need exactly one)`,
+    };
+  }
+  return { ok: true, storyId: storyIdForBrief(only, readBriefPlan(only).plan), briefPath: only };
+}
+
+function errorText(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+/**
+ * Write or update the target worktree's story-binding record (#6379 items 1 to
+ * 3). Runs no `swarm:launch` readiness check and never changes begin's exit
+ * code; a failed resolution writes nothing and returns one line naming it.
+ */
+export function ensureBeginStoryBinding(
+  input: Pick<SwarmPreDispatchInput, "projectRoot" | "scopeId" | "targetId">,
+  attemptIds: readonly string[],
+): string {
+  try {
+    const target = resolveStoryBindingTarget(input.projectRoot, input.targetId);
+    if (!target.ok) return `story-binding: no record written (target): ${target.reason}`;
+    const scope = resolveStoryBindingScope(target.worktreePath, input.scopeId);
+    if (!scope.ok) return `story-binding: no record written (scope): ${scope.reason}`;
+    const wrote = ensureStoryBindingRecord({
+      commonDir: target.commonDir,
+      worktreePath: target.worktreePath,
+      storyId: scope.storyId,
+      attemptIds,
+    });
+    if (!wrote.ok) return `story-binding: no record written (store): ${wrote.detail}`;
+    return (
+      `story-binding: ${target.worktreePath} -> ${scope.storyId} ` +
+      `(attempts ${wrote.record.attempt_ids.join(",")})`
+    );
+  } catch (err) {
+    return `story-binding: no record written (error): ${errorText(err)}`;
+  }
+}
+
+/**
+ * Remove ended attempt ids from every story-binding record of this repository
+ * (#6379 item 5). Returns null when nothing listed them.
+ */
+export function removeEndedStoryBindings(
+  projectRoot: string,
+  endedAttemptIds: readonly string[],
+): string | null {
+  if (endedAttemptIds.length === 0) return null;
+  try {
+    const commonDir = gitCommonDir(projectRoot);
+    if (commonDir === null) return null;
+    const removed = removeStoryBindingAttempts({ commonDir, attemptIds: endedAttemptIds });
+    if (!removed.ok) return `story-binding: attempt ids not removed: ${removed.detail}`;
+    if (removed.updated.length === 0 && removed.deleted.length === 0) return null;
+    return (
+      `story-binding: removed ${endedAttemptIds.join(",")} ` +
+      `(records deleted ${removed.deleted.length}, kept ${removed.updated.length})`
+    );
+  } catch (err) {
+    return `story-binding: attempt ids not removed: ${errorText(err)}`;
+  }
+}
+
+/** Attempt ids a begin result binds: the new attempt, or the unit's running ones on a duplicate deny. */
+function beginBindingAttemptIds(result: SwarmPreDispatchResult): readonly string[] {
+  if (result.exitCode === EXIT_OK && result.attempt !== null) return [result.attempt.attemptId];
+  if (result.decision === "DENY_DUPLICATE_ACTIVE") return result.activeAttemptIds;
+  return [];
+}
+
 function runBegin(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
+  // The record is written after the ledger is saved (#6379 item 3).
+  const result = runBeginLedger(input);
+  const ids = beginBindingAttemptIds(result);
+  if (ids.length === 0) return result;
+  return { ...result, storyBinding: ensureBeginStoryBinding(input, ids) };
+}
+
+function runBeginLedger(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
   const { scopeId, targetId, workflowId } = unitFields(input);
   const sourceRevision = resolveSourceRevision(input.projectRoot, input.sourceRevision);
   const trigger: AttemptTrigger = input.trigger ?? "automatic";
@@ -501,13 +748,21 @@ function runComplete(
       ) ??
       next.attempts.filter((a) => a.endedAt !== null).at(-1) ??
       null;
-    return baseResult(input, action, {
+    const result = baseResult(input, action, {
       exitCode: EXIT_OK,
       decision: null,
       reason: `attempt ${closed?.attemptId ?? "?"} marked ${status}`,
       attempt: closed,
       activeAttemptIds: activeAttempts(next).map((a) => a.attemptId),
     });
+    // The attempts this call ended: running before, not running now (#6379 item 5).
+    const stillActive = new Set(result.activeAttemptIds);
+    const ended = actives.map((a) => a.attemptId).filter((id) => !stillActive.has(id));
+    if (closed !== null && closed.endedAt !== null && !ended.includes(closed.attemptId)) {
+      ended.push(closed.attemptId);
+    }
+    const note = removeEndedStoryBindings(input.projectRoot, ended);
+    return note === null ? result : { ...result, storyBinding: note };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return baseResult(input, action, {
@@ -588,6 +843,9 @@ export function formatPreDispatchReport(result: SwarmPreDispatchResult): string 
   ];
   if (result.attempt !== null) {
     lines.push(`  attempt: ${result.attempt.attemptId} status=${result.attempt.status}`);
+  }
+  if (result.storyBinding !== undefined) {
+    lines.push(`  ${result.storyBinding}`);
   }
   if (result.exitCode === EXIT_GATE_FAILED && result.decision === "DENY_DUPLICATE_ACTIVE") {
     lines.push(

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `swarm:pre-dispatch` begin now writes a story-binding record for the worker's linked worktree (path or branch target), so solo, hand-started and large story workers commit in-scope files with several briefs active and no `DEFT_ACTIVE_SCOPE`; a merge commit of the fetched default branch is admitted for files that arrive unchanged, and `file_scope` still comes from the merge base (#6379).
 - Ordered plan stays current: readers derive the plan cursor from completed briefs, `scope:complete` prints one `plan-sequence:` line, and `plan-sequence:insert` adds an unplanned fix; under `requireBoundPrePrPush: true`, insert, replace and clear need a single-use `plan-sequence-approval` grant (#6205).
 - A story's last product PR can complete the story with `scope:complete --in-pr`, so no separate completion PR is needed; the human product merge plus the identity join on the landing commit is the completion proof, and stories whose acceptance rests on a merge keep the post-merge path (#6277).
 - `scope:promote`, `scope:activate` and `xbrief:preflight` now list the clauses that `scope:complete` will hold to deploy, smoke, UAT or observed-behaviour evidence, using the same classifier, so the wording or `x-directive/requires` can be fixed in the brief PR. Advisory only; exit codes are unchanged (#6272).
