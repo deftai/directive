@@ -1,13 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 6277,
+  "issue": 6336,
   "surfaces": [
-    "packages/core/src/intent-constraint/evaluate.ts",
-    "packages/core/src/observable-scope/evaluate.ts",
-    "packages/core/src/presentation-coverage/admission.ts",
-    "packages/core/src/presentation-coverage/admission.test.ts",
+    "packages/core/src/intent-constraint/**",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure for #6277 Bound 6 (story gates): intent-constraint and observable-scope resolve the current plan id from the story brief this change set moves to completed/ as lands-with-product (one move only), before the sole-running fallback; presentation-coverage admission accepts that moved brief, read against its merge-base active/ path, as the current story. No verdict, mint or remediation changes; a change set without a lands-with-product move resolves as before. Disclosure only; not #3164 authorization. Refs #6277."
+  "note": "Renew disclosure for #6336 Bound item 6: verify:intent-constraint now lists every unapproved fact on each failure path with path, line, kind and value (it listed at most eight, and the missing-mint paths listed none). extract.ts records each fact's source line; the line is display only and not part of the fact's identity, so which facts are new or covered does not change and verdicts do not change. Disclosure only; not #3164 authorization. Refs #6336."
 }

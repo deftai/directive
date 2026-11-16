@@ -259,6 +259,16 @@ describe("task-surface", () => {
     expect(lines.join("")).toContain("1 entries");
   });
 
+  it("against-merge-base exempts a completion whose only non-brief paths are row files (#6335)", () => {
+    const existing = "## [Unreleased]\n\n- pre-existing\n\n## [0.1.0]\n";
+    const project = initChangelogGit(existing);
+    execFileSync("git", ["checkout", "-q", "-b", "lifecycle-rows"], { cwd: project });
+    commitNested(project, "xbrief/completed/story.xbrief.json", "{}\n");
+    commitNested(project, "xbrief/.audit/spec-drift/story.json", "{}\n");
+    const { io } = captureIo();
+    expect(runChangelogCheck(project, io, { againstMergeBase: true })).toBe(0);
+  });
+
   it("against-merge-base keeps the new entry for a brief plus product change (#680 P4)", () => {
     const existing = "## [Unreleased]\n\n- pre-existing\n\n## [0.1.0]\n";
     const project = initChangelogGit(existing);

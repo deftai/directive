@@ -22,6 +22,7 @@ import {
 } from "./ritual-sentinel.js";
 import {
   assessRearmEligibility,
+  formatFinalizeOwedReportLine,
   formatSessionStartRecoveryCommand,
   REARM_CEREMONY_TIER,
   REARM_INELIGIBLE_PREFIX,
@@ -299,6 +300,42 @@ describe("session re-arm vs cold ceremony tiers (#2992)", () => {
       runGit: fakeGit(root, { head }),
     });
     expect(inspect.code).toBe(0);
+  });
+
+  it("re-arm is not refused for owed rows; reports the count (#6409)", () => {
+    const root = tempRoot();
+    const head = "abababababababababababababababababababab";
+    seedRitual(root, { head, startedAt: new Date("2026-07-20T12:00:00Z") });
+    let probeCalls = 0;
+    const result = runSessionStart(root, {
+      ceremonyTier: REARM_CEREMONY_TIER,
+      now: new Date("2026-07-20T12:30:00Z"),
+      writeHistory: false,
+      env: {},
+      runGit: fakeGit(root, { head }),
+      resolveUserMd: () => ({
+        path: join(root, "USER.md"),
+        rung: "workspace-local",
+        found: true,
+        diagnostic: "ok",
+        searched: [],
+      }),
+      probeEnvironment: () => environment,
+      newSessionId: () => "rearm-owed-session",
+      probeFinalizeOwed: () => {
+        probeCalls += 1;
+        return {
+          lines: ["finalize owed inventory:", "  #5994 owed [blocks] pr=#2 xbrief/active/b.json"],
+          blocks: true,
+          unknown: false,
+        };
+      },
+    });
+    expect(probeCalls).toBe(1);
+    expect(result.code).toBe(0);
+    expect(result.payload.ready).toBe(true);
+    expect(result.payload.finalize_owed_count).toBe(1);
+    expect(result.lines).toContain(formatFinalizeOwedReportLine(1));
   });
 
   it("resolves one explicit identity for occupancy preview, persistence, and ritual (#3611)", () => {
