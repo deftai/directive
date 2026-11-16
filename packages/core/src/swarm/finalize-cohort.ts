@@ -1046,7 +1046,7 @@ function ensureFeatureBranch(
   projectRoot: string,
   branchName: string,
   runGit: typeof runText,
-): { ok: boolean; error: string | null; branch: string | null } {
+): { ok: boolean; error: string | null; branch: string | null; createFailed?: boolean } {
   const branchCheck = evaluateBranchPolicy(projectRoot);
   if (branchCheck.exitCode === 1) {
     const create = runGit(["git", "switch", "-c", branchName], { cwd: projectRoot });
@@ -1055,6 +1055,7 @@ function ensureFeatureBranch(
         ok: false,
         error: `git switch -c ${branchName} failed: ${create.stderr.trim()}`,
         branch: null,
+        createFailed: true,
       };
     }
     return { ok: true, error: null, branch: branchName };
@@ -1073,6 +1074,7 @@ function ensureFeatureBranch(
         ok: false,
         error: `git switch -c ${branchName} failed: ${create.stderr.trim()}`,
         branch: null,
+        createFailed: true,
       };
     }
     return { ok: true, error: null, branch: branchName };
@@ -1080,18 +1082,32 @@ function ensureFeatureBranch(
   return { ok: true, error: null, branch: currentBranch };
 }
 
-/** Path of the registered worktree that has `branchName` checked out, from `git worktree list --porcelain`. */
-function worktreeHoldingBranch(porcelain: string, branchName: string): string | null {
+/** POSIX single-quoted shell word: `$`, backticks and `"` stay literal when pasted. */
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+/**
+ * The registered worktree that has `branchName` checked out, from
+ * `git worktree list --porcelain`. `main` is true for the first block (the main
+ * worktree), which `git worktree remove` cannot remove.
+ */
+function worktreeHoldingBranch(
+  porcelain: string,
+  branchName: string,
+): { readonly path: string; readonly main: boolean } | null {
   const target = `branch refs/heads/${branchName}`;
   let current: string | null = null;
-  for (const raw of porcelain.split(/\r?\n/)) {
-    const line = raw.trim();
+  let index = -1;
+  // Keep the path bytes as git printed them: only the line ending is removed.
+  for (const line of porcelain.split(/\r?\n/)) {
     if (line.startsWith("worktree ")) {
       current = line.slice("worktree ".length);
+      index += 1;
     } else if (line.length === 0) {
       current = null;
     } else if (line === target && current !== null) {
-      return current;
+      return { path: current, main: index === 0 };
     }
   }
   return null;
@@ -1129,17 +1145,19 @@ export function describeFinalizeBranchLeftover(
   }
   const listed = runGit(["git", "worktree", "list", "--porcelain"], { cwd: projectRoot });
   const holder = listed.returncode === 0 ? worktreeHoldingBranch(listed.stdout, branchName) : null;
-  const root = `"${projectRoot}"`;
+  const root = shellQuote(projectRoot);
   const commands: string[] = [];
-  if (holder !== null) {
-    commands.push(
-      existsSync(holder)
-        ? `git -C ${root} worktree remove --force "${holder}"`
-        : `git -C ${root} worktree prune`,
-    );
+  if (holder?.main) {
+    // The main worktree cannot be removed; move it off the branch instead.
+    commands.push(`git -C ${shellQuote(holder.path)} switch --detach`);
+  } else if (holder !== null) {
+    // Scoped to the named holder. `worktree remove --force` also drops a
+    // registration whose folder is gone; a repo-wide `worktree prune` would
+    // reach other worktrees.
+    commands.push(`git -C ${root} worktree remove --force ${shellQuote(holder.path)}`);
   }
-  commands.push(`git -C ${root} branch -D ${branchName}`);
-  const held = holder === null ? "" : ` (checked out in worktree ${holder})`;
+  commands.push(`git -C ${root} branch -D ${shellQuote(branchName)}`);
+  const held = holder === null ? "" : ` (checked out in worktree ${holder.path})`;
   return (
     `Leftover of a finalize run that did not finish (#6421): local branch ${branchName}${held} ` +
     "is not on origin. If no other finalize run for this cohort is still running, remove it, " +
@@ -1148,17 +1166,18 @@ export function describeFinalizeBranchLeftover(
 }
 
 /**
- * Error for a failed finalize branch setup. A failed `git switch -c` gets the
- * leftover report (#6421) appended; every other text is as before.
+ * Error for a failed finalize branch setup. A failed branch creation
+ * (`createFailed`) gets the leftover report (#6421) appended; every other text
+ * is as before.
  */
 export function finalizeBranchSetupError(
   projectRoot: string,
   branchName: string,
-  error: string | null,
+  result: { readonly error: string | null; readonly createFailed?: boolean },
   runGit: typeof runText,
 ): string {
-  const text = error ?? "branch setup failed";
-  if (!text.startsWith("git switch -c")) {
+  const text = result.error ?? "branch setup failed";
+  if (result.createFailed !== true) {
     return text;
   }
   const leftover = describeFinalizeBranchLeftover(projectRoot, branchName, runGit);
@@ -2479,9 +2498,7 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
             const branchName = `swarm/finalize/${deriveLabel(args.label, prNumbers, storyTokens)}`;
             const branchResult = ensureFeatureBranch(prepared.checkout, branchName, runGit);
             if (!branchResult.ok) {
-              errors.push(
-                finalizeBranchSetupError(projectRoot, branchName, branchResult.error, runGit),
-              );
+              errors.push(finalizeBranchSetupError(projectRoot, branchName, branchResult, runGit));
               skipSweep = true;
             } else {
               branch = branchResult.branch;
