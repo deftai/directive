@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4433",
-    "updated": "2026-11-16T09:20:26Z"
+    "updated": "2026-11-16T17:21:01Z"
   },
   "plan": {
     "title": "bug(plan-sequence): batching_allowed is persisted but never authorizes parallel entries",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The ordered plan stores `batching_allowed: true`, but `verify:plan-sequence` and `swarm:launch` admit only the single current entry, so an approved parallel wave runs one entry at a time. Launch admission also checks a dummy `story:swarm-cohort` target against the stored cursor instead of the real roster against the derived cursor (#6205). This story gives entries a `batch` label, admits every pending entry of the current batch when `batching_allowed` is true, keeps single-entry behavior when it is false, and makes launch check its real roster.",
       "UserStory": "As an operator who approved a parallel wave in the ordered plan, I want every pending entry of the current batch admitted at push and launch time, so that the wave runs in parallel without dropping the plan file, while later batches stay refused.",
@@ -21,257 +21,481 @@
       {
         "id": "clause.1",
         "title": "Dispatch-time cohort consent: Allocation context / classifyAllocation token presence.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given no plan file, when a two-story `swarm:launch` carries `--allocation-plan-id` and `--batching-rationale`, then it is admitted; without them it is refused."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.2",
         "title": "classifyAllocation does not see target T and does not own a wave set.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the ordered-plan section of `content/commands.md`, when a reader looks for what admits a launch target while a plan file is present, then it names the plan gate and says the Allocation context token is dispatch-time consent only."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.3",
         "title": "explicitConsent is dest T-admission only when no sequence is active.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a plan file whose current entry is another story, when a named two-story launch carries the consent pair, then it is refused; with no plan file the same launch is admitted."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.4",
         "title": "Dest CLI skip does not read the token; dest skip is dest permit when the file is absent.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given no plan file, when `verify:plan-sequence` runs, then it exits 0 with `skipped` and it takes no consent-token flag."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.5",
         "title": "Serial current-entry T-admission: dest-placed verifyPlanTarget on entries[current_index], plus #4129 on that one entry when terminalOrigins are passed.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a plan with `batching_allowed: false`, when `verifyPlanTarget` checks a target with terminal origins, then only the derived current entry passes, and a cancelled origin on that entry stops with `terminal-lifecycle`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.6",
         "title": "Observed at this pin: admitSwarmLaunchPlanSequence uses dummy target swarm-cohort and does not pass terminalOrigins.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a plan whose first entry's brief is in `xbrief/completed/`, when `swarm:launch` runs for the next entry's story, then it is admitted, because launch admission passes terminal origins and reads the derived cursor."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.7",
         "title": "That dummy-target match is not a harvest requirement and MUST NOT stand in for roster verification.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a plan whose current entry is `story:swarm-cohort`, when an unnamed cohort launches stories `coh-a` and `coh-b`, then it is refused."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.8",
         "title": "Precedence by sequence state.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the same named two-story launch, when a plan file is present then the plan gate decides, and when it is absent then the consent token decides."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.9",
         "title": "Active sequence (file present; exhausted counts as active): plan-sequence owns admission, serially, for every swarm:launch roster, including solo.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a plan file whose current entry is another story, when a solo launch names a story outside it, then it is refused. Amended by operator ruling 6906744991: with `batching_allowed: true` admission is by current batch, not one entry."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.10",
         "title": "Input is the real resolved roster, not dummy story:swarm-cohort.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a plan whose current entry is story `coh-a`, when a solo launch names `coh-a`, then it is admitted, and when it names `coh-b`, then it is refused."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.11",
         "title": "Each roster member must be the current entry.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a plan with `batching_allowed: false`, when a cohort launch names the current entry and a later entry, then it is refused. Amended by operator ruling 6906744991: with `batching_allowed: true` each roster member must be a pending entry of the current batch."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.12",
         "title": "verifyPlanTarget remains the owner.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given one plan, when `verifyPlanTarget` and the launch roster check (`verifyPlanStory`) read it, then both admit exactly the same current authorized set."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.13",
         "title": "Named and unnamed launches share this refuse.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a plan whose current entry is another story, when the same roster launches with and without the consent pair, then both are refused."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.14",
         "title": "No active sequence (file absent): the #1378 token owns cohort admission; dest-placed CLI verify:plan-sequence skips permit-and-proceed; complete-cohort-sweep multi-story named launch with no sequence stays allowed.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given no plan file, when an unnamed two-story launch runs, then it is refused, and when a named two-story launch runs, then it is admitted."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.15",
         "title": "Exhausted sequence (file present, verifyPlanTarget exhausted): the sequence is active.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an exhausted plan file, when `swarm:launch` runs, then the plan decides admission and refuses it as exhausted."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.16",
         "title": "Do not treat exhausted as absent.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an exhausted plan file, when a named cohort carries the consent pair, then it is still refused."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.17",
         "title": "Singleton named launch is refused as exhausted.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an exhausted plan file, when a one-story launch with `--group` runs, then it is refused with the exhausted message."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.18",
         "title": "Match key: a story-kind entry matches on story_id.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a story-kind entry `coh-a`, when a story with story_id `coh-a` is checked, then it matches; a story whose id equals only the entry title does not."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.19",
         "title": "An issue-kind entry matches when the entry's id or issue is in the story's resolved issues set.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an issue-kind entry with issue 512 (or id `512`), when a story whose resolved issues are {512} is checked, then it matches."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.20",
         "title": "A story that maps to several issues matches if the resolved issue set is exactly the current entry's identity.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an issue-kind current entry 512, when a story with resolved issues {512, 515} is checked, then it is refused; with `batching_allowed: true` and 512 and 515 both in the current batch, it matches."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.21",
         "title": "Sequence file reach: dest-placed predicate 2 runs only when .deft/plan-sequence.json is present in that checkout.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the ordered-plan section of `content/commands.md`, when read, then it says the dest check runs only when that checkout holds `.deft/plan-sequence.json`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.22",
         "title": "Consumers MAY commit it.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the ordered-plan section of `content/commands.md`, when read, then it says consumers may commit the plan file."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.23",
         "title": "Launch may read the primary working-tree file while a dest reads the copy committed on its base branch; after advancePlanSequence without a commit those copies can disagree.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the ordered-plan section of `content/commands.md`, when read, then it says launch reads its working-tree plan file, a dest reads the copy on its base branch, and an uncommitted advance can make them disagree."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.24",
         "title": "Record that split in the harvest; do not invent a shared store.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given `content/commands.md`, when read, then the launch/dest split is recorded there and no shared plan store is introduced."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.25",
         "title": "Reject batching_allowed: true at set/parse; document the pointer to the consent token as dispatch-time token presence, not dest T-admission while a sequence is active; rewrite the AC list so a reject PR can close.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Amended by operator ruling 6906744991: `batching_allowed: true` is honored, not rejected; `plan-sequence:set` refuses it only when no entry has a `batch` label or a label is split. Given `content/commands.md`, when read, then the consent token is documented as dispatch-time token presence, not dest T-admission while a plan file is present."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.26",
         "title": "On the reject branch, decide the read path for already-persisted batching_allowed: true files.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an already-persisted plan with `batching_allowed: true` and no `batch` labels, when it is read, then it parses and each entry is its own batch, so only the current entry is admitted, as before."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.27",
         "title": "Restate severity as a misleading state contract plus serialized throughput, not a security hole.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the CHANGELOG `[Unreleased]` line for #4433, when read, then it describes a stored setting that had no effect and serialized a parallel wave, not a security fix."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.28",
         "title": "Do not add a second batch store.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a plan with `batch` labels, when it is created, written and read, then the labels live on the entries of the one plan object and pass the closed-shape check."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.29",
         "title": "Do not teach dest pre-PR to accept the minted #1378 token as a substitute for current-entry T-admission while a sequence is active.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a plan file whose current entry is another target, when `verify:plan-sequence` runs, then it refuses, and a consent-token flag is an unknown flag (exit 2)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.30",
         "title": "Given a plan with `batching_allowed: true`, when a push or launch targets any pending entry in the current batch, then the plan gate admits it.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given entries A1 and A2 in batch `a` and B1 in batch `b` with `batching_allowed: true`, when `verify:plan-sequence` (the pre-push plan phase) or `swarm:launch` targets A2, then it is admitted, and B1 is refused."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.31",
         "title": "Given a plan with `batching_allowed: false`, when a push or launch targets a pending entry other than the current one, then the plan gate refuses as today.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the same entries with `batching_allowed: false`, when `verify:plan-sequence` or `swarm:launch` targets A2, then it is refused with `mismatch`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.32",
         "title": "Given a batch entry that finishes before an earlier entry, when the earlier entry completes, then the derived cursor (#6205) moves past both.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given A2's brief in `xbrief/completed/` while A1 is pending, when A1's brief also completes, then the derived cursor is B1 and both A1 and A2 are passed; before that, A1 stays admitted and B1 stays refused."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+          "recorded_at": "2026-11-16T17:21:01Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -2254,9 +2478,36 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "774f4023725b174e53827412cb0876f6f5d620afe5c345575de696a8c407c650"
+      },
+      "productPullRequest": 6397,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "3e5358b4343657ebd53cf6fab850892b331f2c55",
+        "prNumber": 6397,
+        "prBase": "master",
+        "mergeCommit": "4f91c0bae24148c0fa65a7683a7cb9636ce2e5df",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e32e58147c2076290d788c8132d9e04563fe0bd3",
+        "verifiedAt": "2026-11-16T17:21:01Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T17:21:01Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T17:21:01Z"
       }
     },
     "id": "github.issue.5428785182",
-    "updated": "2026-11-16T09:20:26Z"
+    "updated": "2026-11-16T17:21:01Z"
   }
 }

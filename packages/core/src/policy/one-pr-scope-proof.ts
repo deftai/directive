@@ -14,7 +14,10 @@
  * CI cannot tell a real mint from a file an agent wrote. The control depends on
  * the merge-base merge policy (#6354): with `requireHumanMerge: true` the human
  * merge is the control; otherwise CI verifies nothing human and the control is
- * the local mint gate and the write fence.
+ * the local mint gate plus the always-on protected-store deny on
+ * `.deft/approved-scope/`. The local write fence admits a brief absent from the
+ * merge base on this same mint (#6361), so the shell-write residual
+ * (#3597, #3595) also reaches local scope admission.
  */
 
 import {
@@ -60,11 +63,16 @@ export const DEFAULT_ONE_PR_SCOPE_PROOF: OnePrScopeProofLevel = "off";
 export const MINT_LEVEL_CI_LIMIT_LINE =
   "CI cannot tell this mint from a file an agent wrote; the human merge is the control";
 
-/** Control line for a mint-level admit without a merge-base human merge (#6354). */
+/**
+ * Control line for a mint-level admit without a merge-base human merge
+ * (#6354 / #6361). The local write fence now reads the mint, so the part of it
+ * that stays a control is its always-on protected-store deny.
+ */
 export const MINT_LEVEL_LOCAL_CONTROL_LINE =
   "CI cannot tell this mint from a file an agent wrote; requireHumanMerge is not true " +
   "on the merge base, so CI verifies nothing human: the control is the local mint gate " +
-  "and the write fence";
+  "and the write fence's protected-store deny on .deft/approved-scope/; a record written " +
+  "by a shell form that deny misses (#3597, #3595) also reaches local scope admission";
 
 export const SIGNED_LEVEL_RESERVED_MESSAGE =
   "onePrScopeProof=signed is reserved: the signed level lands with #5862. " +
@@ -424,7 +432,8 @@ export function setOnePrScopeProof(
       stdout:
         "onePrScopeProof sets whether a same-PR human mint record may admit a new or widened brief.\n" +
         "  CI cannot verify the mint. With requireHumanMerge=true the human merge is the control;\n" +
-        "  otherwise the control is the local mint gate and the write fence.\n" +
+        "  otherwise the control is the local mint gate and the write fence's protected-store\n" +
+        "  deny on .deft/approved-scope/.\n" +
         "  Re-run with --confirm to apply.\n" +
         `  Inspect: ${policyColonInvocation("show", " --field=onePrScopeProof")}\n`,
       changed: false,
@@ -482,7 +491,8 @@ export function setOnePrScopeProof(
       lines.push(
         "  The level is read from the merge base; the head brief file_scope must be " +
           "concrete (no globs). Without requireHumanMerge=true, CI verifies nothing human: " +
-          "the control is the local mint gate and the write fence.",
+          "the control is the local mint gate and the write fence's protected-store deny " +
+          "on .deft/approved-scope/.",
       );
     }
     return { exitCode: 0, stdout: `${lines.join("\n")}\n`, changed };

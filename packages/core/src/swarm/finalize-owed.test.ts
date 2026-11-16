@@ -1,13 +1,15 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { defaultRunGh } from "../pr-protected-issues/gh.js";
+import type { RunGhApiFn } from "../scm/gh-rest.js";
 import { EXIT_GATE_FAILED, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
 import {
   bindUnmarkedFinalizePair,
   CLAIM_PROBE_UNKNOWN_DETAIL,
+  createOriginIssueStateLookup,
   discoverFinalizeOwed,
   fetchDeliveryTipPrivate,
   finalizeOwed,
@@ -15,6 +17,7 @@ import {
   inventoryHasBlockingOwed,
   loadTipPlanBodies,
   parseFinalizeClaimBatchStdout,
+  runGhApiFromRunGh,
   UNMARKED_STAMP_REMEDIATION,
 } from "./finalize-owed.js";
 import { parseFinalizeOwedArgv } from "./finalize-owed-cli.js";
@@ -47,6 +50,25 @@ function writeTipBrief(
     }),
     "utf8",
   );
+}
+
+/** The one paged open-issue list discover reads (#5927). */
+function isOpenIssueList(joined: string): boolean {
+  return joined.includes("/issues?state=open");
+}
+
+/** `gh api --paginate --slurp` output: one page with these open issues (#5927). */
+function openIssueList(open: readonly (number | { number: number; labels: unknown[] })[]): {
+  returncode: number;
+  stdout: string;
+  stderr: string;
+} {
+  const rows = open.map((o) =>
+    typeof o === "number"
+      ? { number: o, state: "open", labels: [] }
+      : { number: o.number, state: "open", labels: o.labels },
+  );
+  return { returncode: 0, stdout: JSON.stringify([rows]), stderr: "" };
 }
 
 describe("finalize-owed parseArgs", () => {
@@ -126,8 +148,8 @@ describe("discoverFinalizeOwed twin identity (#4919)", () => {
           stderr: "",
         };
       }
-      if (joined.includes("/issues/")) {
-        return { returncode: 0, stdout: JSON.stringify({ state: "open", labels: [] }), stderr: "" };
+      if (isOpenIssueList(joined)) {
+        return openIssueList([4919]);
       }
       return { returncode: 1, stdout: "", stderr: "unexpected" };
     };
@@ -198,8 +220,8 @@ describe("discoverFinalizeOwed tip batch inventory (#5171)", () => {
           stderr: "",
         };
       }
-      if (joined.includes("/issues/")) {
-        return { returncode: 0, stdout: JSON.stringify({ state: "open", labels: [] }), stderr: "" };
+      if (isOpenIssueList(joined)) {
+        return openIssueList([5171]);
       }
       return { returncode: 1, stdout: "", stderr: "unexpected" };
     };
@@ -337,12 +359,8 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
             stderr: "",
           };
         }
-        if (joined.includes("/issues/")) {
-          return {
-            returncode: 0,
-            stdout: JSON.stringify({ state: "open", labels: [] }),
-            stderr: "",
-          };
+        if (isOpenIssueList(joined)) {
+          return openIssueList([4919]);
         }
         return { returncode: 1, stdout: "", stderr: "unexpected" };
       },
@@ -413,12 +431,8 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
             stderr: "",
           };
         }
-        if (joined.includes("/issues/")) {
-          return {
-            returncode: 0,
-            stdout: JSON.stringify({ state: "open", labels: [] }),
-            stderr: "",
-          };
+        if (isOpenIssueList(joined)) {
+          return openIssueList([4919]);
         }
         return { returncode: 1, stdout: "", stderr: "unexpected" };
       },
@@ -493,12 +507,8 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
             stderr: "",
           };
         }
-        if (joined.includes("/issues/")) {
-          return {
-            returncode: 0,
-            stdout: JSON.stringify({ state: "open", labels: [] }),
-            stderr: "",
-          };
+        if (isOpenIssueList(joined)) {
+          return openIssueList([4919]);
         }
         return { returncode: 1, stdout: "", stderr: "unexpected" };
       },
@@ -584,12 +594,8 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
         if (joined.includes("/pulls?")) {
           return { returncode: 0, stdout: "[]", stderr: "" };
         }
-        if (joined.includes("/issues/")) {
-          return {
-            returncode: 0,
-            stdout: JSON.stringify({ state: "open", labels: [] }),
-            stderr: "",
-          };
+        if (isOpenIssueList(joined)) {
+          return openIssueList([4919]);
         }
         return { returncode: 0, stdout: "[]", stderr: "" };
       },
@@ -691,12 +697,8 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
             stderr: "",
           };
         }
-        if (joined.includes("/issues/")) {
-          return {
-            returncode: 0,
-            stdout: JSON.stringify({ state: "open", labels: [] }),
-            stderr: "",
-          };
+        if (isOpenIssueList(joined)) {
+          return openIssueList([4919]);
         }
         return { returncode: 1, stdout: "", stderr: "unexpected" };
       },
@@ -767,12 +769,8 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
             stderr: "",
           };
         }
-        if (joined.includes("/issues/")) {
-          return {
-            returncode: 0,
-            stdout: JSON.stringify({ state: "open", labels: [] }),
-            stderr: "",
-          };
+        if (isOpenIssueList(joined)) {
+          return openIssueList([4919]);
         }
         return { returncode: 1, stdout: "", stderr: "unexpected" };
       },
@@ -858,12 +856,9 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
         if (joined.includes("/pulls?")) {
           return { returncode: 0, stdout: "[]", stderr: "" };
         }
-        if (joined.includes("/issues/")) {
-          return {
-            returncode: 0,
-            stdout: JSON.stringify({ state: "closed", labels: [] }),
-            stderr: "",
-          };
+        if (isOpenIssueList(joined)) {
+          // #4919 is closed: absent from the open-issue list (#5927).
+          return openIssueList([]);
         }
         return { returncode: 1, stdout: "", stderr: "unexpected" };
       },
@@ -941,7 +936,7 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
             stderr: "",
           };
         }
-        if (joined.includes("/issues/")) {
+        if (isOpenIssueList(joined)) {
           return { returncode: 1, stdout: "", stderr: "API rate limit exceeded" };
         }
         return { returncode: 1, stdout: "", stderr: "unexpected" };
@@ -959,14 +954,20 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
   // Seam test: the injected runGh wraps the real defaultRunGh with a stub binary.
   // It does not exercise session:start's default runGh wiring (#6023).
   it("seam: closed issue stays closed via real defaultRunGh, CLICOLOR_FORCE=1 (#6023)", () => {
-    const stub = resolve(
-      import.meta.dirname,
-      "..",
-      "pr-protected-issues",
-      "fixtures",
-      "color-gh-stub.mjs",
-    );
     const root = mkdtempSync(join(tmpdir(), "finalize-owed-color-gh-"));
+    // Stub `gh` for the open-issue list (#5927): colors on CLICOLOR_FORCE like real gh.
+    const stub = join(root, "color-gh-list-stub.mjs");
+    writeFileSync(
+      stub,
+      [
+        'const text = JSON.stringify([[{ number: 1, state: "open", labels: [] }]]);',
+        "const v = process.env.CLICOLOR_FORCE;",
+        'const color = v !== undefined && v !== "" && v !== "0";',
+        'process.stdout.write(color ? "\\u001b[1;38m" + text + "\\u001b[m\\n" : text + "\\n");',
+        "",
+      ].join("\n"),
+      "utf8",
+    );
     vi.stubEnv("CLICOLOR_FORCE", "1");
     try {
       writeTipBrief(root, "xbrief/active/story-a.xbrief.json", 4919, {
@@ -1035,8 +1036,8 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
               stderr: "",
             };
           }
-          if (joined.includes("/issues/")) {
-            // Real runner, stub binary: node <stub> api repos/.../issues/<n>.
+          if (isOpenIssueList(joined)) {
+            // Real runner, stub binary: node <stub> api --paginate --slurp repos/.../issues?….
             const result = defaultRunGh(["gh", stub, ...cmd.slice(1)], process.execPath);
             issueReads.push(result.stdout);
             return result;
@@ -1044,8 +1045,11 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
           return { returncode: 1, stdout: "", stderr: "unexpected" };
         },
       });
-      expect(issueReads).toHaveLength(1);
-      expect(issueReads[0]).not.toContain("\u001b");
+      // Two confirming list reads (#5927), both plain JSON.
+      expect(issueReads).toHaveLength(2);
+      for (const read of issueReads) {
+        expect(read).not.toContain("\u001b");
+      }
       expect(inventory.stories.some((s) => s.state === "stale-unverified")).toBe(false);
       expect(inventoryHasBlockingOwed(inventory)).toBe(false);
       expect(inventory.stories).toEqual([]);
@@ -1130,7 +1134,7 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
         if (joined.includes("/pulls?")) {
           return { returncode: 0, stdout: "[]", stderr: "" };
         }
-        if (joined.includes("/issues/")) {
+        if (isOpenIssueList(joined)) {
           return { returncode: 1, stdout: "", stderr: "API rate limit exceeded" };
         }
         return { returncode: 1, stdout: "", stderr: "unexpected" };
@@ -1222,7 +1226,7 @@ describe("finalize-owed claim/snapshot residuals (#4919)", () => {
             stderr: "",
           };
         }
-        if (joined.includes("/issues/")) {
+        if (isOpenIssueList(joined)) {
           return { returncode: 1, stdout: "", stderr: "API rate limit exceeded" };
         }
         return { returncode: 1, stdout: "", stderr: "unexpected" };
@@ -1348,15 +1352,10 @@ describe("finalize-owed proposed historical cite refuse (#5143)", () => {
             stderr: "",
           };
         }
-        if (joined.includes("/issues/635")) {
-          return {
-            returncode: 0,
-            stdout: JSON.stringify({
-              state: "open",
-              labels: [{ name: "epic" }, { name: "status:tracker" }],
-            }),
-            stderr: "",
-          };
+        if (isOpenIssueList(joined)) {
+          return openIssueList([
+            { number: 635, labels: [{ name: "epic" }, { name: "status:tracker" }] },
+          ]);
         }
         return { returncode: 1, stdout: "", stderr: `unexpected ${joined}` };
       },
@@ -1414,15 +1413,10 @@ describe("finalize-owed proposed historical cite refuse (#5143)", () => {
             stderr: "",
           };
         }
-        if (joined.includes("/issues/635")) {
-          return {
-            returncode: 0,
-            stdout: JSON.stringify({
-              state: "open",
-              labels: [{ name: "epic" }, { name: "status:tracker" }],
-            }),
-            stderr: "",
-          };
+        if (isOpenIssueList(joined)) {
+          return openIssueList([
+            { number: 635, labels: [{ name: "epic" }, { name: "status:tracker" }] },
+          ]);
         }
         return { returncode: 1, stdout: "", stderr: `unexpected ${joined}` };
       },
@@ -1477,15 +1471,10 @@ describe("finalize-owed proposed historical cite refuse (#5143)", () => {
             stderr: "",
           };
         }
-        if (joined.includes("/issues/635")) {
-          return {
-            returncode: 0,
-            stdout: JSON.stringify({
-              state: "open",
-              labels: [{ name: "epic" }, { name: "status:tracker" }],
-            }),
-            stderr: "",
-          };
+        if (isOpenIssueList(joined)) {
+          return openIssueList([
+            { number: 635, labels: [{ name: "epic" }, { name: "status:tracker" }] },
+          ]);
         }
         return { returncode: 1, stdout: "", stderr: `unexpected ${joined}` };
       },
@@ -1584,12 +1573,8 @@ describe("finalize-owed proposed historical cite refuse (#5143)", () => {
             stderr: "",
           };
         }
-        if (joined.includes("/issues/9999")) {
-          return {
-            returncode: 0,
-            stdout: JSON.stringify({ state: "open", labels: [] }),
-            stderr: "",
-          };
+        if (isOpenIssueList(joined)) {
+          return openIssueList([9999]);
         }
         return { returncode: 1, stdout: "", stderr: `unexpected ${joined}` };
       },
@@ -1769,12 +1754,8 @@ describe("finalize-owed claim batch (#6008)", () => {
             stderr: "",
           };
         }
-        if (joined.includes("/issues/")) {
-          return {
-            returncode: 0,
-            stdout: JSON.stringify({ state: "open", labels: [] }),
-            stderr: "",
-          };
+        if (isOpenIssueList(joined)) {
+          return openIssueList([6008, 6009]);
         }
         return { returncode: 1, stdout: "", stderr: `unexpected ${joined}` };
       },
@@ -1843,12 +1824,8 @@ describe("finalize-owed claim batch (#6008)", () => {
             stderr: "",
           };
         }
-        if (joined.includes("/issues/")) {
-          return {
-            returncode: 0,
-            stdout: JSON.stringify({ state: "open", labels: [] }),
-            stderr: "",
-          };
+        if (isOpenIssueList(joined)) {
+          return openIssueList([6008]);
         }
         return { returncode: 1, stdout: "", stderr: "unexpected" };
       },
@@ -1976,12 +1953,8 @@ describe("finalize-owed claim batch (#6008)", () => {
           stderr: "",
         };
       }
-      if (joined.includes("/issues/")) {
-        return {
-          returncode: 0,
-          stdout: JSON.stringify({ state: "open", labels: [] }),
-          stderr: "",
-        };
+      if (isOpenIssueList(joined)) {
+        return openIssueList([6008]);
       }
       return { returncode: 1, stdout: "", stderr: "unexpected" };
     };
@@ -2071,12 +2044,8 @@ describe("finalize-owed claim batch (#6008)", () => {
           stderr: "",
         };
       }
-      if (joined.includes("/issues/")) {
-        return {
-          returncode: 0,
-          stdout: JSON.stringify({ state: "open", labels: [] }),
-          stderr: "",
-        };
+      if (isOpenIssueList(joined)) {
+        return openIssueList([6008]);
       }
       return { returncode: 1, stdout: "", stderr: "unexpected" };
     };
@@ -2188,8 +2157,8 @@ describe("finalize-owed issue-less pr-only rows (#680 P2)", () => {
           stderr: "",
         };
       }
-      if (joined.includes("/issues/")) {
-        return { returncode: 0, stdout: JSON.stringify({ state: "open", labels: [] }), stderr: "" };
+      if (isOpenIssueList(joined)) {
+        return openIssueList([4919]);
       }
       return { returncode: 1, stdout: "", stderr: "unexpected" };
     };
@@ -2375,5 +2344,322 @@ describe("finalize-owed issue-less pr-only rows (#680 P2)", () => {
     expect(result.exitCode).toBe(EXIT_INCOMPLETE);
     expect(result.result.warnings.some((w) => w.includes("story left pending"))).toBe(true);
     rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("finalize-owed origin issue state from one open-issue list (#5927)", () => {
+  const OPEN_ACTIVE = "xbrief/active/story-open.xbrief.json";
+  const OPEN_COMPLETED = "xbrief/completed/story-open-done.xbrief.json";
+  const CLOSED_COMPLETED = "xbrief/completed/story-closed-done.xbrief.json";
+
+  function seedTip(root: string): Map<string, string> {
+    writeTipBrief(root, OPEN_ACTIVE, 101, { productPullRequest: 1101 });
+    writeTipBrief(root, OPEN_COMPLETED, 102, { productPullRequest: 1102 });
+    writeTipBrief(root, CLOSED_COMPLETED, 103, { productPullRequest: 1103 });
+    const tipBlobs = new Map<string, string>();
+    for (const rel of [OPEN_ACTIVE, OPEN_COMPLETED, CLOSED_COMPLETED]) {
+      tipBlobs.set(rel, readFileSync(join(root, rel), "utf8"));
+    }
+    return tipBlobs;
+  }
+
+  function tipGit(tipBlobs: Map<string, string>) {
+    return (_projectRoot: string, args: readonly string[]) => {
+      if (args[0] === "ls-tree") {
+        const dash = args.indexOf("--");
+        const prefixes = dash >= 0 ? args.slice(dash + 1) : [];
+        const matched = [...tipBlobs.keys()].filter((p) =>
+          prefixes.some((pref) => p.startsWith(String(pref))),
+        );
+        return { code: 0, stdout: matched.join("\n"), stderr: "" };
+      }
+      if (args[0] === "show") {
+        const spec = String(args[1] ?? "");
+        const rel = spec.includes(":") ? spec.slice(spec.indexOf(":") + 1) : "";
+        const body = tipBlobs.get(rel);
+        return body !== undefined
+          ? { code: 0, stdout: body, stderr: "" }
+          : { code: 1, stdout: "", stderr: "missing" };
+      }
+      return { code: 0, stdout: "", stderr: "" };
+    };
+  }
+
+  function forge(
+    ghCalls: string[],
+    list: () => { returncode: number; stdout: string; stderr: string },
+  ) {
+    return (cmd: readonly string[]) => {
+      const joined = cmd.join(" ");
+      ghCalls.push(joined);
+      if (joined.includes("/pulls?")) {
+        return { returncode: 0, stdout: "[]", stderr: "" };
+      }
+      if (joined.includes("/pulls/")) {
+        return {
+          returncode: 0,
+          stdout: JSON.stringify({
+            merged_at: "2026-09-27T00:00:00Z",
+            merge_commit_sha: "abc",
+            base: { ref: "master" },
+          }),
+          stderr: "",
+        };
+      }
+      if (isOpenIssueList(joined)) {
+        return list();
+      }
+      return { returncode: 1, stdout: "", stderr: `unexpected ${joined}` };
+    };
+  }
+
+  it("reads one paged open-issue list and no per-issue read; absent issues are closed", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-5927-list-"));
+    const ghCalls: string[] = [];
+    const inventory = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      runGit: tipGit(seedTip(root)),
+      runGh: forge(ghCalls, () => openIssueList([101, 102, 4242])),
+    });
+    // One paged list, read twice to confirm the set; no per-issue read.
+    const listCalls = ghCalls.filter((c) => isOpenIssueList(c));
+    const listArgv =
+      "gh api --paginate --slurp repos/deftai/directive/issues?state=open&per_page=100";
+    expect(listCalls).toEqual([listArgv, listArgv]);
+    expect(ghCalls.some((c) => /\/issues\/\d+/.test(c))).toBe(false);
+    const byPath = new Map(inventory.stories.map((s) => [s.relPath, s]));
+    expect(byPath.get(OPEN_ACTIVE)?.state).toBe("owed");
+    expect(byPath.get(OPEN_ACTIVE)?.blocks).toBe(true);
+    expect(byPath.get(OPEN_COMPLETED)?.state).toBe("close-owed");
+    expect(byPath.get(OPEN_COMPLETED)?.blocks).toBe(true);
+    // #103 is not in the open list: closed, so nothing is owed for it.
+    expect(byPath.has(CLOSED_COMPLETED)).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("keeps every item unverified when the list fails; never closed or clean", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-5927-fail-"));
+    const ghCalls: string[] = [];
+    const inventory = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      runGit: tipGit(seedTip(root)),
+      runGh: forge(ghCalls, () => ({
+        returncode: 1,
+        stdout: "",
+        stderr: "API rate limit exceeded",
+      })),
+    });
+    // One attempt, memoized across all three lookups.
+    expect(ghCalls.filter((c) => isOpenIssueList(c))).toHaveLength(1);
+    expect(ghCalls.some((c) => /\/issues\/\d+/.test(c))).toBe(false);
+    expect(inventory.stories.map((s) => s.relPath).sort()).toEqual(
+      [CLOSED_COMPLETED, OPEN_ACTIVE, OPEN_COMPLETED].sort(),
+    );
+    for (const story of inventory.stories) {
+      expect(story.state).toBe("unverified");
+      expect(story.detail).toContain("open-issue list failed");
+      expect(story.detail).toContain("API rate limit exceeded");
+    }
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("does not list issues when no item needs an origin issue state", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-5927-none-"));
+    const ghCalls: string[] = [];
+    discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      runGit: tipGit(new Map()),
+      runGh: forge(ghCalls, () => openIssueList([])),
+    });
+    expect(ghCalls.some((c) => isOpenIssueList(c))).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("createOriginIssueStateLookup (#5927)", () => {
+  function runner(result: { returncode: number; stdout: string; stderr: string }) {
+    const calls: string[][] = [];
+    const fn: RunGhApiFn = (args) => {
+      calls.push([...args]);
+      return result;
+    };
+    return { fn, calls };
+  }
+
+  it("maps open rows to open with the protected-label check and absent issues to closed", () => {
+    const { fn, calls } = runner(openIssueList([7, { number: 8, labels: [{ name: "epic" }] }]));
+    const lookup = createOriginIssueStateLookup("deftai/directive", fn);
+    expect(lookup(7)).toEqual({ state: "open", protectedUmbrella: false, error: null });
+    expect(lookup(8)).toEqual({ state: "open", protectedUmbrella: true, error: null });
+    expect(lookup(9)).toEqual({ state: "closed", protectedUmbrella: false, error: null });
+    // Two confirming reads, memoized across lookups.
+    expect(calls).toHaveLength(2);
+  });
+
+  it("fails closed when an open issue is missing from one of the two reads", () => {
+    // A row skipped by a page shift (issue closed mid-read) must not read as closed.
+    const reads = [openIssueList([7, 8]), openIssueList([8])];
+    const calls: string[][] = [];
+    const lookup = createOriginIssueStateLookup("deftai/directive", (args) => {
+      calls.push([...args]);
+      return reads[calls.length - 1] ?? openIssueList([]);
+    });
+    for (const issue of [7, 8, 9]) {
+      const state = lookup(issue);
+      expect(state.state).toBeNull();
+      expect(state.error).toContain("open issues changed between two reads");
+    }
+    expect(calls).toHaveLength(2);
+  });
+
+  it("fails closed when the confirming read fails", () => {
+    const reads = [openIssueList([7]), { returncode: 1, stdout: "", stderr: "HTTP 502" }];
+    let n = 0;
+    const lookup = createOriginIssueStateLookup("deftai/directive", () => {
+      n += 1;
+      return reads[n - 1] ?? openIssueList([]);
+    });
+    expect(lookup(7).state).toBeNull();
+    expect(lookup(7).error).toContain("HTTP 502");
+    expect(n).toBe(2);
+  });
+
+  it("fails closed when two reads have the same size but different issues", () => {
+    const reads = [openIssueList([7, 8]), openIssueList([7, 9])];
+    let n = 0;
+    const lookup = createOriginIssueStateLookup("deftai/directive", () => {
+      n += 1;
+      return reads[n - 1] ?? openIssueList([]);
+    });
+    expect(lookup(7).error).toContain("open issues changed between two reads");
+  });
+
+  it("fails closed when a pull request row leaves between reads (it shifts pages too)", () => {
+    // A PR merged mid-read can skip an open issue; the issue sets alone could match.
+    const pr = { number: 50, state: "open", labels: [], pull_request: {} };
+    const issue = { number: 7, state: "open", labels: [] };
+    const reads = [
+      { returncode: 0, stdout: JSON.stringify([[pr, issue]]), stderr: "" },
+      { returncode: 0, stdout: JSON.stringify([[issue]]), stderr: "" },
+    ];
+    let n = 0;
+    const lookup = createOriginIssueStateLookup("deftai/directive", () => {
+      n += 1;
+      return reads[n - 1] ?? openIssueList([]);
+    });
+    expect(lookup(8).state).toBeNull();
+    expect(lookup(8).error).toContain("open issues changed between two reads");
+  });
+
+  it("ignores pull request rows for state but accepts two matching reads", () => {
+    const pr = { number: 50, state: "open", labels: [], pull_request: {} };
+    const issue = { number: 7, state: "open", labels: [] };
+    const page = { returncode: 0, stdout: JSON.stringify([pr, issue]), stderr: "" };
+    const lookup = createOriginIssueStateLookup("deftai/directive", () => page);
+    expect(lookup(7).state).toBe("open");
+    // A PR number is not an open issue.
+    expect(lookup(50).state).toBe("closed");
+  });
+
+  it.each([
+    ["a non-zero exit", { returncode: 1, stdout: "", stderr: "HTTP 502" }, "HTTP 502"],
+    ["a silent non-zero exit", { returncode: 4, stdout: "", stderr: "" }, "gh api failed"],
+    ["empty output", { returncode: 0, stdout: "  \n", stderr: "" }, "empty output"],
+    ["non-JSON output", { returncode: 0, stdout: "not json", stderr: "" }, "non-JSON"],
+    ["a non-array payload", { returncode: 0, stdout: '{"state":"open"}', stderr: "" }, "type"],
+    [
+      "a row without an issue number",
+      { returncode: 0, stdout: JSON.stringify([[{ state: "open" }]]), stderr: "" },
+      "row without an issue number",
+    ],
+  ])("fails every lookup closed on %s", (_label, result, detail) => {
+    const { fn, calls } = runner(result);
+    const lookup = createOriginIssueStateLookup("deftai/directive", fn);
+    for (const issue of [1, 2]) {
+      const state = lookup(issue);
+      expect(state.state).toBeNull();
+      expect(state.error).toContain("open-issue list failed");
+      expect(state.error).toContain(detail);
+    }
+    expect(calls).toHaveLength(1);
+  });
+
+  it("fails closed when the list runner throws", () => {
+    const lookup = createOriginIssueStateLookup("deftai/directive", () => {
+      throw new Error("spawn EPERM");
+    });
+    expect(lookup(1)).toEqual({
+      state: null,
+      protectedUmbrella: false,
+      error: "open-issue list failed: Error: spawn EPERM",
+    });
+  });
+
+  it("prefers an injected list runner over the gh seam in discover", () => {
+    const root = mkdtempSync(join(tmpdir(), "finalize-owed-5927-runner-"));
+    writeTipBrief(root, "xbrief/completed/story-a.xbrief.json", 77, { productPullRequest: 770 });
+    const body = readFileSync(join(root, "xbrief/completed/story-a.xbrief.json"), "utf8");
+    const ghCalls: string[] = [];
+    const listCalls: string[][] = [];
+    const inventory = discoverFinalizeOwed(root, {
+      repo: "deftai/directive",
+      deliveryBranch: "master",
+      tip: "TIP",
+      runGit: (_projectRoot, args) => {
+        if (args[0] === "ls-tree") {
+          const wanted = args
+            .slice(args.indexOf("--") + 1)
+            .some((p) => String(p).endsWith("completed"));
+          return {
+            code: 0,
+            stdout: wanted ? "xbrief/completed/story-a.xbrief.json" : "",
+            stderr: "",
+          };
+        }
+        if (args[0] === "show") {
+          return { code: 0, stdout: body, stderr: "" };
+        }
+        return { code: 0, stdout: "", stderr: "" };
+      },
+      runGh: (cmd) => {
+        ghCalls.push(cmd.join(" "));
+        return { returncode: 0, stdout: "[]", stderr: "" };
+      },
+      runGhApi: (args) => {
+        listCalls.push([...args]);
+        return openIssueList([77]);
+      },
+    });
+    expect(listCalls).toHaveLength(2);
+    expect(ghCalls.some((c) => isOpenIssueList(c))).toBe(false);
+    expect(inventory.stories.map((s) => s.state)).toEqual(["close-owed"]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("fails closed on an invalid repo without listing", () => {
+    const { fn, calls } = runner(openIssueList([1]));
+    const lookup = createOriginIssueStateLookup("not-a-repo", fn);
+    expect(lookup(1)).toEqual({
+      state: null,
+      protectedUmbrella: false,
+      error: "invalid repo: not-a-repo",
+    });
+    expect(calls).toHaveLength(0);
+  });
+
+  it("adapts an injected gh seam to the list runner argv", () => {
+    const seen: string[][] = [];
+    const fn = runGhApiFromRunGh((cmd) => {
+      seen.push([...cmd]);
+      return { returncode: 0, stdout: "[[]]", stderr: "" };
+    });
+    expect(fn(["--paginate", "x"])).toEqual({ returncode: 0, stdout: "[[]]", stderr: "" });
+    expect(seen).toEqual([["gh", "api", "--paginate", "x"]]);
   });
 });
