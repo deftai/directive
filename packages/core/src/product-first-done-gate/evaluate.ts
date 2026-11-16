@@ -2007,15 +2007,44 @@ function loadAdmittedSourceFromGit(
   }
   const mb = resolveMergeBaseSha(projectRoot);
   if (mb !== null) {
-    const fromMb = loadAdmittedSourceAtTreeish(projectRoot, rel, mb);
-    if (fromMb !== null) {
-      return { ...fromMb, source: "merge-base" };
+    // #6333: a lifecycle move keeps the basename, so a brief moved in the
+    // working tree still reads its own merge-base pin from its old folder.
+    for (const candidate of lifecycleSiblingRels(rel)) {
+      const fromMb = loadAdmittedSourceAtTreeish(projectRoot, candidate, mb);
+      if (fromMb !== null) {
+        return { ...fromMb, source: "merge-base" };
+      }
     }
   }
   // Branch-only ingest: merge-base lacks the file; HEAD still has the pin.
   // #6333: tagged `head` so it is never read as proof of the merge base.
   const fromHead = loadAdmittedSourceAtTreeish(projectRoot, rel, "HEAD");
   return fromHead === null ? null : { ...fromHead, source: "head" };
+}
+
+/**
+ * `rel` first, then the same basename under the other lifecycle folders of the
+ * same root (#6333). A path outside a lifecycle folder yields only itself.
+ */
+function lifecycleSiblingRels(rel: string): string[] {
+  const parts = rel.split("/");
+  const [root, folder, name] = parts;
+  if (
+    parts.length !== 3 ||
+    root === undefined ||
+    folder === undefined ||
+    name === undefined ||
+    !LIFECYCLE_ROOTS.has(root) ||
+    !LIFECYCLE_FOLDERS.has(folder)
+  ) {
+    return [rel];
+  }
+  return [
+    rel,
+    ...[...LIFECYCLE_FOLDERS]
+      .filter((other) => other !== folder)
+      .map((other) => `${root}/${other}/${name}`),
+  ];
 }
 
 /** Merge base of the delivery ref and HEAD (origin/main fallback), or null. */

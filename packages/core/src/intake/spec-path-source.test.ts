@@ -75,6 +75,20 @@ describe("review fixes (#6333)", () => {
     }
   });
 
+  it("counts slice references by list position when a list repeats a title", () => {
+    const body =
+      `${PLAIN}Spec-path: x\n\n## Bound remedy\n1. Same.\n2. Same.\n3. Other.\n\n` +
+      "## Slices\n- slice-a: B2\n- slice-b: B3\n";
+    const a = harvestSpecPathLean(body, { kind: "label", label: "slice-a" });
+    const b = harvestSpecPathLean(body, { kind: "label", label: "slice-b" });
+    if (!a.ok || !b.ok) throw new Error("harvest refused");
+    expect(a.items.map((item) => item.title)).toEqual(["Same."]);
+    expect(b.items.map((item) => item.title)).toEqual(["Other."]);
+    const parent = harvestSpecPathLean(body, { kind: "unlabeled" });
+    if (!parent.ok) throw new Error(parent.reason);
+    expect(parent.items.map((item) => item.title)).toEqual(["Same."]);
+  });
+
   it("refuses a lean whose list item wraps onto a continuation line", () => {
     const body =
       `${PLAIN}Spec-path: x\n\n## Bound remedy\n1. Limb.\n\n` +

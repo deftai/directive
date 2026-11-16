@@ -21,7 +21,9 @@ import {
   hasWrappedListItem,
   leanAcceptanceCriteriaItems,
   parseLeanSlices,
+  parseListItemsByPosition,
   sliceLeanAcceptanceCriteriaSection,
+  stripFencedCodeBlocks,
 } from "./markdown-scanners.js";
 
 /** plan.metadata key for the Spec-path source record (#6333 item 4). */
@@ -130,11 +132,17 @@ export function harvestSpecPathLean(
         "cited lean has a list item that wraps onto a continuation line; put each Bound remedy and Acceptance Criteria item on one line",
     };
   }
-  // Every list position keeps its own row so a slice can name any item;
-  // duplicate titles are folded only inside the selected harvest.
+  // Every list position keeps its own row (repeated titles included) so a
+  // slice reference names the item at that position; duplicate titles are
+  // folded only inside the selected harvest.
+  const boundRows = parseListItemsByPosition(stripFencedCodeBlocks(bound.sourceText));
+  const acceptanceRows =
+    acceptance.length === 0 || acSlice === null
+      ? []
+      : parseListItemsByPosition(stripFencedCodeBlocks(acSlice));
   const tagged: { ref: string; item: CheckboxItem }[] = [
-    ...bound.items.map((item, index) => ({ ref: `B${index + 1}`, item })),
-    ...acceptance.map((item, index) => ({ ref: `A${index + 1}`, item })),
+    ...boundRows.map((item, index) => ({ ref: `B${index + 1}`, item })),
+    ...acceptanceRows.map((item, index) => ({ ref: `A${index + 1}`, item })),
   ];
 
   const slices = parseLeanSlices(leanBody);
@@ -147,7 +155,7 @@ export function harvestSpecPathLean(
     for (const assignment of slices.assignments) {
       labels.push(assignment.label);
       for (const ref of assignment.refs) {
-        const size = ref.list === "B" ? bound.items.length : acceptance.length;
+        const size = ref.list === "B" ? boundRows.length : acceptanceRows.length;
         const key = `${ref.list}${ref.index}`;
         if (ref.index > size) {
           return {

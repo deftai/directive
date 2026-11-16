@@ -1614,10 +1614,19 @@ describe("Spec-path merge-base boundary and live lean compare (#6333 items 4 and
         const onBase = evaluateVerifyAcFromPath(pendingPath, baseOptions(root));
         expect(onBase.cause).not.toBe(SPEC_PATH_SOURCE_RECORD_MISSING_CAUSE);
         expect(onBase.ok).toBe(true);
-        git(root, ["mv", pendingPath, join(root, "xbrief", "active")]);
         const activePath = join(root, "xbrief", "active", "2026-11-16-5055-harvested.xbrief.json");
+        mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+        git(root, ["mv", pendingPath, activePath]);
         expect(isBriefOnMergeBase(root, activePath)).toBe(true);
         expect(isBriefOnMergeBase(root, join(root, "..", "outside.json"))).toBe(false);
+        // The moved brief reads its own merge-base pin from its old folder, so
+        // no sentence-split live compare runs against whole-item pin entries.
+        const moved = evaluateVerifyAcFromPath(activePath, {
+          ...baseOptions(root),
+          fetchAdmittedSourceText: () => ({ ok: true, text: "Split. Into sentences." }),
+        });
+        expect(moved.cause).toBeUndefined();
+        expect(moved.ok).toBe(true);
       } finally {
         if (prior === undefined) delete process.env.DEFT_BASE_REF;
         else process.env.DEFT_BASE_REF = prior;

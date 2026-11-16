@@ -699,6 +699,31 @@ function isHeadingAtOrAbove(line: string, level: number): boolean {
   return hashes <= level && (hashes >= line.length || line[hashes] === " ");
 }
 
+/**
+ * List items in list order with no de-duplication (#6333): slice references
+ * `B<n>` / `A<n>` count list positions, so a repeated title keeps its slot.
+ */
+export function parseListItemsByPosition(sectionText: string): CheckboxItem[] {
+  const items: CheckboxItem[] = [];
+  for (const line of sectionText.split("\n")) {
+    const bullet = matchListItemLine(line);
+    if (bullet === null) {
+      continue;
+    }
+    let title = bullet.trim();
+    let status: "proposed" | "completed" = "proposed";
+    const cb = matchLeadingCheckbox(title);
+    if (cb !== null) {
+      title = cb.title.trim();
+      status = cb.checked ? "completed" : "proposed";
+    }
+    if (title.length > 0) {
+      items.push({ title, status });
+    }
+  }
+  return items;
+}
+
 /** Parse bullet/numbered list items within a section. */
 export function parseListItems(sectionText: string): CheckboxItem[] {
   const items: CheckboxItem[] = [];
