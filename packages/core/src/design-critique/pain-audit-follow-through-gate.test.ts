@@ -121,6 +121,14 @@ describe("harvest identity and the harvest-digest count rule (#6333 item 3)", ()
     expect(hashHarvestIdentity(editedSlices)).not.toBe(hashHarvestIdentity(slicedLean));
   });
 
+  it("moves the digest when a repeated item shifts slice positions", () => {
+    const base = "**Lean:** x\n\n## Bound remedy\n\n1. One\n2. Two\n\n## Slices\n- slice-a: B2\n";
+    const repeated =
+      "**Lean:** x\n\n## Bound remedy\n\n1. One\n2. One\n3. Two\n\n## Slices\n- slice-a: B2\n";
+    expect(hashBoundRemedyBytes(repeated)).toBe(hashBoundRemedyBytes(base));
+    expect(hashHarvestIdentity(repeated)).not.toBe(hashHarvestIdentity(base));
+  });
+
   it("reads the operative harvest-digest carrier", () => {
     const digest = "b".repeat(64);
     expect(extractOperativeHarvestDigest(`harvest-digest: sha256:${digest}\n`)).toEqual({

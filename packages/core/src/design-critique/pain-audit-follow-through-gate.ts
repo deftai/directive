@@ -12,7 +12,9 @@ import { createHash } from "node:crypto";
 import {
   leanAcceptanceCriteriaItems,
   leanSlicesSectionLines,
+  parseListItemsByPosition,
   sliceBoundRemedySection,
+  sliceLeanAcceptanceCriteriaSection,
   stripFencedCodeBlocks,
 } from "../intake/markdown-scanners.js";
 import { classifyPosition } from "./citation-grammar.js";
@@ -245,10 +247,20 @@ export function hashHarvestIdentity(body: string): string {
   if (!leanHasAcceptanceOrSlices(body)) {
     return hashBoundRemedyBytes(body);
   }
+  // Every list position is hashed (repeated titles included), because slice
+  // references `B<n>` / `A<n>` count positions: a repeated item that shifts a
+  // slice's assignment must move the digest.
+  const acSlice = sliceLeanAcceptanceCriteriaSection(body);
   const parts = [
     `bound-remedy:${hashBoundRemedyBytes(body)}`,
+    "bound-remedy-positions:",
+    ...parseListItemsByPosition(stripFencedCodeBlocks(sliceBoundRemedySection(body) ?? "")).map(
+      (item) => item.title,
+    ),
     "acceptance-criteria:",
     ...leanAcceptanceCriteriaItems(body).map((item) => item.title),
+    "acceptance-criteria-positions:",
+    ...parseListItemsByPosition(stripFencedCodeBlocks(acSlice ?? "")).map((item) => item.title),
     "slices:",
     ...(leanSlicesSectionLines(body) ?? []),
   ];
