@@ -95,7 +95,7 @@
         "status": "proposed",
         "id": "clause.10",
         "narrative": {
-          "Acceptance": "Given a ritual stale by age, or a discontinuous HEAD under a compact mark, when the owner writes, then the hook denies, does not heal and leaves started_at unchanged."
+          "Acceptance": "Given a ritual stale by age with no compact mark, or a discontinuous HEAD under a compact mark, when the owner writes, then the hook denies, does not heal and leaves started_at unchanged; a compaction heal of a ritual already stale by age restores the old clock, so the retry still gets the age denial (clause.8)."
         }
       },
       {
