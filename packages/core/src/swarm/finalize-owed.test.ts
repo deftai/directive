@@ -2540,6 +2540,33 @@ describe("createOriginIssueStateLookup (#5927)", () => {
     expect(lookup(7).error).toContain("open issues changed between two reads");
   });
 
+  it("fails closed when a pull request row leaves between reads (it shifts pages too)", () => {
+    // A PR merged mid-read can skip an open issue; the issue sets alone could match.
+    const pr = { number: 50, state: "open", labels: [], pull_request: {} };
+    const issue = { number: 7, state: "open", labels: [] };
+    const reads = [
+      { returncode: 0, stdout: JSON.stringify([[pr, issue]]), stderr: "" },
+      { returncode: 0, stdout: JSON.stringify([[issue]]), stderr: "" },
+    ];
+    let n = 0;
+    const lookup = createOriginIssueStateLookup("deftai/directive", () => {
+      n += 1;
+      return reads[n - 1] ?? openIssueList([]);
+    });
+    expect(lookup(8).state).toBeNull();
+    expect(lookup(8).error).toContain("open issues changed between two reads");
+  });
+
+  it("ignores pull request rows for state but accepts two matching reads", () => {
+    const pr = { number: 50, state: "open", labels: [], pull_request: {} };
+    const issue = { number: 7, state: "open", labels: [] };
+    const page = { returncode: 0, stdout: JSON.stringify([pr, issue]), stderr: "" };
+    const lookup = createOriginIssueStateLookup("deftai/directive", () => page);
+    expect(lookup(7).state).toBe("open");
+    // A PR number is not an open issue.
+    expect(lookup(50).state).toBe("closed");
+  });
+
   it.each([
     ["a non-zero exit", { returncode: 1, stdout: "", stderr: "HTTP 502" }, "HTTP 502"],
     ["a silent non-zero exit", { returncode: 4, stdout: "", stderr: "" }, "gh api failed"],

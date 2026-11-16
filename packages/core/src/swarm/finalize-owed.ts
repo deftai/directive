@@ -468,17 +468,20 @@ function openIssueListRunner(runGh: RunGhFn | undefined): RunGhApiFn {
 }
 
 type OpenIssueList =
-  | { readonly ok: true; readonly open: ReadonlyMap<number, Record<string, unknown>> }
+  | {
+      readonly ok: true;
+      /** Open issues (pull-request rows excluded), by number. */
+      readonly open: ReadonlyMap<number, Record<string, unknown>>;
+      /** Every listed row number, pull requests included: the page-shift witness. */
+      readonly listed: ReadonlySet<number>;
+    }
   | { readonly ok: false; readonly error: string };
 
-function sameIssueNumbers(
-  a: ReadonlyMap<number, unknown>,
-  b: ReadonlyMap<number, unknown>,
-): boolean {
+function sameNumbers(a: ReadonlySet<number>, b: ReadonlySet<number>): boolean {
   if (a.size !== b.size) {
     return false;
   }
-  for (const n of a.keys()) {
+  for (const n of a) {
     if (!b.has(n)) {
       return false;
     }
@@ -486,12 +489,31 @@ function sameIssueNumbers(
   return true;
 }
 
+/** Every row number in `--paginate --slurp` output (pages or one page), PRs included. */
+function listedRowNumbers(stdout: string): Set<number> | null {
+  // Shape already checked by restIssueListOpenInventory on these same bytes:
+  // a JSON array of object rows, or of pages of object rows.
+  const parsed = JSON.parse(stdout) as unknown[];
+  const rows = parsed.every((item) => Array.isArray(item)) ? parsed.flat() : parsed;
+  const out = new Set<number>();
+  for (const row of rows) {
+    const n = (row as Record<string, unknown>).number;
+    if (typeof n !== "number" || !Number.isInteger(n) || n <= 0) {
+      return null;
+    }
+    out.add(n);
+  }
+  return out;
+}
+
 /**
- * Complete open-issue set, or a failure (#5927). Page-based pagination can skip
- * a still-open row when an already-read issue closes between page fetches, so a
- * single read cannot prove absence. Two full reads must list the same numbers:
- * any such removal during the first read leaves that issue out of the second.
- * Any difference (churn during the window) fails closed, never closed-by-absence.
+ * Complete open-issue set, or a failure (#5927). The open list is paged
+ * (`?page=N`): when a row already read closes between page fetches, later rows
+ * shift forward and a still-open row at the page boundary is skipped, so one
+ * read cannot prove absence. Two full reads must list the same row numbers,
+ * pull requests included (a merged PR shifts pages too). The row whose removal
+ * caused a skip was listed by the first read and is gone from the second, so
+ * the sets differ. Any difference fails closed, never closed-by-absence.
  */
 function listOpenIssues(repo: string, runGhApiFn: RunGhApiFn): OpenIssueList {
   if (parseRepo(repo) === null) {
@@ -505,7 +527,7 @@ function listOpenIssues(repo: string, runGhApiFn: RunGhApiFn): OpenIssueList {
   if (!second.ok) {
     return second;
   }
-  if (!sameIssueNumbers(first.open, second.open)) {
+  if (!sameNumbers(first.listed, second.listed)) {
     return {
       ok: false,
       error: "open-issue list failed: open issues changed between two reads; list not confirmed",
@@ -515,11 +537,10 @@ function listOpenIssues(repo: string, runGhApiFn: RunGhApiFn): OpenIssueList {
 }
 
 function readOpenIssuesOnce(repo: string, runGhApiFn: RunGhApiFn): OpenIssueList {
-  // Success with empty stdout is not an empty list: `--slurp` always prints JSON.
-  let emptyStdout = false;
+  let stdout = "";
   const runner: RunGhApiFn = (args, opts) => {
     const result = runGhApiFn(args, opts);
-    emptyStdout = result.returncode === 0 && result.stdout.trim().length === 0;
+    stdout = result.stdout.trim();
     return result;
   };
   let rows: Record<string, unknown>[];
@@ -529,18 +550,19 @@ function readOpenIssuesOnce(repo: string, runGhApiFn: RunGhApiFn): OpenIssueList
     const detail = err instanceof GhRestError ? err.stderr || err.message : String(err);
     return { ok: false, error: `open-issue list failed: ${detail}` };
   }
-  if (emptyStdout) {
+  // Success with empty stdout is not an empty list: `--slurp` always prints JSON.
+  if (stdout.length === 0) {
     return { ok: false, error: "open-issue list failed: empty output" };
+  }
+  const listed = listedRowNumbers(stdout);
+  if (listed === null) {
+    return { ok: false, error: "open-issue list failed: row without an issue number" };
   }
   const open = new Map<number, Record<string, unknown>>();
   for (const row of rows) {
-    const n = row.number;
-    if (typeof n !== "number" || !Number.isInteger(n) || n <= 0) {
-      return { ok: false, error: "open-issue list failed: row without an issue number" };
-    }
-    open.set(n, row);
+    open.set(row.number as number, row);
   }
-  return { ok: true, open };
+  return { ok: true, open, listed };
 }
 
 /**
