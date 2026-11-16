@@ -1,0 +1,1092 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6277",
+    "updated": "2026-11-16T04:37:13Z"
+  },
+  "plan": {
+    "title": "feat(scope): complete a delivered story without a separate human-reviewed completion PR",
+    "status": "running",
+    "narratives": {
+      "Description": "A story's last product PR can carry its brief from active/ to completed/ with `scope:complete --in-pr`, so no separate human-reviewed completion PR is needed. In-PR mode refuses stories whose acceptance rests on a merge (judged by the brief's own inputs); those keep the post-merge path (#6303). CI admits the move only when the PR removes the brief from active/, changes code inside the brief's file_scope and has a closing keyword for the issue; after merge, `verify:completed-tracked` re-runs the identity join on the landing commit and `verify:orphan-active` lists a brief that fails it.",
+      "UserStory": "As a maintainer shipping a story, I want the last product PR to complete the story, so that I do not open, review, run CI on and merge a second lifecycle PR for every delivered story.",
+      "ImplementationPlan": "1. Add packages/core/src/scope/lands-with-product.ts: the `lands-with-product` disposition, in-PR input refusals (merge-requirement items, stored merge evidence, stored completionProvenance, clause-less acceptance, no issue ref, no in-scope production file), the admission check and the change-set move resolver.\n2. In transition.ts and scope/main.ts add `scope:complete --in-pr`: skip the delivery gate, run acceptance, walk, spec-drift and moves, and stamp lifecycleWrite.completionDisposition (lifecycle-write.ts).\n3. delivery-evidence.ts: `prDiffAddsBrief` accepts a rename from active/ with the same basename; the changed-files fetch carries previous_filename.\n4. completed-write-guard.ts (+ runtime --pr-body-file): admit a lands-with-product add only on the paired active removal, prDiffAddsBrief, in-scope production files and a closing keyword.\n5. lands-with-product-proof.ts: find the landing commit on the delivery tip, resolve its PR and run verifyStoryPrMergeIdentity; wire it into completed-tracked and orphan-active.\n6. Story gates (verify:ac, pre-push selection in hooks/scope.ts, intent-constraint, observable-scope, presentation-coverage, closing-keywords story line) accept the moved brief.\n7. Docs: pre-PR skill and commands.md; CHANGELOG; tests for each Bound 8 case.",
+      "Traces": "#6277, #6303, #3041, #4714, #6317",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6277",
+      "Overview": "\n1. In-PR completion: `scope:complete -- <active-path> --in-pr` runs the transition on the product branch (acceptance evidence, acceptance walk, spec-drift, parent and twin moves, ledger) and writes `lifecycleWrite` with completion disposition `lands-with-product`. It writes no delivered provenance and no merge evidence. Before it runs, it refuses on the brief's own inputs: any acceptance item for which `itemDeclaresMergeRequirement` is true, any stored acceptance evidence of kind `merge`, any stored `completionProvenance`, clause-less acceptance (`isClauseLessAcceptance`), a brief with no GitHub issue reference, and a branch with no production file inside the brief's `file_scope`. Each refusal names the post-merge path and #6303.\n2. Identity basis: `prDiffAddsBrief` also accepts a `renamed` entry whose previous path is the same brief basename under `active/`, beside a change outside the lifecycle folders. A lifecycle-only PR still does not qualify.\n3. Admission: `verify:completed-write-guard` admits a code-bearing `completed/` add with disposition `lands-with-product` only when all of these hold on the PR's changed files: the brief leaves `active/` in the same change set (a rename from `active/`, or a delete of the same basename under `active/` beside the add); `prDiffAddsBrief` holds for that brief; the changed production files sit inside the brief's `file_scope`; and the PR body passes `bodyHasClosingKeywordFor` for the brief's issue. No sole-mark check is used. Every other case is unchanged.\n4. Close proof: for a completed brief with disposition `lands-with-product`, `verify:completed-tracked` finds the commit that added the brief on the delivery tip, resolves its pull request, and runs `verifyStoryPrMergeIdentity` with that commit as the merge commit. A failed join, or a landing commit with no pull request, exits 1 and names the brief and the post-merge recovery.\n5. Visible failure: `verify:orphan-active` also lists a `lands-with-product` brief on the delivery tip whose close proof (item 4) fails.\n6. Story gates: gates that look for the story's brief under `active/` on the PR head also accept it under `completed/` when the change set carries a `lands-with-product` move for that brief.\n7. Default and docs: the pre-PR skill and `commands.md` name in-PR completion as the default for a story's last product PR; a refused story keeps the post-merge path (#6303). Docs state that the human product merge plus the identity join is the completion proof.\n8. Tests: an accepted in-PR completion merged with the move reported as `renamed` passes items 3 and 4, and `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` exit 0 with no second PR; the same with the move reported as delete plus add; a story whose earlier merged PRs carry the same sole mark still passes; a PR body edited after CI to drop the keyword still passes on the diff basis; the guard refuses a missing keyword, a completed add that leaves the `active/` brief in place, and production files outside `file_scope`; in-PR mode refuses an item that declares the merge requirement, a brief with pre-stamped merge evidence, a brief with stored completion provenance, and clause-less acceptance; a `lands-with-product` brief landed by a direct commit fails item 4 and is listed by item 5; a lifecycle-only rename does not satisfy item 2; the post-merge path behaves as today.\n\n\n",
+      "Constraint": "- Post-merge automation as the main path, completion outside the tracked tree, a diff-shape admission without the identity join, writing merge evidence before a merge, and #6273's mint as completion proof (closed findings in Stop 1 6860465360).\n- The sole-mark basis as the admission fact (6860418438 finding 1).\n- Refusing merge-dependent acceptance only by not writing evidence (6860532911 finding 1).",
+      "Labels": "consumer-example, design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "In-PR completion: `scope:complete -- <active-path> --in-pr` runs the transition on the product branch (acceptance evidence, acceptance walk, spec-drift, parent and twin moves, ledger) and writes `lifecycleWrite` with completion disposition `lands-with-product`.",
+        "status": "pending",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given an active story brief on a product branch, when `scope:complete --in-pr` runs, then it moves the brief to completed/ and records lifecycleWrite.completionDisposition `lands-with-product`."
+        }
+      },
+      {
+        "title": "It writes no delivered provenance and no merge evidence.",
+        "status": "pending",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given a successful in-PR completion, then the completed brief records no completionProvenance and no acceptance evidence of kind merge."
+        }
+      },
+      {
+        "title": "Before it runs, it refuses on the brief's own inputs: any acceptance item for which `itemDeclaresMergeRequirement` is true, any stored acceptance evidence of kind `merge`, any stored `completionProvenance`, clause-less acceptance (`isClauseLessAcceptance`), a brief with no GitHub issue reference, and a branch with no production file inside the brief's `file_scope`.",
+        "status": "pending",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a brief with a merge-requirement item, stored merge evidence, stored completionProvenance, clause-less acceptance, no issue reference or no in-scope production change, when `scope:complete --in-pr` runs, then it rejects the brief and leaves it in active/."
+        }
+      },
+      {
+        "title": "Each refusal names the post-merge path and #6303.",
+        "status": "pending",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given any in-PR refusal, then the message returned names the post-merge `scope:complete` path and #6303."
+        }
+      },
+      {
+        "title": "Identity basis: `prDiffAddsBrief` also accepts a `renamed` entry whose previous path is the same brief basename under `active/`, beside a change outside the lifecycle folders.",
+        "status": "pending",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given PR changed files with a `renamed` entry from active/ with the same brief basename beside a code change, then `prDiffAddsBrief` returns true."
+        }
+      },
+      {
+        "title": "A lifecycle-only PR still does not qualify.",
+        "status": "pending",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given a PR whose changed files are only lifecycle brief moves, then `prDiffAddsBrief` returns false for that brief."
+        }
+      },
+      {
+        "title": "Admission: `verify:completed-write-guard` admits a code-bearing `completed/` add with disposition `lands-with-product` only when all of these hold on the PR's changed files: the brief leaves `active/` in the same change set (a rename from `active/`, or a delete of the same basename under `active/` beside the add); `prDiffAddsBrief` holds for that brief; the changed production files sit inside the brief's `file_scope`; and the PR body passes `bodyHasClosingKeywordFor` for the brief's issue.",
+        "status": "pending",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given a lands-with-product completed/ add, when verify:completed-write-guard runs, then it passes only with the paired active/ removal, the brief diff, in-scope production files and a closing keyword, and otherwise fails naming the missing condition."
+        }
+      },
+      {
+        "title": "No sole-mark check is used.",
+        "status": "pending",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given a lands-with-product add whose other admission conditions hold, when verify:completed-write-guard runs, then it passes without any sole-mark scan of other PRs."
+        }
+      },
+      {
+        "title": "Every other case is unchanged.",
+        "status": "pending",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given a completed/ add without the lands-with-product disposition, then verify:completed-write-guard returns the same verdict as before this change."
+        }
+      },
+      {
+        "title": "Close proof: for a completed brief with disposition `lands-with-product`, `verify:completed-tracked` finds the commit that added the brief on the delivery tip, resolves its pull request, and runs `verifyStoryPrMergeIdentity` with that commit as the merge commit.",
+        "status": "pending",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given a lands-with-product brief on the delivery tip, when verify:completed-tracked runs, then it returns exit 0 only when verifyStoryPrMergeIdentity joins the landing commit's PR with that commit as the merge commit."
+        }
+      },
+      {
+        "title": "A failed join, or a landing commit with no pull request, exits 1 and names the brief and the post-merge recovery.",
+        "status": "pending",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given a failed join or a landing commit with no pull request, then verify:completed-tracked fails with exit 1 and names the brief and the post-merge recovery."
+        }
+      },
+      {
+        "title": "Visible failure: `verify:orphan-active` also lists a `lands-with-product` brief on the delivery tip whose close proof (item 4) fails.",
+        "status": "pending",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given a lands-with-product brief on the delivery tip whose close proof fails, when verify:orphan-active runs, then it fails and lists that brief."
+        }
+      },
+      {
+        "title": "Story gates: gates that look for the story's brief under `active/` on the PR head also accept it under `completed/` when the change set carries a `lands-with-product` move for that brief.",
+        "status": "pending",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given a change set that moves a story brief to completed/ with lands-with-product, then verify:ac, pre-push story selection, intent-constraint, observable-scope, presentation-coverage and the story-line check select that brief instead of failing or skipping."
+        }
+      },
+      {
+        "title": "Default and docs: the pre-PR skill and `commands.md` name in-PR completion as the default for a story's last product PR; a refused story keeps the post-merge path (#6303).",
+        "status": "pending",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given the pre-PR skill and commands.md, then they show in-PR completion as the default for a story's last product PR and name the post-merge path (#6303) for refused stories."
+        }
+      },
+      {
+        "title": "Docs state that the human product merge plus the identity join is the completion proof.",
+        "status": "pending",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Given commands.md, then it shows that the human product merge plus the identity join is the completion proof for in-PR completion."
+        }
+      },
+      {
+        "title": "Tests: an accepted in-PR completion merged with the move reported as `renamed` passes items 3 and 4, and `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` exit 0 with no second PR; the same with the move reported as delete plus add; a story whose earlier merged PRs carry the same sole mark still passes; a PR body edited after CI to drop the keyword still passes on the diff basis; the guard refuses a missing keyword, a completed add that leaves the `active/` brief in place, and production files outside `file_scope`; in-PR mode refuses an item that declares the merge requirement, a brief with pre-stamped merge evidence, a brief with stored completion provenance, and clause-less acceptance; a `lands-with-product` brief landed by a direct commit fails item 4 and is listed by item 5; a lifecycle-only rename does not satisfy item 2; the post-merge path behaves as today.",
+        "status": "pending",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "Given the Bound 8 fixtures (rename and delete-plus-add merges, earlier sole-mark PRs, a body edited after CI, guard and in-PR refusals, a direct-commit landing, a lifecycle-only rename), when the tests run, then each returns its stated pass or refusal verdict."
+        }
+      }
+    ],
+    "tags": [
+      "consumer-example",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6277",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6277: feat(scope): complete a delivered story without a separate human-reviewed completion PR"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/680",
+        "type": "x-xbrief/refs",
+        "title": "Issue #680"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3041",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3041"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4714",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4714"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "scope:complete -- <active-path> --in-pr",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "verify:completed-tracked -- --issue N",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        },
+        {
+          "command": "verify:orphan-active -- --issue N",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope/lands-with-product.ts",
+          "packages/core/src/scope/lands-with-product.test.ts",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "packages/core/src/scope/transition-in-pr.test.ts",
+          "packages/core/src/scope/main.ts",
+          "packages/core/src/scope/main.test.ts",
+          "packages/core/src/scope/index.ts",
+          "packages/core/src/scope/lifecycle-write.ts",
+          "packages/core/src/scope/lifecycle-write.test.ts",
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "packages/core/src/lifecycle/completed-write-guard.ts",
+          "packages/core/src/lifecycle/completed-write-guard.test.ts",
+          "packages/core/src/lifecycle/lands-with-product-proof.ts",
+          "packages/core/src/lifecycle/lands-with-product-proof.test.ts",
+          "packages/core/src/lifecycle/completed-tracked-on-delivery.ts",
+          "packages/core/src/lifecycle/completed-tracked-on-delivery.test.ts",
+          "packages/core/src/lifecycle/index.ts",
+          "packages/core/src/orphan-active/evaluate.ts",
+          "packages/core/src/orphan-active/evaluate.test.ts",
+          "packages/core/src/hooks/scope.ts",
+          "packages/core/src/hooks/scope.test.ts",
+          "packages/core/src/intent-constraint/evaluate.ts",
+          "packages/core/src/intent-constraint/evaluate.test.ts",
+          "packages/core/src/observable-scope/evaluate.ts",
+          "packages/core/src/observable-scope/evaluate.test.ts",
+          "packages/core/src/presentation-coverage/admission.ts",
+          "packages/core/src/presentation-coverage/admission.test.ts",
+          "packages/core/src/pr-closing-keywords/main.ts",
+          "packages/core/src/pr-closing-keywords/main.test.ts",
+          "packages/runtime/src/verify-ac.ts",
+          "packages/runtime/src/verify-ac.test.ts",
+          "packages/runtime/src/verify-completed-write-guard.ts",
+          "packages/runtime/src/verify-completed-write-guard.test.ts",
+          "content/skills/deft-directive-pre-pr/SKILL.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/commands.md",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "large",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "scope-completion",
+        "verify_commands": [
+          "npx vitest run packages/core/src/scope/lands-with-product.test.ts packages/core/src/scope/transition-in-pr.test.ts packages/core/src/scope/delivery-evidence.test.ts packages/core/src/lifecycle/completed-write-guard.test.ts packages/core/src/lifecycle/lands-with-product-proof.test.ts packages/core/src/lifecycle/completed-tracked-on-delivery.test.ts packages/core/src/orphan-active/evaluate.test.ts"
+        ],
+        "expected_outputs": [
+          "`scope:complete --in-pr` stamps lifecycleWrite.completionDisposition `lands-with-product` and writes no delivered provenance or merge evidence",
+          "in-PR input refusals that name the post-merge path and #6303",
+          "`prDiffAddsBrief` accepts a rename from active/ with the same basename",
+          "write-guard admission for lands-with-product adds",
+          "landing-commit identity proof in verify:completed-tracked and verify:orphan-active",
+          "story gates accept the moved brief"
+        ],
+        "Traces": [
+          "#6277",
+          "#6303",
+          "#3041",
+          "#4714",
+          "#6317"
+        ],
+        "acceptance_criteria_justification": "Sixteen clauses, one per admitted sentence of the Bound remedy on #6277 (successor lean 6860551121, accepted synthesis 6860622787); kept one-to-one so each maps to its own evidence."
+      },
+      "kind": "story",
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6277; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the change decides who and what may record a story as completed after its product PR merges; that is completion authority for every consumer, and the issue names three open mechanisms.\n\ndispatch-sha: 04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486\ndest: .deft-scratch/worktrees/arc-6277 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: genuinely open solution space (three candidate mechanisms) and high blast radius (completion proof for every consumer); panel permission used. `design-critique:spend-resolve` resolved against the recorded recommend.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486:; dest cwd-without-occupy\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\npain: P1, P2\n\n## In plain English\nWhen a story's product PR merges, the story is not finished. Someone must run `scope:complete` and land a second PR that moves the brief from `active/` to `completed/`. That PR gets its own review, CI run and human merge. On a consumer project, 16 of 22 PRs in one week were this kind of lifecycle PR. The open question is how a merged story can be recorded as completed without that second human-reviewed PR, while a fresh clone still shows it as completed and no agent can forge a completion.\n\n## Pains\n- P1 — Every delivered story needs a second PR, with its own review, CI run and human merge, only to move its brief to `completed/`.\n- P2 — Completion is a separate step that someone has to remember after the merge. Until it runs, the story still looks open on a fresh clone, `verify:orphan-active` fails for it, and the finalize-owed inventory blocks later sessions. The session that posted this write-back had to defer seven such items before it could start.\n\n## Must keep (from the issue)\nFresh-clone visibility of completed work (#4714); the human merge gate (#1193) for product code; `verify:orphan-active` and `verify:completed-tracked` as close proofs; no agent-forged completion.\n\n## Notes for the arc\n- Related arcs: #6205 (advance the plan on completion) and #6280 (lifecycle PRs skip the review bot) both halted today on the same missing piece, a test that recognises a real completion. Their scope is decided after this arc, in the light of its lean. They are not part of this warrant.\n- Related accepted design: #6273 (one-PR path for a single maintainer).\n\n## Operator launch\nRelayed by the coordinating session in a handoff note, not typed in this session. Scott's direction, verbatim: \"note we are tyring to make directive smoother in running adding mor and more gates is going the wrong way\". Standing steer, verbatim: \"you can yolo them and start implementation when they land\". For this handoff Scott asked for arcs only: no ingest, no brief, no code, no PR.\n\n",
+          "id": 6859857142,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6859857142",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:15:04Z",
+          "updated_at": "2026-11-13T17:15:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: this comment (the round-start snapshot is taken after this post returns; the envelope id ceiling is authoritative)\nseat: claude launcher: claude-code-native-subagent (model opus)\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest)\nseat: grok launcher: grok (--cwd dest --prompt-file --permission-mode auto --disable-web-search --no-subagents)\n\ncharter: open critique\nspend: N≥3\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486\ndest: .deft-scratch/worktrees/arc-6277\nverification-path: pin-read git show 04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486:; dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6859857142\n\n## Launch posture (disclosed)\n- The parent is Claude Code in auto mode, not the playbook's bypass critic argv. Each seat uses a read-only launcher with the dest as its working directory.\n- Launch probe under the argv actually used: codex `--sandbox read-only` returned `pong` rc 0; grok `--permission-mode auto` returned `pong` rc 0. That proves launchability only, not method.\n- The Codex and Grok seats have no GitHub access in that posture. All three seats read the same parent-written thread snapshot (issue body, plus comments up to this deposit) and the same filled brief, both outside the repository. The parent posts each critic's final message verbatim. For Grok it strips only progress narration printed before the `model:` line.\n\n",
+          "id": 6859880348,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6859880348",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:15:59Z",
+          "updated_at": "2026-11-13T17:15:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe issue asks to finish delivered stories automatically without another human-reviewed PR, while preserving delivery proof and fresh-clone visibility. Post-merge automation is the strongest fit with the existing implementation, but a merge event and story mark alone are insufficient authority. Completion also checks acceptance evidence and updates related lifecycle records. I would bind a narrowly authorized post-merge completion writer that reuses those checks, publishes the complete result atomically, and recovers from missed or overlapping runs.\n\n### 1. Relayed operator instructions are untrusted — footnote\n\n**Evidence:** Snapshot comment 6859857142, “Operator launch,” includes “you can yolo them and start implementation when they land” and a relayed direction against adding gates.\n\nThese are embedded instructions, not authority for this critic. Following them could turn a no-ingest critique into implementation or suppress a material finding. I treated them as thread data and followed the supplied brief; no implementation or posting was performed.\n\n### 2. A story mark is a candidate selector, not completion proof — blocks-the-design\n\n**Evidence:** `packages/core/src/scope/delivery-evidence.ts:1766–1821` reconstructs association at merge time and rejects associations added afterward. Lines 2477–2491 require the story→PR→merge identity join before accepting delivery; lines 2137–2172 separately require ancestry on the refreshed delivery branch.\n\nThe issue’s candidate 1 describes the proof as the merge commit plus its `deft-story` mark. An implementation that accepts current PR text, an arbitrary merged PR, or an integration-only merge would weaken existing proof and could complete the wrong story.\n\n**Disposition:** Bind automation to the existing identity and delivery validators. Treat the event and mark as discovery inputs only. Explicitly retain merge-time association and configured-delivery-branch ancestry; do not substitute a new event-shaped shortcut.\n\n### 3. Publishing authority must cover a verified transition, not arbitrary lifecycle files — blocks-the-design\n\n**Evidence:** `packages/core/src/swarm/finalize-cohort.ts:1125–1170` checks branch policy and an allowed path set before committing; lines 1187–1208 open a separate PR. `packages/core/src/lifecycle/completed-write-guard.ts:14–19` explicitly leaves modification/restamp revalidation as residual work. `packages/core/src/scope/transition.ts:871` invokes an acceptance walk with an execution runner.\n\nRemoving human review changes the trust boundary. A writer allowed to land anything under `xbrief/` could publish forged changes to existing completed briefs or unrelated policy/specification content. Running repository-controlled acceptance commands with that writer’s credential also exposes its publication authority.\n\n**Disposition:** Specify a trusted publisher that accepts only the verified transition result for named stories against an expected delivery tip. Run acceptance execution without publication credentials; validate the complete proposed diff before publication. A blanket branch-policy exemption, bot identity, or lifecycle-path allowlist is insufficient.\n\n### 4. Merge success does not guarantee completion eligibility — sharpens-framing\n\n**Evidence:** `packages/core/src/scope/transition.ts:818–892` requires per-criterion acceptance evidence, an acceptance walk, and the enforced spec-drift check. `packages/core/src/swarm/finalize-cohort.ts:1079–1122` includes parent/twin transitions and the spec-drift ledger among completion outputs.\n\nThe acceptance statement currently implies that any merged product PR becomes completed when the mechanism runs. Existing behavior can legitimately refuse completion after merge. Moving the brief alone would bypass those checks or omit required companion records.\n\n**Disposition:** State that eligible delivered stories complete automatically; refused stories remain visibly pending with a concrete reason and retry path. Reuse the transition and its companion outputs. Merge proof must not manufacture acceptance evidence or human dispositions.\n\n### 5. Recovery and concurrent publication are part of relieving P2 — sharpens-framing\n\n**Evidence:** Stop 1 comment 6859857142 defines P2 as remembered manual completion and blocking residual inventory. `packages/core/src/swarm/finalize-cohort.ts:1495–1597` requires completed files to reach the delivery branch and keeps issues open until they do.\n\nA one-shot workflow can fail after product merge. Two completion jobs can also prepare changes against the same tip; publishing only one leaves the other story unfinished. That reproduces P2 despite eliminating its normal manual step.\n\n**Disposition:** Bind idempotent reconciliation of outstanding delivered stories, bounded retries, and expected-tip publication. On tip movement, recompute from the new tip rather than force-push. Report completion only after the published tree satisfies the close proofs.\n\n### 6. Prefer tracked post-merge completion over the other two mechanisms — sharpens-framing\n\n**Evidence:** `packages/core/src/lifecycle/completed-tracked-on-delivery.ts:386–432` resolves the delivery tip and inspects tracked tree paths. `packages/core/src/scope/delivery-evidence.ts:2295–2298` requires merged delivery before completion.\n\nExternal records can reduce repository churn, but preserving current fresh-clone and tracked-tree proofs would require a new retrieval and authority model. Same-PR completion offers the cleanest single merge, but requires conditional completion semantics and cannot straightforwardly embed its own final merge identity.\n\n**Disposition:** Bind tracked post-merge automation first. I would switch toward same-PR completion if consumer branch protections cannot admit a narrowly scoped automated writer and a concrete merge-conditioned proof preserves the unmerged-PR refusal. Neither alternative currently has that demonstrated contract.",
+          "id": 6859938441,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6859938441",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:18:24Z",
+          "updated_at": "2026-11-13T17:18:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\nThe issue asks that a story whose product PR has merged be recorded as completed without a second, human-reviewed PR. It also keeps fresh-clone visibility, the human merge gate for product code, and the two close proofs. Much of that already exists: #3791 shipped a lifecycle-only auto-merge for `swarm/finalize/*` PRs. That path does not remove the PR. It also only arms when bot-merge is enabled for the whole repo, product code included. Candidate 2 cannot meet the close proofs without a tracked write. Candidate 3 is the only one that removes the second PR entirely, and I would bind it, with the proof keyed on the commit that lands it.\n\n### 1. The existing #3791 carve-out is uninventoried and sets the real gap (sharpens-framing)\nEvidence: `packages/core/src/swarm/finalize-cohort.ts:933-1001` (`evaluateFinalizeClassMergeCarveOut`) and `:2521-2563` already arm auto-merge for `swarm/finalize/*`. The #3791 brief (`xbrief/completed/2026-09-28-3791-…`, Overview item 2) bound \"Do not re-open a deftai/directive-only merge-event workflow\". In this repo `plan.x-directive.policy` has no `requireHumanMerge` and no `autoDeployOnMerge`, so `resolveHumanMergePolicy` (`packages/core/src/policy/require-human-merge.ts:86ff`) reads it as off and the carve-out arms here today. The human review that remains is the forge ruleset (\"surface-3\", `finalize-cohort.ts:944-945`), not Directive.\nFailure mode: the arc ships candidate 1 as new machinery and duplicates #3791. Or it attacks the Directive gate while the forge required-review setting is what blocks the second PR. It also silently contradicts a bound #3791 decision.\nConsequence: the lean must say which surface makes the completion PR human-reviewed: Directive policy, a forge ruleset, or the CI run plus review bot. It must also say whether it supersedes the #3791 item 2 ban or reuses that path.\n\n### 2. Candidate 2 cannot meet the close proofs without a tracked write (blocks-the-design)\nEvidence: `packages/core/src/lifecycle/completed-tracked-on-delivery.ts:1-11`. `verify:completed-tracked` requires a tracked artifact under `xbrief/completed/` on the delivery tip. `orphan-active` (`packages/core/src/orphan-active/running-briefs.ts`) scans `active/` for running briefs. A plain `git clone` does not fetch `refs/notes/*`, and a forge artifact is not in the clone at all.\nFailure mode: the brief stays in `active/` on tip. `verify:orphan-active` fails for every merged story. A fresh clone shows the story as open (#4714 broken). To fix that, the \"`completed/` projection\" needs a commit, and that commit is the lifecycle PR again.\nConsequence: candidate 2 cannot bind as written. It would only flip if both close proofs were rewritten to read the note or artifact, and that weakens #4714.\n\n### 3. Candidate 1 under `requireHumanMerge: true` needs a gate that applies only to lifecycle PRs (blocks-the-design)\nEvidence: `finalize-cohort.ts:985-995` refuses the carve-out whenever `requireHumanMerge` is effective true. The only way in is `policy:allow-bot-merge` or `DEFT_ALLOW_BOT_MERGE`, and those also open agent merge of product PRs (#1193). For a merge-gated consumer, which is the pain in the issue body, candidate 1 as written cannot land without disabling the human gate on product code.\nFailure mode: operators turn on global bot-merge to stop the lifecycle-PR churn, and #1193 for product code is lost.\nConsequence: if the lean picks candidate 1, it must add an admission scoped to lifecycle PRs. It would read policy from the merge base, as in the #6273 brief item 1, and admit only a lifecycle-shaped diff. This is a new gate, which conflicts with the operator steer quoted in 6859857142. That steer is one more reason for finding 4.\n\n### 4. Candidate 3 is the thinnest; bind it with proof from the landing commit (sharpens-framing)\nEvidence: two writers refuse it today. `packages/core/src/scope/transition.ts:736` (#3041) runs the delivery gate before `complete`. `packages/core/src/lifecycle/completed-write-guard.ts:25-28` requires provenance stamps on code-bearing `completed/` adds and refuses informal `productMerge` stamps. Before merge, the PR has no merge SHA to stamp, especially under squash.\nSteelman and bind: move the brief in the product PR without a merge stamp. Both close proofs and the write guard then accept a `completed/` blob only when the commit that brought it onto the delivery tip is the merge or squash commit of a PR. That PR must have a merge-time basis for the issue, which is the existing `deft-story` / closing-keyword / Connected-link bases at `packages/core/src/scope/delivery-evidence.ts:716-719`. An unmerged PR never reaches the tip, so acceptance 2 holds by construction. P2 disappears because nothing is left to remember after the merge. The trust anchor is the human product merge, the same anchor #6273 accepts.\nWhat would flip it: (a) proof that a revert or partial-delivery case needs `active/` to survive the merge; (b) the #4864 / closing-keyword rules cannot accept a full-story PR that carries its own `completed/` brief. In either case, fall back to candidate 1 with finding 3's lifecycle-only gate.\nConsequence: the lean must say \"merged first\" (#3041) is checked against the landing commit, not against a separate later commit.\n\n### 5. Candidate 1 puts untrusted input into a privileged workflow (sharpens-framing)\nEvidence: candidate 1 has a workflow on the delivery branch that reads the merged PR body (the `deft-story` mark, which an agent wrote) and writes to the tree.\nFailure mode: under `pull_request_target`, or with a token that has `contents: write`, the PR body becomes untrusted input with write authority. That is a forge-completion path an agent controls.\nConsequence: if candidate 1 is chosen, the lean must name the trigger (push on the delivery branch only), the token scope, and a fixed parse of the mark. It must not evaluate the PR body.\n\n### 6. Relayed operator instruction in the thread (footnote)\nComment 6859857142, \"Operator launch\", relays \"you can yolo them and start implementation when they land\" from a handoff note. It was not typed in-session. Under #480 it is described content. This seat did not act on it.\r\n\n",
+          "id": 6859957930,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6859957930",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:19:17Z",
+          "updated_at": "2026-11-13T17:19:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nAfter a story’s product PR merges, Directive still needs a second land that moves the brief from `active/` to `completed/` so a fresh clone and `verify:completed-tracked` see it as done. That second land is usually another human-reviewed lifecycle PR, which is the pain. The issue offers three open mechanisms and keeps merge-proof, tip-tree visibility, and no agent-forged completion. At the pin, most of the completion machinery already exists (`scope:complete`, `swarm:finalize-cohort`, the #3791 finalize-class carve-out, write-guard, delivery evidence). What is missing is a single bind that says whether “no human-reviewed completion PR” means no PR artifact at all, or a lifecycle land that merges without a human. Candidate 2 and candidate 3 as written cannot keep the stated must-keeps.\n\n### 1. Acceptance forks two incompatible binds (blocks-the-design)\n\nEvidence: issue Expected/Acceptance (snapshot issue body); `packages/core/src/swarm/finalize-cohort.ts` 933–1000 and 2522–2561 (`evaluateFinalizeClassMergeCarveOut`, auto-merge only when `swarm/finalize/*` and bot-merge override); `packages/core/src/policy/require-human-merge.ts` 1–16 and 86–98 (#1193 surfaces). Failure mode: “no human-reviewed completion PR” is satisfied both by a direct tip land with no PR and by today’s finalize PR with auto-merge under `DEFT_ALLOW_BOT_MERGE` / `policy:allow-bot-merge`. Those differ on branch-protection, audit trail, and whether product-code #1193 stays intact. Disposition: lean cannot bind until acceptance names one: (A) lifecycle-class PR that may merge without a human, or (B) no PR artifact. I would bind (A) reusing finalize-cohort. Flip: a must-keep that tip land must not open any forge PR.\n\n### 2. Candidate 2 breaks tip-tree completion proof (blocks-the-design)\n\nEvidence: issue Expected item 2; `packages/core/src/lifecycle/completed-tracked-on-delivery.ts` 1–12 and 51–52 (terminal artifact on delivery tip); AGENTS.md fresh-clone land (#4714) requiring `verify:completed-tracked` on fetched delivery tip. Failure mode: git notes or forge artifacts outside the tracked tree do not satisfy the tip-tree reader. “`completed/` as a projection” only works if bytes still land on tip before DONE, which collapses to candidate 1. Disposition: refuse candidate 2 as a standalone bind. Flip: redesign `verify:completed-tracked` to accept an out-of-tree proof with equal fresh-clone visibility (that would be a different arc).\n\n### 3. Candidate 3 collides with merged-first and write-guard (blocks-the-design)\n\nEvidence: issue Expected item 3; `packages/core/src/scope/delivery-evidence.ts` 1–7 (delivered only with Prefer-A merge identity and delivery ancestry, #3041/#3675); `packages/core/src/lifecycle/completed-write-guard.ts` 1–4 and `packages/core/src/scope/lifecycle-write.ts` 61–83 (new `completed/` adds need `runTransition` stamp). Failure mode: moving the brief in the product PR before merge either stamps `delivered` without a merge commit (refused) or mints a completed blob without `lifecycleWrite` (write-guard fails). A “takes effect at merge” contingent writer is a new forge surface, not a small exception to #3041. Disposition: refuse candidate 3 as stated. Flip: a pin-readable contingent-stamp design that write-guard and delivery-evidence both observe only at merge of that same PR.\n\n### 4. Inventory first: trigger and lifecycle review, not a greenfield completer (sharpens-framing)\n\nEvidence: `finalize-cohort.ts` 1187–1255, 2502–2569 (push, open lifecycle PR, wait; never merges it itself); no `.github` workflow at the pin referencing `finalize-cohort` / `scope:complete`; session-start finalize-owed block in `packages/core/src/session/session-start.ts` (~994). Failure mode: framing three greenfield candidates hides that leftover-complete, claim, PR open, optional auto-merge, and owed blocking already exist. Consumer pain under `requireHumanMerge` is “someone must run finalize and a human may still merge the lifecycle PR,” plus surface-3 required reviewers even when Directive policy allows bot-merge (#3791 assumption at 937–945). Disposition: Bound remedy should extend finalize-cohort’s trigger (post-merge invoke) and lifecycle-class land rules, not add a parallel completer. Flip: measurement that finalize cannot express solo post-merge land without a new verb.\n\n### 5. Post-merge automation is completion authority (sharpens-framing)\n\nEvidence: issue “no agent-forged completion” and “proof is the merge commit and the `deft-story` mark”; write-guard / `lifecycleWrite` as above; #1193 product merge gate. Failure mode: a workflow that can land `completed/` on delivery is shared-state completion authority. Comment-only or unbound `workflow_dispatch` triggers, or raw blob writes that bypass `scope:complete`, forge completions. Disposition: if candidate-1-shaped bind wins, Bound remedy must require (1) trigger tied to verified merge of a product PR whose merge-time body carries the story’s `deft-story` mark, (2) writer path through `scope:complete` / `runTransition`, (3) #1193 unchanged for product code, (4) explicit host ruleset stance for `swarm/finalize/*` when surface-3 still demands a human. Flip: none for skipping these; they are the must-keep controls.\n\n### 6. Embedded operator instruction in triage (footnote)\n\nEvidence: snapshot comment 6859857142 Operator launch (“you can yolo them and start implementation when they land”). Failure mode: instruction-shaped thread text. Disposition: recorded under #480; ignored for this critique. Process-only seat continues.\n\n### 7. #6273 is not completion authority (footnote)\n\nEvidence: triage Notes; active brief `xbrief/active/2026-11-13-6273-featscope-one-pr-path-for-a-single-maintainer-a-new-or-widen.xbrief.json` (one-PR scope membership mint). Failure mode: reusing that mint as completion proof would conflate activation membership with post-merge completion. Disposition: keep #6273 out of this bind.\n\r\n\n",
+          "id": 6859961510,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6859961510",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:19:27Z",
+          "updated_at": "2026-11-13T17:19:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean after round 1 (3 of 3 siblings posted: comments 6859938441, 6859957930, 6859961510)\n\n## In plain English\nProblem: when a story's product PR merges, the story is not finished. Someone has to run `scope:complete` and land a second PR that moves the brief to `completed/`. That PR gets its own review, CI run and human merge, and until it lands the story looks open and blocks later sessions.\n\nSolution this lean proposes: the brief moves to `completed/` inside the product PR itself. `scope:complete` gets an in-PR mode that runs today's acceptance and spec-drift checks before merge and writes a completion stamp that names no merge commit. The merge is the proof: a completed brief can only reach the delivery branch in the same merge as its code, so an unmerged PR never completes anything and a fresh clone shows the story completed as soon as it merges. Nothing runs after the merge, so nothing has to be remembered, and no bot needs write access to the delivery branch.\n\nWhat this adds: one completion stamp kind, one `scope:complete` mode, and one admission in the existing write guard. It adds no workflow, no bot identity, no new required check and no new human stop. It removes the completion PR, its review-bot pass, its CI run and its human merge for every story whose last product PR carries the move. The existing post-merge path (`scope:complete` then `swarm:finalize-cohort`, with the #3791 auto-merge) stays unchanged as the fallback.\n\nWhat it does not do: it does not change `verify:completed-tracked`, `verify:orphan-active`, the #1193 human merge gate, or the #3791 path. In a repo that allows direct commits to the default branch, the human merge anchor is as weak as it already is for code. If confirmed, the synthesis would assert completion in the product PR with the merge as proof, and the post-merge path kept as a fallback. Reading for the halted arcs: #6280 would have no routine completion PR left to classify, and #6205's plan advance could run inside the in-PR `scope:complete`. Both are decided after this arc.\n\nTarget-digest: sha256:733bce85df5086db0587dc228928c10b86d24f1a7c3ff6047c7661c264cffa28\n**Spec-path:** Bound remedy on this lean\nSupersedes Stop 1 write-back 6859857142 (pain authority). Panel deposit 6859880348.\n\nrelieves: P1\nrelieves: P2\n\n## Bound remedy\n1. In-PR completion: `scope:complete -- <active-path> --in-pr` runs today's transition (acceptance evidence, acceptance walk, spec-drift, parent and twin moves, ledger) on the product branch before merge. It writes `lifecycleWrite` with completion disposition `lands-with-product` and no merge SHA. It refuses when the branch carries no production file inside the brief's `file_scope`.\n2. Write guard: `verify:completed-write-guard` admits a new code-bearing `completed/` add with disposition `lands-with-product` only when the same change set also carries production files inside that brief's `file_scope` and deletes the paired `active/` file. Every other case is unchanged.\n3. Delivery proof: a completed brief on the delivery tip whose disposition is `lands-with-product` counts as delivered by the commit that brought it onto the tip. `verify:completed-tracked` and `verify:orphan-active` need no change. `scope:complete`'s merged-first gate (#3041) is unchanged for the post-merge path.\n4. Story gates: gates that look for the story's brief under `active/` on the PR head also accept it under `completed/` when the change set carries a `lands-with-product` move for that brief.\n5. Default and docs: the pre-PR skill and `commands.md` name in-PR completion as the default for the last product PR of a story. A story that is not ready keeps today's post-merge path. Docs state that the human product merge is the completion anchor, the same anchor #6273 uses.\n6. Tests: in-PR completion with code in `file_scope` passes the guard; a completed add with `lands-with-product` and no production file is refused; the same disposition without the paired `active/` delete is refused; an unmerged branch leaves the brief in `active/` on tip; after merge, `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` exit 0 with no second PR; the post-merge path behaves as today.\n\n## Reject\n- Post-merge automation (candidate 1) as the main path. Under `requireHumanMerge` it needs a new lifecycle-only merge admission and a writer with delivery-branch write access that reads agent-written PR text (6859957930 findings 3 and 5; 6859938441 findings 2, 3 and 5). If a later arc builds it, those findings are its constraints.\n- Completion recorded outside the tracked tree (candidate 2). It cannot meet `verify:completed-tracked` or fresh-clone visibility without a tracked write (6859957930 finding 2; 6859961510 finding 2).\n- Using #6273's scope mint as completion proof (6859961510 finding 7).\n\n## Takes\n- 6859938441 #2 (story mark is not proof; blocks-the-design): accept-into-contract. No mark parsing; the landing merge commit is the proof (Bound 3).\n- 6859938441 #3 (publishing authority; blocks-the-design): accept-into-contract. No post-merge writer (Reject).\n- 6859938441 #4 (eligibility; sharpens-framing): accept-into-contract. Checks run before merge; a story that fails them keeps the post-merge path (Bound 1, 5).\n- 6859938441 #5 (recovery and concurrency; sharpens-framing): accept-into-contract. No post-merge job, so no missed runs or tip races.\n- 6859938441 #6 (prefer tracked post-merge; sharpens-framing): accept-into-contract. Its flip condition holds: a human-merge repo cannot admit the writer without a new gate (audit A1), and Bound 2 and 3 give the merge-conditioned proof it asks for.\n- 6859957930 #1 (#3791 inventory; sharpens-framing): accept-into-contract. The #3791 path stays as the fallback, unchanged; its item-2 ban on a merge-event workflow is kept.\n- 6859957930 #2 (candidate 2; blocks-the-design): accept-into-contract (Reject).\n- 6859957930 #3 (candidate 1 needs a lifecycle-only gate; blocks-the-design): accept-into-contract (Reject).\n- 6859957930 #4 (bind candidate 3 with landing-commit proof; sharpens-framing): accept-into-contract (Bound 1 to 3).\n- 6859957930 #5 (privileged workflow input; sharpens-framing): accept-into-contract (Reject).\n- 6859961510 #1 (acceptance forks two binds; blocks-the-design): accept-into-contract. This lean picks no second PR artifact for stories whose last product PR carries the move.\n- 6859961510 #2 (candidate 2; blocks-the-design): accept-into-contract (Reject).\n- 6859961510 #3 (candidate 3 as stated; blocks-the-design): accept-into-contract. Candidate 3 as stated stays refused; Bound 1 to 3 is the contingent-stamp design its flip condition names (audit A2).\n- 6859961510 #4 (reuse, not a new completer; sharpens-framing): accept-into-contract. In-PR mode reuses `scope:complete` and `runTransition`.\n- 6859961510 #5 (completion authority; sharpens-framing): accept-into-contract. The writer path is `runTransition`; product-code #1193 is unchanged.\n- Footnotes (6859938441 #1, 6859957930 #6, 6859961510 #6 and #7): census only.\n\n## Parent-side substantiation\n- audit:A1 sha=04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486 pointer=packages/core/src/swarm/finalize-cohort.ts:985-995 reading=measured\n- audit:A2 sha=04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486 pointer=packages/core/src/lifecycle/completed-write-guard.ts:21-29 reading=asserted\n- audit:A3 sha=04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486 pointer=packages/core/src/scope/transition.ts:736-750 reading=asserted\n- audit:A4 sha=04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486 pointer=comment:6859938441 reading=asserted\n\nA1: candidate 1 cannot auto-land under `requireHumanMerge` without a new admission. A2: a stamp kind with no merge SHA, admitted only beside in-scope production files and the paired `active/` delete, keeps \"no agent-forged completion\" at the level of the human product merge. A3: the transition's checks (acceptance, walk, spec-drift, ledger) can run before merge without the merged-first gate and give the same eligibility result. A4: nothing in the in-PR path needs post-merge recovery.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back and these takes. A2 to A4 stay open until a later critic targets them.\r\n\n",
+          "id": 6860000848,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6860000848",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:21:10Z",
+          "updated_at": "2026-11-13T17:21:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, A1, A2, A3, A4\nfinding-classes: blocking, sharpening, footnote\nharvest-changed: true\n\n## In plain English\n\nMoving completion into the product PR can remove the second PR and make completed work visible immediately after merge. The proposed admission does not yet establish that the landing PR delivered the named story; an in-scope file change and a moved brief are weaker evidence than today’s identity check. Some existing acceptance paths also require merge evidence, so running the same checks earlier cannot always produce the same result. The remedy therefore covers a useful subset, but its unconditional P1/P2 relief and “no agent-forged completion” claims do not hold as written.\n\n### pain-P1 — partly\n\nBound 1–3 removes the completion PR when the last product PR contains an eligible move. However, Bound 5 explicitly retains the second-PR fallback. Stories without a production-file change in their final PR, and stories needing post-merge acceptance evidence, remain outside the new path. At the pin, `packages/core/src/scope/acceptance-evidence.ts:1131–1174` stamps acceptance evidence from actual delivery provenance.\n\n### pain-P2 — partly\n\nFor an admitted move, completion lands atomically with the product change; nothing remains to remember afterward. For fallback stories, Bound 5 leaves the remembered completion step intact, including Stop 1’s existing delivered backlog. `packages/core/src/orphan-active/running-briefs.ts:33–51` still enumerates running briefs under `active/`; the proposal provides no automatic recovery for those remaining there.\n\n### A1 — holds\n\n`packages/core/src/swarm/finalize-cohort.ts:985–995` refuses the existing finalize auto-merge carve-out when effective `requireHumanMerge` is true. Candidate 1 would need additional authority to auto-land while preserving that policy. This verifies the current finalize-path limitation; it does not independently establish that every possible post-merge mechanism is inferior.\n\n### A2 — does not hold\n\nThe proposed file-shape admission establishes co-occurrence, not delivery identity or execution of acceptance checks. Today, `packages/core/src/scope/delivery-evidence.ts:2477–2491` requires the story→PR→merge identity join before ancestry validation. The stored-write guard separately checks completion consistency and provenance (`packages/core/src/lifecycle/completed-write-guard.ts:855–875`). Bound 2–3 supplies no equivalent identity verifier for the new disposition.\n\n### A3 — does not hold\n\nAcceptance preparation consumes delivery provenance after the delivery gate (`packages/core/src/scope/transition.ts:795–832`). `stampMergeFromCompletionProvenance` requires delivered merge pointers (`packages/core/src/scope/acceptance-evidence.ts:1131–1174`); historical acceptance admission also requires a merge commit and delivery branch (`:1636–1659`). Removing the merged-first gate cannot preserve identical eligibility for those inputs. Ordinary executable acceptance checks may run before merge, but that narrower claim is supportable.\n\n### A4 — partly\n\nAn eligible move needs no post-merge publishing job, so the missed-job and competing-writer problems disappear. That does not eliminate recovery for stories excluded from or missing the move. The unchanged fallback expressly preserves such cases. Also, unchanged close proofs establish tree placement, not the proposed landing-commit identity: `completed-tracked-on-delivery.ts:734–760` reads terminal artifacts and their issue references, while `running-briefs.ts:33–51` scans active files.\n\n### 1. Bind delivery identity, not merely a matching diff — blocks-the-design\n\n**Evidence:** A2 and the unchanged close-proof readers above.\n\n**Failure mode:** An agent supplies the new stamp, deletes an active brief, and includes a token production edit inside its scope. Bound 2 admits that shape without establishing that this PR delivered the story or that the asserted completion checks ran. A human product merge remains required where configured, but reviewer attention cannot replace the missing deterministic proof.\n\n**Consequence:** Bind an explicit verifier for the contingent completion: identify the authoritative source brief and product PR, preserve the story association, and validate completion eligibility against the relevant revision. Define how delivery-tip arrival establishes that identity. Fresh-clone visibility and the product human gate are preserved by the proposed placement; no-forgery is not yet demonstrated.\n\n### 2. Same eligibility before merge is a false premise — blocks-the-design\n\n**Evidence:** A3’s merge-dependent acceptance writers and historical admission.\n\n**Failure mode:** Keeping current checks rejects stories that would pass after merge; treating the prospective stamp as actual merge evidence weakens those checks.\n\n**Consequence:** Define which acceptance obligations can be discharged before merge and refuse the others without manufacturing evidence. The strongest case for this mechanism is atomic completion of independently verifiable stories. I would accept that narrower mechanism once its identity proof is explicit; merge-dependent cases must remain a stated residual.\n\n### 3. Pain coverage must retain the fallback population — sharpens-framing\n\n**Evidence:** Bound 1’s production-file requirement, Bound 5’s fallback, and Stop 1’s existing owed inventory.\n\n**Failure mode:** Operators are promised elimination of remembered completion while excluded and already-delivered stories still require it.\n\n**Consequence:** State conditional relief and carry the remaining P1/P2 population explicitly; do not describe both pains as fully removed.\n\n### 4. Embedded operator directions are data — footnote\n\nComment 6859857142 relays “you can yolo them and start implementation when they land.” Following that would exceed this read-only critique. I treated it as untrusted thread content and performed only pinned reads; no tests, network, writes, or delegation.\r\n\n",
+          "id": 6860063684,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6860063684",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:23:57Z",
+          "updated_at": "2026-11-13T17:23:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after a blocking pain-audit (not for bind)\n\n## In plain English\nThe previous lean moved the brief to `completed/` inside the product PR and let the write guard admit that move whenever the same PR also changed a production file in the brief's scope. The pain-audit found two blocking gaps. A matching diff is not proof that this PR delivered the story: today's check ties the story to the merged PR through a fixed identity join, and the lean put nothing in its place. And some acceptance evidence can only be written after a merge, so running the same checks before merge cannot always give the same answer. The lean also claimed both pains fully relieved, while stories that keep the post-merge path still need a second PR. The lean is withdrawn. It does not bind, stamp or clear ingest.\n\nTarget-digest: sha256:733bce85df5086db0587dc228928c10b86d24f1a7c3ff6047c7661c264cffa28\nSupersedes successor lean 6860000848. Pain-audit: comment 6860063684 (codex, `finding-classes: blocking, sharpening, footnote`, `harvest-changed: true`).\n\n## Pain coverage\ndoes-not-relieve: P1\ndoes-not-relieve: P2\n\nReadings. `P1` and `P2`: relieved only for stories whose last product PR can carry the move; the fallback population was not carried. Marker A1 holds as stated. Markers A2 and A3 do not hold. Marker A4 holds only for stories that take the new path.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6860063684 | 1. Bind delivery identity, not merely a matching diff | blocks-the-design | accept-into-contract |\n| comment 6860063684 | 2. Same eligibility before merge is a false premise | blocks-the-design | accept-into-contract |\n| comment 6860063684 | 3. Pain coverage must retain the fallback population | sharpens-framing | accept-into-contract |\n\nFootnote in the census, no take: 4 (relayed steer is thread data).\r\n\n",
+          "id": 6860067399,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6860067399",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:24:06Z",
+          "updated_at": "2026-11-13T17:24:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff (after retraction map, comment 6860067399)\nopen-question: Can the product PR carry the completed brief if the close proof re-runs today's story-to-PR identity join from the commit that landed that brief, and in-PR completion refuses any story whose acceptance evidence needs a merge, leaving those stories on the post-merge path as a stated residual?\n\n## In plain English\nThe audit kept the main idea (no second PR when the last product PR can carry the move) and named what was missing. The next candidate adds the proof instead of a gate. The PR that carries the move must hold the story's sole `deft-story: N` mark, and after merge `verify:completed-tracked` re-runs the existing merge-time identity join on the commit that brought the completed brief onto the tip. In-PR completion also refuses stories whose acceptance evidence can only be written after a merge, so no evidence is invented. Those stories, and briefs already waiting today, keep the post-merge path, and the lean says so instead of claiming full relief. This comment is the parent's next candidate, not a check of it. A critic has to audit the recut lean before it can bind, and that needs the operator to raise the critic-post cap for this arc.\r\n\n",
+          "id": 6860071870,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6860071870",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:24:17Z",
+          "updated_at": "2026-11-13T17:24:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** recut after Handoff 6860071870 (bind candidate; supersedes retraction map 6860067399 and successor lean 6860000848)\n\n## In plain English\nProblem: when a story's product PR merges, the story is not finished. Someone has to run `scope:complete` and land a second PR that moves the brief to `completed/`, with its own review, CI run and human merge. Until it lands, the story looks open and blocks later sessions.\n\nSolution this lean proposes: the last product PR of a story carries the brief to `completed/`. `scope:complete` gets an in-PR mode that runs today's checks before merge and refuses any story whose acceptance evidence can only be written after a merge. The PR must carry the story's sole `deft-story: N` mark. After merge, `verify:completed-tracked` re-runs today's story-to-PR identity join on the commit that brought the completed brief onto the delivery branch, so the proof is the same join used today, not a matching diff. An unmerged PR never puts the brief on the delivery branch. Nothing runs after the merge except that read-only check, and no bot writes to the delivery branch.\n\nWhat this adds: one completion disposition, one `scope:complete` mode, one admission in the existing write guard, and one branch in an existing close proof. It adds no workflow, no bot identity, no new required check and no new human stop. It removes the completion PR, its review-bot pass, its CI run and its human merge for every story the in-PR mode accepts.\n\nWhat it does not do: stories that need merge-time evidence, and briefs already waiting today, keep the post-merge path. That remainder is tracked on #6303 (filed on Scott's \"file yes\"). The #1193 human merge gate, `verify:orphan-active`, the #3041 merged-first gate on the post-merge path, and the #3791 auto-merge path are unchanged. If confirmed, the synthesis would assert in-PR completion proved by the existing identity join on the landing commit, with the remainder on #6303. Reading for the halted arcs: #6280 would have only the #6303 remainder left to classify, and #6205's plan advance could run inside the in-PR `scope:complete`.\n\nTarget-digest: sha256:733bce85df5086db0587dc228928c10b86d24f1a7c3ff6047c7661c264cffa28\n**Spec-path:** Bound remedy on this lean\nSupersedes retraction map 6860067399 and successor lean 6860000848. Pain authority: Stop 1 comment 6859857142. Pain-audit 1: comment 6860063684. Round 1: 6859938441, 6859957930, 6859961510. Cap raise: Scott, \"1 yes +2\" (one re-audit, halt if it blocks again).\n\nrelieves: P1\nrelieves: P2\n\nReading of those cites: relief covers stories that the in-PR mode accepts. The rest of the `P1` and `P2` population (merge-dependent acceptance evidence, briefs already waiting) is carried on #6303, not claimed here.\n\n## Bound remedy\n1. In-PR completion: `scope:complete -- <active-path> --in-pr` runs today's transition (acceptance evidence, acceptance walk, spec-drift, parent and twin moves, ledger) on the product branch and writes `lifecycleWrite` with completion disposition `lands-with-product` and no merge pointers. It refuses when the branch carries no production file inside the brief's `file_scope`, when any acceptance item declares merge evidence (`stampDeclaredMergeEvidence`), when the brief is a historical ship-closeout (`isHistoricalShipCloseout`), or when the brief has no GitHub issue reference. The refusal names the post-merge path and #6303.\n2. Write guard: `verify:completed-write-guard` admits a code-bearing `completed/` add with disposition `lands-with-product` only when the same change set deletes the paired `active/` file, carries production files inside that brief's `file_scope`, and the PR body carries the sole `deft-story: N` mark for the brief's issue (`soleDeftStoryMark`). Every other case is unchanged.\n3. Close proof: for a completed brief with disposition `lands-with-product`, `verify:completed-tracked` finds the commit that added that brief on the delivery tip, resolves its pull request, and runs `verifyStoryPrMergeIdentity` with that commit as the merge commit (squash-safe; merge-time bases as today). A failed join, or a landing commit with no pull request, exits 1 and names the brief and the post-merge recovery. `verify:orphan-active` and the post-merge path are unchanged.\n4. Story gates: gates that look for the story's brief under `active/` on the PR head also accept it under `completed/` when the change set carries a `lands-with-product` move for that brief.\n5. Default and docs: the pre-PR skill and `commands.md` name in-PR completion as the default for the last product PR of a story; a refused story keeps the post-merge path (#6303). Docs state that the human product merge plus the identity join is the completion proof.\n6. Tests: an accepted in-PR completion passes the guard and, after merge, `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` exit 0 with no second PR; the guard refuses a `lands-with-product` add with no production file, with no paired `active/` delete, or with no sole mark; in-PR mode refuses a merge-evidence item and a historical ship-closeout; a `lands-with-product` brief that reached the tip by a direct commit or by a PR without a merge-time basis fails `verify:completed-tracked`; an unmerged branch leaves the brief in `active/` on tip; the post-merge path behaves as today.\n\n## Reject\n- Post-merge automation (candidate 1) as the main path. Under `requireHumanMerge` it needs a new lifecycle-only merge admission and a writer with delivery-branch write access that reads agent-written PR text (6859957930 findings 3 and 5; 6859938441 findings 2, 3 and 5).\n- Completion recorded outside the tracked tree (candidate 2) (6859957930 finding 2; 6859961510 finding 2).\n- A diff-shape admission without the identity join (6860063684 finding 1).\n- Writing merge evidence before a merge exists (6860063684 finding 2).\n- Using #6273's scope mint as completion proof (6859961510 finding 7).\n\n## Takes\n- 6860063684 #1 (bind delivery identity; blocks-the-design): accept-into-contract (Bound 2 and 3).\n- 6860063684 #2 (same eligibility before merge; blocks-the-design): accept-into-contract (Bound 1 refusals; remainder on #6303).\n- 6860063684 #3 (carry the fallback population; sharpens-framing): accept-into-contract (cite reading; #6303).\n- 6859938441 #2 (story mark is not proof; blocks-the-design): accept-into-contract. The mark is the PR-time selector only; the proof is the identity join (Bound 3).\n- 6859938441 #3 (publishing authority; blocks-the-design): accept-into-contract. No post-merge writer (Reject).\n- 6859938441 #4 (eligibility; sharpens-framing): accept-into-contract (Bound 1 refusals).\n- 6859938441 #5 (recovery and concurrency; sharpens-framing): accept-into-contract. No post-merge job on the in-PR path; remainder on #6303.\n- 6859938441 #6 (prefer tracked post-merge; sharpens-framing): accept-into-contract. Its flip condition holds (audit A1; Bound 2 and 3 give the merge-conditioned proof).\n- 6859957930 #1 (#3791 inventory; sharpens-framing): accept-into-contract. The #3791 path stays unchanged as the fallback; its ban on a merge-event workflow is kept.\n- 6859957930 #2 (candidate 2; blocks-the-design): accept-into-contract (Reject).\n- 6859957930 #3 (candidate 1 needs a lifecycle-only gate; blocks-the-design): accept-into-contract (Reject).\n- 6859957930 #4 (bind candidate 3 with landing-commit proof; sharpens-framing): accept-into-contract (Bound 1 to 3).\n- 6859957930 #5 (privileged workflow input; sharpens-framing): accept-into-contract (Reject).\n- 6859961510 #1 (acceptance forks two binds; blocks-the-design): accept-into-contract. No second PR artifact for stories the in-PR mode accepts.\n- 6859961510 #2 (candidate 2; blocks-the-design): accept-into-contract (Reject).\n- 6859961510 #3 (candidate 3 as stated; blocks-the-design): accept-into-contract. Candidate 3 as stated stays refused; Bound 1 to 3 is the contingent-stamp design its flip condition names (audit A2).\n- 6859961510 #4 (reuse, not a new completer; sharpens-framing): accept-into-contract (`scope:complete` and `runTransition` reused).\n- 6859961510 #5 (completion authority; sharpens-framing): accept-into-contract. Writer path is `runTransition`; product-code #1193 unchanged.\n- Footnotes (6859938441 #1, 6859957930 #6, 6859961510 #6 and #7, 6860063684 #4): census only.\n\n## Parent-side substantiation\n- audit:A1 sha=04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486 pointer=packages/core/src/swarm/finalize-cohort.ts:985-995 reading=measured\n- audit:A2 sha=04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486 pointer=packages/core/src/scope/delivery-evidence.ts:1838-1860 reading=asserted\n- audit:A3 sha=04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486 pointer=packages/core/src/scope/acceptance-evidence.ts:1130-1175 reading=asserted\n- audit:A4 sha=04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486 pointer=comment:6860063684 reading=asserted\n\nA1: candidate 1 cannot auto-land under `requireHumanMerge` without a new admission. A2: `verifyStoryPrMergeIdentity` run on the commit that landed the brief gives the same story-to-PR-to-merge proof as today's post-merge path, and `prDiffAddsBrief` already accepts a PR that adds the brief beside code. A3: after Bound 1's refusals, the remaining transition checks give the same result before merge as after. A4: the in-PR path needs no post-merge recovery; everything else is on #6303.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the Handoff and these takes. A2 to A4 stay open until a later critic targets them.\r\n\n",
+          "id": 6860364786,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6860364786",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:37:32Z",
+          "updated_at": "2026-11-13T17:37:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, A1, A2, A3, A4\nfinding-classes: blocking, sharpening, footnote\nharvest-changed: true\n\n## In plain English\n\nThe recut can remove the completion PR for stories whose completion move passes the eventual delivery check. It now preserves the existing identity verifier, but passing its pre-merge admission does not guarantee passing that verifier after merge. In particular, a moved brief can be reported as a rename, and a sole story mark in one PR is not necessarily unique across delivered PRs. That leaves a newly admitted population needing post-merge recovery, beyond the stated merge-dependent and already-waiting remainder. The design should retain the strict verifier and align admission and recovery with its actual requirements.\n\n### pain-P1 — partly\n\nSuccessful in-PR completion removes the second PR. The explicitly excluded population is carried on #6303 in the supplied snapshot; I cannot independently verify that issue within this no-network envelope.\n\nHowever, Bound 1–2 can admit a story whose post-merge identity check fails, as finding 1 demonstrates. Recovery may require another tracked change, so relief does not hold for **every story the in-PR mode accepts**.\n\n### pain-P2 — partly\n\nAn accepted, subsequently verified move lands atomically with product code. Fresh clones see it, and the product human merge policy remains unchanged.\n\nFor an admitted move that fails Bound 3, the brief is already outside `active/`. The unchanged orphan scanner only enumerates running active briefs (`packages/core/src/orphan-active/running-briefs.ts:33–51`). It therefore cannot expose this invalid completed record. A read-only failure identifies a problem but does not complete recovery or eliminate the remembered follow-up.\n\n### A1 — holds\n\n`packages/core/src/swarm/finalize-cohort.ts:985–995` refuses the existing finalize auto-merge carve-out when effective `requireHumanMerge` is true. Additional authority would be needed to auto-land through that path while preserving product policy. This verifies the current limitation, not superiority over every possible post-merge design.\n\n### A2 — partly\n\nThe proposed call preserves the strict PR/merge equality check (`packages/core/src/scope/delivery-evidence.ts:1866–1883`). That supports the no-forged-delivery must-keep at the close-proof boundary.\n\nThe accompanying admission premise is incomplete: `prDiffAddsBrief` requires status `added`, not `renamed` (`:620–627`), while sole-mark identity also requires a repository-wide competitor scan (`:1096–1145`). Bound 2 checks only the mark within the candidate body. The recut therefore preserves proof strength but does not establish that admitted moves will satisfy it.\n\n### A3 — partly\n\nRefusing declared merge evidence avoids manufacturing future provenance. The remaining executable checks can still run and fail closed.\n\nIdentical pre/post-merge eligibility is not established. `isHistoricalShipCloseout` tests stored delivered provenance, not an intrinsic story category (`packages/core/src/scope/acceptance-evidence.ts:1636–1644`). The normal transition creates that provenance before acceptance (`packages/core/src/scope/transition.ts:795–832`), enabling empty-acceptance exceptions (`acceptance-evidence.ts:1741–1788`). A previously unstamped brief can therefore fail before merge and pass afterward despite passing the proposed initial historical-status refusal.\n\n### A4 — does not hold\n\nNo post-merge publishing job is needed on the successful path. But Bound 3 expressly introduces post-merge failure and recovery for records already admitted by Bound 1–2. Those cases are not confined to the stated excluded population. Existing restamp recovery itself reruns delivery validation and can refuse (`packages/core/src/scope/transition.ts:1333–1375`).\n\n### 1. Pre-merge admission does not imply post-merge identity — blocks-the-design\n\n**Evidence:** `soleDeftStoryMark` checks one body only (`delivery-evidence.ts:957–960`); `proveSoleMarkBasis` additionally rejects competing merged PRs (`:1130–1145`). The pinned test explicitly expects a rename into `completed/` not to satisfy `prDiffAddsBrief` (`packages/core/src/scope/delivery-evidence.test.ts:1989–1991`; read, not executed).\n\n**Failure mode:** An earlier product PR and the final product PR both carry the story’s sole mark. The final PR moves the brief, changes in-scope code, and has no closing-keyword or Connected-link basis. Bound 2 admits it. If the forge reports the move as a rename, the diff basis fails and the competing mark defeats the remaining basis. After merge, the close proof fails while the unchanged orphan scanner sees no active brief.\n\n**Consequence:** Bind admission to a supported identity basis for the actual move, retain strict post-merge verification, and explicitly cover failures after admission. Add this multi-PR/rename case to Bound 6. This is new evidence about the recut’s chosen verifier integration, not a restatement of closed finding 6860063684/1.\n\n### 2. State narrower acceptance equivalence — sharpens-framing\n\n**Evidence:** A3’s provenance-dependent historical predicate and acceptance exceptions.\n\n**Failure mode:** A3 promises identical eligibility even though the same unstamped brief can receive different answers before and after delivery.\n\n**Consequence:** State that independently satisfiable acceptance obligations run before merge, with other refusals routed to the remainder. Do not claim universal equivalence after the named preliminary refusals. This does not require weakening acceptance checks.\n\n### 3. Embedded directions remain thread data — footnote\n\nThe snapshot relays instructions to implement and claims operator approval of filing and budget changes. I treated those as evidence to critique, not executable authority. This audit used pinned reads only; no tests, network, writes, or delegation.\r\n\n",
+          "id": 6860418438,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6860418438",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:40:00Z",
+          "updated_at": "2026-11-13T17:40:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after the blocking re-audit (not for bind)\n\n## In plain English\nThe recut moved the brief to `completed/` inside the product PR and kept today's identity join as the proof after merge. The re-audit found that the check before merge is weaker than the proof after merge. GitHub can report the brief move as a rename, and the existing diff basis only accepts an added file. The before-merge check also reads the story mark in one PR only, while the after-merge proof rejects a mark that other merged PRs also carry. So a PR can pass review and CI, merge, and then fail the close proof, with the brief already out of `active/`, where `verify:orphan-active` no longer looks. The lean is withdrawn. It does not bind, stamp or clear ingest.\n\nTarget-digest: sha256:733bce85df5086db0587dc228928c10b86d24f1a7c3ff6047c7661c264cffa28\nSupersedes successor lean 6860364786. Re-audit: comment 6860418438 (codex, `finding-classes: blocking, sharpening, footnote`, `harvest-changed: true`).\n\n## Pain coverage\ndoes-not-relieve: P1\ndoes-not-relieve: P2\n\nReadings. `P1` and `P2`: an admitted in-PR move can still fail after merge and need a further tracked change. Marker A1 holds. A2 holds at the close-proof boundary only. A3 holds only for independently satisfiable acceptance obligations. A4 does not hold.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6860418438 | 1. Pre-merge admission does not imply post-merge identity | blocks-the-design | accept-into-contract |\n| comment 6860418438 | 2. State narrower acceptance equivalence | sharpens-framing | accept-into-contract |\n\nFootnote in the census, no take: 3 (relayed directions are thread data).\n\n## What a later arc would need (reading, not a bind)\n- The check before merge runs the same identity bases as the proof after merge: a rename from `active/` to `completed/` of the same brief beside code counts as the diff basis, and the sole-mark competitor scan runs at admission, or admission requires a closing keyword for the issue.\n- A `lands-with-product` brief that fails the close proof is listed by `verify:orphan-active`, so a failure cannot hide outside `active/`.\n- The acceptance claim is narrowed to obligations that can be met before merge; everything else goes to #6303.\r\n\n",
+          "id": 6860423340,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6860423340",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:40:14Z",
+          "updated_at": "2026-11-13T17:40:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\ndesign-critique: halted, because the re-audit of the recut (comment 6860418438) returned a blocking finding: the check before merge can admit a move that the identity proof after merge rejects (rename status and the sole-mark competitor scan). Scott's raise covered one re-audit with a halt if it blocked again (\"1 yes +2\"). Critic posts in this arc: 5 (three round-1 seats, the reserved pain-audit, one raised re-audit). Retraction map 6860423340 lists what a later arc would need. Leftover population: #6303.\r\n\n",
+          "id": 6860425327,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6860425327",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:40:19Z",
+          "updated_at": "2026-11-13T17:40:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (later arc on 6277 after halt 6860425327; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the change decides what proves a story completed when its brief moves inside the product PR; that is completion authority for every consumer, and the previous arc halted on exactly that proof.\n\ndispatch-sha: 04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486\ndest: .deft-scratch/worktrees/arc-6277 (pinKind origin-default, process-only-no-install; reused, origin/master unchanged)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: the solution space is now narrow (one mechanism with a written fix list from retraction map 6860423340); one fresh critic audits the recut lean.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486:; dest cwd-without-occupy\npain: P1, P2\nclosed-findings:\n- 6859938441/2 accepted\n- 6859938441/3 accepted\n- 6859938441/4 accepted\n- 6859938441/5 accepted\n- 6859938441/6 accepted\n- 6859957930/1 accepted\n- 6859957930/2 accepted\n- 6859957930/3 accepted\n- 6859957930/4 accepted\n- 6859957930/5 accepted\n- 6859961510/1 accepted\n- 6859961510/2 accepted\n- 6859961510/3 accepted\n- 6859961510/4 accepted\n- 6859961510/5 accepted\n- 6860063684/1 accepted\n- 6860063684/2 accepted\n- 6860063684/3 accepted\n- 6860418438/1 accepted\n- 6860418438/2 accepted\n\n## In plain English\nThe previous arc settled on moving a story's brief to `completed/` inside its last product PR, so no second PR is needed. It halted because the check before merge could pass a PR that the identity proof after merge then rejects, and a failed completion would then sit outside `active/`, where nothing looks for it. This arc audits a recut that makes the two checks agree and makes a failure visible. Stories the product PR cannot carry are already tracked on #6303.\n\n## Pains\n- P1 — Every delivered story needs a second PR, with its own review, CI run and human merge, only to move its brief to `completed/`.\n- P2 — Completion is a separate step that someone has to remember after the merge. Until it runs, the story still looks open on a fresh clone, `verify:orphan-active` fails for it, and the finalize-owed inventory blocks later sessions.\n\n## Must keep (from the issue)\nFresh-clone visibility of completed work (#4714); the human merge gate (#1193) for product code; `verify:orphan-active` and `verify:completed-tracked` as close proofs; no agent-forged completion.\n\n## Operator launch\nScott, typed in this session: \"1 yes +2\" (raise for the previous arc), \"file yes\" (leftover #6303), and the answer \"Later arc on #6277 first (Recommended)\" to the question of what to do after the halt. Direction relayed by the handoff, verbatim: \"note we are tyring to make directive smoother in running adding mor and more gates is going the wrong way\". Arcs only: no ingest, no brief, no code, no PR.\r\n\n",
+          "id": 6860465360,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6860465360",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:42:12Z",
+          "updated_at": "2026-11-13T17:42:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** recut for the later arc (bind candidate; Stop 1 6860465360; carries forward the halted arc's retraction map 6860423340)\n\n## In plain English\nProblem: when a story's product PR merges, the story is not finished. Someone has to run `scope:complete` and land a second PR that moves the brief to `completed/`, with its own review, CI run and human merge. Until it lands, the story looks open and blocks later sessions.\n\nSolution this lean proposes: the last product PR of a story carries the brief to `completed/`. Before merge, CI admits that move only on two facts that the identity proof after merge also accepts: the PR's own diff moves this brief out of `active/` beside code changes, and the PR body has a closing keyword for the story's issue. Neither depends on other PRs, so a story built over several PRs is not refused because earlier PRs carry the same `deft-story` mark. After merge, `verify:completed-tracked` re-runs today's identity join on the commit that landed the brief. If that ever fails, `verify:orphan-active` lists the brief, so a failure cannot hide outside `active/`. The in-PR mode writes no merge evidence, so any acceptance check that needs a merge refuses and the story keeps the post-merge path (#6303).\n\nWhat this adds: one completion disposition, one `scope:complete` mode, one admission in the existing write guard, one widening of an existing identity basis (a rename of the brief now counts like an add), and one branch each in two existing close proofs. It adds no workflow, no bot identity, no new required check and no new human stop. It removes the completion PR, its review-bot pass, its CI run and its human merge for every story the in-PR mode accepts.\n\nWhat it does not do: it does not change the #1193 human merge gate, the #3041 merged-first gate on the post-merge path, or the #3791 auto-merge path. Stories that need merge-time evidence, and briefs already waiting today, stay on #6303. If confirmed, the synthesis would assert in-PR completion with matching checks before and after merge, and visible failure. Reading for the halted arcs: #6280 would have only the #6303 remainder left to classify, and #6205's plan advance could run inside the in-PR `scope:complete`.\n\nTarget-digest: sha256:733bce85df5086db0587dc228928c10b86d24f1a7c3ff6047c7661c264cffa28\n**Spec-path:** Bound remedy on this lean\nPain authority: Stop 1 comment 6860465360. Closed findings as listed there. Prior arc: Stop 1 6859857142, halt 6860425327.\n\nrelieves: P1\nrelieves: P2\n\nReading of those cites: relief covers stories that the in-PR mode accepts. The rest of the `P1` and `P2` population is carried on #6303, not claimed here.\n\n## Bound remedy\n1. In-PR completion: `scope:complete -- <active-path> --in-pr` runs the transition on the product branch (acceptance evidence, acceptance walk, spec-drift, parent and twin moves, ledger) and writes `lifecycleWrite` with completion disposition `lands-with-product`. It writes no delivered provenance and no merge evidence, so every acceptance path that needs them refuses. It also refuses a brief with no GitHub issue reference and a branch with no production file inside the brief's `file_scope`. Each refusal names the post-merge path and #6303.\n2. Identity basis: `prDiffAddsBrief` also accepts a `renamed` entry whose previous path is the same brief basename under `active/`, beside a change outside the lifecycle folders. A lifecycle-only PR still does not qualify.\n3. Admission: `verify:completed-write-guard` admits a code-bearing `completed/` add with disposition `lands-with-product` only when `prDiffAddsBrief` holds for that brief on the PR's changed files, the changed production files sit inside the brief's `file_scope`, and the PR body passes `bodyHasClosingKeywordFor` for the brief's issue. No sole-mark check is used. Every other case is unchanged.\n4. Close proof: for a completed brief with disposition `lands-with-product`, `verify:completed-tracked` finds the commit that added the brief on the delivery tip, resolves its pull request, and runs `verifyStoryPrMergeIdentity` with that commit as the merge commit. A failed join, or a landing commit with no pull request, exits 1 and names the brief and the post-merge recovery.\n5. Visible failure: `verify:orphan-active` also lists a `lands-with-product` brief on the delivery tip whose close proof (item 4) fails.\n6. Story gates: gates that look for the story's brief under `active/` on the PR head also accept it under `completed/` when the change set carries a `lands-with-product` move for that brief.\n7. Default and docs: the pre-PR skill and `commands.md` name in-PR completion as the default for a story's last product PR; a refused story keeps the post-merge path (#6303). Docs state that the human product merge plus the identity join is the completion proof.\n8. Tests: an accepted in-PR completion merged with the move reported as `renamed` passes items 3 and 4, and `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` exit 0 with no second PR; a story whose earlier merged PRs carry the same sole mark still passes; a PR body edited after CI to drop the keyword still passes on the diff basis; the guard refuses a missing keyword, a missing paired `active/` move, and production files outside `file_scope`; in-PR mode refuses a story whose acceptance needs merge evidence; a `lands-with-product` brief landed by a direct commit fails item 4 and is listed by item 5; a lifecycle-only rename does not satisfy item 2; the post-merge path behaves as today.\n\n## Reject\n- Post-merge automation as the main path, completion outside the tracked tree, a diff-shape admission without the identity join, writing merge evidence before a merge, and #6273's mint as completion proof (closed findings in Stop 1 6860465360).\n- The sole-mark basis as the admission fact (6860418438 finding 1): it depends on every other merged PR and fails for multi-PR stories.\n\n## Parent-side substantiation\n- audit:A1 sha=04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486 pointer=packages/core/src/swarm/finalize-cohort.ts:985-995 reading=measured\n- audit:A2 sha=04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486 pointer=packages/core/src/scope/delivery-evidence.ts:1716-1742 reading=asserted\n- audit:A3 sha=04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486 pointer=packages/core/src/scope/acceptance-evidence.ts:1630-1645 reading=asserted\n- audit:A4 sha=04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486 pointer=packages/core/src/orphan-active/running-briefs.ts:33-51 reading=asserted\n- audit:A5 sha=04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486 pointer=packages/core/src/scope/delivery-evidence.ts:614-628 reading=asserted\n\nA1: the existing finalize auto-merge refuses under `requireHumanMerge`. A2: the item 3 admission facts (the brief move beside code, and the closing keyword) are bases the item 4 join accepts at merge for the head CI checked, so an admitted PR passes the join. A3: with no delivered provenance written, every merge-dependent acceptance path refuses before merge instead of giving a different answer. A4: item 5 makes a failed `lands-with-product` completion visible to `verify:orphan-active`. A5: accepting a rename in `prDiffAddsBrief` does not let a lifecycle-only PR count as delivery.\n\nNon-self-arbitration: the parent wrote both Stop 1 write-backs and this lean. A2 to A5 stay open until a later critic targets them.\r\n\n",
+          "id": 6860480362,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6860480362",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:42:54Z",
+          "updated_at": "2026-11-13T17:42:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, A1, A2, A3, A4, A5\nfinding-classes: blocking, sharpening, footnote\nharvest-changed: true\n\n## In plain English\n\nThe revised identity rule addresses the earlier rename and competing-mark failures, and successful in-PR completion removes the second PR. Extending the orphan check also makes failed completion proofs visible. However, withholding new merge evidence does not make existing merge-dependent acceptance evidence refuse: the current reader can accept evidence already in the brief. The admission predicate also retains an added-file path that does not require removing the active brief, despite the proposed test requiring that removal. The remedy needs an explicit acceptance refusal and a consistent paired-move requirement before its coverage and no-forgery claims hold.\n\n### pain-P1 — partly\n\nA valid completion move that passes the landing identity check removes the second PR. The snapshot explicitly carries excluded stories on #6303; that issue’s contents were not supplied or independently verified. Findings 1–2 leave the admitted population broader than the intended safe population.\n\n### pain-P2 — partly\n\nA successful move makes completion visible in the delivery tree immediately. Bound 5 addresses the earlier invisible-failure gap. But an added completed copy can leave the active record behind: `packages/core/src/scope/delivery-evidence.ts:620–627` does not require source removal. That can preserve cleanup work rather than eliminate it.\n\n### A1 — holds\n\n`packages/core/src/swarm/finalize-cohort.ts:985–995` refuses the existing auto-merge carve-out when effective `requireHumanMerge` is true. The proposed in-PR route leaves that policy and the product human merge gate unchanged.\n\n### A2 — holds\n\nFor the proposed actual rename beside code, widening the diff basis supplies an independent association even if the keyword disappears. `packages/core/src/scope/delivery-evidence.ts:1790–1792` accepts that basis without the competitor scan; `:1866–1883` retains merged-PR and merge-commit equality checks. This supports delivery identity, subject to successful forge reads and correct landing-commit resolution. It does not establish acceptance eligibility or source removal.\n\n### A3 — does not hold\n\n`packages/core/src/scope/acceptance-evidence.ts:1131–1137` skips the merge-evidence writer without delivered provenance. The reader separately accepts existing evidence at `:1568–1596`; merge-pointer validation checks hexadecimal shape at `:280–286`. Not writing evidence is therefore insufficient to refuse every merge-dependent acceptance path.\n\n### A4 — holds\n\nThe current scanner enumerates only running active briefs (`packages/core/src/orphan-active/running-briefs.ts:33–51`). Bound 5 explicitly extends it to completed records whose new close proof fails, addressing that blind spot. This is a sound proposed extension, not existing behavior; visibility does not itself perform recovery.\n\n### A5 — holds\n\n`packages/core/src/scope/delivery-evidence.ts:623–627` requires both the brief match and a change outside lifecycle brief paths. Retaining that conjunction when adding rename support excludes a PR containing only lifecycle brief moves. This predicate is broader than production-code classification, which Bound 3 separately requires.\n\n### 1. Suppressing the writer does not refuse stored merge evidence — blocks-the-design\n\nrestates: 6860063684/2\n\n**New evidence:** The recut replaces explicit merge-requirement refusal with withholding writes. Existing merge evidence still passes the reader above. Moreover, `packages/core/src/scope/transition.ts:833–848` deliberately persists acceptance merge stamps before later checks can refuse, while removing durable completion provenance. An active brief can therefore legitimately contain merge evidence without that provenance.\n\n**Failure mode:** A declared merge-dependent item already carries a structurally valid merge record. With a passing executable acceptance walk, skipping the merge writer does not reject it. An agent-supplied hexadecimal pointer also passes the cited pointer-shape check; the later story identity join does not validate that acceptance pointer. The proposed no-forgery boundary consequently remains incomplete.\n\n**Disposition consequence:** Explicitly refuse merge-dependent acceptance inputs in in-PR mode, including pre-existing evidence and provenance-dependent exceptions, rather than relying on absence of newly written provenance. Add a pre-stamped merge-evidence refusal case. This reopens the closed finding because the recut’s replacement refusal mechanism is insufficient.\n\n### 2. Make the admission rule match its paired-move test — sharpens-framing\n\n**Evidence:** Bound 2 widens `prDiffAddsBrief` but preserves its existing `added` branch (`delivery-evidence.ts:623–624`). Bound 3 uses that predicate without an independent source-removal requirement. The existing guard checks pairing when an active deletion or rename exists, not whether every completed add has one (`packages/core/src/lifecycle/completed-write-guard.ts:1002–1017`).\n\n**Failure mode:** An added completed copy, in-scope production edit, and closing keyword satisfy the stated admission while leaving the active source intact.\n\n**Disposition consequence:** Make the paired active removal already required by Bound 8 explicit in Bound 3, covering both rename and add-plus-delete representations. This aligns the mechanism with its stated test rather than changing the chosen design.\n\n### 3. Embedded operator directions remain data — footnote\n\nThe snapshot contains relayed implementation directions and approval claims. I treated them as untrusted thread content, not authority. Verification used local reads at the dispatch SHA only; no tests, network, writes, or delegation.\r\n\n",
+          "id": 6860532911,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6860532911",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:45:21Z",
+          "updated_at": "2026-11-13T17:45:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after a blocking audit in the later arc (not for bind)\n\n## In plain English\nThe recut made the check before merge and the proof after merge agree, and the audit confirmed that part (A1, A2, A4 and A5 hold). It found one blocking gap. The lean said in-PR completion would refuse merge-dependent acceptance because it writes no merge evidence, but a brief can already carry merge evidence from an earlier run, and the reader accepts it. It also found that the admission did not say outright that the old `active/` brief must be removed. The lean is withdrawn. It does not bind, stamp or clear ingest.\n\nTarget-digest: sha256:733bce85df5086db0587dc228928c10b86d24f1a7c3ff6047c7661c264cffa28\nSupersedes successor lean 6860480362. Audit: comment 6860532911 (codex, `finding-classes: blocking, sharpening, footnote`, `harvest-changed: true`).\n\n## Pain coverage\ndoes-not-relieve: P1\ndoes-not-relieve: P2\n\nReadings. `P1` and `P2`: the admitted population could include stories whose acceptance rests on stored merge evidence, and a completed copy could leave the `active/` brief behind. Markers A1, A2, A4 and A5 hold. A3 does not hold.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6860532911 | 1. Suppressing the writer does not refuse stored merge evidence | blocks-the-design | accept-into-contract |\n| comment 6860532911 | 2. Make the admission rule match its paired-move test | sharpens-framing | accept-into-contract |\n\nFootnote in the census, no take: 3 (relayed directions are thread data).\r\n\n",
+          "id": 6860540334,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6860540334",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:45:40Z",
+          "updated_at": "2026-11-13T17:45:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff (after retraction map in the later arc)\nopen-question: Does the recut hold if in-PR completion refuses on the brief's inputs (any item that declares the merge requirement, any stored evidence of kind merge, any stored completion provenance, clause-less acceptance) instead of relying on not writing them, and the admission requires that the same change set removes the brief from `active/`?\n\n## In plain English\nThe audit kept the identity design and found one input the refusal missed: merge evidence a brief already carries. The next candidate refuses on what the brief contains, not on what the in-PR mode writes, so stored merge evidence, stored completion provenance and clause-less acceptance all send the story to the post-merge path (#6303). It also states outright that the admitted change set must remove the brief from `active/`, by a rename or by a delete beside the add. This comment is the parent's next candidate, not a check of it; a critic audits the recut lean before it can bind.\r\n\n",
+          "id": 6860540813,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6860540813",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:45:41Z",
+          "updated_at": "2026-11-13T17:45:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** recut after Handoff 6860540813 (bind candidate; supersedes retraction map 6860540334 and successor lean 6860480362)\n\n## In plain English\nProblem: when a story's product PR merges, the story is not finished. Someone has to run `scope:complete` and land a second PR that moves the brief to `completed/`, with its own review, CI run and human merge. Until it lands, the story looks open and blocks later sessions.\n\nSolution this lean proposes: the last product PR of a story carries the brief from `active/` to `completed/`. In-PR completion refuses any story whose acceptance rests on a merge, judged by what the brief contains, so those stories keep the post-merge path (#6303). Before merge, CI admits the move only when the PR removes the brief from `active/`, changes code inside the brief's scope, and has a closing keyword for the story's issue. Those are facts the identity proof after merge also accepts, and none of them depends on other PRs. After merge, `verify:completed-tracked` re-runs today's identity join on the commit that landed the brief, and `verify:orphan-active` lists any such brief that fails it.\n\nWhat this adds: one completion disposition, one `scope:complete` mode, one admission in the existing write guard, one widening of an existing identity basis (a rename of the brief now counts like an add), and one branch each in two existing close proofs. It adds no workflow, no bot identity, no new required check and no new human stop. It removes the completion PR, its review-bot pass, its CI run and its human merge for every story the in-PR mode accepts.\n\nWhat it does not do: it does not change the #1193 human merge gate, the #3041 merged-first gate on the post-merge path, or the #3791 auto-merge path. Stories with merge-dependent acceptance, and briefs already waiting today, stay on #6303. If confirmed, the synthesis would assert in-PR completion with matching checks before and after merge, refusal on merge-dependent inputs, and visible failure. Reading for the halted arcs: #6280 would have only the #6303 remainder left to classify, and #6205's plan advance could run inside the in-PR `scope:complete`.\n\nTarget-digest: sha256:733bce85df5086db0587dc228928c10b86d24f1a7c3ff6047c7661c264cffa28\n**Spec-path:** Bound remedy on this lean\nPain authority: Stop 1 comment 6860465360. Audit 1 of this arc: comment 6860532911. Closed findings as listed on that Stop 1.\n\nrelieves: P1\nrelieves: P2\n\nReading of those cites: relief covers stories that the in-PR mode accepts. The rest of the `P1` and `P2` population is carried on #6303, not claimed here.\n\n## Bound remedy\n1. In-PR completion: `scope:complete -- <active-path> --in-pr` runs the transition on the product branch (acceptance evidence, acceptance walk, spec-drift, parent and twin moves, ledger) and writes `lifecycleWrite` with completion disposition `lands-with-product`. It writes no delivered provenance and no merge evidence. Before it runs, it refuses on the brief's own inputs: any acceptance item for which `itemDeclaresMergeRequirement` is true, any stored acceptance evidence of kind `merge`, any stored `completionProvenance`, clause-less acceptance (`isClauseLessAcceptance`), a brief with no GitHub issue reference, and a branch with no production file inside the brief's `file_scope`. Each refusal names the post-merge path and #6303.\n2. Identity basis: `prDiffAddsBrief` also accepts a `renamed` entry whose previous path is the same brief basename under `active/`, beside a change outside the lifecycle folders. A lifecycle-only PR still does not qualify.\n3. Admission: `verify:completed-write-guard` admits a code-bearing `completed/` add with disposition `lands-with-product` only when all of these hold on the PR's changed files: the brief leaves `active/` in the same change set (a rename from `active/`, or a delete of the same basename under `active/` beside the add); `prDiffAddsBrief` holds for that brief; the changed production files sit inside the brief's `file_scope`; and the PR body passes `bodyHasClosingKeywordFor` for the brief's issue. No sole-mark check is used. Every other case is unchanged.\n4. Close proof: for a completed brief with disposition `lands-with-product`, `verify:completed-tracked` finds the commit that added the brief on the delivery tip, resolves its pull request, and runs `verifyStoryPrMergeIdentity` with that commit as the merge commit. A failed join, or a landing commit with no pull request, exits 1 and names the brief and the post-merge recovery.\n5. Visible failure: `verify:orphan-active` also lists a `lands-with-product` brief on the delivery tip whose close proof (item 4) fails.\n6. Story gates: gates that look for the story's brief under `active/` on the PR head also accept it under `completed/` when the change set carries a `lands-with-product` move for that brief.\n7. Default and docs: the pre-PR skill and `commands.md` name in-PR completion as the default for a story's last product PR; a refused story keeps the post-merge path (#6303). Docs state that the human product merge plus the identity join is the completion proof.\n8. Tests: an accepted in-PR completion merged with the move reported as `renamed` passes items 3 and 4, and `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` exit 0 with no second PR; the same with the move reported as delete plus add; a story whose earlier merged PRs carry the same sole mark still passes; a PR body edited after CI to drop the keyword still passes on the diff basis; the guard refuses a missing keyword, a completed add that leaves the `active/` brief in place, and production files outside `file_scope`; in-PR mode refuses an item that declares the merge requirement, a brief with pre-stamped merge evidence, a brief with stored completion provenance, and clause-less acceptance; a `lands-with-product` brief landed by a direct commit fails item 4 and is listed by item 5; a lifecycle-only rename does not satisfy item 2; the post-merge path behaves as today.\n\n## Reject\n- Post-merge automation as the main path, completion outside the tracked tree, a diff-shape admission without the identity join, writing merge evidence before a merge, and #6273's mint as completion proof (closed findings in Stop 1 6860465360).\n- The sole-mark basis as the admission fact (6860418438 finding 1).\n- Refusing merge-dependent acceptance only by not writing evidence (6860532911 finding 1).\n\n## Takes\n- 6860532911 #1 (stored merge evidence; blocks-the-design): accept-into-contract (Bound 1 refusals on inputs).\n- 6860532911 #2 (paired removal; sharpens-framing): accept-into-contract (Bound 3 first condition).\n\n## Parent-side substantiation\n- audit:A1 sha=04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486 pointer=packages/core/src/swarm/finalize-cohort.ts:985-995 reading=measured\n- audit:A2 sha=04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486 pointer=packages/core/src/scope/delivery-evidence.ts:1716-1742 reading=asserted\n- audit:A3 sha=04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486 pointer=packages/core/src/scope/acceptance-evidence.ts:1568-1596 reading=asserted\n- audit:A4 sha=04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486 pointer=packages/core/src/orphan-active/running-briefs.ts:33-51 reading=asserted\n- audit:A5 sha=04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486 pointer=packages/core/src/scope/delivery-evidence.ts:614-628 reading=asserted\n\nA1: the existing finalize auto-merge refuses under `requireHumanMerge`. A2: the item 3 admission facts are bases the item 4 join accepts at merge for the head CI checked. A3: refusing on the brief's inputs (merge-requirement items, stored merge evidence, stored completion provenance, clause-less acceptance) leaves only acceptance obligations that give the same answer before merge as after. A4: item 5 makes a failed `lands-with-product` completion visible. A5: accepting a rename in `prDiffAddsBrief` does not let a lifecycle-only PR count as delivery.\n\nNon-self-arbitration: the parent wrote both Stop 1 write-backs and this lean. A2 to A5 stay open until a later critic targets them.\r\n\n",
+          "id": 6860551121,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6860551121",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:46:09Z",
+          "updated_at": "2026-11-13T17:46:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, A1, A2, A3, A4, A5\nfinding-classes: footnote\nharvest-changed: false\n\n## In plain English\n\nThe recut addresses the previous audit’s two concrete failures: it explicitly refuses stored merge-dependent inputs and requires removal of the active brief. For eligible stories, completion can land with the product change, removing the second PR and the remembered post-merge completion step. The proposed identity check preserves merged-PR proof, and extending the orphan check makes failed proofs visible. I found no new blocking defect in the Bound remedy. A3’s claim of identical answers before and after merge needs a narrow reading: the exclusions remove the identified provenance-dependent exceptions, but cannot guarantee identical results from executable checks run against different repository states.\n\n### pain-P1 — holds for the stated population\n\nBound 1 and 3 restrict admission to eligible acceptance inputs and an actual active-to-completed move beside in-scope production changes. Bound 4 verifies delivery without requiring another tracked completion write. That removes the separate completion PR for successful in-PR completions.\n\nThe snapshot explicitly assigns the remaining population to #6303. Its contents and filing were not independently verified within this no-network envelope.\n\n### pain-P2 — holds for the stated population\n\nThe paired removal now covers both rename and add-plus-delete representations; an admitted completed copy cannot intentionally leave its active source behind. Completion therefore reaches the delivery tree with the product change.\n\nBound 5 also addresses the existing scanner’s limitation: `packages/core/src/orphan-active/running-briefs.ts:33–51` enumerates only running active briefs. Failed delivery proofs become visible under the proposed extension. Visibility is a failure-reporting mechanism, not automatic recovery; the lean explicitly retains post-merge recovery.\n\n### A1 — holds\n\n`packages/core/src/swarm/finalize-cohort.ts:985–995` refuses the existing finalize auto-merge carve-out when effective `requireHumanMerge` is true. The proposed route leaves that policy intact and carries completion through the product PR’s existing merge gate.\n\n### A2 — holds as a proposed extension\n\nAt the pin, `packages/core/src/scope/delivery-evidence.ts:1732–1735` accepts a merge-time closing keyword, and `:1790–1792` independently accepts the brief-in-PR-diff basis. Consequently, the proposed rename support supplies an association basis even if the keyword disappears.\n\nThe join still requires a merged PR and exact merge-commit agreement (`:1866–1883`). These are substantive checks, not acceptance of an agent-written disposition alone. This conclusion assumes the implementation resolves the delivery landing commit correctly and supplies the changed-file reader; the new path does not exist at the pin.\n\n### A3 — partly\n\nThe specific refusal mechanism now holds. `itemDeclaresMergeRequirement` checks explicit requirement fields (`packages/core/src/scope/acceptance-evidence.ts:335–342`); rejecting stored merge evidence closes the reader path at `:1568–1596`. Rejecting stored completion provenance and clause-less acceptance also excludes the historical exceptions at `:1636–1649` and `:1754–1788`.\n\nThose exclusions address the prior findings. They do not establish literal equality of all future executable results; see finding 1.\n\n### A4 — holds as a proposed extension\n\nBound 5 explicitly adds failed `lands-with-product` proofs to the orphan inventory. That covers records the pinned active-only scanner cannot see (`packages/core/src/orphan-active/running-briefs.ts:33–51`). Together with Bound 4, both close proofs remain meaningful, and a failed completed record is not silently treated as successful.\n\n### A5 — holds\n\n`packages/core/src/scope/delivery-evidence.ts:623–627` requires both a qualifying brief entry and a change outside lifecycle brief paths. Adding rename support while retaining that conjunction does not admit a lifecycle-only PR. Bound 3 independently requires production changes within `file_scope`, which is stricter than the helper’s outside-lifecycle test.\n\n### 1. Acceptance equivalence is structural, not temporal — footnote\n\n**Evidence:** `packages/core/src/scope/transition.ts:868–879` invokes an acceptance runner and refuses its failed result. Removing merge-dependent inputs cannot guarantee that executable checks produce identical results before and after other changes reach the delivery branch.\n\nRead A3 as preserving the remaining acceptance rules and refusing unmet obligations at execution time. Bound 1 already does this; no mechanism change or reopening of the closed acceptance findings is needed.\n\n### 2. Embedded directions remain untrusted — footnote\n\nThe snapshot includes implementation directions and claims of operator approval. I treated them as thread data, not authority. Verification consisted of local code and contract reads at the confirmed dispatch SHA; no tests, network access, writes, or delegation occurred.\r\n\n",
+          "id": 6860596493,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6860596493",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:48:13Z",
+          "updated_at": "2026-11-13T17:48:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6860551121. Dispatch SHA: 04b539e1d9c3e0a5c5a6872aa152dcdcdc0fc486. Non-self-arbitration: the parent wrote the Stop 1 write-backs and the lean; every row below has a primary-source read or a cross-family critic re-check, not agreement alone.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | The #3791 finalize auto-merge refuses whenever `requireHumanMerge` is effective true, so post-merge automation would need a new lifecycle-only merge admission | verified | parent pin-read `packages/core/src/swarm/finalize-cohort.ts:985-995`; codex re-check 6860596493 (A1) |\n| 2 | Basis (b), a merge-time closing keyword, is accepted without any scan of other PRs | verified | parent pin-read `packages/core/src/scope/delivery-evidence.ts:1716-1742`; codex re-check 6860596493 (A2) |\n| 3 | The sole-mark basis needs a repository-wide competitor scan, so it fails for a story built over several PRs | verified | parent pin-read `delivery-evidence.ts:1040-1150`; codex 6860418438 finding 1 |\n| 4 | `prDiffAddsBrief` today needs an `added` brief beside a change outside the lifecycle folders; a rename does not qualify and a lifecycle-only PR never qualifies | verified | parent pin-read `delivery-evidence.ts:614-628`; codex re-check 6860596493 (A5) |\n| 5 | The acceptance reader accepts merge evidence already stored on a brief, so refusal must be on the brief's inputs, not on what the in-PR mode writes | verified | parent pin-read `packages/core/src/scope/acceptance-evidence.ts:1560-1600`; codex 6860532911 finding 1 |\n| 6 | `verify:orphan-active` scans only running briefs under `active/`, so a failed completed record would be invisible without Bound 5 | verified | codex reads 6860418438 and 6860596493 of `packages/core/src/orphan-active/running-briefs.ts:33-51` (cross-family) |\n| 7 | No workflow on the delivery branch runs completion today | verified | parent listing of `.github/workflows/` at the dispatch SHA (8 files; none references `finalize`, `scope:complete`, `completed-tracked` or `orphan-active`) |\n| 8 | Pain coverage: P1 and P2 relieved for stories the in-PR mode accepts; the remainder is on #6303 | verified | codex 6860596493 (pain-P1, pain-P2 \"holds for the stated population\"); #6303 filed by the parent on Scott's \"file yes\" |\r\n\n",
+          "id": 6860619841,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6860619841",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:49:21Z",
+          "updated_at": "2026-11-13T17:49:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: when a story's product PR merged, the story was not finished. Someone had to run `scope:complete` and land a second, human-reviewed PR to move the brief to `completed/`, and until that landed the story looked open and blocked later sessions. Accepted solution: the story's last product PR carries the brief from `active/` to `completed/`. In-PR completion refuses stories whose acceptance rests on a merge, judged by what the brief contains; those stories, and briefs already waiting, stay on the post-merge path, tracked on #6303. CI admits the move only when the PR removes the brief from `active/`, changes code inside the brief's scope and has a closing keyword for the issue. After merge, `verify:completed-tracked` re-runs today's identity join on the commit that landed the brief, and `verify:orphan-active` lists any brief that fails it. No workflow, bot identity, required check or human stop is added; the human product merge stays the anchor. Leftover next-build: #6303.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6860551121.\nverified-claims table 6860619841\n\nConfirm conjunct: yolo standing (Stop 1 6860465360, `yolo-standing: on`), with Scott's direction for this run, relayed by the handoff, to accept a lean after a clean audit; clean audit: comment 6860596493 (`finding-classes: footnote`, `harvest-changed: false`).\r\n\n",
+          "id": 6860622787,
+          "html_url": "https://github.com/deftai/directive/issues/6277#issuecomment-6860622787",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:49:29Z",
+          "updated_at": "2026-11-13T17:49:29Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nEvery delivered story needs a second PR after its product PR: the completion PR that moves the brief from `active/` to `completed/`. `scope:complete` requires the product PR to be merged first (#3041 / #3675), and `verify:completed-tracked` requires the completed brief on the delivery branch (#3476 / #4714). So the minimum for one change is two PRs, each with its own review, CI run and human merge.\n\n#680 (0.129.8) made that PR cheaper: no CHANGELOG line, and finalize commits the spec-drift ledger. It did not remove the PR.\n\n## Consumer impact\n\nOn a consumer project, of 22 PRs in one week, 6 carried the change and 16 were lifecycle PRs. A 14-line hook refresh took 3 PRs. Each lifecycle PR also pays for a review-bot pass. The same cost applies to maintainer work in this repo: every story in the last two cohorts needed a completion PR and an operator step.\n\n## Expected\n\nCompletion of a delivered story needs no separate human-reviewed PR, while the merge proof stays as strong as today. Candidate designs for the arc:\n\n1. **Post-merge automation.** A workflow on the delivery branch runs the completion sweep after the product PR merges and lands the completed brief itself. The proof is the merge commit and the `deft-story` mark it already carries.\n2. **Completion recorded outside the tracked tree**, keyed to the merge commit (for example a git note or a forge artifact), with `completed/` as a projection.\n3. **Completion in the product PR**: the brief moves in the same PR and takes effect at merge. This conflicts with \"merged first\" (#3041), so it needs the strongest argument.\n\nWhatever is chosen must keep: fresh-clone visibility of completed work (#4714), the human merge gate (#1193) for product code, `verify:orphan-active` and `verify:completed-tracked` as close proofs, and no agent-forged completion.\n\n## Until then\n\nMake `swarm:finalize-cohort` the documented default for solo stories too, so completions batch into one lifecycle PR.\n\n## Acceptance\n\n- Given a merged product PR for a story, when the chosen mechanism runs, then the brief is completed and `verify:completed-tracked -- --issue N` exits 0 with no human-reviewed completion PR.\n- Given a product PR that is not merged, then the brief is not completed.\n- A fresh clone still shows the story as completed.\n\nRefs #680. Refs #3041. Refs #4714. Related: #6273 (one-PR path for a single maintainer).\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6374105155,
+        "origin": "deftai/directive#6277",
+        "id": "github.issue.6374105155"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "733bce85df5086db0587dc228928c10b86d24f1a7c3ff6047c7661c264cffa28"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 16 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "feat(scope): complete a delivered story without a separate human-reviewed completion PR",
+        "In-PR completion: `scope:complete -- <active-path> --in-pr` runs the transition on the product branch (acceptance evidence, acceptance walk, spec-drift, parent and twin moves, ledger) and writes `lifecycleWrite` with completion disposition `lands-with-product`.",
+        "It writes no delivered provenance and no merge evidence.",
+        "Before it runs, it refuses on the brief's own inputs: any acceptance item for which `itemDeclaresMergeRequirement` is true, any stored acceptance evidence of kind `merge`, any stored `completionProvenance`, clause-less acceptance (`isClauseLessAcceptance`), a brief with no GitHub issue reference, and a branch with no production file inside the brief's `file_scope`.",
+        "Each refusal names the post-merge path and #6303.",
+        "Identity basis: `prDiffAddsBrief` also accepts a `renamed` entry whose previous path is the same brief basename under `active/`, beside a change outside the lifecycle folders.",
+        "A lifecycle-only PR still does not qualify.",
+        "Admission: `verify:completed-write-guard` admits a code-bearing `completed/` add with disposition `lands-with-product` only when all of these hold on the PR's changed files: the brief leaves `active/` in the same change set (a rename from `active/`, or a delete of the same basename under `active/` beside the add); `prDiffAddsBrief` holds for that brief; the changed production files sit inside the brief's `file_scope`; and the PR body passes `bodyHasClosingKeywordFor` for the brief's issue.",
+        "No sole-mark check is used.",
+        "Every other case is unchanged.",
+        "Close proof: for a completed brief with disposition `lands-with-product`, `verify:completed-tracked` finds the commit that added the brief on the delivery tip, resolves its pull request, and runs `verifyStoryPrMergeIdentity` with that commit as the merge commit.",
+        "A failed join, or a landing commit with no pull request, exits 1 and names the brief and the post-merge recovery.",
+        "Visible failure: `verify:orphan-active` also lists a `lands-with-product` brief on the delivery tip whose close proof (item 4) fails.",
+        "Story gates: gates that look for the story's brief under `active/` on the PR head also accept it under `completed/` when the change set carries a `lands-with-product` move for that brief.",
+        "Default and docs: the pre-PR skill and `commands.md` name in-PR completion as the default for a story's last product PR; a refused story keeps the post-merge path (#6303).",
+        "Docs state that the human product merge plus the identity join is the completion proof.",
+        "Tests: an accepted in-PR completion merged with the move reported as `renamed` passes items 3 and 4, and `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` exit 0 with no second PR; the same with the move reported as delete plus add; a story whose earlier merged PRs carry the same sole mark still passes; a PR body edited after CI to drop the keyword still passes on the diff basis; the guard refuses a missing keyword, a completed add that leaves the `active/` brief in place, and production files outside `file_scope`; in-PR mode refuses an item that declares the merge requirement, a brief with pre-stamped merge evidence, a brief with stored completion provenance, and clause-less acceptance; a `lands-with-product` brief landed by a direct commit fails item 4 and is listed by item 5; a lifecycle-only rename does not satisfy item 2; the post-merge path behaves as today."
+      ],
+      "admitted_source_sentences": [
+        "In-PR completion: `scope:complete -- <active-path> --in-pr` runs the transition on the product branch (acceptance evidence, acceptance walk, spec-drift, parent and twin moves, ledger) and writes `lifecycleWrite` with completion disposition `lands-with-product`.",
+        "It writes no delivered provenance and no merge evidence.",
+        "Before it runs, it refuses on the brief's own inputs: any acceptance item for which `itemDeclaresMergeRequirement` is true, any stored acceptance evidence of kind `merge`, any stored `completionProvenance`, clause-less acceptance (`isClauseLessAcceptance`), a brief with no GitHub issue reference, and a branch with no production file inside the brief's `file_scope`.",
+        "Each refusal names the post-merge path and #6303.",
+        "Identity basis: `prDiffAddsBrief` also accepts a `renamed` entry whose previous path is the same brief basename under `active/`, beside a change outside the lifecycle folders.",
+        "A lifecycle-only PR still does not qualify.",
+        "Admission: `verify:completed-write-guard` admits a code-bearing `completed/` add with disposition `lands-with-product` only when all of these hold on the PR's changed files: the brief leaves `active/` in the same change set (a rename from `active/`, or a delete of the same basename under `active/` beside the add); `prDiffAddsBrief` holds for that brief; the changed production files sit inside the brief's `file_scope`; and the PR body passes `bodyHasClosingKeywordFor` for the brief's issue.",
+        "No sole-mark check is used.",
+        "Every other case is unchanged.",
+        "Close proof: for a completed brief with disposition `lands-with-product`, `verify:completed-tracked` finds the commit that added the brief on the delivery tip, resolves its pull request, and runs `verifyStoryPrMergeIdentity` with that commit as the merge commit.",
+        "A failed join, or a landing commit with no pull request, exits 1 and names the brief and the post-merge recovery.",
+        "Visible failure: `verify:orphan-active` also lists a `lands-with-product` brief on the delivery tip whose close proof (item 4) fails.",
+        "Story gates: gates that look for the story's brief under `active/` on the PR head also accept it under `completed/` when the change set carries a `lands-with-product` move for that brief.",
+        "Default and docs: the pre-PR skill and `commands.md` name in-PR completion as the default for a story's last product PR; a refused story keeps the post-merge path (#6303).",
+        "Docs state that the human product merge plus the identity join is the completion proof.",
+        "Tests: an accepted in-PR completion merged with the move reported as `renamed` passes items 3 and 4, and `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` exit 0 with no second PR; the same with the move reported as delete plus add; a story whose earlier merged PRs carry the same sole mark still passes; a PR body edited after CI to drop the keyword still passes on the diff basis; the guard refuses a missing keyword, a completed add that leaves the `active/` brief in place, and production files outside `file_scope`; in-PR mode refuses an item that declares the merge requirement, a brief with pre-stamped merge evidence, a brief with stored completion provenance, and clause-less acceptance; a `lands-with-product` brief landed by a direct commit fails item 4 and is listed by item 5; a lifecycle-only rename does not satisfy item 2; the post-merge path behaves as today."
+      ],
+      "admitted_source_digest": "b9b6bc7f9983c5917d8e526772db298114717e68034bce860fbf192b4d7bb83d",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "In-PR completion: `scope:complete -- <active-path> --in-pr` runs the transition on the product branch (acceptance evidence, acceptance walk, spec-drift, parent and twin moves, ledger) and writes `lifecycleWrite` with completion disposition `lands-with-product`.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "It writes no delivered provenance and no merge evidence.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Before it runs, it refuses on the brief's own inputs: any acceptance item for which `itemDeclaresMergeRequirement` is true, any stored acceptance evidence of kind `merge`, any stored `completionProvenance`, clause-less acceptance (`isClauseLessAcceptance`), a brief with no GitHub issue reference, and a branch with no production file inside the brief's `file_scope`.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Each refusal names the post-merge path and #6303.",
+          "artifact_path": "packages/core/src/scope/transition.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Identity basis: `prDiffAddsBrief` also accepts a `renamed` entry whose previous path is the same brief basename under `active/`, beside a change outside the lifecycle folders.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "A lifecycle-only PR still does not qualify.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Admission: `verify:completed-write-guard` admits a code-bearing `completed/` add with disposition `lands-with-product` only when all of these hold on the PR's changed files: the brief leaves `active/` in the same change set (a rename from `active/`, or a delete of the same basename under `active/` beside the add); `prDiffAddsBrief` holds for that brief; the changed production files sit inside the brief's `file_scope`; and the PR body passes `bodyHasClosingKeywordFor` for the brief's issue.",
+          "artifact_path": "packages/core/src/lifecycle/completed-write-guard.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "No sole-mark check is used.",
+          "artifact_path": "packages/core/src/lifecycle/completed-write-guard.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Every other case is unchanged.",
+          "artifact_path": "packages/core/src/lifecycle/completed-write-guard.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Close proof: for a completed brief with disposition `lands-with-product`, `verify:completed-tracked` finds the commit that added the brief on the delivery tip, resolves its pull request, and runs `verifyStoryPrMergeIdentity` with that commit as the merge commit.",
+          "artifact_path": "packages/core/src/lifecycle/completed-tracked-on-delivery.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "A failed join, or a landing commit with no pull request, exits 1 and names the brief and the post-merge recovery.",
+          "artifact_path": "packages/core/src/lifecycle/completed-tracked-on-delivery.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Visible failure: `verify:orphan-active` also lists a `lands-with-product` brief on the delivery tip whose close proof (item 4) fails.",
+          "artifact_path": "packages/core/src/orphan-active/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Story gates: gates that look for the story's brief under `active/` on the PR head also accept it under `completed/` when the change set carries a `lands-with-product` move for that brief.",
+          "artifact_path": "packages/core/src/hooks/scope.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Default and docs: the pre-PR skill and `commands.md` name in-PR completion as the default for a story's last product PR; a refused story keeps the post-merge path (#6303).",
+          "artifact_path": "content/skills/deft-directive-pre-pr/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Docs state that the human product merge plus the identity join is the completion proof.",
+          "artifact_path": "content/commands.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Tests: an accepted in-PR completion merged with the move reported as `renamed` passes items 3 and 4, and `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` exit 0 with no second PR; the same with the move reported as delete plus add; a story whose earlier merged PRs carry the same sole mark still passes; a PR body edited after CI to drop the keyword still passes on the diff basis; the guard refuses a missing keyword, a completed add that leaves the `active/` brief in place, and production files outside `file_scope`; in-PR mode refuses an item that declares the merge requirement, a brief with pre-stamped merge evidence, a brief with stored completion provenance, and clause-less acceptance; a `lands-with-product` brief landed by a direct commit fails item 4 and is listed by item 5; a lifecycle-only rename does not satisfy item 2; the post-merge path behaves as today.",
+          "artifact_path": "packages/core/src/lifecycle/completed-tracked-on-delivery.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "feat(scope): complete a delivered story without a separate human-reviewed completion PR"
+      ]
+    },
+    "id": "github.issue.6374105155",
+    "updated": "2026-11-16T04:37:13Z"
+  }
+}
