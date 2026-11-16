@@ -73,35 +73,42 @@ export function resolveWatchRequiredContexts(
   if (headSha === null || headSha === undefined || headSha.length === 0) {
     return resolved.contexts;
   }
-  // A required context reported through the Commit Status API is present on
-  // HEAD even though it has no check-run; never name it missing (#6336 review).
-  const statusContexts = fetchCommitStatusContexts(repo, headSha, runGh);
-  if (statusContexts === null) return [];
-  return resolved.contexts.filter((ctx) => !statusContexts.has(ctx.name));
+  // A required context reported through the Commit Status API with state
+  // `success` is satisfied even though it has no check-run. A pending, failing
+  // or erroring status does not satisfy it, so it stays required and blocks
+  // CLEAN (#6336 review).
+  const statusStates = fetchCommitStatusStates(repo, headSha, runGh);
+  if (statusStates === null) return [];
+  return resolved.contexts.filter((ctx) => statusStates.get(ctx.name) !== "success");
 }
 
 /**
- * Context names reported on a commit through the Commit Status API (REST
- * combined status). Null when the read fails, so the caller names nothing missing.
+ * Context name to state (`success`, `pending`, `failure`, `error`) reported on
+ * a commit through the Commit Status API (REST combined status; latest status
+ * per context). Null when the read fails, so the caller names nothing missing.
  */
-export function fetchCommitStatusContexts(
+export function fetchCommitStatusStates(
   repo: string,
   sha: string,
   runGh: RunGhFn,
-): Set<string> | null {
+): Map<string, string> | null {
   const rc = runGh(["gh", "api", `repos/${repo}/commits/${sha}/status`]);
   if (rc.returncode !== 0 || !rc.stdout.trim()) return null;
   try {
     const payload = JSON.parse(rc.stdout) as { statuses?: unknown };
     if (!Array.isArray(payload.statuses)) return null;
-    const names = new Set<string>();
+    const states = new Map<string, string>();
     for (const status of payload.statuses) {
       if (status !== null && typeof status === "object") {
-        const context = (status as Record<string, unknown>).context;
-        if (typeof context === "string" && context.length > 0) names.add(context);
+        const row = status as Record<string, unknown>;
+        const context = row.context;
+        const state = typeof row.state === "string" ? row.state : "unknown";
+        if (typeof context === "string" && context.length > 0 && !states.has(context)) {
+          states.set(context, state);
+        }
       }
     }
-    return names;
+    return states;
   } catch {
     return null;
   }

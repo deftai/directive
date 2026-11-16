@@ -13,7 +13,7 @@ import {
 import { GREPTILE_ERRORED_SENTINEL } from "../pr-merge-readiness/constants.js";
 import type { RunGhResult } from "../pr-merge-readiness/types.js";
 import { printWatchHuman, watchResultToJson } from "./main.js";
-import { fetchCommitStatusContexts, fetchPrLifecycleRest, probeOnce } from "./probe.js";
+import { fetchCommitStatusStates, fetchPrLifecycleRest, probeOnce } from "./probe.js";
 import { watch } from "./watch.js";
 
 /** The last_reviewed sha embedded in the BODY_AC4_* / BODY_TIER2_P1_ONLY fixtures. */
@@ -800,14 +800,19 @@ describe("pr:watch names the CI cause (#6336)", () => {
   function fakeWithBase(
     cfg: FakeGhConfig,
     required: readonly string[] | "error",
-    statuses: readonly string[] | "error" = [],
+    statuses: readonly (string | { context: string; state: string })[] | "error" = [],
   ) {
     const inner = makeFakeGh(cfg);
     return (cmd: readonly string[]): RunGhResult => {
       const joined = cmd.join(" ");
       if (joined.includes("/commits/") && joined.endsWith("/status")) {
         if (statuses === "error") return { returncode: 1, stdout: "", stderr: "HTTP 502" };
-        const body = { state: "success", statuses: statuses.map((context) => ({ context })) };
+        const body = {
+          state: "success",
+          statuses: statuses.map((s) =>
+            typeof s === "string" ? { context: s, state: "success" } : s,
+          ),
+        };
         return { returncode: 0, stdout: JSON.stringify(body), stderr: "" };
       }
       if (joined.includes("/rules/branches/")) {
@@ -896,18 +901,46 @@ describe("pr:watch names the CI cause (#6336)", () => {
     expect(probe.ciReadyState).toBe("ready");
   });
 
-  it("fetchCommitStatusContexts reads context names and refuses odd payloads", () => {
+  for (const state of ["pending", "failure", "error"]) {
+    it(`keeps a required context whose commit status is ${state} (not CLEAN)`, () => {
+      const runGh = fakeWithBase(
+        { headSha: FIXTURE_SHA, body: BODY_AC4_MARKDOWN_LINK_CLEAN, checkRuns: GREEN_CI },
+        ["TypeScript (build + lint + test)", "legacy/ci"],
+        [{ context: "legacy/ci", state }],
+      );
+      const probe = probeOnce(6336, "deftai/directive", runGh);
+      expect(probe.ciAbsentRequired).toEqual(["legacy/ci"]);
+      expect(probe.isClean).toBe(false);
+    });
+  }
+
+  it("fetchCommitStatusStates reads context states and refuses odd payloads", () => {
     const ok = (stdout: string) => () => ({ returncode: 0, stdout, stderr: "" });
-    expect(
-      fetchCommitStatusContexts(
-        "o/r",
-        "sha",
-        ok(JSON.stringify({ statuses: [{ context: "a" }, { context: "" }, null, { x: 1 }] })),
+    const states = fetchCommitStatusStates(
+      "o/r",
+      "sha",
+      ok(
+        JSON.stringify({
+          statuses: [
+            { context: "a", state: "success" },
+            { context: "a", state: "failure" },
+            { context: "b" },
+            { context: "" },
+            null,
+            { x: 1 },
+          ],
+        }),
       ),
-    ).toEqual(new Set(["a"]));
-    expect(fetchCommitStatusContexts("o/r", "sha", ok("{}"))).toBeNull();
-    expect(fetchCommitStatusContexts("o/r", "sha", ok("not-json"))).toBeNull();
-    expect(fetchCommitStatusContexts("o/r", "sha", ok(""))).toBeNull();
+    );
+    expect(states).toEqual(
+      new Map([
+        ["a", "success"],
+        ["b", "unknown"],
+      ]),
+    );
+    expect(fetchCommitStatusStates("o/r", "sha", ok("{}"))).toBeNull();
+    expect(fetchCommitStatusStates("o/r", "sha", ok("not-json"))).toBeNull();
+    expect(fetchCommitStatusStates("o/r", "sha", ok(""))).toBeNull();
   });
 
   it("degrades to present checks when the required inventory cannot be read", () => {
