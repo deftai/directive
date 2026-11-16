@@ -452,6 +452,80 @@ function splitAxisAlternations(text: string): string {
   return text.replace(AXIS_ALTERNATION, (run) => run.replaceAll("/", " / "));
 }
 
+/** One plan item that scope:complete will hold to strict-axis evidence (#6272). */
+export interface StrictAxisRequirement {
+  /** JSON path of the item, e.g. `plan.items[2]`. */
+  readonly path: string;
+  /** Item id when it is a non-empty string, else null. */
+  readonly id: string | null;
+  readonly axes: readonly StrictAcceptanceAxis[];
+}
+
+/**
+ * List the plan items that scope:complete will hold to strict-axis evidence (#6272).
+ *
+ * Pure function of the brief text: no git, network or evidence input. It walks
+ * the same item tree as the completion gate (items, subItems, nested items) and
+ * calls inferRequiredStrictAxes, the function the gate calls, so the listing at
+ * activation, promote and preflight cannot drift from completion.
+ */
+export function listStrictAxisRequirements(plan: unknown): StrictAxisRequirement[] {
+  const found: StrictAxisRequirement[] = [];
+  const walk = (items: unknown, prefix: string): void => {
+    if (!Array.isArray(items)) {
+      return;
+    }
+    items.forEach((raw, index) => {
+      const item = asRecord(raw);
+      if (item === null) {
+        return;
+      }
+      const path = `${prefix}[${index}]`;
+      const axes = inferRequiredStrictAxes(item);
+      if (axes.length > 0) {
+        const id = typeof item.id === "string" && item.id.trim().length > 0 ? item.id.trim() : null;
+        found.push({ path, id, axes });
+      }
+      walk(item.subItems, `${path}.subItems`);
+      walk(item.items, `${path}.items`);
+    });
+  };
+  walk(asRecord(plan)?.items, "plan.items");
+  return found;
+}
+
+/**
+ * Advisory lines for listStrictAxisRequirements (#6272). Empty when no item
+ * needs a strict axis. Callers print these; they never change an exit code.
+ */
+export function formatStrictAxisAdvisory(requirements: readonly StrictAxisRequirement[]): string[] {
+  if (requirements.length === 0) {
+    return [];
+  }
+  const lines = [
+    `[deft scope] advisory: ${requirements.length} clause(s) will need strict-axis evidence ` +
+      "at scope:complete (#6272):",
+  ];
+  for (const req of requirements) {
+    lines.push(`  ${req.id ?? req.path}: ${req.axes.join(", ")}`);
+  }
+  lines.push(
+    `  To change this, reword the clause or declare ${ACCEPTANCE_REQUIRES_KEY} ` +
+      `(${MERGE_ACCEPTANCE_REQUIREMENT} or one axis) on the item. Advisory only; exit code unchanged.`,
+  );
+  return lines;
+}
+
+/** Advisory lines for a parsed brief (`{ plan }`) or a bare plan object (#6272). */
+export function strictAxisAdvisoryLines(briefOrPlan: unknown): string[] {
+  const record = asRecord(briefOrPlan);
+  if (record === null) {
+    return [];
+  }
+  const plan = "plan" in record ? record.plan : record;
+  return formatStrictAxisAdvisory(listStrictAxisRequirements(plan));
+}
+
 /**
  * Whether evidence.kind is suitable for the criterion's required strict axes.
  * merge and review never satisfy smoke/UAT/deploy/observed_behavior.

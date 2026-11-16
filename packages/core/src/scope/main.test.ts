@@ -447,3 +447,104 @@ describe("undoMain", () => {
     );
   });
 });
+
+describe("strict-axis advisory at promote and activate (#6272)", () => {
+  let root = "";
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  const strictItems = (): Record<string, unknown>[] => [
+    {
+      id: "clause.1",
+      title: "The app answers after deployment to staging.",
+      status: "pending",
+    },
+    { id: "clause.2", title: "Smoke check passes after deploy.", status: "pending" },
+    { id: "clause.3", title: "Unit tests cover the parser.", status: "pending" },
+  ];
+
+  function writeBrief(folder: string, status: string, items: Record<string, unknown>[]): string {
+    root = mkdtempSync(join(tmpdir(), "cli-6272-"));
+    mkdirSync(join(root, "xbrief", folder), { recursive: true });
+    const file = join(root, "xbrief", folder, "2026-01-01-strict.xbrief.json");
+    writeFileSync(
+      file,
+      formatBriefJson(
+        minimalScopeBrief({
+          title: "T",
+          status,
+          items,
+          acceptance: {
+            commands: [],
+            none_stated: true,
+            source_rung: "derived",
+            ambiguity_attestation: "none_found",
+            clauses: [
+              {
+                id: 1,
+                text: "The app answers after deployment",
+                artifact_path: null,
+                ambiguous: false,
+              },
+            ],
+          },
+        }),
+      ),
+      "utf8",
+    );
+    return file;
+  }
+
+  function capture(argv: string[]): { code: number; stdout: string } {
+    const out: string[] = [];
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      out.push(String(chunk));
+      return true;
+    });
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    try {
+      return { code: lifecycleMain(argv), stdout: out.join("") };
+    } finally {
+      stdoutSpy.mockRestore();
+      stderrSpy.mockRestore();
+    }
+  }
+
+  it("clause.3 / clause.10: activate names the deploy clause and axis; exit 0", () => {
+    const file = writeBrief("pending", "pending", strictItems());
+    const { code, stdout } = capture(["activate", file, "--project-root", root]);
+    expect(code).toBe(0);
+    expect(stdout).toContain("will need strict-axis evidence at scope:complete (#6272)");
+    expect(stdout).toContain("  clause.1: deploy\n");
+    expect(stdout).not.toContain("clause.3:");
+    expect(stdout).toContain("x-directive/requires");
+  });
+
+  it("clause.5 / clause.7: promote names every strict-axis clause; exit 0", () => {
+    const file = writeBrief("proposed", "proposed", strictItems());
+    const { code, stdout } = capture(["promote", file, "--project-root", root]);
+    expect(code).toBe(0);
+    expect(stdout).toContain("2 clause(s) will need strict-axis evidence");
+    expect(stdout).toContain("  clause.1: deploy\n");
+    expect(stdout).toContain("  clause.2: smoke, deploy\n");
+  });
+
+  it("clause.8: no listing for a brief without strict axes; exit codes unchanged", () => {
+    const quiet = writeBrief("pending", "pending", [
+      { id: "clause.1", title: "Unit tests cover the parser.", status: "pending" },
+    ]);
+    const plain = capture(["activate", quiet, "--project-root", root]);
+    expect(plain.code).toBe(0);
+    expect(plain.stdout).not.toContain("#6272");
+    rmSync(root, { recursive: true, force: true });
+    // A refused activate stays refused with the same exit code; no listing is printed.
+    const wrongFolder = writeBrief("proposed", "proposed", strictItems());
+    const refused = capture(["activate", wrongFolder, "--project-root", root]);
+    expect(refused.code).toBe(1);
+    expect(refused.stdout).not.toContain("#6272");
+  });
+});
