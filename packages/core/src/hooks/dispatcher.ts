@@ -61,6 +61,7 @@ import {
   resolveWriteFence,
   type StoryWriteFenceView,
 } from "../policy/write-fence.js";
+import { HOOK_COMPACT_HEAL_TRIGGER } from "../run-summary/types.js";
 import { SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE } from "../scope/transition-hint.js";
 import {
   appendSoftAgentsRebindToMessage,
@@ -90,7 +91,10 @@ import {
   resolveOccupancyLeaseRoot,
   type SessionEndReleaseResult,
 } from "../session/occupancy.js";
-import { occupancyAwareDenialMessage } from "../session/occupancy-recovery.js";
+import {
+  fillRecoveryCommandSessionId,
+  occupancyAwareDenialMessage,
+} from "../session/occupancy-recovery.js";
 import {
   ENV_SESSION_POSTURE,
   isRequirementsPosture,
@@ -116,6 +120,7 @@ import {
 } from "../session/spawn-occupancy.js";
 import {
   type DetectWorkSelection,
+  healCompactMarkForOwnerWrite,
   inspectSessionRitual,
   type RitualRunner,
   type VerifyResult,
@@ -2175,6 +2180,13 @@ function inspectMutationGates(
       },
       recoveryTier,
     );
+  // #6279: ritual denials print recovery commands with the caller's id, after
+  // the occupancy-aware rewrite so stripped commands stay stripped.
+  const ritualRecoveryText = (message: string, recoveryTier: "rearm" | "cold"): string =>
+    fillRecoveryCommandSessionId(
+      occupancyAwareText(message, recoveryTier),
+      actor?.sessionId ?? environ.DEFT_SESSION_ID,
+    );
 
   const ritualDetailForOccupancyDeny = (): VerifyResult | null => {
     try {
@@ -2368,7 +2380,7 @@ function inspectMutationGates(
         input,
         "ritual-not-ready",
         toolName,
-        occupancyAwareText(
+        ritualRecoveryText(
           `Directive could not inspect the gated session ritual: ${String(cause)}.${rootsNote}`,
           "cold",
         ),
@@ -2406,7 +2418,7 @@ function inspectMutationGates(
         input,
         "occupancy-ritual-mismatch",
         toolName,
-        occupancyAwareText(
+        ritualRecoveryText(
           `Directive denied ${toolName}: ${detail}. ` +
             "Run `deft session:start --rearm --session-id=<same-session-id>` when re-arm is eligible; " +
             "otherwise run `deft session:start --session-id=<same-session-id>` for a cold ceremony. " +
@@ -2418,6 +2430,39 @@ function inspectMutationGates(
     }
   }
   if (ritual !== undefined && ritual.code !== 0) {
+    // #6279: the live-lease owner that is also the ritual's bound session gets
+    // its pre-compaction clock back and one denial carrying the alignment lines.
+    if (actor !== null && occupancyGate.occupant !== null) {
+      const heal = healCompactMarkForOwnerWrite(effectiveRoot, {
+        callerSessionId: actor.sessionId,
+        callerIdentityIssue: actor.issue !== null,
+        admitted: occupancyGate.admitted,
+        boundSessionId: ritual.boundSessionId,
+        stillLiveOwner: () =>
+          evaluateOccupancyWriteGate(effectiveRoot, {
+            sessionId: actor.sessionId,
+            env: actor.hostAuthoritative ? {} : environ,
+            leaseRoot: effectiveRoot,
+          }).admitted === "owner"
+            ? null
+            : "the occupancy lease is no longer held by this session",
+        runGit: dispatchGit,
+      });
+      if (heal.kind !== "none") {
+        if (heal.kind === "healed") {
+          emitSessionRitualBlockedProcessCost(
+            { toolName, code: HOOK_COMPACT_HEAL_TRIGGER, recoveryTier: "rearm" },
+            { projectRoot },
+          );
+        }
+        return deny(
+          input,
+          "ritual-not-ready",
+          toolName,
+          `Directive denied ${toolName}: ${heal.message}${rootsNote}`,
+        );
+      }
+    }
     // #2992: prefer re-arm recovery when age/compact stale; cold when bind invalid.
     const recoveryTier = ritual.recoveryTier === "rearm" ? "rearm" : "cold";
     // #2994: best-effort local process-cost; never changes deny verdict.
@@ -2434,7 +2479,7 @@ function inspectMutationGates(
       input,
       "ritual-not-ready",
       toolName,
-      occupancyAwareText(
+      ritualRecoveryText(
         `Directive denied ${toolName}: ${ritual.message}${rootsNote}`,
         recoveryTier,
       ),
@@ -2506,7 +2551,7 @@ function inspectMutationGates(
         input,
         "occupancy-ritual-mismatch",
         toolName,
-        occupancyAwareText(
+        ritualRecoveryText(
           `Directive denied ${toolName}: final lease owner ${finalExpectedOwner} does not match ` +
             `the exact verified ritual owner ${ritual?.boundSessionId ?? "<unbound>"}. ` +
             "Run `deft session:start --rearm --session-id=<same-session-id>` when re-arm is eligible; " +

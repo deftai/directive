@@ -68,7 +68,9 @@ export interface RunSummaryBaseFields {
 /**
  * Closed vocabulary for why a cold `session_start` JSONL line was emitted (#3921).
  * Orthogonal to `ceremony_tier` (cold | rearm). Rearm that does not emit
- * `session_start` stays outside the stream.
+ * `session_start` stays outside the stream. `hook-compact-heal` names the
+ * write hook restoring the pre-compaction ritual clock (#6279); it is recorded
+ * as a session-ritual process-cost event, not a cold `session_start` line.
  */
 export const SESSION_START_TRIGGERS = [
   "cold",
@@ -76,8 +78,12 @@ export const SESSION_START_TRIGGERS = [
   "post-compact",
   "mutation-intent",
   "steal-recover",
+  "hook-compact-heal",
 ] as const;
 export type SessionStartTrigger = (typeof SESSION_START_TRIGGERS)[number];
+
+/** Closed trigger token for an in-hook compaction heal (#6279). */
+export const HOOK_COMPACT_HEAL_TRIGGER: SessionStartTrigger = "hook-compact-heal";
 
 export interface SessionStartRunSummaryPayload {
   /**

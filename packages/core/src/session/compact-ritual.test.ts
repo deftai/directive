@@ -2,8 +2,12 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { describe, expect, it, vi } from "vitest";
-import { decideHook, renderHostDecision } from "../hooks/dispatcher.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { inspectExactLifecycleCommand } from "../hooks/classify/host-session-identity.js";
+import { decideHook, type HookPolicySeams, renderHostDecision } from "../hooks/dispatcher.js";
+import { DEFAULT_EVENT_LOG, readEvents } from "../lifecycle/events.js";
+import { SESSION_START_TRIGGERS } from "../run-summary/types.js";
+import { defaultGitRunner, type GitRunner, worktreePath } from "./git.js";
 import {
   appendSoftAgentsRebindToMessage,
   applyWorktreeOccupancy,
@@ -25,6 +29,20 @@ import {
   softAgentsRebindForbiddenHits,
   writeRitualState,
 } from "./index.js";
+import { evaluateOccupancyCeremonyEligibility, grantOccupancyMembership } from "./occupancy.js";
+import {
+  applyOccupancyEligibilityToDenial,
+  fillRecoveryCommandSessionId,
+} from "./occupancy-recovery.js";
+import { COMPACT_PRIOR_STARTED_AT_KEY, RITUAL_STALE_EPOCH } from "./ritual-sentinel.js";
+import { READ_ONLY_ALIGNMENT_MESSAGE } from "./session-start.js";
+import { timestampIso } from "./time.js";
+import {
+  type CompactHealInput,
+  type CompactHealOutcome,
+  healCompactMarkForOwnerWrite,
+  WRITE_GATED_REQUIRED_STEPS,
+} from "./verify-session-ritual.js";
 
 const EMPTY_STDERR = "";
 
@@ -358,5 +376,419 @@ describe("OpenClaw soft re-bind skill deposit (#3171)", () => {
     });
     expect(result.skipped).toBe(true);
     expect(result.skipReason).toBe("openclaw-not-detected");
+  });
+});
+
+// --- #6279 compaction heal and runnable recovery commands -------------------
+
+const HEAL_OWNER = "owner";
+const HOUR_MS = 60 * 60 * 1000;
+const HEAL_EVENT_CODE = "hook-compact-heal";
+const healTemps: string[] = [];
+
+function healRitualPayload(root: string, head: string, startedAt: Date, quickOk: boolean) {
+  return newRitualStatePayload({
+    sessionId: HEAL_OWNER,
+    gitHead: head,
+    worktreePath: worktreePath(root),
+    startedAt,
+    quickSteps: {
+      alignment: ritualStep({ ok: true, ts: startedAt }),
+      branch_policy: ritualStep({ ok: true, ts: startedAt }),
+      triage_welcome: ritualStep({ ok: true, ts: startedAt }),
+      verify_tools: ritualStep({ ok: quickOk, ts: startedAt }),
+    },
+    gatedSteps: {
+      agent_hooks: ritualStep({ ok: true, ts: startedAt }),
+      doctor: ritualStep({ ok: true, ts: startedAt }),
+      cache_fresh: ritualStep({ ok: true, ts: startedAt }),
+    },
+  });
+}
+
+function healRoot(
+  options: { startedAgoMs?: number; quickOk?: boolean; leaseOwner?: string } = {},
+): { root: string; head: string } {
+  const root = mkdtempSync(join(tmpdir(), "compact-heal-"));
+  healTemps.push(root);
+  mkdirSync(join(root, "xbrief"), { recursive: true });
+  mkdirSync(join(root, "src"), { recursive: true });
+  writeFileSync(join(root, "README.md"), "x\n", "utf8");
+  writeFileSync(join(root, "src", "app.ts"), "export {}\n", "utf8");
+  writeFileSync(
+    join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+    JSON.stringify({
+      xBRIEFInfo: { version: "0.8" },
+      plan: { policy: { sessionRitualStalenessHours: 4 } },
+    }),
+    "utf8",
+  );
+  runGit(root, ["init", "-q"]);
+  runGit(root, ["config", "user.email", "t@t.local"]);
+  runGit(root, ["config", "user.name", "T"]);
+  runGit(root, ["add", "-A"]);
+  runGit(root, ["commit", "-q", "-m", "init"]);
+  mkdirSync(join(root, ".deft"), { recursive: true });
+  const head = runGit(root, ["rev-parse", "HEAD"]);
+  const startedAt = new Date(Date.now() - (options.startedAgoMs ?? HOUR_MS));
+  writeRitualState(root, healRitualPayload(root, head, startedAt, options.quickOk ?? true));
+  applyWorktreeOccupancy(root, {
+    sessionId: options.leaseOwner ?? HEAL_OWNER,
+    intent: "mutation",
+    env: {},
+  });
+  return { root, head };
+}
+
+function healSeams(): HookPolicySeams {
+  return {
+    verifyRitual: (root: string) =>
+      inspectSessionRitual(root, {
+        tier: "gated",
+        posture: "mutation",
+        requiredGatedSteps: WRITE_GATED_REQUIRED_STEPS,
+      }),
+    inspectScope: () => ({
+      ready: true,
+      path: "xbrief/active/story.xbrief.json",
+      message: "OK active scope",
+    }),
+    runningInsideDeftRepo: () => true,
+    loadStoryWriteFence: () => ({ fileScope: ["**"], denyPaths: [] }),
+  };
+}
+
+function healWrite(root: string, sessionId = HEAL_OWNER) {
+  return decideHook(
+    {
+      host: "grok",
+      event: "tool.before",
+      projectRoot: root,
+      payload: { toolName: "Write", file_path: join(root, "src", "app.ts") },
+      environ: { DEFT_SESSION_ID: sessionId },
+    },
+    healSeams(),
+  );
+}
+
+function healInput(overrides: Partial<CompactHealInput> = {}): CompactHealInput {
+  return {
+    callerSessionId: HEAL_OWNER,
+    callerIdentityIssue: false,
+    admitted: "owner",
+    boundSessionId: HEAL_OWNER,
+    stillLiveOwner: () => null,
+    resolveUserMd: () => ({
+      path: "/home/u/.config/deft/USER.md",
+      rung: "workspace-local",
+      found: true,
+      diagnostic: "USER.md resolved from workspace-local config",
+      searched: [],
+    }),
+    ...overrides,
+  };
+}
+
+function rawState(root: string): Record<string, unknown> {
+  const [state, err] = readRitualState(root);
+  if (state === null) throw new Error(err ?? "ritual state missing");
+  return state.raw;
+}
+
+function healEventCount(root: string): number {
+  return readEvents(join(root, DEFAULT_EVENT_LOG)).filter(
+    (record) => (record.payload as Record<string, unknown>).code === HEAL_EVENT_CODE,
+  ).length;
+}
+
+describe("compaction heal on the owner's next write (#6279)", () => {
+  beforeEach(() => {
+    vi.stubEnv("DEFT_EVENT_LOG", "");
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    for (const root of healTemps.splice(0)) rmSync(root, { recursive: true, force: true });
+  });
+
+  it("records the overwritten clock once across two compactions", () => {
+    const { root } = healRoot();
+    const original = rawState(root).started_at;
+    markRitualStaleAfterCompact(root);
+    markRitualStaleAfterCompact(root);
+    const raw = rawState(root);
+    expect(raw[COMPACT_PRIOR_STARTED_AT_KEY]).toBe(original);
+    expect(raw.started_at).toBe(timestampIso(RITUAL_STALE_EPOCH));
+  });
+
+  it("denies once with the alignment lines, restores the clock, then admits the retry", () => {
+    const { root } = healRoot();
+    const before = rawState(root);
+    markRitualStaleAfterCompact(root);
+
+    const first = healWrite(root);
+    expect(first).toMatchObject({ verdict: "deny", code: "ritual-not-ready" });
+    expect(first.message).toContain(READ_ONLY_ALIGNMENT_MESSAGE);
+    expect(first.message).toMatch(/USER\.md/);
+    expect(first.message).toContain("retry this call");
+    expect(first.message).toContain("not denied for the compaction again");
+
+    const healed = rawState(root);
+    expect(healed.started_at).toBe(before.started_at);
+    expect(healed.quick_steps).toEqual(before.quick_steps);
+    expect(healed.gated_steps).toEqual(before.gated_steps);
+    expect(healed.rearm_needed).toBe(false);
+    expect(healed.compact_resume_at).toBeNull();
+    expect(healed[COMPACT_PRIOR_STARTED_AT_KEY]).toBeNull();
+    expect(SESSION_START_TRIGGERS).toContain(HEAL_EVENT_CODE);
+    expect(healEventCount(root)).toBe(1);
+
+    const retry = healWrite(root);
+    expect(retry.verdict).toBe("allow");
+    expect(healEventCount(root)).toBe(1);
+  });
+
+  it("heals a ritual already stale by age, then the retry gets the age denial", () => {
+    const { root } = healRoot({ startedAgoMs: 10 * HOUR_MS });
+    const before = rawState(root);
+    markRitualStaleAfterCompact(root);
+
+    const first = healWrite(root);
+    expect(first.message).toContain(READ_ONLY_ALIGNMENT_MESSAGE);
+    expect(rawState(root).started_at).toBe(before.started_at);
+
+    const retry = healWrite(root);
+    expect(retry).toMatchObject({ verdict: "deny", code: "ritual-not-ready" });
+    expect(retry.message).toContain("older than 4h");
+    expect(retry.message).not.toContain(READ_ONLY_ALIGNMENT_MESSAGE);
+    expect(retry.message).toContain(`--session-id=${HEAL_OWNER}`);
+  });
+
+  it("keeps today's denial for a mark written by an older runtime", () => {
+    const { root, head } = healRoot();
+    const payload = healRitualPayload(root, head, new Date(), true);
+    writeRitualState(root, {
+      ...payload,
+      started_at: timestampIso(RITUAL_STALE_EPOCH),
+      compact_resume_at: timestampIso(new Date()),
+      rearm_needed: true,
+    });
+
+    const denied = healWrite(root);
+    expect(denied).toMatchObject({ verdict: "deny", code: "ritual-not-ready" });
+    expect(denied.message).toContain("Compact/resume marked re-arm needed");
+    expect(denied.message).not.toContain(READ_ONLY_ALIGNMENT_MESSAGE);
+    expect(rawState(root).started_at).toBe(timestampIso(RITUAL_STALE_EPOCH));
+    expect(healEventCount(root)).toBe(0);
+  });
+
+  it("does not heal when a quick step failed", () => {
+    const { root } = healRoot({ quickOk: false });
+    markRitualStaleAfterCompact(root);
+
+    const denied = healWrite(root);
+    expect(denied).toMatchObject({ verdict: "deny", code: "ritual-not-ready" });
+    expect(denied.message).not.toContain(READ_ONLY_ALIGNMENT_MESSAGE);
+    expect(rawState(root).rearm_needed).toBe(true);
+  });
+
+  it("keeps the cold denial after a same-owner branch switch under the mark (#2782)", () => {
+    const { root } = healRoot();
+    markRitualStaleAfterCompact(root);
+    runGit(root, ["checkout", "-q", "--orphan", "side"]);
+    writeFileSync(join(root, "side.txt"), "s\n", "utf8");
+    runGit(root, ["add", "side.txt"]);
+    runGit(root, ["commit", "-q", "-m", "side"]);
+
+    const denied = healWrite(root);
+    expect(denied).toMatchObject({ verdict: "deny", code: "ritual-not-ready" });
+    expect(denied.message).toContain("discontinuously");
+    expect(denied.message).not.toContain(READ_ONLY_ALIGNMENT_MESSAGE);
+    expect(rawState(root).rearm_needed).toBe(true);
+    expect(rawState(root).started_at).toBe(timestampIso(RITUAL_STALE_EPOCH));
+  });
+
+  it("keeps today's denial for a granted member", () => {
+    const { root } = healRoot();
+    grantOccupancyMembership(root, {
+      sessionId: HEAL_OWNER,
+      childSessionId: "child",
+      role: "leaf-implementation",
+      env: {},
+    });
+    markRitualStaleAfterCompact(root);
+
+    const denied = healWrite(root, "child");
+    expect(denied.verdict).toBe("deny");
+    expect(denied.message).not.toContain(READ_ONLY_ALIGNMENT_MESSAGE);
+    expect(denied.message).not.toContain("--session-id=child");
+    expect(rawState(root).rearm_needed).toBe(true);
+  });
+
+  it("keeps today's denial when another session holds the lease", () => {
+    const { root } = healRoot({ leaseOwner: "other" });
+    markRitualStaleAfterCompact(root);
+
+    const denied = healWrite(root);
+    expect(denied).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
+    expect(rawState(root).rearm_needed).toBe(true);
+  });
+
+  it("refuses a missing or conflicting identity and a ritual bound elsewhere", () => {
+    const { root } = healRoot();
+    markRitualStaleAfterCompact(root);
+    const cases: Partial<CompactHealInput>[] = [
+      { callerIdentityIssue: true },
+      { callerSessionId: undefined },
+      { admitted: "member" },
+      { admitted: null },
+      { boundSessionId: "other" },
+      { callerSessionId: "other", boundSessionId: "other" },
+    ];
+    for (const overrides of cases) {
+      expect(healCompactMarkForOwnerWrite(root, healInput(overrides)).kind).toBe("none");
+    }
+    expect(rawState(root).rearm_needed).toBe(true);
+  });
+
+  it("writes nothing when the lease is lost between check and write", () => {
+    const { root } = healRoot();
+    markRitualStaleAfterCompact(root);
+    const outcome = healCompactMarkForOwnerWrite(
+      root,
+      healInput({ stillLiveOwner: () => "the occupancy lease is no longer held by this session" }),
+    );
+    expect(outcome).toMatchObject({ kind: "none" });
+    expect(rawState(root).started_at).toBe(timestampIso(RITUAL_STALE_EPOCH));
+    expect(rawState(root).rearm_needed).toBe(true);
+  });
+
+  it("heals once when two calls race on the same mark", () => {
+    const { root } = healRoot();
+    const before = rawState(root);
+    markRitualStaleAfterCompact(root);
+    let winner: CompactHealOutcome | null = null;
+    const racingGit: GitRunner = (cwd, args) => {
+      if (winner === null) winner = healCompactMarkForOwnerWrite(root, healInput());
+      return defaultGitRunner(cwd, args);
+    };
+
+    const loser = healCompactMarkForOwnerWrite(root, healInput({ runGit: racingGit }));
+    expect(winner).toMatchObject({ kind: "healed" });
+    expect(loser.kind).toBe("already-healed");
+    if (loser.kind !== "none") {
+      expect(loser.message).toContain(READ_ONLY_ALIGNMENT_MESSAGE);
+    }
+    expect(rawState(root).started_at).toBe(before.started_at);
+  });
+
+  it("names the USER.md diagnostic when USER.md is not found", () => {
+    const { root } = healRoot();
+    markRitualStaleAfterCompact(root);
+    const outcome = healCompactMarkForOwnerWrite(
+      root,
+      healInput({
+        resolveUserMd: () => ({
+          path: "/nowhere/USER.md",
+          rung: "default",
+          found: false,
+          diagnostic: "USER.md not found (searched 3 rungs)",
+          searched: [],
+        }),
+      }),
+    );
+    expect(outcome.kind).toBe("healed");
+    if (outcome.kind === "healed") {
+      expect(outcome.message).toContain("USER.md not found (searched 3 rungs)");
+    }
+  });
+
+  it("keeps the heal when USER.md resolution throws", () => {
+    const { root } = healRoot();
+    markRitualStaleAfterCompact(root);
+    const outcome = healCompactMarkForOwnerWrite(
+      root,
+      healInput({
+        resolveUserMd: () => {
+          throw new Error("no home");
+        },
+      }),
+    );
+    expect(outcome.kind).toBe("healed");
+    if (outcome.kind === "healed") {
+      expect(outcome.message).toContain("USER.md could not be resolved");
+    }
+  });
+});
+
+describe("ritual recovery commands carry the caller's session id (#6279)", () => {
+  afterEach(() => {
+    for (const root of healTemps.splice(0)) rmSync(root, { recursive: true, force: true });
+  });
+
+  it("prints commands that run as printed under the caller's id", () => {
+    const { root } = healRoot({ startedAgoMs: 10 * HOUR_MS });
+    const denied = healWrite(root);
+    expect(denied).toMatchObject({ verdict: "deny", code: "ritual-not-ready" });
+    const commands = [...denied.message.matchAll(/`((?:deft|directive|task) session:[^`]+)`/g)].map(
+      (match) => match[1] ?? "",
+    );
+    expect(commands.length).toBeGreaterThan(0);
+    for (const command of commands) {
+      const inspected = inspectExactLifecycleCommand({
+        tool_name: "Bash",
+        tool_input: { command },
+      });
+      expect(inspected).toMatchObject({ sessionIdStatus: "present", sessionId: HEAL_OWNER });
+    }
+    expect(denied.message).toContain(`deft session:ready --session-id=${HEAL_OWNER}`);
+  });
+
+  it("fills bare commands and the template token, and leaves flagged commands alone", () => {
+    expect(
+      fillRecoveryCommandSessionId(
+        "Run `deft session:start --rearm` to re-arm (or `deft session:start` for a full cold ceremony).",
+        "s1",
+      ),
+    ).toBe(
+      "Run `deft session:start --rearm --session-id=s1` to re-arm " +
+        "(or `deft session:start --session-id=s1` for a full cold ceremony).",
+    );
+    expect(
+      fillRecoveryCommandSessionId(
+        "Run `deft session:start --rearm --session-id=<same-session-id>` when eligible.",
+        "host:claude:v1:YWJj",
+      ),
+    ).toBe("Run `deft session:start --rearm --session-id=host:claude:v1:YWJj` when eligible.");
+    expect(fillRecoveryCommandSessionId("Recovery: run deft session:ready (one-shot).", "s1")).toBe(
+      "Recovery: run deft session:ready --session-id=s1 (one-shot).",
+    );
+    for (const unchanged of [
+      "`deft session:start --session-id=s9`",
+      "`deft session:start -- --defer cache_fresh=<reason>`",
+      "`deft session:start --primary-claim-exception=operator-default-branch`",
+      "`deft verify:session-ritual -- --tier=gated`",
+    ]) {
+      expect(fillRecoveryCommandSessionId(unchanged, "s1")).toBe(unchanged);
+    }
+    for (const unsafe of [undefined, null, "", "a b", "`x`"]) {
+      expect(fillRecoveryCommandSessionId("`deft session:start`", unsafe)).toBe(
+        "`deft session:start`",
+      );
+    }
+  });
+
+  it("leaves the occupancy-aware replacement unchanged when ceremony is refused", () => {
+    const root = mkdtempSync(join(tmpdir(), "compact-heal-occ-"));
+    healTemps.push(root);
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    applyWorktreeOccupancy(root, { sessionId: HEAL_OWNER, intent: "mutation", env: {} });
+    const eligibility = evaluateOccupancyCeremonyEligibility(root, { sessionId: "intruder" });
+    expect(eligibility.admitCeremony).toBe(false);
+    const stale =
+      "Directive denied Write: session ritual state is stale (older than 4h). " +
+      "Run `deft session:start --rearm` to re-arm (or `deft session:start` for a full cold ceremony).";
+    const replaced = applyOccupancyEligibilityToDenial(stale, eligibility, "rearm");
+    expect(fillRecoveryCommandSessionId(replaced, "intruder")).toBe(replaced);
+    expect(replaced).not.toMatch(/session:start --rearm/);
   });
 });
