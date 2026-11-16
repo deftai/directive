@@ -44,6 +44,16 @@ function fact(kind: FactKind, id: string, value?: string): ConstraintFact {
   return value === undefined ? { kind, id } : { kind, id, value };
 }
 
+/** 1-based source line of a node, for naming a fact (#6336 item 6). */
+function lineOf(node: TS.Node): number {
+  const sf = node.getSourceFile();
+  return sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
+}
+
+function atLine(f: ConstraintFact, node: TS.Node): ConstraintFact {
+  return { ...f, line: lineOf(node) };
+}
+
 function pushFact(out: ConstraintFact[], next: ConstraintFact): void {
   const same = out.filter(
     (f) => f.kind === next.kind && (f.id === next.id || f.id.startsWith(`${next.id}#`)),
@@ -176,18 +186,21 @@ function visit(node: TS.Node, ts: TSModule, facts: ConstraintFact[]): void {
     const peeled = peelNumeric(node.initializer, ts);
     if (peeled !== undefined) {
       const value = peeled.negative ? `-${peeled.text}` : peeled.text;
-      pushFact(facts, fact("numeric-const", `numeric-const:${node.name.text}=${value}`, value));
+      pushFact(
+        facts,
+        atLine(fact("numeric-const", `numeric-const:${node.name.text}=${value}`, value), node),
+      );
     }
   }
   if (ts.isThrowStatement(node)) {
-    pushFact(facts, fact("throw-site", `throw-site:${compactSource(node)}`));
+    pushFact(facts, atLine(fact("throw-site", `throw-site:${compactSource(node)}`), node));
   }
   if (ts.isCallExpression(node)) {
     const name = calleeName(node, ts);
     if (name === "reject") {
-      pushFact(facts, fact("reject-site", `reject-site:${compactSource(node)}`));
+      pushFact(facts, atLine(fact("reject-site", `reject-site:${compactSource(node)}`), node));
     } else if (name === "abort") {
-      pushFact(facts, fact("abort-site", `abort-site:${compactSource(node)}`));
+      pushFact(facts, atLine(fact("abort-site", `abort-site:${compactSource(node)}`), node));
     }
   }
   ts.forEachChild(node, (child) => visit(child, ts, facts));

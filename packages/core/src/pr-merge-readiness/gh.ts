@@ -26,6 +26,11 @@ export interface CheckRunRecord {
    * Used to match app-bound required contexts from rulesets / branch protection (#3234).
    */
   readonly appId?: number | null;
+  /**
+   * Check-run id (`id`). Tie-break for the newest run per (app id, name) when
+   * `created_at` is equal or absent; ids grow with each run (#6336).
+   */
+  readonly runId?: number | null;
 }
 
 /**
@@ -449,6 +454,7 @@ function recordFromCheckRun(run: unknown): CheckRunRecord | null {
       appId = id;
     }
   }
+  const runId = typeof r.id === "number" && Number.isFinite(r.id) ? r.id : null;
   return {
     name,
     status,
@@ -456,6 +462,7 @@ function recordFromCheckRun(run: unknown): CheckRunRecord | null {
     created_at: createdAt,
     started_at: startedAt,
     appId,
+    ...(runId === null ? {} : { runId }),
     ...(runSummary === null ? {} : { summary: runSummary }),
   };
 }

@@ -61,6 +61,69 @@ function withTypescript(root: string): string {
   return root;
 }
 
+describe("verify:intent-constraint lists every fact (#6336 item 6)", () => {
+  /** Twelve new numeric consts, one per line from line 2. */
+  const TWELVE = `\n${Array.from({ length: 12 }, (_, i) => `const LIMIT_${i} = ${100 + i};`).join("\n")}\nexport function publish(): void {}\n`;
+  const base = {
+    projectRoot: process.cwd(),
+    mergeBase: "base",
+    changedFiles: ["src/ingest.ts"],
+    readAtBase: (rel: string) => (rel === "src/ingest.ts" ? BASE : null),
+    readAtHead: (rel: string) => (rel === "src/ingest.ts" ? TWELVE : null),
+  };
+
+  function expectAllTwelve(message: string): void {
+    for (let i = 0; i < 12; i += 1) {
+      expect(message).toContain(`src/ingest.ts:${i + 2} numeric-const ${100 + i}`);
+    }
+    expect(message).toContain("12 ");
+  }
+
+  it("lists all twelve with path, line, kind and value when no mint exists", () => {
+    const result = evaluateIntentConstraint({ ...base, recordTextsAtBase: new Map() });
+    expect(result.code).toBe(1);
+    expectAllTwelve(result.message);
+  });
+
+  it("lists all twelve when the plan has no mint", () => {
+    const result = evaluateIntentConstraint({
+      ...base,
+      planId: "other-story",
+      recordTextsAtBase: new Map([
+        [".deft/intent-constraint/story-1.json", `${JSON.stringify(record(), null, 2)}\n`],
+      ]),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toMatch(/no merge-base mint record for planId other-story/);
+    expectAllTwelve(result.message);
+  });
+
+  it("lists every uncovered fact when a mint covers only some", () => {
+    const result = evaluateIntentConstraint({
+      ...base,
+      planId: "story-1",
+      recordTextsAtBase: new Map([
+        [".deft/intent-constraint/story-1.json", `${JSON.stringify(record(), null, 2)}\n`],
+      ]),
+    });
+    expect(result.code).toBe(1);
+    expectAllTwelve(result.message);
+  });
+
+  it("names a throw site by its source and line", () => {
+    const result = evaluateIntentConstraint({
+      ...files(POSTED),
+      planId: undefined,
+      recordTextsAtBase: new Map(),
+    });
+    expect(result.code).toBe(1);
+    expect(result.message).toContain(
+      'src/ingest.ts:6 throw-site throw new Error("item exceeds limit");',
+    );
+    expect(result.message).toContain("src/ingest.ts:2 numeric-const 1024");
+  });
+});
+
 function files(head: string, extras?: { changedFiles?: string[] }) {
   return {
     projectRoot: process.cwd(),
