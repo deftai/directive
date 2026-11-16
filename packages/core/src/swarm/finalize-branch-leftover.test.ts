@@ -86,12 +86,17 @@ describe("describeFinalizeBranchLeftover (#6421)", () => {
     const gone = join(tmpdir(), "deft-finalize-lifecycle-gone-6421", "checkout");
     const git = fakeGit({ localBranch: true, porcelain: porcelainWith(gone) });
     const text = describeFinalizeBranchLeftover(ROOT, BRANCH, git.run);
-    expect(text).toContain(`git -C "${ROOT}" worktree prune && git -C "${ROOT}" branch -D ${BRANCH}`);
+    expect(text).toContain(
+      `git -C "${ROOT}" worktree prune && git -C "${ROOT}" branch -D ${BRANCH}`,
+    );
     expect(text).not.toContain("worktree remove");
   });
 
   it("prints only the branch command when no worktree holds the branch", () => {
-    const git = fakeGit({ localBranch: true, porcelain: `worktree ${ROOT}\nHEAD 1\nbranch refs/heads/master\n` });
+    const git = fakeGit({
+      localBranch: true,
+      porcelain: `worktree ${ROOT}\nHEAD 1\nbranch refs/heads/master\n`,
+    });
     const text = describeFinalizeBranchLeftover(ROOT, BRANCH, git.run);
     expect(text).toContain(`then re-run: git -C "${ROOT}" branch -D ${BRANCH}`);
     expect(text).not.toContain("checked out in worktree");
