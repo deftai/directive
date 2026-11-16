@@ -259,3 +259,71 @@ describe("originOnePrBriefAdmitted (#6361)", () => {
     });
   });
 });
+
+describe("originOnePrBriefAdmitted refusals with a scripted git (#6361)", () => {
+  const BRIEF = "xbrief/active/s.xbrief.json";
+  const MINT_PD = JSON.stringify({
+    plan: { title: "t", status: "running", policy: { onePrScopeProof: "mint" } },
+  });
+  const ok = (stdout = ""): TextCaptureResult => ({ returncode: 0, stdout, stderr: "" });
+  const fail: TextCaptureResult = { returncode: 1, stdout: "", stderr: "fatal" };
+
+  /** Scripted git: fetch ok, brief is a blob, merge-base ok, PROJECT-DEFINITION mint. */
+  function git(overrides: {
+    mergeBase?: TextCaptureResult;
+    brief?: TextCaptureResult;
+    record?: TextCaptureResult;
+  }) {
+    return (cmd: readonly string[]): TextCaptureResult => {
+      if (cmd[1] === "fetch") return ok();
+      if (cmd[1] === "cat-file") return ok("blob\n");
+      if (cmd[1] === "merge-base") return overrides.mergeBase ?? ok("abc123\n");
+      if (cmd[1] === "show") {
+        const spec = String(cmd[2]);
+        if (spec.endsWith("PROJECT-DEFINITION.xbrief.json")) return ok(MINT_PD);
+        if (spec.endsWith(BRIEF)) return overrides.brief ?? fail;
+        if (spec.includes(".deft/approved-scope/") && !spec.endsWith(".intent.json")) {
+          return overrides.record ?? fail;
+        }
+      }
+      return fail;
+    };
+  }
+
+  const probe = (runGit: ReturnType<typeof git>, delivery = "master") =>
+    originOnePrBriefAdmitted("/tmp/proj", delivery, "one-pr", BRIEF, runGit);
+
+  it("refuses an unsafe delivery branch name", () => {
+    expect(probe(git({}), "--upload-pack=x").error).toMatch(/Invalid|must match/i);
+  });
+
+  it("refuses when merge-base fails", () => {
+    expect(probe(git({ mergeBase: fail })).error).toBe(
+      "git merge-base origin/master origin/one-pr failed",
+    );
+    expect(probe(git({ mergeBase: ok("") })).error).toMatch(/merge-base .* failed/);
+  });
+
+  it("refuses an unreadable, non-JSON or id-less brief at the tip", () => {
+    expect(probe(git({})).error).toBe(`origin/one-pr:${BRIEF} unreadable`);
+    expect(probe(git({ brief: ok("{not json") })).error).toBe(
+      `origin/one-pr:${BRIEF} is not valid JSON`,
+    );
+    expect(probe(git({ brief: ok(JSON.stringify({ plan: { title: "x" } })) })).error).toBe(
+      "head brief has no plan.id",
+    );
+  });
+
+  it("treats a malformed record at the tip as no record", () => {
+    const brief = ok(JSON.stringify({ plan: { id: "s", title: "x", status: "running" } }));
+    for (const record of [
+      ok("{not json"),
+      ok("[]"),
+      ok("null"),
+      ok(JSON.stringify({ fileScope: [] })),
+      fail,
+    ]) {
+      expect(probe(git({ brief, record })).error).toBe("no same-PR approved-scope record");
+    }
+  });
+});
