@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6270",
-    "updated": "2026-11-13T15:09:06Z"
+    "updated": "2026-11-16T03:53:59Z"
   },
   "plan": {
     "title": "bug(scope): strict acceptance axes match on identifiers, so a deploy-dev job or deploy.yml makes a clause need deploy evidence",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "scope:complete assigns strict acceptance axes (deploy, smoke, UAT) by regex on clause text, and the word-boundary regex matches inside file, job and workflow names such as deploy-dev, deploy.yml and smoke-test.ts. A strict axis cannot be met by merge or test evidence, so those clauses need deploy evidence or an operator disposition after the merge. This story makes the axis patterns match prose only, skips text inside backticks, and keeps real deploy, smoke and UAT claims strict.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6270",
@@ -19,146 +19,250 @@
     "items": [
       {
         "title": "Summary `scope:complete` assigns strict acceptance axes (deploy, smoke, UAT) by regex on the clause text.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When scope:complete evaluates a clause, the strict axes it requires come from inferRequiredStrictAxes in acceptance-evidence.ts; a test shows that function returns an axis for a prose claim and none for a name-only match."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "926b2c9c6632e55b96524e7ee4df7e7d09ea811f",
+          "recorded_at": "2026-11-16T03:53:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`\\b` treats `-`, `.`, `_` and `/` as word boundaries, so file, job and workflow names match.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given text where an axis word is joined to a name by -, ., _ or /, when inferRequiredStrictAxes runs, then it returns no axis for that word; a test beside acceptance-evidence.ts passes."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "926b2c9c6632e55b96524e7ee4df7e7d09ea811f",
+          "recorded_at": "2026-11-16T03:53:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A strict axis cannot be satisfied by merge or test evidence, so the clause needs deploy evidence or an operator disposition after the merge.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given an item whose only axis words sit inside identifiers, when the acceptance-evidence gate evaluates it with merge evidence, then it passes without deploy evidence or an operator disposition."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "926b2c9c6632e55b96524e7ee4df7e7d09ea811f",
+          "recorded_at": "2026-11-16T03:53:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Evidence `packages/core/src/scope/acceptance-evidence.ts`, about line 407: Checked locally: `deploy-dev job`, `deploy.yml`, `deploy-trust.ts` and `the deploy-prod workflow` all match.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given each of deploy-dev job, deploy.yml, deploy-trust.ts and the deploy-prod workflow, when inferRequiredStrictAxes runs, then it returns no deploy axis; a test covers each input."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "926b2c9c6632e55b96524e7ee4df7e7d09ea811f",
+          "recorded_at": "2026-11-16T03:53:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`\\bsmoke\\b` (line above) has the same flaw, for example `smoke-test.ts`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given smoke-test.ts, when inferRequiredStrictAxes runs, then it returns no smoke axis; a test covers the input."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "926b2c9c6632e55b96524e7ee4df7e7d09ea811f",
+          "recorded_at": "2026-11-16T03:53:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Consumer impact On a consumer project (0.129.6), completion of a brief that added a prod deploy workflow refused until 23 of 35 clauses had deploy evidence or an operator disposition.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a brief whose clauses name a deploy workflow file or job only, when the acceptance-evidence gate runs after merge, then it does not refuse those clauses for deploy evidence."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "926b2c9c6632e55b96524e7ee4df7e7d09ea811f",
+          "recorded_at": "2026-11-16T03:53:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "16 of the 23 matched on a name only.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given clauses that match an axis on a name only, when inferRequiredStrictAxes runs on each, then it returns an empty list; a test shows the name-only inputs."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "926b2c9c6632e55b96524e7ee4df7e7d09ea811f",
+          "recorded_at": "2026-11-16T03:53:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The gate appeared only after the merge, the permission classifier refused the agent's write of a disposition in the operator's name, and the operator ran two scripts.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When a clause names an axis word only inside an identifier, the acceptance-evidence gate records no strict-axis refusal, so no operator disposition is needed after the merge."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "926b2c9c6632e55b96524e7ee4df7e7d09ea811f",
+          "recorded_at": "2026-11-16T03:53:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Cost: 44+ minutes, still open at the end of the session.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given a brief shaped like the consumer case (name-only axis words), when the acceptance-evidence gate runs, then it returns no strict-axis refusal for those clauses."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "926b2c9c6632e55b96524e7ee4df7e7d09ea811f",
+          "recorded_at": "2026-11-16T03:53:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Expected Match the axis words as prose, not as part of an identifier, for example `(?<![\\w./-])deploy(?:ment|ed|s)?(?![\\w./-])`, and skip text inside backticks.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given an axis word inside backticks, when inferRequiredStrictAxes runs, then it returns no axis for that word; given the same word as prose, then it returns the axis."
+        },
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Prose-only axis matching shipped in PR #6289. Skipping text inside backticks was cut by operator ruling (regex stripping can erase real requirements) and moved to #6301.",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-16T03:43:30Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261116034330-ead9a3"
+          },
+          "recorded_at": "2026-11-16T03:53:59Z",
+          "deferred_to": "#6301"
         }
       },
       {
         "title": "Apply the same rule to the smoke and UAT patterns.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given smoke-test.ts or uat-evidence/x.md, when inferRequiredStrictAxes runs, then it returns no smoke or uat axis; given smoke test passes or UAT sign-off, then it returns smoke or uat."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "926b2c9c6632e55b96524e7ee4df7e7d09ea811f",
+          "recorded_at": "2026-11-16T03:53:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A real deploy claim (`deploys to prod`, `after deployment`) still requires deploy evidence.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given deploys to prod or after deployment, when inferRequiredStrictAxes runs, then it returns deploy."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "926b2c9c6632e55b96524e7ee4df7e7d09ea811f",
+          "recorded_at": "2026-11-16T03:53:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Acceptance - Given clause text `the deploy-dev job runs on merge`, then no deploy axis is returned; given `deploys to prod after merge`, then deploy is returned.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given the clause text the deploy-dev job runs on merge, when inferRequiredStrictAxes runs, then it returns no deploy axis; given deploys to prod after merge, then it returns deploy."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "926b2c9c6632e55b96524e7ee4df7e7d09ea811f",
+          "recorded_at": "2026-11-16T03:53:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Same pair for `smoke-test.ts` vs `smoke test passes`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "Given smoke-test.ts, when inferRequiredStrictAxes runs, then it returns no smoke axis; given smoke test passes, then it returns smoke."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "926b2c9c6632e55b96524e7ee4df7e7d09ea811f",
+          "recorded_at": "2026-11-16T03:53:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Tests beside `acceptance-evidence.ts`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When npx vitest run packages/core/src/scope/acceptance-evidence.test.ts runs, then the identifier and prose cases pass."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "926b2c9c6632e55b96524e7ee4df7e7d09ea811f",
+          "recorded_at": "2026-11-16T03:53:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Refs #3240.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When the product PR is opened, the CHANGELOG entry and the PR body reference #3240."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "926b2c9c6632e55b96524e7ee4df7e7d09ea811f",
+          "recorded_at": "2026-11-16T03:53:59Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -442,9 +546,36 @@
           "#3240"
         ],
         "acceptance_criteria_justification": "The ingest admitted every sentence of the issue body, and verify:ac requires each admitted sentence as a clause (#5055), so the brief has one clause and one item per sentence, each bound to acceptance-evidence.ts, its test, or CHANGELOG.md. The issue title is the one confession."
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "a3d1f3e58034d54a9d08cc1d180ab7b824a12a78",
+        "prNumber": 6289,
+        "prBase": "master",
+        "mergeCommit": "926b2c9c6632e55b96524e7ee4df7e7d09ea811f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "cfa3ce1fcae5d661ed79baab1fd85c04cc244707",
+        "verifiedAt": "2026-11-16T03:53:59Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "operator-attested",
+        "attestationGrantId": "grant-20261116034323-54b659"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T03:53:59Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T03:53:59Z"
       }
     },
     "id": "github.issue.6373188377",
-    "updated": "2026-11-13T15:09:06Z"
+    "updated": "2026-11-16T03:53:59Z"
   }
 }
