@@ -7,7 +7,17 @@
  * and MUST NOT change existing intent digests.
  */
 
-import { ACCEPTANCE_EVIDENCE_KEY } from "../scope/acceptance-evidence.js";
+import type { ACCEPTANCE_EVIDENCE_KEY as AcceptanceEvidenceKey } from "../scope/acceptance-evidence.js";
+
+/**
+ * `ACCEPTANCE_EVIDENCE_KEY` as a literal (#6361). A value import closes the
+ * cycle acceptance-evidence -> acceptance-resolver -> hooks/scope ->
+ * write-fence -> one-pr-scope-proof -> compare-intent/extract-intent -> this
+ * module, and `ITEM_MACHINE_KEYS` below reads the key at module top level, so a
+ * process that loads extract-intent first throws a TDZ ReferenceError. The
+ * type-only import keeps the literal pinned to the canonical key at compile time.
+ */
+const EVIDENCE_KEY: typeof AcceptanceEvidenceKey = "x-directive/evidence";
 
 export type KeyClass = "extract" | "extract-partial" | "machine" | "unknown";
 
@@ -63,7 +73,7 @@ export const ITEM_MACHINE_KEYS = new Set<string>([
   "created",
   "planRef",
   "plan_ref",
-  ACCEPTANCE_EVIDENCE_KEY,
+  EVIDENCE_KEY,
 ]);
 
 /** reference fields that are never extracted. */

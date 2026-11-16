@@ -220,9 +220,9 @@ import {
 } from "./readonly.js";
 import {
   type ActiveScopeInspection,
+  formatPositiveGoverningAllowDeny,
   type InspectActiveScopeOptions,
   inspectActiveScope,
-  POSITIVE_GOVERNING_ALLOW_REQUIRED,
   resolveWorktreeStoryBinding,
   type WorktreeStoryBinding,
 } from "./scope.js";
@@ -2812,7 +2812,7 @@ function inspectMutationGates(
       input,
       denyCode,
       toolName,
-      `${POSITIVE_GOVERNING_ALLOW_REQUIRED}${formatStoryWriteFenceBaseNote(fence)}${rootsNote}`,
+      `${formatPositiveGoverningAllowDeny(fence)}${formatStoryWriteFenceBaseNote(fence)}${rootsNote}`,
       scope.path,
     );
   };
@@ -5310,7 +5310,7 @@ export function evaluateProspectiveScopeCover(
       ok: false,
       message:
         `Prospective scope-cover denied: selected scope lacks positive governing ` +
-        `allow file_scope (#5656).${formatStoryWriteFenceBaseNote(fence)} ${POSITIVE_GOVERNING_ALLOW_REQUIRED}`,
+        `allow file_scope (#5656).${formatStoryWriteFenceBaseNote(fence)} ${formatPositiveGoverningAllowDeny(fence)}`,
       uncovered: productStaged,
       scopePath: scope.path,
     };
