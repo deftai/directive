@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- A story's last product PR can complete the story with `scope:complete --in-pr`, so no separate completion PR is needed; the human product merge plus the identity join on the landing commit is the completion proof, and stories whose acceptance rests on a merge keep the post-merge path (#6277).
 - `scope:promote`, `scope:activate` and `xbrief:preflight` now list the clauses that `scope:complete` will hold to deploy, smoke, UAT or observed-behaviour evidence, using the same classifier, so the wording or `x-directive/requires` can be fixed in the brief PR. Advisory only; exit codes are unchanged (#6272).
 
 ### Changed

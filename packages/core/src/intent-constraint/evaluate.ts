@@ -23,6 +23,7 @@ import { resolveDefaultBaseRef as resolveForgeDefaultBaseRef } from "../evaluato
 import { normalizePath } from "../orchestration/pathspec.js";
 import { resolveCandidateBaseRef } from "../orphan-active/candidate-scope.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
+import { soleLandsWithProductMove } from "../scope/lands-with-product.js";
 import { resolveDefaultBaseRef as resolvePrAwareBaseRef } from "../scope-provenance/evaluate.js";
 import { defaultGitRunner } from "../session/git.js";
 import { newFacts, uncoveredDeltas } from "./diff.js";
@@ -343,6 +344,10 @@ function resolveCurrentPlanId(projectRoot: string, explicit: string | undefined)
     }
     return { kind: "invalid-pin" };
   }
+  // #6277 Bound 6: the story brief this change set moves to completed/
+  // (lands-with-product) is the current story.
+  const landed = soleLandsWithProductMove(projectRoot);
+  if (landed !== null && landed.planId.length > 0) return { kind: "id", id: landed.planId };
   const only = soleRecord(listRunningPlanIds(projectRoot));
   if (only !== undefined) return { kind: "id", id: only };
   return { kind: "none" };

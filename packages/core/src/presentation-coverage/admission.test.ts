@@ -99,3 +99,33 @@ it("recomputes intent contracts and rejects invalid, duplicate and unrelated min
     ),
   ).toHaveProperty("error");
 });
+it("selects the story brief this change set moves to completed/ as lands-with-product (#6277)", () => {
+  const done = "xbrief/completed/current.xbrief.json";
+  const landed = {
+    ...plan,
+    status: "completed",
+    metadata: {
+      ...plan.metadata,
+      lifecycleWrite: {
+        action: "complete",
+        writtenAt: "2026-11-16T00:00:00Z",
+        completionDisposition: "lands-with-product",
+      },
+    },
+  };
+  const peer = "xbrief/active/peer.xbrief.json";
+  const peerText = JSON.stringify({ plan: { ...plan, id: "peer" } });
+  const base = { [rel]: JSON.stringify({ plan }), [peer]: peerText };
+  const head = { [done]: JSON.stringify({ plan: landed }), [peer]: peerText };
+  const snapshot = { ...fixture(base, head), changed: [rel, done, "src/a.ts"] };
+  expect(currentStory(snapshot)).toMatchObject({ planId: "current", rel: done, scope: ["src/**"] });
+  // Not in the change set, or without the disposition: not the moved story.
+  expect(currentStory({ ...snapshot, changed: ["src/a.ts"] })).toMatchObject({ planId: "peer" });
+  const plain = {
+    [done]: JSON.stringify({ plan: { ...landed, metadata: plan.metadata } }),
+    [peer]: peerText,
+  };
+  expect(currentStory({ ...fixture(base, plain), changed: [done] })).toMatchObject({
+    planId: "peer",
+  });
+});

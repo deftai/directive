@@ -26,6 +26,7 @@ import {
   resolveSoftMissingAcTargets,
   VERIFY_AC_NO_OBLIGATION_EXIT,
 } from "@deftai/directive-core/product-first-done-gate";
+import { discoverLandsWithProductMoves } from "@deftai/directive-core/scope";
 
 export { VERIFY_AC_NO_OBLIGATION_EXIT };
 
@@ -317,8 +318,21 @@ export function run(argv: string[]): number {
 
   const projectRoot = resolve(args.projectRoot);
   let paths: string[] = [];
+  // #6277 Bound 6: a change set that moves its story brief to completed/ as
+  // lands-with-product runs that brief's AC, not another active story's.
+  const landed =
+    args.xbriefPath === null && !args.captureOnly ? discoverLandsWithProductMoves(projectRoot) : [];
   if (args.xbriefPath !== null) {
     paths = [resolve(projectRoot, args.xbriefPath)];
+  } else if (landed.length > 0) {
+    paths = landed.map((move) => join(projectRoot, ...move.completedRel.split("/")));
+    if (!args.quiet) {
+      process.stdout.write(
+        `verify:ac targeting lands-with-product brief(s) of this change set (#6277): ${landed
+          .map((move) => move.completedRel)
+          .join(", ")}\n`,
+      );
+    }
   } else {
     const found = listActiveXbriefs(projectRoot);
     if (found.kind === "one") {

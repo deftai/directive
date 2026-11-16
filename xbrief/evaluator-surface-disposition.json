@@ -1,10 +1,13 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 6315,
+  "issue": 6277,
   "surfaces": [
-    "tasks/verify.yml",
+    "packages/core/src/intent-constraint/evaluate.ts",
+    "packages/core/src/observable-scope/evaluate.ts",
+    "packages/core/src/presentation-coverage/admission.ts",
+    "packages/core/src/presentation-coverage/admission.test.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for #6315: tasks/verify.yml changes only the description of verify:changelog-unreleased (ENGINE_CMD unchanged: changelog-check --against-merge-base) to name the plan.policy.changelog.mode behaviour (inline line, fragments, either) and the merge-base fragment rules. The gate's behaviour change is in packages/core/src/task-surface/index.ts and changelog/fragment.ts, and inline mode keeps today's verdicts apart from the new fragment-integrity refusals. Disclosure only; not #3164 authorization. Refs #6315, #6286."
+  "note": "Disclosure for #6277 Bound 6 (story gates): intent-constraint and observable-scope resolve the current plan id from the story brief this change set moves to completed/ as lands-with-product (one move only), before the sole-running fallback; presentation-coverage admission accepts that moved brief, read against its merge-base active/ path, as the current story. No verdict, mint or remediation changes; a change set without a lands-with-product move resolves as before. Disclosure only; not #3164 authorization. Refs #6277."
 }

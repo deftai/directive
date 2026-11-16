@@ -119,6 +119,14 @@ Live skip detection on deftai/directive additionally requires Limb 5 enrollment 
 - ! A story's completion normally rides in its last product PR (#6277). The remaining completion PRs are batched under #6303, which owns their review cost and the reviewer-side setting.
 - ⊗ Skip the review bot on a lifecycle-only PR, or path-filter the reviewer over the lifecycle folders (that also silences activation review).
 
+## In-PR completion is the default for a story's last product PR (#6277)
+
+- ! On a story's last product PR, run `deft scope:complete -- <active-path> --in-pr` as the last write before the final commit. It runs the completion transition on the branch and stamps the brief `lands-with-product`. It writes no delivered provenance and no merge evidence.
+- ! The PR body carries a closing keyword for the story's issue (`Closes #N`). Do not put `deft-story-part: N` on this PR: a part line cannot complete the story (#6317). If earlier PRs of the story carry `deft-story: N`, leave the mark off this PR and use the keyword alone.
+- ! `verify:completed-write-guard` admits the move only when the PR removes the brief from `active/`, changes production files inside the brief's `file_scope` only, and has the closing keyword. Locally pass `--pr-body-file <body>`; CI reads the PR event.
+- ! `--in-pr` refuses a story whose acceptance rests on a merge (a merge-requirement item, stored merge evidence, stored completion provenance, clause-less acceptance), a brief with no issue reference, and a branch with no production change in scope. A refused story keeps the post-merge path: merge the product PR, then `scope:complete` or `swarm:finalize-cohort` and a completion PR (#6303).
+- ! The completion proof is the human product merge plus the identity join: after merge, `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` re-run the join on the commit that landed the brief.
+
 ## Loop Phases
 
 Each iteration proceeds through all phases in order. Do NOT skip phases or reorder them.

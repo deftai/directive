@@ -13,6 +13,7 @@ import {
   parseObservableChangeContract,
   parseObservableScopeRecord,
 } from "../observable-scope/mint.js";
+import { isLandsWithProductPlan } from "../scope/lifecycle-write.js";
 import { matchPolicyGlob } from "../test-boundary/evaluate.js";
 import { isRecord, normalizeRel } from "./paths.js";
 import { type CoverageSnapshot, readTexts } from "./snapshot.js";
@@ -28,13 +29,22 @@ export function currentStory(
   planId?: string,
 ): CurrentStory | { error: string } {
   const candidates: CurrentStory[] = [];
+  const moved: CurrentStory[] = [];
   const pin = process.env.DEFT_ACTIVE_SCOPE;
   const pinRel = pin
     ? normalizeRel(isAbsolute(pin) ? relative(snapshot.projectRoot, pin) : pin)
     : undefined;
-  for (const [rel, text] of readTexts(snapshot.head, (p) =>
-    /^xbrief\/active\/.*\.xbrief\.json$/.test(p),
+  // #6277 Bound 6: a changed completed/ brief stamped lands-with-product is the
+  // story's brief moved out of active/ by this change set; its base is active/.
+  const changed = new Set(snapshot.changed.map((p) => normalizeRel(p)));
+  for (const [rel, text] of readTexts(
+    snapshot.head,
+    (p) =>
+      /^xbrief\/active\/.*\.xbrief\.json$/.test(p) ||
+      (/^xbrief\/completed\/[^/]+\.xbrief\.json$/.test(p) && changed.has(normalizeRel(p))),
   )) {
+    const isMove = rel.startsWith("xbrief/completed/");
+    const baseRel = isMove ? `xbrief/active/${rel.slice("xbrief/completed/".length)}` : rel;
     let raw: unknown;
     try {
       raw = JSON.parse(text);
@@ -44,13 +54,15 @@ export function currentStory(
     if (
       !isRecord(raw) ||
       !isRecord(raw.plan) ||
-      raw.plan.status !== "running" ||
-      typeof raw.plan.id !== "string"
+      raw.plan.status !== (isMove ? "completed" : "running") ||
+      typeof raw.plan.id !== "string" ||
+      (isMove && !isLandsWithProductPlan(raw.plan))
     )
       continue;
     if (planId !== undefined && raw.plan.id !== planId) continue;
-    if (planId === undefined && pinRel !== undefined && pinRel !== rel) continue;
-    const baseText = snapshot.base.read(rel);
+    if (planId === undefined && pinRel !== undefined && pinRel !== rel && pinRel !== baseRel)
+      continue;
+    const baseText = snapshot.base.read(baseRel);
     if (baseText === null) continue;
     let base: unknown;
     try {
@@ -70,7 +82,13 @@ export function currentStory(
     const scope = Array.isArray(swarm.file_scope)
       ? swarm.file_scope.filter((x): x is string => typeof x === "string")
       : [];
-    candidates.push({ planId: raw.plan.id, rel, scope, basePlan: base.plan, headPlan: raw.plan });
+    const story = { planId: raw.plan.id, rel, scope, basePlan: base.plan, headPlan: raw.plan };
+    candidates.push(story);
+    if (isMove) moved.push(story);
+  }
+  const soleMove = moved.length === 1 ? moved[0] : undefined;
+  if (soleMove !== undefined && candidates.length > 1) {
+    return soleMove;
   }
   return candidates.length === 1
     ? candidates[0]!

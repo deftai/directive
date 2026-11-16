@@ -12,6 +12,7 @@ import {
 } from "../policy/write-fence.js";
 import { evaluate } from "../preflight/evaluate.js";
 import { fenceUntrustedAcceptanceText } from "../scope/acceptance-evidence.js";
+import { soleLandsWithProductMove } from "../scope/lands-with-product.js";
 import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import {
   liveOccupant,
@@ -571,6 +572,15 @@ export function resolveSoftMissingAcTargets(
   projectRoot: string,
   options?: ResolveSoftMissingAcTargetsOptions,
 ): SoftMissingAcTargetResolution {
+  // #6277 Bound 6: on the check / pre-PR path, a change set that moves its story
+  // brief to completed/ as lands-with-product names that brief as the story.
+  if (options?.branchBind !== undefined) {
+    const bindRoot = options.branchBind.projectRoot ?? projectRoot;
+    const landed = soleLandsWithProductMove(bindRoot);
+    if (landed !== null) {
+      return { kind: "one", path: join(bindRoot, ...landed.completedRel.split("/")) };
+    }
+  }
   const scanned =
     options?.scannedPaths !== undefined
       ? [...options.scannedPaths]

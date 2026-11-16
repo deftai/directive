@@ -68,6 +68,8 @@ export interface LifecycleArgs {
   deliveryEvidence?: DeliveryEvidenceInput;
   /** Clause ids for scope:bind-clause (#4986). */
   clauseIds?: number[];
+  /** In-PR completion for scope:complete (#6277). */
+  inPr?: boolean;
 }
 
 export interface DemoteArgs {
@@ -112,6 +114,7 @@ const LIFECYCLE_USAGE_STDERR =
   "                          [--force] [--project-root PATH] [--strict] [--force-no-cache]\n" +
   "                          [--path PATH]\n" +
   "  complete also accepts: --merge-commit SHA --pr N [--pr-base BRANCH] [--delivery-branch BRANCH]\n" +
+  "  complete --in-pr completes the story inside its last product PR (lands-with-product; #6277)\n" +
   "  stamp-evidence is evidence-only: no --pr / --merge-commit / disposition argv (#4840)\n" +
   "  bind-clause binds selected --clause ids onto --path under file_scope (#4986)\n" +
   "  actions: activate, bind-clause, block, cancel, complete, fail, promote, restore, stamp-evidence, unblock\n" +
@@ -149,13 +152,16 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
   let deliveryBranch: string | undefined;
   let repo: string | undefined;
   let mergedAt: string | undefined;
+  let inPr = false;
   for (let i = 1; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === undefined) {
       return { args: null, error: "usage" };
     }
     if (arg === "--") continue;
-    if (arg === "--force") {
+    if (arg === "--in-pr") {
+      inPr = true;
+    } else if (arg === "--force") {
       force = true;
     } else if (arg === "--batch") {
       batch = true;
@@ -280,6 +286,17 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
           verifier: "scope:complete",
         }
       : undefined;
+  // #6277: --in-pr is a scope:complete mode with no merge evidence or disposition.
+  if (
+    inPr &&
+    (action !== "complete" ||
+      batch ||
+      fromIssue !== undefined ||
+      deliveryEvidence !== undefined ||
+      nonDeliveryDisposition !== undefined)
+  ) {
+    return { args: null, error: "usage" };
+  }
   if (batch) {
     if (action !== "promote") {
       return { args: null, error: "usage" };
@@ -368,6 +385,7 @@ function parseLifecycleArgv(argv: string[]): { args: LifecycleArgs | null; error
       force,
       nonDeliveryDisposition,
       deliveryEvidence,
+      ...(inPr ? { inPr: true } : {}),
     },
   };
 }
@@ -404,6 +422,7 @@ export function lifecycleMain(argv: string[]): number {
     clauseIds,
     nonDeliveryDisposition,
     deliveryEvidence,
+    inPr,
   } = parsed.args;
 
   if (batch === true && action === "promote") {
@@ -550,6 +569,7 @@ export function lifecycleMain(argv: string[]): number {
     nonDeliveryDisposition,
     deliveryEvidence,
     verifier: "scope:complete",
+    ...(inPr === true ? { inPr: true } : {}),
   };
   // #6272: read before the move; activate does not change item text.
   const activateAdvisory = action === "activate" ? briefStrictAxisAdvisory(filePath) : [];

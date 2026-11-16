@@ -6,9 +6,15 @@ import {
   referenceTypeMatches,
 } from "@deftai/directive-types";
 import { resolveLifecycleRoot } from "../layout/resolve.js";
+import { resolveDeliveryTip } from "../lifecycle/completed-tracked-on-delivery.js";
+import {
+  listTipLandsWithProductBriefs,
+  type ProveLandsWithProductFn,
+  proveLandsWithProductCompletion,
+} from "../lifecycle/lands-with-product-proof.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import { ScmStubError } from "../scm/errors.js";
-import type { GitRunner } from "../session/git.js";
+import { defaultGitRunner, type GitRunner } from "../session/git.js";
 import { resolveRepo } from "../triage/queue/repo.js";
 import {
   type CandidateScope,
@@ -33,7 +39,11 @@ import { listActiveRunningBriefs } from "./running-briefs.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
 
-export type OrphanKind = "shipped" | "unresolved" | "dropped-ref";
+/**
+ * `lands-with-product-unproven` (#6277 Bound 5): a completed brief on the
+ * delivery tip, stamped `lands-with-product`, whose close proof fails.
+ */
+export type OrphanKind = "shipped" | "unresolved" | "dropped-ref" | "lands-with-product-unproven";
 
 export interface OrphanActiveBrief {
   readonly path: string;
@@ -105,6 +115,10 @@ export interface EvaluateOptions {
   /** Base ref for `changedOnly`; defaults to `origin/<deliveryBranch>`. */
   readonly baseRef?: string | null;
   readonly runGit?: GitRunner;
+  /** Delivery tip for the lands-with-product scan (#6277); defaults to origin/<deliveryBranch>. */
+  readonly tip?: string | null;
+  /** Close proof for lands-with-product briefs (#6277); defaults to the forge-backed join. */
+  readonly proveLandsWithProduct?: ProveLandsWithProductFn;
 }
 
 function relBriefPath(path: string, projectRoot: string): string {
@@ -396,9 +410,18 @@ function formatRefusal(
   const shippedOrphans = orphans.filter((orphan) => orphan.kind === "shipped");
   const unresolvedOrphans = orphans.filter((orphan) => orphan.kind === "unresolved");
   const droppedOrphans = orphans.filter((orphan) => orphan.kind === "dropped-ref");
+  const landedOrphans = orphans.filter((orphan) => orphan.kind === "lands-with-product-unproven");
   const noun = orphans.length === 1 ? "" : "s";
   let headline: string;
-  if (droppedOrphans.length > 0 && shippedOrphans.length === 0 && unresolvedOrphans.length === 0) {
+  if (landedOrphans.length === orphans.length) {
+    headline = `verify:orphan-active: ${landedOrphans.length} lands-with-product xBRIEF${
+      landedOrphans.length === 1 ? "" : "s"
+    } on the delivery tip failed the close proof (#6277) (project_root=${projectRoot}).`;
+  } else if (
+    droppedOrphans.length > 0 &&
+    shippedOrphans.length === 0 &&
+    unresolvedOrphans.length === 0
+  ) {
     headline = `verify:orphan-active: ${droppedOrphans.length} active/running xBRIEF${
       droppedOrphans.length === 1 ? "" : "s"
     } have dropped forge origin references (cannot collect) (project_root=${projectRoot}).`;
@@ -454,6 +477,12 @@ function formatRefusal(
     lines.push(
       "  Remediation: make the origin collectable (canonical x-xbrief/github-issue or x-xbrief/github-pr, or companion #4698 at write time).",
       "  Do not run task scope:complete. Do not retry the GitHub lookup.",
+    );
+  }
+  if (landedOrphans.length > 0) {
+    lines.push(
+      "  Remediation: each lands-with-product brief names its failed join; complete the story",
+      "  through the post-merge path (task scope:complete -- <active-path> --pr <n> --merge-commit <sha>) (#6277 / #6303).",
     );
   }
   lines.push("  Offending briefs:");
@@ -623,6 +652,42 @@ export function evaluate(projectRoot: string, options: EvaluateOptions = {}): Ev
           reason: assessment.reason,
           kind: assessment.kind,
         });
+      }
+    }
+
+    // #6277 Bound 5: a lands-with-product brief on the delivery tip whose close
+    // proof fails is listed, so a failed in-PR completion cannot hide outside
+    // active/. Only the scoped `--issue N` form (the after-merge close proof)
+    // runs it: each proof is a forge identity join, too costly to repeat for every
+    // landed story on each repo-wide sweep. Offline runs skip it.
+    const scanLanded =
+      issueFilter !== null && (!skipGh || options.proveLandsWithProduct !== undefined);
+    if (scanLanded) {
+      const runGit = options.runGit ?? defaultGitRunner;
+      const { tip } = resolveDeliveryTip(root, options.tip, runGit);
+      if (tip !== null) {
+        const prove = options.proveLandsWithProduct ?? proveLandsWithProductCompletion;
+        for (const brief of listTipLandsWithProductBriefs(root, tip, runGit)) {
+          const { issues } = collectGithubRefs(brief.plan, defaultRepo);
+          if (issueFilter !== null && !briefReferencesIssue(issues, issueFilter)) {
+            continue;
+          }
+          const proof = prove({
+            projectRoot: root,
+            tip,
+            briefRel: brief.rel,
+            plan: brief.plan,
+            runGit,
+            runGh,
+          });
+          if (!proof.ok) {
+            orphans.push({
+              path: brief.rel,
+              reason: proof.message,
+              kind: "lands-with-product-unproven",
+            });
+          }
+        }
       }
     }
 
