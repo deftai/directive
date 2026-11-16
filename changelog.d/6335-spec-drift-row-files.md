@@ -1,2 +1,0 @@
-section: Changed
-- **Spec-drift row files**: each story completion writes its spec-drift rows to its own file, `xbrief/.audit/spec-drift/<scopeId>.json`, and no longer appends to `xbrief/.audit/spec-drift-ledger.json`, so parallel completion PRs merge without a manual merge round. The rewrite proof reads both fingerprints from the story's own delivery commits. An authority-record PR carries `deft-story-part: N` (#6335)

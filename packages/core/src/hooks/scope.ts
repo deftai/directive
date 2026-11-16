@@ -24,6 +24,10 @@ import {
   occupancyAdmission,
 } from "../session/occupancy.js";
 import {
+  type ReadStoryBindingRecordResult,
+  readStoryBindingRecord,
+} from "../swarm/story-binding-record.js";
+import {
   FAILURE_DUPLICATE_ASSIGNMENT,
   FAILURE_REGISTRY_CORRUPTION,
   type ReadWorkerAuthAssignmentResult,
@@ -33,6 +37,13 @@ import {
 } from "../swarm/worker-auth-assignment.js";
 
 export { hasPositiveGoverningStoryAllow } from "../policy/write-fence.js";
+
+/**
+ * Parent repair for a linked worktree with no story binding (#6379): begin
+ * writes the worktree's story-binding record.
+ */
+export const PRE_DISPATCH_BEGIN_REPAIR =
+  "`deft swarm:pre-dispatch -- --scope-id <story> --target-id <worktree-or-branch>` (begin)";
 
 /**
  * Deny copy when a selected brief lacks positive governing allow (#5656).
@@ -234,7 +245,9 @@ function formatMultipleActiveMessage(eligible: readonly EligibleScope[]): string
     `Multiple active xBRIEF artifacts are eligible (${names}). ` +
     "The write fence cannot bind the first-sorted story: a cohort would share that " +
     "story's file_scope and over-permit every other worker (#4007). " +
-    `Parent/operator: pin ${ACTIVE_SCOPE_PIN_ENV} to the dispatched story before spawn ` +
+    `Parent/operator: for a linked worktree, run ${PRE_DISPATCH_BEGIN_REPAIR} before spawn ` +
+    "(begin records the worktree's story, #6379); otherwise " +
+    `pin ${ACTIVE_SCOPE_PIN_ENV} to the dispatched story before spawn ` +
     `(or demote/complete competitors / run \`deft ${BLOCK_SCOPE_VERB} -- <brief>\`), ` +
     "and ensure the pin is visible to the hook environ that measured the deny " +
     "(process.env / spawn stdin env bag); restart the host when only User/system env was updated." +
@@ -935,7 +948,8 @@ function admitUntiedWithWorkerAuth(
  *   ambiguous, or an env pin / spawn bound path names a different story.
  *
  * There is no `untied` outcome and no branch-token match: only the assignment
- * record binds a story here.
+ * record, or else the story-binding record that `swarm:pre-dispatch` begin
+ * writes (#6379), binds a story here.
  */
 export type WorktreeStoryBinding =
   | { readonly kind: "none" }
@@ -957,6 +971,11 @@ export interface ResolveWorktreeStoryBindingOptions {
   readonly boundPath?: string | null;
   /** Injectable worker-auth reader (tests). */
   readonly readWorkerAuthAssignment?: (cwd: string) => ReadWorkerAuthAssignmentResult;
+  /** Injectable story-binding record reader (tests, #6379). */
+  readonly readStoryBindingRecord?: (
+    cwd: string,
+    commonDir: string | null,
+  ) => ReadStoryBindingRecordResult;
   /** Injectable linked-worktree predicate (tests). */
   readonly isLinkedWorktree?: (root: string) => boolean;
   /** Injectable eligibility check (tests); defaults to the xBRIEF preflight evaluator. */
@@ -1018,9 +1037,29 @@ export function resolveWorktreeStoryBinding(
       "run the write from a worktree where `git rev-parse --git-common-dir` succeeds",
     );
   }
-  if (read.assignment === null) return { kind: "none" };
+  // Read order (#6379 item 4): the worker-auth assignment, else the
+  // story-binding record that `swarm:pre-dispatch` begin writes. Both go
+  // through the same checks and refusals below.
+  let source = "worktree assignment";
+  let assignedStoryId: string;
+  if (read.assignment !== null) {
+    assignedStoryId = read.assignment.story_id;
+  } else {
+    const recordReader = options.readStoryBindingRecord ?? readStoryBindingRecord;
+    const record = recordReader(worktreeRoot, read.commonDir);
+    if (!record.ok) {
+      return refuseBinding(
+        record.failureKind,
+        `the story-binding record cannot say which story this linked worktree belongs to: ${fenceUntrustedAcceptanceText(record.detail)}.`,
+        `the parent runs ${PRE_DISPATCH_BEGIN_REPAIR} for this worktree (begin rewrites its story-binding record)`,
+      );
+    }
+    if (record.record === null) return { kind: "none" };
+    assignedStoryId = record.record.story_id;
+    source = "worktree story-binding record";
+  }
 
-  const storyId = read.assignment.story_id.trim();
+  const storyId = assignedStoryId.trim();
   const fencedId = fenceUntrustedAcceptanceText(storyId);
   const scanned = listActiveLifecycleArtifacts(worktreeRoot).paths;
   const owners = scanned.filter(
@@ -1054,7 +1093,7 @@ export function resolveWorktreeStoryBinding(
   if (bound.length > 0 && matchPinnedActiveScope(worktreeRoot, bound, scanned) !== owner) {
     return refuseBinding(
       WORKTREE_STORY_BOUND_PATH_CONFLICT,
-      `the spawn bound path ${fencePinValue(bound)} names a different story than the worktree assignment ${fencedId}.`,
+      `the spawn bound path ${fencePinValue(bound)} names a different story than the ${source} ${fencedId}.`,
       "spawn into the worktree registered for that story",
     );
   }
@@ -1062,8 +1101,8 @@ export function resolveWorktreeStoryBinding(
   if (envPin.length > 0 && matchPinnedActiveScope(worktreeRoot, envPin, scanned) !== owner) {
     return refuseBinding(
       WORKTREE_STORY_ENV_PIN_CONFLICT,
-      `${ACTIVE_SCOPE_PIN_ENV} ${fencePinValue(envPin)} names a different story than the worktree assignment ${fencedId}.`,
-      `clear ${ACTIVE_SCOPE_PIN_ENV} for this worker (the worktree assignment names its story)`,
+      `${ACTIVE_SCOPE_PIN_ENV} ${fencePinValue(envPin)} names a different story than the ${source} ${fencedId}.`,
+      `clear ${ACTIVE_SCOPE_PIN_ENV} for this worker (the ${source} names its story)`,
     );
   }
   return { kind: "bound", path: owner, storyId };

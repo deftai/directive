@@ -7,11 +7,10 @@
 
 ## Active
 
-- **#6269** -- bug(verify-ac): a clause that removes a quoted phrase fails when the phrase is removed -- `[running]`
-- **#6270** -- bug(scope): strict acceptance axes match on identifiers, so a deploy-dev job or deploy.yml makes a clause need deploy evidence -- `[running]`
-- **#6271** -- bug(init,security): the consumer .gitignore baseline misses the private pre-PR store and the plan-sequence lock files -- `[running]`
-- **#6272** -- feat(scope): show which clauses need strict-axis evidence at activation, not after the merge -- `[running]`
-- **#6273** -- feat(scope): one-PR path for a single maintainer: a new or widened brief lands with its code without a second human reviewer -- `[running]`
+- **#6376** -- bug(hooks): a write outside every checkout is judged by the launching checkout's session ritual -- `[running]`
+- **#6378** -- bug(scope-provenance): verify:scope-provenance runs past 5 minutes with no output in a fresh worktree -- `[running]`
+- **#6379** -- design(hooks,swarm): with more than one active brief, in-session workers cannot write; the only parallel route skips the local fence -- `[running]`
+- **#6421** -- bug(swarm): a killed finalize-cohort run leaves a worktree and branch that block the next run -- `[running]`
 
 ## Proposed
 
@@ -46,8 +45,26 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1942 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1960 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#6409** -- bug(session): session:start refuses mutation for owed completions that belong to other stories -- `[completed]`
+- **#6335** -- feat(lifecycle): completion PRs without ledger conflicts or half-written finalize -- `[completed]`
+- **#6336** -- fix(pr): pr:watch and pre-PR give the same verdict as CI and name the cause -- `[completed]`
+- **#6377** -- bug(review-cycle): SLizard re-posts an answered P1 on every push, so its check stays red -- `[completed]`
+- **#6361** -- bug(scope): the one-PR path has no lawful worker path (write fence reads the merge base; swarm:launch needs origin; no task alias) -- `[completed]`
+- **#5927** -- bug(session): cold/rearm session:start ceremony unbounded under many actives (finalize-owed inventory minutes) -- `[completed]`
+- **#6277** -- feat(scope): complete a delivered story without a separate human-reviewed completion PR -- `[completed]`
+- **#4433** -- bug(plan-sequence): batching_allowed is persisted but never authorizes parallel entries -- `[completed]`
+- **#6333** -- feat(ingest): ingested briefs are launch-ready (AC-only admitted set, clause per sentence, launch fields) -- `[completed]`
+- **#6398** -- bug(scope): delivery attest lookup reads grant expiry from wall clock; master CI red after 2026-11-16T10:00Z -- `[completed]`
+- **#5839** -- [framework-gap] BLOCKER Planning-only documentation commit is denied by prospective scope-cover despite supported Path A publication -- `[completed]`
+- **#6205** -- feat(plan-sequence): keep the ordered plan current under the bound pre-push gate (advance on scope:complete, completion PR inherits entry, sanctioned unplanned-fix insert) -- `[completed]`
+- **#6279** -- feat(session,hooks): re-arm stale session ritual automatically when the same session still holds the checkout -- `[completed]`
+- **#6272** -- feat(scope): show which clauses need strict-axis evidence at activation, not after the merge -- `[completed]`
+- **#6271** -- bug(init,security): the consumer .gitignore baseline misses the private pre-PR store and the plan-sequence lock files -- `[completed]`
+- **#6270** -- bug(scope): strict acceptance axes match on identifiers, so a deploy-dev job or deploy.yml makes a clause need deploy evidence -- `[completed]`
+- **#6269** -- bug(verify-ac): a clause that removes a quoted phrase fails when the phrase is removed -- `[completed]`
+- **#6273** -- feat(scope): one-PR path for a single maintainer: a new or widened brief lands with its code without a second human reviewer -- `[completed]`
 - **#6354** -- feat(scope): one-PR mint level without a human merge (drop the requireHumanMerge precondition) -- `[completed]`
 - **#6349** -- fix(scope-provenance): one-PR gate crashes with ENOBUFS when PROJECT-DEFINITION exceeds 1 MiB -- `[completed]`
 - **#6318** -- feat(scope): acceptance-disposition grant for a deferred clause (#6310 slice C) -- `[completed]`
@@ -55,22 +72,4 @@ _Showing 25 of 1942 completed scopes (newest first). Full history: lifecycle `co
 - **#6278** -- bug(hooks): a worker cannot commit in its linked worktree with cd-then-commit or git -C forms -- `[completed]`
 - **#6280** -- feat(review-cycle,pre-pr): lifecycle-only PRs do not need a review-bot pass -- `[completed]`
 - **#6317** -- feat(scope): identity join reads merge-time body; operator delivery attestation (#6310 slice B) -- `[completed]`
-- **#6314** -- feat(changelog): path test, fragment format, mode and effective view (#6286 slice A) -- `[completed]`
-- **#6313** -- bug(hooks): after a pin bump the pin-mismatch refusal blocks its own named recovery (pnpm install) -- `[completed]`
-- **#6295** -- feat(merge): green PRs merge without manual re-qualification (merge queue or merge train) -- `[completed]`
-- **#6316** -- feat(scope): part line, pre-merge story-line check and --write-story-line (#6310 slice A) -- `[completed]`
-- **#6265** -- bug(ingest): issue:ingest harvests a lean's Reject list, footnotes and arc record-keeping as plan items -- `[completed]`
-- **#6274** -- feat(occupancy,hooks): release the occupancy lease when its host session ends -- `[completed]`
-- **#6189** -- Story write fence refuses Write/Edit to files outside the repository (host memory, temp scratch) -- `[completed]`
-- **#680** -- Reduce overhead for vBRIEF phase lifecycle completion -- `[completed]`
-- **#6226** -- bug(check): the cited-skip scan walks git-ignored nested worktrees, so release Step 5 fails in a maintainer checkout that CI passes -- `[completed]`
-- **#5912** -- reconcile-issues: a deleted issue (HTTP 410) is fatal, so any repo with a brief that references one can't cut a release -- `[completed]`
-- **#6204** -- feat(ceremony-dial): small-change lane - scale brief size and PR count to change size -- `[completed]`
-- **#6233** -- bug(hooks,scope): write fence has no per-worktree story binding, so in-session sub-agents cannot run a multi-story cohort on Claude Code -- `[completed]`
-- **#6227** -- bug(test,release): 39 tests fail release Step 5 on a Windows maintainer checkout that CI passes (agent env, symlink privilege, dispatcher identity) -- `[completed]`
-- **#5942** -- bug(release): release:e2e, release:publish and release:rollback miss the #5805 --project-root fix -- `[completed]`
-- **#6212** -- bug(swarm): finalize-cohort refuses a deft-story mark until productPullRequest is stamped, but nothing can stamp it first -- `[completed]`
-- **#6203** -- feat(scope): admit a brief and its implementation in one PR under a forge-attested human approval -- `[completed]`
-- **#5882** -- BLOCKER: [framework-gap] swarm:finalize-cohort lifecycle checkout skips package install, so Taskfile-based acceptance commands fail in scope:complete -- `[completed]`
-- **#5710** -- bug(scope): scope:complete has no path for a delivered PR-only brief, and the identity join accepts a post-merge closing link -- `[completed]`
 
