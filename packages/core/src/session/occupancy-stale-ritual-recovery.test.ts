@@ -565,7 +565,9 @@ describe("printed recovery through ceremony and next write (#4290)", () => {
       const linked = addLinked(root);
       const now = new Date();
       applyWorktreeOccupancy(linked, { sessionId: "peer", now, intent: "mutation" });
-      const scratch = join(mkdtempSync(join(tmpdir(), "occ-4290-scratch-")), "note.md");
+      // `deft` keeps this scratch out of the #6376 outside-every-checkout class,
+      // so it still exercises the no-toplevel recovery path.
+      const scratch = join(mkdtempSync(join(tmpdir(), "deft-occ-4290-scratch-")), "note.md");
       temps.push(resolve(scratch, ".."));
       const product = writeDecision(root, "solo", join(root, "src", "app.ts"), staleSeams());
       const outside = writeDecision(root, "solo", scratch, staleSeams());
