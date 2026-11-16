@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import {
   cpSync,
   existsSync,
@@ -723,6 +724,41 @@ describe("finalizeCohort", () => {
         },
         landedCompleted: ["xbrief/completed/story-r.xbrief.json"],
         statusShort: "?? xbrief/.audit/spec-drift/\nA  xbrief/.audit/spec-drift/story-r.json\n",
+      }),
+      runGh: mockRunGh({ 9999: { merged: true, closingIssues: [], baseRef: "main" } }),
+      landProbeLimit: 1,
+      sleep: () => {},
+    });
+    expect(result.result.errors).toEqual([]);
+    expect(result.exitCode).toBe(0);
+    expect(committed).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("carries the first row file when nothing under xbrief/.audit/ is tracked (#6335)", () => {
+    const project = mkdtempSync(join(tmpdir(), "sw-finalize-6335-unseeded-"));
+    const storyPath = writeActiveStory(project, "story-u", 2225);
+    mkdirSync(join(project, "xbrief", ".audit", "spec-drift"), { recursive: true });
+    writeFileSync(join(project, "xbrief", ".audit", "spec-drift", "story-u.json"), "{}\n");
+    // Real git collapses a wholly untracked folder to its top untracked parent.
+    execFileSync("git", ["init", "-q"], { cwd: project });
+    const realStatus = execFileSync("git", ["status", "--short", "--", "xbrief/.audit/"], {
+      cwd: project,
+      encoding: "utf8",
+    });
+    expect(realStatus.trim()).toBe("?? xbrief/.audit/");
+    let committed = false;
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      label: "story-u",
+      repo: "deftai/directive",
+      runGit: mockRunGit({
+        onCommit: () => {
+          committed = true;
+        },
+        landedCompleted: ["xbrief/completed/story-u.xbrief.json"],
+        statusShort: realStatus,
       }),
       runGh: mockRunGh({ 9999: { merged: true, closingIssues: [], baseRef: "main" } }),
       landProbeLimit: 1,

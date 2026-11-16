@@ -12,6 +12,7 @@ import {
   evaluateSpecDrift,
   findReusedRewriteEvidence,
   gateScopeCompleteSpecDrift,
+  listInvalidSpecDriftRowFiles,
   readSpecDriftRowFiles,
   recordScopeCompleteDrift,
   requirementsFingerprint,
@@ -296,6 +297,60 @@ describe("spec-drift row files (#6335)", () => {
     expect(result.findings[0]?.scopeId).toBe("second");
     expect(result.findings[0]?.reason).toMatch(/reused-evidence/);
     expect(findReusedRewriteEvidence([cov("x", "t"), cov("x", "t")])).toEqual([]);
+    expect(
+      findReusedRewriteEvidence([cov("a", "t"), { ...cov("b", "t"), source: "override" as const }]),
+    ).toEqual([]);
+  });
+
+  it("reports an unreadable row file as unassessable, never as absent", () => {
+    setup("advise");
+    expect(seedSpecDriftLedger(root).ok).toBe(true);
+    expect(evaluateSpecDrift(root).code).toBe(0);
+    const dir = join(root, "xbrief", ".audit", "spec-drift");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "story-x.json"), "{not json\n");
+    const advise = evaluateSpecDrift(root);
+    expect(advise.code).toBe(2);
+    expect(advise.state).toBe("unassessable");
+    expect(advise.message).toContain("story-x.json");
+    expect(listInvalidSpecDriftRowFiles(root)).toEqual(["story-x.json"]);
+    writePolicy("shadow");
+    const shadow = evaluateSpecDrift(root);
+    expect(shadow.code).toBe(0);
+    expect(shadow.state).toBe("unassessable");
+    expect(shadow.message).toMatch(/shadow warning/);
+  });
+
+  it("merges only valid row files and keeps legacy shadow rows of other scopes", () => {
+    setup("advise");
+    expect(seedSpecDriftLedger(root).ok).toBe(true);
+    const header = snapshotSpecDriftLedger(root);
+    writeSpecDriftLedger(root, {
+      ...header,
+      shadowFindings: [
+        { scopeId: "legacy-shadow", reason: "s", specImpact: null, completedAt: null },
+      ],
+    });
+    const dir = join(root, "xbrief", ".audit", "spec-drift");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "array.json"), "[]\n");
+    writeFileSync(join(dir, "no-scope.json"), '{"unresolved":[]}\n');
+    writeFileSync(join(dir, "broken.json"), "{not json\n");
+    writeFileSync(join(dir, "readme.txt"), "ignored\n");
+    writeFileSync(
+      join(dir, "mixed.json"),
+      JSON.stringify({
+        scopeId: "mixed",
+        unresolved: [
+          { scopeId: "mixed", reason: "own" },
+          { scopeId: "someone-else", reason: "foreign" },
+        ],
+      }),
+    );
+    expect(readSpecDriftRowFiles(root).map((r) => r.scopeId)).toEqual(["mixed"]);
+    const view = snapshotSpecDriftLedger(root);
+    expect(view.unresolved.map((f) => f.reason)).toEqual(["own"]);
+    expect(view.shadowFindings.map((f) => f.scopeId)).toEqual(["legacy-shadow"]);
   });
 
   describe("delivery-bound rewrite proof", () => {

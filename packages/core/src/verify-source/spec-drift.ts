@@ -298,18 +298,32 @@ function parseRowFile(raw: unknown): SpecDriftRowFile | null {
   };
 }
 
-/** Every row file under `xbrief/.audit/spec-drift/`, in file-name order (#6335). */
+function readRowFileAt(path: string): SpecDriftRowFile | null {
+  try {
+    return parseRowFile(JSON.parse(readFileSync(path, "utf8")) as unknown);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Row files that cannot be read as a row file (bad JSON, not an object, no
+ * scopeId). `verify:spec-drift` reports these as unassessable, never as absent.
+ */
+export function listInvalidSpecDriftRowFiles(projectRoot: string): string[] {
+  const root = resolve(projectRoot);
+  const dir = rowsDirAbsPath(root);
+  return listRowFileNames(root).filter((name) => readRowFileAt(join(dir, name)) === null);
+}
+
+/** Every valid row file under `xbrief/.audit/spec-drift/`, in file-name order (#6335). */
 export function readSpecDriftRowFiles(projectRoot: string): SpecDriftRowFile[] {
   const root = resolve(projectRoot);
   const dir = rowsDirAbsPath(root);
   const out: SpecDriftRowFile[] = [];
   for (const name of listRowFileNames(root)) {
-    try {
-      const parsed = parseRowFile(JSON.parse(readFileSync(join(dir, name), "utf8")) as unknown);
-      if (parsed !== null) out.push(parsed);
-    } catch {
-      /* unreadable row file — skip */
-    }
+    const parsed = readRowFileAt(join(dir, name));
+    if (parsed !== null) out.push(parsed);
   }
   return out;
 }
@@ -1389,6 +1403,24 @@ export function evaluateSpecDrift(projectRoot: string): SpecDriftResult {
       code: 2,
       state: "unassessable",
       message: msg,
+      findings: [],
+      baselineRevision,
+      guard,
+    };
+  }
+
+  // #6335: a row file that cannot be read may hold unresolved drift; it is
+  // unassessable, never treated as absent.
+  const invalidRowFiles = listInvalidSpecDriftRowFiles(root);
+  if (invalidRowFiles.length > 0) {
+    const invalidMsg =
+      `verify:spec-drift: unreadable spec-drift row file(s) under xbrief/.audit/spec-drift/: ` +
+      `${invalidRowFiles.join(", ")} — fix or restore them before claiming coverage`;
+    return {
+      code: enforcement === "shadow" ? 0 : 2,
+      state: "unassessable",
+      message:
+        enforcement === "shadow" ? `verify:spec-drift shadow warning: ${invalidMsg}` : invalidMsg,
       findings: [],
       baselineRevision,
       guard,

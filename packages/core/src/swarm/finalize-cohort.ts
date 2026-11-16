@@ -1107,10 +1107,14 @@ function derivedLifecycleRelsFromSweep(
     if (sweep.stories.some((rec) => rec.ok)) {
       out.push(SPEC_DRIFT_LEDGER_REL);
       // #6335: completions write per-story row files; they travel in the same
-      // commit. The folder marker covers `git status` collapsing a new folder.
+      // commit. The folder markers cover `git status` collapsing a new untracked
+      // folder (`?? xbrief/.audit/spec-drift/`, or `?? xbrief/.audit/` when nothing
+      // under .audit/ is tracked yet). The post-staging check still compares exact
+      // staged paths, so the markers admit no other file.
       const rowsDir = join(projectRoot, ...SPEC_DRIFT_ROWS_DIR_REL.split("/"));
       if (existsSync(rowsDir)) {
         out.push(`${SPEC_DRIFT_ROWS_DIR_REL}/`);
+        out.push(`${SPEC_DRIFT_ROWS_DIR_REL.slice(0, SPEC_DRIFT_ROWS_DIR_REL.lastIndexOf("/"))}/`);
         try {
           for (const name of readdirSync(rowsDir)) {
             if (name.endsWith(".json")) out.push(`${SPEC_DRIFT_ROWS_DIR_REL}/${name}`);
