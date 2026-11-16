@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6379",
-    "updated": "2026-11-16T17:52:07Z"
+    "updated": "2026-11-16T22:21:51Z"
   },
   "plan": {
     "title": "design(hooks,swarm): with more than one active brief, in-session workers cannot write; the only parallel route skips the local fence",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "With more than one active brief, a worker that `swarm:launch` did not register has no story link, so the commit check refuses its commits and the operator runs them by hand; a merge of the default branch into a story branch is also refused because it stages other stories' files. This story makes `swarm:pre-dispatch` begin, a step the parent already runs before every implementation spawn, write a story-binding record for the worker's worktree, which the #6233 binding reads after the worker-auth assignment. It also excuses, in a merge commit only, the staged files that arrive unchanged from the fetched default branch, keeps `file_scope` on the merge-base brief and makes the refusal text name the repair that works. It adds no new gate, verb, flag, approval or stop; the contract is successor lean 6921798679 bound by synthesis 6921886810 on #6379.",
       "AcceptanceJustification": "48 clauses: one per admitted Bound-remedy sentence of successor lean 6921798679 (29) and one per Acceptance Criteria line of that lean (19), as #3550 and #5055 require for a Spec-path brief.",
@@ -22,385 +22,721 @@
       {
         "id": "clause.1",
         "title": "Story-binding record.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given `swarm:pre-dispatch` begin for a linked worktree and one active brief, when begin runs, then a story-binding record exists for that worktree."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.2",
         "title": "`swarm:pre-dispatch` begin writes a story-binding record for the target worktree under the Git common directory.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a linked worktree target and a scope id that resolves to one active brief, when begin runs, then a story-binding record for that worktree is written under the Git common directory."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.3",
         "title": "The record belongs to the worktree: it holds the story id, the canonical worktree path and the list of attempt ids that use it, and no auth field.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a written story-binding record, when it is read, then it holds the story id, the canonical worktree path and the attempt id list, and no auth field."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.4",
         "title": "`readWorkerAuthAssignment` and `requireScmReady` do not read it.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a worktree with only a story-binding record, when `readWorkerAuthAssignment` or `requireScmReady` runs, then each returns the unregistered result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.5",
         "title": "Begin runs none of the `swarm:launch` readiness checks and adds no flag.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a story that `swarm:launch` readiness refuses, when begin runs with its existing flags, then the record is written."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.6",
         "title": "Target and scope.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a begin target and scope id, when begin resolves them, then it binds one linked worktree to one active brief or writes no record."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.7",
         "title": "The target is the path of a linked worktree, or a branch name, which begin resolves to the one linked worktree that has that branch checked out.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a linked worktree path or a branch checked out in exactly one linked worktree, when begin runs, then the record is written for that worktree."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.8",
         "title": "The scope id must resolve to exactly one brief under `xbrief/active/` in that worktree, by brief path, story id or owned issue number.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a scope id that is the brief path, story id or owned issue number of exactly one active brief in the target worktree, when begin runs, then that brief's story id is recorded."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.9",
         "title": "When either resolution fails, begin writes no record, prints one line that names the failed resolution, and keeps its exit code.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a target or scope id that does not resolve, when begin runs, then no record is written, one line names the failed resolution and the exit code is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.10",
         "title": "Repeat begin.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a unit that already has a running attempt, when begin runs again, then the record is ensured."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.11",
         "title": "When begin is refused because an attempt for the same scope and target is already running, it still ensures the record and adds that unit's running attempt ids to the list, and keeps its refusal exit code.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a running attempt for the same scope and target, when begin is refused, then the record lists the running attempt ids and begin keeps exit 1."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.12",
         "title": "An allowed begin adds its new attempt id after it saves its ledger.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an allowed begin, when it has saved its ledger, then the new attempt id is in the record."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.13",
         "title": "A record for the same worktree and story keeps its other ids.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a record for the same worktree and story, when begin adds an attempt id, then the other ids stay in the list."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.14",
         "title": "A record for the same worktree and a different story is replaced, with only the new attempt id in its list.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a record for the same worktree and a different story, when begin runs, then the record is replaced with only the new attempt id."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.15",
         "title": "Read order.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a linked worktree, when the binding is resolved, then the worker-auth assignment is read first and the story-binding record second."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.16",
         "title": "`resolveWorktreeStoryBinding` uses the worker-auth assignment when one exists for the worktree.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a worktree with a worker-auth assignment and a story-binding record for another story, when the binding is resolved, then the assignment's story is selected."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.17",
         "title": "Otherwise it uses the story-binding record, with the same checks and refusals it applies to an assignment.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a worktree with only a story-binding record, when the binding is resolved, then the record's story is selected with the same missing, ineligible, ambiguous and pin-conflict refusals."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.18",
         "title": "Removal.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an attempt that ends, when cancel or complete runs, then its id leaves every story-binding record."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.19",
         "title": "`swarm:pre-dispatch` cancel or complete, after it marks an attempt ended, removes that attempt id from every story-binding record that lists it, and deletes a record whose list is then empty.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an ended attempt, when cancel or complete finishes, then its id is removed from every record that lists it and an emptied record is deleted."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.20",
         "title": "It finds the records by attempt id in the record store; it does not resolve the target again and does not read any ledger.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an ended attempt id, when removal runs, then it scans the record store by attempt id without resolving the target or reading a ledger."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.21",
         "title": "The writes in items 1 and 3 and this removal run under one lock on the record store.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a held record-store lock, when begin or removal writes the store, then it waits for or refuses on that one lock."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.22",
         "title": "Merge commits.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a merge commit, when the commit hook runs, then only files that arrive unchanged from the fetched default branch are excused."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.23",
         "title": "When `MERGE_HEAD` is present at `git commit`, a staged product path is excused from the `file_scope` check when its staged entry (mode and blob, or deletion) is identical to that path's entry in a `MERGE_HEAD` commit that is an ancestor of the fetched delivery ref.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given MERGE_HEAD and a staged path whose mode and blob, or deletion, equal its entry in a MERGE_HEAD commit that is an ancestor of the fetched delivery ref, when the commit hook checks file_scope, then that path is excused."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.24",
         "title": "Every other staged path is checked as today.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a merge commit, when a staged path does not match an authoritative MERGE_HEAD entry, then the file_scope check applies to it as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.25",
         "title": "When `MERGE_HEAD` or the delivery ref cannot be read, no path is excused.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given no readable MERGE_HEAD or delivery ref, when the commit hook checks file_scope, then no path is excused."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.26",
         "title": "Refusal text.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a binding refusal, when the hook prints it, then the repair it names is one that works."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.27",
         "title": "The multiple-eligible refusal and the worktree-binding repair text name `swarm:pre-dispatch` begin by the parent as the repair for a linked worktree, before the environment pin.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given more than one eligible brief and an unregistered linked worktree, when the hook refuses, then the message names `swarm:pre-dispatch` begin by the parent before the environment pin."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.28",
         "title": "Fence authority is unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a selected story, when the fence loads, then file_scope comes from the same loader as before."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.29",
         "title": "Write/Edit and the commit check keep one loader, and it reads `file_scope` only from the merge-base copy of the brief.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a brief edited in the worktree, when Write/Edit or the commit check loads file_scope, then the merge-base copy is used."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.30",
         "title": "Given two active briefs and a linked worktree for which the parent ran `swarm:pre-dispatch` begin with one brief's scope id, when an agent commits a path in that brief's merge-base `file_scope`, then the commit hook admits it with no `DEFT_ACTIVE_SCOPE` set.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given two active briefs and a linked worktree for which the parent ran `swarm:pre-dispatch` begin with one brief's scope id, when an agent commits a path in that brief's merge-base `file_scope`, then the commit hook admits it with no `DEFT_ACTIVE_SCOPE` set."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.31",
         "title": "Given the same setup, when the agent commits a product path outside that `file_scope`, then the commit hook refuses it.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the same setup, when the agent commits a product path outside that `file_scope`, then the commit hook refuses it."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.32",
         "title": "Given a story with `size: large` that `swarm:launch` readiness refuses, when the parent runs `swarm:pre-dispatch` begin for its worktree, then the story-binding record is written.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a story with `size: large` that `swarm:launch` readiness refuses, when the parent runs `swarm:pre-dispatch` begin for its worktree, then the story-binding record is written."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.33",
         "title": "Given a branch name that is checked out in exactly one linked worktree, when begin runs with that branch as its target, then the record is written for that worktree.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a branch name that is checked out in exactly one linked worktree, when begin runs with that branch as its target, then the record is written for that worktree."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.34",
         "title": "Given a worktree with a story-binding record and no worker-auth assignment, when `requireScmReady` runs in it, then the result is the same as for an unregistered worktree.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a worktree with a story-binding record and no worker-auth assignment, when `requireScmReady` runs in it, then the result is the same as for an unregistered worktree."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.35",
         "title": "Given a worker that uses an injected token in a worktree that has only a story-binding record, when it runs a GitHub command, then no assignment check refuses it.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a worker that uses an injected token in a worktree that has only a story-binding record, when it runs a GitHub command, then no assignment check refuses it."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.36",
         "title": "Given a worktree that has a worker-auth assignment for one story, when the binding is resolved, then the assignment's story is selected.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a worktree that has a worker-auth assignment for one story, when the binding is resolved, then the assignment's story is selected."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.37",
         "title": "Given a running attempt whose record is missing, when begin runs again for the same scope and target, then the record is written and begin exits as it does today for a running attempt.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a running attempt whose record is missing, when begin runs again for the same scope and target, then the record is written and begin exits as it does today for a running attempt."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.38",
         "title": "Given a scope id that does not resolve to exactly one active brief in the target worktree, when begin runs, then it writes no record, prints one line, and exits as it does today.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a scope id that does not resolve to exactly one active brief in the target worktree, when begin runs, then it writes no record, prints one line, and exits as it does today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.39",
         "title": "Given two attempts on two worktrees, when one attempt is cancelled or completed, then only that attempt's worktree record is removed.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given two attempts on two worktrees, when one attempt is cancelled or completed, then only that attempt's worktree record is removed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.40",
         "title": "Given one attempt begun with a story's plan id and a second attempt begun with that story's issue number on the same worktree, when the first attempt is completed, then the record stays and the second worker's commit is still admitted.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given one attempt begun with a story's plan id and a second attempt begun with that story's issue number on the same worktree, when the first attempt is completed, then the record stays and the second worker's commit is still admitted."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.41",
         "title": "Given the same two attempts, when the second attempt is also completed, then the record is removed.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given the same two attempts, when the second attempt is also completed, then the record is removed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.42",
         "title": "Given one attempt begun with a worktree path and a second attempt begun with the branch that is checked out in that worktree, when either attempt is completed, then the record stays until the other attempt is also completed.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given one attempt begun with a worktree path and a second attempt begun with the branch that is checked out in that worktree, when either attempt is completed, then the record stays until the other attempt is also completed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.43",
         "title": "Given an attempt begun from one checkout and ended from another checkout of the same repository, when it ends, then its id is removed from the record.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given an attempt begun from one checkout and ended from another checkout of the same repository, when it ends, then its id is removed from the record."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.44",
         "title": "Given a merge of the fetched delivery branch into a story branch with a conflict resolved inside the story's `file_scope`, when the agent runs `git commit`, then the hook admits the merge commit.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a merge of the fetched delivery branch into a story branch with a conflict resolved inside the story's `file_scope`, when the agent runs `git commit`, then the hook admits the merge commit."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.45",
         "title": "Given a merge of a commit that is not an ancestor of the fetched delivery ref, when the staged set has a product path outside the story's `file_scope`, then the hook refuses the commit.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a merge of a commit that is not an ancestor of the fetched delivery ref, when the staged set has a product path outside the story's `file_scope`, then the hook refuses the commit."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.46",
         "title": "Given a merge in which a staged path has the same blob as the `MERGE_HEAD` entry and a different file mode, when that path is outside the story's `file_scope`, then the hook refuses the commit.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a merge in which a staged path has the same blob as the `MERGE_HEAD` entry and a different file mode, when that path is outside the story's `file_scope`, then the hook refuses the commit."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.47",
         "title": "Given a worker that edits `file_scope` in its worktree copy of a brief that exists on the merge base, when it commits a path that only the edited list covers, then the hook refuses the commit.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a worker that edits `file_scope` in its worktree copy of a brief that exists on the merge base, when it commits a path that only the edited list covers, then the hook refuses the commit."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.48",
         "title": "Given more than one eligible brief and an unregistered linked worktree, when the hook refuses, then the message names `swarm:pre-dispatch` begin as the parent's repair.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given more than one eligible brief and an unregistered linked worktree, when the hook refuses, then the message names `swarm:pre-dispatch` begin as the parent's repair."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "94c94df7e46c4d346860df54f297c58bf240ebde",
+          "recorded_at": "2026-11-16T22:21:51Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -1582,9 +1918,39 @@
           "#4956",
           "#3228"
         ]
+      },
+      "productPullRequest": 6443,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "3436dad5e94fb542bd8f6242ea67b868ccd20820",
+        "prNumber": 6443,
+        "prBase": "master",
+        "mergeCommit": "94c94df7e46c4d346860df54f297c58bf240ebde",
+        "deliveryBranch": "master",
+        "deliveryCommit": "174d41dcc08537b8a531f67930a978e1359557e9",
+        "verifiedAt": "2026-11-16T22:21:51Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6449
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T22:21:51Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T22:21:51Z"
       }
     },
     "id": "github.issue.6414618773",
-    "updated": "2026-11-16T17:52:07Z"
+    "updated": "2026-11-16T22:21:51Z"
   }
 }
