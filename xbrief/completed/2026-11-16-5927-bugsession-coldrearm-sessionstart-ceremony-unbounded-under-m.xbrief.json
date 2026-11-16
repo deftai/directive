@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5927",
-    "updated": "2026-11-16T16:08:44Z"
+    "updated": "2026-11-16T18:03:49Z"
   },
   "plan": {
     "title": "bug(session): cold/rearm session:start ceremony unbounded under many actives (finalize-owed inventory minutes)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Cold and rearm session:start spend minutes in the finalize-owed inventory. discoverFinalizeOwed makes one serial gh api repos/<o>/<r>/issues/N call for each brief with a productPullRequest; on deftai/directive that is about 266 calls at about 0.85 s each, about 226 s of a 245 s median session:start, and it grows with every shipped story. This story replaces the per-issue reads with one paged open-issue list per run and keeps today's fail-closed outcomes and block rules unchanged.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5927",
@@ -21,41 +21,76 @@
       {
         "id": "clause.1",
         "title": "When discoverFinalizeOwed needs origin issue state, it reads one paged open-issue list (state=open, per_page=100) per run, not one gh api issues/N call per brief.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "When discoverFinalizeOwed needs origin issue state, it reads one paged open-issue list (state=open, per_page=100) per run, not one gh api issues/N call per brief."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e899c1a07d55bb34aa9862d3bbf121b62486a45d",
+          "recorded_at": "2026-11-16T18:03:49Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.2",
         "title": "When an origin issue is absent from the open-issue list, the lookup returns it as closed.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "When an origin issue is absent from the open-issue list, the lookup returns it as closed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e899c1a07d55bb34aa9862d3bbf121b62486a45d",
+          "recorded_at": "2026-11-16T18:03:49Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.3",
         "title": "When the open-issue list fails or is partial, every affected item keeps today's issue-verify-failed outcome (unverified, unknown or stale-unverified), never closed or clean.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "When the open-issue list fails or is partial, every affected item keeps today's issue-verify-failed outcome (unverified, unknown or stale-unverified), never closed or clean."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e899c1a07d55bb34aa9862d3bbf121b62486a45d",
+          "recorded_at": "2026-11-16T18:03:49Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.4",
         "title": "The scan stays on the session:start hot path (#5171) and blocks exactly the same items as before; no policy changes.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "The scan stays on the session:start hot path (#5171) and blocks exactly the same items as before; no policy changes."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e899c1a07d55bb34aa9862d3bbf121b62486a45d",
+          "recorded_at": "2026-11-16T18:03:49Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.5",
         "title": "Given a stubbed open-issue list with open, closed and list-failure cases, the tests pass and assert that no per-issue issue read runs.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Given a stubbed open-issue list with open, closed and list-failure cases, the tests pass and assert that no per-issue issue read runs."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e899c1a07d55bb34aa9862d3bbf121b62486a45d",
+          "recorded_at": "2026-11-16T18:03:49Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -174,9 +209,36 @@
         "github_issue_id": 6042155685,
         "origin": "deftai/directive#5927",
         "id": "github.issue.6042155685"
+      },
+      "productPullRequest": 6419,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "2f1d4b93c145dacdf42f183dcf26333ab784a295",
+        "prNumber": 6419,
+        "prBase": "master",
+        "mergeCommit": "e899c1a07d55bb34aa9862d3bbf121b62486a45d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "eeed040753dad765b67014465718e6c3cb937dd0",
+        "verifiedAt": "2026-11-16T18:03:49Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T18:03:49Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T18:03:49Z"
       }
     },
     "id": "github.issue.6042155685",
-    "updated": "2026-11-16T16:08:44Z"
+    "updated": "2026-11-16T18:03:49Z"
   }
 }
