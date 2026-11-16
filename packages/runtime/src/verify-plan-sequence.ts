@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 /**
  * verify:plan-sequence (#2402) — fail closed unless target matches current entry.
+ * The current entry is derived from completed briefs (#6205).
  */
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   collectTerminalLifecycleOrigins,
+  findInsertApproval,
   inspectMissingSequenceKind,
   missingSequenceKindPayload,
   type PlanTargetKind,
@@ -133,12 +135,20 @@ export function main(argv: string[] = process.argv.slice(2)): number {
     target: parsed.target,
     terminalOrigins: collectTerminalLifecycleOrigins(root),
   });
+  // #6205: an inserted entry shows the operator approval that let it in.
+  const approval = result.ok ? findInsertApproval(seq, result.entry.id) : null;
   if (parsed.emitJson) {
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    const payload = approval !== null ? { ...result, insert_approval: approval } : result;
+    process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
   } else if (result.ok) {
     process.stdout.write(
       `OK verify:plan-sequence matched ${result.entry.kind}:${result.entry.id} (index=${result.index})\n`,
     );
+    if (approval !== null) {
+      process.stdout.write(
+        `  insert approval: entry_id=${approval.entry_id} grant_id=${approval.grant_id} approved_at=${approval.approved_at}\n`,
+      );
+    }
   } else {
     process.stderr.write(`${result.message}\n`);
   }

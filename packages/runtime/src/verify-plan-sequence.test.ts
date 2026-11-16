@@ -121,7 +121,7 @@ describe("verify-plan-sequence CLI (#2402)", () => {
     }
   });
 
-  it("fail-closes matching current entry whose origin is already completed (#4129)", () => {
+  it("fail-closes matching current entry whose origin is cancelled (#4129 / #6205)", () => {
     const root = mkdtempSync(join(tmpdir(), "vps-drift-"));
     roots.push(root);
     const file = join(root, "plan.json");
@@ -145,14 +145,14 @@ describe("verify-plan-sequence CLI (#2402)", () => {
         "0",
       ]),
     ).toBe(0);
-    mkdirSync(join(root, "xbrief/completed"), { recursive: true });
+    mkdirSync(join(root, "xbrief/cancelled"), { recursive: true });
     writeFileSync(
-      join(root, "xbrief/completed/287.xbrief.json"),
+      join(root, "xbrief/cancelled/287.xbrief.json"),
       JSON.stringify({
         xBRIEFInfo: { version: "0.8" },
         plan: {
-          title: "Done",
-          status: "completed",
+          title: "Dropped",
+          status: "cancelled",
           references: [
             {
               uri: "https://github.com/acme/app/issues/287",

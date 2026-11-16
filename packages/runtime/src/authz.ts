@@ -57,6 +57,11 @@ import {
 } from "@deftai/directive-core/authz";
 import { uatCampaignEndSeal } from "@deftai/directive-core/authz/campaign-end-seal";
 import {
+  isPlanSequenceApprovalTemplateName,
+  mintPlanSequenceApprovalGrant,
+  PLAN_SEQUENCE_APPROVAL_TEMPLATE_NAME,
+} from "@deftai/directive-core/plan-sequence";
+import {
   ACCEPTANCE_DISPOSITION_TEMPLATE_NAME,
   DELIVERY_IDENTITY_ATTEST_TEMPLATE_NAME,
   isAcceptanceDispositionTemplateName,
@@ -121,7 +126,19 @@ interface Parsed {
   deferredTo: string | null;
   /** acceptance-disposition reason (#6318). */
   reason: string | null;
+  /** plan-sequence-approval: the plan's generation (#6205). */
+  generation: number | null;
+  /** plan-sequence-approval insert: entry index (#6205). */
+  position: number | null;
+  /** plan-sequence-approval insert: entry title, bound to the grant (#6205). */
+  title: string | null;
   error?: string;
+}
+
+/** Non-negative integer flag value, or null when malformed. */
+function parseIndexFlag(raw: string | undefined): number | null {
+  if (raw === undefined || !/^(0|[1-9]\d*)$/.test(raw.trim())) return null;
+  return Number(raw.trim());
 }
 
 function parseOps(raw: string): AuthzOperation[] {
@@ -169,6 +186,9 @@ function parseArgv(argv: string[]): Parsed {
     confirm: false,
     deferredTo: null,
     reason: null,
+    generation: null,
+    position: null,
+    title: null,
   };
 
   const args = [...argv];
@@ -327,6 +347,19 @@ function parseArgv(argv: string[]): Parsed {
       base.reason = args[++i] ?? null;
       continue;
     }
+    if (a === "--title") {
+      base.title = args[++i] ?? null;
+      continue;
+    }
+    if (a === "--generation" || a === "--position") {
+      const value = parseIndexFlag(args[++i]);
+      if (value === null) {
+        return { ...base, error: `${a} requires a non-negative integer` };
+      }
+      if (a === "--generation") base.generation = value;
+      else base.position = value;
+      continue;
+    }
     if (!a.startsWith("-") && base.cmd === "revoke" && base.grantId === null) {
       base.grantId = a;
       continue;
@@ -352,6 +385,8 @@ function helpText(): string {
     "      --target <owner>/<repo>#<pr>@<merge_commit_sha> --plan-ref <scopeId> [--confirm]",
     "  deft authz:grant -- --template acceptance-disposition --plan-ref <scopeId> \\",
     "      --story-ids <itemIds> --deferred-to <issue> --reason <text> [--confirm]",
+    "  deft authz:grant -- --template plan-sequence-approval --target <insert:<kind>:<id>|replace|clear> \\",
+    "      --plan-ref <sequence_id> --generation <n> [--position <n>] [--issue-ids <n>] [--title <t>] [--repo owner/name] [--confirm]",
     "  deft authz:grant -- --parent <parent.xbrief.json> --draft <draft.json> \\",
     "      [--repo owner/name] [--expires ISO] [--single-use] [--actor <name>] [--confirm]",
     "  deft authz:revoke -- <grant-id> [--confirm]",
@@ -743,6 +778,10 @@ export function main(
         if (args.template !== null && isAcceptanceDispositionTemplateName(args.template)) {
           return grantAcceptanceDisposition(args, gateConfirm);
         }
+        // Ordered-plan write approval (#6205): plan-sequence module, main clone store.
+        if (args.template !== null && isPlanSequenceApprovalTemplateName(args.template)) {
+          return grantPlanSequenceApproval(args, gateConfirm);
+        }
         // Delivery-identity attestation (#6317): policy module, main clone store.
         if (args.template !== null && isDeliveryIdentityAttestTemplateName(args.template)) {
           if (args.target === null || args.target.trim().length === 0) {
@@ -847,7 +886,7 @@ export function main(
         if (args.template !== null && args.template.trim().length > 0) {
           if (!isAfkTemplateName(args.template)) {
             process.stderr.write(
-              `authz:grant unknown --template '${args.template}'; expected one of: ${AFK_TEMPLATE_NAMES.join(", ")}, ${SPEC_DRIFT_OVERRIDE_TEMPLATE_NAME}, ${GATE_OVERRIDE_TEMPLATE_NAME}, ${DELIVERY_IDENTITY_ATTEST_TEMPLATE_NAME}, ${ACCEPTANCE_DISPOSITION_TEMPLATE_NAME}\n`,
+              `authz:grant unknown --template '${args.template}'; expected one of: ${AFK_TEMPLATE_NAMES.join(", ")}, ${SPEC_DRIFT_OVERRIDE_TEMPLATE_NAME}, ${GATE_OVERRIDE_TEMPLATE_NAME}, ${DELIVERY_IDENTITY_ATTEST_TEMPLATE_NAME}, ${ACCEPTANCE_DISPOSITION_TEMPLATE_NAME}, ${PLAN_SEQUENCE_APPROVAL_TEMPLATE_NAME}\n`,
             );
             return 2;
           }
@@ -903,7 +942,7 @@ export function main(
         }
         if (args.operations.length === 0) {
           process.stderr.write(
-            "authz:grant requires --operations <edit,push,...>, --template <finish-loop|release-*|spec-drift-override|gate-override|delivery-identity-attest|acceptance-disposition>, " +
+            "authz:grant requires --operations <edit,push,...>, --template <finish-loop|release-*|spec-drift-override|gate-override|delivery-identity-attest|acceptance-disposition|plan-sequence-approval>, " +
               "or --parent + --draft (structural scope:decompose apply)\n",
           );
           return 2;
@@ -1055,6 +1094,54 @@ function grantAcceptanceDisposition(args: Parsed, gateConfirm: () => number | nu
   process.stdout.write(
     "  scope:complete writes these items as deferred with this grant id, only while each " +
       "covered text still matches; first use is recorded when the completed/ write succeeds.\n",
+  );
+  process.stdout.write(`  Store: ${minted.storeRoot} (main clone, .deft/authz/grants)\n`);
+  return 0;
+}
+
+/** Mint a single-use plan-sequence-approval grant from parsed argv (#6205). */
+function grantPlanSequenceApproval(args: Parsed, gateConfirm: () => number | null): number {
+  const missing =
+    args.target === null || args.target.trim().length === 0
+      ? "--target <insert:<kind>:<id>|replace|clear>"
+      : args.planRef === null || args.planRef.trim().length === 0
+        ? "--plan-ref <sequence_id>"
+        : args.generation === null
+          ? "--generation <n>"
+          : null;
+  if (missing !== null) {
+    process.stderr.write(`authz:grant --template plan-sequence-approval requires ${missing}\n`);
+    return 2;
+  }
+  const blocked = gateConfirm();
+  if (blocked !== null) return blocked;
+  const minted = mintPlanSequenceApprovalGrant({
+    projectRoot: args.projectRoot,
+    target: args.target as string,
+    sequenceId: args.planRef as string,
+    generation: args.generation,
+    position: args.position,
+    issue: args.issueIds[0] ?? null,
+    title: args.title,
+    repo: args.repo,
+    actor: args.actor,
+    expiresAt: args.expiresAt,
+  });
+  if (!minted.ok) {
+    process.stderr.write(`authz:grant: ${minted.reason}\n`);
+    return 2;
+  }
+  const grant = minted.grant;
+  process.stdout.write(
+    `✓ human-origin grant minted id=${grant.id} origin=${grant.origin.kind} ` +
+      `template=${PLAN_SEQUENCE_APPROVAL_TEMPLATE_NAME}\n`,
+  );
+  process.stdout.write(
+    `  plan=${grant.scope.planRef} repo=${grant.scope.repo} binds=${grant.scope.surfaces.join("|")} ` +
+      `expires=${grant.semantics.expiresAt ?? "-"}\n`,
+  );
+  process.stdout.write(
+    "  Single-use: spent by the one plan-sequence write it binds; a failed write leaves it unspent.\n",
   );
   process.stdout.write(`  Store: ${minted.storeRoot} (main clone, .deft/authz/grants)\n`);
   return 0;

@@ -1,0 +1,313 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6398",
+    "updated": "2026-11-16T10:24:28Z"
+  },
+  "plan": {
+    "title": "bug(scope): delivery attest lookup reads grant expiry from wall clock; master CI red after 2026-11-16T10:00Z",
+    "status": "running",
+    "narratives": {
+      "Description": "The default delivery attestation lookup in evaluateDeliveryGate calls findDeliveryIdentityAttestation without now, so grant expiry is read from the wall clock instead of the transition clock (options.nowIso). Master CI has been red since 2026-11-16T10:00Z because two tests in delivery-identity-attest-grant.test.ts mint at a fixed time and pass only while the wall clock is before the 24-hour expiry. The fix passes now: new Date(options.nowIso) to the default lookup; no test changes.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6398",
+      "Overview": "## Problem\n\nMaster CI fails from 2026-11-16T10:00Z. Every PR in the merge queue fails the same two tests in `packages/core/src/policy/delivery-identity-attest-grant.test.ts`:\n\n- `clause.7: an acceptance refusal after the join leaves the grant unused; finalize retry and restamp pass`\n- `clause.8: completion refuses on an expired unused grant, another target, an unreadable body, or a lifecycle-only PR`\n\nBoth fail with `grant ... expired (or is not active) before first use`.\n\n## Cause\n\n`evaluateDeliveryGate` (`packages/core/src/scope/delivery-evidence.ts`, default `findDeliveryAttestation` near line 2586) calls `findDeliveryIdentityAttestation` without `now`. The lookup then checks grant expiry against the real clock, not the transition clock (`options.nowIso`).\n\nThe tests mint at a fixed `2026-11-15T10:00Z` with the 24-hour default expiry and run completion at a fixed `2026-11-15T12:00Z`. They passed until the real clock passed the expiry. Came in with #6317 (PR #6330).\n\nThe same gap affects production: a completion run with an injected or replayed clock reads grant expiry from wall time.\n\n## Fix\n\nPass `now: new Date(options.nowIso)` to the default lookup. No test change.\n\n## Acceptance Criteria\n\n- Given a delivery gate run with `nowIso` before a grant's expiry, when the real clock is after that expiry, then the default attestation lookup treats the grant as unexpired.\n- The two tests above pass at any wall-clock time.\n\n",
+      "UserStory": "As a maintainer, I want the delivery gate to judge attestation grant expiry at the transition clock, so that completion runs and their tests do not depend on wall time and master CI is green again.",
+      "ImplementationPlan": "1. packages/core/src/scope/delivery-evidence.ts: in evaluateDeliveryGate, the default findDeliveryAttestation passes now: new Date(options.nowIso) to findDeliveryIdentityAttestation.\n2. No test edit (#3156): packages/core/src/policy/delivery-identity-attest-grant.test.ts clause.7 and clause.8 are the evidence and must pass at any wall-clock time; run them with packages/core/src/scope/delivery-evidence.test.ts.\n3. One CHANGELOG.md [Unreleased] line.\n4. One-PR mint path (onePrScopeProof: mint): the brief, the approved-scope record pair and the fix land in one PR, because an activation-only PR cannot pass CI while master is red.\n5. Body-normative brief: the admitted-source pin is the issue body (live REST digest compare), so each of its 13 sentences stays a same-text clause (#5055).",
+      "Labels": "bug",
+      "Traces": "#6398, #6317, #6330"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Problem Master CI fails from 2026-11-16T10:00Z.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Problem Master CI fails from 2026-11-16T10:00Z."
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Every PR in the merge queue fails the same two tests in `packages/core/src/policy/delivery-identity-attest-grant.test.ts`: - `clause.7: an acceptance refusal after the join leaves the grant unused; finalize retry and restamp pass` - `clause.8: completion refuses on an expired unused grant, another target, an unreadable body, or a lifecycle-only PR` Both fail with `grant ...",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Every PR in the merge queue fails the same two tests in `packages/core/src/policy/delivery-identity-attest-grant.test.ts`: - `clause.7: an acceptance refusal after the join leaves the grant unused; finalize retry and restamp pass` - `clause.8: completion refuses on an expired unused grant, another target, an unreadable body, or a lifecycle-only PR` Both fail with `grant ..."
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "expired (or is not active) before first use`.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "expired (or is not active) before first use`."
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Cause `evaluateDeliveryGate` (`packages/core/src/scope/delivery-evidence.ts`, default `findDeliveryAttestation` near line 2586) calls `findDeliveryIdentityAttestation` without `now`.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Cause `evaluateDeliveryGate` (`packages/core/src/scope/delivery-evidence.ts`, default `findDeliveryAttestation` near line 2586) calls `findDeliveryIdentityAttestation` without `now`."
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "The lookup then checks grant expiry against the real clock, not the transition clock (`options.nowIso`).",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "The lookup then checks grant expiry against the real clock, not the transition clock (`options.nowIso`)."
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "The tests mint at a fixed `2026-11-15T10:00Z` with the 24-hour default expiry and run completion at a fixed `2026-11-15T12:00Z`.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "The tests mint at a fixed `2026-11-15T10:00Z` with the 24-hour default expiry and run completion at a fixed `2026-11-15T12:00Z`."
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "They passed until the real clock passed the expiry.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "They passed until the real clock passed the expiry."
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "Came in with #6317 (PR #6330).",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Came in with #6317 (PR #6330)."
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "The same gap affects production: a completion run with an injected or replayed clock reads grant expiry from wall time.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "The same gap affects production: a completion run with an injected or replayed clock reads grant expiry from wall time."
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "Fix Pass `now: new Date(options.nowIso)` to the default lookup.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Fix Pass `now: new Date(options.nowIso)` to the default lookup."
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "No test change.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "No test change."
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "Acceptance Criteria - Given a delivery gate run with `nowIso` before a grant's expiry, when the real clock is after that expiry, then the default attestation lookup treats the grant as unexpired.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Acceptance Criteria - Given a delivery gate run with `nowIso` before a grant's expiry, when the real clock is after that expiry, then the default attestation lookup treats the grant as unexpired."
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "The two tests above pass at any wall-clock time.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "The two tests above pass at any wall-clock time."
+        }
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6398",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6398: bug(scope): delivery attest lookup reads grant expiry from wall clock; master CI red after 2026-11-16T10:00Z"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "xbrief/active/2026-11-16-6398-bugscope-delivery-attest-lookup-reads-grant-expiry-from-wall.xbrief.json",
+          ".deft/approved-scope/github.issue.6418966722.json",
+          ".deft/approved-scope/github.issue.6418966722.intent.json",
+          "packages/core/src/scope/delivery-evidence.ts",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "delivery-evidence-attest-clock",
+        "verify_commands": [
+          "npx vitest run packages/core/src/policy/delivery-identity-attest-grant.test.ts packages/core/src/scope/delivery-evidence.test.ts"
+        ],
+        "expected_outputs": [
+          "default findDeliveryAttestation in evaluateDeliveryGate passes now: new Date(options.nowIso)",
+          "delivery-identity-attest-grant.test.ts clause.7 and clause.8 pass at any wall-clock time with no test edit"
+        ],
+        "Traces": [
+          "#6398",
+          "#6317",
+          "#6330"
+        ],
+        "acceptance_criteria_justification": "13 clauses: this body-normative brief pins the whole issue body (live REST digest compare), and #5055 requires each of its 13 admitted sentences to stay a same-text clause; the 2 Acceptance Criteria (clause.12, clause.13) carry the observable behaviour, proven by the verify_commands test run."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6418966722,
+        "origin": "deftai/directive#6398",
+        "id": "github.issue.6418966722"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 13 clauses before product edit (#3323): one same-text clause per admitted issue-body sentence (#5055), including the 2 Acceptance Criteria",
+      "sentences": [
+        "Problem Master CI fails from 2026-11-16T10:00Z.",
+        "Every PR in the merge queue fails the same two tests in `packages/core/src/policy/delivery-identity-attest-grant.test.ts`: - `clause.7: an acceptance refusal after the join leaves the grant unused; finalize retry and restamp pass` - `clause.8: completion refuses on an expired unused grant, another target, an unreadable body, or a lifecycle-only PR` Both fail with `grant ...",
+        "expired (or is not active) before first use`.",
+        "Cause `evaluateDeliveryGate` (`packages/core/src/scope/delivery-evidence.ts`, default `findDeliveryAttestation` near line 2586) calls `findDeliveryIdentityAttestation` without `now`.",
+        "The lookup then checks grant expiry against the real clock, not the transition clock (`options.nowIso`).",
+        "The tests mint at a fixed `2026-11-15T10:00Z` with the 24-hour default expiry and run completion at a fixed `2026-11-15T12:00Z`.",
+        "They passed until the real clock passed the expiry.",
+        "Came in with #6317 (PR #6330).",
+        "The same gap affects production: a completion run with an injected or replayed clock reads grant expiry from wall time.",
+        "Fix Pass `now: new Date(options.nowIso)` to the default lookup.",
+        "No test change.",
+        "Acceptance Criteria - Given a delivery gate run with `nowIso` before a grant's expiry, when the real clock is after that expiry, then the default attestation lookup treats the grant as unexpired.",
+        "The two tests above pass at any wall-clock time."
+      ],
+      "admitted_source_sentences": [
+        "Problem Master CI fails from 2026-11-16T10:00Z.",
+        "Every PR in the merge queue fails the same two tests in `packages/core/src/policy/delivery-identity-attest-grant.test.ts`: - `clause.7: an acceptance refusal after the join leaves the grant unused; finalize retry and restamp pass` - `clause.8: completion refuses on an expired unused grant, another target, an unreadable body, or a lifecycle-only PR` Both fail with `grant ...",
+        "expired (or is not active) before first use`.",
+        "Cause `evaluateDeliveryGate` (`packages/core/src/scope/delivery-evidence.ts`, default `findDeliveryAttestation` near line 2586) calls `findDeliveryIdentityAttestation` without `now`.",
+        "The lookup then checks grant expiry against the real clock, not the transition clock (`options.nowIso`).",
+        "The tests mint at a fixed `2026-11-15T10:00Z` with the 24-hour default expiry and run completion at a fixed `2026-11-15T12:00Z`.",
+        "They passed until the real clock passed the expiry.",
+        "Came in with #6317 (PR #6330).",
+        "The same gap affects production: a completion run with an injected or replayed clock reads grant expiry from wall time.",
+        "Fix Pass `now: new Date(options.nowIso)` to the default lookup.",
+        "No test change.",
+        "Acceptance Criteria - Given a delivery gate run with `nowIso` before a grant's expiry, when the real clock is after that expiry, then the default attestation lookup treats the grant as unexpired.",
+        "The two tests above pass at any wall-clock time."
+      ],
+      "admitted_source_digest": "4e468fd23086515c3b884641b6797d078cb7bb85a0a98736dc7876ec91c70df6",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Problem Master CI fails from 2026-11-16T10:00Z.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Every PR in the merge queue fails the same two tests in `packages/core/src/policy/delivery-identity-attest-grant.test.ts`: - `clause.7: an acceptance refusal after the join leaves the grant unused; finalize retry and restamp pass` - `clause.8: completion refuses on an expired unused grant, another target, an unreadable body, or a lifecycle-only PR` Both fail with `grant ...",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "expired (or is not active) before first use`.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Cause `evaluateDeliveryGate` (`packages/core/src/scope/delivery-evidence.ts`, default `findDeliveryAttestation` near line 2586) calls `findDeliveryIdentityAttestation` without `now`.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "The lookup then checks grant expiry against the real clock, not the transition clock (`options.nowIso`).",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "The tests mint at a fixed `2026-11-15T10:00Z` with the 24-hour default expiry and run completion at a fixed `2026-11-15T12:00Z`.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "They passed until the real clock passed the expiry.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Came in with #6317 (PR #6330).",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "The same gap affects production: a completion run with an injected or replayed clock reads grant expiry from wall time.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Fix Pass `now: new Date(options.nowIso)` to the default lookup.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "No test change.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Acceptance Criteria - Given a delivery gate run with `nowIso` before a grant's expiry, when the real clock is after that expiry, then the default attestation lookup treats the grant as unexpired.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "The two tests above pass at any wall-clock time.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6418966722"
+  }
+}

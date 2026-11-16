@@ -1,0 +1,955 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6279",
+    "updated": "2026-11-16T07:08:08Z"
+  },
+  "plan": {
+    "title": "feat(session,hooks): re-arm stale session ritual automatically when the same session still holds the checkout",
+    "status": "completed",
+    "narratives": {
+      "Description": "After a context compaction the write hook restores the session ritual clock and answers the first write with one denial that carries the alignment lines; the retry is not denied for the compaction again. Only the session that owns both the live lease and the ritual can trigger this heal, and the heal stamps no new time, so age staleness and the finalize-owed cadence stay as before. Every other stale-ritual denial prints its recovery command with the caller's session id filled in; a branch switch stays a cold start and is deferred to #6293.",
+      "UserStory": "As an agent session that still holds the checkout, I want a compaction to cost me one denial and no manual command, and every other stale-ritual denial to print a command I can run as printed, so that I stop spending turns on ritual recovery.",
+      "ImplementationPlan": "1. packages/core/src/session/ritual-sentinel.ts: `markRitualStaleAfterCompact` records the overwritten `started_at` as `compact_prior_started_at` unless the state already carries a compact mark with a recorded clock; `writeRitualStateIfStillOwned` takes an optional in-lock admission check.\n2. packages/core/src/session/verify-session-ritual.ts: `healCompactMarkForOwnerWrite` checks item 1 (owner, live lease, bound id equals caller, no identity conflict) and `assessRearmEligibility`, then restores the recorded clock and clears the mark explicitly through `writeRitualStateIfStillOwned` with a live-lease re-check inside the ritual lock, and returns the one-time denial text with `READ_ONLY_ALIGNMENT_MESSAGE` and the USER.md line.\n3. packages/core/src/hooks/dispatcher.ts (ritual branch of `inspectMutationGates` only): call the heal before the ritual-not-ready denial; emit the session-ritual process-cost record with code `hook-compact-heal`; fill the caller's session id into printed recovery commands after the occupancy-aware rewrite.\n4. packages/core/src/session/occupancy-recovery.ts: `fillRecoveryCommandSessionId` fills bare `session:start`, `session:start --rearm`, `session:ready` and the `<same-session-id>` token.\n5. packages/core/src/run-summary/types.ts: add `hook-compact-heal` to `SESSION_START_TRIGGERS`.\n6. Verification: tests in packages/core/src/session/compact-ritual.test.ts for every Bound item 5 case, run by the verify_commands vitest line; `task verify:forward-coverage` at 90% on touched code; content/commands.md compact paragraph; CHANGELOG line.",
+      "Traces": "#6279, #6293, #2113, #2992, #4290, #2782, #1149, #2993",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6279",
+      "Overview": "\n1. Who may repair. The in-hook repair in item 2 needs all of: the caller is the lease owner (`occupancyGate.admitted` is owner, not member); the lease is live; `ritual.boundSessionId` equals the caller's session id; the caller's host identity has no conflict; and the write's effective worktree is the ritual's worktree. A member, a missing or conflicting identity, or any mismatch gets today's denial. The repair write goes through `writeRitualStateIfStillOwned` under the existing ritual lock.\n2. Compaction heal. `markRitualStaleAfterCompact` also records the `started_at` it overwrites, unless one is already recorded (a second compaction before any write). When the write gate finds the compact mark, item 1 holds and `assessRearmEligibility` passes, the hook restores that recorded clock, clears the mark, and denies that one call with a message that carries the re-arm alignment lines (`READ_ONLY_ALIGNMENT_MESSAGE` and the USER.md line) and says to retry. It changes no step result, no gated-step record and no finalize-owed outcome, and it stamps no new time, so age staleness and the inventory cadence are exactly what they were before the compaction. A mark with no recorded clock gets today's denial.\n3. Age staleness and a discontinuous HEAD are never cleared by the hook. Their denials, and the other ritual denials that name a recovery command (`dispatcher.ts` 2388 and 2489, `formatSessionStartRecoveryCommand`), print that command with the caller's session id filled in. The occupancy-aware replacement of that text stays as it is.\n4. Recording. `SESSION_START_TRIGGERS` gains the closed token `hook-compact-heal`, and each heal emits the existing session-ritual process-cost record.\n5. Tests: for item 1, a granted member, a foreign lease, a conflicting identity and a lease lost between check and write; for item 2, a heal with one denial then an admitted retry, parallel calls, a failed quick step (no heal), a state that was already stale by age before the compaction (heal, then the age denial), a discontinuous HEAD under the mark (no heal), two compactions before a write, and a mark written by an older runtime; for item 3, the printed command run as printed, and the occupancy-aware text unchanged; a same-owner branch switch still refused (the locked #2782 test is untouched).\n\n\n",
+      "Constraint": "- Attributing a branch switch from a record the hook makes before the command runs, or from any descendant test on HEAD (pain-audit 1.1 and 1.2).\n- A silent refresh after compaction on lease identity alone (Claude 1).\n- Clearing age staleness in the hook, or any hook write that stamps a fresh ritual time (Codex 3, Grok 2, Claude 5).\n- Running the re-arm ceremony or the finalize-owed inventory inside the hook; the inventory fetches from the network (Claude 5).\n- Treating live same-owner occupancy as proof of who moved HEAD (Codex 1, Claude 2, Grok 1).\n- A repair triggered by a member, or decided from the session id stored in the ritual instead of the caller's (Codex 2, Claude 4).\n- Changing the pull, merge or rebase paths, which are already continuous at the pin (Codex 4, Claude 3).",
+      "Labels": "consumer-example, design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "Who may repair.",
+        "status": "completed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given a compact-marked ritual and a write, then the write gate in packages/core/src/hooks/dispatcher.ts decides whether the caller may trigger the heal before it returns the ritual-not-ready denial."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "The in-hook repair in item 2 needs all of: the caller is the lease owner (`occupancyGate.admitted` is owner, not member); the lease is live; `ritual.boundSessionId` equals the caller's session id; the caller's host identity has no conflict; and the write's effective worktree is the ritual's worktree.",
+        "status": "completed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given a compact-marked ritual, when the caller owns the live lease, is the ritual's bound session, has no identity conflict and writes in the ritual's worktree, then the heal runs; when any one of these fails, it does not."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "A member, a missing or conflicting identity, or any mismatch gets today's denial.",
+        "status": "completed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a granted member, a foreign lease or a conflicting identity on a compact-marked ritual, when it writes, then it gets the ritual-not-ready or occupancy denial of today and the ritual state is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "The repair write goes through `writeRitualStateIfStillOwned` under the existing ritual lock.",
+        "status": "completed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given a heal, then it persists through writeRitualStateIfStillOwned under the ritual lock, re-checks the live lease inside that lock, and writes nothing when the lease was lost between check and write."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Compaction heal.",
+        "status": "completed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given a compaction followed by an owner write, then packages/core/src/session/verify-session-ritual.ts provides the heal that the write gate calls."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "`markRitualStaleAfterCompact` also records the `started_at` it overwrites, unless one is already recorded (a second compaction before any write).",
+        "status": "completed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given a fresh ritual, when markRitualStaleAfterCompact runs twice before a write, then the recorded clock equals the original started_at."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "When the write gate finds the compact mark, item 1 holds and `assessRearmEligibility` passes, the hook restores that recorded clock, clears the mark, and denies that one call with a message that carries the re-arm alignment lines (`READ_ONLY_ALIGNMENT_MESSAGE` and the USER.md line) and says to retry.",
+        "status": "completed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given an eligible owner write on a compact-marked ritual, then the hook denies that call once with a message that contains READ_ONLY_ALIGNMENT_MESSAGE, the USER.md line and a retry instruction, the ritual started_at equals the recorded clock and the mark is cleared, and the retry is admitted."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "It changes no step result, no gated-step record and no finalize-owed outcome, and it stamps no new time, so age staleness and the inventory cadence are exactly what they were before the compaction.",
+        "status": "completed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given a heal, then quick_steps and gated_steps are byte-equal to the pre-compaction state and started_at equals the pre-compaction value, so a ritual already stale by age before the compaction gets the age denial on the retry."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "A mark with no recorded clock gets today's denial.",
+        "status": "completed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given a compact mark written by an older runtime with no recorded clock, when the owner writes, then the hook returns today's ritual-not-ready denial and the ritual state is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Age staleness and a discontinuous HEAD are never cleared by the hook.",
+        "status": "completed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given a ritual stale by age with no compact mark, or a discontinuous HEAD under a compact mark, when the owner writes, then the hook denies, does not heal and leaves started_at unchanged; a compaction heal of a ritual already stale by age restores the old clock, so the retry still gets the age denial (clause.8)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Their denials, and the other ritual denials that name a recovery command (`dispatcher.ts` 2388 and 2489, `formatSessionStartRecoveryCommand`), print that command with the caller's session id filled in.",
+        "status": "completed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given a ritual denial that names a session:start or session:ready recovery command, then the printed command carries --session-id with the caller's session id and inspectExactLifecycleCommand reads that id as present."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "The occupancy-aware replacement of that text stays as it is.",
+        "status": "completed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given a caller whose occupancy refuses ceremony, then the denial still strips the ceremony commands exactly as before and no session id is filled into stripped text."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Recording.",
+        "status": "completed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given a heal, then it is recorded through packages/core/src/run-summary/types.ts tokens and the process-cost event log."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "`SESSION_START_TRIGGERS` gains the closed token `hook-compact-heal`, and each heal emits the existing session-ritual process-cost record.",
+        "status": "completed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given the run-summary types, then SESSION_START_TRIGGERS includes hook-compact-heal, and given a heal, then one session:ritual-blocked process-cost event with code hook-compact-heal is appended."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Tests: for item 1, a granted member, a foreign lease, a conflicting identity and a lease lost between check and write; for item 2, a heal with one denial then an admitted retry, parallel calls, a failed quick step (no heal), a state that was already stale by age before the compaction (heal, then the age denial), a discontinuous HEAD under the mark (no heal), two compactions before a write, and a mark written by an older runtime; for item 3, the printed command run as printed, and the occupancy-aware text unchanged; a same-owner branch switch still refused (the locked #2782 test is untouched).",
+        "status": "completed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/session/compact-ritual.test.ts, when it runs, then each listed case returns its stated verdict and the #2782 branch-switch test file is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      }
+    ],
+    "tags": [
+      "consumer-example",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6279",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6279: feat(session,hooks): re-arm stale session ritual automatically when the same session still holds the checkout"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1149",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1149"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4290",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4290"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/2993",
+        "type": "x-xbrief/refs",
+        "title": "Issue #2993"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 15 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "feat(session,hooks): re-arm stale session ritual automatically when the same session still holds the checkout",
+        "Who may repair.",
+        "The in-hook repair in item 2 needs all of: the caller is the lease owner (`occupancyGate.admitted` is owner, not member); the lease is live; `ritual.boundSessionId` equals the caller's session id; the caller's host identity has no conflict; and the write's effective worktree is the ritual's worktree.",
+        "A member, a missing or conflicting identity, or any mismatch gets today's denial.",
+        "The repair write goes through `writeRitualStateIfStillOwned` under the existing ritual lock.",
+        "Compaction heal.",
+        "`markRitualStaleAfterCompact` also records the `started_at` it overwrites, unless one is already recorded (a second compaction before any write).",
+        "When the write gate finds the compact mark, item 1 holds and `assessRearmEligibility` passes, the hook restores that recorded clock, clears the mark, and denies that one call with a message that carries the re-arm alignment lines (`READ_ONLY_ALIGNMENT_MESSAGE` and the USER.md line) and says to retry.",
+        "It changes no step result, no gated-step record and no finalize-owed outcome, and it stamps no new time, so age staleness and the inventory cadence are exactly what they were before the compaction.",
+        "A mark with no recorded clock gets today's denial.",
+        "Age staleness and a discontinuous HEAD are never cleared by the hook.",
+        "Their denials, and the other ritual denials that name a recovery command (`dispatcher.ts` 2388 and 2489, `formatSessionStartRecoveryCommand`), print that command with the caller's session id filled in.",
+        "The occupancy-aware replacement of that text stays as it is.",
+        "Recording.",
+        "`SESSION_START_TRIGGERS` gains the closed token `hook-compact-heal`, and each heal emits the existing session-ritual process-cost record.",
+        "Tests: for item 1, a granted member, a foreign lease, a conflicting identity and a lease lost between check and write; for item 2, a heal with one denial then an admitted retry, parallel calls, a failed quick step (no heal), a state that was already stale by age before the compaction (heal, then the age denial), a discontinuous HEAD under the mark (no heal), two compactions before a write, and a mark written by an older runtime; for item 3, the printed command run as printed, and the occupancy-aware text unchanged; a same-owner branch switch still refused (the locked #2782 test is untouched)."
+      ],
+      "admitted_source_sentences": [
+        "Who may repair.",
+        "The in-hook repair in item 2 needs all of: the caller is the lease owner (`occupancyGate.admitted` is owner, not member); the lease is live; `ritual.boundSessionId` equals the caller's session id; the caller's host identity has no conflict; and the write's effective worktree is the ritual's worktree.",
+        "A member, a missing or conflicting identity, or any mismatch gets today's denial.",
+        "The repair write goes through `writeRitualStateIfStillOwned` under the existing ritual lock.",
+        "Compaction heal.",
+        "`markRitualStaleAfterCompact` also records the `started_at` it overwrites, unless one is already recorded (a second compaction before any write).",
+        "When the write gate finds the compact mark, item 1 holds and `assessRearmEligibility` passes, the hook restores that recorded clock, clears the mark, and denies that one call with a message that carries the re-arm alignment lines (`READ_ONLY_ALIGNMENT_MESSAGE` and the USER.md line) and says to retry.",
+        "It changes no step result, no gated-step record and no finalize-owed outcome, and it stamps no new time, so age staleness and the inventory cadence are exactly what they were before the compaction.",
+        "A mark with no recorded clock gets today's denial.",
+        "Age staleness and a discontinuous HEAD are never cleared by the hook.",
+        "Their denials, and the other ritual denials that name a recovery command (`dispatcher.ts` 2388 and 2489, `formatSessionStartRecoveryCommand`), print that command with the caller's session id filled in.",
+        "The occupancy-aware replacement of that text stays as it is.",
+        "Recording.",
+        "`SESSION_START_TRIGGERS` gains the closed token `hook-compact-heal`, and each heal emits the existing session-ritual process-cost record.",
+        "Tests: for item 1, a granted member, a foreign lease, a conflicting identity and a lease lost between check and write; for item 2, a heal with one denial then an admitted retry, parallel calls, a failed quick step (no heal), a state that was already stale by age before the compaction (heal, then the age denial), a discontinuous HEAD under the mark (no heal), two compactions before a write, and a mark written by an older runtime; for item 3, the printed command run as printed, and the occupancy-aware text unchanged; a same-owner branch switch still refused (the locked #2782 test is untouched)."
+      ],
+      "admitted_source_digest": "2798e4b6c3e9868206b5e3a7d882fa6a026c2ec5c861f42b265bd03a28ef3906",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Who may repair.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The in-hook repair in item 2 needs all of: the caller is the lease owner (`occupancyGate.admitted` is owner, not member); the lease is live; `ritual.boundSessionId` equals the caller's session id; the caller's host identity has no conflict; and the write's effective worktree is the ritual's worktree.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A member, a missing or conflicting identity, or any mismatch gets today's denial.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The repair write goes through `writeRitualStateIfStillOwned` under the existing ritual lock.",
+          "artifact_path": "packages/core/src/session/ritual-sentinel.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Compaction heal.",
+          "artifact_path": "packages/core/src/session/verify-session-ritual.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "`markRitualStaleAfterCompact` also records the `started_at` it overwrites, unless one is already recorded (a second compaction before any write).",
+          "artifact_path": "packages/core/src/session/ritual-sentinel.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "When the write gate finds the compact mark, item 1 holds and `assessRearmEligibility` passes, the hook restores that recorded clock, clears the mark, and denies that one call with a message that carries the re-arm alignment lines (`READ_ONLY_ALIGNMENT_MESSAGE` and the USER.md line) and says to retry.",
+          "artifact_path": "packages/core/src/session/verify-session-ritual.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "It changes no step result, no gated-step record and no finalize-owed outcome, and it stamps no new time, so age staleness and the inventory cadence are exactly what they were before the compaction.",
+          "artifact_path": "packages/core/src/session/verify-session-ritual.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "A mark with no recorded clock gets today's denial.",
+          "artifact_path": "packages/core/src/session/verify-session-ritual.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Age staleness and a discontinuous HEAD are never cleared by the hook.",
+          "artifact_path": "packages/core/src/session/verify-session-ritual.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Their denials, and the other ritual denials that name a recovery command (`dispatcher.ts` 2388 and 2489, `formatSessionStartRecoveryCommand`), print that command with the caller's session id filled in.",
+          "artifact_path": "packages/core/src/session/occupancy-recovery.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "The occupancy-aware replacement of that text stays as it is.",
+          "artifact_path": "packages/core/src/session/occupancy-recovery.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Recording.",
+          "artifact_path": "packages/core/src/run-summary/types.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "`SESSION_START_TRIGGERS` gains the closed token `hook-compact-heal`, and each heal emits the existing session-ritual process-cost record.",
+          "artifact_path": "packages/core/src/run-summary/types.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Tests: for item 1, a granted member, a foreign lease, a conflicting identity and a lease lost between check and write; for item 2, a heal with one denial then an admitted retry, parallel calls, a failed quick step (no heal), a state that was already stale by age before the compaction (heal, then the age denial), a discontinuous HEAD under the mark (no heal), two compactions before a write, and a mark written by an older runtime; for item 3, the printed command run as printed, and the occupancy-aware text unchanged; a same-owner branch switch still refused (the locked #2782 test is untouched).",
+          "artifact_path": "packages/core/src/session/compact-ritual.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "feat(session,hooks): re-arm stale session ritual automatically when the same session still holds the checkout"
+      ]
+    },
+    "metadata": {
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/session/ritual-sentinel.ts",
+          "packages/core/src/session/ritual-sentinel.test.ts",
+          "packages/core/src/session/verify-session-ritual.ts",
+          "packages/core/src/session/occupancy-recovery.ts",
+          "packages/core/src/session/occupancy-recovery.test.ts",
+          "packages/core/src/session/compact-ritual.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/run-summary/types.ts",
+          "packages/core/src/run-summary/run-summary.test.ts",
+          "content/commands.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "hooks-dispatcher",
+        "verify_commands": [
+          "npx vitest run packages/core/src/session/compact-ritual.test.ts packages/core/src/session/occupancy-recovery.test.ts packages/core/src/session/ritual-sentinel.test.ts packages/core/src/run-summary/run-summary.test.ts"
+        ],
+        "expected_outputs": [
+          "compaction heal: one denial with the alignment lines, then an admitted retry, for the owner of the live lease and the ritual only",
+          "markRitualStaleAfterCompact records the overwritten started_at once per compaction run",
+          "ritual recovery commands printed with the caller's session id",
+          "SESSION_START_TRIGGERS includes hook-compact-heal and each heal emits a process-cost record"
+        ],
+        "Traces": [
+          "#6279",
+          "#6293",
+          "#2113",
+          "#2992",
+          "#4290",
+          "#2782"
+        ],
+        "acceptance_criteria_justification": "Fifteen clauses, one per admitted sentence of the Bound remedy on #6279 (successor lean 6858799411, accepted synthesis 6858873515); kept one-to-one so each maps to its own evidence."
+      },
+      "kind": "story",
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6279; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the ask lets a hook refresh the session ritual by itself; that changes who may clear a gate, on evidence about session identity and checkout continuity, and a wrong rule turns the ritual into a no-op for every consumer.\n\ndispatch-sha: 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04\ndest: .deft-scratch/worktrees/arc-6279 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: high blast radius (a gate that clears itself; session identity and occupancy); panel permission used. `design-critique:spend-resolve` resolved the relayed operator wording against the recorded recommend.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04:; dest cwd-without-occupy\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\npain: P1, P2\n\n## In plain English\nWhen the session ritual state goes stale, every Write and Edit is refused until the agent reruns the ritual by hand. In a long session this happens many times, and the session that went stale is usually the same one that still holds the checkout. A consumer project counted 12 such denials and 98 `session:ready` runs in one week. The issue asks the hook to refresh the ritual itself when it can show that the same host session still holds the checkout and nothing else changed. The open question is what evidence is enough for that, and which staleness causes may be cleared this way.\n\n## Pains\n- P1 — When ritual state goes stale by age, or by a compaction or resume, in the same host session that still holds the checkout, every Write and Edit is refused until a manual re-arm.\n- P2 — After that same session changes HEAD with an ordinary git command (switch, pull, merge, rebase), re-arm itself is refused and a full cold `session:start` is required.\n\n## Notes for the arc\n- The issue keeps these refusals: a different session, a foreign lease, a changed worktree, a pin change. It also keeps the finalize-owed inventory as a separate gate.\n- Related closed work: #1149 (ritual), #4290 (stale ritual with occupancy), #2993 (`session:ready`).\n\n## Operator launch\nRelayed by the dispatching session, not typed in this session. Scott answered \"Yes, arcs only\" to the question \"Start a third-clone session that runs arcs only for the next wave?\". Standing steer, verbatim: \"you can yolo them and start implementation when they land\". This session runs the arc only: no ingest, no brief, no code, no PR.\n\n",
+          "id": 6857545497,
+          "html_url": "https://github.com/deftai/directive/issues/6279#issuecomment-6857545497",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:34:15Z",
+          "updated_at": "2026-11-13T15:34:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 6857553861\nseat: claude launcher: claude-code-native-subagent (model opus)\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest)\nseat: grok launcher: grok (--cwd dest --prompt-file --permission-mode auto --disable-web-search --no-subagents)\n\ncharter: open critique\nspend: N≥3\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04\ndest: .deft-scratch/worktrees/arc-6279\nverification-path: pin-read git show 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04:; dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6857545497\n\n## Launch posture (disclosed)\n- The parent is Claude Code in auto mode. It does not use the playbook's bypass critic argv. Each seat uses a read-only launcher with the dest as its working directory.\n- Launch probe under the argv actually used: codex `--sandbox read-only` returned `pong` rc 0; grok `--permission-mode auto` returned `pong` rc 0. That proves launchability only, not method.\n- The Codex and Grok seats have no GitHub access in that posture. They read a parent-written thread snapshot (issue body, comments up to this deposit) and a filled brief; both files sit outside the repository, because the write gate refuses parent writes inside a process-only dest. The Claude seat reads the same two files and returns its body to the parent.\n- For all three seats the parent posts the critic's final message verbatim, with no edits. Grok plain output prints progress narration before the `model:` line; the parent strips only that narration.\n\n",
+          "id": 6857553861,
+          "html_url": "https://github.com/deftai/directive/issues/6279#issuecomment-6857553861",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:34:37Z",
+          "updated_at": "2026-11-13T15:34:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe issue asks hooks to refresh stale session readiness automatically when the same session still owns the checkout, including after its own branch changes. Automatic recovery for age and compaction is plausible, but checkout ownership alone does not prove who changed HEAD. The design also needs to distinguish an owner from an admitted child and preserve checks beyond the ritual timestamp. I verified the relevant code at `1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04` by reading it; no tests, network calls, or mutations were performed.\n\n### 1. Checkout ownership does not establish HEAD-change authorship — blocks-the-design\n\n**Evidence:** `packages/core/src/session/session-start.ts:734–794` explicitly rejects branch switches, resets, and amendments despite live same-owner occupancy. Its existing exception requires a same-branch rebase sequence in the reflog. `verify-session-ritual.ts:368–405` already accepts forward ancestry and that rebase exception.\n\n**Failure mode:** Another terminal can switch branches while the host session retains its lease. At the next write, matching session and lease IDs establish ownership now, not that this session performed the switch. Broadly accepting discontinuous HEAD under the lease would erase the current distinction.\n\n**Disposition:** Do not bind P2 as written until it names evidence connecting the actual Git transition to the host session. I would retain existing continuity checks and require a narrowly recorded, successful host-associated transition for additional cases, with unexplained changes refusing. The strongest alternative is treating exclusive occupancy as sufficient operational attribution; that is simpler, but would require explicitly accepting externally caused transitions under that lease. Evidence that such transitions are deterministically excluded would flip this verdict.\n\n### 2. Automatic repair must authenticate the caller before changing ritual state — blocks-the-design\n\n**Evidence:** `packages/core/src/hooks/dispatcher.ts:2319–2332` invokes ritual verification without passing a host actor. The exact ritual-owner comparison follows verification at `2355–2367`; admitted members deliberately use the lease owner's ceremony. `session-start.ts:833` assesses rebase continuity using the session ID read from ritual state.\n\n**Failure mode:** Adding auto-rearm inside the verifier using the persisted session ID could refresh an owner's ritual on a child/member request, or mutate a mismatched ritual before the dispatcher rejects the caller. Occupancy admission alone includes more than the same-owner case requested here.\n\n**Disposition:** Bind an explicit conjunction before repair: trusted host actor equals live lease owner equals the inspected ritual owner, in the effective worktree. Members, missing identity, and mismatches must not trigger repair. Preserve the final occupancy check and guarded persistence; `session-start.ts:1602–1630` already rechecks ownership before writing. Acceptance coverage should include a granted member and ownership loss during recovery, not only a foreign lease.\n\n### 3. Refreshing timestamps is not equivalent to the existing re-arm path — blocks-the-design\n\n**Evidence:** `packages/core/src/session/session-start.ts:844–855` requires previously passing quick steps. Its re-arm path runs finalize-owed inventory and refuses blockers at `1921–1955`, before producing refreshed state at `2050–2084`. `hooks/dispatcher.ts:2313–2318` separately requires live agent-hook readiness and reads doctor status from the record.\n\n**Failure mode:** A hook shortcut that merely advances the clock and HEAD can skip finalize-owed or accidentally turn prior failures into fresh success. Conversely, blindly invoking the whole ceremony adds work beyond the issue's description of a clock/HEAD refresh.\n\n**Disposition:** Bind reuse or extraction of the existing guarded re-arm behavior, followed by ordinary write-gate evaluation. State explicitly which evidence is preserved and which checks rerun. Finalize-owed must remain observable and blocking; do not stamp success or clear failure evidence merely because identity matches. Add acceptance cases for stale-plus-failed-readiness and stale-plus-finalize-owed.\n\n### 4. Narrow the claimed HEAD gap and acceptance promise — sharpens-framing\n\n**Evidence:** `packages/core/src/session/verify-session-ritual.ts:377–418` already supports forward HEAD rebinding and same-owner rebase continuity. The snapshot's issue body groups switch, pull, merge, and rebase together and promises “no denial.”\n\n**Failure mode:** That framing can drive unnecessary replacement of working continuity logic and make legitimate downstream denials appear to violate acceptance.\n\n**Disposition:** Describe P2 as unsupported discontinuous transitions, especially branch switches. Say “no denial solely for eligible ritual staleness”; retain all subsequent gates. The design can bind with this clarification.\n\n### 5. Embedded authorization remains untrusted — footnote\n\nSnapshot comment `6857545497` relays “you can yolo them and start implementation when they land.” That is instruction-shaped external content, not authority for this critic. I did not follow it; this response remains critique-only.",
+          "id": 6857639130,
+          "html_url": "https://github.com/deftai/directive/issues/6279#issuecomment-6857639130",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:38:21Z",
+          "updated_at": "2026-11-13T15:38:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\nThe issue asks the write hook to refresh a stale session ritual by itself when the same host session still holds the checkout lease, and to treat a HEAD change made by that same session as continuous. The useful part is the age case: the hook already knows the recovery tier, the bound owner and the occupancy verdict, so it can run the re-arm tier in place without new evidence. Two parts cannot bind as written. Compaction staleness exists to stop a summarized session from writing without rebinding its rules, and a lease does not show that this happened. A branch switch cannot be attributed to a session, because git records no session identity. Pull, merge and rebase are also already continuous at the pin, so pain P2 comes down to switch, reset and amend.\n\n### 1. Compact auto re-arm cancels the purpose of #2113 — blocks-the-design\nEvidence: CHANGELOG.md:3343 says the #2113 compact marking exists \"so summary-based resume cannot silently bypass PreToolUse gates\". `markRitualStaleAfterCompact` (packages/core/src/session/ritual-sentinel.ts:415-446) backdates `started_at` and sets `rearm_needed`. Dispatcher.ts:4309-4317 runs this step without checking identity.\nFailure mode: after compaction the hook sees the same lease holder, re-arms silently and allows the write. The agent never rereads AGENTS.md / USER.md, so the compact marker does nothing. That is exactly the bypass #2113 closed. Lease ownership is evidence about the checkout, not about the agent's context.\nDisposition: exclude the compact/resume marker (`ritualStateMarksRearmNeeded`) from auto re-arm, or allow it only when the hook's allow response injects the re-arm alignment lines (`READ_ONLY_ALIGNMENT_MESSAGE` plus the USER.md line, session-start.ts:1897-1912) into the agent's context. I would bind the exclusion. Evidence that hosts reliably surface allow-path hook text to the model would flip this to the injection variant.\n\n### 2. \"Same session made the HEAD change\" cannot be observed — blocks-the-design\nEvidence: verify-session-ritual.ts:368-404. A forward fast-forward is already continuous (ancestor check), so pull and a merge commit already rebind. A same-owner rebase is admitted under a live lease by `sameOwnerRebaseHeadContinuity` (session-start.ts:745-795, #3884). Branch switch, reset and amend are deliberately refused (#2782), and verify-session-ritual.test.ts:435-474 locks \"verify fails closed on same-owner branch switch\".\nFailure mode: reflog entries have no session id. A switch made by the operator in a terminal, an IDE or another tool looks the same as one the agent made, and live-same-owner occupancy holds the whole time. Auto re-arm would bind the ritual to a tree the session did not verify. The issue's acceptance item \"a test covers the same-session branch switch\" directly inverts a locked #2782 test, and the issue does not say it supersedes #2782.\nDisposition: drop the switch item, or restate it as an explicit supersession of #2782 that names a real attribution signal (for example a hook-observed Bash `git switch` by this actor, recorded before the HEAD move). Without such a signal it stays a cold start.\n\n### 3. P2 overstates the gap — sharpens-framing\nEvidence: same lines as finding 2. \"switch, pull, merge, rebase\" lists three cases that already pass at the pin.\nDisposition: restate P2 as switch / reset / amend only, so later work does not \"fix\" paths that already work.\n\n### 4. Members must not re-arm the owner's ritual — sharpens-framing\nEvidence: dispatcher.ts:2355-2367. A granted member writes under the owner's ceremony (#3755), with `expectedOwner` set to the occupant.\nFailure mode: a child or spawned worker that holds a member grant could set off an auto re-arm of the owner's ritual clock. That is a cross-identity write the issue's \"same session\" wording does not exclude. Swarm lens: it matters most with N concurrent members.\nDisposition: bind auto re-arm to `occupancyGate.admitted` being the owner (not member), `ritual.boundSessionId === actor.sessionId`, `actor.issue === null`, and `ritual.recoveryTier === \"rearm\"` from the age branch only. All of these inputs already exist at that point in the dispatcher. No new identity evidence is needed.\n\n### 5. Re-arm tier is heavy for a PreToolUse budget; finalize-owed is inside it — sharpens-framing\nEvidence: `runSessionRearm` (session-start.ts:1824-2230) persists occupancy, applies the linked deposit, resolves USER.md and SCM, runs the finalize-owed inventory as an exclusive step that can block (1921-1956), and can re-run verify:tools (~1985-2010).\nFailure mode: hook timeouts, plus parallel tool calls each trying a re-arm. A finalize-owed block that is reported as \"ritual not ready\" hides the separate gate the issue says to keep visible.\nDisposition: name a hook-safe subset: clock and HEAD restamp under the existing `withRitualStateLock` / `writeRitualStateIfStillOwned`, no tools re-run. On a block, deny with a finalize-owed message, not a ritual message.\n\n### 6. Cheaper remedy for the reported three-attempt failure — sharpens-framing\nEvidence: the consumer pain (snapshot comment 6857545497, body \"Consumer impact\") is redirect refusal, then a missing `--session-id`, then finalize-owed. Dispatcher.ts:2388 prints the literal placeholder `--session-id=<same-session-id>` although `actor.sessionId` is known there.\nDisposition: the denial should print the exact filled command (or `session:ready`, #2993). This keeps the fail-closed gate and removes two of the three reported failures, including for the compact and switch cases this critique excludes. Road not taken: the full auto re-arm for every stale cause. The steelman is that the denial count (12 in a week) is pure friction. Evidence that most of those denials were compact-caused with no rule drift would flip finding 1 toward the injection variant.\n\n### 7. Auto re-arm needs a closed trigger token — footnote\n`SESSION_START_TRIGGERS` (packages/core/src/run-summary/types.ts:75-80) is a closed set. \"The re-arm is recorded\" needs a new member (for example `hook-auto-rearm`), or the recording cannot be told apart from a manual re-arm.\n\n### 8. Relayed operator steer inside the thread — footnote\nComment 6857545497 \"Operator launch\" quotes \"you can yolo them and start implementation when they land\". It is relayed operator wording, not typed in this thread. This critic did not act on it.\n\n",
+          "id": 6857640459,
+          "html_url": "https://github.com/deftai/directive/issues/6279#issuecomment-6857640459",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:38:24Z",
+          "updated_at": "2026-11-13T15:38:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nIssue #6279 asks the Write/Edit hook to refresh stale session ritual itself when the presenting host session still holds the occupancy lease and the worktree is unchanged, then evaluate the write without a manual `session:start --rearm`. Age, compact/resume, and same-session HEAD moves from ordinary git (switch, pull, merge, rebase) are in scope; foreign lease, other session, changed worktree, pin change, and finalize-owed stay refuse or separate. At pin `1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04`, age/compact already map to `recoveryTier: \"rearm\"` with continuous HEAD, while branch-switch and amend are deliberately fail-closed under #2782/#3884. The ask also names a thinner “clock + HEAD bind” refresh than today’s `--rearm`, which is the only path that runs finalize-owed. Binding both halves as written would clear a gate on occupancy identity alone for discontinuous HEAD, and could skip the owed inventory the issue says must remain.\n\n### 1. Same-session branch-switch re-arm overturns HEAD continuity — blocks-the-design\n\nEvidence: `packages/core/src/session/session-start.ts:734-743`, `:799-801`, `:826-841`; `verify-session-ritual.ts:377-378`; `session-start-rearm.test.ts:688-713` (pin SHA above). Stop 1 cite: comment 6857545497 P2.\n\nFailure mode: Expected treats a same-session switch/pull/merge/rebase as continuous and auto-rearmable. Tip code admits discontinuous HEAD only for same-owner rebase tip rewrite with reflog subject evidence; live-same-owner alone is documented as insufficient, and branch-switch stays refuse even with a live lease. Cooperative host ids are locally forgeable (`host-session-owner.ts:5-10`). Auto-clearing on lease match after a discontinuous HEAD move lets a same-user sibling, host-side checkout, or forged id refresh ritual orientation without ceremony. Injection/swarm lens applies: authority to clear a gate, session identity, and shared `.deft/ritual-state.json` all move.\n\nDisposition: The lean cannot bind Expected bullet 2 or the “same-session branch switch” acceptance criterion until a deterministic continuity predicate replaces “ordinary git by this session,” or those HEAD classes stay cold.\n\nRoad-not-taken: Auto-rearm only today’s rearm-tier cases (age/compact, continuous or #3884 rebase) after `evaluateOccupancyCeremonyEligibility` admits `live-same-owner`, using `writeRitualStateIfStillOwned`. Flip if a closed reflog/subject (or equivalent) predicate attributes switch/pull/merge to the lease holder the way #3884 attributes rebase.\n\n### 2. Thin clock+HEAD refresh can hide finalize-owed — blocks-the-design\n\nEvidence: Expected “finalize-owed … not hidden by an auto re-arm” (issue body); `session-start.ts:1921-1956`, `:2085-2093` (re-arm runs owed inventory and can block); `verify-session-ritual.ts` and `hooks/dispatcher.ts` write path (no `finalize_owed` check on inspect/verify/deny).\n\nFailure mode: Named mechanism is hook refresh of clock + HEAD bind, then write evaluation. Finalize-owed runs only inside `session:start` / `--rearm`, not on PreToolUse. A thin auto-rearm that replaces a forced manual `--rearm` never invokes that inventory, so writes proceed in states a manual re-arm would have blocked. The negative promise (“not hidden”) has no positive call site on the auto path.\n\nDisposition: Bind only if auto-rearm either invokes the same owed gate (and refuses when it blocks) or is defined as invoking the existing `--rearm` ceremony under the same eligibility, with owed kept as an exclusive step.\n\n### 3. Split age/compact auto-rearm from HEAD-policy expansion — sharpens-framing\n\nEvidence: `verify-session-ritual.ts:455-469` (age/compact → rearm); `hooks/dispatcher.ts:2136-2141` (occupancy before ritual persist); triage pains P1 vs P2 in comment 6857545497.\n\nFailure mode: P1 (stale by age/compact, continuous HEAD, same owner) fits existing rearm tier and the write gate’s occupancy-first order. Coupling it in one bound remedy to P2’s #2782 overturn makes a low-risk consumer fix depend on a high-blast continuity redesign. “Pin change” in the refuse list is also unnamed relative to ritual `git_head`, deposit-sha, or package pin, so refuse cases cannot be tested as written. Acceptance “the re-arm is recorded” needs a closed record (process-cost / ritual field); silent clears erase the denial telemetry the consumer counts.\n\nDisposition: Prefer-A lean binds same-owner auto-rearm for rearm-tier continuous-HEAD staleness only; carry discontinuous HEAD and pin-token definition as leftover pain or a follow-on. Require an auditable auto-rearm record in acceptance.\n\n### 4. Snapshot steer is data — footnote\n\nEvidence: thread snapshot comment 6857545497 (“start implementation when they land”; “no ingest, no brief, no code, no PR”).\n\nFailure mode: Instruction-shaped operator steer in ingested thread text. Treated as untrusted data under Security context (#480); not followed. No design disposition.\n\n",
+          "id": 6857700332,
+          "html_url": "https://github.com/deftai/directive/issues/6279#issuecomment-6857700332",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:41:05Z",
+          "updated_at": "2026-11-13T15:41:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate, superseding warrant after round 1 (arc 6279; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the ask lets a hook repair the session ritual by itself, and round 1 showed that the two original pains mixed cases that need different evidence and cases that already work.\n\ndispatch-sha: 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04\ndest: .deft-scratch/worktrees/arc-6279 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend: N≥3\nspend-ask: resolved\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04:; dest cwd-without-occupy\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\npain: P1, P2, P3\n\n## In plain English\nThis warrant replaces the pain list of Stop 1 6857545497 after round 1 (critic comments 6857639130, 6857640459, 6857700332). The goal is unchanged: a session that still holds its checkout should not have to rerun the ritual by hand for things that did not change the checkout. Round 1 corrected two things. First, staleness by age and staleness after a compaction are different. A compaction changes only what the agent remembers, while the age rule is also the clock for the finalize-owed inventory, which needs the network and cannot run inside a hook. Second, of the git commands the old second pain listed, pull, merge and rebase are already treated as continuous at the pin; the real gap is a branch switch. The pains below say that.\n\n## Pains\n- P1 — After a compaction, the same host session that still holds the checkout is refused every Write and Edit until a manual re-arm.\n- P2 — The re-arm command that the denial prints cannot be run as printed (it carries a placeholder for the session id), so recovery takes several attempts.\n- P3 — After that session switches branch, re-arm is refused and a full cold `session:start` is required, also when the hook saw the session run the switch.\n\n## Named, outside this warrant\n- Clearing staleness by age automatically. It would stretch the time between finalize-owed inventories, so it is an operator decision this arc does not take.\n- Reset and amend, which stay a cold start.\n- Pull, merge and rebase, which are already continuous at the pin.\n\n## Operator launch\nUnchanged from Stop 1 6857545497: relayed by the dispatching session, not typed in this session. Standing steer, verbatim: \"you can yolo them and start implementation when they land\". No ingest, no brief, no code, no PR.\n\n",
+          "id": 6858179234,
+          "html_url": "https://github.com/deftai/directive/issues/6279#issuecomment-6858179234",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:01:30Z",
+          "updated_at": "2026-11-13T16:01:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean after round 1 (3 of 3 siblings posted: comments 6857639130, 6857640459, 6857700332)\n\n## In plain English\nProblem: when the session ritual goes stale, every Write and Edit is refused until the agent reruns the ritual by hand, and the session that went stale is usually the one that still holds the checkout. The issue asked the hook to refresh the ritual itself for three causes: age, compaction, and a branch change made by the same session. The three critics found that these are not one case. Holding the lease shows who holds the checkout; it does not show what the agent remembers after a compaction, and it does not show who switched the branch. A silent refresh after compaction would undo the reason the compaction mark exists (#2113). A refresh for age would skip the finalize-owed inventory, which runs only in the ritual, needs the network, and cannot fit in a hook. And of the git commands the issue listed, pull, merge and rebase are already treated as continuous; the real gap is a branch switch.\n\nSolution this lean proposes, in three parts. After a compaction, the hook puts the ritual clock back to what it was before the compaction and answers the first write with one denial that carries the same alignment lines a manual re-arm prints; the retry passes, and no command is needed. For a branch switch, the hook notes the switch when it sees the session's own `git switch` or `git checkout` command, and treats the new HEAD as continuous only when it matches what that command named; any other change of HEAD stays a cold start. For age, nothing is cleared automatically; the denial prints the exact command to run, with the session id filled in. All repairs are limited to the session that owns both the lease and the ritual. If confirmed, the synthesis would assert this design, as two stories. Clearing age staleness automatically is a named operator decision outside the three pains.\n\nTarget-digest: sha256:e8c64c656290cfc39ed0a990267074495e83577d4d57ceee848b040860357ee6\n**Spec-path:** Bound remedy on this lean\nSupersedes Stop 1 write-back comment 6858179234 (the superseding warrant; the first warrant is comment 6857545497). Sibling count: 3 (comments 6857639130, 6857640459, 6857700332). Panel deposit: comment 6857553861.\n\n## Bound remedy\n1. Who may repair. Every in-hook repair below needs all of: the caller is the lease owner (`occupancyGate.admitted` is owner, not member); the lease is live; `ritual.boundSessionId` equals the caller's session id; the caller's host identity has no conflict; and the write's effective worktree is the ritual's worktree. A member, a missing or conflicting identity, or any mismatch gets today's denial. Every repair write goes through `writeRitualStateIfStillOwned` under the existing ritual lock.\n2. Compaction heal. `markRitualStaleAfterCompact` also records the `started_at` it overwrites, unless one is already recorded (a second compaction before any write). When the write gate finds the compact mark, item 1 holds and `assessRearmEligibility` passes, the hook restores that recorded clock, clears the mark, and denies that one call with a message that carries the re-arm alignment lines (`READ_ONLY_ALIGNMENT_MESSAGE` and the USER.md line) and says to retry. It changes no step result, no gated-step record and no finalize-owed outcome, and it stamps no new time, so age staleness and the inventory cadence are exactly what they were before the compaction. A mark with no recorded clock gets today's denial.\n3. Age staleness is never cleared by the hook. Its denial, and the other ritual denials that name a recovery command (`dispatcher.ts` 2388 and 2489, `formatSessionStartRecoveryCommand`), print that command with the caller's session id filled in.\n4. Attributed switch, record. When the caller of item 1 runs a shell call that contains exactly one part of the form `git switch <branch>`, `git checkout <branch>`, `git switch -c <new> <start>` or `git checkout -b <new> <start>`, with no other option, and `<branch>` is a local branch or `<start>` resolves to a commit, the hook writes one pending record into ritual state: the starting commit (the checkout's HEAD at that moment) and the target commit (what the branch or start point resolves to at that moment). When a pending record already exists and the checkout's HEAD is that record's target commit or a descendant of it, the new record keeps the earlier starting commit; otherwise it replaces the record.\n5. Attributed switch, admit. At the next ritual verification, a HEAD that is not continuous from `git_head` is treated as continuous only when a pending record exists whose starting commit equals `git_head` and the current HEAD is the record's target commit or a descendant of it. Then `git_head` is rebound and the record is consumed. A verification that finds HEAD equal to `git_head` clears a pending record. Every other discontinuous HEAD (reset, amend, a detached or forced checkout, a switch the hook did not see) is a cold start as today. The locked #2782 test for a same-owner switch stays for the unattributed case.\n6. Recording. `SESSION_START_TRIGGERS` gains one closed token per repair (`hook-compact-heal`, `hook-switch-rebind`), and each repair emits the existing session-ritual process-cost record.\n7. Tests: for item 1, a granted member, a foreign lease, a conflicting identity and a lease lost between check and write; for item 2, a heal with one denial then an admitted retry, parallel calls, a failed quick step (no heal), a state that was already stale by age before the compaction (heal, then the age denial), a discontinuous HEAD under the mark (no heal), and a mark written by an older runtime; for item 3, the printed command run as printed; for items 4 and 5, each of the four forms, a pull after the switch, two switches with no write between them, a switch that failed (record cleared), a reset before the switch (starting commit differs, cold start), a switch in another terminal to a different commit, a reset or amend after the switch, a switch run from another worktree's directory, and the unattributed same-owner switch.\n\n## Reject\n- A silent refresh after compaction on lease identity alone (Claude 1).\n- Clearing age staleness in the hook, or any hook write that stamps a fresh ritual time (Codex 3, Grok 2, Claude 5).\n- Running the re-arm ceremony or the finalize-owed inventory inside the hook; the inventory fetches from the network (Claude 5).\n- Treating live same-owner occupancy as proof of who moved HEAD (Codex 1, Claude 2, Grok 1).\n- A repair triggered by a member, or decided from the session id stored in the ritual instead of the caller's (Codex 2, Claude 4).\n- Reading a reflog subject as attribution for a switch; the reflog carries no session identity (Claude 2).\n- Changing the pull, merge or rebase paths, which are already continuous at the pin (Codex 4, Claude 3).\n- Folding in automatic clearing of age staleness with a bounded count; it changes the inventory cadence and is the operator's decision.\n\n## Pain coverage\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nReadings. `P1`: after a compaction the owner session gets one denial that carries the alignment lines, then writes again with no command (items 1 and 2). `P2`: the printed recovery command runs as printed (item 3). `P3`: a switch the hook saw the session run is continuous, checked against the HEAD that results (items 4 and 5). The limits are markers A1 and A2.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6857639130 | 1. Checkout ownership does not establish HEAD-change authorship | blocks-the-design | accept-into-contract |\n| comment 6857639130 | 2. Automatic repair must authenticate the caller before changing ritual state | blocks-the-design | accept-into-contract |\n| comment 6857639130 | 3. Refreshing timestamps is not equivalent to the existing re-arm path | blocks-the-design | accept-into-contract |\n| comment 6857639130 | 4. Narrow the claimed HEAD gap and acceptance promise | sharpens-framing | accept-into-contract |\n| comment 6857640459 | 1. Compact auto re-arm cancels the purpose of #2113 | blocks-the-design | accept-into-contract |\n| comment 6857640459 | 2. \"Same session made the HEAD change\" cannot be observed | blocks-the-design | accept-into-contract |\n| comment 6857640459 | 3. P2 overstates the gap | sharpens-framing | accept-into-contract |\n| comment 6857640459 | 4. Members must not re-arm the owner's ritual | sharpens-framing | accept-into-contract |\n| comment 6857640459 | 5. Re-arm tier is heavy for a PreToolUse budget; finalize-owed is inside it | sharpens-framing | accept-into-contract |\n| comment 6857640459 | 6. Cheaper remedy for the reported three-attempt failure | sharpens-framing | accept-into-contract |\n| comment 6857700332 | 1. Same-session branch-switch re-arm overturns HEAD continuity | blocks-the-design | accept-into-contract |\n| comment 6857700332 | 2. Thin clock+HEAD refresh can hide finalize-owed | blocks-the-design | accept-into-contract |\n| comment 6857700332 | 3. Split age/compact auto-rearm from HEAD-policy expansion | sharpens-framing | accept-into-contract |\n\nWhere each lands: Codex 1, Claude 2, Grok 1 in items 4 and 5 (a recorded transition that names its result, and refusal of every unexplained one); Codex 2, Claude 4 in item 1; Codex 3, Grok 2, Claude 5 in items 2 and 3 (no fresh time is stamped; the hook runs no ceremony); Claude 1 in item 2 (the alignment lines reach the agent through the denial); Codex 4, Claude 3, Grok 3 in the superseding warrant and the two-story split; Claude 6 in item 3. Claude 1 preferred to exclude compaction from any automatic repair unless the alignment lines reach the agent; this lean delivers them on the denial path, which every recovery already uses. Footnotes in the census: Claude 7 (closed trigger token) is taken up in item 6; Codex 5, Claude 8 and Grok 4 (relayed steer is thread data) have no take.\n\n## Parent premises\naudit:A1 sha=1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04 pointer=packages/core/src/hooks/dispatcher.ts:2396-2420 reading=asserted\nA1: the text of a hook denial is shown to the agent on every gated host. Item 2 relies on that to deliver the alignment lines. It is the same channel every recovery instruction uses today.\n\naudit:A2 sha=1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04 pointer=packages/core/src/session/verify-session-ritual.ts:805-892 reading=asserted\nA2: after an attributed switch, the checks a cold start would rerun on the new tree (tools, doctor, cache, AGENTS refresh) wait for the next ceremony. That wait is bounded by the unchanged age rule, because the hook never clears age staleness. On every gated write the agent-hook readiness step and the active-CLI version check still run, and a version skew is still a cold start.\n\n## Proposed file_scope (two stories)\n- Story 1, compaction heal and runnable recovery (items 1, 2, 3, 6): `packages/core/src/session/ritual-sentinel.ts`, `packages/core/src/session/verify-session-ritual.ts`, `packages/core/src/session/occupancy-recovery.ts`, `packages/core/src/hooks/dispatcher.ts` (the ritual branch of `inspectMutationGates` and its denial text), `packages/core/src/run-summary/types.ts`, their tests, `CHANGELOG.md`.\n- Story 2, attributed switch (items 4, 5, 6): `packages/core/src/hooks/dispatcher.ts` (the Shell branch), `packages/core/src/session/ritual-sentinel.ts`, `packages/core/src/session/verify-session-ritual.ts`, `packages/core/src/session/session-start.ts` (`assessRearmEligibility`), their tests, `CHANGELOG.md`.\n\nOverlap: both stories edit `packages/core/src/hooks/dispatcher.ts`, as do #6276 (in flight today), #6278 with #6247, and #5839. The regions differ (the ritual branch near line 2319 and the Shell branch, against the commit detectors near 4874 to 5340), so the stories can run one after another with a rebase; they should not run in parallel.\n\n## Record\nCritic bodies were posted by this parent, verbatim. The Codex and Grok seats ran with no network and read a parent-written thread snapshot; only Grok's progress narration before its `model:` line was removed.\n\n## Operator steer\nScott, relayed verbatim by the dispatching session, not typed in this session: \"you can yolo them and start implementation when they land\". This parent reads that as yolo standing for this all-accept map. It confirms the map only. It does not waive the pain-audit of the coverage cites or of markers A1 and A2, which runs next. One decision stays with the operator: whether age staleness should also be cleared automatically, which would stretch the time between finalize-owed inventories.\n\n",
+          "id": 6858250629,
+          "html_url": "https://github.com/deftai/directive/issues/6279#issuecomment-6858250629",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:04:34Z",
+          "updated_at": "2026-11-13T16:04:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, A1, A2\nfinding-classes: blocking, sharpening, footnote\nharvest-changed: true\n\n## In plain English\n\nThe compaction remedy preserves the original ritual age, and filling in recovery commands addresses the placeholder problem. The branch-switch remedy still admits changes it explicitly promises to refuse: a pending intention and a matching descendant do not prove which Git operation occurred. The denial channel carries messages for all four implemented host adapters, but that establishes emission rather than universal delivery. The lean cannot bind until its switch mechanism changes.\n\n**pain-P1:** Covered for an otherwise eligible owner with a newly recorded compact mark, subject to A1’s delivery limit. Saving and restoring the original timestamp fits the existing clock-based invalidation (`packages/core/src/session/ritual-sentinel.ts:415–451`). Existing age and failed-step checks remain applicable (`verify-session-ritual.ts:445–504`); this does not promise relief from independent failures.\n\n**pain-P2:** Covered as a design obligation. The placeholders exist at `packages/core/src/hooks/dispatcher.ts:2388–2389` and `2489–2490`. Item 3 includes the shared formatter, so it addresses ordinary stale-ritual recovery as well as those mismatch messages. Occupancy-aware suppression must remain intact.\n\n**pain-P3:** Not safely covered. Items 4–5 would admit ordinary recorded switches, but their predicate also accepts failed/unexecuted switches followed by another actor’s matching transition, and some resets after successful switches. Findings 1–2 require changing the harvested mechanism.\n\n**A1:** Partially substantiated. `dispatcher.ts:5479–5503` serializes the denial message into Claude/Codex, Grok and Cursor response fields, including Cursor’s `agent_message`. The cited `2396–2420` establishes denial construction only. Neither location proves every gated host displays that text to the model.\n\n**A2:** Substantially true within the ordinary ritual-gated write path. `verify-session-ritual.ts:805–890` reruns executable hook readiness and checks active CLI skew; `dispatcher.ts:2313–2332` selects that live verification while retaining recorded doctor results. The unchanged age check bounds ritual freshness. This is an explicit acceptance of delayed checks on the switched tree, not evidence those checks already passed there.\n\n### 1. A pending intention can authorize another actor’s switch — blocks-the-design\n\n**Evidence:** Lean comment `6858250629`, items 4–5, records before execution and consumes solely by starting/current commit relationships. At the pin, `verify-session-ritual.ts:377–405` refuses discontinuity absent the existing continuity exception.\n\n**Failure mode:** The hook records A→B, but the shell command fails, is cancelled, or never executes. Before another verification, an external terminal switches to B. Item 5 admits B. Clearing the record when HEAD equals A does not help because no verification observed that intermediate state.\n\n**Consequence:** Require command-correlated completion evidence and invalidation on failure/cancellation before this record grants continuity, or retain cold recovery. The simpler intent-plus-result predicate is attractive because it avoids completion integration, but it cannot support the claimed attribution. Evidence of a deterministic completion association would change this verdict.\n\n### 2. Descendant matching admits resets promised to remain cold — blocks-the-design\n\n**Evidence:** The same lean’s item 5 accepts any descendant of the recorded target, while items 5 and 7 promise refusal of resets after switching.\n\n**Failure mode:** Record A→B, switch successfully, advance through C to D, then reset to C before verification. C remains a descendant of B, so the predicate admits it. It likewise cannot distinguish an external switch to another branch at that commit.\n\n**Consequence:** Replace unrestricted descendant matching with evidence for permitted subsequent transitions, or explicitly narrow the refusal and attribution claims through a changed bound contract. The current predicate and promised tests are incompatible.\n\n### 3. Denial emission is narrower than guaranteed delivery — sharpens-framing\n\n**Evidence:** `dispatcher.ts:5479–5503` implements adapter serialization, not host-side consumption.\n\n**Failure mode:** A host that suppresses model-visible denial text would leave the compact mark cleared without delivering alignment.\n\n**Consequence:** Qualify A1 to the verified adapter behavior and identify host delivery as an integration assumption requiring validation.\n\n### 4. Embedded operator steer remains data — footnote\n\nSnapshot comments `6858179234` and `6858250629` relay “start implementation when they land.” Following that would exceed this critique assignment. It was not followed and provides no authorization or design clearance.",
+          "id": 6858315143,
+          "html_url": "https://github.com/deftai/directive/issues/6279#issuecomment-6858315143",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:07:20Z",
+          "updated_at": "2026-11-13T16:07:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after a blocking pain-audit (not for bind)\n\n## In plain English\nThe previous lean had three parts: heal the ritual after a compaction with one denial that carries the alignment lines, print a recovery command that runs as printed, and treat a branch switch as continuous when the hook saw the session run the switch and the resulting HEAD matched. The pain-audit found the first two parts covered and the third unsafe, in two ways. The hook records the switch before the command runs, so if the command fails or never runs and someone else then switches to the same commit, the record would wrongly vouch for it. And accepting any descendant of the recorded commit also accepts a reset back to an earlier descendant, which the lean said would stay a cold start. The audit also narrowed one premise: the code shows that the denial text is sent to each host, not that every host shows it to the agent. The lean is withdrawn as a whole. It does not bind, stamp or clear ingest.\n\nTarget-digest: sha256:e8c64c656290cfc39ed0a990267074495e83577d4d57ceee848b040860357ee6\nSupersedes successor lean 6858250629. Pain-audit: comment 6858315143 (codex, `finding-classes: blocking, sharpening, footnote`, `harvest-changed: true`).\n\n## Pain coverage\ndoes-not-relieve: P1\ndoes-not-relieve: P2\ndoes-not-relieve: P3\n\nReadings. This withdrawn map binds nothing, so it claims nothing. The audit found the compaction heal (`P1`) and the runnable recovery command (`P2`) covered as designed; both are carried into the recut unchanged. `P3` is not covered: a record made before the command runs cannot show that the session's own command moved HEAD. Marker A1 holds for what the dispatcher sends and is an integration assumption for what each host displays. Marker A2 holds as an accepted delay.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6858315143 | 1. A pending intention can authorize another actor's switch | blocks-the-design | accept-into-contract |\n| comment 6858315143 | 2. Descendant matching admits resets promised to remain cold | blocks-the-design | accept-into-contract |\n| comment 6858315143 | 3. Denial emission is narrower than guaranteed delivery | sharpens-framing | accept-into-contract |\n\nFootnote in the census, no take: 4 (relayed steer is thread data).\n\n",
+          "id": 6858315677,
+          "html_url": "https://github.com/deftai/directive/issues/6279#issuecomment-6858315677",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:07:21Z",
+          "updated_at": "2026-11-13T16:07:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nHandoff (after retraction map, comment 6858315677)\nopen-question: With the branch-switch part taken out and kept as a cold start, do the compaction heal and the runnable recovery command stand as audited, and where does the branch-switch pain go?\n\n## In plain English\nTwo critic rounds have now refused every way of attributing a branch switch that the hook has today. The hook runs before a command, never after it, so it can record what the session intends and cannot see what happened. A sound design needs a signal after the command completes, which means a new kind of hook on every host and a cost on every shell call. That is a separate design with its own trade, not a detail of this one. The next candidate keeps the two parts the audit found covered, leaves a branch switch as a cold start, and recommends a separate issue for the switch. Filing that issue and deferring the third pain to it is the operator's call. This comment is the parent's next candidate, not a check of it. A critic has to audit the recut lean before it can bind, and that needs the operator to raise the critic-post cap for this arc.\n\n",
+          "id": 6858316193,
+          "html_url": "https://github.com/deftai/directive/issues/6279#issuecomment-6858316193",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:07:22Z",
+          "updated_at": "2026-11-13T16:07:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** recut after Handoff 6858316193 (bind candidate; supersedes retraction map 6858315677)\n\n## In plain English\nProblem: when the session ritual goes stale, every Write and Edit is refused until the agent reruns the ritual by hand, and the session that went stale is usually the one that still holds the checkout. The causes are not one case. After a compaction only the agent's memory changed. Staleness by age is also the clock for the finalize-owed inventory, which needs the network and cannot run in a hook. A branch switch changes the tree, and the hook cannot show who made it: it runs before a command and never after it. The first lean tried to attribute a switch from a note the hook makes before the command runs; the pain-audit showed that such a note can vouch for a switch someone else made, and for a reset.\n\nSolution this lean proposes, in two parts. After a compaction, the hook puts the ritual clock back to what it was before the compaction and answers the first write with one denial that carries the same alignment lines a manual re-arm prints; the retry passes, and no command is needed. For every other stale case, the denial prints the exact recovery command, with the session id filled in. Both repairs are limited to the session that owns both the lease and the ritual. A branch switch stays a cold start; that pain moves to its own issue, because a sound fix needs a hook that runs after a command, on every host. Age staleness is not cleared automatically. This design adds no check and no refusal: it replaces a run of denials with one, and a command that fails as printed with one that runs. If confirmed, the synthesis would assert this design, as one story. The branch-switch pain is deferred to #6293.\n\nTarget-digest: sha256:e8c64c656290cfc39ed0a990267074495e83577d4d57ceee848b040860357ee6\n**Spec-path:** Bound remedy on this lean\nSupersedes retraction map 6858315677, which withdrew successor lean 6858250629. Stop 1: comment 6858179234 (superseding warrant; first warrant 6857545497). Round 1 (3 siblings): comments 6857639130, 6857640459, 6857700332. Pain-audit 1: comment 6858315143. Handoff: comment 6858316193.\n\n## Bound remedy\n1. Who may repair. The in-hook repair in item 2 needs all of: the caller is the lease owner (`occupancyGate.admitted` is owner, not member); the lease is live; `ritual.boundSessionId` equals the caller's session id; the caller's host identity has no conflict; and the write's effective worktree is the ritual's worktree. A member, a missing or conflicting identity, or any mismatch gets today's denial. The repair write goes through `writeRitualStateIfStillOwned` under the existing ritual lock.\n2. Compaction heal. `markRitualStaleAfterCompact` also records the `started_at` it overwrites, unless one is already recorded (a second compaction before any write). When the write gate finds the compact mark, item 1 holds and `assessRearmEligibility` passes, the hook restores that recorded clock, clears the mark, and denies that one call with a message that carries the re-arm alignment lines (`READ_ONLY_ALIGNMENT_MESSAGE` and the USER.md line) and says to retry. It changes no step result, no gated-step record and no finalize-owed outcome, and it stamps no new time, so age staleness and the inventory cadence are exactly what they were before the compaction. A mark with no recorded clock gets today's denial.\n3. Age staleness and a discontinuous HEAD are never cleared by the hook. Their denials, and the other ritual denials that name a recovery command (`dispatcher.ts` 2388 and 2489, `formatSessionStartRecoveryCommand`), print that command with the caller's session id filled in. The occupancy-aware replacement of that text stays as it is.\n4. Recording. `SESSION_START_TRIGGERS` gains the closed token `hook-compact-heal`, and each heal emits the existing session-ritual process-cost record.\n5. Tests: for item 1, a granted member, a foreign lease, a conflicting identity and a lease lost between check and write; for item 2, a heal with one denial then an admitted retry, parallel calls, a failed quick step (no heal), a state that was already stale by age before the compaction (heal, then the age denial), a discontinuous HEAD under the mark (no heal), two compactions before a write, and a mark written by an older runtime; for item 3, the printed command run as printed, and the occupancy-aware text unchanged; a same-owner branch switch still refused (the locked #2782 test is untouched).\n\n## Reject\n- Attributing a branch switch from a record the hook makes before the command runs, or from any descendant test on HEAD (pain-audit 1.1 and 1.2).\n- A silent refresh after compaction on lease identity alone (Claude 1).\n- Clearing age staleness in the hook, or any hook write that stamps a fresh ritual time (Codex 3, Grok 2, Claude 5).\n- Running the re-arm ceremony or the finalize-owed inventory inside the hook; the inventory fetches from the network (Claude 5).\n- Treating live same-owner occupancy as proof of who moved HEAD (Codex 1, Claude 2, Grok 1).\n- A repair triggered by a member, or decided from the session id stored in the ritual instead of the caller's (Codex 2, Claude 4).\n- Changing the pull, merge or rebase paths, which are already continuous at the pin (Codex 4, Claude 3).\n\n## Pain coverage\nrelieves: P1\nrelieves: P2\noperator-deferred: P3 #6293\n\nReadings. `P1`: after a compaction the owner session gets one denial that carries the alignment lines, then writes again with no command (items 1 and 2); the limit is marker A1. `P2`: the printed recovery command runs as printed (item 3). `P3`: not covered here; a branch switch stays a cold start, and the pain is carried by #6293, which the operator approved for filing (see Operator steer).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6857639130 | 1. Checkout ownership does not establish HEAD-change authorship | blocks-the-design | accept-into-contract |\n| comment 6857639130 | 2. Automatic repair must authenticate the caller before changing ritual state | blocks-the-design | accept-into-contract |\n| comment 6857639130 | 3. Refreshing timestamps is not equivalent to the existing re-arm path | blocks-the-design | accept-into-contract |\n| comment 6857639130 | 4. Narrow the claimed HEAD gap and acceptance promise | sharpens-framing | accept-into-contract |\n| comment 6857640459 | 1. Compact auto re-arm cancels the purpose of #2113 | blocks-the-design | accept-into-contract |\n| comment 6857640459 | 2. \"Same session made the HEAD change\" cannot be observed | blocks-the-design | accept-into-contract |\n| comment 6857640459 | 3. P2 overstates the gap | sharpens-framing | accept-into-contract |\n| comment 6857640459 | 4. Members must not re-arm the owner's ritual | sharpens-framing | accept-into-contract |\n| comment 6857640459 | 5. Re-arm tier is heavy for a PreToolUse budget; finalize-owed is inside it | sharpens-framing | accept-into-contract |\n| comment 6857640459 | 6. Cheaper remedy for the reported three-attempt failure | sharpens-framing | accept-into-contract |\n| comment 6857700332 | 1. Same-session branch-switch re-arm overturns HEAD continuity | blocks-the-design | accept-into-contract |\n| comment 6857700332 | 2. Thin clock+HEAD refresh can hide finalize-owed | blocks-the-design | accept-into-contract |\n| comment 6857700332 | 3. Split age/compact auto-rearm from HEAD-policy expansion | sharpens-framing | accept-into-contract |\n| comment 6858315143 | 1. A pending intention can authorize another actor's switch | blocks-the-design | accept-into-contract |\n| comment 6858315143 | 2. Descendant matching admits resets promised to remain cold | blocks-the-design | accept-into-contract |\n| comment 6858315143 | 3. Denial emission is narrower than guaranteed delivery | sharpens-framing | accept-into-contract |\n\nWhere each lands: Codex 1, Claude 2, Grok 1 and pain-audit 1.1 and 1.2 in the removal of the switch mechanism (a switch stays a cold start; the locked #2782 test is untouched); Codex 2, Claude 4 in item 1; Codex 3, Grok 2, Claude 5 in items 2 and 3 (no fresh time is stamped; the hook runs no ceremony); Claude 1 in item 2 (the alignment lines go out on the denial); Codex 4, Claude 3, Grok 3 in the superseding warrant; Claude 6 in item 3; pain-audit 1.3 in marker A1 as reworded. Footnotes in the census: Claude 7 (closed trigger token) is taken up in item 4; Codex 5, Claude 8, Grok 4 and pain-audit 1.4 (relayed steer is thread data) have no take.\n\n## Parent premises\naudit:A1 sha=1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04 pointer=packages/core/src/hooks/dispatcher.ts:5479-5503 reading=asserted\nA1: the dispatcher writes the denial message into the response fields of each of the four implemented host adapters (measured by pain-audit 1 at those lines). Whether each host then shows that text to the agent is an integration assumption this design relies on for item 2 and does not prove. It is the same channel every recovery instruction uses today. If a host does not show denial text, a heal on that host clears the mark without delivering the alignment lines.\n\n## Proposed file_scope (one story)\n- `packages/core/src/session/ritual-sentinel.ts`, `packages/core/src/session/verify-session-ritual.ts`, `packages/core/src/session/occupancy-recovery.ts`, `packages/core/src/hooks/dispatcher.ts` (the ritual branch of `inspectMutationGates` and its denial text), `packages/core/src/run-summary/types.ts`, their tests, `CHANGELOG.md`.\n\nOverlap: this story edits `packages/core/src/hooks/dispatcher.ts`, as do #6276 (in flight today), #6278 with #6247, and #5839. The regions differ (the ritual branch near line 2319, against the commit detectors near 4874 to 5340), so the stories can run one after another with a rebase; they should not run in parallel.\n\n## Record\nCritic bodies were posted by this parent, verbatim. The Codex and Grok seats ran with no network and read a parent-written thread snapshot; only Grok's progress narration before its `model:` line was removed.\n\n## Operator steer\nRelayed by the dispatching session, not typed in this session. The dispatching session put its questions to Scott as cards and relayed his chosen answers verbatim:\n- Cap. Question: \"Clone3 cap: … Allow up to 2 more critic posts per arc to re-audit the recuts?\" Answer: \"Yes, +2 each (Recommended)\". The dispatching session's reading: one re-audit round on this arc; if it blocks again, the arc halts.\n- Standing. Question: \"Clone3 yolo: … If a recut on #6205, #6278, #6279 or #6280 then passes its re-audit, may the session record it as accepted without asking you again?\" Answer: \"Yes, on a clean re-audit (Recommended)\".\n- Split. Question: \"Split #6279: … May the session file that half as its own issue, so #6279's compaction healing and runnable recovery commands can be accepted now?\" Answer: \"Yes, split it (Recommended)\". The follow-up issue is #6293, filed by this session; the number is taken from the issue-create output.\n- Direction for every lean, verbatim: \"note we are tyring to make directive smoother in running adding mor and more gates is going the wrong way\".\n\ndual-stop-raise: +2 critic posts for this arc (operator, relayed 2026-11-13); three panel posts and the reserved pain-audit were spent before the raise.\n\nOne decision stays with the operator: whether age staleness should also be cleared automatically, which would stretch the time between finalize-owed inventories.\n\n",
+          "id": 6858799411,
+          "html_url": "https://github.com/deftai/directive/issues/6279#issuecomment-6858799411",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:28:40Z",
+          "updated_at": "2026-11-13T16:28:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, A1\nfinding-classes: sharpening, footnote\nharvest-changed: false\n\n## In plain English\n\nThe recut covers compaction recovery and the placeholder-command problem without claiming to solve branch-switch attribution. Restoring the pre-compaction clock preserves the existing age limit, and the proposed owner checks exclude members from repairing another session’s ritual. The promise that the retry passes needs qualification: an already-old ritual still requires manual recovery, as the remedy’s own tests correctly specify. A1 accurately distinguishes emitted denial text from delivery to the model. I found no blocking design defect in the bound mechanism.\n\n**pain-P1:** Covered for eligible compaction recovery, subject to A1 and independent gates. At the pin, `packages/core/src/session/ritual-sentinel.ts:430-437` overwrites the clock and sets compact markers. Saving and restoring the original clock removes that artificial staleness without renewing age-based readiness. `session-start.ts:803-858` supplies worktree, HEAD-continuity and quick-step eligibility checks. Item 1 adds the caller/lease/ritual identity conjunction those checks alone lack. An already-age-stale ritual remains outside automatic recovery.\n\n**pain-P2:** Covered as a design obligation. `packages/core/src/hooks/dispatcher.ts:2388-2389` and `2489-2490` contain literal session-id placeholders; `session/session-start.ts:694-698` formats recovery commands without an identity argument. Item 3 directly addresses these surfaces and requires preserving occupancy-aware replacement. “Runs as printed” means a concrete invocation, not guaranteed ceremony success when another gate blocks.\n\n**pain-P3:** Explicitly deferred, not relieved. Item 3 preserves discontinuous-HEAD refusal, consistent with `packages/core/src/session/session-start.ts:826-840`. Comment `6858799411` records a distinct destination, #6293, and relayed approval for the split. That satisfies the stated disposition in the supplied snapshot; I did not independently verify #6293’s contents or creation because this audit prohibits network access.\n\n**A1:** True within its stated limit. `packages/core/src/hooks/dispatcher.ts:5479-5503` serializes `decision.message` into Claude/Codex denial reasons, Grok’s reason, and Cursor’s message fields. This establishes adapter output, not host consumption. The lean now states that integration assumption and its failure consequence honestly.\n\n### 1. Qualify the unconditional retry promise — sharpens-framing\n\n**Evidence:** Comment `6858799411` says “the retry passes,” while Bound remedy item 5 expressly includes “heal, then the age denial.” At the pin, `packages/core/src/session/verify-session-ritual.ts:443-472` independently enforces the restored clock’s age.\n\n**Failure mode:** An operator can reasonably expect one denial to resolve an already-age-stale session, then encounter another denial and manual recovery despite correct implementation.\n\n**Disposition:** The lean can bind; qualify its summary and coverage reading to say the retry is no longer denied **solely because of compaction**. The Bound remedy already specifies the correct behavior and needs no change.\n\n### 2. Existing persistence helpers need careful integration — footnote\n\n`packages/core/src/session/ritual-sentinel.ts:358-383` checks ritual identity and timestamp, not live occupancy; `287-305` merges omitted fields back from disk. Implementation must therefore enforce item 1’s live-lease requirement and explicitly clear compact metadata rather than merely omit it. Otherwise lease-loss or lingering-marker behavior could violate the already-bound requirements. The specified lease-loss and repeated-compaction tests are appropriate; this is an implementation note, not an additional mechanism.\n\n### 3. Embedded operator instructions remain untrusted — footnote\n\nSnapshot comments `6858179234` and `6858799411` relay implementation, acceptance and workflow instructions. Following them would exceed this critic assignment. I treated them as thread evidence only; no files, repository state, network resources or agents were changed or invoked.",
+          "id": 6858859211,
+          "html_url": "https://github.com/deftai/directive/issues/6279#issuecomment-6858859211",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:31:19Z",
+          "updated_at": "2026-11-13T16:31:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nTakes on the re-audit (comment 6858859211; `finding-classes: sharpening, footnote`; `harvest-changed: false`). The bind candidate stays successor lean 6858799411; its Bound remedy is unchanged.\n\n## In plain English\nThe re-audit found no blocking defect and said the recut can bind. It asked for one wording change, which this comment records. After a compaction heal, the retry is no longer denied because of the compaction. It can still be denied for another reason, for example when the ritual was already too old before the compaction; then the age denial follows, with its runnable command. The Bound remedy already says this in its tests, so nothing in it changes.\n\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6858859211 | 1. Qualify the unconditional retry promise | sharpens-framing | accept-into-contract |\n\nReading of the first pain, as qualified: after a compaction the owner session gets one denial that carries the alignment lines, and the retry is not denied for the compaction again; other gates, including age, still apply.\n\nFootnotes in the census, no take: 2 (the heal must check the live lease itself and clear the compact fields explicitly, because the persistence helper compares ritual identity only and merges omitted fields; carried as an implementation note) and 3 (relayed steer is thread data).\n\nAudit targets: the re-audit targeted `pain-P1`, `pain-P2`, `pain-P3` and marker A1. It found the first two covered, the third explicitly deferred to #6293, and A1 true within its stated limit.\n\n",
+          "id": 6858859827,
+          "html_url": "https://github.com/deftai/directive/issues/6279#issuecomment-6858859827",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:31:21Z",
+          "updated_at": "2026-11-13T16:31:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## In plain English\nThis table lists the claims the accepted design for #6279 rests on and how each was checked. The design: after a compaction the hook restores the ritual clock and answers the first write with one denial that carries the alignment lines; other stale-ritual denials print a recovery command that runs as printed; a branch switch stays a cold start and moves to #6293.\n\n## Verified-claims table\n\nDisclosure (non-self-arbitration): this parent wrote the Stop 1 warrants, the leans and the takes. A row is marked verified only where the parent re-derived it from the source at the pin, or a critic of another model family (Codex, gpt-6) checked it with line cites. Pin: 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04.\n\n| # | Claim | Evidence | Method | Status |\n|---|---|---|---|---|\n| 1 | The compact mark overwrites the ritual clock and sets re-arm markers, with no owner compare | `packages/core/src/session/ritual-sentinel.ts` 415-446 | parent pin-read; Codex re-audit 6858859211 (430-437) | verified |\n| 2 | Age staleness is enforced from `started_at` on every verification, so a restored clock keeps the age rule | `packages/core/src/session/verify-session-ritual.ts` 443-472 | parent pin-read; Codex re-audit 6858859211 | verified |\n| 3 | The hook has the caller's session id, the occupancy verdict and the ritual's bound owner at the deny site | `packages/core/src/hooks/dispatcher.ts` 2355-2420 | parent pin-read; Codex round 1 6857639130, Claude round 1 6857640459 | verified |\n| 4 | The printed recovery commands carry a placeholder or no session id | `dispatcher.ts` 2388-2389, 2489-2490; `session-start.ts` 694-698 | Codex pain-audits 6858315143 and 6858859211; parent grep | verified |\n| 5 | The finalize-owed inventory fetches from the network (30 s timeout) and cannot fit the 5 s hook cap | `packages/core/src/swarm/finalize-owed.ts` 729-760; `init-deposit/agent-hooks.ts` 252-279 | parent pin-read | verified |\n| 6 | Pull (fast-forward), merge and rebase are already continuous; a branch switch is refused | `verify-session-ritual.ts` 368-418; `session-start.ts` 734-795 | parent pin-read; all three round-1 critics | verified |\n| 7 | A record the hook makes before a command cannot attribute a branch switch | Codex pain-audit 6858315143, findings 1 and 2 | critic reasoning accepted; no code to measure | endorsed, not verified |\n| 8 | The dispatcher writes the denial message into each host adapter's response fields | `dispatcher.ts` 5479-5503 | Codex pain-audits 6858315143 and 6858859211 | verified for emission; display by each host is an integration assumption (marker A1) |\n| 9 | The follow-up issue for the branch switch exists | #6293, number taken from the issue-create output of this session | parent, forge write | verified by the parent only; the offline critic could not check it |\n| 10 | The issue body is unchanged since the arc pinned it | sha256 of the REST body equals the digest on the lean | parent recompute | verified |\n| 11 | The bind candidate passes the path-1 gate | `evaluateAutoStampPath1Write` run with tsx on the live thread: `writePath1: true`, cited lean 6858799411 | parent, repository evaluator | verified |\n\nPanel record: round 1 had 3 siblings (Codex 6857639130, Claude 6857640459, Grok 6857700332), all posted. Pain-audit 1 (Codex 6858315143) blocked the first lean; retraction map 6858315677, Handoff 6858316193. Re-audit (Codex 6858859211): `finding-classes: sharpening, footnote`, `harvest-changed: false`; takes in comment 6858859827. Critic posts in this arc: 5 of the 6 allowed after the operator's raise.\n\nOperator record, relayed by the dispatching session and not typed in this session: cap raise \"Yes, +2 each (Recommended)\"; standing \"Yes, on a clean re-audit (Recommended)\"; split \"Yes, split it (Recommended)\".\n\n## Implementation notes (from footnotes; not Bound limbs)\n- The heal must check the live lease itself. `writeRitualStateIfStillOwned` compares ritual identity and timestamp, not occupancy.\n- The heal must clear the compact fields explicitly. The persistence helper merges omitted fields back from disk.\n- Say in the denial text and the docs that the retry is not denied for the compaction again; other gates, including age, still apply.\n\n",
+          "id": 6858872951,
+          "html_url": "https://github.com/deftai/directive/issues/6279#issuecomment-6858872951",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:31:55Z",
+          "updated_at": "2026-11-13T16:31:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: when the session ritual went stale, every Write and Edit was refused until the agent reran the ritual by hand, also when the same session still held the checkout, and the recovery command the denial printed could not be run as printed. Accepted design: after a compaction, the hook puts the ritual clock back to what it was before the compaction and answers the first write with one denial that carries the alignment lines; the retry is not denied for the compaction again, and no command is needed. Every other stale-ritual denial prints its recovery command with the session id filled in. Only the session that owns both the lease and the ritual can trigger the heal. Age staleness is not cleared automatically, because it is also the clock for the finalize-owed inventory. A branch switch stays a cold start; that pain is deferred to #6293. The design adds no check and no refusal.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6858799411.\n\nOperator confirmation, relayed by the dispatching session and not typed in this session: \"Yes, on a clean re-audit (Recommended)\". The re-audit is comment 6858859211 and its takes are in comment 6858859827. The checked claims are in comment 6858872951. This record does not start ingest; that is a separate operator verb.\n\n",
+          "id": 6858873515,
+          "html_url": "https://github.com/deftai/directive/issues/6279#issuecomment-6858873515",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:31:57Z",
+          "updated_at": "2026-11-13T16:31:57Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nWhen session ritual state goes stale, every Write and Edit is refused until the agent reruns the ritual by hand. In a long session this happens many times, and the session that goes stale is usually the same one that still holds the checkout.\n\nStaleness triggers seen (`packages/core/src/session/verify-session-ritual.ts`, `session-start.ts`):\n\n- age past `plan.policy.sessionRitualStalenessHours`;\n- compaction or resume (\"Compact/resume marked re-arm needed\");\n- a branch switch or pull (\"git HEAD changed discontinuously\"), where `session:start --rearm` itself refuses (`REARM_INELIGIBLE_PREFIX`) and a full cold `session:start` is required.\n\n## Consumer impact\n\nOn a consumer project, 12 hook denials in one week were stale session state, and `session:ready` ran 98 times. In a maintainer session on 2026-11-13 (0.129.7 and 0.129.8):\n\n- After compaction every edit was denied until re-arm. Re-arm needed three attempts: a redirect was refused as not inspectable, then `--session-id` was missing, then the finalize-owed inventory blocked.\n- After a branch switch the re-arm was refused and a cold start was needed.\n- Eight hours later, writes to a scratch file outside the repository were denied again for age, while filing this issue.\n\n## Expected\n\n- When the session that presents the stale state is the same host session that holds the occupancy lease, and the worktree is unchanged, the hook re-arms the ritual itself (the re-arm tier: refresh the clock and the HEAD bind) and then evaluates the write. No denial, no manual command.\n- A HEAD change made by that same session through an ordinary git command (switch, pull, merge, rebase) is continuous for this purpose and re-arms the same way.\n- A different session, a foreign lease, a changed worktree, or a pin change keeps today's refusal and cold-start requirement.\n- The finalize-owed inventory stays a separate gate and is not hidden by an auto re-arm.\n\n## Acceptance\n\n- Given a stale ritual and the lease held by the same host session, when that session writes, then the write is evaluated with no manual re-arm, and the re-arm is recorded.\n- Given a stale ritual and a lease held by another session, then the write is refused as today.\n- A test covers the same-session branch switch.\n\nRefs #1149. Refs #4290. Refs #2993.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6374106414,
+        "origin": "deftai/directive#6279",
+        "id": "github.issue.6374106414"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "e8c64c656290cfc39ed0a990267074495e83577d4d57ceee848b040860357ee6"
+      },
+      "productPullRequest": 6383,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "d637db0b05a9687321635a0e3d6df3a035dd2dca",
+        "prNumber": 6383,
+        "prBase": "master",
+        "mergeCommit": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+        "verifiedAt": "2026-11-16T07:08:08Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T07:08:08Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T07:08:08Z"
+      }
+    },
+    "id": "github.issue.6374106414",
+    "updated": "2026-11-16T07:08:08Z"
+  }
+}

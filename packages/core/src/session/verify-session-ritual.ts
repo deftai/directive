@@ -4,6 +4,7 @@ import { readCorePackageVersion } from "../engine-version.js";
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { readPlanSequence } from "../plan-sequence/store.js";
 import { formatFrameworkCommand } from "../render/framework-commands.js";
+import { type ResolveUserMdResult, resolveUserMdPath } from "../user-config/resolve-user-md.js";
 import {
   type ActiveCliCheckResult,
   type ActiveCliCheckSeams,
@@ -21,7 +22,9 @@ import {
 } from "./posture.js";
 import { defaultRitualRunner } from "./ritual-entrypoint.js";
 import {
+  COMPACT_PRIOR_STARTED_AT_KEY,
   type RitualState,
+  readCompactPriorStartedAt,
   readRitualState,
   ritualStateMarksRearmNeeded,
   ritualStatePath,
@@ -29,16 +32,19 @@ import {
   writeRitualStateIfStillOwned,
 } from "./ritual-sentinel.js";
 import {
+  assessRearmEligibility,
   formatSessionStartRecoveryCommand,
   GATED_STEPS,
   type GatedStepName,
   QUICK_STEPS,
+  READ_ONLY_ALIGNMENT_MESSAGE,
   type SessionCeremonyTier,
   sameOwnerRebaseHeadContinuity,
   WRITE_GATED_EXECUTE_STEPS,
   WRITE_GATED_REQUIRED_STEPS,
 } from "./session-start.js";
 import { resolveSessionRitualStalenessHours } from "./staleness.js";
+import { timestampIso } from "./time.js";
 
 export {
   formatCacheFetchAllRecoveryCommand,
@@ -949,4 +955,115 @@ export function emitBypassWarning(result: VerifyResult): string {
     return `[deft] WARNING: ${ENV_SKIP}=1 bypassed a session ritual failure (${result.message})`;
   }
   return "";
+}
+
+/** Facts the write gate already holds when it asks for a compaction heal (#6279). */
+export interface CompactHealInput {
+  /** Session id the host presented for this write. */
+  readonly callerSessionId: string | undefined;
+  /** True when the caller's host identity was missing or conflicting. */
+  readonly callerIdentityIssue: boolean;
+  /** Occupancy admission for this write; only a live-lease `owner` may heal. */
+  readonly admitted: "owner" | "member" | null;
+  /** Bound owner of the ritual verdict the gate evaluated. */
+  readonly boundSessionId: string | undefined;
+  /** Live-lease re-check run inside the ritual lock; null while the caller still owns it. */
+  readonly stillLiveOwner: () => string | null;
+  readonly runGit?: GitRunner;
+  readonly resolveUserMd?: (projectRoot: string) => ResolveUserMdResult;
+}
+
+export type CompactHealOutcome =
+  | { readonly kind: "healed"; readonly message: string }
+  | { readonly kind: "already-healed"; readonly message: string }
+  | { readonly kind: "none"; readonly reason: string };
+
+function compactHealUserMdLine(
+  projectRoot: string,
+  resolveUserMd: ((projectRoot: string) => ResolveUserMdResult) | undefined,
+): string {
+  try {
+    const userMd = (resolveUserMd ?? ((root) => resolveUserMdPath({ projectRoot: root })))(
+      projectRoot,
+    );
+    return userMd.found
+      ? `USER.md resolved (${userMd.rung}): ${userMd.path.replace(/\r?\n/g, " ")}`
+      : userMd.diagnostic.replace(/\r?\n/g, " ");
+  } catch (cause) {
+    return `USER.md could not be resolved: ${String(cause)}`;
+  }
+}
+
+function compactHealMessage(projectRoot: string, input: CompactHealInput): string {
+  return (
+    "session ritual clock restored after context compaction (#6279); no re-arm command is " +
+    "needed. Re-read the alignment lines below, then retry this call. The retry is not denied " +
+    "for the compaction again; other gates, including age, still apply.\n" +
+    `${READ_ONLY_ALIGNMENT_MESSAGE}\n${compactHealUserMdLine(projectRoot, input.resolveUserMd)}`
+  );
+}
+
+/**
+ * Owner-only compaction heal for the write gate (#6279).
+ *
+ * Restores the `started_at` that `markRitualStaleAfterCompact` recorded and
+ * clears the compact mark. It runs no ritual step, writes no step record and
+ * stamps no new time, so age staleness and the finalize-owed cadence are what
+ * they were before the compaction. Every refusal returns `none` and the gate
+ * keeps today's denial. Age staleness and a discontinuous HEAD are never
+ * cleared here.
+ */
+export function healCompactMarkForOwnerWrite(
+  projectRoot: string,
+  input: CompactHealInput,
+): CompactHealOutcome {
+  const caller = input.callerSessionId?.trim() ?? "";
+  if (caller.length === 0 || input.callerIdentityIssue) {
+    return { kind: "none", reason: "caller host identity is missing or conflicting" };
+  }
+  if (input.admitted !== "owner") {
+    return { kind: "none", reason: "caller does not own the live occupancy lease" };
+  }
+  if (input.boundSessionId !== caller) {
+    return { kind: "none", reason: "ritual is bound to a different session" };
+  }
+  const [state] = readRitualState(projectRoot);
+  if (state === null || state.sessionId !== caller || !ritualStateMarksRearmNeeded(state)) {
+    return { kind: "none", reason: "no compact mark owned by the caller" };
+  }
+  const prior = readCompactPriorStartedAt(state);
+  if (prior === null) {
+    return { kind: "none", reason: "compact mark has no recorded clock" };
+  }
+  const eligibility = assessRearmEligibility(projectRoot, { runGit: input.runGit });
+  if (!eligibility.eligible) {
+    return { kind: "none", reason: eligibility.reason };
+  }
+  // Clear the mark explicitly: the same-owner merge restores omitted keys from disk.
+  const payload: Record<string, unknown> = {
+    ...state.raw,
+    started_at: timestampIso(prior),
+    compact_resume_at: null,
+    rearm_needed: false,
+    [COMPACT_PRIOR_STARTED_AT_KEY]: null,
+  };
+  const refusal = writeRitualStateIfStillOwned(projectRoot, payload, {
+    sessionId: state.sessionId,
+    startedAt: state.startedAt,
+    stillAdmitted: input.stillLiveOwner,
+  });
+  if (refusal === null) {
+    return { kind: "healed", message: compactHealMessage(projectRoot, input) };
+  }
+  // A parallel call of the same owner may have healed first.
+  const [current] = readRitualState(projectRoot);
+  if (
+    current !== null &&
+    current.sessionId === caller &&
+    !ritualStateMarksRearmNeeded(current) &&
+    current.startedAt.getTime() === prior.getTime()
+  ) {
+    return { kind: "already-healed", message: compactHealMessage(projectRoot, input) };
+  }
+  return { kind: "none", reason: refusal };
 }

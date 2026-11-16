@@ -358,7 +358,15 @@ export function writeRitualState(projectRoot: string, payload: Record<string, un
 export function writeRitualStateIfStillOwned(
   projectRoot: string,
   payload: Record<string, unknown>,
-  expected: { sessionId?: string; startedAt: Date },
+  expected: {
+    sessionId?: string;
+    startedAt: Date;
+    /**
+     * Re-checked inside the ritual lock after the owner compare. A non-null
+     * return refuses the write with that reason (#6279 live-lease re-check).
+     */
+    stillAdmitted?: () => string | null;
+  },
   deps: LockDeps = {},
 ): string | null {
   try {
@@ -378,6 +386,10 @@ export function writeRitualStateIfStillOwned(
             "verification was running; refusing to overwrite the current owner record"
           );
         }
+        const admission = expected.stillAdmitted?.() ?? null;
+        if (admission !== null) {
+          return admission;
+        }
         const merged = mergeSameOwnerRitualPayload(current.raw, payload);
         try {
           publishRitualState(projectRoot, merged, fence);
@@ -395,6 +407,14 @@ export function writeRitualStateIfStillOwned(
 
 /** Instant guaranteed to fail `evaluateLoadedState` age checks on any policy horizon. */
 export const RITUAL_STALE_EPOCH = new Date("1970-01-01T00:00:00Z");
+
+/** Ritual-state key for the `started_at` a compaction overwrote (#6279). */
+export const COMPACT_PRIOR_STARTED_AT_KEY = "compact_prior_started_at";
+
+/** Pre-compaction clock recorded by `markRitualStaleAfterCompact`, or null (#6279). */
+export function readCompactPriorStartedAt(state: RitualState): Date | null {
+  return parseTimestamp(state.raw[COMPACT_PRIOR_STARTED_AT_KEY]);
+}
 
 export interface MarkRitualStaleAfterCompactResult {
   readonly changed: boolean;
@@ -428,6 +448,17 @@ export function markRitualStaleAfterCompact(
       };
     }
     const payload = { ...state.raw };
+    // #6279: keep the clock this compaction overwrites so the owner's next write
+    // can restore it. A second compaction before any heal keeps the first record;
+    // an epoch clock (older-runtime mark) records nothing.
+    const recorded = ritualStateMarksRearmNeeded(state) ? readCompactPriorStartedAt(state) : null;
+    if (recorded === null) {
+      if (state.startedAt.getTime() > RITUAL_STALE_EPOCH.getTime()) {
+        payload[COMPACT_PRIOR_STARTED_AT_KEY] = timestampIso(state.startedAt);
+      } else {
+        delete payload[COMPACT_PRIOR_STARTED_AT_KEY];
+      }
+    }
     payload.started_at = timestampIso(RITUAL_STALE_EPOCH);
     payload.compact_resume_at = timestampIso(now);
     // #2992: compact invalidates the ritual clock only — prefer re-arm recovery when worktree/HEAD allow.

@@ -62,7 +62,7 @@ A `solo` dispatch sets `dispatch_kind: solo`, MAY leave `allocation_plan_id` / `
 
 When the operator supplies an ordered plan (delivery sequence, cohort, checklist, review batch, or phase list), continuation language is bounded by that sequence — not by the triage queue, skill chaining, or adjacent backlog memory.
 
-! Record the active sequence with `deft plan-sequence:set --file <json>` (persists `.deft/plan-sequence.json`). Inspect with `deft plan-sequence:current`; advance with `deft plan-sequence:advance`; clear with `deft plan-sequence:clear`.
+! Record the active sequence with `deft plan-sequence:set --file <json>` (persists `.deft/plan-sequence.json`). Inspect with `deft plan-sequence:current`; advance with `deft plan-sequence:advance`; clear with `deft plan-sequence:clear`. An entry whose brief is in `completed/` is finished: readers derive the next entry, so an entry with a brief needs no advance (#6205). Add an unplanned fix with `deft plan-sequence:insert`; under `requireBoundPrePrPush: true`, insert, replace and clear need an operator `plan-sequence-approval` grant.
 
 ! Before creating or dispatching a new external work unit (PR, branch, story activation, sub-agent implementation task), when a sequence is active run `deft verify:plan-sequence --target-kind <kind> --target <id-or-title>`. Exit non-zero means fail closed.
 
@@ -74,7 +74,7 @@ When the operator supplies an ordered plan (delivery sequence, cohort, checklist
 
 ! Skill-exit chaining instructions are advisory entrypoints only — they do not authorize adjacent work unless it matches the current ordered-plan entry or a fresh operator directive.
 
-! Review-cycle exit returns to the ordered-plan context and authorizes at most the next sequence entry (after `plan-sequence:advance` for the completed PR). Cohort/build flows stop after the final approved entry.
+! Review-cycle exit returns to the ordered-plan context and authorizes at most the next sequence entry (derived once the brief is completed; `plan-sequence:advance` only for an entry with no brief). Cohort/build flows stop after the final approved entry.
 
 ⊗ Reuse triage queue `continuationNumbers` / `continuationOrder` for ordered-plan state — those fields are for `[RESUME]` / stale-defer ordering only.
 

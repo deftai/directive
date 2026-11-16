@@ -37,3 +37,11 @@ tasks:
       - task: :engine:invoke
         vars:
           ENGINE_CMD: 'plan-sequence advance --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  insert:
+    desc: "Insert one pending entry under a single-use plan-sequence-approval grant (#6205)"
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'plan-sequence insert --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
