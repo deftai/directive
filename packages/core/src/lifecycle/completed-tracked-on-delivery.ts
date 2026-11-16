@@ -33,6 +33,11 @@ import { defaultGitRunner, type GitRunner, showBlobsBatch } from "../session/git
 import { CACHE_DIR_NAME, CACHE_SOURCE_GITHUB_ISSUE } from "../triage/queue/constants.js";
 import { resolveRepo } from "../triage/queue/repo.js";
 import { parseGithubIssueUri } from "../triage/reconcile/parse-uri.js";
+import {
+  landsWithProductBriefsFromBlobs,
+  type ProveLandsWithProductFn,
+  proveLandsWithProductCompletion,
+} from "./lands-with-product-proof.js";
 
 export type OutputStream = "stdout" | "stderr" | "none";
 
@@ -67,6 +72,8 @@ export interface EvaluateCompletedTrackedResult {
   readonly briefsScanned?: number;
   /** Distinct forge origins resolved from those briefs and the tip (#4426). */
   readonly originsResolved?: number;
+  /** Lands-with-product briefs on the tip whose close proof failed (#6277 Bound 4). */
+  readonly landsWithProductFailures?: readonly string[];
 }
 
 export interface EvaluateCompletedTrackedOptions {
@@ -92,6 +99,8 @@ export interface EvaluateCompletedTrackedOptions {
   readonly onProgress?: (event: CompletedTrackedProgress) => void;
   /** Test seam: override wall clock for progress elapsedMs. */
   readonly now?: () => number;
+  /** Close proof for lands-with-product briefs (#6277); defaults to the forge-backed join. */
+  readonly proveLandsWithProduct?: ProveLandsWithProductFn;
 }
 
 /** Default silence window so a ~2s batch read does not emit progress noise. */
@@ -894,15 +903,56 @@ export function evaluateCompletedTracked(
   }
   missing.sort((a, b) => issueKey(a.issue).localeCompare(issueKey(b.issue)));
 
-  if (missing.length > 0) {
+  // #6277 Bound 4: a lands-with-product brief on the tip carries no delivered
+  // provenance; its close proof is the identity join on the commit that landed it.
+  // The scoped `--issue N` form (the drive-to DONE proof) runs it; a repo-wide
+  // corpus scan does not repeat a forge join for every landed story.
+  const landsFailures: string[] = [];
+  const prove = options.proveLandsWithProduct ?? proveLandsWithProductCompletion;
+  const landedBriefs =
+    issueFilter === null ? [] : landsWithProductBriefsFromBlobs(tipCompletedPaths, tipBodies);
+  for (const brief of landedBriefs) {
+    const owned = collectGithubRefs(brief.plan, defaultRepo).issues.some((ref) =>
+      originMap.has(issueKey(ref)),
+    );
+    if (!owned) continue;
+    if (skipGh && options.proveLandsWithProduct === undefined) {
+      landsFailures.push(
+        `lands-with-product brief ${brief.rel}: close proof needs a live forge read (--skip-gh) (#6277)`,
+      );
+      continue;
+    }
+    const proof = prove({
+      projectRoot: root,
+      tip,
+      briefRel: brief.rel,
+      plan: brief.plan,
+      runGit,
+      runGh,
+    });
+    if (!proof.ok) {
+      landsFailures.push(proof.message);
+    }
+  }
+  const landsBlock =
+    landsFailures.length > 0
+      ? `\nverify:completed-tracked: ${String(landsFailures.length)} lands-with-product ` +
+        `close proof(s) failed on tip ${tip}:\n${landsFailures.map((m) => `  - ${m}`).join("\n")}`
+      : "";
+
+  if (missing.length > 0 || landsFailures.length > 0) {
     return {
       code: 1,
-      message: formatRefusal(missing, root, tip),
+      message:
+        missing.length > 0
+          ? `${formatRefusal(missing, root, tip)}${landsBlock}`
+          : landsBlock.trimStart(),
       stream: "stderr",
       missing,
       tip,
       briefsScanned: localScan.briefsScanned,
       originsResolved: originMap.size,
+      landsWithProductFailures: landsFailures,
     };
   }
 

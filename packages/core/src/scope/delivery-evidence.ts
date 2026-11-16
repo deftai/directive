@@ -186,6 +186,8 @@ export type FetchClosingIssueIdsFn = (
 export interface PrChangedFile {
   readonly filename: string;
   readonly status: string;
+  /** Rename source (`previous_filename`) when GitHub reports one (#6277). */
+  readonly previousFilename?: string;
 }
 
 /** Changed files of a PR, or null on lookup failure (fail closed). */
@@ -582,7 +584,7 @@ export function defaultFetchPrChangedFiles(
       "--paginate",
       `repos/${parsed.owner}/${parsed.name}/pulls/${prNumber}/files?per_page=100`,
       "--jq",
-      ".[] | [.status, .filename] | @tsv",
+      '.[] | [.status, .filename, (.previous_filename // "")] | @tsv',
     ]);
   } catch {
     return null;
@@ -591,13 +593,16 @@ export function defaultFetchPrChangedFiles(
     return null;
   }
   const out: PrChangedFile[] = [];
-  for (const line of result.stdout.split("\n")) {
+  for (const raw of result.stdout.split("\n")) {
+    const line = raw.replace(/\r$/, "");
     if (line.trim().length === 0) continue;
-    const tab = line.indexOf("\t");
-    if (tab <= 0 || tab === line.length - 1) {
+    const [status = "", filename = "", previous = ""] = line.split("\t");
+    if (status.length === 0 || filename.length === 0) {
       return null;
     }
-    out.push({ status: line.slice(0, tab), filename: line.slice(tab + 1) });
+    out.push(
+      previous.length > 0 ? { status, filename, previousFilename: previous } : { status, filename },
+    );
   }
   return out;
 }
@@ -633,17 +638,34 @@ function lifecycleBriefBasename(filename: string): string | null {
   return LIFECYCLE_FOLDER_SET.has(folder) ? (parts[parts.length - 1] ?? null) : null;
 }
 
+/** True when `path` is `xbrief|vbrief/active/<name>` (#6277 rename basis). */
+function isActiveBriefPath(path: string | undefined, name: string): boolean {
+  const parts = (path ?? "").replace(/\\/g, "/").split("/");
+  if (parts.length < 3) return false;
+  const root = parts[parts.length - 3] ?? "";
+  return (
+    (root === "xbrief" || root === "vbrief") &&
+    parts[parts.length - 2] === "active" &&
+    parts[parts.length - 1] === name
+  );
+}
+
 /**
  * Brief-in-PR-diff identity (#3675 fallback). Holds only when the merged PR
  * added this exact brief file to a lifecycle folder AND changed at least one
- * file outside the lifecycle folders. A PR that only edits or moves the brief
- * (a lifecycle PR) does not qualify.
+ * file outside the lifecycle folders. A `renamed` entry counts as an add when
+ * its previous path is the same basename under `active/` (#6277 in-PR
+ * completion). A PR that only edits or moves the brief (a lifecycle PR) does
+ * not qualify.
  */
 export function prDiffAddsBrief(files: readonly PrChangedFile[], briefBasename: string): boolean {
   const name = briefBasename.trim();
   if (name.length === 0) return false;
   const addsBrief = files.some(
-    (f) => f.status === "added" && lifecycleBriefBasename(f.filename) === name,
+    (f) =>
+      lifecycleBriefBasename(f.filename) === name &&
+      (f.status === "added" ||
+        (f.status === "renamed" && isActiveBriefPath(f.previousFilename, name))),
   );
   const touchesCode = files.some((f) => lifecycleBriefBasename(f.filename) === null);
   return addsBrief && touchesCode;

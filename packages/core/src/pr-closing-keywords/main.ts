@@ -18,6 +18,7 @@ import {
   listActiveRunningBriefs,
   productPullRequestFromPlan,
 } from "../orphan-active/running-briefs.js";
+import { isLandsWithProductPlan } from "../scope/lifecycle-write.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { parseGitHubRemoteRepo } from "../text/redos-safe.js";
 import { resolveRepo } from "../triage/queue/repo.js";
@@ -978,6 +979,40 @@ function formatStoryLineConflict(issues: readonly number[]): string {
 }
 
 /**
+ * Story issues of the briefs this change set completes in-PR (#6277): a
+ * `completed/` brief added or renamed in `files` whose plan on disk is stamped
+ * `lands-with-product`.
+ */
+export function landsWithProductIssues(
+  projectRoot: string,
+  repo: string,
+  files: readonly PrDiffPath[],
+): number[] {
+  const out = new Set<number>();
+  for (const file of files) {
+    const path = normalizeDiffPath(file.path);
+    const status = file.status.toLowerCase();
+    if (status === "removed" || status === "deleted") continue;
+    if (!/^(?:xbrief|vbrief)\/completed\/[^/]+$/.test(path)) continue;
+    let plan: Record<string, unknown> | null = null;
+    try {
+      const data = JSON.parse(readFileSync(join(projectRoot, path), "utf8")) as {
+        plan?: unknown;
+      };
+      plan =
+        typeof data.plan === "object" && data.plan !== null && !Array.isArray(data.plan)
+          ? (data.plan as Record<string, unknown>)
+          : null;
+    } catch {
+      plan = null;
+    }
+    if (plan === null || !isLandsWithProductPlan(plan)) continue;
+    for (const issue of storyIssuesOfBrief(plan, repo)) out.add(issue);
+  }
+  return [...out].sort((a, b) => a - b);
+}
+
+/**
  * Live pre-merge story-line check (#6316 / #6310 Bound 1). Any body with both lines
  * for one N fails. A product PR fails when it carries neither a sole `deft-story: N`
  * nor a sole `deft-story-part: N` and either its body names N with Refs / Tracking /
@@ -997,6 +1032,23 @@ export function evaluateStoryLineRequirement(args: {
   }
   if (!isProductShapedDiff(args.files)) {
     return { ok: true, messages: [], required: [] };
+  }
+  // #6277 Bound 6: a PR that completes its story in-PR (a completed/ brief stamped
+  // lands-with-product) cannot carry the part line: the identity join after
+  // merge refuses a part-line PR on every basis (#6317).
+  const parts = new Set(parseAllDeftStoryPartLines(args.bodyText));
+  const landingMessages: string[] = [];
+  for (const issue of landsWithProductIssues(args.projectRoot, args.repo, args.files)) {
+    if (parts.has(issue)) {
+      landingMessages.push(
+        `FAIL: PR #${String(args.prNumber)} completes story #${String(issue)} in-PR ` +
+          `(lands-with-product, #6277) but carries \`deft-story-part: ${String(issue)}\`. ` +
+          "A part line cannot complete the story (#6317); remove it, and keep the closing keyword.",
+      );
+    }
+  }
+  if (landingMessages.length > 0) {
+    return { ok: false, messages: landingMessages, required: [] };
   }
   const running = listActiveRunningBriefs(args.projectRoot);
   const required = new Map<number, string>();
@@ -1021,7 +1073,6 @@ export function evaluateStoryLineRequirement(args: {
     }
   }
   const marks = new Set(parseAllDeftStoryMarks(args.bodyText));
-  const parts = new Set(parseAllDeftStoryPartLines(args.bodyText));
   const messages: string[] = [];
   for (const [issue, why] of [...required.entries()].sort((a, b) => a[0] - b[0])) {
     if (!marks.has(issue) && !parts.has(issue)) {

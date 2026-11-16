@@ -48,8 +48,10 @@ import {
 } from "../layout/resolve.js";
 import { parseDisposition, readNamespacedAcceptanceFields } from "../scope/acceptance-evidence.js";
 import { evaluateStoredCompletionProvenanceForWriteGuard } from "../scope/delivery-evidence.js";
+import { evaluateLandsWithProductAdmission } from "../scope/lands-with-product.js";
 import {
   hasTransitionWrite,
+  isLandsWithProductPlan,
   LEFTOVER_LAND_PR_REMEDIATION,
   transitionWriteFitsFolder,
 } from "../scope/lifecycle-write.js";
@@ -82,6 +84,12 @@ export interface CompletedWriteGuardOptions {
   readonly nameStatus?: string;
   /** Inject payloads: relPath -> raw JSON. */
   readonly payloads?: ReadonlyMap<string, string>;
+  /**
+   * PR body for the lands-with-product closing-keyword check (#6277). Omitted
+   * outside a pull_request context: that one condition is reported as not
+   * evaluated, and every other admission condition still applies.
+   */
+  readonly prBody?: string;
   /**
    * Inject origin GitHub issue state keyed by lowercase URI.
    * Overrides the on-disk github-issue cache for the same URI.
@@ -767,6 +775,8 @@ export function evaluateCompletedWriteGuard(
   }
   const authorizedDests: AuthDest[] = [];
   const closedParkIdentities = new Set<string>();
+  /** Lands-with-product admission notes (a condition not evaluated here; #6277). */
+  const landsNotes: string[] = [];
 
   const removedSrc = new Set(
     records.filter((rec) => rec.status === "D" || rec.status === "R").map((rec) => rec.src),
@@ -864,6 +874,28 @@ export function evaluateCompletedWriteGuard(
             `${rel}: evaluateCompletedPlanConsistency failed on completed/ add (#5602)`,
         ),
       });
+      continue;
+    }
+    // #6277 Bound 3: an in-PR (lands-with-product) add is admitted on the facts the
+    // identity join after merge also accepts, in place of stored delivery provenance.
+    if (isLandsWithProductPlan(plan)) {
+      const admission = evaluateLandsWithProductAdmission({
+        completedRel: rel,
+        plan,
+        records,
+        ...(options.prBody !== undefined ? { prBody: options.prBody } : {}),
+      });
+      if (!admission.ok) {
+        findings.push({
+          relPath: rel,
+          detail: sanitizeDetail(
+            `${rel}: lands-with-product add refused (#6277): ${admission.reasons.join("; ")}`,
+          ),
+        });
+        continue;
+      }
+      landsNotes.push(...admission.notes);
+      rememberDest(rel, plan);
       continue;
     }
     const storedProv = evaluateStoredCompletionProvenanceForWriteGuard(plan);
@@ -1046,7 +1078,9 @@ export function evaluateCompletedWriteGuard(
     return {
       code: 0,
       findings: [],
-      message: "verify_completed_write_guard: clean -- no unguarded completed/ adds",
+      message:
+        "verify_completed_write_guard: clean -- no unguarded completed/ adds" +
+        landsNotes.map((note) => `\n  note: ${note}`).join(""),
     };
   }
 
