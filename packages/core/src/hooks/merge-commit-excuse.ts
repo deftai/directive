@@ -31,8 +31,8 @@ export interface MergeCommitExcuseResult {
   readonly remaining: readonly string[];
 }
 
+/** SHA-1 (40 hex) or SHA-256 (64 hex) object ids. */
 const SHA_RE = /^[0-9a-f]{40}(?:[0-9a-f]{24})?$/;
-const LS_TREE_CHUNK = 100;
 
 function normalizeRel(path: string): string {
   return path.replace(/\r/g, "").trim().replace(/\\/g, "/").replace(/^\.\//, "");
@@ -66,33 +66,29 @@ function isFetchedRef(projectRoot: string, ref: string, runGit: GitRunner): bool
   return full.code === 0 && full.stdout.trim().startsWith("refs/remotes/");
 }
 
-/** `path -> "<mode> <oid>"` for the given paths in one commit's tree. */
+/**
+ * `path -> "<mode> <oid>"` for the wanted paths in one commit's tree. One
+ * recursive listing per commit, filtered here, so no pathspec reaches git.
+ */
 function treeEntries(
   projectRoot: string,
   commit: string,
   paths: readonly string[],
   runGit: GitRunner,
 ): Map<string, string> | null {
+  const wanted = new Set(paths);
+  const listed = runGit(projectRoot, ["ls-tree", "-r", "-z", "--full-tree", commit]);
+  if (listed.code !== 0) return null;
   const out = new Map<string, string>();
-  for (let i = 0; i < paths.length; i += LS_TREE_CHUNK) {
-    const chunk = paths.slice(i, i + LS_TREE_CHUNK);
-    const listed = runGit(projectRoot, [
-      "--literal-pathspecs",
-      "ls-tree",
-      "-z",
-      "--full-tree",
-      commit,
-      "--",
-      ...chunk,
-    ]);
-    if (listed.code !== 0) return null;
-    for (const record of listed.stdout.split("\0")) {
-      const tab = record.indexOf("\t");
-      if (tab <= 0) continue;
-      const [mode, , oid] = record.slice(0, tab).split(" ");
-      if (mode === undefined || oid === undefined) continue;
-      out.set(record.slice(tab + 1), `${mode} ${oid}`);
-    }
+  for (const record of listed.stdout.split("\0")) {
+    const tab = record.indexOf("\t");
+    if (tab <= 0) continue;
+    // The git runner decodes `-z` output as latin1; staged paths are UTF-8.
+    const path = Buffer.from(record.slice(tab + 1), "latin1").toString("utf8");
+    if (!wanted.has(path)) continue;
+    const [mode, , oid] = record.slice(0, tab).split(" ");
+    if (mode === undefined || oid === undefined) continue;
+    out.set(path, `${mode} ${oid}`);
   }
   return out;
 }

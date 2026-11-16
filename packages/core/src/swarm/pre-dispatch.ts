@@ -188,16 +188,36 @@ export function hasActiveAliasPeer(
   targetId: string,
   workflowId: string,
 ): boolean {
+  return aliasPeerActiveIds(projectRoot, scopeId, targetId, workflowId).length > 0;
+}
+
+/** Running attempt ids on alias/realpath peers of the target (same scope and workflow). */
+export function aliasPeerActiveIds(
+  projectRoot: string,
+  scopeId: string,
+  targetId: string,
+  workflowId: string,
+): string[] {
   const mine = physicalTargetKey(projectRoot, targetId);
+  const ids: string[] = [];
   for (const ledger of listUnitLedgers(projectRoot)) {
     if (ledger.scopeId !== scopeId || ledger.workflowId !== workflowId) continue;
     if (ledger.targetId === targetId) continue;
     if (!hasActiveAttempt(ledger)) continue;
     if (physicalTargetKey(projectRoot, ledger.targetId) === mine) {
-      return true;
+      ids.push(...activeAttempts(ledger).map((a) => a.attemptId));
     }
   }
-  return false;
+  return ids;
+}
+
+/** Attempt ids among `ids` that are still running in any unit ledger of the project (#6379). */
+function stillRunningAttemptIds(projectRoot: string, ids: readonly string[]): string[] {
+  const running = new Set<string>();
+  for (const ledger of listUnitLedgers(projectRoot)) {
+    for (const attempt of activeAttempts(ledger)) running.add(attempt.attemptId);
+  }
+  return ids.filter((id) => running.has(id));
 }
 
 function unitFields(input: SwarmPreDispatchInput): {
@@ -470,6 +490,9 @@ export function ensureBeginStoryBinding(
       worktreePath: target.worktreePath,
       storyId: scope.storyId,
       attemptIds,
+      // Re-read under the store lock: an attempt a concurrent cancel/complete
+      // ended after begin read the ledger is not written back.
+      stillRunning: (ids) => stillRunningAttemptIds(input.projectRoot, ids),
     });
     if (!wrote.ok) return `story-binding: no record written (store): ${wrote.detail}`;
     return (
@@ -540,12 +563,19 @@ function runBeginLedger(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
   try {
     return withUnitLock(input.projectRoot, scopeId, targetId, workflowId, () => {
       // Symlink alias peer: different lexical keys, same physical worktree.
-      if (hasActiveAliasPeer(input.projectRoot, scopeId, targetId, workflowId)) {
+      const peerIds = aliasPeerActiveIds(input.projectRoot, scopeId, targetId, workflowId);
+      if (peerIds.length > 0) {
+        // The peer's running ids, so a retried begin can repair the record (#6379).
         return baseResult(input, "begin", {
           exitCode: EXIT_GATE_FAILED,
           decision: "DENY_DUPLICATE_ACTIVE",
           reason: "active attempt exists on alias/realpath peer of target",
-          activeAttemptIds: listActiveIds(input.projectRoot, scopeId, targetId, workflowId),
+          activeAttemptIds: [
+            ...new Set([
+              ...listActiveIds(input.projectRoot, scopeId, targetId, workflowId),
+              ...peerIds,
+            ]),
+          ],
         });
       }
       const current = loadOrCreateUnitLedger(input.projectRoot, {

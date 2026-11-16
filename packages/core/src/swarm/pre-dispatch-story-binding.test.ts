@@ -344,13 +344,20 @@ describe("story-binding target and scope resolution (#6379 item 2)", { timeout: 
       "utf8",
     );
     const input = { projectRoot: primary, scopeId: "plan-a", targetId: wt };
-    // The default wait is bounded; the store stays locked by a live holder.
-    expect(ensureBeginStoryBinding(input, ["att-1"])).toContain("no record written (store)");
-    expect(removeEndedStoryBindings(primary, ["att-1"])).toContain("not removed");
+    // The store lock does not wait: a live holder makes begin print one line.
+    const locked = swarmPreDispatch({ ...input, sourceRevision: "rev" });
+    expect(locked.exitCode).toBe(0);
+    expect(locked.storyBinding).toContain("no record written (store)");
+    const id = locked.attempt?.attemptId ?? "";
+    expect(removeEndedStoryBindings(primary, [id])).toContain("not removed");
     rmSync(join(store, STORY_BINDING_LOCK_NAME));
-    expect(ensureBeginStoryBinding(input, ["att-1"])).toContain("-> plan-a");
-    expect(removeEndedStoryBindings(primary, ["att-1"])).toContain("records deleted 1");
-    expect(removeEndedStoryBindings(primary, ["att-1"])).toBeNull();
+    // An attempt id that no ledger still runs is never written back.
+    expect(ensureBeginStoryBinding(input, ["ended-attempt"])).toContain(
+      "no attempt of this unit is still running",
+    );
+    expect(ensureBeginStoryBinding(input, [id])).toContain("-> plan-a");
+    expect(removeEndedStoryBindings(primary, [id])).toContain("records deleted 1");
+    expect(removeEndedStoryBindings(primary, [id])).toBeNull();
     expect(removeEndedStoryBindings(primary, [])).toBeNull();
     const outside = mkdtempSync(join(tmpdir(), "sb-store-outside-"));
     temps.push(outside);

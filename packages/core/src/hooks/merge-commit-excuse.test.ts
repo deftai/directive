@@ -121,6 +121,39 @@ describe("merge-commit excuse (#6379 item 6)", { timeout: 120_000 }, () => {
     expect(result).toEqual({ excused: [], remaining: ["packages/b/y.ts"] });
   });
 
+  it("compares a non-ASCII path the same way as the staged-path reader", () => {
+    const base = mkdtempSync(join(tmpdir(), "merge-excuse-utf8-"));
+    temps.push(base);
+    const origin = join(base, "origin.git");
+    const root = join(base, "work");
+    mkdirSync(root);
+    git(base, ["init", "-q", "--bare", origin]);
+    git(root, ["init", "-q", "-b", "master"]);
+    git(root, ["config", "user.email", "t@t.local"]);
+    git(root, ["config", "user.name", "T"]);
+    put(root, "packages/a/x.ts", "a\n");
+    git(root, ["add", "-A"]);
+    git(root, ["commit", "-q", "-m", "base"]);
+    git(root, ["remote", "add", "origin", origin]);
+    git(root, ["branch", "feature"]);
+    put(root, "packages/b/café.ts", "master\n");
+    git(root, ["add", "-A"]);
+    git(root, ["commit", "-q", "-m", "master"]);
+    git(root, ["push", "-q", "origin", "master"]);
+    git(root, ["checkout", "-q", "feature"]);
+    git(root, ["merge", "-q", "--no-commit", "--no-ff", "origin/master"]);
+    const listed = listStagedIndexEntries(root);
+    if (!listed.ok) throw new Error(listed.message);
+    const path = "packages/b/café.ts";
+    const result = excuseMergeArrivals({
+      projectRoot: root,
+      paths: [path],
+      stagedEntries: listed.entries,
+      deliveryRef: "origin/master",
+    });
+    expect(result.excused).toEqual([path]);
+  });
+
   it("excuses nothing when a git call throws", () => {
     const result = excuseMergeArrivals({
       projectRoot: "/nowhere",

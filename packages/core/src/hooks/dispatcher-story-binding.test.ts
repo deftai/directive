@@ -204,7 +204,7 @@ describe("resolveWorktreeStoryBinding read order (#6379 item 4)", () => {
     const root = project();
     const record = (storyId: string) => () => ({
       ok: true as const,
-      record: { schema_version: 1, story_id: storyId, worktree_path: root, attempt_ids: ["a"] },
+      record: { story_id: storyId, worktree_path: root, attempt_ids: ["a"] },
       commonDir: "/common",
     });
     const base = {

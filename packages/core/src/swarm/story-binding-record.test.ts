@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -58,7 +58,6 @@ describe("story-binding record store (#6379)", { timeout: 60_000 }, () => {
     expect(read.ok).toBe(true);
     if (!read.ok || read.record === null) throw new Error("expected a record");
     expect(read.record).toEqual({
-      schema_version: 1,
       story_id: "story-a",
       worktree_path: resolveWorkerAuthDestPath(wtA),
       attempt_ids: ["att-1"],
@@ -67,12 +66,7 @@ describe("story-binding record store (#6379)", { timeout: 60_000 }, () => {
     const raw = JSON.parse(
       readFileSync(join(common, STORY_BINDING_STORE_DIR, name), "utf8"),
     ) as Record<string, unknown>;
-    expect(Object.keys(raw).sort()).toEqual([
-      "attempt_ids",
-      "schema_version",
-      "story_id",
-      "worktree_path",
-    ]);
+    expect(Object.keys(raw).sort()).toEqual(["attempt_ids", "story_id", "worktree_path"]);
   });
 
   it("keeps other ids for the same story and replaces a record for a different story", () => {
@@ -115,26 +109,57 @@ describe("story-binding record store (#6379)", { timeout: 60_000 }, () => {
     const { common, wtA } = repo();
     mkdirSync(join(common, STORY_BINDING_STORE_DIR), { recursive: true });
     const lock = join(common, STORY_BINDING_STORE_DIR, STORY_BINDING_LOCK_NAME);
-    // A live holder (this process, another token) keeps the lock.
+    const input = () => ({
+      commonDir: common,
+      worktreePath: resolveWorkerAuthDestPath(wtA),
+      storyId: "story-a",
+    });
+    // A live holder (this process, another token) keeps the lock; writes do not wait.
     writeFileSync(lock, JSON.stringify({ pid: process.pid, token: "other" }), "utf8");
     const blocked = ensureStoryBindingRecord({
       commonDir: common,
       worktreePath: resolveWorkerAuthDestPath(wtA),
       storyId: "story-a",
       attemptIds: ["att-1"],
-      lockWaitMs: 50,
     });
     expect(blocked).toEqual({ ok: false, detail: "the story-binding record store is locked" });
-    const removeBlocked = removeStoryBindingAttempts({
-      commonDir: common,
-      attemptIds: ["att-1"],
-      lockWaitMs: 50,
-    });
+    const removeBlocked = removeStoryBindingAttempts({ commonDir: common, attemptIds: ["att-1"] });
     expect(removeBlocked.ok).toBe(false);
-    // A dead holder is reclaimed.
+    // A dead holder is reclaimed only through the reclaim ticket: a live ticket
+    // holder (another reclaimer) keeps it, a dead ticket holder does not.
     writeFileSync(lock, JSON.stringify({ pid: 2_147_483_000, token: "dead" }), "utf8");
+    const ticket = `${lock}.reclaim`;
+    writeFileSync(ticket, JSON.stringify({ pid: process.pid, token: "reclaimer" }), "utf8");
+    const ticketHeld = ensureStoryBindingRecord({
+      commonDir: common,
+      worktreePath: resolveWorkerAuthDestPath(wtA),
+      storyId: "story-a",
+      attemptIds: ["att-1"],
+    });
+    expect(ticketHeld.ok).toBe(false);
+    writeFileSync(ticket, JSON.stringify({ pid: 2_147_483_000, token: "gone" }), "utf8");
     expect(ensure(common, wtA, "story-a", ["att-1"]).attempt_ids).toEqual(["att-1"]);
     expect(() => readFileSync(lock, "utf8")).toThrow();
+    expect(() => readFileSync(ticket, "utf8")).toThrow();
+    // An unreadable lock is kept while fresh and reclaimed once stale.
+    writeFileSync(lock, "not json", "utf8");
+    expect(ensureStoryBindingRecord({ ...input(), attemptIds: ["att-2"] }).ok).toBe(false);
+    const old = new Date(Date.now() - 10 * 60 * 1000);
+    utimesSync(lock, old, old);
+    expect(ensureStoryBindingRecord({ ...input(), attemptIds: ["att-2"] }).ok).toBe(true);
+    // An owner with an impossible pid is not alive.
+    writeFileSync(lock, JSON.stringify({ pid: 0, token: "zero" }), "utf8");
+    expect(ensureStoryBindingRecord({ ...input(), attemptIds: ["att-3"] }).ok).toBe(true);
+    // A stillRunning filter that drops every id writes nothing.
+    expect(
+      ensureStoryBindingRecord({
+        commonDir: common,
+        worktreePath: resolveWorkerAuthDestPath(wtA),
+        storyId: "story-a",
+        attemptIds: ["att-9"],
+        stillRunning: () => [],
+      }),
+    ).toEqual({ ok: false, detail: "no attempt of this unit is still running" });
   });
 
   it("reports a malformed record as a reader failure and no common directory as no record", () => {
@@ -150,12 +175,7 @@ describe("story-binding record store (#6379)", { timeout: 60_000 }, () => {
     // A record that names another worktree is malformed for this one.
     writeFileSync(
       join(dir, name),
-      JSON.stringify({
-        schema_version: 1,
-        story_id: "s",
-        worktree_path: "/elsewhere",
-        attempt_ids: [],
-      }),
+      JSON.stringify({ story_id: "s", worktree_path: "/elsewhere", attempt_ids: [] }),
       "utf8",
     );
     expect(readStoryBindingRecord(wtA).ok).toBe(false);
@@ -163,11 +183,11 @@ describe("story-binding record store (#6379)", { timeout: 60_000 }, () => {
     for (const bad of [
       [],
       null,
-      { schema_version: "1", story_id: "s", worktree_path: path, attempt_ids: [] },
-      { schema_version: 1, story_id: " ", worktree_path: path, attempt_ids: [] },
-      { schema_version: 1, story_id: "s", worktree_path: 7, attempt_ids: [] },
-      { schema_version: 1, story_id: "s", worktree_path: path, attempt_ids: "a" },
-      { schema_version: 1, story_id: "s", worktree_path: path, attempt_ids: [""] },
+      { story_id: 7, worktree_path: path, attempt_ids: [] },
+      { story_id: " ", worktree_path: path, attempt_ids: [] },
+      { story_id: "s", worktree_path: 7, attempt_ids: [] },
+      { story_id: "s", worktree_path: path, attempt_ids: "a" },
+      { story_id: "s", worktree_path: path, attempt_ids: [""] },
     ]) {
       writeFileSync(join(dir, name), JSON.stringify(bad), "utf8");
       expect(readStoryBindingRecord(wtA).ok, JSON.stringify(bad)).toBe(false);

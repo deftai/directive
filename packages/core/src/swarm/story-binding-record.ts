@@ -10,12 +10,16 @@
  * Like the worker-auth registry this store is cooperative: a same-user process
  * can change it. A self-written record can only select another active brief,
  * whose `file_scope` still comes from the merge base.
+ *
+ * The store lock does not wait, like the delivery-attempt unit lock: a live
+ * holder makes the write report "locked", and begin prints that as its one
+ * `story-binding:` line (a repeat begin writes a missing record).
  */
 
 import { createHash, randomUUID } from "node:crypto";
 import { existsSync, lstatSync, readdirSync, readFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
-import { ContainedWriteError, containedRemove, containedWrite } from "../fs/contained-write.js";
+import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import { defaultGitRunner, type GitRunner, gitCommonDir } from "../session/git.js";
 import {
   FAILURE_MALFORMED_ASSIGNMENT,
@@ -24,15 +28,14 @@ import {
 
 export const STORY_BINDING_STORE_DIR = "deft-story-binding";
 export const STORY_BINDING_LOCK_NAME = "store.lock";
-export const STORY_BINDING_SCHEMA_VERSION = 1;
-/** A lock file older than this whose owner cannot be read may be reclaimed. */
-export const STORY_BINDING_LOCK_STALE_MS = 5 * 60 * 1000;
-/** Default wait for a live lock holder before a write gives up. */
-export const STORY_BINDING_LOCK_WAIT_MS = 5000;
-const LOCK_POLL_MS = 25;
+/**
+ * A lock or reclaim ticket whose owner cannot be read is reclaimed after five
+ * minutes: far longer than any begin/complete holds the lock (milliseconds),
+ * short enough that a crashed writer does not block the next begin for long.
+ */
+export const STORY_BINDING_LOCK_STALE_MS = 300_000;
 
 export interface StoryBindingRecord {
-  readonly schema_version: number;
   readonly story_id: string;
   readonly worktree_path: string;
   readonly attempt_ids: readonly string[];
@@ -54,10 +57,7 @@ export type RemoveStoryBindingAttemptsResult =
   | { readonly ok: true; readonly updated: readonly string[]; readonly deleted: readonly string[] }
   | { readonly ok: false; readonly detail: string };
 
-export interface StoryBindingLockOptions {
-  /** How long a write waits for a live lock holder (default {@link STORY_BINDING_LOCK_WAIT_MS}). */
-  readonly lockWaitMs?: number;
-}
+const STORE_LOCKED = "the story-binding record store is locked";
 
 function samePath(left: string, right: string): boolean {
   if (process.platform === "win32") return left.toLowerCase() === right.toLowerCase();
@@ -78,24 +78,21 @@ function lockRel(): string {
   return join(STORY_BINDING_STORE_DIR, STORY_BINDING_LOCK_NAME);
 }
 
+function ticketRel(): string {
+  return join(STORY_BINDING_STORE_DIR, `${STORY_BINDING_LOCK_NAME}.reclaim`);
+}
+
 function parseRecord(raw: unknown): StoryBindingRecord | null {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
   const rec = raw as Record<string, unknown>;
   const storyId = typeof rec.story_id === "string" ? rec.story_id.trim() : "";
   const worktreePath = typeof rec.worktree_path === "string" ? rec.worktree_path : "";
   const ids = rec.attempt_ids;
-  if (typeof rec.schema_version !== "number" || storyId.length === 0 || worktreePath.length === 0) {
-    return null;
-  }
+  if (storyId.length === 0 || worktreePath.length === 0) return null;
   if (!Array.isArray(ids) || ids.some((id) => typeof id !== "string" || id.length === 0)) {
     return null;
   }
-  return {
-    schema_version: rec.schema_version,
-    story_id: storyId,
-    worktree_path: worktreePath,
-    attempt_ids: [...(ids as string[])],
-  };
+  return { story_id: storyId, worktree_path: worktreePath, attempt_ids: [...(ids as string[])] };
 }
 
 function loadRecordFile(abs: string): StoryBindingRecord | "missing" | "malformed" {
@@ -148,9 +145,9 @@ interface LockOwner {
   readonly token: string;
 }
 
-function readLockOwner(commonDir: string): LockOwner | null {
+function readOwnerFile(abs: string): LockOwner | null {
   try {
-    const raw = JSON.parse(readFileSync(join(commonDir, lockRel()), "utf8")) as unknown;
+    const raw = JSON.parse(readFileSync(abs, "utf8")) as unknown;
     if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
     const rec = raw as Record<string, unknown>;
     if (typeof rec.pid !== "number" || typeof rec.token !== "string") return null;
@@ -160,83 +157,90 @@ function readLockOwner(commonDir: string): LockOwner | null {
   }
 }
 
-function lockIsStale(commonDir: string): boolean {
+function fileIsStale(abs: string): boolean {
   try {
-    const age = Date.now() - lstatSync(join(commonDir, lockRel())).mtimeMs;
-    return age >= STORY_BINDING_LOCK_STALE_MS;
+    return Date.now() - lstatSync(abs).mtimeMs >= STORY_BINDING_LOCK_STALE_MS;
   } catch {
     return false;
   }
 }
 
-function sleepSync(ms: number): void {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+/** True when the file exists and its owner is dead, or it is unreadable and stale. */
+function ownerFileIsReclaimable(abs: string): boolean {
+  if (!existsSync(abs)) return false;
+  const owner = readOwnerFile(abs);
+  return owner !== null ? !isProcessAlive(owner.pid) : fileIsStale(abs);
 }
 
-/** Move a dead or stale lock aside, only if it is still the lock that was inspected. */
-function reclaimLock(commonDir: string, inspected: LockOwner | null): void {
-  const current = readLockOwner(commonDir);
-  const same =
-    inspected === null
-      ? current === null
-      : current !== null && current.pid === inspected.pid && current.token === inspected.token;
-  if (!same) return;
-  const aside = join(STORY_BINDING_STORE_DIR, `${STORY_BINDING_LOCK_NAME}.reclaim.${randomUUID()}`);
+function createOwnerFile(commonDir: string, rel: string, token: string): boolean {
   try {
-    renameSync(join(commonDir, lockRel()), join(commonDir, aside));
-    containedRemove({ root: commonDir, target: aside });
+    containedWrite({
+      root: commonDir,
+      target: rel,
+      data: `${JSON.stringify({ pid: process.pid, token, startedAt: new Date().toISOString() })}\n`,
+      mode: "create",
+    });
+    return true;
   } catch {
-    // Lost the race, or the lock is already gone.
+    // Already held (CONTAINED_WRITE_EXISTS) or not writable: not taken.
+    return false;
   }
 }
 
-function acquireLock(commonDir: string, waitMs: number): string | null {
-  const token = randomUUID();
-  const deadline = Date.now() + waitMs;
-  for (;;) {
-    try {
-      containedWrite({
-        root: commonDir,
-        target: lockRel(),
-        data: `${JSON.stringify({ pid: process.pid, token, startedAt: new Date().toISOString() })}\n`,
-        mode: "create",
-      });
-      return token;
-    } catch (err) {
-      if (!(err instanceof ContainedWriteError && err.code === "CONTAINED_WRITE_EXISTS")) {
-        return null;
-      }
-    }
-    const owner = readLockOwner(commonDir);
-    if (owner !== null ? !isProcessAlive(owner.pid) : lockIsStale(commonDir)) {
-      reclaimLock(commonDir, owner);
-      continue;
-    }
-    if (Date.now() >= deadline) return null;
-    sleepSync(LOCK_POLL_MS);
-  }
-}
-
-function releaseLock(commonDir: string, token: string): void {
-  const owner = readLockOwner(commonDir);
+function removeIfOurs(commonDir: string, rel: string, token: string): void {
+  const owner = readOwnerFile(join(commonDir, rel));
   if (owner === null || owner.token !== token || owner.pid !== process.pid) return;
-  containedRemove({ root: commonDir, target: lockRel() });
+  containedRemove({ root: commonDir, target: rel });
+}
+
+/**
+ * Remove a dead or stale lock. Reclaimers serialize through one exclusive
+ * reclaim ticket and re-check the lock under it, so a delayed reclaimer cannot
+ * remove a live replacement lock. A ticket whose owner is dead, or that is
+ * unreadable and stale, is removed first.
+ */
+function reclaimLock(commonDir: string): void {
+  const token = randomUUID();
+  if (!createOwnerFile(commonDir, ticketRel(), token)) {
+    if (!ownerFileIsReclaimable(join(commonDir, ticketRel()))) return;
+    try {
+      containedRemove({ root: commonDir, target: ticketRel() });
+    } catch {
+      return;
+    }
+    if (!createOwnerFile(commonDir, ticketRel(), token)) return;
+  }
+  try {
+    if (ownerFileIsReclaimable(join(commonDir, lockRel()))) {
+      containedRemove({ root: commonDir, target: lockRel() });
+    }
+  } catch {
+    // The lock is already gone.
+  } finally {
+    removeIfOurs(commonDir, ticketRel(), token);
+  }
+}
+
+/** Take the store lock without waiting; a dead holder's lock is reclaimed once. */
+function acquireLock(commonDir: string): string | null {
+  const token = randomUUID();
+  if (createOwnerFile(commonDir, lockRel(), token)) return token;
+  if (!ownerFileIsReclaimable(join(commonDir, lockRel()))) return null;
+  reclaimLock(commonDir);
+  return createOwnerFile(commonDir, lockRel(), token) ? token : null;
 }
 
 /** Run `body` under the one record-store lock (#6379 item 5). */
 function withStoreLock<T>(
   commonDir: string,
-  options: StoryBindingLockOptions,
   body: () => T,
 ): T | { readonly ok: false; readonly detail: string } {
-  const token = acquireLock(commonDir, options.lockWaitMs ?? STORY_BINDING_LOCK_WAIT_MS);
-  if (token === null) {
-    return { ok: false, detail: "the story-binding record store is locked" };
-  }
+  const token = acquireLock(commonDir);
+  if (token === null) return { ok: false, detail: STORE_LOCKED };
   try {
     return body();
   } finally {
-    releaseLock(commonDir, token);
+    removeIfOurs(commonDir, lockRel(), token);
   }
 }
 
@@ -244,12 +248,48 @@ function errorDetail(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-export interface EnsureStoryBindingRecordInput extends StoryBindingLockOptions {
+/**
+ * Write a record through a temporary file and rename it, so readers never see
+ * a partial record. Returns an error detail, or null on success.
+ */
+function writeRecordAtomic(
+  commonDir: string,
+  rel: string,
+  record: StoryBindingRecord,
+): string | null {
+  const tmpRel = `${rel}.tmp.${randomUUID()}`;
+  try {
+    containedWrite({
+      root: commonDir,
+      target: tmpRel,
+      data: `${JSON.stringify(record, null, 2)}\n`,
+      mode: "create",
+    });
+    renameSync(join(commonDir, tmpRel), join(commonDir, rel));
+    return null;
+  } catch (err) {
+    try {
+      if (existsSync(join(commonDir, tmpRel))) containedRemove({ root: commonDir, target: tmpRel });
+    } catch {
+      // Leave a stray temporary file; readers ignore it.
+    }
+    return errorDetail(err);
+  }
+}
+
+export interface EnsureStoryBindingRecordInput {
   readonly commonDir: string;
   /** Canonical worktree path (see `resolveWorkerAuthDestPath`). */
   readonly worktreePath: string;
   readonly storyId: string;
   readonly attemptIds: readonly string[];
+  /**
+   * Called under the store lock: returns the ids that are still running. An
+   * attempt that ended between begin's ledger read and this write is dropped,
+   * so a record never regains an ended attempt (removal runs after the ledger
+   * marks an attempt ended, under the same lock).
+   */
+  readonly stillRunning?: (attemptIds: readonly string[]) => readonly string[];
 }
 
 /**
@@ -261,33 +301,30 @@ export function ensureStoryBindingRecord(
   input: EnsureStoryBindingRecordInput,
 ): EnsureStoryBindingRecordResult {
   const rel = recordRel(storyBindingRecordName(input.worktreePath));
-  return withStoreLock(input.commonDir, input, (): EnsureStoryBindingRecordResult => {
+  return withStoreLock(input.commonDir, (): EnsureStoryBindingRecordResult => {
+    const running = input.stillRunning?.(input.attemptIds) ?? input.attemptIds;
+    if (running.length === 0) {
+      return { ok: false, detail: "no attempt of this unit is still running" };
+    }
     const existing = loadRecordFile(join(input.commonDir, rel));
     const kept =
       typeof existing === "object" && existing.story_id === input.storyId
         ? existing.attempt_ids
         : [];
     const record: StoryBindingRecord = {
-      schema_version: STORY_BINDING_SCHEMA_VERSION,
       story_id: input.storyId,
       worktree_path: input.worktreePath,
-      attempt_ids: [...new Set([...kept, ...input.attemptIds])],
+      attempt_ids: [...new Set([...kept, ...running])],
     };
-    try {
-      containedWrite({
-        root: input.commonDir,
-        target: rel,
-        data: `${JSON.stringify(record, null, 2)}\n`,
-        mode: "replace",
-      });
-    } catch (err) {
-      return { ok: false, detail: `story-binding record write failed: ${errorDetail(err)}` };
+    const failed = writeRecordAtomic(input.commonDir, rel, record);
+    if (failed !== null) {
+      return { ok: false, detail: `story-binding record write failed: ${failed}` };
     }
     return { ok: true, record };
   });
 }
 
-export interface RemoveStoryBindingAttemptsInput extends StoryBindingLockOptions {
+export interface RemoveStoryBindingAttemptsInput {
   readonly commonDir: string;
   readonly attemptIds: readonly string[];
 }
@@ -304,7 +341,7 @@ export function removeStoryBindingAttempts(
   if (ended.size === 0) return { ok: true, updated: [], deleted: [] };
   const storeAbs = join(input.commonDir, STORY_BINDING_STORE_DIR);
   if (!existsSync(storeAbs)) return { ok: true, updated: [], deleted: [] };
-  return withStoreLock(input.commonDir, input, (): RemoveStoryBindingAttemptsResult => {
+  return withStoreLock(input.commonDir, (): RemoveStoryBindingAttemptsResult => {
     const updated: string[] = [];
     const deleted: string[] = [];
     try {
@@ -319,12 +356,13 @@ export function removeStoryBindingAttempts(
           deleted.push(loaded.worktree_path);
           continue;
         }
-        containedWrite({
-          root: input.commonDir,
-          target: recordRel(name),
-          data: `${JSON.stringify({ ...loaded, attempt_ids: left }, null, 2)}\n`,
-          mode: "replace",
+        const failed = writeRecordAtomic(input.commonDir, recordRel(name), {
+          ...loaded,
+          attempt_ids: left,
         });
+        if (failed !== null) {
+          return { ok: false, detail: `story-binding record removal failed: ${failed}` };
+        }
         updated.push(loaded.worktree_path);
       }
     } catch (err) {
