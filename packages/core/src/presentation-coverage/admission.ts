@@ -82,7 +82,14 @@ export function currentStory(
     const scope = Array.isArray(swarm.file_scope)
       ? swarm.file_scope.filter((x): x is string => typeof x === "string")
       : [];
-    const story = { planId: raw.plan.id, rel, scope, basePlan: base.plan, headPlan: raw.plan };
+    // A moved story keeps its merge-base active/ path as `rel`: base mints name it.
+    const story = {
+      planId: raw.plan.id,
+      rel: baseRel,
+      scope,
+      basePlan: base.plan,
+      headPlan: raw.plan,
+    };
     candidates.push(story);
     if (isMove) moved.push(story);
   }

@@ -12,7 +12,10 @@ import type { RunGhFn } from "../docs/docs-impact.js";
 import { resolveDefaultBaseRef } from "../evaluator-surface/evaluate.js";
 import { tryAdoptPlanIdFromPrStory } from "../intent-constraint/plan-id-adopter.js";
 import { matchAny, normalizePath } from "../orchestration/pathspec.js";
-import { soleLandsWithProductMove } from "../scope/lands-with-product.js";
+import {
+  pinNamesLandsWithProductMove,
+  soleLandsWithProductMove,
+} from "../scope/lands-with-product.js";
 import { classifyVerifyObservableMintDemand, OBSERVABLE_MINT_WHEN_HINT } from "./demand.js";
 import { changeMatches, diffArtifacts, unlistedDeltas } from "./diff.js";
 import {
@@ -203,8 +206,19 @@ function resolveCurrentPlanId(
   _mintPlanIds: readonly string[],
 ): ObservablePlanIdResolution {
   if (explicit !== undefined && explicit.length > 0) return { kind: "id", id: explicit };
+  // #6277 Bound 6: the story brief this change set moves to completed/
+  // (lands-with-product) is the current story; a pin to that brief follows it.
+  const landed = soleLandsWithProductMove(projectRoot);
+  const landedId = landed !== null && landed.planId.length > 0 ? landed.planId : undefined;
   const pin = process.env.DEFT_ACTIVE_SCOPE;
   if (pin !== undefined && pin.length > 0) {
+    if (
+      landed !== null &&
+      landedId !== undefined &&
+      pinNamesLandsWithProductMove(projectRoot, pin, landed)
+    ) {
+      return { kind: "id", id: landedId };
+    }
     const rel = pin.replace(/\\/g, "/");
     try {
       const text = readFileSync(join(resolve(projectRoot), ...rel.split("/")), "utf8");
@@ -215,10 +229,7 @@ function resolveCurrentPlanId(
     }
     return { kind: "bad-pin" };
   }
-  // #6277 Bound 6: the story brief this change set moves to completed/
-  // (lands-with-product) is the current story.
-  const landed = soleLandsWithProductMove(projectRoot);
-  if (landed !== null && landed.planId.length > 0) return { kind: "id", id: landed.planId };
+  if (landedId !== undefined) return { kind: "id", id: landedId };
   const running = listRunningPlanIds(projectRoot);
   // Several running stories: never guess the mint owner from "the only
   // running id that already has a mint". That would let a mint-less

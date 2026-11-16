@@ -23,7 +23,10 @@ import { resolveDefaultBaseRef as resolveForgeDefaultBaseRef } from "../evaluato
 import { normalizePath } from "../orchestration/pathspec.js";
 import { resolveCandidateBaseRef } from "../orphan-active/candidate-scope.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
-import { soleLandsWithProductMove } from "../scope/lands-with-product.js";
+import {
+  pinNamesLandsWithProductMove,
+  soleLandsWithProductMove,
+} from "../scope/lands-with-product.js";
 import { resolveDefaultBaseRef as resolvePrAwareBaseRef } from "../scope-provenance/evaluate.js";
 import { defaultGitRunner } from "../session/git.js";
 import { newFacts, uncoveredDeltas } from "./diff.js";
@@ -332,8 +335,19 @@ function soleRecord<T>(records: readonly T[]): T | undefined {
 
 function resolveCurrentPlanId(projectRoot: string, explicit: string | undefined): PlanIdResolution {
   if (explicit !== undefined && explicit.length > 0) return { kind: "id", id: explicit };
+  // #6277 Bound 6: the story brief this change set moves to completed/
+  // (lands-with-product) is the current story; a pin to that brief follows it.
+  const landed = soleLandsWithProductMove(projectRoot);
+  const landedId = landed !== null && landed.planId.length > 0 ? landed.planId : undefined;
   const pin = process.env.DEFT_ACTIVE_SCOPE;
   if (pin !== undefined && pin.length > 0) {
+    if (
+      landed !== null &&
+      landedId !== undefined &&
+      pinNamesLandsWithProductMove(projectRoot, pin, landed)
+    ) {
+      return { kind: "id", id: landedId };
+    }
     const rel = pin.replace(/\\/g, "/");
     try {
       const text = readFileSync(join(resolve(projectRoot), ...rel.split("/")), "utf8");
@@ -344,10 +358,7 @@ function resolveCurrentPlanId(projectRoot: string, explicit: string | undefined)
     }
     return { kind: "invalid-pin" };
   }
-  // #6277 Bound 6: the story brief this change set moves to completed/
-  // (lands-with-product) is the current story.
-  const landed = soleLandsWithProductMove(projectRoot);
-  if (landed !== null && landed.planId.length > 0) return { kind: "id", id: landed.planId };
+  if (landedId !== undefined) return { kind: "id", id: landedId };
   const only = soleRecord(listRunningPlanIds(projectRoot));
   if (only !== undefined) return { kind: "id", id: only };
   return { kind: "none" };

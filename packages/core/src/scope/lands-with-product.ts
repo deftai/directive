@@ -18,7 +18,7 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { isTestOrFixturePath, pathMatchesFileScope } from "../scope-provenance/base-fence.js";
 import { defaultGitRunner, type GitRunner } from "../session/git.js";
@@ -419,6 +419,27 @@ export function discoverLandsWithProductMoves(
     });
   }
   return moves;
+}
+
+/**
+ * True when a story pin (`DEFT_ACTIVE_SCOPE` or a bound path) names this move's
+ * brief: its old `active/` path, its new `completed/` path (relative or
+ * absolute), or its basename. A pin set before `scope:complete --in-pr` keeps
+ * naming the story after the move (#6277).
+ */
+export function pinNamesLandsWithProductMove(
+  projectRoot: string,
+  pin: string,
+  move: LandsWithProductMove,
+): boolean {
+  const raw = pin.trim();
+  if (raw.length === 0) return false;
+  const rel = isAbsolute(raw) ? relative(resolve(projectRoot), resolve(raw)) : raw;
+  const want = normalize(rel).toLowerCase();
+  const name = move.completedRel.split("/").pop() ?? "";
+  return [move.activeRel, move.completedRel, name].some(
+    (candidate) => normalize(candidate).toLowerCase() === want,
+  );
 }
 
 /** The single lands-with-product move of this change set, or null (none or several). */

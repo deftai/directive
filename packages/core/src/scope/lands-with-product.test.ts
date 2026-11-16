@@ -14,6 +14,7 @@ import {
   isInPrProductionPath,
   listBranchChangedPaths,
   parseNameStatus,
+  pinNamesLandsWithProductMove,
   planFileScope,
   resolveBranchMergeBase,
   resolveInPrBaseRef,
@@ -251,6 +252,21 @@ describe("evaluateLandsWithProductAdmission (#6277 Bound 3)", () => {
     });
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.notes[0]).toMatch(/not evaluated outside a pull_request context/);
+  });
+});
+
+describe("pinNamesLandsWithProductMove (#6277)", () => {
+  const move = { activeRel: ACTIVE, completedRel: COMPLETED, plan: landedPlan(), planId: "p" };
+  it("follows a pin to the moved brief by either path or basename, and nothing else", () => {
+    const root = resolve(tmpdir(), "proj");
+    expect(pinNamesLandsWithProductMove(root, ACTIVE, move)).toBe(true);
+    expect(pinNamesLandsWithProductMove(root, COMPLETED.replace(/\//g, "\\"), move)).toBe(true);
+    expect(pinNamesLandsWithProductMove(root, join(root, ...COMPLETED.split("/")), move)).toBe(
+      true,
+    );
+    expect(pinNamesLandsWithProductMove(root, BRIEF, move)).toBe(true);
+    expect(pinNamesLandsWithProductMove(root, "xbrief/active/other.xbrief.json", move)).toBe(false);
+    expect(pinNamesLandsWithProductMove(root, "  ", move)).toBe(false);
   });
 });
 

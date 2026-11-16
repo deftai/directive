@@ -990,6 +990,19 @@ describe("lands-with-product story selection (#6277 Bound 6)", () => {
       kind: "one",
       path: moved,
     });
+    // A pin to the moved brief follows it; a pin to another story keeps priority.
+    expect(
+      resolveSoftMissingAcTargets(project, {
+        env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/b-story.xbrief.json" },
+        branchBind: { branch: "x" },
+      }),
+    ).toEqual({ kind: "one", path: moved });
+    expect(
+      resolveSoftMissingAcTargets(project, {
+        env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/a-story.xbrief.json" },
+        branchBind: { branch: "x" },
+      }),
+    ).toEqual({ kind: "one", path: join(project, "xbrief", "active", "a-story.xbrief.json") });
     // Without the branch bind (other callers) the selection is unchanged.
     expect(resolveSoftMissingAcTargets(project, { env: {} })).toEqual({
       kind: "one",

@@ -115,10 +115,25 @@ it("selects the story brief this change set moves to completed/ as lands-with-pr
   };
   const peer = "xbrief/active/peer.xbrief.json";
   const peerText = JSON.stringify({ plan: { ...plan, id: "peer" } });
-  const base = { [rel]: JSON.stringify({ plan }), [peer]: peerText };
+  const recordRel = ".deft/intent-constraint/current.json";
+  const record = buildIntentConstraintRecord({
+    planId: "current",
+    xbriefRelPath: rel,
+    constraints: [],
+    humanApproval: { kind: "human", actor: "David", mintedAt: "2026-09-28T00:00:00Z" },
+  });
+  const base = {
+    [rel]: JSON.stringify({ plan }),
+    [peer]: peerText,
+    [recordRel]: JSON.stringify(record),
+  };
   const head = { [done]: JSON.stringify({ plan: landed }), [peer]: peerText };
   const snapshot = { ...fixture(base, head), changed: [rel, done, "src/a.ts"] };
-  expect(currentStory(snapshot)).toMatchObject({ planId: "current", rel: done, scope: ["src/**"] });
+  const moved = currentStory(snapshot);
+  // The moved story keeps its merge-base active/ path, so its base mint still matches.
+  expect(moved).toMatchObject({ planId: "current", rel, scope: ["src/**"] });
+  if ("error" in moved) throw new Error(moved.error);
+  expect(scopedMint(snapshot, moved, "intent")).toHaveProperty("authority", recordRel);
   // Not in the change set, or without the disposition: not the moved story.
   expect(currentStory({ ...snapshot, changed: ["src/a.ts"] })).toMatchObject({ planId: "peer" });
   const plain = {

@@ -12,7 +12,10 @@ import {
 } from "../policy/write-fence.js";
 import { evaluate } from "../preflight/evaluate.js";
 import { fenceUntrustedAcceptanceText } from "../scope/acceptance-evidence.js";
-import { soleLandsWithProductMove } from "../scope/lands-with-product.js";
+import {
+  pinNamesLandsWithProductMove,
+  soleLandsWithProductMove,
+} from "../scope/lands-with-product.js";
 import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import {
   liveOccupant,
@@ -573,11 +576,16 @@ export function resolveSoftMissingAcTargets(
   options?: ResolveSoftMissingAcTargetsOptions,
 ): SoftMissingAcTargetResolution {
   // #6277 Bound 6: on the check / pre-PR path, a change set that moves its story
-  // brief to completed/ as lands-with-product names that brief as the story.
+  // brief to completed/ as lands-with-product names that brief as the story. An
+  // explicit pin keeps priority; a pin to the moved brief (either path) follows it.
   if (options?.branchBind !== undefined) {
     const bindRoot = options.branchBind.projectRoot ?? projectRoot;
     const landed = soleLandsWithProductMove(bindRoot);
-    if (landed !== null) {
+    const explicitPin = pinFrom(options);
+    if (
+      landed !== null &&
+      (explicitPin.length === 0 || pinNamesLandsWithProductMove(bindRoot, explicitPin, landed))
+    ) {
       return { kind: "one", path: join(bindRoot, ...landed.completedRel.split("/")) };
     }
   }
