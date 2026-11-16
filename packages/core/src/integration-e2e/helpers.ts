@@ -177,7 +177,7 @@ export function dispatchTaskCheck(
 
 export type RateLimitProbe = { core: number; graphql: number } | null;
 
-/** Hermetic mirror of ``tests/integration/test_scm_smoke._probe_rate_limit``. */
+/** Hermetic mirror of the retired Python SCM smoke probe `_probe_rate_limit`. */
 export function probeRateLimit(
   runGhApi: () => { returncode: number; stdout: string },
 ): RateLimitProbe {
