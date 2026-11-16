@@ -1,0 +1,182 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5927",
+    "updated": "2026-11-16T16:08:44Z"
+  },
+  "plan": {
+    "title": "bug(session): cold/rearm session:start ceremony unbounded under many actives (finalize-owed inventory minutes)",
+    "status": "running",
+    "narratives": {
+      "Description": "Cold and rearm session:start spend minutes in the finalize-owed inventory. discoverFinalizeOwed makes one serial gh api repos/<o>/<r>/issues/N call for each brief with a productPullRequest; on deftai/directive that is about 266 calls at about 0.85 s each, about 226 s of a 245 s median session:start, and it grows with every shipped story. This story replaces the per-issue reads with one paged open-issue list per run and keeps today's fail-closed outcomes and block rules unchanged.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5927",
+      "Overview": "## Background\n\nCold/rearm session:start often spends ~2–3 minutes scanning finalize-owed (`#N unverified` × dozens) even with --defer-owed. Framework repos with 50+ actives make every leaf pay multi-minute tax. Related open: #5914 #5918.\n\n## Environment\n\ndeftai/directive many active briefs; pin 0.129; sessions 01a16acd / 01a16f77.\n\n## Proposal\n\n1. Defer path O(1) or O(scoped to lane).\n2. Full inventory only on explicit finalize.\n3. Acceptance: session:start --defer-owed=<lane> returns interactively (<~15s typical) in a repo with 50+ actives; hang >2m is a defect.\n\n## Forensic refs\n\n`~/Projects/directive-failures/` PROPOSAL T-table + CATALOG-01a16acd + CATALOG-01a16f77 **T5**; catalog §3 ceremony; also session:start hang notes in 01a16f77\n\n",
+      "UserStory": "As an agent starting a mutation session on a repo with many shipped stories, I want the finalize-owed inventory to read issue state in a few paged calls, so that session:start returns in seconds instead of minutes without weakening its fail-closed checks.",
+      "ImplementationPlan": "1. packages/core/src/swarm/finalize-owed.ts: replace the per-issue fetchIssueState read with a first-demand, memoized lookup over one paged open-issue list (restIssueListOpenInventory: state=open, per_page=100, --paginate --slurp). An issue absent from a complete list is closed; open rows keep the protected staying-open label check.\n2. A failed, empty or partial list makes every lookup return an error, so each item keeps today's issue-verify-failed outcome (unverified / unknown / stale-unverified); never closed or clean.\n3. No change to which items block, to the claim probe, or to policy; the scan stays on the session:start hot path (#5171). The broader defer-path redesign in the issue Proposal is a separate design pass.\n4. Tests in packages/core/src/swarm/finalize-owed.test.ts: stubbed list with open, closed and list-failure cases, plus a call-count assertion that no per-issue issue read runs; update existing per-issue stubs to the list endpoint.\n5. One CHANGELOG.md [Unreleased] line.",
+      "Constraint": "Operator decision (2026-11-16): ship the issue-read speedup now; do not change block rules or policy in this story.",
+      "Labels": "bug, swarm, agent-experience, grok-build, harness, urgent, area:cli, area:vbrief, dogfood, framework-gap, core-capabilities",
+      "Traces": "#5927, #5171, #6008, #4919, #3752"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "When discoverFinalizeOwed needs origin issue state, it reads one paged open-issue list (state=open, per_page=100) per run, not one gh api issues/N call per brief.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When discoverFinalizeOwed needs origin issue state, it reads one paged open-issue list (state=open, per_page=100) per run, not one gh api issues/N call per brief."
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "When an origin issue is absent from the open-issue list, the lookup returns it as closed.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When an origin issue is absent from the open-issue list, the lookup returns it as closed."
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "When the open-issue list fails or is partial, every affected item keeps today's issue-verify-failed outcome (unverified, unknown or stale-unverified), never closed or clean.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When the open-issue list fails or is partial, every affected item keeps today's issue-verify-failed outcome (unverified, unknown or stale-unverified), never closed or clean."
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "The scan stays on the session:start hot path (#5171) and blocks exactly the same items as before; no policy changes.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "The scan stays on the session:start hot path (#5171) and blocks exactly the same items as before; no policy changes."
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Given a stubbed open-issue list with open, closed and list-failure cases, the tests pass and assert that no per-issue issue read runs.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a stubbed open-issue list with open, closed and list-failure cases, the tests pass and assert that no per-issue issue read runs."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "agent-experience",
+      "grok-build",
+      "harness",
+      "urgent",
+      "area:cli",
+      "area:vbrief",
+      "dogfood",
+      "framework-gap",
+      "core-capabilities"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5927",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5927: bug(session): cold/rearm session:start ceremony unbounded under many actives (finalize-owed inventory minutes)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 5 clauses before product edit (#3323) from the operator-bound fix (2026-11-16: ship the finalize-owed issue-read speedup); the issue body has no Acceptance Criteria heading and its Proposal redesign is deferred to a separate design pass",
+      "sentences": [
+        "When discoverFinalizeOwed needs origin issue state, it reads one paged open-issue list (state=open, per_page=100) per run, not one gh api issues/N call per brief.",
+        "When an origin issue is absent from the open-issue list, the lookup returns it as closed.",
+        "When the open-issue list fails or is partial, every affected item keeps today's issue-verify-failed outcome (unverified, unknown or stale-unverified), never closed or clean.",
+        "The scan stays on the session:start hot path (#5171) and blocks exactly the same items as before; no policy changes.",
+        "Given a stubbed open-issue list with open, closed and list-failure cases, the tests pass and assert that no per-issue issue read runs."
+      ],
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When discoverFinalizeOwed needs origin issue state, it reads one paged open-issue list (state=open, per_page=100) per run, not one gh api issues/N call per brief.",
+          "artifact_path": "packages/core/src/swarm/finalize-owed.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When an origin issue is absent from the open-issue list, the lookup returns it as closed.",
+          "artifact_path": "packages/core/src/swarm/finalize-owed.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When the open-issue list fails or is partial, every affected item keeps today's issue-verify-failed outcome (unverified, unknown or stale-unverified), never closed or clean.",
+          "artifact_path": "packages/core/src/swarm/finalize-owed.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The scan stays on the session:start hot path (#5171) and blocks exactly the same items as before; no policy changes.",
+          "artifact_path": "packages/core/src/swarm/finalize-owed.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Given a stubbed open-issue list with open, closed and list-failure cases, the tests pass and assert that no per-issue issue read runs.",
+          "artifact_path": "packages/core/src/swarm/finalize-owed.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/swarm/finalize-owed.ts",
+          "packages/core/src/swarm/finalize-owed.test.ts",
+          "packages/core/src/swarm/finalize-owed-cli.test.ts",
+          "packages/core/src/session/session-start-finalize-owed.test.ts",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "finalize-owed-issue-reads",
+        "verify_commands": [
+          "npx vitest run packages/core/src/swarm/finalize-owed.test.ts packages/core/src/swarm/finalize-owed-cli.test.ts packages/core/src/session/session-start-finalize-owed.test.ts"
+        ],
+        "expected_outputs": [
+          "discoverFinalizeOwed issues one paged open-issue list per run and no gh api repos/<o>/<r>/issues/N reads",
+          "issue absent from the open list is treated as closed; list failure keeps unverified/unknown/stale-unverified outcomes"
+        ],
+        "Traces": [
+          "#5927",
+          "#5171",
+          "#6008",
+          "#4919",
+          "#3752"
+        ],
+        "acceptance_criteria_justification": "Five clauses, one per sentence of the operator-bound fix (2026-11-16): the list read, the absent-means-closed rule, the fail-closed rule, the unchanged hot path and block rules, and the tests; each maps to its own evidence in finalize-owed.ts or its test."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6042155685,
+        "origin": "deftai/directive#5927",
+        "id": "github.issue.6042155685"
+      }
+    },
+    "id": "github.issue.6042155685",
+    "updated": "2026-11-16T16:08:44Z"
+  }
+}

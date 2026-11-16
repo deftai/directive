@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6333",
-    "updated": "2026-11-16T05:48:07Z"
+    "updated": "2026-11-16T16:51:32Z"
   },
   "plan": {
     "title": "feat(ingest): ingested briefs are launch-ready (AC-only admitted set, clause per sentence, launch fields)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Spec-path ingest harvests the accepted lean's Bound remedy items followed by its Acceptance Criteria items and writes one plan item, one clause and one pin entry per item, with a source record that names the issue, the cited lean and the harvest digest. verify:ac compares a Spec-path brief that is not yet on the merge base with that lean over REST, and a Spec-path brief that is only in the working tree with no source record fails and names the re-ingest command. Pain-audits record the harvest digest, a lean can give its items to slice issues through a Slices section, and the body route writes one clause per sentence-list entry.",
       "UserStory": "As a maintainer launching an ingested story, I want ingest to write the acceptance clauses for the accepted design (or for every body sentence) itself, so that I do not rebuild clauses by hand and an agent still cannot silently drop a requirement.",
@@ -20,458 +20,857 @@
     "items": [
       {
         "title": "Harvest list.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given a Spec-path ingest, when the cited lean is harvested, then the harvest is its Bound remedy items followed by its Acceptance Criteria items."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "On a Spec-path ingest the harvest is the cited lean's Bound remedy list items followed by its Acceptance Criteria list items.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given a cited lean with both lists, when the issue is ingested, then the Bound remedy items come first and the Acceptance Criteria items follow."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The Acceptance Criteria heading on a lean is matched like the Bound remedy heading (level 2, position-aware, fence-aware).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given a lean, when its Acceptance Criteria heading is matched, then only a level-2 heading outside fences and quotes counts."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A lean with no Acceptance Criteria list is harvested as today, and an empty Bound remedy list still refuses.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given a lean with no Acceptance Criteria list, when it is ingested, then the harvest is unchanged, and an empty Bound remedy list still refuses."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "One identity unit for a harvested brief: the list item title, read by the function `hashBoundRemedyBytes` uses, applied per item.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given a harvested brief, when ingest writes it, then each list item title is one identity unit, read the way hashBoundRemedyBytes reads titles."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The plan item, the clause text, the pin entry and the #3550 sentence list entry are that title.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given a harvested brief, then each plan item, clause text, pin entry and sentence list entry equals the item title."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Ingest writes one clause per item in list order and skips task-statement derivation.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given a harvested brief, when ingest writes clauses, then it writes one clause per item in list order and runs no task-statement derivation."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The issue title and Description are not on the sentence list of a harvested brief.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given a harvested brief, then the issue title and Description are not on its #3550 sentence list."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The body route keeps the sentence extractor.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given a body-route issue, when it is ingested, then the sentence list still comes from the sentence extractor."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Harvest identity covers both lists and the Slices section.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given a lean with both lists and a Slices section, when its harvest identity is computed, then a change to either list or to the Slices section changes the digest."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The pain-audit envelope carries that digest, and the critic copies it onto its post as a `harvest-digest:` line.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given a pain-audit dispatch, then the envelope names the harvest digest and the critic post records it on a harvest-digest line."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "An audit counts for a lean only when its recorded digest equals the lean's current digest.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given an audit whose recorded digest differs from the lean's current digest, when the arc is evaluated, then that audit does not count for the lean."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "An audit with no such line counts only for a lean that has no Acceptance Criteria list and no Slices section.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given an audit with no harvest-digest line, when the arc is evaluated, then it counts only for a lean with no Acceptance Criteria list and no Slices section."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Source record and live compare.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given a new Spec-path brief, when verify:ac runs before it is on the merge base, then it compares the pin with the live lean."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Ingest records the source issue, the cited lean id and the harvest digest on the brief.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given a Spec-path ingest, when the brief is written, then it records the source issue, the cited lean id and the harvest digest."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "For a brief with that record, the `verify:ac` live compare resolves the lean through the completed-arc record of the source issue, harvests it over REST, and compares it with the pin.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given a brief with a source record, when verify:ac runs, then it resolves the cited lean through the completed-arc record over REST and compares that harvest with the pin."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A recorded lean id that differs from the cited lean fails.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "Given a recorded lean id that differs from the completed-arc cited lean, when verify:ac runs, then it fails."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A brief on the merge base keeps its merge-base pin, as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "Given a brief that is on the merge base, when verify:ac runs, then it uses the merge-base pin and runs no live compare."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Earlier briefs.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.19",
         "narrative": {
           "Acceptance": "Given a Spec-path brief ingested before this change, when verify:ac runs, then the merge base decides how it is verified."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The boundary is the merge base.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.20",
         "narrative": {
           "Acceptance": "Given a Spec-path brief, when verify:ac classifies it, then it tests that the brief is on the merge base and does not trust the HEAD fallback."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A Spec-path brief that is on the merge base keeps its merge-base pin and verifies as today, with or without a source record.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.21",
         "narrative": {
           "Acceptance": "Given a Spec-path brief on the merge base, when verify:ac runs, then it keeps its merge-base pin with or without a source record."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A Spec-path brief that is only in the working tree and has no source record fails `verify:ac`, and the message names the one command that ingests it again.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.22",
         "narrative": {
           "Acceptance": "Given a working-tree-only Spec-path brief with no source record, when verify:ac runs, then it fails and names the re-ingest command."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "New ingests always write the record.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.23",
         "narrative": {
           "Acceptance": "Given any new Spec-path or slice ingest, when the brief is written, then it records the source record."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Slices.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.24",
         "narrative": {
           "Acceptance": "Given a lean with a Slices section, when its issues are ingested, then each slice issue gets only the items of its label."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "An accepted lean may carry a `## Slices` section that assigns each harvested item to one slice label.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.25",
         "narrative": {
           "Acceptance": "Given an accepted lean with a Slices section, when it is parsed, then each harvested item maps to at most one slice label."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A slice issue body names its parent issue and its label in one closed line.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.26",
         "narrative": {
           "Acceptance": "Given a slice issue body, when it is ingested, then one closed line names the parent issue and the slice label."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Slice ingest requires the parent's completed-arc record, harvests the items of that label from the cited lean, checks the Target-digest against the parent body, and writes the source record with the label.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.27",
         "narrative": {
           "Acceptance": "Given a slice issue, when it is ingested, then ingest requires the parent's completed-arc record, checks the Target-digest against the parent body and records the label."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The parent's own ingest harvests the items that have no label.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.28",
         "narrative": {
           "Acceptance": "Given the parent issue of a sliced lean, when it is ingested, then its plan items are the items with no label."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Ingest refuses a label that another brief already records for the same parent and lean, and prints the labels that no brief records.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.29",
         "narrative": {
           "Acceptance": "Given a label that another brief records for the same parent and lean, when a second issue claims it, then ingest refuses and prints the unclaimed labels."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Body route.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.30",
         "narrative": {
           "Acceptance": "Given an issue with no design arc, when it is ingested, then it takes the body route."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The whole-body pin, its extractor and its live compare do not change.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.31",
         "narrative": {
           "Acceptance": "Given a body-route issue, when it is ingested, then the whole-body pin, its extractor and its live compare stay as they were."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "After it builds the sentence list, ingest writes one clause per entry, same text, in order, including the title sentence and reference lines.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.32",
         "narrative": {
           "Acceptance": "Given a body-route issue, when it is ingested, then ingest writes one clause per sentence-list entry with the same text in order."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "No one-post criteria route is added.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.33",
         "narrative": {
           "Acceptance": "Given an issue with no arc, when it is ingested, then no one-post criteria route is used."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Route order.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.34",
         "narrative": {
           "Acceptance": "Given any issue, when it is ingested, then the route is chosen as slice line, then Spec-path arc, then body."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A slice line selects item 6.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.35",
         "narrative": {
           "Acceptance": "Given an issue body with a slice line, when it is ingested, then the slice route is used."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Otherwise a completed-arc record with a Spec-path lean on the issue selects item 1.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.36",
         "narrative": {
           "Acceptance": "Given no slice line and a completed-arc record with a Spec-path lean, when the issue is ingested, then the Spec-path harvest is used."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Otherwise the body route.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.37",
         "narrative": {
           "Acceptance": "Given no slice line and no Spec-path arc, when the issue is ingested, then the body route is used."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an accepted Spec-path lean with a Bound remedy list and an Acceptance Criteria list, when the issue is ingested, then the plan items are the Bound remedy items followed by the Acceptance Criteria items.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.38",
         "narrative": {
           "Acceptance": "Given an accepted Spec-path lean with a Bound remedy list and an Acceptance Criteria list, when the issue is ingested, then the plan items are the Bound remedy items followed by the Acceptance Criteria items."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that brief, then each plan item has one clause with the same text and the ids are in list order.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.39",
         "narrative": {
           "Acceptance": "Given that brief, then each plan item has one clause with the same text and the ids are in list order."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a list item that holds two sentences, when the issue is ingested, then that item is one plan item, one clause and one pin entry.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.40",
         "narrative": {
           "Acceptance": "Given a list item that holds two sentences, when the issue is ingested, then that item is one plan item, one clause and one pin entry."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that brief, when `task verify:ac` runs with no hand edit, then it reports no #3550 finding and no #5055 finding.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.41",
         "narrative": {
           "Acceptance": "Given that brief, when `task verify:ac` runs with no hand edit, then it reports no #3550 finding and no #5055 finding."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a lean with a fenced example that contains an Acceptance Criteria heading, when the issue is ingested, then the fenced text is not harvested.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.42",
         "narrative": {
           "Acceptance": "Given a lean with a fenced example that contains an Acceptance Criteria heading, when the issue is ingested, then the fenced text is not harvested."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a lean whose Acceptance Criteria list is edited after its pain-audit, when the issue is ingested, then ingest refuses because the audit no longer counts for that lean.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.43",
         "narrative": {
           "Acceptance": "Given a lean whose Acceptance Criteria list is edited after its pain-audit, when the issue is ingested, then ingest refuses because the audit no longer counts for that lean."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a harvested brief that is not on the merge base, when its pin and Overview are edited together, then `task verify:ac` fails on the compare with the lean.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.44",
         "narrative": {
           "Acceptance": "Given a harvested brief that is not on the merge base, when its pin and Overview are edited together, then `task verify:ac` fails on the compare with the lean."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a harvested brief whose recorded lean id is changed to another comment, when `task verify:ac` runs, then it fails.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.45",
         "narrative": {
           "Acceptance": "Given a harvested brief whose recorded lean id is changed to another comment, when `task verify:ac` runs, then it fails."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a Spec-path brief that is on the merge base and has no source record, when `task verify:ac` runs, then the result is the same as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.46",
         "narrative": {
           "Acceptance": "Given a Spec-path brief that is on the merge base and has no source record, when `task verify:ac` runs, then the result is the same as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a Spec-path brief that is only in the working tree and has no source record, when `task verify:ac` runs, then it fails and names the ingest command.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.47",
         "narrative": {
           "Acceptance": "Given a Spec-path brief that is only in the working tree and has no source record, when `task verify:ac` runs, then it fails and names the ingest command."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a harvested brief whose source record is deleted before the brief is on the merge base, when `task verify:ac` runs, then it fails.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.48",
         "narrative": {
           "Acceptance": "Given a harvested brief whose source record is deleted before the brief is on the merge base, when `task verify:ac` runs, then it fails."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a lean with an Acceptance Criteria list whose only pain-audit records no digest, when the issue is ingested, then ingest refuses.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.49",
         "narrative": {
           "Acceptance": "Given a lean with an Acceptance Criteria list whose only pain-audit records no digest, when the issue is ingested, then ingest refuses."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an accepted lean with a Slices section and a slice issue that names the parent and a label, when the slice issue is ingested, then its plan items are the items of that label.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.50",
         "narrative": {
           "Acceptance": "Given an accepted lean with a Slices section and a slice issue that names the parent and a label, when the slice issue is ingested, then its plan items are the items of that label."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that slice brief, then the slice issue body is not used as the requirement source.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.51",
         "narrative": {
           "Acceptance": "Given that slice brief, then the slice issue body is not used as the requirement source."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the parent issue of that lean, when it is ingested, then its plan items are the items that have no label.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.52",
         "narrative": {
           "Acceptance": "Given the parent issue of that lean, when it is ingested, then its plan items are the items that have no label."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a label that another brief already records for the same parent and lean, when a second issue claims it, then ingest refuses and names the brief that holds it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.53",
         "narrative": {
           "Acceptance": "Given a label that another brief already records for the same parent and lean, when a second issue claims it, then ingest refuses and names the brief that holds it."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a design with a label that no brief records, when any issue of that design is ingested, then ingest prints that label.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.54",
         "narrative": {
           "Acceptance": "Given a design with a label that no brief records, when any issue of that design is ingested, then ingest prints that label."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an issue with no design arc, when it is ingested, then each entry of the sentence list has one clause with the same text.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.55",
         "narrative": {
           "Acceptance": "Given an issue with no design arc, when it is ingested, then each entry of the sentence list has one clause with the same text."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that body-route brief, when `task verify:ac` runs with no hand edit, then it reports no #3550 finding and no #5055 finding.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.56",
         "narrative": {
           "Acceptance": "Given that body-route brief, when `task verify:ac` runs with no hand edit, then it reports no #3550 finding and no #5055 finding."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a body-route brief, then its pin is the same as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.57",
         "narrative": {
           "Acceptance": "Given a body-route brief, then its pin is the same as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+          "recorded_at": "2026-11-16T16:51:32Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -1971,9 +2370,36 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "a6d3b9c587e1b7159c3030c1b1f4a04d4913bbfbf38b81a37fe929aa00fea14a"
+      },
+      "productPullRequest": 6384,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "d3e58038012e0ee21a15780fac6a5d1ce9663fad",
+        "prNumber": 6384,
+        "prBase": "master",
+        "mergeCommit": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+        "deliveryBranch": "master",
+        "deliveryCommit": "72bf6302bdad5ecb740bad78b1ddbefb6a80d4d8",
+        "verifiedAt": "2026-11-16T16:51:32Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T16:51:32Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T16:51:32Z"
       }
     },
     "id": "github.issue.6406913807",
-    "updated": "2026-11-16T05:48:07Z"
+    "updated": "2026-11-16T16:51:32Z"
   }
 }

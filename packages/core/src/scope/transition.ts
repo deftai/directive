@@ -128,7 +128,12 @@ import {
   stampDeliveryProvenance,
 } from "./delivery-evidence.js";
 import { evaluateEffortActivateGate } from "./effort-activate-gate.js";
-import { stampLifecycleWrite } from "./lifecycle-write.js";
+import {
+  evaluateInPrCompletionInputs,
+  IN_PR_POST_MERGE_PATH,
+  listBranchChangedPaths,
+} from "./lands-with-product.js";
+import { LANDS_WITH_PRODUCT, stampLifecycleWrite } from "./lifecycle-write.js";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
 import { syncSpecificationAfterScopeMove } from "./specification-sync.js";
 import { formatUnreachableTransitionHint } from "./transition-hint.js";
@@ -144,6 +149,14 @@ export interface TransitionResult {
 
 /** Optional completion evidence / disposition for the delivery gate (#3041 / #3675). */
 export interface TransitionOptions {
+  /**
+   * In-PR completion (#6277): complete inside the story's last product PR.
+   * Skips the post-merge delivery gate, writes no delivered provenance and no
+   * merge evidence, and stamps lifecycleWrite `lands-with-product`.
+   */
+  readonly inPr?: boolean;
+  /** Test seam for in-PR mode: the branch's changed paths (null = unreadable). */
+  readonly inPrChangedPaths?: readonly string[] | null;
   readonly deliveryEvidence?: DeliveryEvidenceInput | null;
   readonly nonDeliveryDisposition?: NonDeliveryDisposition | null;
   readonly runGit?: GitRunner;
@@ -555,6 +568,18 @@ export function runTransition(
     };
   }
 
+  // #6277: in-PR completion is a complete from active/ only.
+  if (options.inPr === true && (act !== "complete" || currentFolder !== "active")) {
+    return {
+      ok: false,
+      message:
+        act !== "complete"
+          ? "--in-pr applies only to scope:complete (#6277)."
+          : `scope:complete --in-pr refused (#6277): the brief must be in active/, not ${currentFolder}/. ` +
+            IN_PR_POST_MERGE_PATH,
+    };
+  }
+
   // Already-active activate is acceptance ingress revalidation only (#4768).
   // D7 filename was enforced when the brief first landed; do not re-block a
   // settled active brief on a fixture / legacy name during no-op revalidation.
@@ -751,7 +776,35 @@ export function runTransition(
   let laneDeliveredCommit: string | null = null;
   /** #6317: operator attestation grant whose use is recorded after the completed/ write. */
   let attestationGrantId: string | undefined;
-  if (act === "complete") {
+  const inPr = act === "complete" && options.inPr === true;
+  if (inPr) {
+    // #6277 Bound 1: refuse on the brief's own inputs, then skip the post-merge
+    // delivery gate. No delivered provenance and no merge evidence are written.
+    const inputs = evaluateInPrCompletionInputs(planObj, {
+      changedPaths:
+        options.inPrChangedPaths !== undefined
+          ? options.inPrChangedPaths
+          : listBranchChangedPaths(projectRoot, { runGit: options.runGit }),
+    });
+    if (!inputs.ok) {
+      return { ok: false, message: inputs.message };
+    }
+    const lane = evaluateSmallChangeLaneGate(planObj, {
+      ...options.smallChangeLane,
+      deliveredCommit: null,
+      projectRoot,
+      gate: "scope:complete",
+      briefPath: resolvedPath,
+    });
+    if (!lane.ok) {
+      return { ok: false, message: lane.message };
+    }
+    const chokepoint = enforceConsumerHeaderPlaceholderWhenProductEvidence(projectRoot);
+    if (!chokepoint.ok) {
+      return { ok: false, message: chokepoint.message };
+    }
+  }
+  if (act === "complete" && !inPr) {
     // #3583: auto-discover delivery evidence before the validate-only gate.
     const discovered = discoverDeliveryEvidenceForComplete({
       projectRoot,
@@ -976,7 +1029,12 @@ export function runTransition(
           acceptanceReports,
         };
       }
-      stampLifecycleWrite(planObj, "complete", nowIso);
+      stampLifecycleWrite(
+        planObj,
+        "complete",
+        nowIso,
+        inPr ? { completionDisposition: LANDS_WITH_PRODUCT } : undefined,
+      );
     }
 
     if (act === "fail") {

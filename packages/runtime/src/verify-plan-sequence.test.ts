@@ -289,3 +289,97 @@ describe("verify-plan-sequence CLI (#2402)", () => {
     }
   });
 });
+
+describe("verify:plan-sequence batches (#4433)", () => {
+  function waveRoot(batching_allowed: boolean): string {
+    const root = mkdtempSync(join(tmpdir(), "vps-batch-"));
+    roots.push(root);
+    const plan = JSON.stringify({
+      sequence_id: "waves",
+      sequence_kind: "cohort",
+      authorized_by: "operator",
+      batching_allowed,
+      entries: [
+        { id: "A1", kind: "issue", issue: 512, batch: "a" },
+        { id: "A2", kind: "issue", issue: 515, batch: "a" },
+        { id: "B1", kind: "issue", issue: 520, batch: "b" },
+      ],
+    });
+    expect(
+      planSequenceMain([
+        "set",
+        "--project-root",
+        root,
+        "--from-json",
+        plan,
+        "--expected-generation",
+        "0",
+      ]),
+    ).toBe(0);
+    return root;
+  }
+
+  function verify(root: string, target: string, extra: string[] = []): number {
+    return main(["--project-root", root, "--target-kind", "issue", "--target", target, ...extra]);
+  }
+
+  it("clause 30: batching_allowed true admits every pending entry of the current batch", () => {
+    const root = waveRoot(true);
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    try {
+      expect(verify(root, "A1")).toBe(0);
+      expect(verify(root, "515")).toBe(0);
+      expect(out.mock.calls.map((c) => String(c[0])).join("")).toContain(
+        "OK verify:plan-sequence matched issue:A2 (index=1)",
+      );
+      expect(verify(root, "B1")).toBe(1);
+      expect(err.mock.calls.map((c) => String(c[0])).join("")).toContain(
+        'Target issue:B1 is not in the current ordered-plan batch "a" (issue:A1, issue:A2).',
+      );
+    } finally {
+      out.mockRestore();
+      err.mockRestore();
+    }
+  });
+
+  it("clause 31: batching_allowed false refuses a pending entry other than the current one", () => {
+    const root = waveRoot(false);
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    try {
+      expect(verify(root, "A1")).toBe(0);
+      expect(verify(root, "A2", ["--json"])).toBe(1);
+      const payload = JSON.parse(String(out.mock.calls.at(-1)?.[0])) as { code: string };
+      expect(payload.code).toBe("mismatch");
+    } finally {
+      out.mockRestore();
+    }
+  });
+
+  it("clauses 4/29: no plan file skips; the verifier takes no consent-token input", () => {
+    const empty = mkdtempSync(join(tmpdir(), "vps-skip-"));
+    roots.push(empty);
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    try {
+      expect(verify(empty, "A2", ["--json"])).toBe(0);
+      expect(JSON.parse(String(out.mock.calls.at(-1)?.[0]))).toEqual({
+        ok: true,
+        skipped: true,
+        reason: "no-active-sequence",
+      });
+    } finally {
+      out.mockRestore();
+    }
+    expect(
+      parseArgs(["--target-kind", "issue", "--target", "B1", "--allocation-plan-id", "p"]).error,
+    ).toBe("unknown flag: --allocation-plan-id");
+    const root = waveRoot(false);
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    try {
+      expect(verify(root, "B1", ["--batching-rationale", "approved"])).toBe(2);
+      expect(verify(root, "B1")).toBe(1);
+    } finally {
+      err.mockRestore();
+    }
+  });
+});

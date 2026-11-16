@@ -482,4 +482,64 @@ describe("verify:ac run (#3284)", () => {
       }
     },
   );
+
+  it("targets the brief this change set moves to completed/ as lands-with-product (#6277)", () => {
+    const root = mkdtempSync(join(tmpdir(), "verify-ac-lwp-"));
+    const git = (args: string[]) =>
+      execFileSync("git", args, {
+        cwd: root,
+        stdio: "ignore",
+        env: {
+          ...process.env,
+          GIT_AUTHOR_NAME: "t",
+          GIT_AUTHOR_EMAIL: "t@t.test",
+          GIT_COMMITTER_NAME: "t",
+          GIT_COMMITTER_EMAIL: "t@t.test",
+        },
+      });
+    const brief = (folder: string, name: string, plan: Record<string, unknown>) => {
+      mkdirSync(join(root, "xbrief", folder), { recursive: true });
+      writeFileSync(join(root, "xbrief", folder, name), JSON.stringify({ plan }), "utf8");
+    };
+    const acceptance = { commands: [], none_stated: true, source_rung: "project_floor" };
+    git(["init", "-q", "-b", "main"]);
+    brief("active", "other.xbrief.json", { status: "running", acceptance, items: [] });
+    brief("active", "story.xbrief.json", { status: "running", acceptance, items: [] });
+    git(["add", "-A"]);
+    git(["commit", "-q", "-m", "base"]);
+    git(["update-ref", "refs/remotes/origin/main", "HEAD"]);
+    git(["rm", "-q", "xbrief/active/story.xbrief.json"]);
+    brief("completed", "story.xbrief.json", {
+      status: "completed",
+      acceptance,
+      items: [],
+      metadata: {
+        lifecycleWrite: {
+          action: "complete",
+          writtenAt: "2026-11-16T00:00:00Z",
+          completionDisposition: "lands-with-product",
+        },
+      },
+    });
+    vi.stubEnv("DEFT_BASE_REF", "origin/main");
+    const chunks: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      chunks.push(String(c));
+      return true;
+    });
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    run(["--project-root", root, "--soft-missing-xbrief"]);
+    expect(chunks.join("")).toContain(
+      "verify:ac targeting lands-with-product brief(s) of this change set (#6277): xbrief/completed/story.xbrief.json",
+    );
+    // A pin to the moved brief follows it; a pin to another story keeps priority.
+    chunks.length = 0;
+    vi.stubEnv("DEFT_ACTIVE_SCOPE", "xbrief/active/story.xbrief.json");
+    run(["--project-root", root, "--soft-missing-xbrief"]);
+    expect(chunks.join("")).toContain("targeting lands-with-product brief(s)");
+    chunks.length = 0;
+    vi.stubEnv("DEFT_ACTIVE_SCOPE", "xbrief/active/other.xbrief.json");
+    run(["--project-root", root, "--soft-missing-xbrief"]);
+    expect(chunks.join("")).not.toContain("targeting lands-with-product brief(s)");
+  });
 });

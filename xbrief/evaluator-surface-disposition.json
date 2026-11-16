@@ -1,11 +1,13 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 6336,
+  "issue": 6277,
   "surfaces": [
-    "packages/core/src/class-checks/**",
-    "packages/core/src/evaluator-surface/**",
+    "packages/core/src/intent-constraint/evaluate.ts",
+    "packages/core/src/observable-scope/evaluate.ts",
+    "packages/core/src/presentation-coverage/admission.ts",
+    "packages/core/src/presentation-coverage/admission.test.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for #6336 Bound item 5 (one candidate tree): verify:class-checks and verify:evaluator-surface --base-ref now take their file set from the working tree against the merge base of the base ref and HEAD, plus untracked files. A committed change that is reverted in the working tree nets out, and base-only commits no longer enter the evaluator-surface set (it used a two-dot base..HEAD diff). On a clean committed tip the set equals CI's <base>...HEAD, so CI verdicts do not change. No merge base falls back to the base ref. Disclosure only; not #3164 authorization. Refs #6336."
+  "note": "Disclosure for #6277 Bound 6 (story gates): intent-constraint and observable-scope resolve the current plan id from the story brief this change set moves to completed/ as lands-with-product (one move only), before the sole-running fallback; presentation-coverage admission accepts that moved brief, read against its merge-base active/ path, as the current story. No verdict, mint or remediation changes; a change set without a lands-with-product move resolves as before. Disclosure only; not #3164 authorization. Refs #6277."
 }

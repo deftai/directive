@@ -1,6 +1,7 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GITHUB_AUTH_MODE_HOST_GH, PRINCIPAL_KIND_USER } from "../intake/github-auth-modes.js";
 import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
@@ -995,5 +996,89 @@ describe("linked-worktree story binding from worker-auth (#6233)", () => {
       }),
     );
     expect(envAgrees).toEqual({ kind: "bound", path: storyB, storyId: "story-b" });
+  });
+});
+
+describe("lands-with-product story selection (#6277 Bound 6)", () => {
+  function git(cwd: string, args: string[]): void {
+    const env = { ...process.env };
+    delete env.GIT_DIR;
+    delete env.GIT_WORK_TREE;
+    delete env.DEFT_BASE_REF;
+    delete env.GITHUB_BASE_REF;
+    env.GIT_CEILING_DIRECTORIES = dirname(resolve(cwd));
+    execFileSync("git", args, {
+      cwd,
+      env: {
+        ...env,
+        GIT_AUTHOR_NAME: "t",
+        GIT_AUTHOR_EMAIL: "t@t.test",
+        GIT_COMMITTER_NAME: "t",
+        GIT_COMMITTER_EMAIL: "t@t.test",
+      },
+    });
+  }
+
+  function brief(project: string, rel: string, plan: Record<string, unknown>): void {
+    const abs = join(project, ...rel.split("/"));
+    mkdirSync(dirname(abs), { recursive: true });
+    writeFileSync(abs, JSON.stringify({ plan }), "utf8");
+  }
+
+  it("selects the moved brief on the check / pre-PR path, beside other active stories", () => {
+    const project = root();
+    git(project, ["init", "-q", "-b", "main"]);
+    brief(project, "xbrief/active/a-story.xbrief.json", { ...runningPlacement, id: "story-a" });
+    brief(project, "xbrief/active/b-story.xbrief.json", { ...runningPlacement, id: "story-b" });
+    git(project, ["add", "-A"]);
+    git(project, ["commit", "-q", "-m", "base"]);
+    git(project, ["update-ref", "refs/remotes/origin/main", "HEAD"]);
+    mkdirSync(join(project, "xbrief", "completed"), { recursive: true });
+    git(project, [
+      "mv",
+      "xbrief/active/b-story.xbrief.json",
+      "xbrief/completed/b-story.xbrief.json",
+    ]);
+    brief(project, "xbrief/completed/b-story.xbrief.json", {
+      id: "story-b",
+      status: "completed",
+      metadata: {
+        lifecycleWrite: {
+          action: "complete",
+          writtenAt: "2026-11-16T00:00:00Z",
+          completionDisposition: "lands-with-product",
+        },
+      },
+    });
+    vi.stubEnv("DEFT_BASE_REF", "origin/main");
+    const moved = join(project, "xbrief", "completed", "b-story.xbrief.json");
+    expect(
+      resolveSoftMissingAcTargets(project, {
+        env: {},
+        branchBind: { branch: "x", projectRoot: project },
+      }),
+    ).toEqual({ kind: "one", path: moved });
+    expect(resolveSoftMissingAcTargets(project, { env: {}, branchBind: { branch: "x" } })).toEqual({
+      kind: "one",
+      path: moved,
+    });
+    // A pin to the moved brief follows it; a pin to another story keeps priority.
+    expect(
+      resolveSoftMissingAcTargets(project, {
+        env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/b-story.xbrief.json" },
+        branchBind: { branch: "x" },
+      }),
+    ).toEqual({ kind: "one", path: moved });
+    expect(
+      resolveSoftMissingAcTargets(project, {
+        env: { [ACTIVE_SCOPE_PIN_ENV]: "xbrief/active/a-story.xbrief.json" },
+        branchBind: { branch: "x" },
+      }),
+    ).toEqual({ kind: "one", path: join(project, "xbrief", "active", "a-story.xbrief.json") });
+    // Without the branch bind (other callers) the selection is unchanged.
+    expect(resolveSoftMissingAcTargets(project, { env: {} })).toEqual({
+      kind: "one",
+      path: join(project, "xbrief", "active", "a-story.xbrief.json"),
+    });
   });
 });

@@ -99,3 +99,48 @@ it("recomputes intent contracts and rejects invalid, duplicate and unrelated min
     ),
   ).toHaveProperty("error");
 });
+it("selects the story brief this change set moves to completed/ as lands-with-product (#6277)", () => {
+  const done = "xbrief/completed/current.xbrief.json";
+  const landed = {
+    ...plan,
+    status: "completed",
+    metadata: {
+      ...plan.metadata,
+      lifecycleWrite: {
+        action: "complete",
+        writtenAt: "2026-11-16T00:00:00Z",
+        completionDisposition: "lands-with-product",
+      },
+    },
+  };
+  const peer = "xbrief/active/peer.xbrief.json";
+  const peerText = JSON.stringify({ plan: { ...plan, id: "peer" } });
+  const recordRel = ".deft/intent-constraint/current.json";
+  const record = buildIntentConstraintRecord({
+    planId: "current",
+    xbriefRelPath: rel,
+    constraints: [],
+    humanApproval: { kind: "human", actor: "David", mintedAt: "2026-09-28T00:00:00Z" },
+  });
+  const base = {
+    [rel]: JSON.stringify({ plan }),
+    [peer]: peerText,
+    [recordRel]: JSON.stringify(record),
+  };
+  const head = { [done]: JSON.stringify({ plan: landed }), [peer]: peerText };
+  const snapshot = { ...fixture(base, head), changed: [rel, done, "src/a.ts"] };
+  const moved = currentStory(snapshot);
+  // The moved story keeps its merge-base active/ path, so its base mint still matches.
+  expect(moved).toMatchObject({ planId: "current", rel, scope: ["src/**"] });
+  if ("error" in moved) throw new Error(moved.error);
+  expect(scopedMint(snapshot, moved, "intent")).toHaveProperty("authority", recordRel);
+  // Not in the change set, or without the disposition: not the moved story.
+  expect(currentStory({ ...snapshot, changed: ["src/a.ts"] })).toMatchObject({ planId: "peer" });
+  const plain = {
+    [done]: JSON.stringify({ plan: { ...landed, metadata: plan.metadata } }),
+    [peer]: peerText,
+  };
+  expect(currentStory({ ...fixture(base, plain), changed: [done] })).toMatchObject({
+    planId: "peer",
+  });
+});

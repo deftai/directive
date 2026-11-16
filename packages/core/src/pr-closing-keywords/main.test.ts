@@ -25,6 +25,7 @@ import {
   isLeftoverShapedDiff,
   isProductShapedDiff,
   isSkipActiveDeliveryShape,
+  landsWithProductIssues,
   parseAllDeftStoryMarks,
   parseAllDeftStoryPartLines,
   parseAllowList,
@@ -1781,5 +1782,88 @@ describe("story lines: part line, pre-merge check, --write-story-line (#6316)", 
       expect(noRepo.code).toBe(2);
       expect(noRepo.message).toContain("--repo");
     });
+  });
+});
+
+describe("in-PR completion story line (#6277 Bound 6)", () => {
+  const repo = "acme/app";
+  const rel = "xbrief/completed/2026-11-16-77-story.xbrief.json";
+
+  function landedRoot(disposition: string | null): string {
+    const root = mkdtempSync(join(tmpdir(), "ck-lwp-"));
+    mkdirSync(join(root, "xbrief", "completed"), { recursive: true });
+    writeFileSync(
+      join(root, rel),
+      JSON.stringify({
+        plan: {
+          id: "github.issue.77",
+          status: "completed",
+          references: [
+            { uri: `https://github.com/${repo}/issues/77`, type: "x-xbrief/github-issue" },
+          ],
+          metadata: {
+            lifecycleWrite: {
+              action: "complete",
+              writtenAt: "2026-11-16T00:00:00Z",
+              ...(disposition !== null ? { completionDisposition: disposition } : {}),
+            },
+          },
+        },
+      }),
+      "utf8",
+    );
+    return root;
+  }
+
+  const files = [
+    {
+      status: "renamed",
+      path: rel,
+      previousFilename: "xbrief/active/2026-11-16-77-story.xbrief.json",
+    },
+    { status: "modified", path: "src/app.ts" },
+  ];
+
+  it("refuses a part line on a PR that completes its story in-PR, and admits the keyword alone", () => {
+    const root = landedRoot("lands-with-product");
+    try {
+      expect(landsWithProductIssues(root, repo, files)).toEqual([77]);
+      const part = evaluateStoryLineRequirement({
+        bodyText: "Closes #77\n\ndeft-story-part: 77\n",
+        prNumber: 90,
+        projectRoot: root,
+        repo,
+        files,
+      });
+      expect(part.ok).toBe(false);
+      expect(part.messages[0]).toMatch(/completes story #77 in-PR/);
+      expect(part.messages[0]).toMatch(/#6317/);
+      const keyword = evaluateStoryLineRequirement({
+        bodyText: "Closes #77\n",
+        prNumber: 90,
+        projectRoot: root,
+        repo,
+        files,
+      });
+      expect(keyword.ok).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("ignores completed briefs without the disposition, removed paths and unreadable files", () => {
+    const root = landedRoot(null);
+    try {
+      expect(landsWithProductIssues(root, repo, files)).toEqual([]);
+      expect(
+        landsWithProductIssues(root, repo, [
+          { status: "removed", path: rel },
+          { status: "added", path: "xbrief/completed/missing.xbrief.json" },
+          { status: "added", path: "src/app.ts" },
+        ]),
+      ).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
