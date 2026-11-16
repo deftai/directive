@@ -1,0 +1,253 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6421, hand-finished to cover #6421, #6410 and #6412 as one story",
+    "updated": "2026-11-16T18:38:14Z"
+  },
+  "plan": {
+    "title": "bug(swarm): a killed finalize-cohort run leaves a worktree and branch that block the next run",
+    "status": "running",
+    "narratives": {
+      "Description": "This story ships three small decided fixes as one product PR. The finalize-cohort stop after a killed run (#6421, direction 2, report only) names the leftover worktree and branch and prints the exact commands that remove them; when to stop, the claim rule and cleanup do not change. The design-critique playbook says that a redirect on a launcher command is refused and names how to capture each launcher's output (#6412, docs only), and it names the two-step launch form for a Claude CLI critic seat (#6410, docs only; the hook already admits that form).",
+      "UserStory": "As an operator or agent who re-runs finalize or launches a design-critique seat, I want the stop message and the playbook to name the exact next command, so that I can recover or launch without reading hook or finalize code.",
+      "AcceptanceJustification": "Seven clauses because one story covers three issues: three Acceptance Criteria of #6421, one of #6412 and three of #6410, one clause per admitted sentence (#3550 / #5055).",
+      "ImplementationPlan": "1. packages/core/src/swarm/finalize-cohort.ts: when `git switch -c swarm/finalize/<label>` fails in the lifecycle checkout, a new exported helper `describeFinalizeBranchLeftover` reads the local branch (`git rev-parse --verify --quiet refs/heads/<branch>`), the origin tracking ref and `git worktree list --porcelain`. When the local branch exists and no origin ref holds it, the error names the branch and the worktree that holds it (if any) and prints `git -C <projectRoot> worktree remove --force <path>` and `git -C <projectRoot> branch -D <branch>`, with the note that they are only for a run that is no longer live. It changes nothing on disk. Otherwise the error text is as today.\n2. packages/core/src/swarm/finalize-branch-leftover.test.ts: unit tests with a fake git runner (leftover with worktree, leftover without worktree, branch on origin, branch absent, and the helper runs no write command).\n3. content/docs/grok-build-subscription-setup.md, Design-critique dispatch: one paragraph that a redirect on a launcher command is refused and how to capture output per launcher (`codex exec -o <file>`; the tool's own output capture for `claude` and `grok`), and one paragraph with the two-step Claude CLI seat form (change the shell working directory to the dest in its own call, launch the bare command, step back out; other tools are judged by the dest while the shell is there; a pong proves launchability only).\n4. packages/core/src/content-contracts/standards/design_critique_contract.test.ts: pin the two new playbook statements.\n5. changelog.d/6421-finalize-leftover-and-launcher-docs.md: one changelog fragment entry (`plan.policy.changelog.mode` either).",
+      "Traces": "#6421, #6410, #6412, #6335, #6303, #4919, #4219",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6421; #6410 and #6412 added by hand under the operator decision to ship the three small items as one story (2026-11-16).",
+      "Overview": "## Summary\n\nA `swarm:finalize-cohort` run that is killed part-way leaves state behind, and the next run for the same cohort fails on it. Split out of #6335 and #6303 by operator decision (2026-11-16) as its own small issue.\n\n## What we saw\n\nRead at e32e58147, `packages/core/src/swarm/finalize-cohort.ts`:\n\n- Each run creates its lifecycle checkout in a new OS temp folder (`mkdtempSync` ... `deft-finalize-lifecycle-`, about line 1342) with `git worktree add --detach`. The folder name is unique per run, so two runs never share a checkout.\n- The branch name is not unique. `deriveFinalizeBranchLabel` (904-919) gives the same `swarm/finalize/<label>` for the same cohort, and `finalizeClaimRef` (930-936) uses that name as the claim shared with `finalize-owed` (#4919).\n- `ensureFeatureBranch` (1045 on) creates the branch with `git switch -c`. That fails when the branch already exists.\n- Cleanup (`releaseLifecycleCheckout`, 1295-1317) runs only when the run reaches it. A killed run leaves the registered worktree, its temp folder and the local branch. Git also refuses to check out a branch that another registered worktree holds.\n- So after a kill, the next run for that cohort stops at branch creation until someone removes the worktree and the branch by hand.\n\nConstraint from the #6335 pain-audit (comment 6907458325): cleanup at the start of a run cannot tell a killed run from a live one, so it must not delete another run's checkout. Because the branch name is also the claim, a fresh branch name per run would remove the protection against two runs publishing the same cohort.\n\n## Expected\n\nAfter a killed run, the next run for the same cohort completes without a hand cleanup, and a run that is still live is never disturbed. Prefer the smallest change; no new gate.\n\nCandidate directions, not chosen:\n\n1. Reuse when provably dead. If the branch is not on origin, has no open PR, and no registered worktree whose folder still exists holds it, the run resets the local branch and continues. Otherwise it stops and prints the one command that removes the leftover.\n2. Report only. The run stops as today, but the message names the leftover worktree and branch and prints the exact removal commands.\n\nDirection 1 changes when a claim is considered free, so it should have a one-critic design pass before it is built. Direction 2 is a message change and needs none.\n\n## Acceptance Criteria\n\n- Given a finalize run that was killed after it created its branch and before it pushed, when finalize runs again for the same cohort, then it completes or it stops with a message that names the leftover worktree and branch and the command that removes them.\n- Given a finalize run that is still in progress, when a second run starts for the same cohort, then the first run's checkout and branch are not changed.\n- Given a cohort whose finalize branch is already on origin or has an open PR, when finalize runs again, then the result is the same as today.\n\nRefs #6335. Refs #6303.\n\n## Added by hand: #6412 (docs only)\n\nOperator decision (comment 2026-11-16T17:32:00Z): the playbook states that a redirect on a launcher command is refused and names how to capture each launcher's output (the output-file flag for the Codex launcher; the tool's own output capture for the other two). No hook change; the second acceptance sentence does not apply.\n\n## Added by hand: #6410 (docs only)\n\nComments 2026-11-16T17:32:04Z and 17:34:27Z: the hook already takes the `claude` dest from the shell payload's working directory. The two-step form works: one call that only changes the working directory into the arc dest, one call with the bare launcher command, one call that steps back out. The fix is the playbook line that names it, including that other tools are judged by the dest while the shell is there and that a pong proves launchability only.\n",
+      "Constraint": "- No reuse of a leftover branch, no deletion, and no change to when a finalize claim counts as free (#6421 direction 1 is not built).\n- No hook, gate or admission rule change for #6410 or #6412.\n- Changelog entry as one fragment under `changelog.d/`, not a CHANGELOG.md line."
+    },
+    "items": [
+      {
+        "title": "Given a finalize run that was killed after it created its branch and before it pushed, when finalize runs again for the same cohort, then it completes or it stops with a message that names the leftover worktree and branch and the command that removes them.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given a local `swarm/finalize/<label>` branch that is not on origin and a registered worktree that holds it, when finalize fails to create the branch, then the error names the branch and the worktree and prints `git -C <projectRoot> worktree remove --force <path>` and `git -C <projectRoot> branch -D <branch>`."
+        }
+      },
+      {
+        "title": "Given a finalize run that is still in progress, when a second run starts for the same cohort, then the first run's checkout and branch are not changed.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given the same leftover state, when the second run builds its message, then it runs only read-only git commands and changes no worktree or branch."
+        }
+      },
+      {
+        "title": "Given a cohort whose finalize branch is already on origin or has an open PR, when finalize runs again, then the result is the same as today.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a finalize branch that has an origin tracking ref, when finalize fails to create the branch, then the run stops with the same error text as today and no removal commands."
+        }
+      },
+      {
+        "title": "The design-critique playbook states how to capture each launcher's output without a redirect.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given content/docs/grok-build-subscription-setup.md, then its Design-critique dispatch section says a redirect on a launcher command is refused and names `codex exec -o <file>` for Codex and the tool's own output capture for `claude` and `grok`."
+        }
+      },
+      {
+        "title": "Given a shell whose working directory is an arc dest, when a read-only `claude -p` critic launch is issued, then the launcher hook admits it.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given the existing hook test `allows dest-present claude argv via payload cwd (#4219)`, then a `claude -p` launch whose payload working directory is the arc dest is admitted; no hook change is made."
+        }
+      },
+      {
+        "title": "Given the same launch from a directory that is not a dest, then the hook refuses it as today.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given the existing hook tests for dest-absent launcher argv, then a `claude -p` launch from a directory that is not a dest is refused as today; no hook change is made."
+        }
+      },
+      {
+        "title": "The design-critique playbook names the working launch form for a Claude CLI seat.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given content/docs/grok-build-subscription-setup.md, then it names the two-step form: change the shell working directory to the dest in its own call, launch the bare `claude -p` command in the next call, then step back out."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6421",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6421: bug(swarm): a killed finalize-cohort run leaves a worktree and branch that block the next run"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6410",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6410: fix(design-critique,docs): the working launch form for a Claude CLI critic seat is undocumented (dest proof is the shell working directory)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6412",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6412: fix(hooks,docs): a critic launch with an output redirect is refused; say how to capture output or admit one safe redirect"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6335",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6335"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6303",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6303"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft-finalize-lifecycle-",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        },
+        {
+          "command": "git worktree add --detach",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "packages/core/src/swarm/finalize-branch-leftover.test.ts",
+          "content/docs/grok-build-subscription-setup.md",
+          "packages/core/src/content-contracts/standards/design_critique_contract.test.ts",
+          "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "changelog.d/6421-finalize-leftover-and-launcher-docs.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "finalize-leftover-launcher-docs",
+        "verify_commands": [
+          "npx vitest run packages/core/src/swarm/finalize-branch-leftover.test.ts packages/core/src/content-contracts/standards/design_critique_contract.test.ts packages/core/src/hooks/dispatcher-spawn-dest.test.ts"
+        ],
+        "expected_outputs": [
+          "finalize-cohort branch-creation stop names a local leftover branch, the worktree that holds it, and the git commands that remove them; text unchanged when the branch is on origin",
+          "playbook Design-critique dispatch names per-launcher output capture without a redirect and the two-step Claude CLI seat launch form",
+          "one changelog fragment changelog.d/6421-finalize-leftover-and-launcher-docs.md"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Operator decision (live turn, 2026-11-16): take direction 2, report only. The run stops as today, and the message names the leftover worktree and branch and prints the exact commands that remove them. Direction 1 (reuse when provably dead) is not built now; reconsider it only if hand cleanup keeps recurring.\n\nThe first acceptance sentence is met by its second branch (stop with a message that names the leftover and the removal command). The other two sentences stand as written.\n\ndesign-critique: not warranted, because direction 2 changes only the text of an existing stop and adds no new condition, claim rule or deletion.\n\n",
+          "id": 6923744331,
+          "html_url": "https://github.com/deftai/directive/issues/6421#issuecomment-6923744331",
+          "created_at": "2026-11-16T17:22:24Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6426715570,
+        "origin": "deftai/directive#6421",
+        "id": "github.issue.6426715570"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 7 clauses before product edit (#3323): one per admitted sentence, which are the Acceptance Criteria of #6421 (direction 2 per operator comment 6923744331), #6410 and #6412; the second #6412 sentence is confessed because the operator ruled it does not apply (docs only, no redirect admitted)",
+      "sentences": [
+        "bug(swarm): a killed finalize-cohort run leaves a worktree and branch that block the next run",
+        "Given a finalize run that was killed after it created its branch and before it pushed, when finalize runs again for the same cohort, then it completes or it stops with a message that names the leftover worktree and branch and the command that removes them.",
+        "Given a finalize run that is still in progress, when a second run starts for the same cohort, then the first run's checkout and branch are not changed.",
+        "Given a cohort whose finalize branch is already on origin or has an open PR, when finalize runs again, then the result is the same as today.",
+        "The design-critique playbook states how to capture each launcher's output without a redirect.",
+        "If a redirect is admitted, then only a single stdout redirect to a path outside every checkout is admitted, and compound commands and substitutions stay refused.",
+        "Given a shell whose working directory is an arc dest, when a read-only `claude -p` critic launch is issued, then the launcher hook admits it.",
+        "Given the same launch from a directory that is not a dest, then the hook refuses it as today.",
+        "The design-critique playbook names the working launch form for a Claude CLI seat."
+      ],
+      "confessions": [
+        "bug(swarm): a killed finalize-cohort run leaves a worktree and branch that block the next run",
+        "If a redirect is admitted, then only a single stdout redirect to a path outside every checkout is admitted, and compound commands and substitutions stay refused."
+      ],
+      "admitted_source_sentences": [
+        "Given a finalize run that was killed after it created its branch and before it pushed, when finalize runs again for the same cohort, then it completes or it stops with a message that names the leftover worktree and branch and the command that removes them.",
+        "Given a finalize run that is still in progress, when a second run starts for the same cohort, then the first run's checkout and branch are not changed.",
+        "Given a cohort whose finalize branch is already on origin or has an open PR, when finalize runs again, then the result is the same as today.",
+        "The design-critique playbook states how to capture each launcher's output without a redirect.",
+        "Given a shell whose working directory is an arc dest, when a read-only `claude -p` critic launch is issued, then the launcher hook admits it.",
+        "Given the same launch from a directory that is not a dest, then the hook refuses it as today.",
+        "The design-critique playbook names the working launch form for a Claude CLI seat."
+      ],
+      "admitted_source_digest": "541e15d4f16276f77791e34233323834a2e901e636e79ba50bfaa4392b32b201",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given a finalize run that was killed after it created its branch and before it pushed, when finalize runs again for the same cohort, then it completes or it stops with a message that names the leftover worktree and branch and the command that removes them.",
+          "artifact_path": "packages/core/src/swarm/finalize-cohort.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given a finalize run that is still in progress, when a second run starts for the same cohort, then the first run's checkout and branch are not changed.",
+          "artifact_path": "packages/core/src/swarm/finalize-cohort.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Given a cohort whose finalize branch is already on origin or has an open PR, when finalize runs again, then the result is the same as today.",
+          "artifact_path": "packages/core/src/swarm/finalize-cohort.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The design-critique playbook states how to capture each launcher's output without a redirect.",
+          "artifact_path": "content/docs/grok-build-subscription-setup.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Given a shell whose working directory is an arc dest, when a read-only `claude -p` critic launch is issued, then the launcher hook admits it.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Given the same launch from a directory that is not a dest, then the hook refuses it as today.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "The design-critique playbook names the working launch form for a Claude CLI seat.",
+          "artifact_path": "content/docs/grok-build-subscription-setup.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6426715570",
+    "updated": "2026-11-16T18:38:14Z"
+  }
+}
