@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - After a context compaction, the write hook restores the ritual clock for the session that owns the live lease and the ritual, and denies one call with the alignment lines instead of every write until a manual re-arm. Other stale-ritual denials print their recovery command with the caller's `--session-id` (#6279).
 
 ### Fixed
+- `git commit` of planning files only (`docs/design/*.md`, `docs/decisions/*.md`, proposed/pending/completed/cancelled briefs, decision records, `CHANGELOG.md`, a shape-checked `.deft/plan-sequence.json`) is no longer denied for want of a ready scope. Recovery: upgrade, commit these before `scope:promote`, then commit root plan/specification/PROJECT-DEFINITION and `active/` changes separately; any other path keeps today's rules (#5839).
 
 ### Removed
 
