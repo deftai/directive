@@ -3736,6 +3736,17 @@ describe("scope:complete plan cursor catch-up (#6205)", () => {
     expect(result.message).toContain("plan-sequence: no-sequence");
   });
 
+  it("clause.6: a restamp of a completed brief reports and attempts the same catch-up", () => {
+    root = makeRepo();
+    const plan = seedPlan(root);
+    const done = writeVbrief(root, "completed", "completed");
+    const result = runTransition("complete", done, undefined, { planAdvanceSeams: untracked });
+    expect(result.ok, result.message).toBe(true);
+    expect(result.message).toContain("Restamped");
+    expect(result.message).toContain("plan-sequence: advanced (current story:next-story");
+    expect(JSON.parse(readFileSync(plan, "utf8")).current_index).toBe(1);
+  });
+
   it("clause.5: scope:cancel does not read the plan", () => {
     root = makeRepo();
     seedPlan(root, "{not json");

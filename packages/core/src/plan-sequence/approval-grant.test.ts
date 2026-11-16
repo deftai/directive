@@ -52,10 +52,20 @@ const insertBinding: PlanSequenceApprovalBinding = {
   repo: "acme/app",
   sequenceId: "seq-6205",
   generation: 4,
-  action: { kind: "insert", entryKind: "issue", entryId: "900", issue: 900, position: 1 },
+  action: {
+    kind: "insert",
+    entryKind: "issue",
+    entryId: "900",
+    issue: 900,
+    title: null,
+    position: 1,
+  },
 };
 
-function mintInsert(root: string, overrides: Partial<{ position: number; target: string }> = {}) {
+function mintInsert(
+  root: string,
+  overrides: Partial<{ position: number; target: string; title: string }> = {},
+) {
   return mintPlanSequenceApprovalGrant({
     projectRoot: root,
     target: overrides.target ?? "insert:issue:900",
@@ -63,6 +73,7 @@ function mintInsert(root: string, overrides: Partial<{ position: number; target:
     generation: 4,
     position: overrides.position ?? 1,
     issue: 900,
+    title: overrides.title ?? null,
     now: NOW,
   });
 }
@@ -115,6 +126,21 @@ describe("plan-sequence-approval target and binding helpers", () => {
     expect(
       formatPlanSequenceApprovalCommand({ ...insertBinding, action: { kind: "clear" } }),
     ).toContain("--target clear --plan-ref seq-6205 --generation 4 --repo acme/app");
+    expect(
+      formatPlanSequenceApprovalCommand({
+        ...insertBinding,
+        action: {
+          kind: "insert",
+          entryKind: "task",
+          entryId: "fix",
+          issue: null,
+          title: "Hot fix",
+          position: 2,
+        },
+      }),
+    ).toContain(
+      '--target insert:task:fix --plan-ref seq-6205 --generation 4 --position 2 --title "Hot fix"',
+    );
   });
 
   it("resolves the repository from --repo or origin and refuses when neither exists", () => {
@@ -231,9 +257,23 @@ describe("claimPlanSequenceApproval (#6205 clause.11)", () => {
     const root = repoRoot();
     expect(mintInsert(root, { position: 2 }).ok).toBe(true);
     expect(mintInsert(root, { target: "insert:issue:901" }).ok).toBe(true);
+    expect(mintInsert(root, { title: "Approved title" }).ok).toBe(true);
     const write = () => ({ ok: true as const });
+    const titled = (title: string | null): PlanSequenceApprovalBinding => ({
+      ...insertBinding,
+      action: {
+        kind: "insert",
+        entryKind: "issue",
+        entryId: "900",
+        issue: 900,
+        title,
+        position: 1,
+      },
+    });
     const variants: PlanSequenceApprovalBinding[] = [
       insertBinding,
+      // #6205 review P1: a title is a verify alias, so an unapproved title is refused.
+      titled("901"),
       { ...insertBinding, generation: 5 },
       { ...insertBinding, repo: "acme/other" },
       { ...insertBinding, action: { kind: "replace" } },
@@ -243,6 +283,15 @@ describe("claimPlanSequenceApproval (#6205 clause.11)", () => {
       expect(claimed.ok).toBe(false);
       if (!claimed.ok) expect(claimed.reason).toMatch(/no plan-sequence-approval grant binds/);
     }
+    // The approved title (case-insensitive) is admitted.
+    expect(
+      claimPlanSequenceApproval({
+        projectRoot: root,
+        binding: titled(" approved TITLE "),
+        write,
+        now: NOW,
+      }).ok,
+    ).toBe(true);
   });
 
   it("rolls the spend back when the plan write fails, so the grant stays usable", () => {

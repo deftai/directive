@@ -716,6 +716,12 @@ describe("plan-sequence derived cursor and approved writes (#6205)", () => {
     ];
     expect(ps(root, ...insert900At0).code).toBe(1);
     const grant = mint(root, "insert:issue:900", 1, 0);
+    // #6205 review P1: the grant binds the title too, so a title alias for
+    // another target ("901") is refused and the grant stays unspent.
+    const aliased = ps(root, ...insert900At0, "--title", "901");
+    expect(aliased.code).toBe(1);
+    expect(aliased.err).toContain('--title "901"');
+    expect(verify(root, "901").code).toBe(1);
     const ok = ps(root, ...insert900At0);
     expect(ok.code, ok.err).toBe(0);
     expect(ok.out).toContain(

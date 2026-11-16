@@ -13,12 +13,14 @@
  * consent here.
  */
 
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { mintHumanOriginGrant } from "../authz/actions.js";
 import { isHumanOrigin } from "../authz/origin.js";
 import { claimSingleUseGrantForApply, listGrants } from "../authz/store.js";
 import { assertNoIndependentSessionAuthMint } from "../authz/templates.js";
 import type { HumanOriginGrant } from "../authz/types.js";
-import { resolveRequireBoundPrePrPush } from "../preflight-gh/pre-push.js";
+import { readPlanPolicy } from "../policy/plan-extensions.js";
 import { defaultGitRunner, type GitRunner } from "../session/git.js";
 import { mainWorktreeRoot } from "../session/main-worktree.js";
 import { resolveRepo } from "../triage/queue/repo.js";
@@ -39,6 +41,8 @@ export type PlanSequenceApprovalAction =
       readonly entryKind: PlanTargetKind;
       readonly entryId: string;
       readonly issue: number | null;
+      /** Bound too: verify:plan-sequence matches an entry by title (#6205 review). */
+      readonly title: string | null;
       readonly position: number;
     }
   | { readonly kind: "replace" }
@@ -64,7 +68,29 @@ export function planSequenceApprovalRequired(
   _action: PlanSequenceApprovalActionKind,
   projectRoot: string,
 ): boolean {
-  return resolveRequireBoundPrePrPush(projectRoot, false);
+  return boundPrePrPushEnrolled(projectRoot);
+}
+
+/**
+ * `plan.policy.requireBoundPrePrPush === true`, read the same way as the
+ * pre-push gate (resolveRequireBoundPrePrPush, hook default false). Read here
+ * directly: importing the pre-push module would close an import cycle through
+ * the pre-PR controller.
+ */
+function boundPrePrPushEnrolled(projectRoot: string): boolean {
+  try {
+    const pdPath = join(projectRoot, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    if (!existsSync(pdPath)) return false;
+    const data = JSON.parse(readFileSync(pdPath, "utf8")) as { plan?: unknown };
+    const policy = readPlanPolicy(data.plan);
+    return (
+      policy !== null &&
+      typeof policy === "object" &&
+      (policy as Record<string, unknown>).requireBoundPrePrPush === true
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function isPlanSequenceApprovalTemplateName(name: string): boolean {
@@ -115,10 +141,12 @@ function bindingSurfaces(binding: PlanSequenceApprovalBinding): string[] {
     `${SURFACE_PREFIX}action:${binding.action.kind}`,
   ];
   if (binding.action.kind === "insert") {
-    const { entryKind, entryId, issue, position } = binding.action;
+    const { entryKind, entryId, issue, title, position } = binding.action;
+    const boundTitle = title === null ? "" : title.trim().toLowerCase();
     surfaces.push(
       `${SURFACE_PREFIX}entry:${entryKind}:${entryId.trim().toLowerCase()}`,
       `${SURFACE_PREFIX}issue:${issue === null ? "none" : String(issue)}`,
+      `${SURFACE_PREFIX}title:${boundTitle.length === 0 ? "none" : boundTitle}`,
       `${SURFACE_PREFIX}position:${String(position)}`,
     );
   }
@@ -133,7 +161,10 @@ export function formatPlanSequenceApprovalCommand(binding: PlanSequenceApprovalB
   const insertFlags =
     action.kind === "insert"
       ? ` --position ${String(action.position)}` +
-        (action.issue !== null ? ` --issue-ids ${String(action.issue)}` : "")
+        (action.issue !== null ? ` --issue-ids ${String(action.issue)}` : "") +
+        (action.title !== null && action.title.trim().length > 0
+          ? ` --title ${JSON.stringify(action.title)}`
+          : "")
       : "";
   return (
     `deft authz:grant -- --template ${PLAN_SEQUENCE_APPROVAL_TEMPLATE_NAME} --target ${target} ` +
@@ -190,6 +221,8 @@ export interface MintPlanSequenceApprovalInput {
   readonly position?: number | null;
   /** Insert only: the entry's issue number, if any. */
   readonly issue?: number | null;
+  /** Insert only: the entry's title, if any (a title is also a verify target). */
+  readonly title?: string | null;
   readonly repo?: string | null;
   readonly actor?: string;
   readonly expiresAt?: string | null;
@@ -251,6 +284,7 @@ export function mintPlanSequenceApprovalGrant(
       entryKind: parsed.entryKind,
       entryId: parsed.entryId,
       issue,
+      title: input.title ?? null,
       position,
     };
   } else {

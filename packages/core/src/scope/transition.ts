@@ -1477,7 +1477,9 @@ function restampCompletedBrief(args: RestampArgs): TransitionResult {
       `Restamped ${basename} in completed/ (status: completed, ` +
       `deliveryDisposition=${disposition})` +
       recordAttestationUse(projectRoot, gate.provenance?.attestationGrantId, now) +
-      recordDispositionGrantUse(projectRoot, cited.grantIdsToRecord, now),
+      recordDispositionGrantUse(projectRoot, cited.grantIdsToRecord, now) +
+      // #6205: a restamp reports and attempts the same plan catch-up.
+      `\n${advancePlanAfterComplete({ projectRoot, completedPath: resolvedPath, now: nowIso, seams: options.planAdvanceSeams }).line}`,
   };
 }
 

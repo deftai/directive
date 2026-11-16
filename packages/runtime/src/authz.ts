@@ -130,6 +130,8 @@ interface Parsed {
   generation: number | null;
   /** plan-sequence-approval insert: entry index (#6205). */
   position: number | null;
+  /** plan-sequence-approval insert: entry title, bound to the grant (#6205). */
+  title: string | null;
   error?: string;
 }
 
@@ -186,6 +188,7 @@ function parseArgv(argv: string[]): Parsed {
     reason: null,
     generation: null,
     position: null,
+    title: null,
   };
 
   const args = [...argv];
@@ -344,6 +347,10 @@ function parseArgv(argv: string[]): Parsed {
       base.reason = args[++i] ?? null;
       continue;
     }
+    if (a === "--title") {
+      base.title = args[++i] ?? null;
+      continue;
+    }
     if (a === "--generation" || a === "--position") {
       const value = parseIndexFlag(args[++i]);
       if (value === null) {
@@ -379,7 +386,7 @@ function helpText(): string {
     "  deft authz:grant -- --template acceptance-disposition --plan-ref <scopeId> \\",
     "      --story-ids <itemIds> --deferred-to <issue> --reason <text> [--confirm]",
     "  deft authz:grant -- --template plan-sequence-approval --target <insert:<kind>:<id>|replace|clear> \\",
-    "      --plan-ref <sequence_id> --generation <n> [--position <n>] [--issue-ids <n>] [--repo owner/name] [--confirm]",
+    "      --plan-ref <sequence_id> --generation <n> [--position <n>] [--issue-ids <n>] [--title <t>] [--repo owner/name] [--confirm]",
     "  deft authz:grant -- --parent <parent.xbrief.json> --draft <draft.json> \\",
     "      [--repo owner/name] [--expires ISO] [--single-use] [--actor <name>] [--confirm]",
     "  deft authz:revoke -- <grant-id> [--confirm]",
@@ -1115,6 +1122,7 @@ function grantPlanSequenceApproval(args: Parsed, gateConfirm: () => number | nul
     generation: args.generation,
     position: args.position,
     issue: args.issueIds[0] ?? null,
+    title: args.title,
     repo: args.repo,
     actor: args.actor,
     expiresAt: args.expiresAt,

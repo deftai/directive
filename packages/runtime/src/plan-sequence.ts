@@ -472,6 +472,7 @@ function runInsert(parsed: Parsed, root: string, expected: number): number {
       entryKind: kind,
       entryId: id,
       issue: parsed.issue,
+      title: parsed.title,
       position,
     },
     write: (grantId) => {

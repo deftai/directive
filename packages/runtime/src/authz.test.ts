@@ -1511,9 +1511,10 @@ describe("authz CLI plan-sequence-approval template (#6205)", () => {
   it("clause.11: mints a single-use operator-cli grant bound to repo, sequence, generation, entry and position", () => {
     const root = gitRepo();
     const { out } = capture();
-    expect(runAuthz(insertArgv(root))).toBe(0);
+    expect(runAuthz([...insertArgv(root), "--title", "Hot Fix"])).toBe(0);
     const text = out.join("");
     expect(text).toMatch(/template=plan-sequence-approval/);
+    expect(text).toContain("plan-sequence-approval:title:hot fix");
     expect(text).toContain("repo=acme/app");
     const id = /id=(\S+)/.exec(text)?.[1] ?? "";
     const grant = JSON.parse(
