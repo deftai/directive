@@ -45,7 +45,6 @@
  * Three-state exit: 0 clean / 1 fence violation / 2 config.
  */
 
-import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { GitCommandError, GitNotFoundError } from "../encoding/git.js";
@@ -57,8 +56,8 @@ import {
   type OnePrScopeProofGate,
 } from "../policy/one-pr-scope-proof.js";
 import { PROJECT_DEFINITION_REL_PATH } from "../policy/resolve.js";
-import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { loadTestBoundaryPolicy } from "../test-boundary/policy.js";
+import { parseGitHubRepoSlug } from "../text/redos-safe.js";
 import {
   concreteProductionScopeEntries,
   evaluateApprovedScopeMembership,
@@ -67,6 +66,13 @@ import {
   type MembershipAllowlistAuthority,
   pathMatchesFileScope,
 } from "./base-fence.js";
+import {
+  type BaseBriefRead,
+  gitShowPath,
+  listLifecycleBriefsAtRef,
+  normalizeRepoRelPath,
+  unquoteGitPath,
+} from "./census-batch.js";
 import {
   type CensusBrief,
   type ContinuityResolution,
@@ -90,9 +96,23 @@ import {
   normalizeFileScope,
   readApprovedScopeRecord,
 } from "./digest.js";
-import { evaluateForgeHeadBriefApproval, type ForgeApprovalContext } from "./forge-approval.js";
+import {
+  evaluateForgeHeadBriefApproval,
+  type ForgeApprovalContext,
+  type ForgeApprovalGit,
+} from "./forge-approval.js";
+import {
+  createScopeProvenanceGit,
+  type DeclaredRefusalMode,
+  GitCallTimeoutError,
+  type GitSpawn,
+  type ScopeProvenanceGit,
+  type ScopeProvenancePhase,
+} from "./git-call.js";
 import { bodyDigestIsAuthority, evaluateIntentForXbrief } from "./intent-evaluate.js";
 import { recoverApprovedScopePairs } from "./mint-artifacts.js";
+
+export { normalizeRepoRelPath, unquoteGitPath } from "./census-batch.js";
 
 export type ScopeProvenanceViolationKind =
   | "self-authorizing-scope-expansion"
@@ -175,16 +195,42 @@ export interface ScopeProvenanceOptions {
   readonly headProjectDefinition?: string | null;
   /** Same-PR `.intent.json` text keyed by planId (#6273 test seam; skips disk). */
   readonly headApprovedIntents?: ReadonlyMap<string, string>;
+  /**
+   * Per-call git time limit in seconds (#6378); `0` means no limit. Absent:
+   * `DEFT_SCOPE_PROVENANCE_GIT_TIMEOUT_SECONDS`, then 120.
+   */
+  readonly gitTimeoutSeconds?: number;
+  /** Mode of `scope-provenance-git-call-timeout` (test seam). Absent: the declared mode. */
+  readonly gitTimeoutMode?: DeclaredRefusalMode;
+  /** Sink for the warn-mode timeout line. Absent: stderr (the CLI passes a synchronous fd-2 writer). */
+  readonly onGitTimeoutWarning?: (line: string) => void;
+  /** Remedy text for a larger limit (the CLI prints its own argv). */
+  readonly gitTimeoutRemedy?: (largerSeconds: number) => string;
+  /** Called with the phase name before each phase starts (#6378 item 7). */
+  readonly onPhase?: (phase: string) => void;
+  /** spawnSync seam for every git call of the check (tests). */
+  readonly gitSpawn?: GitSpawn;
+  /** Subprocess buffer limit for every git call (tests). Absent: 64 MiB. */
+  readonly gitMaxBuffer?: number;
+  /** Batched census reads (#6378); `false` reads every census entry singly (tests). */
+  readonly censusBatch?: boolean;
 }
 
-function git(args: string[], projectRoot: string): { status: number; stdout: string } {
-  const result = spawnSync("git", args, {
-    cwd: projectRoot,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-    // git show <base>:xbrief/PROJECT-DEFINITION.xbrief.json is over 1 MiB; Node default throws ENOBUFS (#6349).
-    maxBuffer: SUBPROCESS_MAX_BUFFER,
-  });
+let plainGit: ScopeProvenanceGit | null = null;
+
+/** Runner for callers outside one evaluate (no per-call limit, as before #6378). */
+function plainRunner(): ScopeProvenanceGit {
+  plainGit ??= createScopeProvenanceGit({ timeoutSeconds: 0 });
+  return plainGit;
+}
+
+function git(
+  args: string[],
+  projectRoot: string,
+  runner: ScopeProvenanceGit = plainRunner(),
+): { status: number; stdout: string } {
+  // git show <base>:xbrief/PROJECT-DEFINITION.xbrief.json is over 1 MiB; the runner keeps the 64 MiB buffer (#6349).
+  const result = runner.runText(args, projectRoot);
   if (result.error !== undefined) {
     const e = result.error as NodeJS.ErrnoException;
     if (e.code === "ENOENT") {
@@ -211,7 +257,10 @@ function git(args: string[], projectRoot: string): { status: number; stdout: str
  * plan.policy.deliveryBranch (#5520) then origin/master (or main).
  * Returns null when no merge-base candidate exists (caller fails closed).
  */
-export function resolveDefaultBaseRef(projectRoot: string): string | null {
+export function resolveDefaultBaseRef(
+  projectRoot: string,
+  runner: ScopeProvenanceGit = plainRunner(),
+): string | null {
   const envCandidates = [
     process.env.DEFT_BASE_REF,
     process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : undefined,
@@ -219,7 +268,7 @@ export function resolveDefaultBaseRef(projectRoot: string): string | null {
   ].filter((x): x is string => typeof x === "string" && x.trim().length > 0);
   const deliveryCandidates: string[] = [];
   const delivery = resolveDeliveryBranch(projectRoot, (root, args) => {
-    const result = git([...args], root);
+    const result = git([...args], root, runner);
     return { code: result.status, stdout: result.stdout, stderr: "" };
   });
   if (delivery.source === "typed" && delivery.error === null && delivery.branch.trim().length > 0) {
@@ -233,54 +282,11 @@ export function resolveDefaultBaseRef(projectRoot: string): string | null {
     "master",
     "main",
   ]) {
-    if (git(["rev-parse", "--verify", "-q", cand], projectRoot).status === 0) {
+    if (git(["rev-parse", "--verify", "-q", cand], projectRoot, runner).status === 0) {
       return cand;
     }
   }
   return null;
-}
-
-/**
- * Normalize git --name-only paths (including C-quoted paths).
- * Decode C-quotes BEFORE converting remaining backslashes to `/` so escape
- * sequences are not destroyed. Consecutive octal escapes decode as UTF-8
- * bytes (e.g. \\303\\251 → é) so Unicode xBRIEF paths match filesystem names.
- */
-export function unquoteGitPath(raw: string): string {
-  const t = raw.replace(/\r$/, "").trim();
-  if (t.length >= 2 && t.startsWith('"') && t.endsWith('"')) {
-    let inner = t.slice(1, -1);
-    // First: runs of octal bytes → UTF-8 (Git encodes non-ASCII this way)
-    inner = inner.replace(/(?:\\[0-7]{1,3})+/g, (seq) => {
-      const bytes: number[] = [];
-      for (const m of seq.matchAll(/\\([0-7]{1,3})/g)) {
-        bytes.push(parseInt(m[1] ?? "0", 8));
-      }
-      try {
-        return Buffer.from(bytes).toString("utf8");
-      } catch {
-        return String.fromCharCode(...bytes);
-      }
-    });
-    // Then: standard single-char escapes
-    inner = inner.replace(/\\([abtnvfr"'\\])/g, (_m, ch: string) => {
-      const map: Record<string, string> = {
-        a: "\x07",
-        b: "\b",
-        t: "\t",
-        n: "\n",
-        v: "\v",
-        f: "\f",
-        r: "\r",
-        '"': '"',
-        "'": "'",
-        "\\": "\\",
-      };
-      return map[ch] ?? ch;
-    });
-    return inner.replace(/\\/g, "/");
-  }
-  return t.replace(/\\/g, "/");
 }
 
 function isGitMissingPathDetail(detail: string): boolean {
@@ -302,9 +308,10 @@ function readRepoFileAtRef(
   projectRoot: string,
   ref: string,
   relPath: string,
+  runner: ScopeProvenanceGit = plainRunner(),
 ): ReadRepoFileAtRefResult {
-  const path = relPath.replace(/\\/g, "/").replace(/^\.\//, "");
-  const result = git(["show", `${ref}:${path}`], projectRoot);
+  const path = gitShowPath(relPath);
+  const result = git(["show", `${ref}:${path}`], projectRoot, runner);
   if (result.status === 0) return { status: "ok", text: result.stdout };
   const detail = result.stdout.trim();
   if (isGitMissingPathDetail(detail)) return { status: "missing" };
@@ -314,8 +321,12 @@ function readRepoFileAtRef(
   };
 }
 
-function changedFilesVsBase(projectRoot: string, baseRef: string): string[] {
-  const inside = git(["rev-parse", "--is-inside-work-tree"], projectRoot);
+function changedFilesVsBase(
+  projectRoot: string,
+  baseRef: string,
+  runner: ScopeProvenanceGit,
+): string[] {
+  const inside = git(["rev-parse", "--is-inside-work-tree"], projectRoot, runner);
   if (inside.status !== 0) {
     throw new GitCommandError("not a git working tree");
   }
@@ -323,7 +334,7 @@ function changedFilesVsBase(projectRoot: string, baseRef: string): string[] {
   // are visible (Greptile P1 / #3145). Never silently fall back to bare HEAD.
   let resolved = baseRef;
   if (baseRef === "HEAD" || baseRef === "") {
-    const upgraded = resolveDefaultBaseRef(projectRoot);
+    const upgraded = resolveDefaultBaseRef(projectRoot, runner);
     if (upgraded === null) {
       throw new GitCommandError(
         "no merge-base ref (origin/master|main or DEFT_BASE_REF/GITHUB_BASE_REF); " +
@@ -332,7 +343,7 @@ function changedFilesVsBase(projectRoot: string, baseRef: string): string[] {
     }
     resolved = upgraded;
   }
-  const hasBase = git(["rev-parse", "--verify", "-q", resolved], projectRoot).status === 0;
+  const hasBase = git(["rev-parse", "--verify", "-q", resolved], projectRoot, runner).status === 0;
   if (!hasBase) {
     throw new GitCommandError(
       `base ref '${resolved}' not found; pass --base-ref or set DEFT_BASE_REF`,
@@ -345,34 +356,26 @@ function changedFilesVsBase(projectRoot: string, baseRef: string): string[] {
   };
   // Triple-dot includes all commits on the branch relative to merge-base.
   const range = resolved === "HEAD" || resolved.includes("...") ? resolved : `${resolved}...HEAD`;
-  const diff = git(["diff", "--name-only", range], projectRoot);
+  const diff = git(["diff", "--name-only", range], projectRoot, runner);
   if (diff.status === 0) {
     for (const line of diff.stdout.split("\n")) {
       addPath(line);
     }
   }
   // Also include working-tree changes vs HEAD (unstaged / staged / untracked).
-  const vsHead = git(["diff", "--name-only", "HEAD"], projectRoot);
+  const vsHead = git(["diff", "--name-only", "HEAD"], projectRoot, runner);
   if (vsHead.status === 0) {
     for (const line of vsHead.stdout.split("\n")) {
       addPath(line);
     }
   }
-  const untracked = git(["ls-files", "--others", "--exclude-standard"], projectRoot);
+  const untracked = git(["ls-files", "--others", "--exclude-standard"], projectRoot, runner);
   if (untracked.status === 0) {
     for (const line of untracked.stdout.split("\n")) {
       addPath(line);
     }
   }
   return [...out];
-}
-
-/** Normalize repo-relative paths for exact set membership (always POSIX separators). */
-export function normalizeRepoRelPath(p: string): string {
-  return p
-    .replace(/\\/g, "/")
-    .replace(/^\.\//, "")
-    .replace(/\/{2,}/g, "/");
 }
 
 /**
@@ -413,76 +416,37 @@ function listActiveXbriefPaths(projectRoot: string): string[] {
     .map((n) => `xbrief/active/${n}`);
 }
 
-type BaseBriefReadLocal =
-  | { readonly kind: "text"; readonly text: string }
-  | { readonly kind: "missing" }
-  | { readonly kind: "error"; readonly message: string };
+type BaseBriefReadLocal = BaseBriefRead;
 
-type LifecycleCensusResult =
-  | { readonly kind: "ok"; readonly briefs: CensusBrief[] }
-  | { readonly kind: "error"; readonly detail: string };
-
-/**
- * Merge-base lifecycle census via git ls-tree + readAtBase (#5192).
- * Fail closed on ls-tree / read / parse errors so duplicate plan.id identities
- * cannot hide behind a partial census.
- */
-function listLifecycleBriefsAtRef(
+/** Forge-approval git reads through the check's runner (#6378 item 8). */
+export function forgeApprovalGitFromRunner(
   projectRoot: string,
-  baseRef: string,
-  readAtBase: (rel: string) => BaseBriefReadLocal,
-): LifecycleCensusResult {
-  const out: CensusBrief[] = [];
-  for (const folder of LIFECYCLE_FOLDERS) {
-    const listed = git(["ls-tree", "-r", "--name-only", baseRef, `xbrief/${folder}`], projectRoot);
-    if (listed.status !== 0) {
-      return {
-        kind: "error",
-        detail:
-          `merge-base lifecycle census ls-tree failed for xbrief/${folder} at ${baseRef} ` +
-          `(exit ${String(listed.status)}); refuse rather than hide duplicate identities (#5192)`,
-      };
-    }
-    for (const line of listed.stdout.split("\n")) {
-      const rel = normalizeRepoRelPath(unquoteGitPath(line));
-      if (!isLifecycleXbriefPath(rel)) continue;
-      const read = readAtBase(rel);
-      if (read.kind === "missing") {
-        return {
-          kind: "error",
-          detail:
-            `merge-base lifecycle census missing ${rel} after ls-tree listed it; ` +
-            "refuse rather than hide duplicate identities (#5192)",
-        };
-      }
-      if (read.kind === "error") {
-        return {
-          kind: "error",
-          detail:
-            `merge-base lifecycle census read failed for ${rel}: ${read.message}; ` +
-            "refuse rather than hide duplicate identities (#5192)",
-        };
-      }
-      try {
-        const payload = JSON.parse(read.text) as unknown;
-        out.push({
-          rel,
-          planId: extractPlanId(payload),
-          raw: read.text,
-          payload,
-        });
-      } catch (err) {
-        const detail = err instanceof Error ? err.message : String(err);
-        return {
-          kind: "error",
-          detail:
-            `merge-base lifecycle census unreadable JSON at ${rel}: ${detail}; ` +
-            "refuse rather than hide duplicate identities (#5192)",
-        };
-      }
-    }
-  }
-  return { kind: "ok", briefs: out };
+  runner: ScopeProvenanceGit,
+): ForgeApprovalGit {
+  const shaRe = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
+  const run = (args: string[]): string | null => {
+    const r = runner.runText(args, projectRoot);
+    if (r.error !== undefined || r.status !== 0) return null;
+    return String(r.stdout ?? "").trim();
+  };
+  return {
+    headSha: () => {
+      const out = run(["rev-parse", "HEAD"]);
+      return out !== null && shaRe.test(out) ? out : null;
+    },
+    headParents: () => {
+      const out = run(["rev-list", "--parents", "-n", "1", "HEAD"]);
+      if (out === null) return [];
+      return out
+        .split(/\s+/)
+        .slice(1)
+        .filter((s) => shaRe.test(s));
+    },
+    originRepo: () => {
+      const out = run(["remote", "get-url", "origin"]);
+      return out === null ? null : parseGitHubRepoSlug(out);
+    },
+  };
 }
 
 /**
@@ -655,9 +619,16 @@ export function baseApprovalAuthorizesCurrent(input: {
   readonly xbriefRelPath: string;
   readonly currentDigest: string;
   readonly currentApproved: ApprovedScopeRecord;
+  /** Git runner (defaults to one with no per-call limit). */
+  readonly git?: ScopeProvenanceGit;
 }): boolean {
   if (input.baseRef === null || input.baseRef === "") return false;
-  const baseRead = readRepoFileAtRef(input.projectRoot, input.baseRef, input.approvalRecordRel);
+  const baseRead = readRepoFileAtRef(
+    input.projectRoot,
+    input.baseRef,
+    input.approvalRecordRel,
+    input.git,
+  );
   // Fail closed: a base-read error cannot authorize expansion.
   if (baseRead.status !== "ok") return false;
   const baseRaw = baseRead.text;
@@ -709,19 +680,55 @@ export function evaluateOneScopeProvenance(_input: {
 
 /**
  * Evaluate scope provenance for a project (or pure injected seams).
+ *
+ * Every git call runs through one runner with a per-call time limit (#6378).
+ * In `enforce` mode a call that reaches the limit ends the check with exit 2
+ * and the refusal line; that holds even when an inner step swallowed the
+ * throw, because the runner keeps the first timeout.
  */
 export function evaluateScopeProvenance(
   projectRoot: string,
   options: ScopeProvenanceOptions = {},
 ): ScopeProvenanceResult {
+  const runner = createScopeProvenanceGit({
+    ...(options.gitTimeoutSeconds !== undefined
+      ? { timeoutSeconds: options.gitTimeoutSeconds }
+      : {}),
+    ...(options.gitTimeoutMode !== undefined ? { mode: options.gitTimeoutMode } : {}),
+    ...(options.onGitTimeoutWarning !== undefined ? { report: options.onGitTimeoutWarning } : {}),
+    ...(options.gitTimeoutRemedy !== undefined ? { remedy: options.gitTimeoutRemedy } : {}),
+    ...(options.gitSpawn !== undefined ? { spawn: options.gitSpawn } : {}),
+    ...(options.gitMaxBuffer !== undefined ? { maxBuffer: options.gitMaxBuffer } : {}),
+  });
+  try {
+    const result = evaluateWithRunner(projectRoot, options, runner);
+    const timedOut = runner.timedOut();
+    return timedOut === null ? result : configError(timedOut.message);
+  } catch (err) {
+    if (err instanceof GitCallTimeoutError) return configError(err.message);
+    throw err;
+  }
+}
+
+function evaluateWithRunner(
+  projectRoot: string,
+  options: ScopeProvenanceOptions,
+  runner: ScopeProvenanceGit,
+): ScopeProvenanceResult {
   const root = resolve(projectRoot);
   // `enforce` retained for CLI/API compat; it is a no-op after #4956 / #5002 (#5057).
   void (options.enforce ?? false);
   recoverApprovedScopePairs(root);
+  /** Name the phase for timeout lines and announce it (#6378 item 7). */
+  const announce = (phase: ScopeProvenancePhase, label: string = phase): void => {
+    runner.setPhase(phase);
+    options.onPhase?.(label);
+  };
 
   let changed: string[];
   /** Merge-base ref used for changed-file discovery (null when files injected). */
   let discoveryBaseRef: string | null = null;
+  announce("base resolution");
   try {
     if (options.changedFiles !== undefined) {
       changed = [...options.changedFiles].map((p) => p.replace(/\\/g, "/"));
@@ -731,8 +738,9 @@ export function evaluateScopeProvenance(
         discoveryBaseRef = options.baseRef;
       } else {
         try {
-          discoveryBaseRef = resolveDefaultBaseRef(root);
-        } catch {
+          discoveryBaseRef = resolveDefaultBaseRef(root, runner);
+        } catch (err) {
+          if (err instanceof GitCallTimeoutError) throw err;
           discoveryBaseRef = null;
         }
       }
@@ -741,7 +749,7 @@ export function evaluateScopeProvenance(
       // committed PR diffs on clean checkouts (#3145 Greptile P1).
       let baseRef = options.baseRef;
       if (baseRef === undefined || baseRef === "" || baseRef === "HEAD") {
-        const resolved = resolveDefaultBaseRef(root);
+        const resolved = resolveDefaultBaseRef(root, runner);
         if (resolved === null) {
           // Greenfield / single-commit consumer trees often have no origin/* and no
           // default-branch ref yet. Fail closed only when the caller demanded an
@@ -760,7 +768,8 @@ export function evaluateScopeProvenance(
         baseRef = resolved;
       }
       discoveryBaseRef = baseRef;
-      changed = changedFilesVsBase(root, baseRef);
+      announce("change-set read");
+      changed = changedFilesVsBase(root, baseRef, runner);
     }
   } catch (err: unknown) {
     if (err instanceof GitNotFoundError) {
@@ -834,7 +843,13 @@ export function evaluateScopeProvenance(
     }
   }
 
+  // One in-run text map (#6378 item 6): texts the census read, keyed by ref and
+  // normalised path. Lives for this evaluate only; nothing is cached between runs.
+  const censusTexts = new Map<string, string>();
+  const censusTextKey = (ref: string, rel: string): string => `${ref}\u0000${gitShowPath(rel)}`;
+
   // Shared readAtBase for admission + per-story evaluation (#5412 / #5192).
+  // Injected sources keep their precedence over the in-run map.
   const readAtBase = (baseRel: string): BaseBriefReadLocal => {
     if (options.baseXbriefs !== undefined) {
       const injected = options.baseXbriefs.get(normalizeRepoRelPath(baseRel));
@@ -852,7 +867,9 @@ export function evaluateScopeProvenance(
       }
     }
     if (discoveryBaseRef === null || discoveryBaseRef === "") return { kind: "missing" };
-    const read = readRepoFileAtRef(root, discoveryBaseRef, baseRel);
+    const kept = censusTexts.get(censusTextKey(discoveryBaseRef, baseRel));
+    if (kept !== undefined) return { kind: "text", text: kept };
+    const read = readRepoFileAtRef(root, discoveryBaseRef, baseRel, runner);
     if (read.status === "ok") return { kind: "text", text: read.text };
     if (read.status === "missing") return { kind: "missing" };
     return { kind: "error", message: read.message };
@@ -877,12 +894,33 @@ export function evaluateScopeProvenance(
     }
     if (changedFilesInjected) return;
     if (discoveryBaseRef === null || discoveryBaseRef === "") return;
+    const censusRef = discoveryBaseRef;
+    // Batch only for live reads: an injected reader keeps its precedence (#6378 item 6).
+    const live = options.readAtBase === undefined;
+    const previousPhase = runner.setPhase("census");
     try {
-      const listed = listLifecycleBriefsAtRef(root, discoveryBaseRef, readAtBase);
+      const listed = listLifecycleBriefsAtRef({
+        git: runner,
+        projectRoot: root,
+        baseRef: censusRef,
+        readAtBase,
+        batch: live && options.censusBatch !== false,
+        onListed: (count) => options.onPhase?.(`census (${String(count)} briefs)`),
+        ...(live
+          ? {
+              keep: (rel: string, text: string) =>
+                censusTexts.set(censusTextKey(censusRef, rel), text),
+            }
+          : {}),
+      });
       if (listed.kind === "ok") admissionCensus = listed.briefs;
       else admissionCensusReadFailed = true;
-    } catch {
+    } catch (err) {
+      // A per-call timeout is its own error kind, never a census read failure (#6378 item 8).
+      if (err instanceof GitCallTimeoutError) throw err;
       admissionCensusReadFailed = true;
+    } finally {
+      runner.setPhase(previousPhase);
     }
   };
   if (options.baseXbriefs !== undefined) ensureAdmissionCensus();
@@ -992,12 +1030,12 @@ export function evaluateScopeProvenance(
       return readAtBase(PROJECT_DEFINITION_REL_PATH);
     }
     if (discoveryBaseRef === null || discoveryBaseRef === "") return { kind: "missing" };
-    const mb = git(["merge-base", discoveryBaseRef, "HEAD"], root);
+    const mb = git(["merge-base", discoveryBaseRef, "HEAD"], root, runner);
     const sha = mb.stdout.trim();
     if (mb.status !== 0 || sha.length === 0) {
       return { kind: "error", message: `git merge-base ${discoveryBaseRef} HEAD failed` };
     }
-    const read = readRepoFileAtRef(root, sha, PROJECT_DEFINITION_REL_PATH);
+    const read = readRepoFileAtRef(root, sha, PROJECT_DEFINITION_REL_PATH, runner);
     if (read.status === "ok") return { kind: "text", text: read.text };
     if (read.status === "missing") return { kind: "missing" };
     return { kind: "error", message: read.message };
@@ -1038,6 +1076,7 @@ export function evaluateScopeProvenance(
       return null;
     }
   };
+  announce("per-story evaluation");
   for (const { rel, raw } of activeEntries) {
     const modifiedEarly = changedSetHasPath(changedSet, rel);
     let payload: unknown;
@@ -1130,6 +1169,7 @@ export function evaluateScopeProvenance(
           xbriefRelPath: rel,
           currentDigest,
           currentApproved: approved,
+          git: runner,
         });
         if (!baseAuthorizes) {
           approvalDiskOnly = true;
@@ -1533,7 +1573,10 @@ export function evaluateScopeProvenance(
     ) {
       const verdict = evaluateForgeHeadBriefApproval({
         projectRoot: root,
-        context: options.forgeApproval,
+        context:
+          options.forgeApproval.git !== undefined
+            ? options.forgeApproval
+            : { ...options.forgeApproval, git: forgeApprovalGitFromRunner(root, runner) },
         xbriefRelPath: rel,
         headPayload: payload,
       });
