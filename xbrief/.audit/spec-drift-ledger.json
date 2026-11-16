@@ -258,6 +258,12 @@
       "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
       "specImpact": null,
       "completedAt": "2026-11-16T21:34:32Z"
+    },
+    {
+      "scopeId": "github.issue.6426715570",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T22:43:04Z"
     }
   ],
   "coverage": [],
