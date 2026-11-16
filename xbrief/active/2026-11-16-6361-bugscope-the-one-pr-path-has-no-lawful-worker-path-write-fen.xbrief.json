@@ -1,0 +1,979 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6361",
+    "updated": "2026-11-16T04:06:33Z"
+  },
+  "plan": {
+    "title": "bug(scope): the one-PR path has no lawful worker path (write fence reads the merge base; swarm:launch needs origin; no task alias)",
+    "status": "running",
+    "narratives": {
+      "Description": "The #6273 one-PR path has no lawful worker path: the #5656 write fence reads a brief's file_scope only from the merge base, so a one-PR brief gets an empty fence; swarm:launch refuses a brief absent from origin/<deliveryBranch>; and tasks/policy.yml has no set-one-pr-scope-proof alias. This story lets the existing one-PR mint proof (evaluateOnePrScopeProofGate plus evaluateMintLevelRecord) stand in for the merge-base read in one shared fence loader and in the swarm:launch origin probe, adds the task alias and corrects the control wording. It adds no new gate, command, approval or stop; the bound contract is successor lean comment 6906450838 on #6361, with the verified-claims table in comment 6906496136.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6361",
+      "Overview": "\n1. One fence loader. Behind the existing `loadStoryWriteFence` seam, the loader returns the merge-base brief's fence when the brief exists on the merge base (unchanged). When the brief is absent there, it returns the working-tree brief's `file_scope` only if `evaluateOnePrScopeProofGate` (PROJECT-DEFINITION at the fence's own resolved merge-base SHA against the head copy) returns `mint` and `evaluateMintLevelRecord` admits the head record, intent preimage and brief. Any other result is today's empty fence. Every caller uses this one loader: `hooks/scope.ts` positive allow and the eligible partition, and the three defaults in `hooks/dispatcher.ts`.\n2. No stale admission. A mint-admitted fence is not served from the memo keyed on the merge-base SHA. It is evaluated again on each call, or keyed on the digests of the head brief, record, intent preimage and PROJECT-DEFINITION. The hook path fails closed and never throws.\n3. The record stays protected. The always-on protected-store deny on `.deft/approved-scope/` keeps running before story allow, so a mint-admitted `file_scope` that lists the record pair does not admit Write or Edit to those files.\n4. Honest deny text. When the merge-base level is `mint` and the selected brief is absent from the merge base, the #5656 deny prints the mint reject reason and names `scope:record-approved-scope`, not promote or activate.\n5. Launch from the pushed one-PR branch. When a selected brief is not a blob on `origin/<deliveryBranch>`, `swarm:launch` accepts it if it is a blob on `origin/<base-branch>` (the pushed one-PR branch passed as `--base-branch`) and the same two evaluators admit it at that ref's tip against its merge base with the delivery branch. The dest worktree is created from that ref. No brief or record bytes are copied. Finalize and fresh-clone rules of #4714 are unchanged.\n6. Task alias. `tasks/policy.yml` gains `set-one-pr-scope-proof`, in the same shape as `set-spec-guard-enforcement`.\n7. Control wording. `MINT_LEVEL_LOCAL_CONTROL_LINE` and `content/docs/scope-provenance.md` name the control without a human merge as the local mint gate plus the protected-store deny on `.deft/approved-scope/`, and say that the shell-write residual (#3597, #3595) also reaches local scope admission.\n\n\n",
+      "Constraint": "- Calling the whole provenance evaluator from the per-write hook, or a second copy of the admit checks (comment 6906425592 finding 1).\n- Copying the brief or the record from the operator's working tree into the dest (comments 6906390344 finding 1 and 6906425592 finding 3).\n- A new approval, signature or human stop for the worker path. The signed level stays on #5862.\n- Reading the working-tree brief whenever `DEFT_ACTIVE_SCOPE` is set, with the mint optional.\n- Admitting a head brief that widens a brief already on the merge base. That stays with #4956.",
+      "Labels": "bug, design-critique:ingest-ready",
+      "UserStory": "As a worker on a one-PR story, I want the write fence and swarm:launch to accept a brief covered by a valid one-PR mint, so that the story ships in one PR without a hand-applied patch or a separate activation PR.",
+      "ImplementationPlan": "1. packages/core/src/policy/write-fence.ts: behind the loadStoryWriteFence seam, keep the merge-base fence when the brief exists on the merge base; when it is absent, return the working-tree file_scope only when evaluateOnePrScopeProofGate (PROJECT-DEFINITION at the fence's resolved merge-base SHA against the head copy) returns mint and evaluateMintLevelRecord admits the head record, intent preimage and brief; otherwise return the empty fence. Do not serve a mint-admitted fence from the merge-base-SHA memo (evaluate per call, or key on the head brief, record, intent preimage and PROJECT-DEFINITION digests). Fail closed; never throw on the hook path.\n2. packages/core/src/hooks/dispatcher.ts and packages/core/src/hooks/scope.ts: route the scope.ts positive allow and eligible partition and the three dispatcher defaults through that one loader. Keep the always-on protected-store deny on .deft/approved-scope/ before story allow. When the merge-base level is mint and the brief is absent there, the #5656 deny prints the mint reject reason and names scope:record-approved-scope, not promote or activate.\n3. packages/core/src/swarm/origin-active-brief.ts and packages/core/src/swarm/launch.ts: when a brief is not a blob on origin/<deliveryBranch>, accept it if it is a blob on origin/<base-branch> and the same two evaluators admit it at that tip against its merge base with the delivery branch; create the dest worktree from that ref; copy no brief or record bytes. The #4714 finalize and fresh-clone rules stay unchanged.\n4. tasks/policy.yml: add set-one-pr-scope-proof in the same engine:invoke shape as set-spec-guard-enforcement.\n5. packages/core/src/policy/one-pr-scope-proof.ts (MINT_LEVEL_LOCAL_CONTROL_LINE) and content/docs/scope-provenance.md: name the no-human-merge control as the local mint gate plus the protected-store deny on .deft/approved-scope/, and state that the shell-write residual (#3597, #3595) also reaches local scope admission.\n6. Tests as evidence for every clause: write-fence.test.ts, dispatcher-write-gate.test.ts, dispatcher-spawn-dest.test.ts, dispatcher-active-scope.test.ts, scope.test.ts, one-pr-scope-proof.test.ts, origin-active-brief.test.ts, launch.test.ts and a new taskfile_policy_one_pr_alias.test.ts; run the swarm verify_commands. One CHANGELOG.md [Unreleased] line.\nRejects (Constraint): no call of the whole provenance evaluator from the per-write hook and no second copy of the admit checks; no brief or record copy into the dest; no new approval, signature or human stop; no working-tree read on DEFT_ACTIVE_SCOPE alone; no head brief that widens a merge-base brief (#4956).",
+      "Traces": "#6361, #6273, #6354, #6327, #5656, #4714"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "One fence loader.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the fence loader, when any caller asks for a story fence, then it returns one shared loader result through the existing loadStoryWriteFence seam."
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "Behind the existing `loadStoryWriteFence` seam, the loader returns the merge-base brief's fence when the brief exists on the merge base (unchanged).",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a brief that exists on the merge base, when the fence loads, then it returns the merge-base file_scope exactly as today."
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "When the brief is absent there, it returns the working-tree brief's `file_scope` only if `evaluateOnePrScopeProofGate` (PROJECT-DEFINITION at the fence's own resolved merge-base SHA against the head copy) returns `mint` and `evaluateMintLevelRecord` admits the head record, intent preimage and brief.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a brief absent from the merge base, when the merge-base level is mint and evaluateMintLevelRecord admits the head record, intent preimage and brief, then the fence returns the working-tree file_scope."
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "Any other result is today's empty fence.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a brief absent from the merge base and any gate or record result other than an admit, when the fence loads, then it returns today's empty fence."
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "Every caller uses this one loader: `hooks/scope.ts` positive allow and the eligible partition, and the three defaults in `hooks/dispatcher.ts`.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the scope.ts positive allow, the eligible partition and the three dispatcher defaults, when each loads a fence, then each calls the one shared loader and returns the same fence."
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "No stale admission.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a mint-admitted fence, when the head brief, record, intent preimage or PROJECT-DEFINITION changes, then the next load returns the changed result and never a stale admit."
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "A mint-admitted fence is not served from the memo keyed on the merge-base SHA.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a mint-admitted fence, when the fence loads twice at the same merge-base SHA, then the second load does not return a memo keyed on that SHA alone."
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "It is evaluated again on each call, or keyed on the digests of the head brief, record, intent preimage and PROJECT-DEFINITION.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a mint-admitted fence, when it loads, then it is evaluated again on each call or keyed on the head brief, record, intent preimage and PROJECT-DEFINITION digests."
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "The hook path fails closed and never throws.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a loader error or unreadable record, when the hook path loads the fence, then it fails closed with a deny and never throws."
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "The record stays protected.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a mint-admitted file_scope, when Write or Edit targets the approved-scope record pair, then the hook rejects the write."
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "The always-on protected-store deny on `.deft/approved-scope/` keeps running before story allow, so a mint-admitted `file_scope` that lists the record pair does not admit Write or Edit to those files.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a mint-admitted file_scope that lists the record pair, when Write or Edit targets those files, then the protected-store deny runs before story allow and rejects the write."
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "Honest deny text.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a merge-base level of mint and a brief absent from the merge base, when the #5656 deny fires, then it shows the mint reject reason."
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "When the merge-base level is `mint` and the selected brief is absent from the merge base, the #5656 deny prints the mint reject reason and names `scope:record-approved-scope`, not promote or activate.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a merge-base level of mint and a selected brief absent from the merge base, when the #5656 deny fires, then the text names scope:record-approved-scope and not promote or activate."
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "Launch from the pushed one-PR branch.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a one-PR brief on a pushed branch, when swarm:launch runs with that branch as --base-branch, then the launch proceeds from that branch."
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "When a selected brief is not a blob on `origin/<deliveryBranch>`, `swarm:launch` accepts it if it is a blob on `origin/<base-branch>` (the pushed one-PR branch passed as `--base-branch`) and the same two evaluators admit it at that ref's tip against its merge base with the delivery branch.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a brief that is not a blob on origin/<deliveryBranch>, when it is a blob on origin/<base-branch> and both evaluators admit it at that tip, then the origin probe returns present."
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "The dest worktree is created from that ref.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given an accepted one-PR brief, when swarm:launch creates the dest worktree, then the worktree is created from the origin/<base-branch> ref."
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "No brief or record bytes are copied.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given an accepted one-PR brief, when swarm:launch creates the dest worktree, then it copies no brief or record bytes from the operator working tree."
+        }
+      },
+      {
+        "id": "clause.18",
+        "title": "Finalize and fresh-clone rules of #4714 are unchanged.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a brief already on origin/<deliveryBranch>, when swarm:launch and finalize run, then the #4714 finalize and fresh-clone rules behave as today."
+        }
+      },
+      {
+        "id": "clause.19",
+        "title": "Task alias.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given this repo, when an operator runs task policy:set-one-pr-scope-proof, then the task forwards to the deft verb and returns its exit code."
+        }
+      },
+      {
+        "id": "clause.20",
+        "title": "`tasks/policy.yml` gains `set-one-pr-scope-proof`, in the same shape as `set-spec-guard-enforcement`.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given tasks/policy.yml, when the alias test reads it, then set-one-pr-scope-proof forwards via engine:invoke in the set-spec-guard-enforcement shape."
+        }
+      },
+      {
+        "id": "clause.21",
+        "title": "Control wording.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a mint-level admit without a human merge, when verify:scope-provenance prints the control line, then it names the local mint gate and the protected-store deny."
+        }
+      },
+      {
+        "id": "clause.22",
+        "title": "`MINT_LEVEL_LOCAL_CONTROL_LINE` and `content/docs/scope-provenance.md` name the control without a human merge as the local mint gate plus the protected-store deny on `.deft/approved-scope/`, and say that the shell-write residual (#3597, #3595) also reaches local scope admission.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given MINT_LEVEL_LOCAL_CONTROL_LINE and content/docs/scope-provenance.md, when read, then both name the local mint gate plus the protected-store deny and state the shell-write residual (#3597, #3595) reaches local scope admission."
+        }
+      },
+      {
+        "id": "clause.23",
+        "title": "Given a running one-PR brief that is absent from the merge base and covered by a valid mint, when a worker edits a path inside its `file_scope` with Write or Edit, then the write fence admits the edit.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a running one-PR brief that is absent from the merge base and covered by a valid mint, when a worker edits a path inside its `file_scope` with Write or Edit, then the write fence admits the edit."
+        }
+      },
+      {
+        "id": "clause.24",
+        "title": "Given the same brief, when an edit targets a path outside its `file_scope`, then the fence refuses the edit.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the same brief, when an edit targets a path outside its `file_scope`, then the fence refuses the edit."
+        }
+      },
+      {
+        "id": "clause.25",
+        "title": "Given the same brief, when the brief is edited after the mint, then the next Write is refused with the mint reject reason.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the same brief, when the brief is edited after the mint, then the next Write is refused with the mint reject reason."
+        }
+      },
+      {
+        "id": "clause.26",
+        "title": "Given a mint-admitted `file_scope` that lists `.deft/approved-scope/<plan-id>.json`, when Write or Edit targets that file, then the write is refused.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a mint-admitted `file_scope` that lists `.deft/approved-scope/<plan-id>.json`, when Write or Edit targets that file, then the write is refused."
+        }
+      },
+      {
+        "id": "clause.27",
+        "title": "Given a merge base whose one-PR level is off, when a brief is absent from the merge base, then the fence result is the same as today.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a merge base whose one-PR level is off, when a brief is absent from the merge base, then the fence result is the same as today."
+        }
+      },
+      {
+        "id": "clause.28",
+        "title": "Given a head that changes `onePrScopeProof` or `requireHumanMerge`, when the fence loads, then the head brief is not admitted.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a head that changes `onePrScopeProof` or `requireHumanMerge`, when the fence loads, then the head brief is not admitted."
+        }
+      },
+      {
+        "id": "clause.29",
+        "title": "Given a brief that exists on the merge base, when the fence loads, then the merge-base `file_scope` is used and the head copy is ignored.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a brief that exists on the merge base, when the fence loads, then the merge-base `file_scope` is used and the head copy is ignored."
+        }
+      },
+      {
+        "id": "clause.30",
+        "title": "Given a mint-admitted brief, when implement spawn and brief selection run, then they reach the same admit as Write.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a mint-admitted brief, when implement spawn and brief selection run, then they reach the same admit as Write."
+        }
+      },
+      {
+        "id": "clause.31",
+        "title": "Given a one-PR brief on a pushed branch and absent from `origin/<deliveryBranch>`, when `swarm:launch` runs with that branch as `--base-branch`, then the launch proceeds and the dest worktree holds the brief and the record pair.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a one-PR brief on a pushed branch and absent from `origin/<deliveryBranch>`, when `swarm:launch` runs with that branch as `--base-branch`, then the launch proceeds and the dest worktree holds the brief and the record pair."
+        }
+      },
+      {
+        "id": "clause.32",
+        "title": "Given a brief that is on neither ref, when `swarm:launch` runs, then the launch refuses as today.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a brief that is on neither ref, when `swarm:launch` runs, then the launch refuses as today."
+        }
+      },
+      {
+        "id": "clause.33",
+        "title": "`task policy:set-one-pr-scope-proof` runs the `deft` verb in this repo.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given this repo, when task policy:set-one-pr-scope-proof runs, then it forwards to the deft policy set-one-pr-scope-proof verb and returns that verb's exit code."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6361",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6361: bug(scope): the one-PR path has no lawful worker path (write fence reads the merge base; swarm:launch needs origin; no task alias)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6273",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6273"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6354",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6354"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6327",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6327"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 33 clauses before product edit (#3323): the 22 Bound-remedy sentences of successor lean 6906450838 and its 11 Acceptance Criteria, which cover the issue body's 4 Acceptance Criteria",
+      "sentences": [
+        "One fence loader.",
+        "Behind the existing `loadStoryWriteFence` seam, the loader returns the merge-base brief's fence when the brief exists on the merge base (unchanged).",
+        "When the brief is absent there, it returns the working-tree brief's `file_scope` only if `evaluateOnePrScopeProofGate` (PROJECT-DEFINITION at the fence's own resolved merge-base SHA against the head copy) returns `mint` and `evaluateMintLevelRecord` admits the head record, intent preimage and brief.",
+        "Any other result is today's empty fence.",
+        "Every caller uses this one loader: `hooks/scope.ts` positive allow and the eligible partition, and the three defaults in `hooks/dispatcher.ts`.",
+        "No stale admission.",
+        "A mint-admitted fence is not served from the memo keyed on the merge-base SHA.",
+        "It is evaluated again on each call, or keyed on the digests of the head brief, record, intent preimage and PROJECT-DEFINITION.",
+        "The hook path fails closed and never throws.",
+        "The record stays protected.",
+        "The always-on protected-store deny on `.deft/approved-scope/` keeps running before story allow, so a mint-admitted `file_scope` that lists the record pair does not admit Write or Edit to those files.",
+        "Honest deny text.",
+        "When the merge-base level is `mint` and the selected brief is absent from the merge base, the #5656 deny prints the mint reject reason and names `scope:record-approved-scope`, not promote or activate.",
+        "Launch from the pushed one-PR branch.",
+        "When a selected brief is not a blob on `origin/<deliveryBranch>`, `swarm:launch` accepts it if it is a blob on `origin/<base-branch>` (the pushed one-PR branch passed as `--base-branch`) and the same two evaluators admit it at that ref's tip against its merge base with the delivery branch.",
+        "The dest worktree is created from that ref.",
+        "No brief or record bytes are copied.",
+        "Finalize and fresh-clone rules of #4714 are unchanged.",
+        "Task alias.",
+        "`tasks/policy.yml` gains `set-one-pr-scope-proof`, in the same shape as `set-spec-guard-enforcement`.",
+        "Control wording.",
+        "`MINT_LEVEL_LOCAL_CONTROL_LINE` and `content/docs/scope-provenance.md` name the control without a human merge as the local mint gate plus the protected-store deny on `.deft/approved-scope/`, and say that the shell-write residual (#3597, #3595) also reaches local scope admission.",
+        "Given a running one-PR brief that is absent from the merge base and covered by a valid mint, when a worker edits a path inside its `file_scope` with Write or Edit, then the write fence admits the edit.",
+        "Given the same brief, when an edit targets a path outside its `file_scope`, then the fence refuses the edit.",
+        "Given the same brief, when the brief is edited after the mint, then the next Write is refused with the mint reject reason.",
+        "Given a mint-admitted `file_scope` that lists `.deft/approved-scope/<plan-id>.json`, when Write or Edit targets that file, then the write is refused.",
+        "Given a merge base whose one-PR level is off, when a brief is absent from the merge base, then the fence result is the same as today.",
+        "Given a head that changes `onePrScopeProof` or `requireHumanMerge`, when the fence loads, then the head brief is not admitted.",
+        "Given a brief that exists on the merge base, when the fence loads, then the merge-base `file_scope` is used and the head copy is ignored.",
+        "Given a mint-admitted brief, when implement spawn and brief selection run, then they reach the same admit as Write.",
+        "Given a one-PR brief on a pushed branch and absent from `origin/<deliveryBranch>`, when `swarm:launch` runs with that branch as `--base-branch`, then the launch proceeds and the dest worktree holds the brief and the record pair.",
+        "Given a brief that is on neither ref, when `swarm:launch` runs, then the launch refuses as today.",
+        "`task policy:set-one-pr-scope-proof` runs the `deft` verb in this repo."
+      ],
+      "admitted_source_sentences": [
+        "One fence loader.",
+        "Behind the existing `loadStoryWriteFence` seam, the loader returns the merge-base brief's fence when the brief exists on the merge base (unchanged).",
+        "When the brief is absent there, it returns the working-tree brief's `file_scope` only if `evaluateOnePrScopeProofGate` (PROJECT-DEFINITION at the fence's own resolved merge-base SHA against the head copy) returns `mint` and `evaluateMintLevelRecord` admits the head record, intent preimage and brief.",
+        "Any other result is today's empty fence.",
+        "Every caller uses this one loader: `hooks/scope.ts` positive allow and the eligible partition, and the three defaults in `hooks/dispatcher.ts`.",
+        "No stale admission.",
+        "A mint-admitted fence is not served from the memo keyed on the merge-base SHA.",
+        "It is evaluated again on each call, or keyed on the digests of the head brief, record, intent preimage and PROJECT-DEFINITION.",
+        "The hook path fails closed and never throws.",
+        "The record stays protected.",
+        "The always-on protected-store deny on `.deft/approved-scope/` keeps running before story allow, so a mint-admitted `file_scope` that lists the record pair does not admit Write or Edit to those files.",
+        "Honest deny text.",
+        "When the merge-base level is `mint` and the selected brief is absent from the merge base, the #5656 deny prints the mint reject reason and names `scope:record-approved-scope`, not promote or activate.",
+        "Launch from the pushed one-PR branch.",
+        "When a selected brief is not a blob on `origin/<deliveryBranch>`, `swarm:launch` accepts it if it is a blob on `origin/<base-branch>` (the pushed one-PR branch passed as `--base-branch`) and the same two evaluators admit it at that ref's tip against its merge base with the delivery branch.",
+        "The dest worktree is created from that ref.",
+        "No brief or record bytes are copied.",
+        "Finalize and fresh-clone rules of #4714 are unchanged.",
+        "Task alias.",
+        "`tasks/policy.yml` gains `set-one-pr-scope-proof`, in the same shape as `set-spec-guard-enforcement`.",
+        "Control wording.",
+        "`MINT_LEVEL_LOCAL_CONTROL_LINE` and `content/docs/scope-provenance.md` name the control without a human merge as the local mint gate plus the protected-store deny on `.deft/approved-scope/`, and say that the shell-write residual (#3597, #3595) also reaches local scope admission."
+      ],
+      "admitted_source_digest": "be7b8de8b733992002d1ed743d047c85e5ede4f47ae3d37dd45c66f1075cecb5",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "One fence loader.",
+          "artifact_path": "packages/core/src/policy/write-fence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Behind the existing `loadStoryWriteFence` seam, the loader returns the merge-base brief's fence when the brief exists on the merge base (unchanged).",
+          "artifact_path": "packages/core/src/policy/write-fence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When the brief is absent there, it returns the working-tree brief's `file_scope` only if `evaluateOnePrScopeProofGate` (PROJECT-DEFINITION at the fence's own resolved merge-base SHA against the head copy) returns `mint` and `evaluateMintLevelRecord` admits the head record, intent preimage and brief.",
+          "artifact_path": "packages/core/src/policy/write-fence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Any other result is today's empty fence.",
+          "artifact_path": "packages/core/src/policy/write-fence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Every caller uses this one loader: `hooks/scope.ts` positive allow and the eligible partition, and the three defaults in `hooks/dispatcher.ts`.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "No stale admission.",
+          "artifact_path": "packages/core/src/policy/write-fence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "A mint-admitted fence is not served from the memo keyed on the merge-base SHA.",
+          "artifact_path": "packages/core/src/policy/write-fence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "It is evaluated again on each call, or keyed on the digests of the head brief, record, intent preimage and PROJECT-DEFINITION.",
+          "artifact_path": "packages/core/src/policy/write-fence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "The hook path fails closed and never throws.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "The record stays protected.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "The always-on protected-store deny on `.deft/approved-scope/` keeps running before story allow, so a mint-admitted `file_scope` that lists the record pair does not admit Write or Edit to those files.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Honest deny text.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "When the merge-base level is `mint` and the selected brief is absent from the merge base, the #5656 deny prints the mint reject reason and names `scope:record-approved-scope`, not promote or activate.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Launch from the pushed one-PR branch.",
+          "artifact_path": "packages/core/src/swarm/launch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "When a selected brief is not a blob on `origin/<deliveryBranch>`, `swarm:launch` accepts it if it is a blob on `origin/<base-branch>` (the pushed one-PR branch passed as `--base-branch`) and the same two evaluators admit it at that ref's tip against its merge base with the delivery branch.",
+          "artifact_path": "packages/core/src/swarm/origin-active-brief.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "The dest worktree is created from that ref.",
+          "artifact_path": "packages/core/src/swarm/launch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "No brief or record bytes are copied.",
+          "artifact_path": "packages/core/src/swarm/launch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Finalize and fresh-clone rules of #4714 are unchanged.",
+          "artifact_path": "packages/core/src/swarm/origin-active-brief.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Task alias.",
+          "artifact_path": "tasks/policy.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "`tasks/policy.yml` gains `set-one-pr-scope-proof`, in the same shape as `set-spec-guard-enforcement`.",
+          "artifact_path": "tasks/policy.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "Control wording.",
+          "artifact_path": "packages/core/src/policy/one-pr-scope-proof.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "`MINT_LEVEL_LOCAL_CONTROL_LINE` and `content/docs/scope-provenance.md` name the control without a human merge as the local mint gate plus the protected-store deny on `.deft/approved-scope/`, and say that the shell-write residual (#3597, #3595) also reaches local scope admission.",
+          "artifact_path": "packages/core/src/policy/one-pr-scope-proof.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "Given a running one-PR brief that is absent from the merge base and covered by a valid mint, when a worker edits a path inside its `file_scope` with Write or Edit, then the write fence admits the edit.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-write-gate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "Given the same brief, when an edit targets a path outside its `file_scope`, then the fence refuses the edit.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-write-gate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "Given the same brief, when the brief is edited after the mint, then the next Write is refused with the mint reject reason.",
+          "artifact_path": "packages/core/src/policy/write-fence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "Given a mint-admitted `file_scope` that lists `.deft/approved-scope/<plan-id>.json`, when Write or Edit targets that file, then the write is refused.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-write-gate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 27,
+          "text": "Given a merge base whose one-PR level is off, when a brief is absent from the merge base, then the fence result is the same as today.",
+          "artifact_path": "packages/core/src/policy/write-fence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 28,
+          "text": "Given a head that changes `onePrScopeProof` or `requireHumanMerge`, when the fence loads, then the head brief is not admitted.",
+          "artifact_path": "packages/core/src/policy/write-fence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 29,
+          "text": "Given a brief that exists on the merge base, when the fence loads, then the merge-base `file_scope` is used and the head copy is ignored.",
+          "artifact_path": "packages/core/src/policy/write-fence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 30,
+          "text": "Given a mint-admitted brief, when implement spawn and brief selection run, then they reach the same admit as Write.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 31,
+          "text": "Given a one-PR brief on a pushed branch and absent from `origin/<deliveryBranch>`, when `swarm:launch` runs with that branch as `--base-branch`, then the launch proceeds and the dest worktree holds the brief and the record pair.",
+          "artifact_path": "packages/core/src/swarm/launch.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 32,
+          "text": "Given a brief that is on neither ref, when `swarm:launch` runs, then the launch refuses as today.",
+          "artifact_path": "packages/core/src/swarm/origin-active-brief.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 33,
+          "text": "`task policy:set-one-pr-scope-proof` runs the `deft` verb in this repo.",
+          "artifact_path": "tasks/policy.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6361; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes what the Write/Edit fence and `swarm:launch` trust: both would accept a brief that is not on the merge base, on the strength of a mint record that CI cannot tell from a file an agent wrote.\n\nTarget-digest: sha256:1d59c1a24634bb687a6f29e5c5c2c5b986b6d5b7283ba4db144199df1e928eb2\ndispatch-sha: cfa3ce1fcae5d661ed79baab1fd85c04cc244707\ndest: .deft-scratch/worktrees/arc-6361 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: refutation\nrefutation-target: a same-PR mint record that `verify:scope-provenance` admits through `resolveOnePrGate` can stand in for the merge-base `file_scope` read at the Write/Edit fence and at `swarm:launch`, with no new check, and without letting an agent admit its own scope.\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: panel permission used. The target changes the trust anchor of the write fence for every worker (high blast radius). The operator handoff for this arc asks for a cross-family panel.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show cfa3ce1fcae5d661ed79baab1fd85c04cc244707: + dest cwd-without-occupy\ndual-stop-reserved: 1\npain: P1, P2, P3, P4\n\n## In plain English\nThe one-PR path lets a maintainer land a new brief and its code in one pull request. CI accepts it through a human-presence mint record carried in the same PR. But the worker that must write the code is stopped earlier. The local write fence reads the brief's allowed paths from the merge base, and a one-PR brief is not there by design. The fence's own recovery advice (promote, activate) rewrites the brief and voids the mint. `swarm:launch` also refuses, because it wants the brief on the delivery branch. The issue proposes that both places accept the proof CI already accepts, with no new check. The open question is whether that proof is safe to reuse locally: the mint is a file, the fence exists to stop an agent from widening its own scope, and the one-PR code names the fence as the control for the mint.\n\n## Pains\n- P1 — A worker on a running one-PR brief cannot make product edits with Write/Edit. The fence reads `file_scope` from the merge base, where the brief is absent, and the printed recovery voids the mint.\n- P2 — `swarm:launch` refuses a one-PR brief because it requires the active brief on fetched `origin/<deliveryBranch>`.\n- P3 — `task policy:set-one-pr-scope-proof` fails in this repo because `tasks/policy.yml` has no alias for the `deft` verb.\n- P4 — A fix must not let an agent admit its own scope. The mint has to stay human-origin at the place that admits the write.\n\n## Anchors at the dispatch SHA (claims, to be re-verified)\n- `packages/core/src/policy/write-fence.ts` `loadStoryWriteFenceFromMergeBase`: reads `file_scope` from the merge-base brief and \"never uses the working-tree head brief as authority\"; a brief missing on the merge base gives an empty story fence.\n- `packages/core/src/hooks/scope.ts`: a selected brief without positive governing allow is denied for Write and implement spawn (#5656), with promote / activate as the recovery text; the loader is the merge-base loader.\n- `packages/core/src/scope-provenance/evaluate.ts` `resolveOnePrGate` and `evaluateMintLevelRecord`: level and `requireHumanMerge` come from the merge base; the admit needs a co-changed approved-scope record with a human stamp that names exactly the head brief's scope.\n- `packages/core/src/policy/one-pr-scope-proof.ts` header: CI cannot tell a real mint from a file an agent wrote; without a merge-base human merge \"the control is the local mint gate and the write fence\".\n- `packages/core/src/swarm/origin-active-brief.ts` `originActiveBriefPresent`: requires a blob at `origin/<deliveryBranch>:<brief>`.\n- `tasks/policy.yml`: has `set-spec-guard-enforcement`; no `set-one-pr-scope-proof`. The verb is routed in `packages/runtime/src/cli-router/route-argv.ts`.\n\n## Operator direction recorded for this arc\nThe operator wants Directive to run more smoothly. A fix that removes steps, PRs and stops is preferred to one that adds a gate.\n\n",
+          "id": 6906343816,
+          "html_url": "https://github.com/deftai/directive/issues/6361#issuecomment-6906343816",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T03:19:52Z",
+          "updated_at": "2026-11-16T03:19:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 6906347848\nseat: claude launcher: claude-code-native-subagent (model opus)\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\nseat: grok launcher: grok (--cwd dest --prompt-file --permission-mode auto --disable-web-search --no-subagents)\n\ncharter: refutation\nspend: N≥3\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: cfa3ce1fcae5d661ed79baab1fd85c04cc244707\ndest: .deft-scratch/worktrees/arc-6361\nverification-path: pin-read git show cfa3ce1fcae5d661ed79baab1fd85c04cc244707: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6906343816\n\n## Launch posture (disclosed)\n- The parent is Claude Code. It does not use the playbook's bypass critic argv. Each seat uses a read-only launcher run against the dest.\n- Launch probe under the argv actually used: codex `--sandbox read-only` returned `pong` rc 0; grok `--permission-mode auto` returned `pong` rc 0. That proves launchability only, not method.\n- Codex and Grok seats have no GitHub access in that posture. They read a parent-written thread snapshot (issue body, Stop 1, this deposit) from the dest. The Claude seat returns its body to the parent. For all three seats the parent posts the critic's final message verbatim, with no edits. Grok plain output can print progress narration before the `model:` line; the parent strips only that narration.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 6906347848,
+          "html_url": "https://github.com/deftai/directive/issues/6361#issuecomment-6906347848",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T03:20:10Z",
+          "updated_at": "2026-11-16T03:20:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe worker is blocked because its approved brief exists only on its branch, while the write fence and launcher expect previously landed state.\n\nReusing the existing mint validation is viable under the repository’s aligned-agent threat model. However, the proposal is incomplete as written: launch must carry the approved brief and mint into the worker’s checkout, and the fence must validate current bytes without reusing a stale approval. The mint file alone does not establish human origin; the existing protection against agents writing approval records must remain independent.\n\nAll code citations below refer to dispatch SHA `cfa3ce1fcae5d661ed79baab1fd85c04cc244707`. Verification was read-only; no tests were run.\n\n### 1. blocks-the-design — Passing the origin check does not give the worker its approved scope\n\n**Evidence:** `packages/core/src/swarm/launch.ts:1657–1678` checks origin residency in the launcher’s project root. Later, lines `1877–1903` resolve mapped worktrees using `args.baseBranch`, defaulting to `master` (`packages/core/src/swarm/constants.ts:14`). `packages/core/src/swarm/worktrees.ts:170` creates the checkout from that base, and lines `293–304` reject an existing checkout whose HEAD differs from the requested base.\n\n**Failure mode:** The launcher accepts a mint and brief on a feature branch, then creates the worker checkout from master, which lacks both. Alternatively, an existing feature-branch worktree fails the default-base comparison. Replacing the origin-presence refusal alone therefore does not establish the promised lawful worker path.\n\n**Disposition:** Bind the launch exception to a concrete source revision containing the validated brief, record and intent preimage, and use that revision for worktree preparation. Existing `--base-branch` and worktree-map machinery may suffice; no separate approval ceremony is needed. Include this branch-to-worker handoff in acceptance coverage.\n\n### 2. blocks-the-design — The existing fence cache cannot safely cache mutable mint authority unchanged\n\n**Evidence:** `packages/core/src/policy/write-fence.ts:251–277` defines a five-second process-local cache. Lines `542–555` key the loaded fence by root, base reference, merge-base SHA, brief path and delivery annotation, returning a cached result before reading the brief. In contrast, `packages/core/src/policy/one-pr-scope-proof.ts:296–340` validates the head brief’s identity, scope, authorization hash and intent against the record.\n\n**Failure mode:** If the new head-derived fence uses the existing cache unchanged, a successful validation can remain usable after the local brief changes. The merge-base SHA and brief path remain identical, so a later write can receive the previously admitted scope even though current mint validation would reject the changed brief. This failure requires ordinary working-tree drift, not forged approval records.\n\n**Disposition:** Require the one-PR fence result to reflect the current validated inputs. Bypass this cache for mutable authority, or invalidate it using all authorization-relevant inputs. Preserve caching for immutable merge-base reads. This is part of integrating the existing validator, not a new required check.\n\n### 3. sharpens-framing — Human origin comes from the protected mint path, not `resolveOnePrGate`\n\n**Evidence:** `packages/core/src/scope-provenance/evaluate.ts:1006–1029` makes `resolveOnePrGate` a policy resolver; the separate record validation occurs at lines `1147–1164`. `packages/core/src/scope-provenance/digest.ts:231–251` checks human-stamp strings, not authenticated provenance. However, `packages/core/src/authz/evaluate.ts:363–388` independently denies protected-store mutations, including outside UAT, and `packages/core/src/hooks/dispatcher.ts:2757–2778` applies authorization before positive story-scope admission. `content/contracts/human-origin-authz.md:7–9` explicitly excludes credential-compromised local-file forgery.\n\n**Failure mode:** Treating a `mint` policy verdict—or a matching stamp—as sufficient authorization would omit necessary record checks. Treating an admitted `file_scope` as permission to rewrite `.deft/approved-scope/` would also destroy the independent control that makes local reuse defensible.\n\n**Disposition:** State the guarantee narrowly: reuse the complete policy-plus-record validation while preserving the protected-store denial ahead of scope admission. Do not claim that CI authenticates the mint.\n\nThe strongest case for the proposal is that this independent protection already exists, so circular trust is not inevitable. I would not require signatures or another human stop for the stated threat model. A broader guarantee against arbitrary local-file forgery would require different proof.",
+          "id": 6906390344,
+          "html_url": "https://github.com/deftai/directive/issues/6361#issuecomment-6906390344",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T03:23:11Z",
+          "updated_at": "2026-11-16T03:23:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe one-PR path can land a new brief and its code together when CI sees a same-PR mint. The worker that must write that code is stopped earlier: the Write/Edit fence and `swarm:launch` still want the brief on the merge base or delivery tip, where a one-PR brief is absent by design. The recorded target says those two places can reuse the same mint CI already admits, with no new check, and still stop an agent from admitting its own scope.\n\nThat conjunct does not hold. Reusing the mint as fence authority without a new check collapses the control #6354 named for the mint, and the documented one-PR recipe puts the mint files inside `file_scope`, so the first lawful admit would let Write rewrite the mint pair and widen scope. The pains are real; the “no new check” reuse claim is not a safe fix as stated.\n\n## 1. blocks-the-design — Mint paths inside `file_scope` turn fence-reuse into self-widen\n\n**Evidence (SHA `cfa3ce1fcae5d661ed79baab1fd85c04cc244707`):**\n- `content/docs/scope-provenance.md` lines 80–81: the one-PR recipe requires both `.deft/approved-scope/<plan-id>.json` and `<plan-id>.intent.json` in the brief’s `file_scope`.\n- `packages/core/src/policy/one-pr-scope-proof.ts` `evaluateMintLevelRecord` (289–347): admit is exact match of plan id, path, concrete `fileScope`, digests, `authHashV1`, intent preimage, and a human-*shaped* stamp; it does not re-run the #3110 TTY/`mint` phrase gate.\n- `packages/core/src/scope-provenance/digest.ts` `isHumanApprovalStamp` (232–252): shape check on `kind`/`actor` only.\n- `packages/core/src/policy/write-fence.ts` `loadStoryWriteFenceFromMergeBase` (511–517, 518–566): fence authority is merge-base brief bytes; missing brief → empty story fence.\n- `packages/core/src/hooks/scope.ts` (39–45, 332–336, 338–348): selected brief without positive governing allow denies Write/implement spawn; recovery text is promote/activate.\n\n**Failure mode:** Under the target, a valid mint makes the fence admit the brief’s `file_scope`. That list includes the mint record and intent preimage. After one real human mint, Write can rewrite brief + mint + intent together so hashes still match, keep `humanApproval.kind`/`actor` looking human, and pass the same `evaluateMintLevelRecord` checks. The fence then admits the widened product paths. No second human-presence ceremony runs. That is an agent admitting its own widened scope through the Write tool, using the proof the target reuses with no new check.\n\n**Disposition consequence:** The lean cannot bind the “no new check” + “without letting an agent admit its own scope” conjunct. A Bound remedy needs an explicit mint-immutability control (or another new check) before fence-reuse, or it must stop listing mint files inside the admitted allow set.\n\n## 2. blocks-the-design — Fence-as-mint-control and mint-as-fence-authority are circular\n\n**Evidence:**\n- `packages/core/src/policy/one-pr-scope-proof.ts` header (14–17) and `MINT_LEVEL_LOCAL_CONTROL_LINE` (63–67): when merge-base `requireHumanMerge` is not true, CI verifies nothing human; “the control is the local mint gate and the write fence”.\n- `packages/core/src/scope-provenance/evaluate.ts` (33–41): mint is membership authority; “The production fence still reads the merge-base brief.”\n- `content/docs/scope-provenance.md` (83–87): same control split; residual that shell writes bypass the fence on `.deft/approved-scope/` (#3597, #3595) is stated open.\n\n**Failure mode:** #6354 made the write fence part of the mint’s authenticity story under bot-merge. The target makes that same fence trust the mint for product allow. The two controls become one self-reference. With the documented shell residual, an agent can plant a matching mint pair outside the Write tool, then receive product Write/Edit admission from the reused proof. The membership/fence split in `evaluate.ts` is intentional today; collapsing it with “no new check” removes the local anti-self-auth control the mint level still claims.\n\n**Disposition consequence:** Refutation target fails as written. Prefer-A must either keep a fence authority that does not depend on the same-PR mint bytes, or add a new check that restores a non-circular control and say so in the contract.\n\n## 3. sharpens-framing — “Same proof” is not drop-in at fence or launch time\n\n**Evidence:**\n- `evaluateMintLevelRecord` / membership path in `evaluate.ts` (1141–1164): admit is change-set relative (`approvalRecordRewritten`, `changedFiles`, same-PR co-change of record + brief).\n- Write fence loader (`write-fence.ts` 511–566): per-write merge-base brief read; no PR change set.\n- `packages/core/src/swarm/origin-active-brief.ts` (13–51) and `launch.ts` (1530–1677): `swarm:launch` gates on `origin/<deliveryBranch>:<brief>` blob presence (#4714), with remediation “human-reviewed activation PR”.\n\n**Failure mode:** Calling the mint helper from the fence or launch is not “no new check.” Someone must define what counts as the local change set, which bytes are authoritative (index vs worktree vs HEAD), and how a launch carve-out relates to finalize/fresh-clone origin residency. Treating membership admit and #4714 tip presence as the same proof mis-scopes the trust change.\n\n**Disposition consequence:** Lean can keep a one-PR worker path, but must name the adapted surface and keep #4714 finalize/fresh-clone obligations out of a silent mint synonym.\n\n## 4. footnote — Task alias pain is real and orthogonal\n\n`tasks/policy.yml` has `set-spec-guard-enforcement` and no `set-one-pr-scope-proof`; the verb is routed in `packages/runtime/src/cli-router/route-argv.ts` (`policy:set-one-pr-scope-proof`). That is P3. It does not decide whether mint-reuse at the fence is safe.\n\n## Injection / swarm lens\n\nThe target changes write-fence authority and the swarm launch gate for every worker on a one-PR brief. Untrusted mint/brief/intent files already live in-tree; CI cannot distinguish human mint from agent-written files; shell bypass of the fence on `.deft/approved-scope/` is documented open. Under those facts, “reuse the mint, no new check” is an authority move with a concrete self-auth path, not a local constant tweak.\n\n## Road not taken\n\nKept the merge-base fence and required a separate activation land before write/launch (preserves controls, defeats one-PR speed). Waited for signed-level proof (#5862) before local reuse (stronger, slower). Read the working-tree brief whenever `DEFT_ACTIVE_SCOPE` is set, mint optional (worse self-auth). Strongest rejected steelman: reuse `evaluateMintLevelRecord` for product paths **and** hard-deny Write to `.deft/approved-scope/**` even when listed in `file_scope`. That could flip finding 1; it is a new check, so it falsifies the recorded target’s “no new check” limb rather than saving it.\n\n",
+          "id": 6906404292,
+          "html_url": "https://github.com/deftai/directive/issues/6361#issuecomment-6906404292",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T03:24:11Z",
+          "updated_at": "2026-11-16T03:24:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\nA one-PR story lands its new brief, its human mint record and its code in one pull request. CI accepts it through the mint. But the worker that has to write the code is blocked twice. The local write fence takes the brief's allowed paths only from the merge base, where a one-PR brief does not exist. `swarm:launch` also wants the brief on `origin/<delivery>`. The issue proposes that both places accept the same mint proof that CI accepts.\n\nMy verdict: the refutation target mostly survives. Reusing the mint does not let an agent admit its own scope, because three existing controls stay in place:\n- Write/Edit into `.deft/approved-scope/` is always denied, with no grant escape. Shell writes there are classified and denied.\n- The mint verb refuses agent shells and non-TTY sessions.\n- The mint binds the exact brief bytes (auth-hash, exact `file_scope`, intent pin). An agent that edits the brief to widen it voids the mint and closes the fence. It does not open it.\n\nThree things must be stated before the design binds:\n- The \"same proof\" is the exported `evaluateOnePrScopeProofGate` and `evaluateMintLevelRecord` pair. `resolveOnePrGate` is a private closure inside the CI evaluator and cannot be reused.\n- Every caller of the merge-base fence loader must switch together. A split leaves Write admitted but spawn or selection denied, or the reverse.\n- The `swarm:launch` half must name where the dest worktree gets the brief and record bytes. The answer must be a pushed ref, not a copy from the operator's working tree.\n\nWith a human merge, the human merge stays the control. Without one, the one-PR control becomes the mint gate plus the protected-store deny. The docs should say so, and keep the shell-bypass residual (#3597) visible.\n\n## Findings\n\n### 1. `sharpens-framing` — \"the same proof `resolveOnePrGate` uses\" names something the fence cannot call\nEvidence: `packages/core/src/scope-provenance/evaluate.ts` 1005-1030. `resolveOnePrGate` is a local closure inside the provenance evaluator. It reads the merge-base PROJECT-DEFINITION through `discoveryBaseRef` and the head copy from disk. The mint admit (1147-1173) runs only when `approvalRecordRewritten && modified`, which is computed from the change set. The proof logic that can be reused is the export pair in `packages/core/src/policy/one-pr-scope-proof.ts`: `evaluateOnePrScopeProofGate` (210-239) and `evaluateMintLevelRecord` (278-347).\nFailure mode: an implementer \"reuses resolveOnePrGate\" by calling the whole provenance evaluator from the per-tool-call hook (heavy, and change-set-dependent). Or they write a second, near-copy admit with weaker checks. Either one gives two proof surfaces that can drift apart.\nDisposition consequence: bind the reuse to those two exported functions, called with the fence's own resolved merge-base sha (`loadStoryWriteFenceFromMergeBase`, `write-fence.ts` 536-551). Do not use a separately discovered base ref, so the level and the brief are read from the same commit. This stays \"no new check\".\n\n### 2. `sharpens-framing` — every caller of the merge-base loader must switch together\nEvidence: the merge-base loader is the default in `packages/core/src/hooks/scope.ts` 338-348 (`selectedBriefHasPositiveGoverningAllow`, which is the #5656 Write and spawn admission) and 473 (the unpinned eligible partition). It is also the default in `packages/core/src/hooks/dispatcher.ts` 1488, 2743 and 5206. Its doc comment (`write-fence.ts` 511-517) says it \"never uses the working-tree head brief as authority\".\nFailure mode: if only the Write fence path gains the mint admit, then positive-allow, spawn admission or the unpinned partition still sees an empty fence for the same brief. The worker can then be admitted for Write but refused at implement spawn. Or the brief drops out of selection on the unpinned path. That is the #6327 symptom again, through a different door.\nDisposition consequence: the design must be one loader variant, \"merge-base brief, or else a mint-admitted head brief\", put behind the existing `loadStoryWriteFence` seam and used at every one of these call sites. The doc comment must be restated: the working-tree brief is authority only when a merge-base-level mint pins its exact bytes.\n\n### 3. `sharpens-framing` — the `swarm:launch` half does not say where the dest worktree gets its bytes\nEvidence: `packages/core/src/swarm/origin-active-brief.ts` 14-52 probes `origin/<deliveryBranch>:<rel>` for a blob. `packages/core/src/swarm/launch.ts` 1658-1680 applies that probe to every story. The AGENTS.md rule for #4714 says a dest may only materialize \"exact bytes that match a reachable reviewed … blob\" and forbids copying an `xbrief/` tree.\nFailure mode: \"accept on the same proof instead of origin/master\" is read as \"run the mint check on the operator's primary working tree, then copy the brief, record and intent into the dest\". That breaks #4714. The copy also writes `.deft/approved-scope/` from unreviewed local bytes into a fresh worktree. If no copy is made, the dest is cut from delivery and has no brief, so the worker's fence is empty again.\nDisposition consequence: state that the one-PR launch probes and bases the dest on a pushed ref that carries the brief and the record pair (for example the `--base-branch` one-PR branch). The mint is evaluated against that ref's tip, measured from its merge base with delivery. The probe changes which ref it reads; no bytes are copied. This change is not trivial, so it should be in the lean.\n\n### 4. `sharpens-framing` — the no-human-merge control line becomes circular and needs restating\nEvidence: the `packages/core/src/policy/one-pr-scope-proof.ts` header (14-17) and `MINT_LEVEL_LOCAL_CONTROL_LINE` (64-67) name \"the local mint gate and the write fence\" as the control when merge-base `requireHumanMerge` is not true. After this change, the story write fence takes its allowed paths from the mint itself. So under bot merge the story fence is no longer an independent second control. What still holds independently: the always-on protected-store deny (`packages/core/src/authz/evaluate.ts` 363-379, and shell via `classify.ts` 4109-4111 and 4153), and the mint verb's agent-shell refusal (`packages/runtime/src/human-presence-mint.ts` 195-253).\nFailure mode: the printed control line overstates the defence. A shell-path forgery of an approved-scope record (the #3597 / #3595 residual already named in #6354) now admits story scope locally as well as in CI. Today the merge-base read caps that residual on the story fence.\nDisposition consequence: the lean should restate the control as \"local mint gate plus protected-store deny on `.deft/approved-scope/`\". It should name the shell-bypass residual as covering local scope admission too. This adds no gate. It keeps the residual honest under the threat model in `content/contracts/human-origin-authz.md`, where local-file forgery is out of scope.\n\n### 5. `footnote` — self-admission through brief edits fails closed\n`evaluateMintLevelRecord` requires an exact `file_scope` match and digest, `authHashV1` over the head brief, and an intent-pin match (`one-pr-scope-proof.ts` 303-345). The gate refuses when the head changes `onePrScopeProof` or `requireHumanMerge` (225-237). An agent that edits the brief or PROJECT-DEFINITION can only close the fence, not widen it. This is the main evidence that the refutation target holds.\n\n### 6. `footnote` — memo key\nThe fence memo key (`write-fence.ts` 544) does not include working-tree bytes. The 5 s TTL (251-252) bounds staleness. A mint-admitted view should still key on the head brief, record and PROJECT-DEFINITION digests, or not be memoized.\n\n### 7. `footnote` — hook-path cost and the #6349 size crash\nThe mint admit runs intent extraction on every Write. On the hook path it must fail closed and never throw. This includes the over-1 MiB PROJECT-DEFINITION case (#6349). `evaluateMintLevelRecord` already catches errors (278-287), but the head PROJECT-DEFINITION read in the gate path should be checked too.\n\n### 8. `footnote` — P3 confirmed; a #6273 scope claim was not delivered\n`tasks/policy.yml` 89-95 has `set-spec-guard-enforcement` and no `set-one-pr-scope-proof`. The verb is routed at `packages/runtime/src/cli-router/route-argv.ts` 113 and `packages/runtime/src/dispatch.ts` 329. The #6273 active brief's `cohesion_exemption` says \"tasks/policy.yml change only to register the setter\". That change did not ship. The alias is a mechanical addition in the same shape as lines 89-95.\n\n### 9. `footnote` — injection and swarm lens\nThe thread snapshot holds no embedded instructions addressed to the critic. The operator direction (\"fewer steps\") is recorded as context only and changes no finding.\r\n\n",
+          "id": 6906425592,
+          "html_url": "https://github.com/deftai/directive/issues/6361#issuecomment-6906425592",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T03:25:43Z",
+          "updated_at": "2026-11-16T03:25:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean after round 1 (3 of 3 siblings posted: comments 6906390344, 6906404292, 6906425592)\n\n## In plain English\nProblem: the one-PR path lets a maintainer land a new brief, its human mint record and its code in one pull request, and CI accepts that. But the worker that must write the code is stopped before CI. The local write fence reads the brief's allowed paths only from the merge base, where a one-PR brief does not exist. The printed recovery (promote, activate) rewrites the brief and voids the mint. `swarm:launch` refuses for the same reason, and the task alias for the policy setter is missing. The issue proposed that the fence and the launch accept the proof CI already accepts.\n\nWhat the three critics found: the idea holds, with conditions. Two critics found that reuse does not let an agent admit its own scope, because writes to the mint record are refused by a separate, always-on rule that runs before the brief's allowed paths are looked at, and because any edit to the brief voids the mint. One critic judged the reuse unsafe as written; its concern is met by stating that separate rule as part of the design and locking it with a test. All three found the proposal incomplete: the proof must be the two exported functions, every reader of the fence must change together, a cached answer must not outlive a changed brief, and the launch must say which pushed branch the worker's checkout comes from.\n\nSolution this lean proposes: when a brief is not on the merge base, the write fence admits the working-tree brief's allowed paths only if the merge base turns the one-PR level on and the mint record matches that exact brief. `swarm:launch` accepts such a brief from the pushed one-PR branch and builds the worker's checkout from that branch. The task alias is added. The wording of the control is corrected.\n\nWhat this adds: no new gate, command, approval or stop. One extra branch in the existing fence loader, one extra ref in the existing launch probe, one task alias and one corrected sentence. It removes the separate activation PR for a one-PR story and the hand-applied patch that #6327 needed.\n\nWhat it does not do: it does not make the mint verifiable by CI, and it does not close the known gap where a shell command can write the mint record (#3597, #3595). It does not change the production fence (#4956) or a brief that already exists on the merge base. If confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:1d59c1a24634bb687a6f29e5c5c2c5b986b6d5b7283ba4db144199df1e928eb2\n**Spec-path:** Bound remedy on this lean\nSupersedes Stop 1 write-back comment 6906343816. Sibling count: 3 (comments 6906390344, 6906404292, 6906425592). Panel deposit: comment 6906347848.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\n## Bound remedy\n1. One fence loader. Behind the existing `loadStoryWriteFence` seam, the loader returns the merge-base brief's fence when the brief exists on the merge base (unchanged). When the brief is absent there, it returns the working-tree brief's `file_scope` only if `evaluateOnePrScopeProofGate` (PROJECT-DEFINITION at the fence's own resolved merge-base SHA against the head copy) returns `mint` and `evaluateMintLevelRecord` admits the head record, intent preimage and brief. Any other result is today's empty fence. Every caller uses this one loader: `hooks/scope.ts` positive allow and the eligible partition, and the three defaults in `hooks/dispatcher.ts`.\n2. No stale admission. A mint-admitted fence is not served from the memo keyed on the merge-base SHA. It is evaluated again on each call, or keyed on the digests of the head brief, record, intent preimage and PROJECT-DEFINITION. The hook path fails closed and never throws.\n3. The record stays protected. The always-on protected-store deny on `.deft/approved-scope/` keeps running before story allow, so a mint-admitted `file_scope` that lists the record pair does not admit Write or Edit to those files.\n4. Honest deny text. When the merge-base level is `mint` and the selected brief is absent from the merge base, the #5656 deny prints the mint reject reason and names `scope:record-approved-scope`, not promote or activate.\n5. Launch from the pushed one-PR branch. When a selected brief is not a blob on `origin/<deliveryBranch>`, `swarm:launch` accepts it if it is a blob on `origin/<base-branch>` (the pushed one-PR branch passed as `--base-branch`) and the same two evaluators admit it at that ref's tip against its merge base with the delivery branch. The dest worktree is created from that ref. No brief or record bytes are copied. Finalize and fresh-clone rules of #4714 are unchanged.\n6. Task alias. `tasks/policy.yml` gains `set-one-pr-scope-proof`, in the same shape as `set-spec-guard-enforcement`.\n7. Control wording. `MINT_LEVEL_LOCAL_CONTROL_LINE` and `content/docs/scope-provenance.md` name the control without a human merge as the local mint gate plus the protected-store deny on `.deft/approved-scope/`, and say that the shell-write residual (#3597, #3595) also reaches local scope admission.\n\n## Acceptance Criteria\n- Given a running one-PR brief that is absent from the merge base and covered by a valid mint, when a worker edits a path inside its `file_scope` with Write or Edit, then the write fence admits the edit.\n- Given the same brief, when an edit targets a path outside its `file_scope`, then the fence refuses the edit.\n- Given the same brief, when the brief is edited after the mint, then the next Write is refused with the mint reject reason.\n- Given a mint-admitted `file_scope` that lists `.deft/approved-scope/<plan-id>.json`, when Write or Edit targets that file, then the write is refused.\n- Given a merge base whose one-PR level is off, when a brief is absent from the merge base, then the fence result is the same as today.\n- Given a head that changes `onePrScopeProof` or `requireHumanMerge`, when the fence loads, then the head brief is not admitted.\n- Given a brief that exists on the merge base, when the fence loads, then the merge-base `file_scope` is used and the head copy is ignored.\n- Given a mint-admitted brief, when implement spawn and brief selection run, then they reach the same admit as Write.\n- Given a one-PR brief on a pushed branch and absent from `origin/<deliveryBranch>`, when `swarm:launch` runs with that branch as `--base-branch`, then the launch proceeds and the dest worktree holds the brief and the record pair.\n- Given a brief that is on neither ref, when `swarm:launch` runs, then the launch refuses as today.\n- `task policy:set-one-pr-scope-proof` runs the `deft` verb in this repo.\n\n## Reject\n- Calling the whole provenance evaluator from the per-write hook, or a second copy of the admit checks (comment 6906425592 finding 1).\n- Copying the brief or the record from the operator's working tree into the dest (comments 6906390344 finding 1 and 6906425592 finding 3).\n- A new approval, signature or human stop for the worker path. The signed level stays on #5862.\n- Reading the working-tree brief whenever `DEFT_ACTIVE_SCOPE` is set, with the mint optional.\n- Admitting a head brief that widens a brief already on the merge base. That stays with #4956.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6906390344 | 1. Passing the origin check does not give the worker its approved scope | blocks-the-design | accept-into-contract (item 5) |\n| comment 6906390344 | 2. The existing fence cache cannot safely cache mutable mint authority unchanged | blocks-the-design | accept-into-contract (item 2) |\n| comment 6906390344 | 3. Human origin comes from the protected mint path, not `resolveOnePrGate` | sharpens-framing | accept-into-contract (items 1, 3, 7) |\n| comment 6906404292 | 1. Mint paths inside `file_scope` turn fence-reuse into self-widen | blocks-the-design | accept-into-contract (item 3; marker A1) |\n| comment 6906404292 | 2. Fence-as-mint-control and mint-as-fence-authority are circular | blocks-the-design | accept-into-contract (items 3, 7; markers A1, A2) |\n| comment 6906404292 | 3. \"Same proof\" is not drop-in at fence or launch time | sharpens-framing | accept-into-contract (items 1, 5) |\n| comment 6906425592 | 1. The same proof names something the fence cannot call | sharpens-framing | accept-into-contract (item 1) |\n| comment 6906425592 | 2. Every caller of the merge-base loader must switch together | sharpens-framing | accept-into-contract (item 1) |\n| comment 6906425592 | 3. The `swarm:launch` half does not say where the dest worktree gets its bytes | sharpens-framing | accept-into-contract (item 5) |\n| comment 6906425592 | 4. The no-human-merge control line becomes circular and needs restating | sharpens-framing | accept-into-contract (item 7) |\n\nFootnotes in the census, no take: comment 6906404292 finding 4; comment 6906425592 findings 5 to 9.\n\nRefutation target: it survives in a narrowed form. The fence and the launch can reuse the mint proof with no new gate. It does not survive as \"no change beyond the reuse\": items 2, 3, 5 and 7 are needed for the reuse to be safe.\n\n## Parent-side substantiation\n- audit:A1 sha=cfa3ce1fcae5d661ed79baab1fd85c04cc244707 pointer=packages/core/src/authz/evaluate.ts:363-379 reading=measured\n- audit:A2 sha=cfa3ce1fcae5d661ed79baab1fd85c04cc244707 pointer=content/docs/scope-provenance.md:83-87 reading=asserted\n\nA1: the protected-store deny for Write and Edit is always on, has no grant escape, and runs before positive story allow in the dispatcher (`packages/core/src/hooks/dispatcher.ts` 2757-2778, parent pin-read). This premise is why the two blocking findings of comment 6906404292 are met by items 3 and 7 with no new check. A2: the shell-write residual does not give an agent more through local scope admission than it already has, because an agent that can write the record with a shell command the classifier misses is already outside the Write fence. The four `relieves` cites are asserted premises.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back and this lean. A1, A2 and the four cites stay open until a later critic targets them.\r\n\n",
+          "id": 6906450838,
+          "html_url": "https://github.com/deftai/directive/issues/6361#issuecomment-6906450838",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T03:27:31Z",
+          "updated_at": "2026-11-16T03:27:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4, A1, A2\nfinding-classes: footnote\nharvest-changed: false\n\n## In plain English\n\nThe proposed remedy covers the worker’s blocked edits, launch failure and missing task alias. Its protection against self-approval rests on an existing, independent denial of writes to approval records. That supports the design within the stated threat model.\n\nA2 overstates the safety argument: bypassing a shell classifier does not establish that subsequent Write/Edit admission adds no capability. Item 7 already acknowledges the expanded exposure, so correcting A2 requires no change to the Bound remedy.\n\nThese are design-coverage verdicts, not claims that the fix has shipped. I verified code at `cfa3ce1fcae5d661ed79baab1fd85c04cc244707`; no tests, mutations or posts were performed.\n\npain-P1: holds - Items 1, 2 and 4 cover the absent merge-base brief, all loader consumers, stale admission and misleading recovery. The current loader reads only merge-base bytes and caches by base identity (`packages/core/src/policy/write-fence.ts:518–565`); the proposed exported validators supply policy and exact scope/intent checks (`packages/core/src/policy/one-pr-scope-proof.ts:210–239,278–347`).\n\npain-P2: holds - Item 5 covers both the origin-residency refusal and delivery of the validated artifacts into the worker checkout. Both are necessary: the current probe checks the delivery ref (`packages/core/src/swarm/origin-active-brief.ts:26–50`), while worktree resolution separately consumes the requested base (`packages/core/src/swarm/launch.ts:1877–1903`). Relief assumes ordinary readiness requirements also pass.\n\npain-P3: holds - Item 6 supplies the missing alias using the existing forwarding pattern (`tasks/policy.yml:89–95`); the underlying colon verb already routes to the setter (`packages/runtime/src/cli-router/route-argv.ts:113`).\n\npain-P4: holds - Within the explicitly bounded threat model, items 1–3 preserve an independent protected-store denial and reject scope changes that no longer match the mint. This is not protection against arbitrary local-file forgery; item 7 retains that residual (`content/contracts/human-origin-authz.md:7–9`).\n\nA1: holds - `.deft/approved-scope/` is inventoried as protected (`packages/core/src/authz/protected-dest-realpath.ts:20–28`). Direct-edit denial precedes the inactive-UAT allowance and has no grant lookup (`packages/core/src/authz/evaluate.ts:329–335,363–394`). The dispatcher applies authz before positive story admission (`packages/core/src/hooks/dispatcher.ts:2757–2778`).\n\nA2: does not hold - The cited documentation acknowledges shell bypass; it does not establish capability equivalence between bypassing a shell check and obtaining ordinary Write/Edit admission from a forged mint.\n\n### 1. footnote — A2 should acknowledge expanded admission, without claiming equivalence\n\n**Evidence:** `content/docs/scope-provenance.md:83–88` records the shell residual while retaining the merge-base production fence. The current local loader ignores head authority (`packages/core/src/policy/write-fence.ts:511–565`). Human-stamp validation checks strings, not authenticated origin (`packages/core/src/scope-provenance/digest.ts:231–251`).\n\n**Concrete distinction:** A matching record planted through an unclassified shell write does not currently supply an absent brief’s local governing allowance. Under item 1, those same bytes can supply it. Being outside one classifier’s coverage does not prove unrestricted capability across other tools.\n\n**Disposition:** A2 cannot be affirmed as written. Its replacement can state that the accepted shell residual now also reaches local scope admission—the wording already required by item 7. No additional gate or mechanism change is warranted by this audit.\n\nThe snapshot’s remedy imperatives were treated solely as proposed design content, not instructions to execute.",
+          "id": 6906485779,
+          "html_url": "https://github.com/deftai/directive/issues/6361#issuecomment-6906485779",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T03:30:06Z",
+          "updated_at": "2026-11-16T03:30:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 6906485779; bind map stays successor lean 6906450838)\n\nThe audit is footnote-only with `harvest-changed: false`. It found `pain-P1` to `pain-P4` and marker A1 hold. It found marker A2 does not hold.\n\n- comment 6906485779, finding 1 (footnote): accepted. Premise A2 is withdrawn. The parent claimed that the shell-write residual gives an agent nothing more through local scope admission than it already has. The audit showed that this is not established: a record planted by an unclassified shell write does not supply a local allowance today, and under item 1 it can. The correct statement is the one item 7 already requires: the accepted shell-write residual (#3597, #3595) now also reaches local scope admission. No take on the lean rested on A2 alone; items 3 and 7 are unchanged, and the Bound remedy is unchanged.\r\n\n",
+          "id": 6906488563,
+          "html_url": "https://github.com/deftai/directive/issues/6361#issuecomment-6906488563",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T03:30:18Z",
+          "updated_at": "2026-11-16T03:30:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6906450838. Dispatch SHA: cfa3ce1fcae5d661ed79baab1fd85c04cc244707. Non-self-arbitration: the parent wrote the Stop 1 write-back and the lean. Every row has a parent pin-read and at least one critic re-check from another model family, or is marked otherwise. No tests were run; all methods are source reads at the pin.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | The write fence loader reads `file_scope` only from the merge-base brief; a brief absent there gives an empty story fence, and the memo key carries no working-tree bytes | verified | parent pin-read of `packages/core/src/policy/write-fence.ts` 508-566; codex 6906390344 (251-277, 542-555); claude 6906425592 |\n| 2 | The #5656 positive-allow check and its promote / activate recovery text use that same loader, at more than one call site | verified | parent pin-read of `packages/core/src/hooks/dispatcher.ts` 2738-2782 and grep of `packages/core/src/hooks/scope.ts`; claude 6906425592 (scope.ts 338-348, 473; dispatcher 1488, 2743, 5206). The three dispatcher line numbers are the critic's read; the parent read one of them |\n| 3 | `resolveOnePrGate` is a closure inside the provenance evaluator; the reusable proof is `evaluateOnePrScopeProofGate` plus `evaluateMintLevelRecord` | verified | parent pin-read of `packages/core/src/scope-provenance/evaluate.ts` 985-1030, 1135-1175 and `packages/core/src/policy/one-pr-scope-proof.ts` 200-350; claude 6906425592; codex 6906485779 |\n| 4 | The record admit needs an exact match of plan id, brief path, concrete `file_scope`, digest, `authHashV1` and intent preimage, so an edited brief is rejected; the human stamp is a string-shape check, not authenticated origin | verified | parent pin-read of `one-pr-scope-proof.ts` 289-347; grok 6906404292; claude 6906425592; codex 6906485779 (`digest.ts` 231-251) |\n| 5 | Write and Edit to `.deft/approved-scope/` are denied always, with no grant lookup, and that authz check runs before positive story allow | verified | parent pin-read of `packages/core/src/authz/evaluate.ts` 355-392 and `dispatcher.ts` 2757-2778; codex 6906390344; claude 6906425592; codex audit 6906485779 (marker A1 holds). This is the premise that answers grok 6906404292 findings 1 and 2 |\n| 6 | Shell writes to `.deft/approved-scope/` are classified and denied, with a documented residual for forms the classifier misses (#3597, #3595) | verified | parent pin-read of `packages/core/src/authz/classify.ts` 4100-4156 and `content/docs/scope-provenance.md` 83-87; grok 6906404292; claude 6906425592 |\n| 7 | After this design, a record planted through that residual also reaches local scope admission; it is not equivalent to what the agent already had | verified as a limit | codex audit 6906485779 finding 1; parent premise A2 withdrawn in comment 6906488563 |\n| 8 | `swarm:launch` requires each brief as a blob on `origin/<deliveryBranch>` and separately builds worktrees from `--base-branch` (default `master`) | verified | parent pin-read of `packages/core/src/swarm/origin-active-brief.ts` 1-52 and `packages/core/src/swarm/launch.ts` 1655-1682, 1875-1905; codex 6906390344; claude 6906425592 |\n| 9 | `tasks/policy.yml` has no `set-one-pr-scope-proof` alias; the verb is routed in the runtime | verified | parent grep at the pin (`tasks/policy.yml` 89-95; `packages/runtime/src/cli-router/route-argv.ts` 113); grok 6906404292; claude 6906425592; codex 6906485779 |\n| 10 | The one-PR recipe tells the author to list the record pair in the brief's `file_scope` | verified | parent pin-read of `content/docs/scope-provenance.md` 80; grok 6906404292 |\n| 11 | The mint verb refuses agent shells and sessions without a terminal | endorsed, not re-derived by the parent | claude 6906425592 (`packages/runtime/src/human-presence-mint.ts` 195-253); codex 6906485779 does not contradict it. The design does not change this verb |\r\n\n",
+          "id": 6906496136,
+          "html_url": "https://github.com/deftai/directive/issues/6361#issuecomment-6906496136",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T03:30:52Z",
+          "updated_at": "2026-11-16T03:30:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: the one-PR path lets a maintainer land a new brief, its human mint record and its code in one pull request, but the worker that writes the code was stopped before CI. The local write fence read the brief's allowed paths only from the merge base, where a one-PR brief does not exist, and its recovery advice voided the mint. `swarm:launch` refused the brief for the same reason, and the task alias for the policy setter was missing.\n\nAccepted solution: when a brief is absent from the merge base, the write fence admits the working-tree brief's allowed paths only if the merge base turns the one-PR level on and the mint record matches that exact brief. It uses the two functions CI already uses, in one loader shared by every reader of the fence, and never serves a cached answer for a changed brief. Writes to the mint record stay refused by the separate always-on rule that runs before the brief's paths are looked at. `swarm:launch` accepts such a brief from the pushed one-PR branch and builds the worker's checkout from that branch. The task alias is added. The control wording is corrected.\n\nThe design adds no new gate, command, approval or stop. One limit is stated and accepted: a mint record written by a shell command that the classifier misses (#3597, #3595) would now also open the local fence for that brief. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6906450838.\nverified-claims table 6906496136\n\nConfirm conjunct: yolo standing (Stop 1 6906343816, `yolo-standing: on`), with the operator's handoff direction to accept a lean after a clean audit. Clean audit: comment 6906485779 (`finding-classes: footnote`, `harvest-changed: false`); its one footnote is disposed in comment 6906488563. Round 1: comments 6906390344, 6906404292, 6906425592, each posted by the parent verbatim as disclosed on panel-deposit 6906347848.\r\n\n",
+          "id": 6906499388,
+          "html_url": "https://github.com/deftai/directive/issues/6361#issuecomment-6906499388",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T03:31:06Z",
+          "updated_at": "2026-11-16T03:31:06Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nThe #6273 one-PR path (mint level, `onePrScopeProof: mint`, no human merge since #6354) has no lawful way for a worker to do the product work. Found on its first real use (#6327, wave 2a, 2026-11-15).\n\n## What we saw\n\n1. **Write fence reads the merge base.** The #5656 Write/Edit fence reads `file_scope` from the merge base (origin/master). A one-PR brief is not on origin/master by design, so every product edit is refused, even with `DEFT_ACTIVE_SCOPE` naming the local running brief. The fence's recovery (promote / activate) changes the brief and voids the mint. The #6327 worker ended up writing a patch outside the repo for the operator to apply.\n2. **No in-session launch.** `swarm:launch` needs the brief active on origin/master (#4714), which the one-PR path skips by design.\n3. **No task alias.** `policy:set-one-pr-scope-proof` shipped as a `deft` verb with no `tasks/policy.yml` alias, so `task policy:set-one-pr-scope-proof` fails in this repo. The operator script stopped half-applied and the resume called the core setter.\n\n## Expected\n\nA one-PR story runs like any other story, without a second PR:\n\n- The write fence admits a one-PR brief's `file_scope` when the brief is running on the branch and the one-PR mint covers it (the same proof `verify:scope-provenance` uses through `resolveOnePrGate`).\n- `swarm:launch` accepts a one-PR brief on the same proof instead of requiring it on origin/master.\n- `task policy:set-one-pr-scope-proof` works in this repo.\n\nNo new check: this lets the existing mint stand in for the merge-base read.\n\n## Acceptance Criteria\n\n- Given a running one-PR brief covered by a valid mint, when a worker edits a path inside its `file_scope`, then the write fence admits the edit.\n- Given the same brief, when an edit targets a path outside its `file_scope`, then the fence still refuses.\n- Given a running one-PR brief covered by a valid mint and absent from origin/master, when `swarm:launch` runs for it, then the launch proceeds.\n- `task policy:set-one-pr-scope-proof` runs the `deft` verb in this repo.\n\nRefs #6273. Refs #6354. Refs #6327. Related: #5656, #4714.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6413052919,
+        "origin": "deftai/directive#6361",
+        "id": "github.issue.6413052919"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "1d59c1a24634bb687a6f29e5c5c2c5b986b6d5b7283ba4db144199df1e928eb2"
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/policy/write-fence.ts",
+          "packages/core/src/policy/write-fence.test.ts",
+          "packages/core/src/hooks/scope.ts",
+          "packages/core/src/hooks/scope.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher-write-gate.test.ts",
+          "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "packages/core/src/policy/one-pr-scope-proof.ts",
+          "packages/core/src/policy/one-pr-scope-proof.test.ts",
+          "packages/core/src/swarm/origin-active-brief.ts",
+          "packages/core/src/swarm/origin-active-brief.test.ts",
+          "packages/core/src/swarm/launch.ts",
+          "packages/core/src/swarm/launch.test.ts",
+          "tasks/policy.yml",
+          "packages/core/src/content-contracts/standards/taskfile_policy_one_pr_alias.test.ts",
+          "content/docs/scope-provenance.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "large",
+        "model_tier": "high",
+        "depends_on": [],
+        "conflict_group": "write-fence-one-pr",
+        "verify_commands": [
+          "npx vitest run packages/core/src/policy/write-fence.test.ts packages/core/src/policy/one-pr-scope-proof.test.ts packages/core/src/hooks/scope.test.ts packages/core/src/hooks/dispatcher-write-gate.test.ts packages/core/src/hooks/dispatcher-spawn-dest.test.ts packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "npx vitest run packages/core/src/swarm/origin-active-brief.test.ts packages/core/src/swarm/launch.test.ts packages/core/src/content-contracts/standards/taskfile_policy_one_pr_alias.test.ts"
+        ],
+        "expected_outputs": [
+          "one fence loader in write-fence.ts that admits an absent-from-merge-base brief only on a mint admit",
+          "no stale mint admission from the merge-base-SHA memo; hook path fails closed",
+          "protected-store deny on .deft/approved-scope/ still runs before story allow",
+          "#5656 deny names the mint reject reason and scope:record-approved-scope at the mint level",
+          "swarm:launch accepts a one-PR brief from origin/<base-branch> and builds the dest from that ref",
+          "task policy:set-one-pr-scope-proof alias in tasks/policy.yml",
+          "corrected MINT_LEVEL_LOCAL_CONTROL_LINE and content/docs/scope-provenance.md wording"
+        ],
+        "Traces": [
+          "#6361",
+          "#6273",
+          "#6354",
+          "#6327",
+          "#5656",
+          "#4714"
+        ],
+        "acceptance_criteria_justification": "33 clauses: #5055 requires every admitted Bound-remedy sentence (22, lean 6906450838) to stay a same-text clause, and the lean's 11 Acceptance Criteria (a superset of the issue body's 4) are separate observable behaviours, each mapped to its own test file."
+      }
+    },
+    "id": "github.issue.6413052919",
+    "updated": "2026-11-16T04:06:33Z"
+  }
+}
