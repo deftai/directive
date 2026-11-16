@@ -127,10 +127,18 @@ export const PRE_PR_LINT_GATE_CHECKS = ["verify:class-checks", "verify:evaluator
  * the candidate tree (#6336 items 4 and 5). Same evaluators and messages as the
  * CI steps; no `deft check`, no test run, no whole-repo scan.
  */
-export function runPrePrGateChecks(projectRoot: string): PrePrGateCheckResult[] {
+export function runPrePrGateChecks(
+  projectRoot: string,
+  baseRef?: string | null,
+): PrePrGateCheckResult[] {
   const root = resolve(projectRoot);
-  const classChecks = evaluateClassChecks(root, {});
-  const surface = evaluateEvaluatorSurface({ projectRoot: root });
+  // The run's recorded base drives both gates, so a branch without a
+  // master/main ref still resolves the same merge base (#6336 Greptile P1).
+  const base = typeof baseRef === "string" && baseRef.length > 0 ? baseRef : undefined;
+  const classChecks = evaluateClassChecks(root, base === undefined ? {} : { baseRef: base });
+  const surface = evaluateEvaluatorSurface(
+    base === undefined ? { projectRoot: root } : { projectRoot: root, baseRef: base },
+  );
   return [
     { gate: "verify:class-checks", exitCode: classChecks.exitCode, message: classChecks.message },
     { gate: "verify:evaluator-surface", exitCode: surface.code, message: surface.message },
@@ -162,9 +170,11 @@ export function noPullRequestForHeadMessage(headSha: string): string {
 /** Both gate results are recorded on the row and each exited 0 (#6336). */
 export function gateChecksSatisfied(row: CommandObservation): boolean {
   const recorded = row.gateChecks ?? [];
-  return PRE_PR_LINT_GATE_CHECKS.every((gate) =>
-    recorded.some((result) => result.gate === gate && result.exitCode === 0),
-  );
+  // Exactly one result per gate, and it passed: a duplicate cannot mask a red one.
+  return PRE_PR_LINT_GATE_CHECKS.every((gate) => {
+    const forGate = recorded.filter((result) => result.gate === gate);
+    return forGate.length === 1 && forGate[0]?.exitCode === 0;
+  });
 }
 
 /** Failing gate results as one message, the gates' own text joined (#6336). */
@@ -969,7 +979,8 @@ export function completeRun(
       prNodeId: current.prNodeId,
     });
     const bootstrapRequested = options?.firstHotfixBootstrap === true;
-    if (prNumber === null && !bootstrapRequested) {
+    // Only a lookup that actually ran (runGh supplied) may claim the PR is missing.
+    if (prNumber === null && !bootstrapRequested && options?.runGh !== undefined) {
       noPullRequest = noPullRequestForHeadMessage(current.headSha);
     }
     const namedFn = options?.namedMergeGateFn ?? evaluateAlwaysOnNamedMergeGate;

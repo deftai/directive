@@ -6,6 +6,7 @@
  */
 import { readFileSync } from "node:fs";
 import { writeStoryLineToBodyFile } from "@deftai/directive-core/pr-closing-keywords";
+import { defaultRunGh } from "@deftai/directive-core/pr-merge-readiness";
 import {
   completeRun,
   computeControllerObservedHash,
@@ -414,7 +415,10 @@ export interface PrePrRunOptions {
   /** Story-line writer seam for hermetic tests (#6316). */
   readonly writeStoryLine?: typeof writeStoryLineToBodyFile;
   /** lint_iteration CI gate runner seam for hermetic tests (#6336); defaults to in-process gates. */
-  readonly gateChecks?: (projectRoot: string) => readonly PrePrGateCheckResult[];
+  readonly gateChecks?: (
+    projectRoot: string,
+    baseRef: string | null,
+  ) => readonly PrePrGateCheckResult[];
 }
 
 /** No start binding beyond --repo (which the story-line step also reads). */
@@ -505,7 +509,7 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
       // verify:evaluator-surface on the candidate tree and records both results.
       const gateChecks =
         phase === "lint_iteration"
-          ? (options.gateChecks ?? runPrePrGateChecks)(projectRoot)
+          ? (options.gateChecks ?? runPrePrGateChecks)(projectRoot, rec?.baseSha ?? null)
           : undefined;
       const d = observeCommandPhase(
         store,
@@ -623,6 +627,8 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
     const projectRoot = args.projectRoot?.trim() || process.cwd();
     const d = completeRun(store, controllerPublisher(), args.runId, undefined, {
       projectRoot,
+      // #6336 item 7: let the controller look up the head's PR before it says there is none.
+      runGh: defaultRunGh,
       ...(options.skipNamedMergeGate === true ? { skipNamedMergeGate: true as const } : {}),
       ...(args.verifyAcDisposition !== null
         ? { verifyAcDisposition: args.verifyAcDisposition }

@@ -3,12 +3,20 @@
  * clause nor an explicit confession fails the oracle walk. An existence
  * clause or a quoted-token clause that verifies does not cover it.
  */
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { hashHarvestIdentity } from "../design-critique/pain-audit-follow-through-gate.js";
 import { applyClauseQualityForIngest } from "../intake/clause-derivation.js";
 import { buildIssueVbrief } from "../intake/issue-ingest.js";
+import {
+  attachSpecPathSourceRecord,
+  resolveSpecPathLiveIdentities,
+  SPEC_PATH_SOURCE_KEY,
+  type SpecPathSourceRecord,
+} from "../intake/spec-path-source.js";
 import { ENV_RUN_SUMMARY_PATH } from "../run-summary/index.js";
 import { evaluateScopeCompleteAcceptanceWalk } from "../scope/acceptance-evidence.js";
 import {
@@ -31,7 +39,17 @@ import {
   ADMITTED_SOURCE_IDENTITY_REMOVED_CAUSE,
   evaluateVerifyAcFromPath,
   evaluateVerifyAcFromPlan,
+  isBriefOnMergeBase,
+  SPEC_PATH_SOURCE_RECORD_MISSING_CAUSE,
 } from "./evaluate.js";
+
+const SAMPLE_RECORD: SpecPathSourceRecord = {
+  repo: "deftai/directive",
+  issue: 5055,
+  leanCommentId: 7200000001,
+  harvestDigest: "e".repeat(64),
+  slice: null,
+};
 
 const EXISTENCE = {
   id: 1,
@@ -81,6 +99,18 @@ function punctuationFreeBody(): string {
   ].join("\n");
 }
 
+/**
+ * Since #6333 ingest writes one clause per sentence-list entry. These floor
+ * tests model an agent that then dropped every clause except the probe ones.
+ */
+function keepProbeClausesOnly(plan: Record<string, unknown>): Record<string, unknown> {
+  const acceptance = plan.acceptance as { clauses?: { id: number; text: string }[] };
+  acceptance.clauses = (acceptance.clauses ?? [])
+    .filter((clause) => clause.text.startsWith("probe.txt"))
+    .map((clause, index) => ({ ...clause, id: index + 1 }));
+  return plan;
+}
+
 function generatedPunctuationFreeBrief(): Record<string, unknown> {
   const [vbrief] = buildIssueVbrief(
     {
@@ -92,7 +122,7 @@ function generatedPunctuationFreeBrief(): Record<string, unknown> {
     "proposed",
     "https://github.com/deftai/directive",
   );
-  return vbrief.plan as Record<string, unknown>;
+  return keepProbeClausesOnly(vbrief.plan as Record<string, unknown>);
 }
 
 function generatedSentenceBrief(): Record<string, unknown> {
@@ -106,7 +136,7 @@ function generatedSentenceBrief(): Record<string, unknown> {
     "proposed",
     "https://github.com/deftai/directive",
   );
-  return vbrief.plan as Record<string, unknown>;
+  return keepProbeClausesOnly(vbrief.plan as Record<string, unknown>);
 }
 
 function bindProbeClauses(plan: Record<string, unknown>): void {
@@ -706,7 +736,7 @@ function presentationRestrictionBrief(): Record<string, unknown> {
     "proposed",
     "https://github.com/deftai/directive",
   );
-  return vbrief.plan as Record<string, unknown>;
+  return keepProbeClausesOnly(vbrief.plan as Record<string, unknown>);
 }
 
 describe("admitted-source identity floor (#5055)", () => {
@@ -1179,8 +1209,9 @@ describe("admitted-source identity floor (#5055)", () => {
         text: presentationRestrictionBody(),
       }),
     });
+    // #6333: not on the merge base and no source record refuses first.
     expect(result.ok).toBe(false);
-    expect(result.cause).toBe(ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE);
+    expect(result.cause).toBe(SPEC_PATH_SOURCE_RECORD_MISSING_CAUSE);
   });
 
   it("scope:complete plan walk recovers a deleted pin via admittedSourceMergeBase", () => {
@@ -1222,7 +1253,7 @@ describe("admitted-source identity floor (#5055)", () => {
     expect(result.cause).toBe(ADMITTED_SOURCE_DIGEST_UNAVAILABLE_CAUSE);
   });
 
-  it("empty-body Spec-path live recovery uses Overview harvest, not body-normative REST", () => {
+  it("empty-body recorded Spec-path brief compares with the live lean, not body-normative REST", () => {
     const harvestText = [
       "Do the positive remedy only.",
       PRESENTATION_RESTRICTION,
@@ -1274,14 +1305,12 @@ describe("admitted-source identity floor (#5055)", () => {
     acceptance.clauses = clauses;
     acceptance.sentences = pinned;
 
+    attachSpecPathSourceRecord(plan, SAMPLE_RECORD);
     const result = evaluateVerifyAcFromPlan(plan, {
       ...baseOptions(writeProbeRoot()),
       admittedSourceMergeBase: null,
-      // Simulate CLI Spec-path selector: harvest/Overview, not empty REST body.
-      fetchAdmittedSourceText: () => ({
-        ok: true,
-        text: (plan.narratives as Record<string, string>).Overview,
-      }),
+      fetchAdmittedSourceText: () => ({ ok: true, text: "" }),
+      fetchSpecPathLiveIdentities: () => ({ ok: true, identities: pinned }),
     });
     expect(result.ok).toBe(true);
     expect(result.cause).not.toBe(ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE);
@@ -1334,5 +1363,289 @@ describe("admitted-source identity floor (#5055)", () => {
     });
     expect(withPath.ok).toBe(false);
     expect(withPath.message).toContain(PRESENTATION_RESTRICTION);
+  });
+});
+
+describe("Spec-path merge-base boundary and live lean compare (#6333 items 4 and 5)", () => {
+  const TITLES = [
+    "Do the positive remedy only.",
+    PRESENTATION_RESTRICTION,
+    "probe.txt exists",
+    'probe.txt contains "marker-token-3550"',
+  ];
+  const PLAIN =
+    "## In plain English\n\nThe problem was hand-built clauses.\n\n" +
+    "The accepted design harvests the lean.\n\n";
+  const LEAN_ID = SAMPLE_RECORD.leanCommentId;
+  const TABLE_ID = LEAN_ID + 1;
+  const THREAD = [
+    {
+      id: LEAN_ID,
+      body:
+        `${PLAIN}**Lean:** bind.\n\nSpec-path: Bound remedy on this lean\n\n## Bound remedy\n` +
+        TITLES.map((title, index) => `${index + 1}. ${title}`).join("\n"),
+    },
+    { id: TABLE_ID, body: "## Verified-claims table\n" },
+    {
+      id: LEAN_ID + 2,
+      body:
+        `${PLAIN}design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n` +
+        `Bound contract: successor lean ${LEAN_ID}, verified-claims table ${TABLE_ID}.\n`,
+    },
+  ];
+  const liveFromThread = (record: SpecPathSourceRecord) =>
+    resolveSpecPathLiveIdentities({ comments: THREAD, record });
+  const LIVE_RECORD: SpecPathSourceRecord = {
+    ...SAMPLE_RECORD,
+    harvestDigest: hashHarvestIdentity(THREAD[0]?.body ?? ""),
+  };
+
+  function specPathBrief(withRecord: boolean): Record<string, unknown> {
+    const [vbrief] = buildIssueVbrief(
+      { number: 5055, title: "Harvested", body: presentationRestrictionBody(), labels: [] },
+      "proposed",
+      "https://github.com/deftai/directive",
+      {
+        specPathHarvest: {
+          sourceText: TITLES.map((title) => `- ${title}`).join("\n"),
+          items: TITLES.map((title) => ({ title, status: "pending" })),
+        },
+      },
+    );
+    const plan = vbrief.plan as Record<string, unknown>;
+    bindProbeClauses(plan);
+    if (withRecord) {
+      attachSpecPathSourceRecord(plan, LIVE_RECORD);
+    }
+    return plan;
+  }
+
+  function unlanded(extra: Record<string, unknown> = {}) {
+    return {
+      ...baseOptions(writeProbeRoot()),
+      admittedSourceMergeBase: null,
+      fetchSpecPathLiveIdentities: liveFromThread,
+      ...extra,
+    };
+  }
+
+  it("writes one clause, pin entry and sentence per harvested item", () => {
+    const plan = specPathBrief(true);
+    const acceptance = plan.acceptance as Record<string, unknown>;
+    expect(acceptance.sentences).toEqual(TITLES);
+    expect(acceptance[ADMITTED_SOURCE_SENTENCES_KEY]).toEqual(TITLES);
+    expect((acceptance.clauses as { text: string }[]).map((clause) => clause.text)).toEqual(TITLES);
+    expect((plan.items as { id: string }[]).map((item) => item.id)).toEqual([
+      "clause.1",
+      "clause.2",
+      "clause.3",
+      "clause.4",
+    ]);
+  });
+
+  it("passes a recorded brief that is not on the merge base when its pin equals the lean", () => {
+    const result = evaluateVerifyAcFromPlan(specPathBrief(true), unlanded());
+    expect(result.ok).toBe(true);
+    expect(result.cause).toBeUndefined();
+  });
+
+  it("fails when the pin and Overview are edited together (compare with the lean)", () => {
+    const plan = specPathBrief(true);
+    const kept = TITLES.filter((title) => title !== PRESENTATION_RESTRICTION);
+    const acceptance = plan.acceptance as Record<string, unknown>;
+    acceptance[ADMITTED_SOURCE_SENTENCES_KEY] = kept;
+    acceptance[ADMITTED_SOURCE_DIGEST_KEY] = digestAdmittedSourceSentences(kept);
+    acceptance.sentences = kept;
+    acceptance.clauses = (acceptance.clauses as { text: string }[]).filter(
+      (clause) => clause.text !== PRESENTATION_RESTRICTION,
+    );
+    (plan.narratives as Record<string, string>).Overview = kept.map((t) => `- ${t}`).join("\n");
+    const result = evaluateVerifyAcFromPlan(plan, unlanded());
+    expect(result.ok).toBe(false);
+    expect(result.cause).toBe(ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE);
+    expect(result.message).toContain(`disagrees with lean ${LEAN_ID}`);
+  });
+
+  it("fails when the recorded lean id is changed to another comment", () => {
+    const plan = specPathBrief(false);
+    attachSpecPathSourceRecord(plan, { ...LIVE_RECORD, leanCommentId: TABLE_ID });
+    const result = evaluateVerifyAcFromPlan(plan, unlanded());
+    expect(result.ok).toBe(false);
+    expect(result.cause).toBe(ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE);
+    expect(result.message).toContain("differs from the cited lean");
+  });
+
+  it("fails closed when the live lean cannot be read", () => {
+    const result = evaluateVerifyAcFromPlan(
+      specPathBrief(true),
+      unlanded({
+        fetchSpecPathLiveIdentities: () => ({
+          ok: false,
+          kind: "unavailable",
+          reason: "forge outage: down",
+        }),
+      }),
+    );
+    expect(result.ok).toBe(false);
+    expect(result.cause).toBe(ADMITTED_SOURCE_DIGEST_UNAVAILABLE_CAUSE);
+  });
+
+  it("keeps a Spec-path brief on the merge base with no source record as today", () => {
+    const plan = specPathBrief(false);
+    const pin = (plan.acceptance as Record<string, unknown>)[ADMITTED_SOURCE_SENTENCES_KEY];
+    const onBase = evaluateVerifyAcFromPlan(plan, {
+      ...baseOptions(writeProbeRoot()),
+      admittedSourceMergeBase: { sentences: pin as string[], source: "merge-base" },
+    });
+    expect(onBase.ok).toBe(true);
+    expect(onBase.cause).toBeUndefined();
+    const probed = evaluateVerifyAcFromPlan(plan, {
+      ...baseOptions(writeProbeRoot()),
+      admittedSourceMergeBase: { sentences: pin as string[] },
+      briefOnMergeBase: true,
+    });
+    expect(probed.ok).toBe(true);
+  });
+
+  it("fails a working-tree-only Spec-path brief with no source record and names the ingest command", () => {
+    const result = evaluateVerifyAcFromPlan(specPathBrief(false), unlanded());
+    expect(result.ok).toBe(false);
+    expect(result.cause).toBe(SPEC_PATH_SOURCE_RECORD_MISSING_CAUSE);
+    expect(result.message).toContain("task issue:ingest -- 5055");
+  });
+
+  it("does not treat the HEAD-fallback pin as proof of the merge base", () => {
+    const plan = specPathBrief(false);
+    const pin = (plan.acceptance as Record<string, unknown>)[ADMITTED_SOURCE_SENTENCES_KEY];
+    const result = evaluateVerifyAcFromPlan(plan, {
+      ...baseOptions(writeProbeRoot()),
+      admittedSourceMergeBase: { sentences: pin as string[], source: "head" },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.cause).toBe(SPEC_PATH_SOURCE_RECORD_MISSING_CAUSE);
+  });
+
+  it("fails when the source record is deleted before the brief is on the merge base", () => {
+    const plan = specPathBrief(true);
+    delete (plan.metadata as Record<string, unknown>)[SPEC_PATH_SOURCE_KEY];
+    const result = evaluateVerifyAcFromPlan(plan, unlanded({ briefOnMergeBase: false }));
+    expect(result.ok).toBe(false);
+    expect(result.cause).toBe(SPEC_PATH_SOURCE_RECORD_MISSING_CAUSE);
+    const noRef = specPathBrief(false);
+    noRef.references = [];
+    expect(evaluateVerifyAcFromPlan(noRef, unlanded()).message).toContain(
+      "task issue:ingest -- <issue>",
+    );
+  });
+
+  describe("git merge-base probe", () => {
+    function git(root: string, args: string[]): string {
+      return execFileSync(
+        "git",
+        [
+          "-c",
+          "user.name=t",
+          "-c",
+          "user.email=t@t",
+          "-c",
+          `core.hooksPath=${join(root, ".nohooks")}`,
+          ...args,
+        ],
+        { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+      );
+    }
+
+    function repoWithBase(): string {
+      const root = mkdtempSync(join(tmpdir(), "deft-6333-mb-"));
+      git(root, ["init", "-q", "-b", "master"]);
+      writeFileSync(join(root, "probe.txt"), "marker-token-3550\n", "utf8");
+      git(root, ["add", "probe.txt"]);
+      git(root, ["commit", "-q", "-m", "base"]);
+      return root;
+    }
+
+    function writeBrief(root: string, folder: string, plan: Record<string, unknown>): string {
+      mkdirSync(join(root, "xbrief", folder), { recursive: true });
+      const path = join(root, "xbrief", folder, "2026-11-16-5055-harvested.xbrief.json");
+      writeFileSync(path, JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan }), "utf8");
+      return path;
+    }
+
+    it("refuses a branch-only Spec-path brief even though HEAD holds its pin", () => {
+      const prior = process.env.DEFT_BASE_REF;
+      process.env.DEFT_BASE_REF = "origin/master";
+      const root = repoWithBase();
+      try {
+        git(root, ["update-ref", "refs/remotes/origin/master", "HEAD"]);
+        const path = writeBrief(root, "active", specPathBrief(false));
+        git(root, ["add", "."]);
+        git(root, ["commit", "-q", "-m", "branch brief"]);
+        expect(isBriefOnMergeBase(root, path)).toBe(false);
+        const result = evaluateVerifyAcFromPath(path, {
+          ...baseOptions(root),
+          fetchSpecPathLiveIdentities: liveFromThread,
+        });
+        expect(result.ok).toBe(false);
+        expect(result.cause).toBe(SPEC_PATH_SOURCE_RECORD_MISSING_CAUSE);
+        // scope:complete evaluates the plan with an xbriefPath hint: same probe.
+        const byPlan = evaluateVerifyAcFromPlan(specPathBrief(false), {
+          ...baseOptions(root),
+          xbriefPath: path,
+          fetchSpecPathLiveIdentities: liveFromThread,
+        });
+        expect(byPlan.cause).toBe(SPEC_PATH_SOURCE_RECORD_MISSING_CAUSE);
+      } finally {
+        if (prior === undefined) delete process.env.DEFT_BASE_REF;
+        else process.env.DEFT_BASE_REF = prior;
+        rmSync(root, { recursive: true, force: true });
+      }
+    });
+
+    it("keeps a Spec-path brief that is on the merge base, also after a lifecycle move", () => {
+      const prior = process.env.DEFT_BASE_REF;
+      process.env.DEFT_BASE_REF = "origin/master";
+      const root = repoWithBase();
+      try {
+        const pendingPath = writeBrief(root, "pending", specPathBrief(false));
+        git(root, ["add", "."]);
+        git(root, ["commit", "-q", "-m", "land brief"]);
+        git(root, ["update-ref", "refs/remotes/origin/master", "HEAD"]);
+        expect(isBriefOnMergeBase(root, pendingPath)).toBe(true);
+        const onBase = evaluateVerifyAcFromPath(pendingPath, baseOptions(root));
+        expect(onBase.cause).not.toBe(SPEC_PATH_SOURCE_RECORD_MISSING_CAUSE);
+        expect(onBase.ok).toBe(true);
+        const activePath = join(root, "xbrief", "active", "2026-11-16-5055-harvested.xbrief.json");
+        mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+        git(root, ["mv", pendingPath, activePath]);
+        expect(isBriefOnMergeBase(root, activePath)).toBe(true);
+        expect(isBriefOnMergeBase(root, join(root, "..", "outside.json"))).toBe(false);
+        // The moved brief reads its own merge-base pin from its old folder, so
+        // no sentence-split live compare runs against whole-item pin entries.
+        const moved = evaluateVerifyAcFromPath(activePath, {
+          ...baseOptions(root),
+          fetchAdmittedSourceText: () => ({ ok: true, text: "Split. Into sentences." }),
+        });
+        expect(moved.cause).toBeUndefined();
+        expect(moved.ok).toBe(true);
+      } finally {
+        if (prior === undefined) delete process.env.DEFT_BASE_REF;
+        else process.env.DEFT_BASE_REF = prior;
+        rmSync(root, { recursive: true, force: true });
+      }
+    });
+
+    it("finds no merge base without a delivery ref", () => {
+      const root = repoWithBase();
+      const prior = process.env.DEFT_BASE_REF;
+      process.env.DEFT_BASE_REF = "origin/master";
+      try {
+        const path = writeBrief(root, "active", specPathBrief(false));
+        expect(isBriefOnMergeBase(root, path)).toBe(false);
+      } finally {
+        if (prior === undefined) delete process.env.DEFT_BASE_REF;
+        else process.env.DEFT_BASE_REF = prior;
+        rmSync(root, { recursive: true, force: true });
+      }
+    });
   });
 });

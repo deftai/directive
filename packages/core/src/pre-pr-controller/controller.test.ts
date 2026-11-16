@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import {
   lstatSync,
   mkdirSync,
@@ -2456,6 +2457,38 @@ describe("pre-PR runs verify:class-checks and verify:evaluator-surface in lint_i
     }
   });
 
+  it("uses the run's recorded base on a branch with no master or main ref", () => {
+    const root = mkdtempSync(join(tmpdir(), "pre-pr-gates-develop-"));
+    const git = (...args: string[]) =>
+      execFileSync(
+        "git",
+        [
+          "-c",
+          "user.name=t",
+          "-c",
+          "user.email=t@example.com",
+          "-c",
+          "commit.gpgsign=false",
+          ...args,
+        ],
+        { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+      ).trim();
+    try {
+      git("init", "-q", "-b", "develop");
+      writeFileSync(join(root, "README.md"), "base\n");
+      git("add", "-A");
+      git("commit", "-q", "-m", "base");
+      const baseSha = git("rev-parse", "HEAD");
+      writeFileSync(join(root, "README.md"), "story\n");
+      const withBase = runPrePrGateChecks(root, baseSha);
+      expect(withBase.map((r) => r.exitCode)).toEqual([0, 0]);
+      // Without the recorded base, class-checks finds no master/main ref.
+      expect(runPrePrGateChecks(root)[0]?.exitCode).toBe(2);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("gateChecksSatisfied needs both results at exit 0", () => {
     const row = (gateChecks?: readonly PrePrGateCheckResult[]) =>
       ({
@@ -2471,6 +2504,9 @@ describe("pre-PR runs verify:class-checks and verify:evaluator-surface in lint_i
     expect(gateChecksSatisfied(row())).toBe(false);
     expect(gateChecksSatisfied(row([PASS_GATE_CHECKS[0] as PrePrGateCheckResult]))).toBe(false);
     expect(gateChecksSatisfied(row(RED_CLASS))).toBe(false);
+    // A duplicate passing result cannot mask a red one for the same gate.
+    expect(gateChecksSatisfied(row([...RED_CLASS, ...PASS_GATE_CHECKS]))).toBe(false);
+    expect(gateChecksSatisfied(row([...PASS_GATE_CHECKS, ...PASS_GATE_CHECKS]))).toBe(false);
     expect(gateChecksFailureMessage(PASS_GATE_CHECKS)).toBeNull();
     expect(gateChecksFailureMessage(RED_CLASS)).toBe(
       `verify:class-checks: ${RED_CLASS[0]?.message}`,
@@ -2629,6 +2665,8 @@ describe("pre-pr:run --complete on a head with no pull request (#6336 item 7)", 
       namedMergeGateFn,
       mergeQueueFn: noQueue,
       env: {},
+      // The head's PR lookup runs and finds none (commits/<sha>/pulls is empty).
+      runGh: () => ({ returncode: 0, stdout: "[]", stderr: "" }),
       ...extra,
     });
   }
@@ -2659,6 +2697,20 @@ describe("pre-pr:run --complete on a head with no pull request (#6336 item 7)", 
 
   it("a head with a pull request keeps the plain message", () => {
     const d = completeWith(greenGate, { prNumber: 6336 });
+    expect(d.ok).toBe(true);
+    expect(d.message).not.toContain("No pull request exists");
+  });
+
+  it("a PR found by the head lookup keeps the plain message", () => {
+    const d = completeWith(greenGate, {
+      runGh: () => ({ returncode: 0, stdout: JSON.stringify([{ number: 6414 }]), stderr: "" }),
+    });
+    expect(d.ok).toBe(true);
+    expect(d.message).not.toContain("No pull request exists");
+  });
+
+  it("does not claim a missing PR when no lookup could run", () => {
+    const d = completeWith(greenGate, { runGh: undefined });
     expect(d.ok).toBe(true);
     expect(d.message).not.toContain("No pull request exists");
   });

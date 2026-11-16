@@ -1741,3 +1741,97 @@ describe("evaluateCompletedWriteGuard Prefer-A leftover provenance (#5602)", () 
     expect(result.code).toBe(0);
   });
 });
+
+describe("lands-with-product admission (#6277 Bound 3)", () => {
+  const name = "2026-11-16-77-story.xbrief.json";
+  const activeRel = `xbrief/active/${name}`;
+  const doneRel = `xbrief/completed/${name}`;
+  const references = [
+    { uri: "https://github.com/acme/app/issues/77", type: "x-xbrief/github-issue" },
+  ];
+
+  function storyJson(status: string, landed: boolean): string {
+    return JSON.stringify({
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        title: "story 77",
+        status,
+        references,
+        items: [{ title: "Given x, then y returns z.", status: landed ? "completed" : "pending" }],
+        metadata: {
+          swarm: { file_scope: ["src/app.ts"] },
+          ...(landed
+            ? {
+                lifecycleWrite: {
+                  action: "complete",
+                  writtenAt: "2026-11-16T00:00:00Z",
+                  completionDisposition: "lands-with-product",
+                },
+              }
+            : {}),
+        },
+      },
+    });
+  }
+
+  const payloads = new Map([
+    [activeRel, storyJson("running", false)],
+    [doneRel, storyJson("completed", true)],
+  ]);
+
+  it("admits the move reported as a rename or as delete plus add, with no sole-mark scan", () => {
+    for (const nameStatus of [
+      `R100\t${activeRel}\t${doneRel}\nM\tsrc/app.ts`,
+      `D\t${activeRel}\nA\t${doneRel}\nM\tsrc/app.ts`,
+    ]) {
+      const result = evaluateCompletedWriteGuard("/tmp/proj", {
+        nameStatus,
+        payloads,
+        prBody: "Closes #77\n",
+      });
+      expect(result.code, result.message).toBe(0);
+    }
+  });
+
+  it("refuses a missing keyword, an active brief left in place and production files outside file_scope", () => {
+    const noKeyword = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `R100\t${activeRel}\t${doneRel}\nM\tsrc/app.ts`,
+      payloads,
+      prBody: "Refs #77\n\ndeft-story: 77\n",
+    });
+    expect(noKeyword.code).toBe(1);
+    expect(noKeyword.message).toMatch(
+      /lands-with-product add refused \(#6277\): the PR body has no closing keyword for #77/,
+    );
+    const leftActive = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `A\t${doneRel}\nM\tsrc/app.ts`,
+      payloads,
+      prBody: "Closes #77\n",
+    });
+    expect(leftActive.code).toBe(1);
+    expect(leftActive.message).toContain(`the change set does not remove ${activeRel}`);
+    const outside = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `R100\t${activeRel}\t${doneRel}\nM\tsrc/app.ts\nA\tsrc/other.ts`,
+      payloads,
+      prBody: "Closes #77\n",
+    });
+    expect(outside.code).toBe(1);
+    expect(outside.message).toMatch(/outside the brief's file_scope: src\/other\.ts/);
+  });
+
+  it("notes the keyword check outside a PR context and keeps every other case unchanged", () => {
+    const local = evaluateCompletedWriteGuard("/tmp/proj", {
+      nameStatus: `R100\t${activeRel}\t${doneRel}\nM\tsrc/app.ts`,
+      payloads,
+    });
+    expect(local.code).toBe(0);
+    expect(local.message).toMatch(/note: closing keyword for acme\/app#77 not evaluated/);
+    const husk = evaluateCompletedWriteGuard("/tmp/proj", {
+      addedFiles: [doneRel, "src/app.ts"],
+      payloads: new Map([[doneRel, JSON.stringify({ plan: { title: "h", status: "completed" } })]]),
+      prBody: "Closes #77\n",
+    });
+    expect(husk.code).toBe(1);
+    expect(husk.message).toMatch(/without a runTransition write/);
+  });
+});

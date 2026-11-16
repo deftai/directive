@@ -2012,6 +2012,59 @@ describe("brief-in-PR-diff identity fallback (#3675)", () => {
     ).toBe(false);
   });
 
+  it("prDiffAddsBrief accepts a rename out of active/ beside code, never a lifecycle-only PR (#6277)", () => {
+    const code = { status: "modified", filename: "src/a.ts" };
+    const move = {
+      status: "renamed",
+      filename: `xbrief/completed/${brief}`,
+      previousFilename: `xbrief/active/${brief}`,
+    };
+    expect(prDiffAddsBrief([move, code], brief)).toBe(true);
+    expect(
+      prDiffAddsBrief([{ ...move, previousFilename: `vbrief/active/${brief}` }, code], brief),
+    ).toBe(true);
+    // Lifecycle-only rename: no code beside it.
+    expect(prDiffAddsBrief([move], brief)).toBe(false);
+    // A rename from another folder or of another basename is not the in-PR move.
+    expect(
+      prDiffAddsBrief([{ ...move, previousFilename: `xbrief/proposed/${brief}` }, code], brief),
+    ).toBe(false);
+    expect(
+      prDiffAddsBrief(
+        [{ ...move, previousFilename: "xbrief/active/other.xbrief.json" }, code],
+        brief,
+      ),
+    ).toBe(false);
+    expect(
+      prDiffAddsBrief([{ ...move, previousFilename: `docs/active/${brief}` }, code], brief),
+    ).toBe(false);
+  });
+
+  it("defaultFetchPrChangedFiles keeps the rename source and fails closed on a bad line (#6277)", () => {
+    const run =
+      (stdout: string, returncode = 0) =>
+      () => ({ returncode, stdout, stderr: "" });
+    expect(
+      defaultFetchPrChangedFiles(
+        1,
+        "acme/app",
+        run(`renamed\txbrief/completed/${brief}\txbrief/active/${brief}\r\nmodified\tsrc/a.ts\t\n`),
+      ),
+    ).toEqual([
+      {
+        status: "renamed",
+        filename: `xbrief/completed/${brief}`,
+        previousFilename: `xbrief/active/${brief}`,
+      },
+      { status: "modified", filename: "src/a.ts" },
+    ]);
+    expect(defaultFetchPrChangedFiles(1, "acme/app", run("modified\tsrc/a.ts\n"))).toEqual([
+      { status: "modified", filename: "src/a.ts" },
+    ]);
+    expect(defaultFetchPrChangedFiles(1, "acme/app", run("\tsrc/a.ts\n"))).toBeNull();
+    expect(defaultFetchPrChangedFiles(1, "acme/app", run("modified\n"))).toBeNull();
+  });
+
   it("accepts a PR that added the brief when the issue was linked after merge", () => {
     const result = verifyStoryPrMergeIdentity({
       plan,
