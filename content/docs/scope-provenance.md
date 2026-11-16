@@ -70,19 +70,23 @@ The repo owner picks how a new or widened brief can land with its code in one PR
 | Level | Behaviour |
 |---|---|
 | `off` (default; also when the field is absent) | Today's behaviour. A same-PR `.deft/approved-scope` record is refused. |
-| `mint` | A same-PR human mint record can admit the head brief for membership. Needs `requireHumanMerge: true`. |
+| `mint` | A same-PR human mint record can admit the head brief for membership. Works with or without `requireHumanMerge: true`; the control differs (see below). |
 | `signed` | Reserved for the signed level (#5862). The setter refuses it; a merge base that sets it gets no one-PR path. |
 
 Set it with `deft policy:set-one-pr-scope-proof -- --set off|mint --confirm`. Inspect it with `deft policy:show --field=onePrScopeProof`.
 
 - **Merge base only.** The check reads `onePrScopeProof` and `requireHumanMerge` from `xbrief/PROJECT-DEFINITION.xbrief.json` on the merge base, never from the head. A PR that changes either field cannot use the one-PR path.
-- **Mint level needs a human merge.** It applies only when the merge base has a typed `requireHumanMerge: true`. A repo that lets bots merge cannot use it. Such a repo waits for the signed level (#5862; cohort consent is #6284).
+- **No human-merge precondition (#6354).** The mint level applies whatever the merge-base `requireHumanMerge` is. An agent or the merge queue may merge the PR. `requireHumanMerge` only decides which control applies (below).
 - **How to use it.** The human runs `scope:record-approved-scope` on the brief (same #3110 human-presence gate). The record now also stores `authHashV1`, the brief's auth-hash v1 (same hash as #6203). Commit the record, its `.intent.json`, the brief and the code in one PR. List both `.deft/approved-scope/<plan-id>.json` and `<plan-id>.intent.json` in the brief's `file_scope`, because membership does not free them.
 - **Exact match only.** The record is admitted only when all of these hold: `authHashV1` equals the head brief's auth-hash; `planId` and `xbriefRelPath` match the head brief; the record's normalized `fileScope` equals the head brief's `file_scope` and `fileScopeDigest` matches it; the head `file_scope` has **no glob entries** (concrete files only); the human stamp passes; and the same-PR `.intent.json` matches the record's `intentDigest` with no intent drift in the head brief. Any edit to the brief after the mint needs a new mint.
 - **Then** membership uses the record as `mint` authority. In every other case the same-PR rewrite finding is unchanged; when the merge-base level is `mint`, the message adds one `one-PR scope proof (#6273)` line with the reason.
-- **CI cannot verify the mint.** CI cannot tell a real mint from a file an agent wrote. The human merge is the control, the same trust anchor as today's separate record PR. On each admit, `verify:scope-provenance` prints the plan id, the admitted `file_scope`, the production-file count and the line "CI cannot tell this mint from a file an agent wrote; the human merge is the control". It appends the same block to `$GITHUB_STEP_SUMMARY` when that variable is set. Read that block before you merge.
+- **CI cannot verify the mint.** CI cannot tell a real mint from a file an agent wrote. The control depends on the merge-base merge policy:
+  - **`requireHumanMerge: true`:** the human merge is the control, the same trust anchor as today's separate record PR. The admit block ends with "CI cannot tell this mint from a file an agent wrote; the human merge is the control".
+  - **`requireHumanMerge` false or absent:** CI verifies nothing human. The control is the local mint gate (the #3110 human-presence gate on `scope:record-approved-scope`) and the write fence on `.deft/approved-scope/`. This is the same class of control as a brief PR that an agent opens and merges. The admit block ends with "CI cannot tell this mint from a file an agent wrote; requireHumanMerge is not true on the merge base, so CI verifies nothing human: the control is the local mint gate and the write fence".
+- **Admit block.** On each admit, `verify:scope-provenance` prints the plan id, the admitted `file_scope`, the production-file count, the merge-base `requireHumanMerge` value and the control line above. It appends the same block to `$GITHUB_STEP_SUMMARY` when that variable is set. Read that block before you merge.
+- **Residual without a human merge.** The level is only as strong as the write fence on `.deft/approved-scope/`. Shell writes can bypass that fence today (#3597, #3595). This is not closed.
 - **Unchanged:** the #4956 production fence (merge-base brief only), Path B, the separate mint-record PR, #6203 forge approval, and `requireHumanMerge` semantics. A widened brief can pass membership and still fail `production-scope-over-budget`.
-- **Not in scope:** credential separation for an agent that shares the operator's forge identity stays on #6207. The production allowance split stays under #4956. Neither level closes those.
+- **Not in scope:** credential separation for an agent that shares the operator's forge identity stays on #6207. The signed level (#5862; cohort consent #6284) stays a later opt-in. The production allowance split stays under #4956. The mint level closes none of those.
 
 Code: `packages/core/src/policy/one-pr-scope-proof.ts`.
 

@@ -2318,6 +2318,7 @@ describe("one-PR mint level same-PR record admit (#6273)", () => {
         xbriefRelPath: BRIEF,
         fileScope: normalizeFileScope(SCOPE),
         productionFileCount: 1,
+        humanMerge: true,
       },
     ]);
   });
@@ -2337,19 +2338,81 @@ describe("one-PR mint level same-PR record admit (#6273)", () => {
     expect(result.mintLevelAdmits).toHaveLength(1);
   });
 
-  it("refuses when merge-base requireHumanMerge is false", () => {
-    expectRefused(
-      evaluate({ basePolicy: { onePrScopeProof: "mint", requireHumanMerge: false } }),
-      /requireHumanMerge=true/,
-    );
+  it("admits without a human merge when merge-base requireHumanMerge is false or absent (#6354)", () => {
+    for (const basePolicy of [
+      { onePrScopeProof: "mint", requireHumanMerge: false },
+      { onePrScopeProof: "mint" },
+    ]) {
+      const result = evaluate({ basePolicy });
+      expect(result.exitCode, result.message).toBe(0);
+      expect(result.mintLevelAdmits).toEqual([
+        {
+          planId: PLAN,
+          xbriefRelPath: BRIEF,
+          fileScope: normalizeFileScope(SCOPE),
+          productionFileCount: 1,
+          humanMerge: false,
+        },
+      ]);
+    }
   });
 
-  it("refuses requireHumanMerge that is only implied, not typed true", () => {
-    expectRefused(evaluate({ basePolicy: { onePrScopeProof: "mint" } }), /requireHumanMerge=true/);
+  it("keeps every record check without a human merge (#6354)", () => {
+    const BOT = { onePrScopeProof: "mint", requireHumanMerge: false };
+    const wider = [...SCOPE, "packages/core/src/extra.ts"];
+    const retitled = brief(SCOPE);
+    (retitled.plan as Record<string, unknown>).title = "A different story";
+    const cases: [Case, RegExp][] = [
+      [
+        { editRecord: (r) => ({ ...r, authHashV1: `sha256:${"0".repeat(64)}` }) },
+        /authHashV1 differs/,
+      ],
+      [
+        {
+          editRecord: (r) => ({
+            ...r,
+            fileScope: normalizeFileScope(wider),
+            fileScopeDigest: computeFileScopeDigest(wider),
+          }),
+        },
+        /fileScope differs/,
+      ],
+      [{ editRecord: (r) => ({ ...r, fileScopeDigest: "0".repeat(64) }) }, /fileScopeDigest/],
+      [{ head: brief([...SCOPE, "packages/core/src/**"]) }, /glob/],
+      [{ head: retitled }, /drifted from the minted intent/],
+      [
+        {
+          editRecord: (r) => ({
+            ...r,
+            humanApproval: {
+              kind: "agent",
+              actor: "agent:worker",
+              mintedAt: "2026-11-13T00:00:00Z",
+            },
+          }),
+        },
+        /human stamp/,
+      ],
+      [
+        { editRecord: (r) => ({ ...r, xbriefRelPath: "xbrief/active/other.xbrief.json" }) },
+        /xbriefRelPath does not match/,
+      ],
+    ];
+    for (const [c, note] of cases) expectRefused(evaluate({ ...c, basePolicy: BOT }), note);
   });
 
   it("refuses a level set only in the head", () => {
     expectRefused(evaluate({ basePolicy: { requireHumanMerge: true }, headPolicy: MINT_ON }), null);
+    expectRefused(evaluate({ basePolicy: null, headPolicy: { onePrScopeProof: "mint" } }), null);
+  });
+
+  it("refuses a change set that edits either field without a human merge (#6354)", () => {
+    for (const headPolicy of [MINT_ON, { onePrScopeProof: "off" }]) {
+      expectRefused(
+        evaluate({ basePolicy: { onePrScopeProof: "mint" }, headPolicy }),
+        /edits onePrScopeProof or requireHumanMerge/,
+      );
+    }
   });
 
   it("refuses a change set that edits either policy field", () => {
@@ -2468,5 +2531,7 @@ describe("one-PR mint level same-PR record admit (#6273)", () => {
       null,
     );
     expectRefused(evaluate({ basePolicy: null }), null);
+    expectRefused(evaluate({ basePolicy: { onePrScopeProof: "off" } }), null);
+    expectRefused(evaluate({ basePolicy: { requireHumanMerge: false } }), null);
   });
 });

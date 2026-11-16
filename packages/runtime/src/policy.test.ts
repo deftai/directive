@@ -319,6 +319,15 @@ describe("run show + set integration", async () => {
     expect(off.out).toContain("onePrScopeProof=off");
   });
 
+  it("set-one-pr-scope-proof usage names both controls, no precondition (#6354)", async () => {
+    const usage = captureRun(["set-one-pr-scope-proof", "--project-root", project()]);
+    expect(usage.code).toBe(1);
+    expect(usage.out).toContain("usage: policy set-one-pr-scope-proof");
+    expect(usage.out).toContain("with requireHumanMerge=true the human merge is the control");
+    expect(usage.out).toContain("local mint gate and the write fence");
+    expect(usage.out).not.toContain("mint needs requireHumanMerge=true");
+  });
+
   it("set-one-pr-scope-proof rejects an unknown level at parse (#6273)", async () => {
     expect(parseArgs(["set-one-pr-scope-proof", "--set", "bogus"]).error).toContain(
       "expected off|mint",

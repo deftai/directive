@@ -30,13 +30,15 @@
  * qualifying human forge approval covers its auth-hash v1. Membership only;
  * the production fence still reads the merge-base brief.
  *
- * One-PR mint level (#6273): when the merge-base PROJECT-DEFINITION sets
- * `onePrScopeProof: mint` with `requireHumanMerge: true` and the change set
- * edits neither field, a same-PR human mint record that names exactly the head
- * brief's scope (auth-hash v1, plan id, path, concrete file_scope, digest,
- * intent preimage) is admitted as `mint` membership authority. CI cannot tell
- * that mint from a file an agent wrote; the human merge is the control. The
- * production fence still reads the merge-base brief.
+ * One-PR mint level (#6273 / #6354): when the merge-base PROJECT-DEFINITION
+ * sets `onePrScopeProof: mint` and the change set edits neither
+ * `onePrScopeProof` nor `requireHumanMerge`, a same-PR human mint record that
+ * names exactly the head brief's scope (auth-hash v1, plan id, path, concrete
+ * file_scope, digest, intent preimage) is admitted as `mint` membership
+ * authority. CI cannot tell that mint from a file an agent wrote. Each admit
+ * carries the merge-base merge policy: with `requireHumanMerge: true` the human
+ * merge is the control; otherwise the local mint gate and the write fence are.
+ * The production fence still reads the merge-base brief.
  *
  * Intent-pin checks (#3385) remain for existing base-committed records.
  *
@@ -980,7 +982,8 @@ export function evaluateScopeProvenance(
   /** One-PR mint-level admits and reject notes (#6273). */
   const mintLevelAdmits: MintLevelAdmit[] = [];
   const onePrNotes: string[] = [];
-  // The level and requireHumanMerge come from the merge base only (#6273):
+  // The level and requireHumanMerge come from the merge base only (#6273);
+  // requireHumanMerge picks the admit's control line, not admission (#6354):
   // pin `git merge-base <base> HEAD`, not the base branch tip, so a later
   // base-tip policy change neither refuses nor admits this change set.
   // Injected base seams (tests) keep their own reader.
@@ -1140,9 +1143,11 @@ export function evaluateScopeProvenance(
     // mint ceremony (#4956). Only carve-out: the merge-base one-PR mint level
     // with an exact same-PR human mint record (#6273).
     let mintLevelScope: readonly string[] | null = null;
+    let mintLevelHumanMerge = false;
     if (approvalRecordRewritten && modified && renewed === null && planId !== null) {
       const gate = resolveOnePrGate();
       if (gate.kind === "mint") {
+        mintLevelHumanMerge = gate.humanMerge;
         const verdict = evaluateMintLevelRecord({
           record: approvedCandidate,
           intentRaw: readHeadIntent(planId),
@@ -1403,6 +1408,7 @@ export function evaluateScopeProvenance(
         xbriefRelPath: rel,
         fileScope: mintLevelScope,
         productionFileCount: concreteProductionScopeEntries(mintLevelScope, boundary).length,
+        humanMerge: mintLevelHumanMerge,
       });
     } else if (mintLookup.kind === "mint") {
       membershipAllowlist = mintLookup.fileScope;

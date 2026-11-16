@@ -247,6 +247,7 @@ describe("mint-level admit visibility (#6273)", () => {
     xbriefRelPath: "xbrief/active/story.xbrief.json",
     fileScope: ["packages/core/src/feature.ts", "packages/core/src/feature.test.ts"],
     productionFileCount: 1,
+    humanMerge: true,
   };
   const dirs: string[] = [];
 
@@ -279,9 +280,19 @@ describe("mint-level admit visibility (#6273)", () => {
     expect(stdout).toContain("plan id: story-6273");
     expect(stdout).toContain("- packages/core/src/feature.ts");
     expect(stdout).toContain("production files: 1");
+    expect(stdout).toContain("merge-base requireHumanMerge: true");
     expect(stdout).toContain(
       "CI cannot tell this mint from a file an agent wrote; the human merge is the control",
     );
+  });
+
+  it("prints the local mint gate and write fence control without a human merge (#6354)", () => {
+    const { stdout } = capture(() => reportMintLevelAdmits([{ ...ADMIT, humanMerge: false }], {}));
+    expect(stdout).toContain("plan id: story-6273");
+    expect(stdout).toContain("merge-base requireHumanMerge: not true");
+    expect(stdout).toContain("CI verifies nothing human");
+    expect(stdout).toContain("the control is the local mint gate and the write fence");
+    expect(stdout).not.toContain("the human merge is the control");
   });
 
   it("appends the same block to $GITHUB_STEP_SUMMARY when set", () => {
