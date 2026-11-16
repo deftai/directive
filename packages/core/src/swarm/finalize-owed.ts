@@ -30,6 +30,12 @@ import {
 import { defaultRunGh } from "../pr-protected-issues/gh.js";
 import type { RunGhFn } from "../pr-protected-issues/types.js";
 import {
+  GhRestError,
+  type RunGhApiFn,
+  restIssueListOpenInventory,
+  runGhApi,
+} from "../scm/gh-rest.js";
+import {
   resolvePlanGithubIssueRef,
   resolvePrOnlyDeliveryIdentity,
 } from "../scope/delivery-evidence.js";
@@ -437,45 +443,90 @@ function tipHasTwin(
   return false;
 }
 
-function fetchIssueState(
-  issue: number,
-  repo: string,
-  runGh: RunGhFn,
-): { state: "open" | "closed" | null; protectedUmbrella: boolean; error: string | null } {
-  const parsed = parseRepo(repo);
-  if (parsed === null) {
-    return { state: null, protectedUmbrella: false, error: `invalid repo: ${repo}` };
+export interface OriginIssueState {
+  readonly state: "open" | "closed" | null;
+  readonly protectedUmbrella: boolean;
+  readonly error: string | null;
+}
+
+export type OriginIssueStateLookup = (issue: number) => OriginIssueState;
+
+/** Adapt the injected `gh` seam to the REST list runner shape (#5927). */
+export function runGhApiFromRunGh(runGh: RunGhFn): RunGhApiFn {
+  return (args) => {
+    const result = runGh(["gh", "api", ...args]);
+    return { returncode: result.returncode, stdout: result.stdout, stderr: result.stderr };
+  };
+}
+
+/**
+ * List runner for the open-issue list (#5927): the injected `gh` seam when a
+ * caller passes one, else the REST runner with its paged-list timeout.
+ */
+function openIssueListRunner(runGh: RunGhFn | undefined): RunGhApiFn {
+  return runGh !== undefined ? runGhApiFromRunGh(runGh) : runGhApi;
+}
+
+type OpenIssueList =
+  | { readonly ok: true; readonly open: ReadonlyMap<number, Record<string, unknown>> }
+  | { readonly ok: false; readonly error: string };
+
+function listOpenIssues(repo: string, runGhApiFn: RunGhApiFn): OpenIssueList {
+  if (parseRepo(repo) === null) {
+    return { ok: false, error: `invalid repo: ${repo}` };
   }
-  const result = runGh([
-    "gh",
-    "api",
-    `repos/${parsed.owner}/${parsed.name}/issues/${String(issue)}`,
-  ]);
-  if (result.returncode !== 0) {
-    return {
-      state: null,
-      protectedUmbrella: false,
-      error: result.stderr.trim() || result.stdout.trim(),
-    };
-  }
+  // Success with empty stdout is not an empty list: `--slurp` always prints JSON.
+  let emptyStdout = false;
+  const runner: RunGhApiFn = (args, opts) => {
+    const result = runGhApiFn(args, opts);
+    emptyStdout = result.returncode === 0 && result.stdout.trim().length === 0;
+    return result;
+  };
+  let rows: Record<string, unknown>[];
   try {
-    const payload: unknown = JSON.parse(result.stdout);
-    if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
-      return { state: null, protectedUmbrella: false, error: "issue payload malformed" };
-    }
-    const rec = payload as Record<string, unknown>;
-    const stateRaw = String(rec.state ?? "").toLowerCase();
-    const state = stateRaw === "open" || stateRaw === "closed" ? stateRaw : null;
-    // Share finalize-cohort staying-open vocabulary (epic/tracker/umbrella) (#5143).
-    const protectedUmbrella = isProtectedStayingOpenUmbrella(rec);
-    return { state, protectedUmbrella, error: null };
+    rows = restIssueListOpenInventory(repo, { runGhApiFn: runner });
   } catch (err: unknown) {
-    return {
-      state: null,
-      protectedUmbrella: false,
-      error: err instanceof Error ? err.message : String(err),
-    };
+    const detail = err instanceof GhRestError ? err.stderr || err.message : String(err);
+    return { ok: false, error: `open-issue list failed: ${detail}` };
   }
+  if (emptyStdout) {
+    return { ok: false, error: "open-issue list failed: empty output" };
+  }
+  const open = new Map<number, Record<string, unknown>>();
+  for (const row of rows) {
+    const n = row.number;
+    if (typeof n !== "number" || !Number.isInteger(n) || n <= 0) {
+      return { ok: false, error: "open-issue list failed: row without an issue number" };
+    }
+    open.set(n, row);
+  }
+  return { ok: true, open };
+}
+
+/**
+ * Origin issue state from one paged open-issue list per discover run (#5927),
+ * in place of one `gh api issues/N` read per brief. Listed on first demand and
+ * memoized. An issue absent from a complete list is closed. A failed, empty or
+ * partial list fails every lookup, so each item keeps its issue-verify-failed
+ * outcome (unverified / unknown / stale-unverified), never closed.
+ */
+export function createOriginIssueStateLookup(
+  repo: string,
+  runGhApiFn: RunGhApiFn,
+): OriginIssueStateLookup {
+  let listed: OpenIssueList | null = null;
+  return (issue) => {
+    listed ??= listOpenIssues(repo, runGhApiFn);
+    if (!listed.ok) {
+      return { state: null, protectedUmbrella: false, error: listed.error };
+    }
+    const row = listed.open.get(issue);
+    if (row === undefined) {
+      return { state: "closed", protectedUmbrella: false, error: null };
+    }
+    // Share finalize-cohort staying-open vocabulary (epic/tracker/umbrella) (#5143).
+    return { state: "open", protectedUmbrella: isProtectedStayingOpenUmbrella(row), error: null };
+  };
 }
 
 function listOpenFinalizePrs(
@@ -768,6 +819,11 @@ export function discoverFinalizeOwed(
     readonly deliveryBranch: string;
     readonly tip: string;
     readonly runGh?: RunGhFn;
+    /**
+     * Open-issue list runner (#5927). Default: `runGh` when injected, else the
+     * REST runner with its paged-list timeout.
+     */
+    readonly runGhApi?: RunGhApiFn;
     readonly runGit?: GitRunner;
     /** Claim ls-remote + hit-fetch only; falls back to runGit then default (#6008). */
     readonly claimRunner?: GitRunner;
@@ -775,6 +831,11 @@ export function discoverFinalizeOwed(
   },
 ): FinalizeOwedInventory {
   const runGh = options.runGh ?? defaultRunGh;
+  // One paged open-issue list per run, on first demand (#5927).
+  const originIssueState = createOriginIssueStateLookup(
+    options.repo,
+    options.runGhApi ?? openIssueListRunner(options.runGh),
+  );
   const runGit = options.runGit ?? defaultGitRunner;
   const claimGit = options.claimRunner ?? options.runGit ?? defaultGitRunner;
   const nowMs = (options.now ?? Date.now)();
@@ -931,8 +992,7 @@ export function discoverFinalizeOwed(
       });
       continue;
     }
-    const issueState =
-      issue === null ? ISSUELESS_ORIGIN_STATE : fetchIssueState(issue, options.repo, runGh);
+    const issueState = issue === null ? ISSUELESS_ORIGIN_STATE : originIssueState(issue);
     if (claim.kind === "unknown") {
       // Unverifiable issue-state stays unknown+blocking; closed / unmarked protected exempt (#6008).
       if (issueState.error !== null || issueState.state === null) {
@@ -1100,7 +1160,7 @@ export function discoverFinalizeOwed(
       });
       continue;
     }
-    const issueState = fetchIssueState(issue, options.repo, runGh);
+    const issueState = originIssueState(issue);
     if (claim.kind === "unknown") {
       if (issueState.error !== null || issueState.state === null) {
         stories.push({
@@ -1398,6 +1458,8 @@ export function finalizeOwed(args: FinalizeOwedArgs = {}): {
     deliveryBranch,
     tip: fetched.tip,
     runGh,
+    // Production lists open issues on the REST runner (paged-list timeout) (#5927).
+    runGhApi: openIssueListRunner(args.runGh),
     runGit,
     claimRunner,
     now: args.now,

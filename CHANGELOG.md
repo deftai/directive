@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - After a context compaction, the write hook restores the ritual clock for the session that owns the live lease and the ritual, and denies one call with the alignment lines instead of every write until a manual re-arm. Other stale-ritual denials print their recovery command with the caller's `--session-id` (#6279).
 
 ### Fixed
+- The finalize-owed scan in `session:start` and `swarm:finalize-owed` reads origin issue state from one paged open-issue list instead of one `gh api issues/N` call per brief, so cold `session:start` no longer spends minutes there; a failed list keeps items unverified or unknown, never closed (#5927).
 - `scope:complete` judges a `delivery-identity-attest` grant's expiry at the transition clock, not wall time; this turns master CI green again (#6398).
 - `git commit` of planning files only (`docs/design/*.md`, `docs/decisions/*.md`, proposed/pending/completed/cancelled briefs, decision records, `CHANGELOG.md`, a shape-checked `.deft/plan-sequence.json`) is no longer denied for want of a ready scope. Recovery: upgrade, commit these before `scope:promote`, then commit root plan/specification/PROJECT-DEFINITION and `active/` changes separately; any other path keeps today's rules (#5839).
 - `verify:class-checks` and `verify:evaluator-surface --base-ref` read one candidate tree: the working tree against the merge base, plus untracked files. A reverted protected path passes before its commit, and base-only commits stay out (#6336).
