@@ -4,9 +4,9 @@
  * `deft pre-pr:run` starts the prescribed workflow. Opening the skill file
  * is not completion. Generic mark-complete cannot mint a pass.
  */
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { writeStoryLineToBodyFile } from "@deftai/directive-core/pr-closing-keywords";
+import { defaultRunGh } from "@deftai/directive-core/pr-merge-readiness";
 import {
   completeRun,
   computeControllerObservedHash,
@@ -14,13 +14,16 @@ import {
   digestApprovedCriteria,
   evaluateLivePrePrCheck,
   getDefaultPrePrStore,
+  hashPrBody,
   markComplete,
   noteSkillFileOpen,
   observeCommandPhase,
   PRE_PR_PHASE_IDS,
+  type PrePrGateCheckResult,
   type PrePrPhaseId,
   phaseSpec,
   resolveRecordFromStore,
+  runPrePrGateChecks,
   startControllerRun,
   submitReviewerReport,
 } from "@deftai/directive-core/pre-pr-controller";
@@ -72,7 +75,10 @@ Options:
                           (deft-story: N) for the branch's running story (#6316);
                           alone, runs only that step. With start, the run binds
                           the sha256 of the file after that step (--pr-body-hash
-                          may be omitted; a different value is refused)
+                          may be omitted; a different value is refused).
+                          With --evaluate, hashes the stored body saved to
+                          the file. Both sides ignore CRLF and trailing
+                          newlines (#6336)
   --part                  with --body-file: write deft-story-part: N instead
   --json
   --help
@@ -408,6 +414,11 @@ export interface PrePrRunOptions {
   readonly skipNamedMergeGate?: boolean;
   /** Story-line writer seam for hermetic tests (#6316). */
   readonly writeStoryLine?: typeof writeStoryLineToBodyFile;
+  /** lint_iteration CI gate runner seam for hermetic tests (#6336); defaults to in-process gates. */
+  readonly gateChecks?: (
+    projectRoot: string,
+    baseRef: string | null,
+  ) => readonly PrePrGateCheckResult[];
 }
 
 /** No start binding beyond --repo (which the story-line step also reads). */
@@ -494,6 +505,12 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
       const spec = phaseSpec(phase);
       // Same root rule as push-admit: one report path for observe and satisfy.
       const projectRoot = args.projectRoot?.trim() || process.cwd();
+      // #6336 item 4: lint_iteration also runs verify:class-checks and
+      // verify:evaluator-surface on the candidate tree and records both results.
+      const gateChecks =
+        phase === "lint_iteration"
+          ? (options.gateChecks ?? runPrePrGateChecks)(projectRoot, rec?.baseSha ?? null)
+          : undefined;
       const d = observeCommandPhase(
         store,
         args.runId,
@@ -503,6 +520,7 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
           exitCode: args.exitCode,
           inputHash: args.inputHash ?? rec?.inputHash ?? "",
           skipReason: args.skipReason,
+          ...(gateChecks === undefined ? {} : { gateChecks }),
         },
         { projectRoot },
       );
@@ -552,8 +570,20 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
       process.stderr.write("pre_pr_run: --evaluate requires --repo --base-sha --head-sha\n");
       return 2;
     }
+    // #6336 item 8: --body-file (the stored PR body saved to a file) hashes with
+    // the same normalisation as the start-side body file.
+    if (args.prBodyHash.length === 0 && args.bodyFile !== null) {
+      try {
+        args.prBodyHash = hashPrBody(readFileSync(args.bodyFile, "utf8"));
+      } catch (err: unknown) {
+        process.stderr.write(
+          `pre_pr_run: cannot hash --body-file: ${err instanceof Error ? err.message : String(err)}\n`,
+        );
+        return 2;
+      }
+    }
     if (args.prBodyHash.length === 0) {
-      process.stderr.write("pre_pr_run: --evaluate requires --pr-body-hash\n");
+      process.stderr.write("pre_pr_run: --evaluate requires --pr-body-hash or --body-file\n");
       return 2;
     }
     const record = resolveRecordFromStore(store, {
@@ -597,6 +627,8 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
     const projectRoot = args.projectRoot?.trim() || process.cwd();
     const d = completeRun(store, controllerPublisher(), args.runId, undefined, {
       projectRoot,
+      // #6336 item 7: let the controller look up the head's PR before it says there is none.
+      runGh: defaultRunGh,
       ...(options.skipNamedMergeGate === true ? { skipNamedMergeGate: true as const } : {}),
       ...(args.verifyAcDisposition !== null
         ? { verifyAcDisposition: args.verifyAcDisposition }
@@ -627,7 +659,8 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
     // the PR body matches this record (#6316 Greptile P1).
     let bodyHash: string;
     try {
-      bodyHash = createHash("sha256").update(readFileSync(args.bodyFile)).digest("hex");
+      // #6336 item 8: CRLF and trailing newlines do not change the hash.
+      bodyHash = hashPrBody(readFileSync(args.bodyFile, "utf8"));
     } catch (err: unknown) {
       process.stderr.write(
         `pre_pr_run: cannot hash --body-file after the story-line step: ${err instanceof Error ? err.message : String(err)}\n`,

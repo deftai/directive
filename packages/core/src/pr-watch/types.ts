@@ -24,6 +24,10 @@ export interface WatchProbe {
   readonly ciReadyState: string | null;
   /** Required checks classified as capacity-stalled (#2672). */
   readonly ciCapacityStalledChecks: readonly string[];
+  /** Base-branch required contexts with no check-run on HEAD (#6336 item 3). */
+  readonly ciAbsentRequired?: readonly string[];
+  /** Red bot review checks: printed as advisory, never counted (#6336 item 3). */
+  readonly ciAdvisoryChecks?: readonly string[];
   /** All required CI check-runs have a terminal conclusion (none pending). */
   readonly terminalCheckRun: boolean;
   /** Greptile Review check-run on current HEAD is completed+{success,neutral} (#4289). */

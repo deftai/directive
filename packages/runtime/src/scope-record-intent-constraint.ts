@@ -203,7 +203,9 @@ export function run(argv: string[], seams: HumanPresenceMintSeams = {}): number 
   const path = writeIntentConstraintRecord(projectRoot, rec);
   if (!args.quiet) {
     process.stdout.write(
-      `Wrote ${path}\nCommit this record on the merge base before the implementation change PR.\n`,
+      `Wrote ${path}\nCommit this record on the merge base before the implementation change PR.\n` +
+        "Land it in its own authority-record PR with `deft-story-part: N` (not `deft-story: N`); " +
+        "that PR is not the story's completing delivery (#6335).\n",
     );
   }
   return 0;

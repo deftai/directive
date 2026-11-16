@@ -157,3 +157,58 @@ describe("parseSlizardCheckRunSummary (captured check-run output.summary)", () =
     expect(slizardCheckRunHasZeroFindings(v)).toBe(true);
   });
 });
+
+/** Live capture: deftai/directive PR #6404, SLizard check-run 133453327634 at 9d84827 (trimmed). */
+const PR_6404_SUMMARY = readFileSync(
+  join(here, "../../pr-merge-readiness/fixtures/slizard-check-run-6404-9d84827.summary.txt"),
+  "utf8",
+);
+
+describe("parseSlizardCheckRunSummary fingerprints (#6377)", () => {
+  it("holds the single Fingerprints (actionable) id of the bs-deepwordle#4 capture", () => {
+    expect(parseSlizardCheckRunSummary(captured).fingerprints).toEqual(["7006f2a1b3f8b4b8"]);
+  });
+
+  it("holds every listed id, in summary order, for the PR #6404 capture", () => {
+    const v = parseSlizardCheckRunSummary(PR_6404_SUMMARY);
+    expect(v.fingerprints).toHaveLength(11);
+    expect(v.fingerprints[0]).toBe("2e50b84cc83e0332");
+    expect(v.fingerprints).toContain("efbca6f66dbe2b64");
+    expect(v.fingerprints).toContain("46b127fb5ffa9702");
+    expect(v.p1Count).toBe(2);
+    expect(v.findingCount).toBe(11);
+  });
+
+  it("reads plain, fp:-prefixed and CRLF forms, lower-cases and de-duplicates", () => {
+    const v = parseSlizardCheckRunSummary(
+      "Decision: request_changes\r\nFingerprints (actionable): fp:ABCDEF0123456789, abcdef0123456789, 0011223344556677 (+3 more)\r\n",
+    );
+    expect(v.fingerprints).toEqual(["abcdef0123456789", "0011223344556677"]);
+  });
+
+  it("holds an empty list and the same other fields when the line is absent", () => {
+    const without = captured.replace(/^\*\*Fingerprints \(actionable\)\*\*:.*\n/m, "");
+    expect(without).not.toContain("Fingerprints");
+    const before = parseSlizardCheckRunSummary(captured);
+    const after = parseSlizardCheckRunSummary(without);
+    expect(after.fingerprints).toEqual([]);
+    const { fingerprints: _a, ...restBefore } = before;
+    const { fingerprints: _b, ...restAfter } = after;
+    expect(restAfter).toEqual(restBefore);
+  });
+
+  it("holds an empty list on the empty path and on a fingerprint line with no ids", () => {
+    expect(parseSlizardCheckRunSummary(undefined).fingerprints).toEqual([]);
+    expect(parseSlizardCheckRunSummary("Fingerprints (actionable): none\n").fingerprints).toEqual(
+      [],
+    );
+  });
+
+  it("reads the line next to an HTML verdict comment too", () => {
+    const v = parseSlizardCheckRunSummary(
+      `${captured}\n<!-- slizard:verdict {"slizard_verdict":{"decision":"request_changes","finding_count":1,"severity":{"P0":0,"P1":1,"P2":0}}} -->`,
+    );
+    expect(v.source).toBe("html-comment");
+    expect(v.fingerprints).toEqual(["7006f2a1b3f8b4b8"]);
+  });
+});

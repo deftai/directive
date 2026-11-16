@@ -22,6 +22,7 @@ Same rules as the managed `## Session routing (#2176)` below: at session start, 
 ## Session-start ritual (#1149)
 
 Same as managed `## Session-start ritual` below; substitute `task` for `deft` (`task session:start`, `task session:ready`, `task verify:session-ritual -- --tier=gated`, `task verify:tools`, `task doctor`, `task verify:cache-fresh`, `task agents:refresh`, `npm i -g @deftai/directive@latest`).
+! Owed completions are reported, not refused (#6409): mutation `session:start` (cold / `--rearm`) runs the finalize-owed inventory; owed rows, `unknown` included, never refuse it. One always-on `finalize owed report:` line gives the count and `deft swarm:finalize-owed`. Only an unresolvable repository refuses (`--defer-owed` clears it). Managed copy: `content/templates/agents-entry.md`.
 
 ## Session routing (#2176)
 
@@ -169,7 +170,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=3430c2fa61f8 refreshed=2026-11-03T22:41:56Z session=2e81154353da -->
+<!-- deft:managed-section v3 sha=04fa30f0a812 refreshed=2026-11-16T19:10:50Z session=7cc3fff5d7f4 -->
 # Deft — AI Development Framework
 
 Deft runtime is pinned as `@deftai/directive-runtime`. Full guidelines: node_modules/@deftai/directive-runtime/main.md
@@ -275,6 +276,7 @@ Deft runtime is pinned as `@deftai/directive-runtime`. Full guidelines: node_mod
 ⊗ Parent conversation implements or babysits product fix/CI loops for drive-to:merge-ready work when background subagent/worktree dispatch is available (#3032). ⊗ Harvest a Grok `drive-to: merge-ready` continuation as that partner (#4529).
 ! After leaf announce: tool-first / yield / one short non-repeated answer; ⊗ N>2 near-identical zero-tool (FC14 / #3131). Machine: `evaluateParentTurnShape` (`parent-turn-shape`). Depth: preamble §11 + `docs/openclaw-agent-host.md`.
 ! **Dest Prefer-A (#5145):** linked dest worktrees inherit primary finalize-owed (deferred/ok); prefer `session:start --rearm` when dest ritual exists. ⊗ Stampede N dest cold tip inventories before primary records finalize-owed. Depth: swarm SKILL Dest leaf ceremony.
+! **Owed completions (#6409):** `session:start` reports owed rows (`unknown` too) in one always-on `finalize owed report:` line naming `deft swarm:finalize-owed`; it never refuses for them (an unresolvable repo still does).
 ! **Deliberate model routing (#1877 / #3703):** Before ANY sub-agent dispatch (cohort OR single), make a deliberate per-`worker_role` routing decision via `deft verify:routing` / `deft swarm:routing-set` — never silently inherit the parent model. `verify:story-ready` chains the gate for story-ready single dispatch; interactive/solo PreToolUse honor-at-dispatch is the mid-session conjunct (#3703). Default gated role domain is an explicit subset of `SWARM_WORKER_ROLES` (leaf-implementation); critics/process-only stay outside that enum (model: lead). Explore with structural `subagent_type` explore and no gated role is a decided carve-out after the conjunct runs. `ROUTING_GATED_DISPATCH_PROVIDERS` is narrower than `LAUNCHER_FAMILIES` (codex argv-only). Session-start `--advise` is additive disclosure only.
 
 ## Envelope selection SLA (#3153)

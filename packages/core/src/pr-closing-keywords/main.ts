@@ -854,7 +854,8 @@ export function storyLineAdvice(issue: number | null): string {
   const n = issue === null ? "N" : String(issue);
   return (
     `For an active story, do not use Closes #${n}. Put \`deft-story: ${n}\` on the PR that ` +
-    `completes the story and \`deft-story-part: ${n}\` on any other product PR of it; ` +
+    `completes the story and \`deft-story-part: ${n}\` on any other product PR of it, ` +
+    `including an authority-record PR (for example an intent-constraint mint, #6335); ` +
     `\`Refs #${n}\` alone is not a completion basis. Write the line with ${WRITE_STORY_LINE_COMMAND}.`
   );
 }
@@ -964,6 +965,8 @@ function formatStoryLineMissing(prNumber: number, issue: number, why: string): s
     "  Add exactly one of these lines to the PR body:",
     `    deft-story: ${String(issue)}        on the PR that completes the story`,
     `    deft-story-part: ${String(issue)}   on any other product PR of the story`,
+    `  An authority-record PR (for example an intent-constraint mint) is not the completing ` +
+      `delivery: it carries \`deft-story-part: ${String(issue)}\` (#6335).`,
     `  \`Refs #${String(issue)}\` alone is not a completion basis. Write the line, then update the PR body:`,
     `    ${WRITE_STORY_LINE_COMMAND}`,
     `    gh pr edit ${String(prNumber)} --body-file <path>`,

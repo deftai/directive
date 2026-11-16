@@ -222,6 +222,24 @@
       "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
       "specImpact": null,
       "completedAt": "2026-11-16T17:53:13Z"
+    },
+    {
+      "scopeId": "github.issue.6042155685",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T18:27:15Z"
+    },
+    {
+      "scopeId": "github.issue.6413052919",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T18:59:47Z"
+    },
+    {
+      "scopeId": "github.issue.6414486025",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-16T19:50:58Z"
     }
   ],
   "coverage": [],

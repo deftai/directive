@@ -956,17 +956,29 @@ export function connectedAtMergedAt(
 /** Ledger that scope completion writes beside the brief moves (#6231 / #680 P5). */
 export const SPEC_DRIFT_LEDGER_REL = "xbrief/.audit/spec-drift-ledger.json";
 
+/** Folder of per-story spec-drift row files that scope completion writes (#6335). */
+export const SPEC_DRIFT_ROWS_DIR_REL = "xbrief/.audit/spec-drift";
+
+const SPEC_DRIFT_ROW_FILE_RE = /^xbrief\/\.audit\/spec-drift\/[^/]+\.json$/;
+
+/** A spec-drift row file: `xbrief/.audit/spec-drift/<name>.json`, one level deep (#6335). */
+export function isSpecDriftRowFilePath(path: string): boolean {
+  return SPEC_DRIFT_ROW_FILE_RE.test(path.replace(/\\/g, "/"));
+}
+
 /**
  * Delivery-brief-land path family (#5710 / #680 F1): a brief under an
  * `xbrief|vbrief/<lifecycle>/` folder, a changelog entry path (root
- * `CHANGELOG.md` or a `changelog.d/<name>.md` fragment, #6314), or the exact
- * spec-drift ledger. One helper for the delivery gate, the CHANGELOG
- * exemption, membership and finalize's lifecycle-shaped PR check, so the
- * family cannot drift between them.
+ * `CHANGELOG.md` or a `changelog.d/<name>.md` fragment, #6314), the exact
+ * spec-drift ledger, or a spec-drift row file (#6335). One helper for the
+ * delivery gate, the CHANGELOG exemption, membership and finalize's
+ * lifecycle-shaped PR check, so the family cannot drift between them.
+ * Authority records (`.deft/`) are not in the family; such a PR carries the
+ * part line (`deft-story-part: N`).
  */
 export function isDeliveryBriefLandPath(path: string): boolean {
   const p = path.replace(/\\/g, "/");
-  if (isChangelogEntryPath(p) || p === SPEC_DRIFT_LEDGER_REL) {
+  if (isChangelogEntryPath(p) || p === SPEC_DRIFT_LEDGER_REL || isSpecDriftRowFilePath(p)) {
     return true;
   }
   const parts = p.split("/");
