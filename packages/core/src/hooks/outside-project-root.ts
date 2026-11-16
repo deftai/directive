@@ -31,11 +31,11 @@ export function isOutsideProjectRootWrite(projectRoot: string, targetPath: strin
   if (!isLexicalOutsideProjectRoot(rel)) return false;
 
   try {
-    const projectReal = realpathSync(projectAbs);
+    const projectReal = realpathSync.native(projectAbs);
     let probe = targetAbs;
     for (;;) {
       try {
-        const probeReal = realpathSync(probe);
+        const probeReal = realpathSync.native(probe);
         const reenter = posixRelative(projectReal, probeReal);
         if (reenter === "" || !isLexicalOutsideProjectRoot(reenter)) return false;
         return true;

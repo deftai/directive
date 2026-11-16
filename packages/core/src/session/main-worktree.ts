@@ -7,13 +7,32 @@
  * `.git` directory.
  */
 
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 import { defaultGitRunner, type GitRunner, gitCommonDir } from "./git.js";
 
-function sameTree(left: string, right: string): boolean {
-  const a = resolve(left);
-  const b = resolve(right);
+function canonicalPath(path: string): string {
+  let cursor = resolve(path);
+  if (process.platform !== "win32") return cursor;
+
+  const missing: string[] = [];
+  while (!existsSync(cursor)) {
+    const parent = dirname(cursor);
+    if (parent === cursor) break;
+    missing.unshift(basename(cursor));
+    cursor = parent;
+  }
+  try {
+    cursor = realpathSync.native(cursor);
+  } catch {
+    // Keep the resolved spelling when the filesystem cannot canonicalize it.
+  }
+  return resolve(cursor, ...missing);
+}
+
+export function sameFilesystemPath(left: string, right: string): boolean {
+  const a = canonicalPath(left);
+  const b = canonicalPath(right);
   if (process.platform === "win32") return a.toLowerCase() === b.toLowerCase();
   return a === b;
 }
@@ -25,7 +44,7 @@ export function isMainWorktreePath(
 ): boolean {
   const common = gitCommonDir(projectRoot, runGit);
   if (common === null) return false;
-  return sameTree(dirname(common), projectRoot);
+  return sameFilesystemPath(dirname(common), projectRoot);
 }
 
 /** True when `projectRoot` is a linked worktree (`.git` is a file). */

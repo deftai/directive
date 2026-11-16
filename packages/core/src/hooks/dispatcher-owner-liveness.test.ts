@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
@@ -312,7 +312,7 @@ describe("hook-event owner liveness (#3987)", () => {
       seams,
     );
     expect(calls).toHaveLength(1);
-    expect(calls[0]?.projectRoot).toBe(resolve(nested));
+    expect(calls[0]?.projectRoot).toBe(realpathSync.native(resolve(nested)));
   });
 
   it("renews only the tree the payload names when nothing proves another", () => {
@@ -371,8 +371,8 @@ describe("hook-event owner liveness (#3987)", () => {
       },
     );
     const renewed = new Set(calls.map((call) => call.projectRoot));
-    expect(renewed.has(resolve(wtA))).toBe(true);
-    expect(renewed.has(resolve(wtB))).toBe(true);
+    expect(renewed.has(realpathSync.native(resolve(wtA)))).toBe(true);
+    expect(renewed.has(realpathSync.native(resolve(wtB)))).toBe(true);
   });
 
   it("cannot change a verdict by failing", () => {

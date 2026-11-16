@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -28,6 +28,14 @@ describe("isLexicalOutsideProjectRoot", () => {
 });
 
 describe("isOutsideProjectRootWrite re-entry (#3997)", () => {
+  it("treats a missing target with an aliased root spelling as in-repo", () => {
+    const projectDir = mkdtempSync(join(tmpdir(), "out-root-alias-"));
+    temps.push(projectDir);
+    const aliasedTarget = join(realpathSync.native(projectDir), "packages", "new-file.ts");
+
+    expect(isOutsideProjectRootWrite(projectDir, aliasedTarget)).toBe(false);
+  });
+
   it("treats a temp junction or dir link into the project as not outside", () => {
     const projectDir = mkdtempSync(join(tmpdir(), "out-root-proj-"));
     const outsideDir = mkdtempSync(join(tmpdir(), "out-root-out-"));

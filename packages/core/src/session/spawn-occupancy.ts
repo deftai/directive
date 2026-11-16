@@ -39,7 +39,12 @@ import {
   recordChildOccupancyLease,
 } from "./child-occupancy.js";
 import { defaultGitRunner, type GitRunner, gitCommonDir } from "./git.js";
-import { isLinkedWorktreePath, isMainWorktreePath, mainWorktreeRoot } from "./main-worktree.js";
+import {
+  isLinkedWorktreePath,
+  isMainWorktreePath,
+  mainWorktreeRoot,
+  sameFilesystemPath,
+} from "./main-worktree.js";
 import {
   evaluateOccupancyWriteGate,
   grantOccupancyMembership,
@@ -368,7 +373,7 @@ function destIsProven(opts: {
   const destCommon = gitCommonDir(opts.destPath, opts.runGit);
   const parentCommon = gitCommonDir(opts.payloadRoot, opts.runGit);
   if (destCommon === null || parentCommon === null) return false;
-  return sameTree(destCommon, parentCommon);
+  return sameFilesystemPath(destCommon, parentCommon);
 }
 
 function agentIdFromPayload(payload: unknown, incarnation: string): string {
@@ -393,13 +398,13 @@ function existingDispatchReservation(storeRoot: string, worktreePath: string) {
   const want = resolve(worktreePath);
   const roots = [resolve(storeRoot)];
   const main = mainWorktreeRoot(storeRoot);
-  if (main !== null && !sameTree(main, storeRoot)) roots.push(main);
+  if (main !== null && !sameFilesystemPath(main, storeRoot)) roots.push(main);
   for (const root of roots) {
     if (!existsSync(root)) continue;
     for (const rec of listChildOccupancyLeases(root)) {
       if (rec.provenance !== "dispatch") continue;
       const recorded = resolve(rec.worktreePath);
-      if (sameTree(recorded, want)) return rec;
+      if (sameFilesystemPath(recorded, want)) return rec;
     }
   }
   return null;
@@ -632,7 +637,7 @@ export function consultImplementSpawnOccupancy(
   if (destPath !== null && existsSync(destPath)) {
     const destRepo = mainWorktreeRoot(destPath, runGit);
     const parentRepo = mainWorktreeRoot(payloadRoot, runGit);
-    if (destRepo !== null && parentRepo !== null && !sameTree(destRepo, parentRepo)) {
+    if (destRepo !== null && parentRepo !== null && !sameFilesystemPath(destRepo, parentRepo)) {
       return consultDeny(
         "destination-foreign",
         `Directive denied spawn: destination ${destPath} is a linked worktree of a foreign repository. ` +
@@ -851,7 +856,7 @@ export function persistSpawnReservation(
   // Dest-keyed lock lives under the shared git common-dir (main clone) so two
   // parent worktrees cannot both first-create the same destination.
   const lockRoot = reservationLockRoot(root);
-  const skipDestLock = sameTree(dest, lockRoot);
+  const skipDestLock = sameFilesystemPath(dest, lockRoot);
   if (!skipDestLock) {
     try {
       containedWrite({
@@ -918,14 +923,14 @@ export function releaseLeftoverSpawnReservation(
   if (liveOccupant(dest, now) !== null) return false;
   let removedLease = false;
   const roots = [root];
-  if (!sameTree(lockRoot, root)) roots.push(lockRoot);
-  if (existsSync(dest) && !roots.some((r) => sameTree(r, dest))) roots.push(dest);
+  if (!sameFilesystemPath(lockRoot, root)) roots.push(lockRoot);
+  if (existsSync(dest) && !roots.some((r) => sameFilesystemPath(r, dest))) roots.push(dest);
   for (const r of roots) {
     if (!existsSync(r)) continue;
     for (const rec of listChildOccupancyLeases(r)) {
       if (rec.provenance !== "dispatch") continue;
       if (rec.incarnation !== want) continue;
-      if (!sameTree(rec.worktreePath, dest)) continue;
+      if (!sameFilesystemPath(rec.worktreePath, dest)) continue;
       if (liveOccupant(dest, now) !== null) return releasedLock || removedLease;
       containedRemove({ root: r, target: join(...childOccupancyRelpath(rec.agentId)) });
       removedLease = true;
@@ -952,7 +957,7 @@ export function releaseSpawnReservation(
   if (existsSync(root)) {
     released = releaseLockIfIncarnation(root, destPath, want) || released;
   }
-  if (!sameTree(lockRoot, root) && existsSync(lockRoot)) {
+  if (!sameFilesystemPath(lockRoot, root) && existsSync(lockRoot)) {
     released = releaseLockIfIncarnation(lockRoot, destPath, want) || released;
   }
   return released;
@@ -974,13 +979,6 @@ function releaseLockIfIncarnation(
   if (current === null || current !== incarnation) return false;
   containedRemove({ root: storeRoot, target: reservationLockPath(storeRoot, destPath) });
   return true;
-}
-
-function sameTree(left: string, right: string): boolean {
-  const a = resolve(left);
-  const b = resolve(right);
-  if (process.platform === "win32") return a.toLowerCase() === b.toLowerCase();
-  return a === b;
 }
 
 /**
@@ -1010,7 +1008,7 @@ export function allocatedWorktreeMatches(
   const storeRepo = mainWorktreeRoot(root, runGit);
   const candidateRepo = mainWorktreeRoot(want, runGit);
   if (storeRepo === null || candidateRepo === null) return false;
-  if (!sameTree(storeRepo, candidateRepo)) return false;
+  if (!sameFilesystemPath(storeRepo, candidateRepo)) return false;
   if (!isLinkedWorktreePath(want)) return false;
   const currentIncarnation = readSpawnReservationIncarnation(root, want);
   if (currentIncarnation === null || currentIncarnation.length === 0) return false;
@@ -1024,7 +1022,7 @@ export function allocatedWorktreeMatches(
     if (rec.occupancyOwner.trim().length === 0) continue;
     if (rec.parentId !== parentId) continue;
     const recorded = resolve(rec.worktreePath);
-    if (!sameTree(recorded, want)) continue;
+    if (!sameFilesystemPath(recorded, want)) continue;
     const live = liveOccupant(want);
     if (live !== null && live.sessionId !== rec.occupancyOwner && live.sessionId !== parentId) {
       continue;

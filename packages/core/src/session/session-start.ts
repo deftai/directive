@@ -108,7 +108,7 @@ import {
 } from "./effort-budget.js";
 import type { GitRunner } from "./git.js";
 import { defaultGitRunner, gitHead, gitIsAncestor, worktreePath } from "./git.js";
-import { isLinkedWorktreePath, mainWorktreeRoot } from "./main-worktree.js";
+import { isLinkedWorktreePath, mainWorktreeRoot, sameFilesystemPath } from "./main-worktree.js";
 import {
   type ApplyOccupancyInput,
   applyWorktreeOccupancy,
@@ -817,7 +817,7 @@ export function assessRearmEligibility(
     return { eligible: false, reason: headError ?? "could not resolve git HEAD" };
   }
   const currentWorktree = worktreePath(projectRoot, runGit);
-  if (state.worktreePath !== currentWorktree) {
+  if (!sameFilesystemPath(state.worktreePath, currentWorktree)) {
     return {
       eligible: false,
       reason: `ritual state belongs to a different worktree (${state.worktreePath})`,

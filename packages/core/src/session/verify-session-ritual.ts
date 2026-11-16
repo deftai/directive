@@ -11,6 +11,7 @@ import {
 } from "./active-cli.js";
 import { defaultGitRunner, type GitRunner, gitHead, gitIsAncestor, worktreePath } from "./git.js";
 import { pythonJsonDump } from "./json.js";
+import { sameFilesystemPath } from "./main-worktree.js";
 import { evaluateOccupancyCeremonyEligibility } from "./occupancy.js";
 import {
   type DirectivePosture,
@@ -356,7 +357,7 @@ function evaluateLoadedState(
     };
   }
   const currentWorktree = worktreePath(projectRoot, runGit);
-  if (state.worktreePath !== currentWorktree) {
+  if (!sameFilesystemPath(state.worktreePath, currentWorktree)) {
     return {
       code: 1,
       message:

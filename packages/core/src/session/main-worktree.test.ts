@@ -1,5 +1,13 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -10,6 +18,7 @@ import {
   isMainWorktreePath,
   listLinkedWorktreeCheckouts,
   mainWorktreeRoot,
+  sameFilesystemPath,
 } from "./main-worktree.js";
 
 const temps: string[] = [];
@@ -31,6 +40,12 @@ function gitInit(root: string): void {
 }
 
 describe("main worktree discriminator (#4066)", () => {
+  it("compares Windows short and long spellings of the same path", () => {
+    const root = mkdtempSync(join(tmpdir(), "main-wt-path-alias-"));
+    temps.push(root);
+    expect(sameFilesystemPath(root, realpathSync.native(root))).toBe(true);
+  });
+
   it("treats a non-git directory as not-main so occupancy tests keep working", () => {
     const root = mkdtempSync(join(tmpdir(), "main-wt-none-"));
     temps.push(root);
@@ -87,11 +102,9 @@ describe("main worktree discriminator (#4066)", () => {
       encoding: "utf8",
     });
     expect(hasLinkedWorktrees(root)).toBe(true);
-    expect(
-      listLinkedWorktreeCheckouts(root).some(
-        (p) => p.toLowerCase() === linked.toLowerCase() || p === linked,
-      ),
-    ).toBe(true);
+    expect(listLinkedWorktreeCheckouts(root).some((path) => sameFilesystemPath(path, linked))).toBe(
+      true,
+    );
     rmSync(linked, { recursive: true, force: true });
     expect(hasLinkedWorktrees(root)).toBe(true);
     expect(listLinkedWorktreeCheckouts(root)).toEqual([]);
@@ -124,8 +137,8 @@ describe("main worktree discriminator (#4066)", () => {
     const gitdirFile = join(worktrees, admin ?? "", "gitdir");
     rmSync(gitdirFile, { force: true });
     mkdirSync(gitdirFile);
-    const listed = listLinkedWorktreeCheckouts(root).map((p) => p.toLowerCase());
-    expect(listed).toContain(keep.toLowerCase());
-    expect(listed).not.toContain(bad.toLowerCase());
+    const listed = listLinkedWorktreeCheckouts(root);
+    expect(listed.some((path) => sameFilesystemPath(path, keep))).toBe(true);
+    expect(listed.some((path) => sameFilesystemPath(path, bad))).toBe(false);
   });
 });

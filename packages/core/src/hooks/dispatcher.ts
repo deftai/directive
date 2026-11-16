@@ -75,7 +75,7 @@ import {
   memoizeGitRunner,
   worktreePathOrNull,
 } from "../session/git.js";
-import { isLinkedWorktreePath } from "../session/main-worktree.js";
+import { isLinkedWorktreePath, sameFilesystemPath } from "../session/main-worktree.js";
 import {
   type ApplyingHostTransport,
   evaluateApplyingHostLifecycleAdmission,
@@ -772,9 +772,22 @@ export interface HookPolicySeams {
 
 /** POSIX-ish project-relative path for lifecycle matching. */
 export function toProjectRelativePosix(projectRoot: string, targetPath: string): string {
-  const abs = resolve(projectRoot, targetPath.replace(/\\/g, "/"));
-  const rel = relative(resolve(projectRoot), abs);
-  return rel.split(sep).join("/").replace(/\\/g, "/");
+  const root = resolve(projectRoot);
+  const abs = resolve(root, targetPath.replace(/\\/g, "/"));
+  const rel = relative(root, abs);
+  const relPosix = rel.split(sep).join("/").replace(/\\/g, "/");
+  if (isLexicalOutsideProjectRoot(relPosix)) {
+    let ancestor = abs;
+    for (;;) {
+      if (sameFilesystemPath(root, ancestor)) {
+        return relative(ancestor, abs).split(sep).join("/").replace(/\\/g, "/");
+      }
+      const parent = dirname(ancestor);
+      if (parent === ancestor) break;
+      ancestor = parent;
+    }
+  }
+  return relPosix;
 }
 
 export { isLexicalOutsideProjectRoot, isOutsideProjectRootWrite };
@@ -1267,7 +1280,7 @@ export function admitEffectiveHookRoot(
   const candidateRaw = worktreePathOrNull(ancestor, runGit);
   if (candidateRaw === null) return admitPayload(payload, null);
   const candidate = normalizeHookProjectRoot(candidateRaw);
-  if (candidate === payload) return admitPayload(payload, candidate);
+  if (sameFilesystemPath(candidate, payload)) return admitPayload(payload, candidate);
   const payloadCommon = gitCommonDir(payload, runGit);
   if (payloadCommon === null) {
     // No containment question exists: payloadRoot is not a repository, so there
@@ -1279,7 +1292,7 @@ export function admitEffectiveHookRoot(
   if (candidateCommon === null) {
     return { root: payload, foreign: true, candidate, refusal: "unproven-identity" };
   }
-  if (normalizeHookProjectRoot(payloadCommon) === normalizeHookProjectRoot(candidateCommon)) {
+  if (sameFilesystemPath(payloadCommon, candidateCommon)) {
     return { root: candidate, foreign: false, candidate, refusal: null };
   }
   return { root: payload, foreign: true, candidate, refusal: "foreign-repository" };
@@ -1303,7 +1316,10 @@ export function admitMutationTargetSet(
     if (next.foreign) return next;
     admitted.push(next);
   }
-  const roots = [...new Set(admitted.map((item) => item.root))];
+  const roots: string[] = [];
+  for (const item of admitted) {
+    if (!roots.some((root) => sameFilesystemPath(root, item.root))) roots.push(item.root);
+  }
   if (roots.length > 1) {
     return {
       root: payload,

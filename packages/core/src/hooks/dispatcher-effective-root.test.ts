@@ -1,11 +1,12 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
 import { defaultGitRunner } from "../session/git.js";
 import { canonicalHostSessionId } from "../session/host-session-owner.js";
+import { sameFilesystemPath } from "../session/main-worktree.js";
 import { applyWorktreeOccupancy, occupancyPath } from "../session/occupancy.js";
 import {
   type ReadWorkerAuthAssignmentResult,
@@ -78,6 +79,10 @@ function git(cwd: string, args: readonly string[]): void {
   execFileSync("git", [...args], { cwd, encoding: "utf8" });
 }
 
+function canonicalFixturePath(path: string): string {
+  return realpathSync.native(resolve(path));
+}
+
 function initRepo(dir: string): void {
   mkdirSync(dir, { recursive: true });
   git(dir, ["init", "-q"]);
@@ -142,8 +147,8 @@ function scopeSeams(readyRoot: string | null): {
     seams: {
       verifyRitual: () => ({ ...READY_RITUAL, boundSessionId: "owner" }),
       inspectScope: (root) => {
-        scopeRoots.push(resolve(root));
-        if (readyRoot !== null && resolve(root) === resolve(readyRoot)) return READY_SCOPE;
+        scopeRoots.push(canonicalFixturePath(root));
+        if (readyRoot !== null && sameFilesystemPath(root, readyRoot)) return READY_SCOPE;
         return { ready: false, path: null, message: "no active scope xBRIEF" };
       },
       loadStoryWriteFence: (_root, scopePath) => {
@@ -168,13 +173,13 @@ function recordingSeams(sessionId?: string): {
     scopeRoots,
     seams: {
       verifyRitual: (root) => {
-        ritualRoots.push(resolve(root));
+        ritualRoots.push(canonicalFixturePath(root));
         return sessionId === undefined
           ? READY_RITUAL
           : { ...READY_RITUAL, boundSessionId: sessionId };
       },
       inspectScope: (root) => {
-        scopeRoots.push(resolve(root));
+        scopeRoots.push(canonicalFixturePath(root));
         return READY_SCOPE;
       },
       loadStoryWriteFence: (_root, scopePath) => {
@@ -188,11 +193,29 @@ function recordingSeams(sessionId?: string): {
 }
 
 describe("effectiveRoot admission (#3794)", () => {
+  it("admits the same repository when Git and Node use different Windows path spellings", () => {
+    const base = mkdtempSync(join(tmpdir(), "hook-3794-path-alias-"));
+    ephemeralTemps.push(base);
+    const linked = join(base, "linked");
+    initRepo(base);
+    git(base, ["worktree", "add", "--detach", "-q", linked]);
+
+    const admission = admitEffectiveHookRoot(
+      base,
+      join(realpathSync.native(linked), "src", "app.ts"),
+      defaultGitRunner,
+    );
+
+    expect(admission.foreign).toBe(false);
+    expect(admission.refusal).toBeNull();
+    expect(admission.root).toBe(realpathSync.native(linked));
+  });
+
   it("admits a linked worktree and refuses a foreign repository", () => {
     const { primary, wtA, foreign } = linkedFixture();
     const admitted = admitEffectiveHookRoot(primary, join(wtA, "src", "app.ts"), defaultGitRunner);
     expect(admitted.foreign).toBe(false);
-    expect(resolve(admitted.root)).toBe(resolve(wtA));
+    expect(sameFilesystemPath(admitted.root, wtA)).toBe(true);
 
     const refused = admitEffectiveHookRoot(
       primary,
@@ -200,8 +223,8 @@ describe("effectiveRoot admission (#3794)", () => {
       defaultGitRunner,
     );
     expect(refused.foreign).toBe(true);
-    expect(resolve(refused.root)).toBe(resolve(primary));
-    expect(resolve(refused.candidate ?? "")).toBe(resolve(foreign));
+    expect(sameFilesystemPath(refused.root, primary)).toBe(true);
+    expect(sameFilesystemPath(refused.candidate ?? "", foreign)).toBe(true);
   });
 
   it("falls back to payloadRoot when git cannot express a toplevel", () => {
@@ -309,8 +332,8 @@ describe("direct-write occupancy/ritual follow the target worktree (#3794)", () 
       seams,
     );
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
-    expect(ritualRoots).toEqual([resolve(wtA)]);
-    expect(scopeRoots).toEqual([resolve(wtA)]);
+    expect(ritualRoots).toEqual([canonicalFixturePath(wtA)]);
+    expect(scopeRoots).toEqual([canonicalFixturePath(wtA)]);
   });
 
   it("denies a foreign target-worktree lease and names both roots", () => {
@@ -330,11 +353,11 @@ describe("direct-write occupancy/ritual follow the target worktree (#3794)", () 
     expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
     expect(decision.message).toContain("Worktree occupied by session wt-owner");
     expect(decision.message.toLowerCase()).toContain(resolve(primary).toLowerCase());
-    expect(decision.message.toLowerCase()).toContain(resolve(wtA).toLowerCase());
+    expect(decision.message.toLowerCase()).toContain(canonicalFixturePath(wtA).toLowerCase());
     expect(decision.message).toContain("payloadRoot=");
     expect(decision.message).toContain("effectiveRoot=");
     expect(formatHookRootNote(resolve(primary), resolve(wtA))).toContain("payloadRoot=");
-    expect(ritualRoots).toEqual([resolve(wtA)]);
+    expect(ritualRoots).toEqual([canonicalFixturePath(wtA)]);
     expect(scopeRoots).toEqual([]);
   });
 
@@ -353,8 +376,8 @@ describe("direct-write occupancy/ritual follow the target worktree (#3794)", () 
       seams,
     );
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
-    expect(ritualRoots).toEqual([resolve(wtA)]);
-    expect(scopeRoots).toEqual([resolve(wtA)]);
+    expect(ritualRoots).toEqual([canonicalFixturePath(wtA)]);
+    expect(scopeRoots).toEqual([canonicalFixturePath(wtA)]);
   });
 
   it("pins the kill-switch to payloadRoot, not the write-target worktree", () => {
@@ -401,8 +424,8 @@ describe("direct-write occupancy/ritual follow the target worktree (#3794)", () 
       },
       seams,
     );
-    expect(ritualRoots).toEqual([resolve(wtA)]);
-    expect(ritualRoots).not.toContain(resolve(primary));
+    expect(ritualRoots).toEqual([canonicalFixturePath(wtA)]);
+    expect(ritualRoots).not.toContain(canonicalFixturePath(primary));
   });
 
   it("refuses command-shaped apply_patch whose body lands in a foreign repository (#5094)", () => {
@@ -538,7 +561,7 @@ describe("direct-write occupancy/ritual follow the target worktree (#3794)", () 
       seams,
     );
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
-    expect(ritualRoots).toEqual([resolve(wtA)]);
+    expect(ritualRoots).toEqual([canonicalFixturePath(wtA)]);
   });
 
   it("keeps worktree-span for a two-file apply_patch input body (#5129)", () => {
@@ -617,7 +640,7 @@ describe("direct-write occupancy/ritual follow the target worktree (#3794)", () 
       seams,
     );
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
-    expect(ritualRoots).toEqual([resolve(wtA)]);
+    expect(ritualRoots).toEqual([canonicalFixturePath(wtA)]);
   });
 });
 
@@ -636,7 +659,7 @@ describe("active scope follows the write target worktree (#3794 commit 2)", () =
       seams,
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
-    expect(scopeRoots).toEqual([resolve(nested)]);
+    expect(scopeRoots).toEqual([canonicalFixturePath(nested)]);
   });
 
   it("names the tree the recovery must run in when the two roots differ", () => {
@@ -654,9 +677,13 @@ describe("active scope follows the write target worktree (#3794 commit 2)", () =
     );
     expect(decision.code).toBe("scope-not-ready");
     // Both concrete paths, and which of them scope:activate has to run in.
-    expect(decision.message).toContain(`Active scope was read from ${resolve(nested)}`);
+    expect(decision.message).toContain(
+      `Active scope was read from ${canonicalFixturePath(nested)}`,
+    );
     expect(decision.message).toContain(`rather than in ${resolve(primary)}`);
-    expect(decision.message).toContain(formatHookRootNote(resolve(primary), resolve(nested)));
+    expect(decision.message).toContain(
+      formatHookRootNote(resolve(primary), canonicalFixturePath(nested)),
+    );
   });
 
   it("omits the extra root sentence when both roots are the same tree", () => {
@@ -691,7 +718,7 @@ describe("active scope follows the write target worktree (#3794 commit 2)", () =
       seams,
     );
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
-    expect(scopeRoots).toEqual([resolve(nested)]);
+    expect(scopeRoots).toEqual([canonicalFixturePath(nested)]);
   });
 
   it("exempts a proposed-lifecycle write inside the worktree that hosts it", () => {
@@ -749,7 +776,7 @@ describe("assist-scratch reclassification (#3794 commit 2)", () => {
     );
     expect(decision.code).not.toBe("write-assist-scratch-ready");
     expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
-    expect(scopeRoots).toEqual([resolve(nested)]);
+    expect(scopeRoots).toEqual([canonicalFixturePath(nested)]);
   });
 
   it("still allows genuine scratch inside the worktree", () => {
@@ -798,7 +825,7 @@ describe("story file_scope relativises against the write target worktree (#3794 
       seams: {
         ...base.seams,
         loadStoryWriteFence: (root) => {
-          fenceRoots.push(resolve(root));
+          fenceRoots.push(canonicalFixturePath(root));
           return { fileScope: ["packages/**"], denyPaths: [] };
         },
       },
@@ -821,7 +848,7 @@ describe("story file_scope relativises against the write target worktree (#3794 
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
     // #5656 positive-allow + runtime fence both load the story fence for the
     // same effective root; assert unique root, not single-call count.
-    expect([...new Set(fenceRoots.map((root) => resolve(root)))]).toEqual([resolve(nested)]);
+    expect([...new Set(fenceRoots)]).toEqual([canonicalFixturePath(nested)]);
   });
 
   it("still denies an out-of-fence worktree path, naming the tree it relativised against", () => {
@@ -838,7 +865,9 @@ describe("story file_scope relativises against the write target worktree (#3794 
       seams,
     );
     expect(decision.verdict).toBe("deny");
-    expect(decision.message).toContain(formatHookRootNote(resolve(primary), resolve(nested)));
+    expect(decision.message).toContain(
+      formatHookRootNote(resolve(primary), canonicalFixturePath(nested)),
+    );
   });
 
   it("leaves a same-root fence deny unannotated", () => {
@@ -908,7 +937,7 @@ describe("no-toplevel targets keep payloadRoot gating (#4013)", () => {
     // Both roots are the payload root: admission contributed no candidate.
     expect(decision.message).toContain(formatHookRootNote(resolve(primary), resolve(primary)));
     // Ritual resolves through the payload root; scope is not reached on a lease deny.
-    expect(ritualRoots).toEqual([resolve(primary)]);
+    expect(ritualRoots).toEqual([canonicalFixturePath(primary)]);
     expect(scopeRoots).toEqual([]);
   });
 
@@ -933,7 +962,7 @@ describe("no-toplevel targets keep payloadRoot gating (#4013)", () => {
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
     // Active scope is inspected against the payload root, and its not-ready deny
     // is skipped by the #2885 outside-root carve-out rather than never asked.
-    expect(scopeRoots).toEqual([resolve(primary)]);
+    expect(scopeRoots).toEqual([canonicalFixturePath(primary)]);
     expect(decision.scopePath).toBeNull();
   });
 
@@ -957,7 +986,7 @@ describe("no-toplevel targets keep payloadRoot gating (#4013)", () => {
       seams,
     );
     expect(mcp).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
-    expect(ritualRoots).toEqual([resolve(primary)]);
+    expect(ritualRoots).toEqual([canonicalFixturePath(primary)]);
 
     // The bare direct-write spelling of the same tool still consults admission.
     const bare = decideHook(
@@ -1020,7 +1049,7 @@ describe("no-toplevel targets keep payloadRoot gating (#4013)", () => {
       seams,
     );
     expect(inRepoWrite).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
-    expect(ritualRoots).toEqual([resolve(primary)]);
+    expect(ritualRoots).toEqual([canonicalFixturePath(primary)]);
   });
 
   it("occupancy deny names occupancyFile and effectiveRoot for the judged tree (#5544 P2)", () => {
@@ -1045,8 +1074,8 @@ describe("no-toplevel targets keep payloadRoot gating (#4013)", () => {
       seams,
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "occupancy-occupied" });
-    expect(decision.message).toContain(`occupancyFile=${occupancyPath(resolve(wtA))}`);
-    expect(decision.message).toContain(`effectiveRoot=${resolve(wtA)}`);
+    expect(decision.message).toContain(`occupancyFile=${occupancyPath(canonicalFixturePath(wtA))}`);
+    expect(decision.message).toContain(`effectiveRoot=${canonicalFixturePath(wtA)}`);
     expect(decision.message).toContain("payloadRoot=");
     expect(decision.message).toContain("occupancy:steal");
   });
@@ -1106,7 +1135,7 @@ describe("no-toplevel targets keep payloadRoot gating (#4013)", () => {
       seams,
     );
     expect(decision).toMatchObject({ verdict: "allow", code: "write-ready" });
-    expect(ritualRoots).toEqual([resolve(primary)]);
+    expect(ritualRoots).toEqual([canonicalFixturePath(primary)]);
   });
 });
 
@@ -1128,11 +1157,11 @@ describe("worker-auth story binding by effective root (#6233)", () => {
       seams: {
         ...base,
         inspectScope: (root, options) => {
-          scopeCalls.push({ root: resolve(root), options });
+          scopeCalls.push({ root: canonicalFixturePath(root), options });
           return base.inspectScope?.(root, options) ?? READY_SCOPE;
         },
         readWorkerAuthAssignment: (cwd) => {
-          readerRoots.push(resolve(cwd));
+          readerRoots.push(canonicalFixturePath(cwd));
           return read(cwd);
         },
       },
@@ -1160,14 +1189,14 @@ describe("worker-auth story binding by effective root (#6233)", () => {
 
     const allow = bindingSeams(nested, readWorkerAuthAssignment);
     const after = writeTo(primary, target, allow.seams);
-    expect(allow.readerRoots).toEqual([resolve(nested)]);
+    expect(allow.readerRoots).toEqual([canonicalFixturePath(nested)]);
     expect({ verdict: after.verdict, code: after.code }).toEqual({
       verdict: before.verdict,
       code: before.code,
     });
     // No bound path is invented: selection runs exactly as before.
     expect(allow.scopeCalls).toEqual([
-      { root: resolve(nested), options: { env: expect.any(Object) } },
+      { root: canonicalFixturePath(nested), options: { env: expect.any(Object) } },
     ]);
 
     const deny = bindingSeams(primary, readWorkerAuthAssignment);
@@ -1206,7 +1235,7 @@ describe("worker-auth story binding by effective root (#6233)", () => {
     const decision = writeTo(primary, join(nested, "packages", "core", "a.ts"), failing.seams);
     expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
     expect(decision.message).toContain("(registry_corruption)");
-    expect(failing.readerRoots).toEqual([resolve(nested)]);
+    expect(failing.readerRoots).toEqual([canonicalFixturePath(nested)]);
     expect(failing.scopeCalls).toEqual([]);
   });
 
@@ -1227,7 +1256,7 @@ describe("worker-auth story binding by effective root (#6233)", () => {
     const decision = writeTo(primary, join(wtA, "packages", "core", "a.ts"), failing.seams);
     expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
     expect(decision.message).toContain("(registry_corruption)");
-    expect(failing.readerRoots).toEqual([resolve(wtA)]);
+    expect(failing.readerRoots).toEqual([canonicalFixturePath(wtA)]);
   });
 
   it("keeps the #2885 skip for an external file when the binding refuses", () => {

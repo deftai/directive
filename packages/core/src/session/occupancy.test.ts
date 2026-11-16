@@ -29,6 +29,7 @@ import {
   releaseChildOccupancyOnTerminal,
 } from "./child-occupancy.js";
 import { canonicalHostSessionId } from "./host-session-owner.js";
+import { sameFilesystemPath } from "./main-worktree.js";
 import {
   APPLYING_HOST_SCHEMA,
   APPLYING_HOST_STALE_MS,
@@ -149,7 +150,7 @@ function pruneExtraWorktrees(root: string): void {
     const match = /^worktree (.+)$/m.exec(block);
     if (match === null) continue;
     const wt = resolve(match[1]!.trim());
-    if (wt === primary) continue;
+    if (sameFilesystemPath(wt, primary)) continue;
     try {
       execFileSync("git", ["worktree", "remove", "--force", wt], {
         cwd: root,
@@ -4101,7 +4102,7 @@ describe("Harbor UUID lease vs declared host Prefer-A (#5544)", () => {
     mkdirSync(nested, { recursive: true });
     const now = new Date("2026-10-16T12:00:00Z");
     const leaseRoot = resolveOccupancyLeaseRoot(nested);
-    expect(leaseRoot).toBe(resolve(root));
+    expect(sameFilesystemPath(leaseRoot, resolve(root))).toBe(true);
     const claimed = applyWorktreeOccupancy(nested, {
       sessionId: "owner-subdir",
       now,

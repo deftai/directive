@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { applyWorktreeOccupancy } from "@deftai/directive-core/session";
@@ -132,7 +132,7 @@ describe("deposited hook CLI without --project-root (#3794)", () => {
     const unrelatedMsg = String(unrelated.body.reason ?? "");
     expect(unrelatedMsg).not.toContain("primary-owner");
     expect(unrelatedMsg.toLowerCase()).toContain(resolve(primary).toLowerCase());
-    expect(unrelatedMsg.toLowerCase()).toContain(resolve(wtA).toLowerCase());
+    expect(unrelatedMsg.toLowerCase()).toContain(realpathSync.native(resolve(wtA)).toLowerCase());
 
     applyWorktreeOccupancy(wtA, { sessionId: "wt-owner", intent: "mutation" });
     const foreignLease = dispatchWrite({
@@ -145,7 +145,7 @@ describe("deposited hook CLI without --project-root (#3794)", () => {
     expect(occupiedMsg).toContain("wt-owner");
     expect(occupiedMsg).toContain("payloadRoot=");
     expect(occupiedMsg).toContain("effectiveRoot=");
-    expect(occupiedMsg.toLowerCase()).toContain(resolve(wtA).toLowerCase());
+    expect(occupiedMsg.toLowerCase()).toContain(realpathSync.native(resolve(wtA)).toLowerCase());
 
     const refused = dispatchWrite({
       primary,
@@ -155,7 +155,7 @@ describe("deposited hook CLI without --project-root (#3794)", () => {
     const refusedMsg = String(refused.body.reason ?? "");
     expect(refusedMsg).toContain("different Git repository");
     expect(refusedMsg.toLowerCase()).toContain(resolve(primary).toLowerCase());
-    expect(refusedMsg.toLowerCase()).toContain(resolve(foreign).toLowerCase());
+    expect(refusedMsg.toLowerCase()).toContain(realpathSync.native(resolve(foreign)).toLowerCase());
   });
 });
 

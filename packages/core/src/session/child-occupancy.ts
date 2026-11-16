@@ -21,7 +21,7 @@ import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import type { LockDeps } from "../slice/lock.js";
 import { hookHostIdentitySource } from "./host-session-owner.js";
 import { stableJson } from "./json.js";
-import { isLinkedWorktreePath, mainWorktreeRoot } from "./main-worktree.js";
+import { isLinkedWorktreePath, mainWorktreeRoot, sameFilesystemPath } from "./main-worktree.js";
 import { type OccupancyDecision, readOccupancy, releaseOccupancy } from "./occupancy.js";
 
 export const CHILD_OCCUPANCY_SCHEMA_VERSION = 2;
@@ -263,13 +263,6 @@ function removeChildOccupancyLease(storeRoot: string, agentId: string): void {
   containedRemove({ root, target: join(...relpath) });
 }
 
-function sameTree(left: string, right: string): boolean {
-  const a = resolve(left);
-  const b = resolve(right);
-  if (process.platform === "win32") return a.toLowerCase() === b.toLowerCase();
-  return a === b;
-}
-
 function isSpawnPendingPlaceholder(worktreePath: string, storeRoot: string): boolean {
   const pendingRoot = join(resolve(storeRoot), ".deft", "spawn-pending");
   const recorded = resolve(worktreePath);
@@ -281,7 +274,7 @@ function sameRepository(left: string, right: string): boolean {
   const a = mainWorktreeRoot(left);
   const b = mainWorktreeRoot(right);
   if (a === null || b === null) return false;
-  return sameTree(a, b);
+  return sameFilesystemPath(a, b);
 }
 
 /**
@@ -297,11 +290,11 @@ function bindReleaseTree(
 ): string {
   const tree = resolve(record.worktreePath);
   if (heartbeatTree === null) return tree;
-  if (sameTree(tree, heartbeatTree)) return tree;
+  if (sameFilesystemPath(tree, heartbeatTree)) return tree;
   if (
     isSpawnPendingPlaceholder(tree, storeRoot) &&
     isLinkedWorktreePath(heartbeatTree) &&
-    !sameTree(heartbeatTree, observerRoot) &&
+    !sameFilesystemPath(heartbeatTree, observerRoot) &&
     sameRepository(storeRoot, heartbeatTree)
   ) {
     return heartbeatTree;
@@ -370,14 +363,14 @@ export function releaseChildOccupancyOnTerminal(
   const boundTree = bindReleaseTree(storeRoot, record, heartbeatTree, observerRoot);
   if (
     heartbeatTree !== null &&
-    !sameTree(boundTree, heartbeatTree) &&
-    !sameTree(tree, observerRoot)
+    !sameFilesystemPath(boundTree, heartbeatTree) &&
+    !sameFilesystemPath(tree, observerRoot)
   ) {
     return { reason: "tree-not-allocated", record, occupancy: null };
   }
   if (record.identitySourceKind === "payload") {
     const linked = isLinkedWorktreePath(boundTree);
-    if (!linked || sameTree(boundTree, observerRoot)) {
+    if (!linked || sameFilesystemPath(boundTree, observerRoot)) {
       return { reason: "payload-skip", record, occupancy: null };
     }
   }
