@@ -17,7 +17,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { mintHumanOriginGrant } from "../authz/actions.js";
 import { isHumanOrigin } from "../authz/origin.js";
-import { claimSingleUseGrantForApply, listGrants } from "../authz/store.js";
+import { claimSingleUseGrantForApply, listGrants, loadGrant, saveGrant } from "../authz/store.js";
 import { assertNoIndependentSessionAuthMint } from "../authz/templates.js";
 import type { HumanOriginGrant } from "../authz/types.js";
 import { readPlanPolicy } from "../policy/plan-extensions.js";
@@ -366,8 +366,6 @@ export type PlanSequenceApprovedWrite = (
   grantId: string,
 ) => { readonly ok: true } | { readonly ok: false; readonly reason: string };
 
-class ApprovedWriteFailed extends Error {}
-
 /**
  * Find the one grant for this binding, spend it, and run the write under the
  * claim. A failed write rolls the spend back. Every refusal names the remint
@@ -402,6 +400,9 @@ export function claimPlanSequenceApproval(input: {
       reason: `plan-sequence ${input.binding.action.kind} refused: ${detail}. Operator approval at a terminal: ${remint}`,
     };
   }
+  // The write runs under the claim; a failed write is a returned failure, and
+  // the spend is rolled back below so the operator's approval is not lost.
+  let wrote: ReturnType<PlanSequenceApprovedWrite> | null = null;
   try {
     const claimed = claimSingleUseGrantForApply(store.root, usable.id, {
       now,
@@ -410,21 +411,41 @@ export function claimPlanSequenceApproval(input: {
           ? { ok: true }
           : { ok: false, reason: `grant ${grant.id} no longer approves this plan write` },
       apply: (grant) => {
-        const wrote = input.write(grant.id);
-        if (!wrote.ok) {
-          throw new ApprovedWriteFailed(wrote.reason);
-        }
+        wrote = input.write(grant.id);
       },
     });
     if (!claimed.ok) {
       return { ok: false, reason: claimed.reason };
+    }
+    const result = wrote as ReturnType<PlanSequenceApprovedWrite> | null;
+    if (result === null || !result.ok) {
+      const unspent = restoreUnspent(store.root, claimed.grant);
+      return {
+        ok: false,
+        reason:
+          `plan-sequence ${input.binding.action.kind} write failed ` +
+          `(grant ${usable.id} ${unspent ? "not spent" : "spent; remint"}): ` +
+          (result === null ? "write did not run" : result.reason),
+      };
     }
     return { ok: true, grantId: claimed.grant.id };
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     return {
       ok: false,
-      reason: `plan-sequence ${input.binding.action.kind} write failed (grant ${usable.id} not spent): ${reason}`,
+      reason: `plan-sequence ${input.binding.action.kind} approval claim failed: ${reason}`,
     };
   }
+}
+
+/** Undo this claim's spend when the plan write failed; false when it could not. */
+function restoreUnspent(storeRoot: string, spent: HumanOriginGrant): boolean {
+  const current = loadGrant(storeRoot, spent.id);
+  if (current === null || current.semantics.usedAt !== spent.semantics.usedAt) {
+    return false;
+  }
+  return saveGrant(storeRoot, {
+    ...current,
+    semantics: { ...current.semantics, usedAt: null },
+  }).ok;
 }
