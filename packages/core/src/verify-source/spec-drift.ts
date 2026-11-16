@@ -6,11 +6,19 @@
  * Enforcement ladder: advise (soft) → shadow (warn) → enforce (hard).
  * Discharge under shadow/enforce requires per-item coverage + rewrite proof
  * on durable SPECIFICATION (or a live spec-drift-override mint).
+ *
+ * Storage (#6335): each completion writes its rows to its own row file,
+ * `xbrief/.audit/spec-drift/<scopeId>.json`, so parallel completion PRs never
+ * edit one shared file. `spec-drift-ledger.json` stays as header
+ * (`baselineRevision`, `cutoverBoundary`) and legacy rows; only seed/reseed
+ * write it. Readers merge header + legacy rows + row files; a row file, empty
+ * or not, replaces the legacy rows for its scope. The rewrite proof reads both
+ * fingerprints from the story's own delivery commits, never a stored value.
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
-import { relative, resolve } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join, relative, resolve } from "node:path";
 import {
   listActiveHumanGrants,
   loadAuthzState,
@@ -37,8 +45,11 @@ import {
   type SpecGuardEnforcement,
   type SpecGuardResolved,
 } from "../policy/spec-guard.js";
+import { defaultGitRunner, type GitRunner } from "../session/git.js";
 
 export const SPEC_DRIFT_LEDGER_NAME = "spec-drift-ledger.json";
+/** Folder of per-story row files beside the ledger header (#6335). */
+export const SPEC_DRIFT_ROWS_DIR_NAME = "spec-drift";
 export const SPEC_DRIFT_LEDGER_LOCK_NAME = ".spec-drift-ledger.pair.lock.tmp";
 export const SPEC_DRIFT_OVERRIDE_TEMPLATE = "spec-drift-override";
 export const SPEC_DRIFT_OVERRIDE_BASELINE_PREFIX = "spec-drift-override:baseline:";
@@ -57,6 +68,36 @@ function ledgerLockAbsPath(projectRoot: string): string {
 
 function hasLedgerFile(projectRoot: string): boolean {
   return existsSync(ledgerAbsPath(projectRoot));
+}
+
+function rowsDirAbsPath(projectRoot: string): string {
+  return resolveAuditPath(projectRoot, SPEC_DRIFT_ROWS_DIR_NAME);
+}
+
+/** File name of a scope's row file: the scopeId with unsafe characters replaced (#6335). */
+export function specDriftRowFileName(scopeId: string): string {
+  return `${scopeId.replace(/[^A-Za-z0-9._-]/g, "_")}.json`;
+}
+
+function rowFileAbsPath(projectRoot: string, scopeId: string): string {
+  return join(rowsDirAbsPath(projectRoot), specDriftRowFileName(scopeId));
+}
+
+function listRowFileNames(projectRoot: string): string[] {
+  const dir = rowsDirAbsPath(projectRoot);
+  if (!existsSync(dir)) return [];
+  try {
+    return readdirSync(dir)
+      .filter((name) => name.endsWith(".json"))
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
+/** Ledger header or any row file present: a drift record exists (#6335). */
+function hasLedgerData(projectRoot: string): boolean {
+  return hasLedgerFile(projectRoot) || listRowFileNames(projectRoot).length > 0;
 }
 
 export interface SpecDriftFinding {
@@ -84,10 +125,41 @@ export interface SpecDriftLedger {
   readonly unresolved: SpecDriftFinding[];
   readonly coverage: SpecDriftCoverageRecord[];
   readonly shadowFindings: SpecDriftFinding[];
-  /** Fingerprint of last known requirements-only durable SPEC projection. */
+  /**
+   * Legacy field, read from old files only. Nothing writes a non-null value and
+   * the rewrite proof never reads it (#6335).
+   */
   readonly lastRequirementsFingerprint: string | null;
   /** Cutover/grandfather boundary — empty advise ledger is not proven under enforce. */
   readonly cutoverBoundary: string | null;
+  /** Merged view only: scopes that have a row file (#6335). */
+  readonly rowFileScopes?: readonly string[];
+}
+
+/** One scope's rows in `xbrief/.audit/spec-drift/<scopeId>.json` (#6335). */
+export interface SpecDriftRowFile {
+  readonly scopeId: string;
+  readonly unresolved: SpecDriftFinding[];
+  readonly coverage: SpecDriftCoverageRecord[];
+  readonly shadowFindings: SpecDriftFinding[];
+}
+
+/**
+ * Delivery commits for the rewrite proof (#6335): the commit the delivery was
+ * applied onto and the delivery itself. In-PR: merge base and branch head.
+ * Post-merge: first parent and the product merge commit.
+ */
+export interface SpecDriftDelivery {
+  readonly baseCommit: string | null;
+  readonly deliveryCommit: string | null;
+  readonly runGit?: GitRunner;
+}
+
+/** A delivery, or a thunk that resolves it only when the proof needs it. */
+export type SpecDriftDeliverySource = SpecDriftDelivery | (() => SpecDriftDelivery);
+
+export interface SpecDriftDeliveryOptions {
+  readonly delivery?: SpecDriftDeliverySource | null;
 }
 
 export interface SpecDriftResult {
@@ -196,7 +268,8 @@ function normalizeLedger(raw: Record<string, unknown>): SpecDriftLedger {
   };
 }
 
-function readLedger(projectRoot: string): SpecDriftLedger {
+/** The ledger file alone: header plus legacy rows. */
+function readLegacyLedger(projectRoot: string): SpecDriftLedger {
   const path = ledgerAbsPath(projectRoot);
   if (!existsSync(path)) {
     return emptyLedger();
@@ -208,6 +281,196 @@ function readLedger(projectRoot: string): SpecDriftLedger {
   } catch {
     return emptyLedger();
   }
+}
+
+/** Parse one row file; rows for another scope are dropped (a row file holds one scope). */
+function parseRowFile(raw: unknown): SpecDriftRowFile | null {
+  if (!isRecord(raw) || typeof raw.scopeId !== "string" || raw.scopeId.length === 0) {
+    return null;
+  }
+  const scopeId = raw.scopeId;
+  const rows = normalizeLedger(raw);
+  return {
+    scopeId,
+    unresolved: rows.unresolved.filter((f) => f.scopeId === scopeId),
+    coverage: rows.coverage.filter((c) => c.scopeId === scopeId),
+    shadowFindings: rows.shadowFindings.filter((f) => f.scopeId === scopeId),
+  };
+}
+
+/** Every row file under `xbrief/.audit/spec-drift/`, in file-name order (#6335). */
+export function readSpecDriftRowFiles(projectRoot: string): SpecDriftRowFile[] {
+  const root = resolve(projectRoot);
+  const dir = rowsDirAbsPath(root);
+  const out: SpecDriftRowFile[] = [];
+  for (const name of listRowFileNames(root)) {
+    try {
+      const parsed = parseRowFile(JSON.parse(readFileSync(join(dir, name), "utf8")) as unknown);
+      if (parsed !== null) out.push(parsed);
+    } catch {
+      /* unreadable row file — skip */
+    }
+  }
+  return out;
+}
+
+/**
+ * Merged view (#6335): ledger header, legacy rows and row files. A row file,
+ * empty or not, replaces the legacy rows for its scope.
+ */
+function readLedger(projectRoot: string): SpecDriftLedger {
+  const legacy = readLegacyLedger(projectRoot);
+  const rowFiles = readSpecDriftRowFiles(projectRoot);
+  const replaced = new Set(rowFiles.map((r) => r.scopeId));
+  return {
+    baselineRevision: legacy.baselineRevision,
+    lastRequirementsFingerprint: legacy.lastRequirementsFingerprint,
+    cutoverBoundary: legacy.cutoverBoundary,
+    unresolved: [
+      ...legacy.unresolved.filter((f) => !replaced.has(f.scopeId)),
+      ...rowFiles.flatMap((r) => r.unresolved),
+    ],
+    coverage: [
+      ...legacy.coverage.filter((c) => !replaced.has(c.scopeId)),
+      ...rowFiles.flatMap((r) => r.coverage),
+    ],
+    shadowFindings: [
+      ...legacy.shadowFindings.filter((f) => !replaced.has(f.scopeId)),
+      ...rowFiles.flatMap((r) => r.shadowFindings),
+    ],
+    rowFileScopes: [...replaced],
+  };
+}
+
+function scopeRows(ledger: SpecDriftLedger, scopeId: string): Omit<SpecDriftRowFile, "scopeId"> {
+  return {
+    unresolved: ledger.unresolved.filter((f) => f.scopeId === scopeId),
+    coverage: ledger.coverage.filter((c) => c.scopeId === scopeId),
+    shadowFindings: ledger.shadowFindings.filter((f) => f.scopeId === scopeId),
+  };
+}
+
+function scopeHasRows(ledger: SpecDriftLedger, scopeId: string): boolean {
+  const rows = scopeRows(ledger, scopeId);
+  return rows.unresolved.length + rows.coverage.length + rows.shadowFindings.length > 0;
+}
+
+/** Write (or overwrite) one scope's row file (#6335). Returns the absolute path. */
+export function writeSpecDriftRowFile(projectRoot: string, rows: SpecDriftRowFile): string {
+  const root = resolve(projectRoot);
+  const abs = rowFileAbsPath(root, rows.scopeId);
+  const rel = relative(root, abs).replace(/\\/g, "/");
+  const payload: SpecDriftRowFile = {
+    scopeId: rows.scopeId,
+    unresolved: [...rows.unresolved],
+    coverage: [...rows.coverage],
+    shadowFindings: [...rows.shadowFindings],
+  };
+  containedWrite({
+    root,
+    target: rel,
+    data: `${JSON.stringify(payload, null, 2)}\n`,
+    mode: existsSync(abs) ? "replace" : "create",
+  });
+  return abs;
+}
+
+function removeSpecDriftRowFile(projectRoot: string, scopeId: string): void {
+  const root = resolve(projectRoot);
+  const abs = rowFileAbsPath(root, scopeId);
+  if (!existsSync(abs)) return;
+  containedRemove({ root, target: relative(root, abs).replace(/\\/g, "/") });
+}
+
+function resolveDeliverySource(
+  source: SpecDriftDeliverySource | null | undefined,
+): SpecDriftDelivery | null {
+  if (source === undefined || source === null) return null;
+  try {
+    return typeof source === "function" ? source() : source;
+  } catch {
+    return null;
+  }
+}
+
+function requirementsFingerprintAtCommit(
+  root: string,
+  specRel: string,
+  commit: string,
+  runGit: GitRunner,
+): string | null {
+  try {
+    const shown = runGit(root, ["show", `${commit}:./${specRel}`]);
+    if (shown.code !== 0) return null;
+    const data = JSON.parse(shown.stdout) as unknown;
+    return isRecord(data) ? requirementsFingerprint(data) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Both rewrite-proof fingerprints from the story's own delivery (#6335): the
+ * durable SPEC at the delivery's base commit and at the delivery commit. No
+ * delivery, or a commit git cannot read, gives nulls (unassessable).
+ */
+export function resolveDeliveryRequirementsFingerprints(
+  projectRoot: string,
+  source: SpecDriftDeliverySource | null | undefined,
+): { readonly before: string | null; readonly after: string | null } {
+  const delivery = resolveDeliverySource(source);
+  if (
+    delivery === null ||
+    delivery.baseCommit === null ||
+    delivery.deliveryCommit === null ||
+    delivery.baseCommit.trim().length === 0 ||
+    delivery.deliveryCommit.trim().length === 0
+  ) {
+    return { before: null, after: null };
+  }
+  const root = resolve(projectRoot);
+  let specRel: string;
+  try {
+    specRel = relative(root, resolveSpecArtifactPath(root)).replace(/\\/g, "/");
+  } catch {
+    return { before: null, after: null };
+  }
+  const runGit = delivery.runGit ?? defaultGitRunner;
+  return {
+    before: requirementsFingerprintAtCommit(root, specRel, delivery.baseCommit.trim(), runGit),
+    after: requirementsFingerprintAtCommit(root, specRel, delivery.deliveryCommit.trim(), runGit),
+  };
+}
+
+/**
+ * Reused rewrite evidence across scopes (#6335): two `rewrite` coverage rows of
+ * different scopes with the same before/after pair. One finding per later row.
+ */
+export function findReusedRewriteEvidence(
+  coverage: readonly SpecDriftCoverageRecord[],
+): SpecDriftFinding[] {
+  const firstByPair = new Map<string, SpecDriftCoverageRecord>();
+  const out: SpecDriftFinding[] = [];
+  for (const row of coverage) {
+    if (row.source !== "rewrite") continue;
+    const key = `${row.beforeRequirementsFingerprint}\u0000${row.afterRequirementsFingerprint}`;
+    const first = firstByPair.get(key);
+    if (first === undefined) {
+      firstByPair.set(key, row);
+      continue;
+    }
+    if (first.scopeId === row.scopeId) continue;
+    out.push({
+      scopeId: row.scopeId,
+      reason:
+        `rewrite proof failed: before/after evidence already consumed (reused-evidence) ` +
+        `by scope ${first.scopeId}`,
+      specImpact: "delta",
+      completedAt: row.recordedAt,
+      uncoveredItemIds: [...row.coveredItemIds],
+    });
+  }
+  return out;
 }
 
 function contentFingerprint(text: string): string {
@@ -914,7 +1177,8 @@ export function seedSpecDriftLedger(
       unresolved: [],
       coverage: [],
       shadowFindings: [],
-      lastRequirementsFingerprint: fingerprint,
+      // #6335: no stored last fingerprint; the rewrite proof reads delivery commits.
+      lastRequirementsFingerprint: null,
       cutoverBoundary: options.reseed === true || !stillExists ? now : null,
     };
     writeSpecDriftLedger(root, ledger, {
@@ -953,16 +1217,16 @@ export function snapshotSpecDriftLedger(projectRoot: string): SpecDriftLedger {
     shadowFindings: ledger.shadowFindings.map((f) => ({ ...f })),
     lastRequirementsFingerprint: ledger.lastRequirementsFingerprint,
     cutoverBoundary: ledger.cutoverBoundary,
+    rowFileScopes: [...(ledger.rowFileScopes ?? [])],
   };
 }
 
 /**
- * Surgical failed-move rollback (#5350).
- * With a pre-record snapshot: restore THIS scopeId's rows from the snapshot while
- * keeping other scopes' rows from the live ledger (concurrent completions must not
- * be erased by a full-snapshot restore). Keep live baseline/cutover. Restore prior
- * requirements fingerprint only when this attempt's coverage set the live tip
- * (do not rewind a concurrent none-completion fingerprint advance).
+ * Surgical failed-move rollback (#5350 / #6335).
+ * With a pre-record snapshot: restore THIS scope's one row file to the snapshot —
+ * its prior rows, or absent when it had no row file then (legacy rows for the
+ * scope apply again). Other scopes' row files and the ledger are not touched.
+ * Without a snapshot: write an empty row file so the scope's rows are cleared.
  * Only clears single-use grants spent by THIS attempt (`spentGrantIds`).
  */
 export function rollbackScopeCompleteDrift(
@@ -976,49 +1240,27 @@ export function rollbackScopeCompleteDrift(
   const root = resolve(projectRoot);
   const prior = options.priorLedger;
   const locked = withLedgerLock(root, "enforce", () => {
-    if (!hasLedgerFile(root) && prior === undefined) {
+    if (!hasLedgerData(root) && prior === undefined) {
       return { ok: true, message: "no ledger to roll back" };
     }
-    const current = hasLedgerFile(root) ? readLedger(root) : emptyLedger();
+    const current = readLedger(root);
     if (prior !== undefined) {
-      const otherScopesCoverage = current.coverage.filter((c) => c.scopeId !== scopeId);
-      const thisScopeCoverage = current.coverage.filter((c) => c.scopeId === scopeId);
-      const liveFp = current.lastRequirementsFingerprint;
-      // Restore prior fp only when THIS attempt set the live fingerprint via its
-      // own coverage row AND no other scope's coverage anchors that tip. A
-      // concurrent specImpact=none completion can advance lastRequirementsFingerprint
-      // without adding coverage; restoring then would rewind that completion and
-      // let a later scope claim the intervening SPEC change as rewrite proof.
-      const thisAttemptSetLiveFp =
-        liveFp !== null && thisScopeCoverage.some((c) => c.afterRequirementsFingerprint === liveFp);
-      const otherAnchoredToLiveFp =
-        liveFp !== null &&
-        otherScopesCoverage.some((c) => c.afterRequirementsFingerprint === liveFp);
-      const restoredFp =
-        thisAttemptSetLiveFp && !otherAnchoredToLiveFp && prior.lastRequirementsFingerprint !== null
-          ? prior.lastRequirementsFingerprint
-          : (liveFp ?? prior.lastRequirementsFingerprint);
-      const next: SpecDriftLedger = {
-        baselineRevision: current.baselineRevision ?? prior.baselineRevision,
-        lastRequirementsFingerprint: restoredFp,
-        cutoverBoundary: current.cutoverBoundary ?? prior.cutoverBoundary,
-        coverage: [...otherScopesCoverage, ...prior.coverage.filter((c) => c.scopeId === scopeId)],
-        unresolved: [
-          ...current.unresolved.filter((f) => f.scopeId !== scopeId),
-          ...prior.unresolved.filter((f) => f.scopeId === scopeId),
-        ],
-        shadowFindings: [
-          ...current.shadowFindings.filter((f) => f.scopeId !== scopeId),
-          ...prior.shadowFindings.filter((f) => f.scopeId === scopeId),
-        ],
-      };
-      writeSpecDriftLedger(root, next, { enforcement: "enforce", alreadyLocked: true });
+      const priorRows = scopeRows(prior, scopeId);
+      const priorHadRowFile =
+        prior.rowFileScopes !== undefined
+          ? prior.rowFileScopes.includes(scopeId)
+          : scopeHasRows(prior, scopeId);
+      if (priorHadRowFile) {
+        writeSpecDriftRowFile(root, { scopeId, ...priorRows });
+      } else {
+        removeSpecDriftRowFile(root, scopeId);
+      }
       for (const grantId of options.spentGrantIds ?? []) {
         if (grantId.length > 0) clearGrantUsedAt(root, grantId);
       }
       return {
         ok: true,
-        message: `surgically restored pre-record rows for scope ${scopeId} (other scopes preserved; fingerprint restored when safe)`,
+        message: `surgically restored the pre-record row file for scope ${scopeId} (other scopes preserved)`,
       };
     }
     // Legacy path: scopeId wipe — only when no snapshot was captured.
@@ -1027,13 +1269,9 @@ export function rollbackScopeCompleteDrift(
       current.coverage
         .filter((c) => c.scopeId === scopeId && typeof c.grantId === "string")
         .map((c) => c.grantId as string);
-    const next: SpecDriftLedger = {
-      ...current,
-      unresolved: current.unresolved.filter((f) => f.scopeId !== scopeId),
-      shadowFindings: current.shadowFindings.filter((f) => f.scopeId !== scopeId),
-      coverage: current.coverage.filter((c) => c.scopeId !== scopeId),
-    };
-    writeSpecDriftLedger(root, next, { enforcement: "enforce", alreadyLocked: true });
+    if (scopeHasRows(current, scopeId) || (current.rowFileScopes ?? []).includes(scopeId)) {
+      writeSpecDriftRowFile(root, { scopeId, unresolved: [], coverage: [], shadowFindings: [] });
+    }
     for (const grantId of grantIdsToClear) {
       if (grantId.length > 0) clearGrantUsedAt(root, grantId);
     }
@@ -1130,7 +1368,7 @@ export function evaluateSpecDrift(projectRoot: string): SpecDriftResult {
     };
   }
 
-  if (!hasLedgerFile(root)) {
+  if (!hasLedgerData(root)) {
     // Under enforce, empty advise-era absence is unassessable until seed/cutover.
     // Under shadow, same state is a warning only — must not fail CI (#5350 limb 2/3).
     const msg =
@@ -1157,7 +1395,17 @@ export function evaluateSpecDrift(projectRoot: string): SpecDriftResult {
     };
   }
 
-  const ledger = readLedger(root);
+  // #6335: header + legacy rows + row files; reused rewrite evidence across all
+  // of them counts as unresolved drift.
+  const merged = readLedger(root);
+  const ledger: SpecDriftLedger = {
+    ...merged,
+    // Row files carry no baseline. With no header file yet (never seeded), judge
+    // the rows against the live baseline, as the first completion's write did
+    // before #6335. Only seed/reseed write a header.
+    baselineRevision: hasLedgerFile(root) ? merged.baselineRevision : baselineRevision,
+    unresolved: [...merged.unresolved, ...findReusedRewriteEvidence(merged.coverage)],
+  };
 
   // Enforce cutover: ledger without cutover/coverage history from advise era stays informational
   // only when unresolved empty AND baseline matches — but missing cutover with prior empty
@@ -1285,6 +1533,7 @@ export function gateScopeCompleteSpecDrift(
   projectRoot: string,
   scopeData: Record<string, unknown>,
   scopeRelPath: string,
+  options: SpecDriftDeliveryOptions = {},
 ): ScopeCompleteDriftGateResult {
   const root = resolve(projectRoot);
   let hasSpec = false;
@@ -1329,8 +1578,6 @@ export function gateScopeCompleteSpecDrift(
   const scopeId = scopeIdFrom(scopeData, scopeRelPath);
   const baselineRevision = resolveBaselineRevision(root);
   const ledger = readLedger(root);
-  const afterFp = resolveLiveRequirementsFingerprint(root);
-  const beforeFp = ledger.lastRequirementsFingerprint;
 
   let finding = coverage.finding;
 
@@ -1350,12 +1597,14 @@ export function gateScopeCompleteSpecDrift(
 
   if (finding === null && coverage.needsRewriteProof) {
     const affected = extractAffectedRequirementRefs(root, coverage.deltaOrNewItemIds, scopeData);
+    // #6335: both ends from the story's own delivery; reuse over every other scope's rows.
+    const fps = resolveDeliveryRequirementsFingerprints(root, options.delivery);
     const proof = evaluateRewriteProof({
       scopeId,
       coveredItemIds: coverage.deltaOrNewItemIds,
-      beforeFingerprint: beforeFp,
-      afterFingerprint: afterFp,
-      existingCoverage: ledger.coverage,
+      beforeFingerprint: fps.before,
+      afterFingerprint: fps.after,
+      existingCoverage: ledger.coverage.filter((c) => c.scopeId !== scopeId),
       affectedRequirementRefs: affected,
       requireAffectedRefs: durableSpecHasRequirementRefs(root),
     });
@@ -1423,6 +1672,7 @@ export function recordScopeCompleteDrift(
   projectRoot: string,
   scopeData: Record<string, unknown>,
   scopeRelPath: string,
+  options: SpecDriftDeliveryOptions = {},
 ): SpecDriftFinding | null {
   const root = resolve(projectRoot);
   let hasSpec = false;
@@ -1439,20 +1689,29 @@ export function recordScopeCompleteDrift(
   const enforcement = guard.driftGuard.enforcement;
   const scopeId = scopeIdFrom(scopeData, scopeRelPath);
   const baselineRevision = resolveBaselineRevision(root);
-  const afterFp = resolveLiveRequirementsFingerprint(root);
 
   if (enforcement === "advise") {
-    return recordAdvisePath(root, scopeData, scopeRelPath, scopeId, baselineRevision);
+    return recordAdvisePath(root, scopeData, scopeRelPath, scopeId);
   }
 
   const mutate = (): SpecDriftFinding | null => {
     const coverage = evaluateCompletionCoverage(scopeData, scopeRelPath, enforcement);
     const ledger = readLedger(root);
-    const beforeFp = ledger.lastRequirementsFingerprint;
+    // #6335: both proof ends from the story's own delivery, resolved on first use.
+    let fps: { readonly before: string | null; readonly after: string | null } | null = null;
+    const deliveryFps = (): { readonly before: string | null; readonly after: string | null } => {
+      fps ??= resolveDeliveryRequirementsFingerprints(root, options.delivery);
+      return fps;
+    };
+    const hadScopeRecord =
+      scopeHasRows(ledger, scopeId) || (ledger.rowFileScopes ?? []).includes(scopeId);
+    const own = scopeRows(ledger, scopeId);
+    // Reused evidence: every other scope's rows (row files and legacy rows).
+    const otherCoverage = ledger.coverage.filter((c) => c.scopeId !== scopeId);
 
-    let coverageRecords = [...ledger.coverage];
-    let unresolved = ledger.unresolved.filter((f) => f.scopeId !== scopeId);
-    let shadowFindings = ledger.shadowFindings.filter((f) => f.scopeId !== scopeId);
+    let coverageRecords = [...own.coverage];
+    let unresolved: SpecDriftFinding[] = [];
+    let shadowFindings: SpecDriftFinding[] = [];
     let finding: SpecDriftFinding | null = coverage.finding;
 
     // Override hatch may discharge uncovered (missing impact) item ids.
@@ -1467,12 +1726,11 @@ export function recordScopeCompleteDrift(
       if (grant !== null) {
         markGrantUsed(root, grant.id);
         coverageRecords = [
-          ...coverageRecords.filter((c) => c.scopeId !== scopeId),
           {
             scopeId,
             coveredItemIds: [...uncoveredForOverride],
-            beforeRequirementsFingerprint: beforeFp ?? "override",
-            afterRequirementsFingerprint: afterFp ?? "override",
+            beforeRequirementsFingerprint: deliveryFps().before ?? "override",
+            afterRequirementsFingerprint: deliveryFps().after ?? "override",
             affectedRequirementRefs: [],
             recordedAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
             source: "override",
@@ -1488,14 +1746,14 @@ export function recordScopeCompleteDrift(
       const proof = evaluateRewriteProof({
         scopeId,
         coveredItemIds: coverage.deltaOrNewItemIds,
-        beforeFingerprint: beforeFp,
-        afterFingerprint: afterFp,
-        existingCoverage: coverageRecords,
+        beforeFingerprint: deliveryFps().before,
+        afterFingerprint: deliveryFps().after,
+        existingCoverage: otherCoverage,
         affectedRequirementRefs: affected,
         requireAffectedRefs: durableSpecHasRequirementRefs(root),
       });
       if (proof.ok) {
-        coverageRecords = [...coverageRecords.filter((c) => c.scopeId !== scopeId), proof.record];
+        coverageRecords = [proof.record];
       } else if (baselineRevision !== null) {
         const grant = findLiveSpecDriftOverrideGrant(
           root,
@@ -1506,12 +1764,11 @@ export function recordScopeCompleteDrift(
         if (grant !== null) {
           markGrantUsed(root, grant.id);
           coverageRecords = [
-            ...coverageRecords.filter((c) => c.scopeId !== scopeId),
             {
               scopeId,
               coveredItemIds: [...coverage.deltaOrNewItemIds],
-              beforeRequirementsFingerprint: beforeFp ?? "override",
-              afterRequirementsFingerprint: afterFp ?? "override",
+              beforeRequirementsFingerprint: deliveryFps().before ?? "override",
+              afterRequirementsFingerprint: deliveryFps().after ?? "override",
               affectedRequirementRefs: affected,
               recordedAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
               source: "override",
@@ -1540,32 +1797,28 @@ export function recordScopeCompleteDrift(
 
     if (finding !== null) {
       if (enforcement === "shadow") {
-        shadowFindings = [...shadowFindings, finding];
+        shadowFindings = [finding];
       } else {
-        unresolved = [...unresolved, finding];
+        unresolved = [finding];
       }
     }
 
-    const next: SpecDriftLedger = {
-      baselineRevision: ledger.baselineRevision ?? baselineRevision,
+    // #6335: nothing to record and no earlier record for this scope → no row file.
+    if (
+      !hadScopeRecord &&
+      unresolved.length === 0 &&
+      shadowFindings.length === 0 &&
+      coverageRecords.length === 0
+    ) {
+      return null;
+    }
+
+    // One row file per story; the ledger file is not written.
+    writeSpecDriftRowFile(root, {
+      scopeId,
       unresolved,
       coverage: coverageRecords,
       shadowFindings,
-      lastRequirementsFingerprint: afterFp ?? ledger.lastRequirementsFingerprint,
-      cutoverBoundary: ledger.cutoverBoundary,
-    };
-
-    // Do not seed a brand-new empty ledger from a covered completion alone (advise-era rule).
-    if (finding === null && !hasLedgerFile(root) && coverageRecords.length === 0) {
-      return null;
-    }
-    if (!hasLedgerFile(root) && finding === null && coverageRecords.length === 0) {
-      return null;
-    }
-
-    writeSpecDriftLedger(root, next, {
-      enforcement,
-      alreadyLocked: enforcement === "enforce",
     });
     return enforcement === "shadow" ? null : finding;
   };
@@ -1587,36 +1840,43 @@ export function recordScopeCompleteDrift(
   return mutate();
 }
 
+/**
+ * Advise record (#6335): the scope's row file holds its finding, or is written
+ * empty when a retry clears a finding that the ledger or an earlier row file
+ * holds. The scope's coverage and shadow rows carry over unchanged.
+ */
 function recordAdvisePath(
   root: string,
   scopeData: Record<string, unknown>,
   scopeRelPath: string,
   scopeId: string,
-  baselineRevision: string | null,
 ): SpecDriftFinding | null {
   const finding = findingFromScopeCompletionAdvise(scopeData, scopeRelPath);
+  const rowScopeId = finding?.scopeId ?? scopeId;
   const ledger = readLedger(root);
+  const own = scopeRows(ledger, rowScopeId);
+  const hadScopeRecord =
+    scopeHasRows(ledger, rowScopeId) || (ledger.rowFileScopes ?? []).includes(rowScopeId);
 
   if (finding === null) {
-    if (!hasLedgerFile(root)) {
+    if (!hadScopeRecord) {
       return null;
     }
-    if (ledger.unresolved.some((f) => f.scopeId === scopeId)) {
-      writeSpecDriftLedger(root, {
-        ...ledger,
-        baselineRevision: ledger.baselineRevision ?? baselineRevision,
-        unresolved: ledger.unresolved.filter((f) => f.scopeId !== scopeId),
-      });
-    }
+    writeSpecDriftRowFile(root, {
+      scopeId: rowScopeId,
+      unresolved: [],
+      coverage: own.coverage,
+      shadowFindings: own.shadowFindings,
+    });
     return null;
   }
 
-  const next: SpecDriftLedger = {
-    ...ledger,
-    baselineRevision: ledger.baselineRevision ?? baselineRevision,
-    unresolved: [...ledger.unresolved.filter((f) => f.scopeId !== finding.scopeId), finding],
-  };
-  writeSpecDriftLedger(root, next);
+  writeSpecDriftRowFile(root, {
+    scopeId: rowScopeId,
+    unresolved: [finding],
+    coverage: own.coverage,
+    shadowFindings: own.shadowFindings,
+  });
   return finding;
 }
 
@@ -1625,8 +1885,9 @@ export function recordScopeCompleteDriftAdvise(
   projectRoot: string,
   scopeData: Record<string, unknown>,
   scopeRelPath: string,
+  options: SpecDriftDeliveryOptions = {},
 ): SpecDriftFinding | null {
-  return recordScopeCompleteDrift(projectRoot, scopeData, scopeRelPath);
+  return recordScopeCompleteDrift(projectRoot, scopeData, scopeRelPath, options);
 }
 
 export interface SpecDriftCliResult {

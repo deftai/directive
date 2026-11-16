@@ -37,6 +37,7 @@ import {
   type MergeTimeForge,
   type PrChangedFile,
   SPEC_DRIFT_LEDGER_REL,
+  SPEC_DRIFT_ROWS_DIR_REL,
   scanSoleMarkCompetitors,
   verifyDeliveryAncestry,
 } from "../scope/delivery-evidence.js";
@@ -1105,6 +1106,19 @@ function derivedLifecycleRelsFromSweep(
     // the same lifecycle commit as the completed briefs (#680 P5 / #6231).
     if (sweep.stories.some((rec) => rec.ok)) {
       out.push(SPEC_DRIFT_LEDGER_REL);
+      // #6335: completions write per-story row files; they travel in the same
+      // commit. The folder marker covers `git status` collapsing a new folder.
+      const rowsDir = join(projectRoot, ...SPEC_DRIFT_ROWS_DIR_REL.split("/"));
+      if (existsSync(rowsDir)) {
+        out.push(`${SPEC_DRIFT_ROWS_DIR_REL}/`);
+        try {
+          for (const name of readdirSync(rowsDir)) {
+            if (name.endsWith(".json")) out.push(`${SPEC_DRIFT_ROWS_DIR_REL}/${name}`);
+          }
+        } catch {
+          /* unreadable folder — git add below still stages, the diff gate decides */
+        }
+      }
     }
     for (const rec of [...sweep.stories, ...sweep.parents]) {
       if (!rec.ok || rec.path.trim().length === 0) {

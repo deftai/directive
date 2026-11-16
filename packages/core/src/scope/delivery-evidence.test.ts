@@ -33,6 +33,7 @@ import {
   isDeliveryBriefLandExcluded,
   isDeliveryBriefLandPath,
   isEligibleStoredDeliveryDisposition,
+  isSpecDriftRowFilePath,
   liveRunGh,
   MERGE_TIME_SCAN_WALL_CLOCK_MS,
   type MergedPrListNode,
@@ -51,6 +52,7 @@ import {
   resolvePlanGithubIssueRef,
   resolvePrOnlyDeliveryIdentity,
   SPEC_DRIFT_LEDGER_REL,
+  SPEC_DRIFT_ROWS_DIR_REL,
   scanSoleMarkCompetitors,
   selectMergeTimeBody,
   soleDeftStoryMark,
@@ -2870,6 +2872,29 @@ describe("sole-mark uniqueness scan (#5710 P3)", () => {
     expect(isDeliveryBriefLandExcluded([...completedRename, ledger])).toBe(true);
     expect(isDeliveryBriefLandExcluded([ledger])).toBe(true);
     expect(isDeliveryBriefLandExcluded([ledger, PRODUCT_FILE])).toBe(false);
+  });
+
+  it("delivery-brief-land family carries spec-drift row files, not authority records (#6335)", () => {
+    const row = "xbrief/.audit/spec-drift/github.issue.1.json";
+    expect(SPEC_DRIFT_ROWS_DIR_REL).toBe("xbrief/.audit/spec-drift");
+    expect(isSpecDriftRowFilePath(row)).toBe(true);
+    expect(isSpecDriftRowFilePath("xbrief\\.audit\\spec-drift\\a.json")).toBe(true);
+    expect(isSpecDriftRowFilePath("xbrief/.audit/spec-drift/nested/a.json")).toBe(false);
+    expect(isSpecDriftRowFilePath("xbrief/.audit/spec-drift/a.txt")).toBe(false);
+    expect(isSpecDriftRowFilePath("vbrief/.audit/spec-drift/a.json")).toBe(false);
+    expect(isDeliveryBriefLandPath(row)).toBe(true);
+    // An authority record is not in the family; such a PR carries the part line.
+    expect(isDeliveryBriefLandPath(".deft/intent-constraint/github.issue.1.json")).toBe(false);
+    expect(
+      isDeliveryBriefLandExcluded([
+        { status: "modified", filename: ".deft/intent-constraint/github.issue.1.json" },
+      ]),
+    ).toBe(false);
+    // A completion PR whose only non-brief paths are row files stays lifecycle-shaped.
+    const rowEntry = { status: "added", filename: row };
+    expect(isDeliveryBriefLandExcluded([...completedRename, rowEntry])).toBe(true);
+    expect(isCompletionMoveShaped(["xbrief/completed/a.json", row, "CHANGELOG.md"])).toBe(true);
+    expect(isCompletionMoveShaped(["xbrief/completed/a.json", row, "src/x.ts"])).toBe(false);
   });
 
   it("isCompletionMoveShaped needs a completed/ brief and only brief-land paths (#680 P5)", () => {

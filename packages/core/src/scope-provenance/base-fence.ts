@@ -28,7 +28,11 @@
 
 import { CHANGELOG_FILE_REL, isChangelogEntryPath } from "../changelog/entry-path.js";
 import { matchAny, matchPath } from "../orchestration/pathspec.js";
-import { isCompletionMoveShaped, SPEC_DRIFT_LEDGER_REL } from "../scope/delivery-evidence.js";
+import {
+  isCompletionMoveShaped,
+  isSpecDriftRowFilePath,
+  SPEC_DRIFT_LEDGER_REL,
+} from "../scope/delivery-evidence.js";
 import {
   DEFAULT_FIXTURE_ROOTS,
   DEFAULT_SOURCE_ROOTS,
@@ -359,6 +363,7 @@ export function evaluateApprovedScopeMembership(
   // #680 P5 / #6231: the spec-drift ledger is scope:complete verb output. It is
   // free only when the whole change set is a completion move (delivery-brief-land
   // paths with a completed/ brief), so it never carries other paths past membership.
+  // The per-story row files under xbrief/.audit/spec-drift/ join it (#6335).
   const ledgerFree = isCompletionMoveShaped(
     input.changedFiles.map((raw) => normalizeMembershipRel(raw)).filter((rel) => rel.length > 0),
   );
@@ -368,7 +373,7 @@ export function evaluateApprovedScopeMembership(
     if (isChangelogEntryPath(rel)) return true;
     if (peerXbriefs.has(rel)) return true;
     if (lifecycleExempt.has(rel)) return true;
-    if (ledgerFree && rel === SPEC_DRIFT_LEDGER_REL) return true;
+    if (ledgerFree && (rel === SPEC_DRIFT_LEDGER_REL || isSpecDriftRowFilePath(rel))) return true;
     return false;
   };
 

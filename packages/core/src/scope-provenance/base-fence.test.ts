@@ -165,6 +165,31 @@ describe("spec-drift ledger membership under the completion-move shape (#680 P5 
     });
     expect(hit?.expandedPaths).toEqual(["xbrief/.audit/authority-events.jsonl"]);
   });
+
+  it("admits spec-drift row files beside the completed brief move (#6335)", () => {
+    const ROW = "xbrief/.audit/spec-drift/story-1.json";
+    expect(
+      evaluateApprovedScopeMembership({
+        ...base,
+        changedFiles: [
+          "xbrief/active/story.xbrief.json",
+          "xbrief/completed/story.xbrief.json",
+          ROW,
+          "xbrief/.audit/spec-drift/other-story.json",
+        ],
+      }),
+    ).toBeNull();
+    const withProduct = evaluateApprovedScopeMembership({
+      ...base,
+      changedFiles: [
+        "xbrief/active/story.xbrief.json",
+        "xbrief/completed/story.xbrief.json",
+        ROW,
+        "packages/core/src/a.ts",
+      ],
+    });
+    expect(withProduct?.expandedPaths).toEqual([ROW]);
+  });
 });
 
 describe("evaluateApprovedScopeMembership (#4774)", () => {
