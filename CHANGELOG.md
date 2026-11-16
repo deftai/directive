@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - After a context compaction, the write hook restores the ritual clock for the session that owns the live lease and the ritual, and denies one call with the alignment lines instead of every write until a manual re-arm. Other stale-ritual denials print their recovery command with the caller's `--session-id` (#6279).
 
 ### Fixed
+- `scope:complete` judges a `delivery-identity-attest` grant's expiry at the transition clock, not wall time; this turns master CI green again (#6398).
 - `git commit` of planning files only (`docs/design/*.md`, `docs/decisions/*.md`, proposed/pending/completed/cancelled briefs, decision records, `CHANGELOG.md`, a shape-checked `.deft/plan-sequence.json`) is no longer denied for want of a ready scope. Recovery: upgrade, commit these before `scope:promote`, then commit root plan/specification/PROJECT-DEFINITION and `active/` changes separately; any other path keeps today's rules (#5839).
 - An approved parallel wave in the ordered plan now runs in parallel: push and `swarm:launch` admit every pending entry of the current batch. Before, `batching_allowed: true` was stored but had no effect (a misleading setting and lost throughput, not a security issue). To use it, give the entries that run together the same `batch` label; `plan-sequence:current` lists the batch, and `set` refuses unlabeled or split batches. While a plan file is present, `swarm:launch` also checks its real roster, solo included, against the current entry or batch (#4433).
 
