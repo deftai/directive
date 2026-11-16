@@ -276,11 +276,23 @@ function approvedWrite<T extends WritePlanSequenceResult | ClearPlanSequenceResu
   return { ok: true, result: result as Extract<T, { ok: true }>, grantId: claimed.grantId };
 }
 
-/** The existing plan, for the replace / clear binding; null when the file is absent. */
-function existingPlanForGuard(root: string): PlanSequence | null | { error: string } {
-  if (!existsSync(planSequencePath(root))) return null;
+/**
+ * Replace / clear guard: an approval is needed only when a plan file exists
+ * and the bound gate is on. Only then must the existing plan be readable, so
+ * the store's damaged-plan recovery stays reachable with the gate off.
+ */
+function replaceOrClearGuard(
+  root: string,
+  action: "replace" | "clear",
+): { needsApproval: false } | { needsApproval: true; sequenceId: string } | { error: string } {
+  if (!existsSync(planSequencePath(root)) || !planSequenceApprovalRequired(action, root)) {
+    return { needsApproval: false };
+  }
   try {
-    return readPlanSequence(root);
+    const existing = readPlanSequence(root);
+    return existing === null
+      ? { needsApproval: false }
+      : { needsApproval: true, sequenceId: existing.sequence_id };
   } catch (err) {
     return {
       error: `plan-sequence: the existing plan cannot be read (${err instanceof Error ? err.message : String(err)}); approval cannot be bound to it`,
@@ -290,13 +302,13 @@ function existingPlanForGuard(root: string): PlanSequence | null | { error: stri
 
 function runSet(parsed: Parsed, root: string, expected: number): number {
   const seq = loadSetPayload(parsed, root);
-  const existing = existingPlanForGuard(root);
-  if (existing !== null && "error" in existing) return fail(existing.error);
+  const guard = replaceOrClearGuard(root, "replace");
+  if ("error" in guard) return fail(guard.error);
   const written = approvedWrite({
     root,
     parsed,
-    needsApproval: existing !== null && planSequenceApprovalRequired("replace", root),
-    sequenceId: existing?.sequence_id ?? "",
+    needsApproval: guard.needsApproval,
+    sequenceId: guard.needsApproval ? guard.sequenceId : "",
     generation: expected,
     action: { kind: "replace" },
     write: () => writePlanSequence(root, seq, expected),
@@ -316,13 +328,13 @@ function runSet(parsed: Parsed, root: string, expected: number): number {
 }
 
 function runClear(parsed: Parsed, root: string, expected: number): number {
-  const existing = existingPlanForGuard(root);
-  if (existing !== null && "error" in existing) return fail(existing.error);
+  const guard = replaceOrClearGuard(root, "clear");
+  if ("error" in guard) return fail(guard.error);
   const written = approvedWrite({
     root,
     parsed,
-    needsApproval: existing !== null && planSequenceApprovalRequired("clear", root),
-    sequenceId: existing?.sequence_id ?? "",
+    needsApproval: guard.needsApproval,
+    sequenceId: guard.needsApproval ? guard.sequenceId : "",
     generation: expected,
     action: { kind: "clear" },
     write: () => clearPlanSequence(root, expected),

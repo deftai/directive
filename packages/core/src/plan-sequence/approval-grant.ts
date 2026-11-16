@@ -146,7 +146,8 @@ function bindingSurfaces(binding: PlanSequenceApprovalBinding): string[] {
     surfaces.push(
       `${SURFACE_PREFIX}entry:${entryKind}:${entryId.trim().toLowerCase()}`,
       `${SURFACE_PREFIX}issue:${issue === null ? "none" : String(issue)}`,
-      `${SURFACE_PREFIX}title:${boundTitle.length === 0 ? "none" : boundTitle}`,
+      // `none` (absent) and `=<title>` (present) never collide, even for the title "none".
+      `${SURFACE_PREFIX}title:${boundTitle.length === 0 ? "none" : `=${boundTitle}`}`,
       `${SURFACE_PREFIX}position:${String(position)}`,
     );
   }

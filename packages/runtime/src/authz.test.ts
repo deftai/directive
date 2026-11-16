@@ -1514,7 +1514,7 @@ describe("authz CLI plan-sequence-approval template (#6205)", () => {
     expect(runAuthz([...insertArgv(root), "--title", "Hot Fix"])).toBe(0);
     const text = out.join("");
     expect(text).toMatch(/template=plan-sequence-approval/);
-    expect(text).toContain("plan-sequence-approval:title:hot fix");
+    expect(text).toContain("plan-sequence-approval:title:=hot fix");
     expect(text).toContain("repo=acme/app");
     const id = /id=(\S+)/.exec(text)?.[1] ?? "";
     const grant = JSON.parse(

@@ -283,6 +283,10 @@ describe("claimPlanSequenceApproval (#6205 clause.11)", () => {
       expect(claimed.ok).toBe(false);
       if (!claimed.ok) expect(claimed.reason).toMatch(/no plan-sequence-approval grant binds/);
     }
+    // An absent title and the literal title "none" bind differently.
+    expect(
+      claimPlanSequenceApproval({ projectRoot: root, binding: titled("none"), write, now: NOW }).ok,
+    ).toBe(false);
     // The approved title (case-insensitive) is admitted.
     expect(
       claimPlanSequenceApproval({

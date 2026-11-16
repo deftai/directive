@@ -883,4 +883,15 @@ describe("plan-sequence derived cursor and approved writes (#6205)", () => {
     expect(result.code).toBe(1);
     expect(result.err).toContain("the existing plan cannot be read");
   });
+
+  it("keeps damaged-plan recovery reachable when the bound gate is off", () => {
+    const root = fixture(false, false);
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(join(root, ".deft/plan-sequence.json"), "{oops");
+    writeFileSync(join(root, ".deft/plan-sequence.json.generation"), '{"generation":3}\n');
+    // The store recovers a damaged plan through its saved generation token.
+    const result = ps(root, "clear", "--expected-generation", "3");
+    expect(result.code, result.err).toBe(0);
+    expect(result.out).toContain("OK plan-sequence cleared");
+  });
 });
