@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.129.10] - 2026-11-16
+
+> Wave 2a: changelog fragments, a merge queue, story lines and operator recovery for completion, worker commits in their own worktree, and the one-PR level without a human merge.
+
+### Added
 - **Story lines for product PRs of an active story (#6316).** New `deft-story-part: N` line for a PR that is part of a story and does not complete it. `pr:check-closing-keywords` fails a product PR of a running story with neither line, and a body with both. `--body-file <path> --write-story-line [--part]` and `pre-pr:run --body-file` write the line. PR templates stop advising `Closes #N` for an active story. Refs #6310.
 - feat(merge): `pr:wait-mergeable-and-merge` detects a required merge queue and enqueues with `--match-head-commit` (no `--admin`), skips the stale-base and master-gate waits, and reports one result (`merged` / `queued` / `awaiting-admission` / `head-changed` / `removed` / `inactive`) with a `--resume` command. CI runs on `merge_group`, PR-context checks skip there, and a `merge_group`-only job reports `Greptile Review`. Pre-PR no longer refuses while master's gate is pending, and `verify:pr-closeout-attestable` reads briefs at the PR head SHA instead of requiring local HEAD to match. Refs #6295.
 - Parallel changes can record release notes in separate changelog fragments, so they no longer edit the same file (#6314). Changelog checks and release citation scans include valid fragments. Projects choose the entry form with `deft policy:set-changelog-mode`; the default stays a line in `CHANGELOG.md`, and enforcement follows in a later change.
@@ -8052,7 +8064,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.129.9...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.129.10...HEAD
+[0.129.10]: https://github.com/deftai/directive/compare/v0.129.9...v0.129.10
 [0.129.9]: https://github.com/deftai/directive/compare/v0.129.8...v0.129.9
 [0.129.8]: https://github.com/deftai/directive/compare/v0.129.7...v0.129.8
 [0.129.7]: https://github.com/deftai/directive/compare/v0.129.6...v0.129.7

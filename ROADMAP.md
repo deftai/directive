@@ -7,13 +7,11 @@
 
 ## Active
 
-- **#6265** -- bug(ingest): issue:ingest harvests a lean's Reject list, footnotes and arc record-keeping as plan items -- `[running]`
 - **#6269** -- bug(verify-ac): a clause that removes a quoted phrase fails when the phrase is removed -- `[running]`
 - **#6270** -- bug(scope): strict acceptance axes match on identifiers, so a deploy-dev job or deploy.yml makes a clause need deploy evidence -- `[running]`
 - **#6271** -- bug(init,security): the consumer .gitignore baseline misses the private pre-PR store and the plan-sequence lock files -- `[running]`
 - **#6272** -- feat(scope): show which clauses need strict-axis evidence at activation, not after the merge -- `[running]`
 - **#6273** -- feat(scope): one-PR path for a single maintainer: a new or widened brief lands with its code without a second human reviewer -- `[running]`
-- **#6274** -- feat(occupancy,hooks): release the occupancy lease when its host session ends -- `[running]`
 
 ## Proposed
 
@@ -48,8 +46,21 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1929 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1942 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#6354** -- feat(scope): one-PR mint level without a human merge (drop the requireHumanMerge precondition) -- `[completed]`
+- **#6349** -- fix(scope-provenance): one-PR gate crashes with ENOBUFS when PROJECT-DEFINITION exceeds 1 MiB -- `[completed]`
+- **#6318** -- feat(scope): acceptance-disposition grant for a deferred clause (#6310 slice C) -- `[completed]`
+- **#6315** -- feat(changelog): fragment gate, release assembly and story scope (#6286 slice B) -- `[completed]`
+- **#6278** -- bug(hooks): a worker cannot commit in its linked worktree with cd-then-commit or git -C forms -- `[completed]`
+- **#6280** -- feat(review-cycle,pre-pr): lifecycle-only PRs do not need a review-bot pass -- `[completed]`
+- **#6317** -- feat(scope): identity join reads merge-time body; operator delivery attestation (#6310 slice B) -- `[completed]`
+- **#6314** -- feat(changelog): path test, fragment format, mode and effective view (#6286 slice A) -- `[completed]`
+- **#6313** -- bug(hooks): after a pin bump the pin-mismatch refusal blocks its own named recovery (pnpm install) -- `[completed]`
+- **#6295** -- feat(merge): green PRs merge without manual re-qualification (merge queue or merge train) -- `[completed]`
+- **#6316** -- feat(scope): part line, pre-merge story-line check and --write-story-line (#6310 slice A) -- `[completed]`
+- **#6265** -- bug(ingest): issue:ingest harvests a lean's Reject list, footnotes and arc record-keeping as plan items -- `[completed]`
+- **#6274** -- feat(occupancy,hooks): release the occupancy lease when its host session ends -- `[completed]`
 - **#6189** -- Story write fence refuses Write/Edit to files outside the repository (host memory, temp scratch) -- `[completed]`
 - **#680** -- Reduce overhead for vBRIEF phase lifecycle completion -- `[completed]`
 - **#6226** -- bug(check): the cited-skip scan walks git-ignored nested worktrees, so release Step 5 fails in a maintainer checkout that CI passes -- `[completed]`
@@ -62,17 +73,4 @@ _Showing 25 of 1929 completed scopes (newest first). Full history: lifecycle `co
 - **#6203** -- feat(scope): admit a brief and its implementation in one PR under a forge-attested human approval -- `[completed]`
 - **#5882** -- BLOCKER: [framework-gap] swarm:finalize-cohort lifecycle checkout skips package install, so Taskfile-based acceptance commands fail in scope:complete -- `[completed]`
 - **#5710** -- bug(scope): scope:complete has no path for a delivered PR-only brief, and the identity join accepts a post-merge closing link -- `[completed]`
-- **#5102** -- process(review-cycle): SLizard babysit re-polls instead of resolving carried fingerprints -- `[completed]`
-- **#6173** -- bug(win32,update): containedDestExec still execFileSync pnpm.CMD without shell — #5383 residual lockfile refresh EINVAL -- `[completed]`
-- **#6172** -- bug(pre-pr): bound push gate refuses every push after a rebase or merge from the delivery branch (outgoing = remoteOid..localOid) -- `[completed]`
-- **#6163** -- bug(release): pin/Phase 7 leaves Cursor agent-hook deposit behind runtime hash -- `[completed]`
-- **#6164** -- bug(release): release:local-update still shells out to sed/grep on Windows -- `[completed]`
-- **#5735** -- fix(triage): worktrees-probe case-distinct sibling flake recurred a third time (post-#5519) -- `[completed]`
-- **#4781** -- bug(grok-build,session): independent validation/review spawn still requires inventing an active product xBRIEF -- `[completed]`
-- **#5947** -- test+docs(ovpr): AC14.10 Dependabot pin-bump self-complete regression (#5947 #5948) -- `[completed]`
-- **#4966** -- feat(session): session:start should default to one-line ready output; put ceremony behind --verbose -- `[completed]`
-- **#6143** -- bug(hooks,session): an idle session's applying-host claim blocks other-provider lifecycle commands with no lease behind it, and the deny names the wrong id -- `[completed]`
-- **#6142** -- bug(design-critique): ensureArcDest via stale gitignored packages/core/dist skips guarded-prep, so arc dests launch without runtime -- `[completed]`
-- **#6136** -- bug(hooks,authz): agents can self-serve .deft-directive-disable outside UAT (Write/Shell plant) -- `[completed]`
-- **#6013** -- Pin-mismatch recovery guidance follows the settled failure-shaped map -- `[completed]`
 
