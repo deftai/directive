@@ -14,3 +14,4 @@ export * from "./platform-capabilities.js";
 export * from "./reconcile-issues.js";
 export { reconcileMain } from "./reconcile-issues.js";
 export * from "./residual-identity.js";
+export * from "./spec-path-source.js";

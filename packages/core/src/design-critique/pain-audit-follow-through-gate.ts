@@ -9,7 +9,12 @@
  */
 
 import { createHash } from "node:crypto";
-import { sliceBoundRemedySection, stripFencedCodeBlocks } from "../intake/markdown-scanners.js";
+import {
+  leanAcceptanceCriteriaItems,
+  leanSlicesSectionLines,
+  sliceBoundRemedySection,
+  stripFencedCodeBlocks,
+} from "../intake/markdown-scanners.js";
 import { classifyPosition } from "./citation-grammar.js";
 import { extractOperativeAuditTargets, painMarkerId } from "./parent-audit.js";
 
@@ -226,6 +231,77 @@ export function hashBoundRemedyBytes(body: string): string {
   return createHash("sha256").update(titles.join("\n"), "utf8").digest("hex");
 }
 
+/** True when a lean carries an Acceptance Criteria list or a `## Slices` section (#6333). */
+export function leanHasAcceptanceOrSlices(body: string): boolean {
+  return leanAcceptanceCriteriaItems(body).length > 0 || leanSlicesSectionLines(body) !== null;
+}
+
+/**
+ * Harvest identity (#6333 item 3): the Bound remedy items, the Acceptance
+ * Criteria items and the Slices section. A lean with neither of the last two
+ * keeps the `hashBoundRemedyBytes` digest, so earlier arcs do not move.
+ */
+export function hashHarvestIdentity(body: string): string {
+  if (!leanHasAcceptanceOrSlices(body)) {
+    return hashBoundRemedyBytes(body);
+  }
+  const parts = [
+    `bound-remedy:${hashBoundRemedyBytes(body)}`,
+    "acceptance-criteria:",
+    ...leanAcceptanceCriteriaItems(body).map((item) => item.title),
+    "slices:",
+    ...(leanSlicesSectionLines(body) ?? []),
+  ];
+  return createHash("sha256").update(parts.join("\n"), "utf8").digest("hex");
+}
+
+const HARVEST_DIGEST_RE = /(?:^|\n)[ \t]*harvest-digest:[ \t]*([^\n]*)/gi;
+
+export type HarvestDigestCarrier =
+  | { readonly ok: true; readonly digest: string }
+  | { readonly ok: false; readonly detail: string };
+
+/**
+ * Operative `harvest-digest:` line on a critic post (#6333), as lowercase hex
+ * without the `sha256:` prefix. Null when absent; conflicting lines refuse.
+ */
+export function extractOperativeHarvestDigest(body: string): HarvestDigestCarrier | null {
+  const re = new RegExp(HARVEST_DIGEST_RE.source, "gi");
+  const seen = new Set<string>();
+  for (const match of body.matchAll(re)) {
+    if (classifyPosition(body, operativeFieldOffset(match, "harvest-digest:")) !== null) {
+      continue;
+    }
+    const raw = (match[1] ?? "").trim().toLowerCase();
+    seen.add(raw.startsWith("sha256:") ? raw.slice("sha256:".length).trim() : raw);
+  }
+  if (seen.size === 0) return null;
+  if (seen.size > 1) {
+    return { ok: false, detail: "harvest-digest declarations conflict across operative lines" };
+  }
+  const digest = [...seen][0] ?? "";
+  if (!/^[0-9a-f]{64}$/.test(digest)) {
+    return { ok: false, detail: "harvest-digest is not sha256: plus 64 lowercase hex digits" };
+  }
+  return { ok: true, digest };
+}
+
+/**
+ * An audit counts for a lean only when its recorded digest equals the lean's
+ * current harvest identity. A digestless audit counts only for a lean with no
+ * Acceptance Criteria list and no Slices section (#6333 item 3).
+ */
+export function auditCountsForLean(input: {
+  readonly auditBody: string;
+  readonly leanBody: string;
+}): boolean {
+  const carrier = extractOperativeHarvestDigest(input.auditBody);
+  if (carrier === null) {
+    return !leanHasAcceptanceOrSlices(input.leanBody);
+  }
+  return carrier.ok && carrier.digest === hashHarvestIdentity(input.leanBody);
+}
+
 function commentCitesId(body: string, id: number): boolean {
   return new RegExp(`(?:^|\\D)${String(id)}(?:\\D|$)`).test(body);
 }
@@ -280,7 +356,7 @@ export function evaluateAccumulatedPainAuditFollowThrough(input: {
       recovery: "changed-lean-and-later-audit",
     };
   }
-  const citedHarvestDigest = hashBoundRemedyBytes(cited.body);
+  const citedHarvestDigest = hashHarvestIdentity(cited.body);
   const ordered = [...input.comments].sort((a, b) => a.id - b.id);
 
   let currentHarvestDigest: string | null = null;
@@ -289,7 +365,7 @@ export function evaluateAccumulatedPainAuditFollowThrough(input: {
 
   for (const comment of ordered) {
     if (input.isSuccessorLeanBody(comment.body)) {
-      currentHarvestDigest = hashBoundRemedyBytes(comment.body);
+      currentHarvestDigest = hashHarvestIdentity(comment.body);
       continue;
     }
     if (!CRITIC_ROLE_RE.test(comment.body)) continue;
@@ -396,6 +472,30 @@ export function evaluateAccumulatedPainAuditFollowThrough(input: {
           recovery: "record-parent-takes",
         };
       }
+    }
+  }
+
+  // #6333 item 3: at least one targeting audit must count for this lean.
+  const leanNeedsDigest = leanHasAcceptanceOrSlices(cited.body);
+  if (leanNeedsDigest || targetingOnCitedHarvest.length > 0) {
+    const counting = targetingOnCitedHarvest.filter((audit) =>
+      auditCountsForLean({ auditBody: audit.body, leanBody: cited.body }),
+    );
+    if (counting.length === 0) {
+      return {
+        ok: false,
+        detail:
+          "undisposed adverse pain-audit follow-through (no targeting audit counts for lean " +
+          String(cited.id) +
+          "; an audit counts only when its operative harvest-digest: line equals the lean's current harvest digest" +
+          (leanNeedsDigest
+            ? ", and this lean carries an Acceptance Criteria list or a Slices section so a digestless audit does not count"
+            : "") +
+          "; expected harvest-digest: sha256:" +
+          citedHarvestDigest +
+          ")",
+        recovery: "add-carrier",
+      };
     }
   }
 

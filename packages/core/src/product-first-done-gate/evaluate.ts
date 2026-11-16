@@ -16,6 +16,13 @@ import {
   stampedAmbiguityAttestationError,
 } from "../intake/clause-derivation.js";
 import {
+  fetchSpecPathLiveIdentities,
+  readSpecPathSourceRecord,
+  SPEC_PATH_SOURCE_KEY,
+  type SpecPathLiveIdentities,
+  type SpecPathSourceRecord,
+} from "../intake/spec-path-source.js";
+import {
   appendLiteralAcceptanceAdvisory,
   type EvaluateLiteralAcceptanceOptions,
   evaluateLiteralAcceptanceFromPlan,
@@ -201,7 +208,23 @@ export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOption
   readonly admittedSourceMergeBase?: {
     readonly sentences: readonly string[];
     readonly digest?: string | null;
+    /**
+     * Where the git pin came from (#6333). `head` is the branch-only fallback
+     * and is not proof that the brief is on the merge base. Omitted = merge-base.
+     */
+    readonly source?: "merge-base" | "head";
   } | null;
+  /**
+   * True when the brief (same basename, any lifecycle folder) is on the merge
+   * base (#6333 item 5). Path evaluation probes git; tests inject.
+   */
+  readonly briefOnMergeBase?: boolean;
+  /**
+   * Live identities of a recorded Spec-path brief (#6333 item 4): the cited
+   * lean resolved through the completed-arc record of the source issue. The
+   * default reads the thread over REST. Tests inject.
+   */
+  readonly fetchSpecPathLiveIdentities?: (record: SpecPathSourceRecord) => SpecPathLiveIdentities;
   /**
    * Live admitted-source text at the ingest-recorded revision (#5055).
    * Body-normative: origin issue body. Spec-path: Bound-remedy harvest (not the
@@ -241,6 +264,11 @@ export const ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE = "admitted_source_digest_mis
 /** Cause when digest comparison cannot reach live REST / forge (#5055). */
 export const ADMITTED_SOURCE_DIGEST_UNAVAILABLE_CAUSE =
   "admitted_source_digest_unavailable" as const;
+/**
+ * Cause when a Spec-path brief that is not on the merge base has no source
+ * record (#6333 item 5). The message names the re-ingest command.
+ */
+export const SPEC_PATH_SOURCE_RECORD_MISSING_CAUSE = "spec_path_source_record_missing" as const;
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value === "object" && value !== null && !Array.isArray(value)) {
@@ -632,7 +660,14 @@ function resolveAdmittedSourceGitPin(
   plan: Record<string, unknown>,
   options: EvaluateVerifyAcOptions,
   projectRoot: string,
-): { readonly sentences: readonly string[]; readonly digest: string | null } | null | undefined {
+):
+  | {
+      readonly sentences: readonly string[];
+      readonly digest: string | null;
+      readonly source?: "merge-base" | "head";
+    }
+  | null
+  | undefined {
   // Explicit null = looked up, absent — do not scan active/ again (#5055).
   if (options.admittedSourceMergeBase !== undefined) {
     // Options allow omitted digest; callers require string | null (#5055 / PR #5062).
@@ -641,6 +676,10 @@ function resolveAdmittedSourceGitPin(
       : {
           sentences: options.admittedSourceMergeBase.sentences,
           digest: options.admittedSourceMergeBase.digest ?? null,
+          // #6333: keep the pin's origin so a HEAD fallback is never read as the merge base.
+          ...(options.admittedSourceMergeBase.source !== undefined
+            ? { source: options.admittedSourceMergeBase.source }
+            : {}),
         };
   }
   const hinted =
@@ -651,6 +690,25 @@ function resolveAdmittedSourceGitPin(
     return undefined;
   }
   return loadAdmittedSourceFromGit(projectRoot, hinted);
+}
+
+/**
+ * #6333 item 5: merge-base probe for a Spec-path plan evaluated by path hint
+ * (scope:complete passes xbriefPath). An injected git pin keeps its own source.
+ */
+function resolveBriefOnMergeBase(
+  plan: Record<string, unknown>,
+  options: EvaluateVerifyAcOptions,
+  projectRoot: string,
+): boolean | undefined {
+  if (!planIsSpecPath(plan) || options.admittedSourceMergeBase !== undefined) {
+    return undefined;
+  }
+  const hinted =
+    typeof options.xbriefPath === "string" && options.xbriefPath.trim().length > 0
+      ? resolve(projectRoot, options.xbriefPath.trim())
+      : findActiveBriefPathForPlan(projectRoot, plan);
+  return hinted === null ? undefined : isBriefOnMergeBase(projectRoot, hinted);
 }
 
 /**
@@ -736,8 +794,11 @@ export function evaluateVerifyAcFromPlan(
   const plan = sourcesVerdict.plan;
   const planId = typeof plan.id === "string" && plan.id.trim() ? plan.id.trim() : null;
   const admittedSourceMergeBase = resolveAdmittedSourceGitPin(plan, options, projectRootEarly);
+  const briefOnMergeBase =
+    options.briefOnMergeBase ?? resolveBriefOnMergeBase(plan, options, projectRootEarly);
   const optionsWithScope: EvaluateVerifyAcOptions = {
     ...options,
+    ...(briefOnMergeBase !== undefined ? { briefOnMergeBase } : {}),
     oracleScopeKey: options.oracleScopeKey?.trim() || planId || null,
     bankScopeId: options.bankScopeId?.trim() || planId || options.bankScopeId,
     observedAcceptance:
@@ -1475,6 +1536,108 @@ function planHasSpecPathRefusedBody(plan: Record<string, unknown>): boolean {
   return Object.hasOwn(meta, "issueBody") && typeof meta.issueBody === "string";
 }
 
+/** Spec-path brief: refused-body metadata or a Spec-path source record (#6333). */
+function planIsSpecPath(plan: Record<string, unknown>): boolean {
+  if (planHasSpecPathRefusedBody(plan)) {
+    return true;
+  }
+  const meta = asRecord(plan.metadata);
+  return meta !== null && Object.hasOwn(meta, SPEC_PATH_SOURCE_KEY);
+}
+
+/**
+ * Is the brief on the merge base (#6333 item 5)? An explicit probe wins. Else a
+ * git pin counts only when it came from the merge base, never from the HEAD
+ * fallback the loader uses for branch-only briefs.
+ */
+function specPathBriefOnMergeBase(options: EvaluateVerifyAcOptions): boolean {
+  if (options.briefOnMergeBase !== undefined) {
+    return options.briefOnMergeBase;
+  }
+  const mergeBase = options.admittedSourceMergeBase;
+  if (mergeBase === undefined || mergeBase === null || mergeBase.sentences.length === 0) {
+    return false;
+  }
+  return (mergeBase.source ?? "merge-base") === "merge-base";
+}
+
+/** Issue number of the brief's origin reference, for the re-ingest command. */
+function originIssueNumber(plan: Record<string, unknown>): string {
+  const refs = Array.isArray(plan.references) ? plan.references : [];
+  for (const entry of refs) {
+    const row = asRecord(entry);
+    if (row?.type === "x-xbrief/github-issue" && typeof row.uri === "string") {
+      const match = /\/issues\/(\d+)/.exec(row.uri);
+      if (match?.[1] !== undefined) {
+        return match[1];
+      }
+    }
+  }
+  return "<issue>";
+}
+
+/**
+ * A Spec-path brief that is not on the merge base (#6333 items 4 and 5). With no
+ * source record it fails and names the re-ingest command. With a record its pin
+ * is compared with the cited lean, resolved through the completed-arc record of
+ * the source issue.
+ */
+function resolveUnlandedSpecPathIdentities(
+  plan: Record<string, unknown>,
+  options: EvaluateVerifyAcOptions,
+):
+  | {
+      readonly ok: true;
+      readonly identities: readonly string[];
+      readonly digest: string | null;
+      readonly compareLiveDigest: boolean;
+    }
+  | { readonly ok: false; readonly cause: string; readonly message: string } {
+  const record = readSpecPathSourceRecord(plan);
+  if (record === null) {
+    const issue = originIssueNumber(plan);
+    return {
+      ok: false,
+      cause: SPEC_PATH_SOURCE_RECORD_MISSING_CAUSE,
+      message:
+        "verify:ac Spec-path source record (#6333): this Spec-path brief is not on the merge base " +
+        "and has no source record, so its pin cannot be checked against the accepted lean. " +
+        `Ingest it again: task issue:ingest -- ${issue} (remove this working-tree copy first).`,
+    };
+  }
+  const fetchLive = options.fetchSpecPathLiveIdentities ?? fetchSpecPathLiveIdentities;
+  const live = fetchLive(record);
+  if (!live.ok) {
+    return {
+      ok: false,
+      cause:
+        live.kind === "mismatch"
+          ? ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE
+          : ADMITTED_SOURCE_DIGEST_UNAVAILABLE_CAUSE,
+      message: `verify:ac Spec-path live compare (#6333): ${live.reason}`,
+    };
+  }
+  const identities = live.identities.map(normalizeIdentityText);
+  const liveDigest = digestAdmittedSourceSentences(identities);
+  const working = readAdmittedSourceSentences(plan.acceptance);
+  const recordedDigest = readAdmittedSourceDigest(plan.acceptance);
+  const workingDigest =
+    working !== null ? digestAdmittedSourceSentences(working.map(normalizeIdentityText)) : null;
+  if (
+    (workingDigest !== null && workingDigest !== liveDigest) ||
+    (recordedDigest !== null && recordedDigest !== liveDigest)
+  ) {
+    return {
+      ok: false,
+      cause: ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE,
+      message:
+        `verify:ac Spec-path live compare (#6333): the brief's pin disagrees with lean ` +
+        `${record.leanCommentId} of #${record.issue}`,
+    };
+  }
+  return { ok: true, identities, digest: liveDigest, compareLiveDigest: false };
+}
+
 /**
  * Resolve the authoritative admitted-source identity list (#5055).
  * Prefer git pin (merge-base / HEAD) when supplied, else working-tree pin, else
@@ -1494,6 +1657,12 @@ function resolveAdmittedSourceIdentities(
     }
   | { readonly ok: false; readonly cause: string; readonly message: string } {
   const mergeBase = options.admittedSourceMergeBase;
+  // #6333 item 5: the boundary is the merge base. A Spec-path brief that is not
+  // on it must carry a source record and is compared with the cited lean; the
+  // HEAD-fallback pin is not proof that the brief is on the merge base.
+  if (planIsSpecPath(plan) && !specPathBriefOnMergeBase(options)) {
+    return resolveUnlandedSpecPathIdentities(plan, options);
+  }
   if (mergeBase !== undefined && mergeBase !== null && mergeBase.sentences.length > 0) {
     const identities = mergeBase.sentences.map(normalizeIdentityText);
     return {
@@ -1826,32 +1995,84 @@ function loadAdmittedSourceAtTreeish(
 function loadAdmittedSourceFromGit(
   projectRoot: string,
   xbriefPath: string,
-): { readonly sentences: readonly string[]; readonly digest: string | null } | null {
+): {
+  readonly sentences: readonly string[];
+  readonly digest: string | null;
+  readonly source: "merge-base" | "head";
+} | null {
   const abs = resolve(xbriefPath);
   const rel = relative(projectRoot, abs).replace(/\\/g, "/");
   if (rel.length === 0 || rel.startsWith("..")) {
     return null;
   }
+  const mb = resolveMergeBaseSha(projectRoot);
+  if (mb !== null) {
+    const fromMb = loadAdmittedSourceAtTreeish(projectRoot, rel, mb);
+    if (fromMb !== null) {
+      return { ...fromMb, source: "merge-base" };
+    }
+  }
+  // Branch-only ingest: merge-base lacks the file; HEAD still has the pin.
+  // #6333: tagged `head` so it is never read as proof of the merge base.
+  const fromHead = loadAdmittedSourceAtTreeish(projectRoot, rel, "HEAD");
+  return fromHead === null ? null : { ...fromHead, source: "head" };
+}
+
+/** Merge base of the delivery ref and HEAD (origin/main fallback), or null. */
+function resolveMergeBaseSha(projectRoot: string): string | null {
   const baseRef =
     process.env.DEFT_BASE_REF?.trim() || process.env.GITHUB_BASE_REF?.trim() || "origin/master";
   const left = baseRef.includes("/") ? baseRef : `origin/${baseRef}`;
   const mb = defaultGitRunner(projectRoot, ["merge-base", left, "HEAD"]);
-  if (mb.code === 0) {
-    const fromMb = loadAdmittedSourceAtTreeish(projectRoot, rel, mb.stdout.trim());
-    if (fromMb !== null) {
-      return fromMb;
-    }
-  } else {
-    const fallback = defaultGitRunner(projectRoot, ["merge-base", "origin/main", "HEAD"]);
-    if (fallback.code === 0) {
-      const fromMain = loadAdmittedSourceAtTreeish(projectRoot, rel, fallback.stdout.trim());
-      if (fromMain !== null) {
-        return fromMain;
-      }
-    }
+  if (mb.code === 0 && mb.stdout.trim().length > 0) {
+    return mb.stdout.trim();
   }
-  // Branch-only ingest: merge-base lacks the file; HEAD still has the pin.
-  return loadAdmittedSourceAtTreeish(projectRoot, rel, "HEAD");
+  const fallback = defaultGitRunner(projectRoot, ["merge-base", "origin/main", "HEAD"]);
+  if (fallback.code === 0 && fallback.stdout.trim().length > 0) {
+    return fallback.stdout.trim();
+  }
+  return null;
+}
+
+const LIFECYCLE_ROOTS = new Set(["xbrief", "vbrief"]);
+const LIFECYCLE_FOLDERS = new Set(["proposed", "pending", "active", "completed", "cancelled"]);
+
+/**
+ * #6333 item 5: is this brief really on the merge base? True when the merge
+ * base tree holds the same basename under any lifecycle folder (a lifecycle
+ * move keeps the basename). The HEAD fallback is never consulted.
+ */
+export function isBriefOnMergeBase(projectRoot: string, xbriefPath: string): boolean {
+  const abs = resolve(xbriefPath);
+  const rel = relative(projectRoot, abs).replace(/\\/g, "/");
+  if (rel.length === 0 || rel.startsWith("..")) {
+    return false;
+  }
+  const mb = resolveMergeBaseSha(projectRoot);
+  if (mb === null) {
+    return false;
+  }
+  const name = rel.split("/").pop() ?? "";
+  const listed = defaultGitRunner(projectRoot, [
+    "ls-tree",
+    "-r",
+    "--name-only",
+    mb,
+    "--",
+    ...LIFECYCLE_ROOTS,
+  ]);
+  if (listed.code !== 0) {
+    return false;
+  }
+  return listed.stdout.split(/\r?\n/).some((line) => {
+    const parts = line.trim().split("/");
+    return (
+      parts.length === 3 &&
+      LIFECYCLE_ROOTS.has(parts[0] ?? "") &&
+      LIFECYCLE_FOLDERS.has(parts[1] ?? "") &&
+      parts[2] === name
+    );
+  });
 }
 
 function parseAdmittedSourceFromBriefText(
@@ -1919,12 +2140,17 @@ export function evaluateVerifyAcFromPath(
       admittedSourceMergeBase = fromGit;
     }
   }
+  // #6333 item 5: probe the merge base itself for Spec-path briefs.
+  const briefOnMergeBase =
+    options.briefOnMergeBase ??
+    (planIsSpecPath(plan) ? isBriefOnMergeBase(projectRoot, abs) : undefined);
   const emitOptions: EvaluateVerifyAcOptions = {
     ...options,
     xbriefPath: abs,
     oracleScopeKey,
     observedAcceptance: plan.acceptance,
     ...(admittedSourceMergeBase !== undefined ? { admittedSourceMergeBase } : {}),
+    ...(briefOnMergeBase !== undefined ? { briefOnMergeBase } : {}),
     persistRequirementSourcesAutofix:
       options.persistRequirementSourcesAutofix ??
       ((next) => {
