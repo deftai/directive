@@ -1856,3 +1856,15 @@ export function formatFinalizeOwedInventoryLines(inventory: FinalizeOwedInventor
 export function inventoryHasBlockingOwed(inventory: FinalizeOwedInventory): boolean {
   return inventory.stories.some((s) => s.blocks);
 }
+
+/** Number of inventory rows with `blocks` true (#6409 session report count). */
+export function countBlockingOwed(inventory: FinalizeOwedInventory): number {
+  return inventory.stories.filter((s) => s.blocks).length;
+}
+
+/**
+ * Operator command that runs the finalize-owed verb (#6409 / #5914 part 1).
+ * `deft swarm:finalize-owed` routes to the `swarm-finalize-owed` engine verb;
+ * `task swarm:finalize-owed` has no Taskfile entry.
+ */
+export const FINALIZE_OWED_COMMAND = "deft swarm:finalize-owed";

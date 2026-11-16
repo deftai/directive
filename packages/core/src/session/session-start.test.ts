@@ -30,6 +30,7 @@ const CEREMONY_COST_RESIDUAL_TOLERANCE_MS = 250;
 import {
   ENV_SESSION_START_NETWORK,
   escapeSessionGoSignalValue,
+  formatFinalizeOwedReportLine,
   formatSessionReadyGoSignalLine,
   isSessionStartAlwaysOnLine,
   OPTIONAL_NETWORK_SKIPPED_MESSAGE,
@@ -1333,14 +1334,48 @@ describe("runSessionStart worktree deposit reconstitution (#4443)", () => {
       sessionId: "host:test:v1:owed-rollback",
       orientation: null,
       runStalenessTickler: () => ({ lines: [], prompted: false }),
+      // #6409: only the repository-not-resolved case still refuses.
       probeFinalizeOwed: () => ({
-        lines: ["finalize owed inventory:", "  #3906 owed [blocks]"],
-        blocks: true,
-        unknown: false,
+        lines: [],
+        blocks: false,
+        unknown: true,
+        repoRequired: true,
       }),
     });
     expect(result.code).toBe(1);
     expect(readOccupancy(root)).toBeNull();
+  });
+
+  it("does not refuse cold start for owed rows; reports count on quiet output and JSON (#6409)", () => {
+    const root = tempRoot();
+    const result = runSessionStart(root, {
+      ...baseOptions(root, () => userMdResult({})),
+      sessionId: "host:test:v1:owed-report",
+      orientation: null,
+      runStalenessTickler: () => ({ lines: [], prompted: false }),
+      probeFinalizeOwed: () => ({
+        lines: [
+          "finalize owed inventory:",
+          "  #5365 close-owed [blocks] pr=#1 xbrief/completed/a.json",
+          "  #5994 owed [blocks] pr=#2 xbrief/active/b.json",
+        ],
+        blocks: true,
+        unknown: false,
+      }),
+    });
+    expect(result.code).toBe(0);
+    expect(result.payload.ready).toBe(true);
+    expect(result.payload.finalize_owed_count).toBe(2);
+    expect(result.payload.finalize_owed_blocked).toBeUndefined();
+    const report = formatFinalizeOwedReportLine(2);
+    expect(result.lines).toContain(report);
+    const quiet = selectSessionStartHumanLines({
+      code: result.code,
+      payload: result.payload,
+      lines: result.lines,
+      env: {},
+    });
+    expect(quiet).toContain(report);
   });
 
   it("keeps a heartbeat lease when finalize-owed blocks (#3906)", () => {
@@ -1371,10 +1406,12 @@ describe("runSessionStart worktree deposit reconstitution (#4443)", () => {
           code: 0,
         };
       },
+      // #6409: only the repository-not-resolved case still refuses.
       probeFinalizeOwed: () => ({
-        lines: ["finalize owed inventory:", "  #3906 owed [blocks]"],
-        blocks: true,
-        unknown: false,
+        lines: [],
+        blocks: false,
+        unknown: true,
+        repoRequired: true,
       }),
     });
     expect(result.code).toBe(1);

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The review-cycle skill records an answered SLizard finding with the bot's `@slizard label` command, one comment per round (`fp` after the head-blob check, `risk` under the HEAD-policy rule), and names the clearing sequence: label, acknowledgement, `@slizard review`, `pr:merge-ready`. The old line "A one-line falsification reply … is enough" now says that line is the label reason. The SLizard gate's blocked message prints the actionable fingerprints and names that sequence before `--skip-slizard`; its decisions do not change (#6377).
 
 ### Changed
+- Mutation `session:start` no longer refuses a session for owed completions. The inventory still runs; one always-on `finalize owed report:` line gives the count and names `deft swarm:finalize-owed` (the form that runs; `task swarm:finalize-owed` never existed), and `--json` carries `finalize_owed_count`. Only an unresolvable repository still refuses (#6409; #5914 part 1).
 - chore(dogfood): pin Directive to 0.129.10.
 - chore(xbrief): widen the #6361 brief to `known-machine.ts` (import-cycle fix) and land its one-PR mint record (#6361).
 - After a context compaction, the write hook restores the ritual clock for the session that owns the live lease and the ritual, and denies one call with the alignment lines instead of every write until a manual re-arm. Other stale-ritual denials print their recovery command with the caller's `--session-id` (#6279).

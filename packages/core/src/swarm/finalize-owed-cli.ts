@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
 import { EXIT_CONFIG_ERROR, EXIT_OK } from "./constants.js";
-import { type FinalizeOwedArgs, finalizeOwed } from "./finalize-owed.js";
+import { FINALIZE_OWED_COMMAND, type FinalizeOwedArgs, finalizeOwed } from "./finalize-owed.js";
+
+export { FINALIZE_OWED_COMMAND };
 
 export interface ParsedFinalizeOwedArgv extends FinalizeOwedArgs {
   readonly help: boolean;
   readonly error: string | null;
 }
 
-export const FINALIZE_OWED_USAGE = `Usage: task swarm:finalize-owed -- [options]
+export const FINALIZE_OWED_USAGE = `Usage: ${FINALIZE_OWED_COMMAND} [options]
 
 Discover ownerless Tracking stories on the delivery tip and run finalize-cohort per story (#4919).
 
