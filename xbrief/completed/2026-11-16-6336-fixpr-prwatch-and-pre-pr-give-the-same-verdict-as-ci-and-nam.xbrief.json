@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6336",
-    "updated": "2026-11-16T07:43:26Z"
+    "updated": "2026-11-16T19:41:41Z"
   },
   "plan": {
     "title": "fix(pr): pr:watch and pre-PR give the same verdict as CI and name the cause",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The shared check-run reader that pr:watch, both merge-readiness paths and pr:wait-mergeable-and-merge use keeps the newest run for each check per app, counts every red conclusion as a named failure, and pr:watch also names a missing required context and prints a red bot review check as advisory. Pre-PR runs verify:class-checks and verify:evaluator-surface inside the required lint_iteration observation, and both checks read one candidate tree (working tree against the merge base plus untracked files). verify:intent-constraint lists every fact, pre-pr:run --complete names a missing pull request instead of the first-hotfix bootstrap text, and the pre-PR body hash ignores line-ending and trailing-newline differences.",
       "UserStory": "As a worker agent about to open or merge a pull request, I want pr:watch and the pre-PR lane to reach the verdict CI reaches and to name the cause of every refusal, so that I stop spending a debugging round on stale runs, silent stalls and gates that first fail in CI.",
@@ -20,210 +20,392 @@
     "items": [
       {
         "title": "Newest run per check, in the shared reader.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given two runs of one check from one app on a head, where the older run failed and the newer run passed, when `pr:watch` probes, then the check counts as passing in packages/core/src/pr-merge-readiness/ci-gate.ts."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Before it scores, `evaluateCiGate` keeps one run for each pair of app id and check name: the newest by `created_at`, with the run id as the tie-break.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given two runs of one check from one app, then `evaluateCiGate` in packages/core/src/pr-merge-readiness/ci-gate.ts scores only the run with the newest `created_at`, and with equal `created_at` only the run with the higher run id."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The check-run record carries the run id.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given a check-run payload with an `id`, then the record that packages/core/src/pr-merge-readiness/gh.ts builds carries that id as its run id."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "All four callers inherit the rule (`pr:watch`, both merge-readiness paths, `pr:wait-mergeable-and-merge`).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given two runs of one check from one app where the older failed and the newer passed, when `pr:merge-ready` and `pr:wait-mergeable-and-merge` evaluate the head, then they reach the same result as `pr:watch`, because each scores through packages/core/src/pr-merge-readiness/ci-gate.ts."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A newest run that is `skipped` counts as passing, as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given a failed run and a newer `skipped` run of the same check from the same app, then packages/core/src/pr-merge-readiness/ci-gate.ts counts the check as passing."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Every red conclusion is a failure with a name.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given a failed check from one app and a passing check with the same name from another app, when the gate in packages/core/src/pr-merge-readiness/ci-gate.ts evaluates, then the failed check still counts as failed and is named."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A completed run whose conclusion is not `success`, `neutral`, `skipped` or `cancelled` counts as a failed check (`startup_failure`, `action_required` and `stale` included).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given a completed check with conclusion `startup_failure`, when `pr:watch` probes, then packages/core/src/pr-merge-readiness/ci-gate.ts counts it as failed, the verdict is CI_BLOCKED and the verdict line names that check; `action_required` and `stale` are failures too."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The `pr:watch` verdict line carries the failed check names.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given a CI_BLOCKED verdict, then the verdict line that packages/core/src/pr-watch/main.ts prints names each failed check."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A regression fixture built from the check inventory of the reported stall locks the path from check-run to verdict.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given the check inventory of the reported stall in packages/core/src/pr-merge-readiness/fixtures/pr-6322-stall-check-runs.json with one required check red, when the regression test in packages/core/src/pr-watch/probe.test.ts runs `pr:watch` against it, then the verdict is CI_BLOCKED and names that check, not STALL."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Required checks.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given a `pr:watch` probe, then packages/core/src/pr-watch/probe.ts resolves the base branch's required contexts and passes them to the gate."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Which present checks count does not change: every check that is not a bot review check and not operator-ignored.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given a red present check that is neither a bot review check nor operator-ignored and is not a required context, then packages/core/src/pr-merge-readiness/ci-gate.ts still counts it as failed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`pr:watch` passes the branch's required contexts to the gate the way merge-readiness does, so a required check that is missing on the head is named.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given a required context that has no check-run on the head, when `pr:watch` probes through packages/core/src/pr-watch/probe.ts, then the output names the missing context."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A red bot review check is printed as advisory and not counted.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given a head whose only red check is a bot review check, when `pr:watch` probes, then packages/core/src/pr-watch/main.ts prints the check as advisory and the verdict does not count it."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Two checks in pre-PR.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given a pre-PR `lint_iteration` observation, then packages/core/src/pre-pr-controller/controller.ts runs `verify:class-checks` and `verify:evaluator-surface` in process and returns both results."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`verify:class-checks` and `verify:evaluator-surface` run inside the existing required `lint_iteration` observation, and the observation records each result.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given a change set that touches a protected path, or a declared evaluator surface without a disposition record, when the pre-PR lane observes `lint_iteration` through packages/runtime/src/pre-pr-run.ts, then the check fails locally with the message CI gives and the observation records both results."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Both results are required for that phase to pass, also when the test portion is skipped by an authorized skip.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given a pre-PR pass whose test portion is skipped by an authorized skip and where neither check result is recorded, or a pass with passing tests and one check result missing, when `pre-pr:run --complete` runs, then packages/core/src/pre-pr-controller/controller.ts refuses with the existing omitted-phase token for `lint_iteration`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "There is no new phase id, no new deny token and no `deft check`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "Given the decision codes in packages/core/src/pre-pr-controller/types.ts and the pre-PR phase list, then no phase id and no deny token is added, and the two checks run without `deft check`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The #6040 iteration-lane list gains `verify:class-checks`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "Given content/skills/deft-directive-pre-pr/SKILL.md section Gate throughput, then the iteration-lane list names `verify:class-checks`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "One candidate tree for both checks.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.19",
         "narrative": {
           "Acceptance": "Given a working tree, then packages/core/src/class-checks/evaluate.ts and packages/core/src/evaluator-surface/evaluate.ts both take their file set from the working tree against the merge base plus untracked files."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The file set is the working tree against the merge base, plus untracked files.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.20",
         "narrative": {
           "Acceptance": "Given a protected-path change that is reverted in the working tree and not yet committed, when `verify:class-checks` in packages/core/src/class-checks/evaluate.ts runs, then it passes; given an untracked file that breaks a class rule, then it fails; given a branch behind its base, when `verify:evaluator-surface` runs, then changes that exist only on the base are not in its file set."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "File contents, the head-side policy and the disposition record are read from that same tree.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.21",
         "narrative": {
           "Acceptance": "Given an uncommitted edit to the disposition record, when `verify:evaluator-surface` in packages/core/src/evaluator-surface/evaluate.ts runs, then it reads that record from the same working tree that supplies the file set."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "On a clean committed tip the result equals CI's.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.22",
         "narrative": {
           "Acceptance": "Given a committed disposition record that omits a changed surface and an uncommitted edit that adds it, when the tree is committed and clean, then the local result of packages/core/src/evaluator-surface/evaluate.ts equals the CI result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`verify:intent-constraint` lists every fact on each failure path, with path, line, kind and value.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.23",
         "narrative": {
           "Acceptance": "Given twelve unapproved intent facts, when `verify:intent-constraint` fails, then packages/core/src/intent-constraint/evaluate.ts lists all twelve with path, line, kind and value."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`pre-pr:run --complete` on a head with no pull request says that no pull request exists for the head and names the next command.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.24",
         "narrative": {
           "Acceptance": "Given a head with no pull request, when `pre-pr:run --complete` runs, then the message from packages/core/src/pre-pr-controller/controller.ts says that no pull request exists for the head and names the next command."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The first-hotfix bootstrap text is printed only when that mode is requested, not when the pull request number is missing.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.25",
         "narrative": {
           "Acceptance": "Given `--complete` with no pull request and no first-hotfix bootstrap request, then packages/core/src/pre-pr-controller/controller.ts does not print the first-hotfix bootstrap text; given the bootstrap request, it does."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The pre-PR body hash normalises line endings and the trailing newline on both the local body file and the stored body before it hashes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.26",
         "narrative": {
           "Acceptance": "Given a local body file with CRLF line endings and a stored body with LF line endings and the same text, when pre-PR in packages/runtime/src/pre-pr-run.ts compares the hashes, then they match."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+          "recorded_at": "2026-11-16T19:41:41Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -830,6 +1012,36 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "523ecb7424d4184205af39a4c1f17296dcb7eb47cd30d3b93e2f0f785917145c"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "50949d25324685b987d765ba476f54f9624b2e73",
+        "prNumber": 6414,
+        "prBase": "master",
+        "mergeCommit": "5ad0a823af5985d1c93f6668a1ca2ccaa0e74ca0",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+        "verifiedAt": "2026-11-16T19:41:41Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6402,
+          6418
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T19:41:41Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T19:41:41Z"
       }
     },
     "acceptance": {
@@ -1085,6 +1297,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6406914496",
-    "updated": "2026-11-16T07:43:26Z"
+    "updated": "2026-11-16T19:41:41Z"
   }
 }
