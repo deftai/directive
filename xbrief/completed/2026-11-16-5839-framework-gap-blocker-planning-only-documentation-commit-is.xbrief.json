@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5839",
-    "updated": "2026-11-16T08:03:33Z"
+    "updated": "2026-11-16T08:45:00Z"
   },
   "plan": {
     "title": "[framework-gap] BLOCKER Planning-only documentation commit is denied by prospective scope-cover despite supported Path A publication",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "A consumer that stages only planning files (design and decision Markdown, proposed or pending briefs, decision records, CHANGELOG.md and a shape-checked ordered-plan file) is denied at `git commit` by prospective scope-cover (#5656), because the gate asks for a ready running scope whose file_scope covers every non-xbrief path. This story adds a whole-set planning-publication classifier that runs on the raw staged index entries before the ready-scope guard and admits only that closed set. Any other staged set, and every classifier refuse, falls through to today's rules unchanged.",
       "UserStory": "As an operator publishing approved planning work while an unrelated implementation scope is active or not ready, I want a commit that holds only design documents, decisions, proposed or pending briefs, CHANGELOG.md and the ordered-plan file to pass the commit hook, so that I can publish the planning PR without activating an implementation scope or editing the active plan.",
@@ -20,58 +20,107 @@
     "items": [
       {
         "title": "relieves: P1 — Run the planning-publication whole-set classifier on the unfiltered raw git staged paths, before backslash normalization, early in evaluateProspectiveScopeCover before the ready-scope guard, without widening isLifecycleOrInstallerRelPath.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given a staged set of planning files and a not-ready or uncovering scope, when the Shell git commit hook decides, then the classifier runs on the raw staged index entries before path normalization and the story binding and ready-scope guard are not reached; `isLifecycleOrInstallerRelPath` still returns false for docs/design paths, CHANGELOG.md and `.deft/plan-sequence.json`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e267adff4691d8edd5c46b59eb16ab43845d24a9",
+          "recorded_at": "2026-11-16T08:45:00Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P1 — Inventory = CHANGELOG.md and .deft/plan-sequence.json (members of the #5477 exact-path constant) plus docs/design/<name>.md and docs/decisions/<name>.md; neutral = <name>.xbrief.json or <name>.vbrief.json directly under a #5477 LIFECYCLE_MAINTENANCE_DIR_PREFIXES folder other than active/, and <name>.decision.json directly under xbrief/decisions/ or vbrief/decisions/; <name> is one path segment with no backslash; every other path disqualifies the set.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given the classifier, then CHANGELOG.md, `.deft/plan-sequence.json`, `docs/design/<name>.md` and `docs/decisions/<name>.md` are inventory, proposed/pending/completed/cancelled `<name>.xbrief.json` or `<name>.vbrief.json` and decisions-folder `<name>.decision.json` are neutral, and an active/ brief, a nested segment, a backslash name, a README, `.gitkeep`, a source file or any other path disqualifies the whole set."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e267adff4691d8edd5c46b59eb16ab43845d24a9",
+          "recorded_at": "2026-11-16T08:45:00Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P1 — Widen the staged seam to carry change kind, file mode, and index blob; an inventory or neutral path admits only as mode 100644 of kind A or M, or kind D; a non-deleted .deft/plan-sequence.json also needs isClosedPlanSequenceShape on its index blob; no other content proof.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given staged entries carrying change kind, mode and index blob, then an inventory or neutral path admits only as mode 100644 of kind A or M, or as kind D; a non-deleted `.deft/plan-sequence.json` admits only when its index blob passes `isClosedPlanSequenceShape`, including a plan with `insert_approvals` rows (#6205); no other file content is read."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e267adff4691d8edd5c46b59eb16ab43845d24a9",
+          "recorded_at": "2026-11-16T08:45:00Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P2 — For staged sets inside the inventory and neutral record files, relieve the Write-to-commit gap by closed-shape prospective cover admission; requirements-posture tokens stay out of the predicate, and posture-written paths outside them still need a ready covering scope.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given a staged set inside the inventory and neutral record files, when the commit hook decides with no ready covering scope, then the commit is allowed; the predicate reads no requirements-posture token, and a posture-written path outside the inventory (for example REQUIREMENTS.md or docs/requirements/c.md) is still denied without a ready covering scope."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e267adff4691d8edd5c46b59eb16ab43845d24a9",
+          "recorded_at": "2026-11-16T08:45:00Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P3 — Every classifier refuse (disqualifier, non-100644 entry, kind T, plan-sequence shape failure) is non-admission that falls through to the existing prospective-cover rails; the classifier never denies, so today's lifecycle-only return and every other outcome are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given a disqualifier, a non-100644 entry, a kind T entry or a plan-sequence shape failure, then the classifier returns non-admission and the hook returns exactly what today's rules return (lifecycle-only allow, not-ready deny, uncovered deny or covered allow)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e267adff4691d8edd5c46b59eb16ab43845d24a9",
+          "recorded_at": "2026-11-16T08:45:00Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P4 — Add hook regressions entering at the hook decision: filed package, not-ready-scope positive, plan-sequence-only with no active brief and with an unrelated active brief, proposed→completed leftover set, root-only second commit, design doc plus PROJECT-DEFINITION policy edit, design doc plus a non-record file in a lifecycle or decisions folder, docs Markdown outside design/ and decisions/, docs yaml/json, and deletion polarity; symlink, executable, typechange, stage-then-edit, and malformed plan-sequence cases run against a real index through the default staged-path producer; admission stamps nothing and confers no merge-time credit.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given the test suite, then each listed case has a named regression that enters at the hook decision; the symlink, executable, typechange, stage-then-edit and malformed plan-sequence cases use a real git index through the default staged-path producer; and an admitted commit writes no file and returns no scope path."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e267adff4691d8edd5c46b59eb16ab43845d24a9",
+          "recorded_at": "2026-11-16T08:45:00Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "relieves: P4 — Document consumer recovery in the CHANGELOG entry and content/docs/scope-provenance.md: upgrade to the first release carrying this admission; commit documents, stories, decisions, and plan-sequence before scope:promote (or split them out after it), then commit root plan/specification/PROJECT-DEFINITION changes separately; a set with any path outside the inventory and record files is not admitted.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given content/docs/scope-provenance.md and the CHANGELOG entry, then both name the upgrade step, the commit order (planning files before scope:promote, root plan/specification/PROJECT-DEFINITION in a separate commit), that a change under active/ is not admitted with the planning files, and that a set with any other path is not admitted."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e267adff4691d8edd5c46b59eb16ab43845d24a9",
+          "recorded_at": "2026-11-16T08:45:00Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -1512,9 +1561,36 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "23c3f95c5f40010969a585eed8752a2e593ecafce4eef3e669b675df56bfbfb3"
+      },
+      "productPullRequest": 6390,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "e1a53c125190197efbb9b0e8af132c629c92011f",
+        "prNumber": 6390,
+        "prBase": "master",
+        "mergeCommit": "e267adff4691d8edd5c46b59eb16ab43845d24a9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e267adff4691d8edd5c46b59eb16ab43845d24a9",
+        "verifiedAt": "2026-11-16T08:45:00Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T08:45:00Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T08:45:00Z"
       }
     },
     "id": "github.issue.5987187538",
-    "updated": "2026-11-16T08:03:33Z"
+    "updated": "2026-11-16T08:45:00Z"
   }
 }
