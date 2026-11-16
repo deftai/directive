@@ -284,19 +284,21 @@ export interface EnsureStoryBindingRecordInput {
   readonly storyId: string;
   readonly attemptIds: readonly string[];
   /**
-   * Called under the store lock: returns the ids that are still running. It is
-   * applied to the new ids and to the ids the record already lists, so an
-   * attempt that ended between begin's ledger read and this write is never
-   * written back, and an ended id whose removal found the store locked is
-   * pruned at the next begin.
+   * Called under the store lock: returns the ids among those given that a
+   * ledger known to the caller shows as ended. They are dropped from the new
+   * ids and from the ids the record already lists, so an attempt that ended
+   * between begin's ledger read and this write is never written back, and an
+   * ended id whose removal found the store locked is pruned at the next begin.
+   * An id the caller's ledgers do not know (another checkout's attempt) is
+   * kept: absence is not proof that it ended.
    */
-  readonly stillRunning?: (attemptIds: readonly string[]) => readonly string[];
+  readonly endedAttemptIds?: (attemptIds: readonly string[]) => readonly string[];
 }
 
 /**
  * Write or update the worktree's record. A record for the same story keeps its
- * other (still running) attempt ids; a record for a different story (or a
- * malformed one) is replaced with only the given ids.
+ * other attempt ids (except ids known to have ended); a record for a different
+ * story (or a malformed one) is replaced with only the given ids.
  */
 export function ensureStoryBindingRecord(
   input: EnsureStoryBindingRecordInput,
@@ -309,14 +311,14 @@ export function ensureStoryBindingRecord(
         ? existing.attempt_ids
         : [];
     const candidates = [...new Set([...kept, ...input.attemptIds])];
-    const running = new Set(input.stillRunning?.(candidates) ?? candidates);
-    if (!input.attemptIds.some((id) => running.has(id))) {
+    const ended = new Set(input.endedAttemptIds?.(candidates) ?? []);
+    if (input.attemptIds.every((id) => ended.has(id))) {
       return { ok: false, detail: "no attempt of this unit is still running" };
     }
     const record: StoryBindingRecord = {
       story_id: input.storyId,
       worktree_path: input.worktreePath,
-      attempt_ids: candidates.filter((id) => running.has(id)),
+      attempt_ids: candidates.filter((id) => !ended.has(id)),
     };
     const failed = writeRecordAtomic(input.commonDir, rel, record);
     if (failed !== null) {

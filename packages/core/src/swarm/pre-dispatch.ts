@@ -211,13 +211,19 @@ export function aliasPeerActiveIds(
   return ids;
 }
 
-/** Attempt ids among `ids` that are still running in any unit ledger of the project (#6379). */
-function stillRunningAttemptIds(projectRoot: string, ids: readonly string[]): string[] {
+/**
+ * Attempt ids among `ids` that a unit ledger of this checkout shows as ended
+ * (#6379). An id no local ledger knows (another checkout's attempt) is not
+ * reported: absence is not proof that it ended.
+ */
+function endedAttemptIds(projectRoot: string, ids: readonly string[]): string[] {
+  const known = new Set<string>();
   const running = new Set<string>();
   for (const ledger of listUnitLedgers(projectRoot)) {
+    for (const attempt of ledger.attempts) known.add(attempt.attemptId);
     for (const attempt of activeAttempts(ledger)) running.add(attempt.attemptId);
   }
-  return ids.filter((id) => running.has(id));
+  return ids.filter((id) => known.has(id) && !running.has(id));
 }
 
 function unitFields(input: SwarmPreDispatchInput): {
@@ -491,8 +497,9 @@ export function ensureBeginStoryBinding(
       storyId: scope.storyId,
       attemptIds,
       // Re-read under the store lock: an attempt a concurrent cancel/complete
-      // ended after begin read the ledger is not written back.
-      stillRunning: (ids) => stillRunningAttemptIds(input.projectRoot, ids),
+      // ended after begin read the ledger is not written back; ids only
+      // another checkout's ledger knows are kept.
+      endedAttemptIds: (ids) => endedAttemptIds(input.projectRoot, ids),
     });
     if (!wrote.ok) return `story-binding: no record written (store): ${wrote.detail}`;
     return (

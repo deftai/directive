@@ -224,6 +224,18 @@ describe("swarm:pre-dispatch begin writes the story-binding record (#6379)", {
     expect(idsOf(wtA)).toEqual([next.attempt?.attemptId]);
   });
 
+  it("keeps an id that only another checkout's ledger knows", () => {
+    const { primary, wtA, wtB } = fixture();
+    // Another checkout (wt-b as project root) begins first; its ledger is not primary's.
+    const other = begin(wtB, "plan-a", wtA);
+    expect(other.exitCode).toBe(0);
+    const mine = begin(primary, "plan-a", wtA);
+    expect(mine.exitCode).toBe(0);
+    expect(idsOf(wtA)).toEqual([other.attempt?.attemptId, mine.attempt?.attemptId]);
+    expect(complete(primary, "plan-a", wtA).exitCode).toBe(0);
+    expect(idsOf(wtA)).toEqual([other.attempt?.attemptId]);
+  });
+
   it("replaces a record for a different story with only the new attempt id", () => {
     const { primary, wtA } = fixture();
     expect(begin(primary, "plan-a", wtA).exitCode).toBe(0);
@@ -367,12 +379,26 @@ describe("story-binding target and scope resolution (#6379 item 2)", { timeout: 
     const id = locked.attempt?.attemptId ?? "";
     expect(removeEndedStoryBindings(primary, [id])).toContain("not removed");
     rmSync(join(store, STORY_BINDING_LOCK_NAME));
-    // An attempt id that no ledger still runs is never written back.
-    expect(ensureBeginStoryBinding(input, ["ended-attempt"])).toContain(
+    expect(ensureBeginStoryBinding(input, [id])).toContain("-> plan-a");
+    // An attempt id that this checkout's ledger shows as ended is never written back.
+    expect(
+      swarmPreDispatch({
+        ...input,
+        action: "cancel",
+        attemptId: id,
+        preCancelForce: true,
+        preCancelReason: "t",
+        agentId: "a",
+        cancellerId: "p",
+      }).exitCode,
+    ).toBe(0);
+    expect(ensureBeginStoryBinding(input, [id])).toContain(
       "no attempt of this unit is still running",
     );
-    expect(ensureBeginStoryBinding(input, [id])).toContain("-> plan-a");
-    expect(removeEndedStoryBindings(primary, [id])).toContain("records deleted 1");
+    expect(ensureBeginStoryBinding(input, [id, "other-checkout-attempt"])).toContain("-> plan-a");
+    expect(removeEndedStoryBindings(primary, ["other-checkout-attempt"])).toContain(
+      "records deleted 1",
+    );
     expect(removeEndedStoryBindings(primary, [id])).toBeNull();
     expect(removeEndedStoryBindings(primary, [])).toBeNull();
     const outside = mkdtempSync(join(tmpdir(), "sb-store-outside-"));

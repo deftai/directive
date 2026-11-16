@@ -150,14 +150,14 @@ describe("story-binding record store (#6379)", { timeout: 60_000 }, () => {
     // An owner with an impossible pid is not alive.
     writeFileSync(lock, JSON.stringify({ pid: 0, token: "zero" }), "utf8");
     expect(ensureStoryBindingRecord({ ...input(), attemptIds: ["att-3"] }).ok).toBe(true);
-    // A stillRunning filter that drops every id writes nothing.
+    // When every new id is known to have ended, nothing is written.
     expect(
       ensureStoryBindingRecord({
         commonDir: common,
         worktreePath: resolveWorkerAuthDestPath(wtA),
         storyId: "story-a",
         attemptIds: ["att-9"],
-        stillRunning: () => [],
+        endedAttemptIds: (ids) => ids,
       }),
     ).toEqual({ ok: false, detail: "no attempt of this unit is still running" });
   });
