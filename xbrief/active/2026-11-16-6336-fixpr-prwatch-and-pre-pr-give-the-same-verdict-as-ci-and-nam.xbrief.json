@@ -1,0 +1,1083 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6336",
+    "updated": "2026-11-16T07:43:26Z"
+  },
+  "plan": {
+    "title": "fix(pr): pr:watch and pre-PR give the same verdict as CI and name the cause",
+    "status": "running",
+    "narratives": {
+      "Description": "The shared check-run reader that pr:watch, both merge-readiness paths and pr:wait-mergeable-and-merge use keeps the newest run for each check per app, counts every red conclusion as a named failure, and pr:watch also names a missing required context and prints a red bot review check as advisory. Pre-PR runs verify:class-checks and verify:evaluator-surface inside the required lint_iteration observation, and both checks read one candidate tree (working tree against the merge base plus untracked files). verify:intent-constraint lists every fact, pre-pr:run --complete names a missing pull request instead of the first-hotfix bootstrap text, and the pre-PR body hash ignores line-ending and trailing-newline differences.",
+      "UserStory": "As a worker agent about to open or merge a pull request, I want pr:watch and the pre-PR lane to reach the verdict CI reaches and to name the cause of every refusal, so that I stop spending a debugging round on stale runs, silent stalls and gates that first fail in CI.",
+      "ImplementationPlan": "Two product PRs under this story. Part PR (deft-story-part: 6336): Bound item 5 only, because packages/core/src/class-checks/** is a class-4 protected glob and must land as its own diff. 1. packages/core/src/class-checks/evaluate.ts and packages/core/src/evaluator-surface/evaluate.ts build the file set from git diff --name-only <merge-base> (working tree) plus untracked files; contents, head-side policy and the disposition record stay read from the working tree. Tests in the two evaluate.test.ts files; disposition renewed. Final PR (deft-story: 6336): 2. packages/core/src/pr-merge-readiness/gh.ts carries runId; ci-gate.ts keeps the newest run per (app id, name) by created_at then run id, counts every completed conclusion outside success/neutral/skipped/cancelled as failed, and reports red bot review checks as advisory. 3. packages/core/src/pr-watch/probe.ts resolves the base branch's required contexts and passes them to the gate; types.ts, watch.ts and main.ts carry and print the failed, missing and advisory names; the verdict line names failed checks; regression fixture packages/core/src/pr-merge-readiness/fixtures/pr-6322-stall-check-runs.json. 4. packages/core/src/pre-pr-controller/controller.ts runs both checks in process (runPrePrGateChecks); packages/runtime/src/pre-pr-run.ts runs them on a lint_iteration observe; controller.ts records both results on the row and requires both exit 0 for lint_iteration (also under the authorized mode skip); no new phase id or deny token. 5. intent-constraint evaluate.ts lists every fact with path, line, kind and value (extract.ts records the line). 6. controller.ts names a missing pull request and the next command on --complete; bootstrap text only when requested. 7. pre-pr-run.ts hashes the body after normalising CRLF to LF and trailing newlines, on --body-file for start and for --evaluate. 8. SKILL.md iteration lane gains verify:class-checks; CHANGELOG line; RULE-MAP regenerated if needed.",
+      "Traces": "#6336, #6319, #6322, #6323, #6325, #6040, #6295, #6276, #6377, #6378",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6336",
+      "Overview": "\n1. Newest run per check, in the shared reader. Before it scores, `evaluateCiGate` keeps one run for each pair of app id and check name: the newest by `created_at`, with the run id as the tie-break. The check-run record carries the run id. All four callers inherit the rule (`pr:watch`, both merge-readiness paths, `pr:wait-mergeable-and-merge`). A newest run that is `skipped` counts as passing, as today.\n2. Every red conclusion is a failure with a name. A completed run whose conclusion is not `success`, `neutral`, `skipped` or `cancelled` counts as a failed check (`startup_failure`, `action_required` and `stale` included). The `pr:watch` verdict line carries the failed check names. A regression fixture built from the check inventory of the reported stall locks the path from check-run to verdict.\n3. Required checks. Which present checks count does not change: every check that is not a bot review check and not operator-ignored. `pr:watch` passes the branch's required contexts to the gate the way merge-readiness does, so a required check that is missing on the head is named. A red bot review check is printed as advisory and not counted.\n4. Two checks in pre-PR. `verify:class-checks` and `verify:evaluator-surface` run inside the existing required `lint_iteration` observation, and the observation records each result. Both results are required for that phase to pass, also when the test portion is skipped by an authorized skip. There is no new phase id, no new deny token and no `deft check`. The #6040 iteration-lane list gains `verify:class-checks`.\n5. One candidate tree for both checks. The file set is the working tree against the merge base, plus untracked files. File contents, the head-side policy and the disposition record are read from that same tree. On a clean committed tip the result equals CI's.\n6. `verify:intent-constraint` lists every fact on each failure path, with path, line, kind and value.\n7. `pre-pr:run --complete` on a head with no pull request says that no pull request exists for the head and names the next command. The first-hotfix bootstrap text is printed only when that mode is requested, not when the pull request number is missing.\n8. The pre-PR body hash normalises line endings and the trailing newline on both the local body file and the stored body before it hashes.\n\n\n",
+      "Constraint": "- Keeping the newest run by check name alone (comment 6907363270 finding 1).\n- A newest-run rule in `pr:watch` only (comment 6907391144 finding 1).\n- \"Committed changes only\" as the pre-PR rule for `verify:class-checks` (comments 6907391144 finding 3, 6907363270 finding 2).\n- A new required pre-PR phase, a new deny token, or `deft check` in ordinary pre-PR (comment 6907391144 finding 4; #6040).\n- Narrowing the blocking set to the branch's required checks.\n- A claim that ordinary pre-PR gives the full CI verdict (comment 6907395289 finding 1).\n- A claim that the advisory line relieves the SLizard re-post, or that a progress line relieves the slow check (comment 6907467218 findings 1 and 2).\n- A wider bot-name exclusion (comment 6907467218 finding 1).",
+      "Labels": "design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Newest run per check, in the shared reader.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given two runs of one check from one app on a head, where the older run failed and the newer run passed, when `pr:watch` probes, then the check counts as passing in packages/core/src/pr-merge-readiness/ci-gate.ts."
+        }
+      },
+      {
+        "title": "Before it scores, `evaluateCiGate` keeps one run for each pair of app id and check name: the newest by `created_at`, with the run id as the tie-break.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given two runs of one check from one app, then `evaluateCiGate` in packages/core/src/pr-merge-readiness/ci-gate.ts scores only the run with the newest `created_at`, and with equal `created_at` only the run with the higher run id."
+        }
+      },
+      {
+        "title": "The check-run record carries the run id.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a check-run payload with an `id`, then the record that packages/core/src/pr-merge-readiness/gh.ts builds carries that id as its run id."
+        }
+      },
+      {
+        "title": "All four callers inherit the rule (`pr:watch`, both merge-readiness paths, `pr:wait-mergeable-and-merge`).",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given two runs of one check from one app where the older failed and the newer passed, when `pr:merge-ready` and `pr:wait-mergeable-and-merge` evaluate the head, then they reach the same result as `pr:watch`, because each scores through packages/core/src/pr-merge-readiness/ci-gate.ts."
+        }
+      },
+      {
+        "title": "A newest run that is `skipped` counts as passing, as today.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given a failed run and a newer `skipped` run of the same check from the same app, then packages/core/src/pr-merge-readiness/ci-gate.ts counts the check as passing."
+        }
+      },
+      {
+        "title": "Every red conclusion is a failure with a name.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given a failed check from one app and a passing check with the same name from another app, when the gate in packages/core/src/pr-merge-readiness/ci-gate.ts evaluates, then the failed check still counts as failed and is named."
+        }
+      },
+      {
+        "title": "A completed run whose conclusion is not `success`, `neutral`, `skipped` or `cancelled` counts as a failed check (`startup_failure`, `action_required` and `stale` included).",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given a completed check with conclusion `startup_failure`, when `pr:watch` probes, then packages/core/src/pr-merge-readiness/ci-gate.ts counts it as failed, the verdict is CI_BLOCKED and the verdict line names that check; `action_required` and `stale` are failures too."
+        }
+      },
+      {
+        "title": "The `pr:watch` verdict line carries the failed check names.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given a CI_BLOCKED verdict, then the verdict line that packages/core/src/pr-watch/main.ts prints names each failed check."
+        }
+      },
+      {
+        "title": "A regression fixture built from the check inventory of the reported stall locks the path from check-run to verdict.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given the check inventory of the reported stall in packages/core/src/pr-merge-readiness/fixtures/pr-6322-stall-check-runs.json with one required check red, when the regression test in packages/core/src/pr-watch/probe.test.ts runs `pr:watch` against it, then the verdict is CI_BLOCKED and names that check, not STALL."
+        }
+      },
+      {
+        "title": "Required checks.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given a `pr:watch` probe, then packages/core/src/pr-watch/probe.ts resolves the base branch's required contexts and passes them to the gate."
+        }
+      },
+      {
+        "title": "Which present checks count does not change: every check that is not a bot review check and not operator-ignored.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given a red present check that is neither a bot review check nor operator-ignored and is not a required context, then packages/core/src/pr-merge-readiness/ci-gate.ts still counts it as failed."
+        }
+      },
+      {
+        "title": "`pr:watch` passes the branch's required contexts to the gate the way merge-readiness does, so a required check that is missing on the head is named.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given a required context that has no check-run on the head, when `pr:watch` probes through packages/core/src/pr-watch/probe.ts, then the output names the missing context."
+        }
+      },
+      {
+        "title": "A red bot review check is printed as advisory and not counted.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given a head whose only red check is a bot review check, when `pr:watch` probes, then packages/core/src/pr-watch/main.ts prints the check as advisory and the verdict does not count it."
+        }
+      },
+      {
+        "title": "Two checks in pre-PR.",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given a pre-PR `lint_iteration` observation, then packages/core/src/pre-pr-controller/controller.ts runs `verify:class-checks` and `verify:evaluator-surface` in process and returns both results."
+        }
+      },
+      {
+        "title": "`verify:class-checks` and `verify:evaluator-surface` run inside the existing required `lint_iteration` observation, and the observation records each result.",
+        "status": "proposed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Given a change set that touches a protected path, or a declared evaluator surface without a disposition record, when the pre-PR lane observes `lint_iteration` through packages/runtime/src/pre-pr-run.ts, then the check fails locally with the message CI gives and the observation records both results."
+        }
+      },
+      {
+        "title": "Both results are required for that phase to pass, also when the test portion is skipped by an authorized skip.",
+        "status": "proposed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "Given a pre-PR pass whose test portion is skipped by an authorized skip and where neither check result is recorded, or a pass with passing tests and one check result missing, when `pre-pr:run --complete` runs, then packages/core/src/pre-pr-controller/controller.ts refuses with the existing omitted-phase token for `lint_iteration`."
+        }
+      },
+      {
+        "title": "There is no new phase id, no new deny token and no `deft check`.",
+        "status": "proposed",
+        "id": "clause.17",
+        "narrative": {
+          "Acceptance": "Given the decision codes in packages/core/src/pre-pr-controller/types.ts and the pre-PR phase list, then no phase id and no deny token is added, and the two checks run without `deft check`."
+        }
+      },
+      {
+        "title": "The #6040 iteration-lane list gains `verify:class-checks`.",
+        "status": "proposed",
+        "id": "clause.18",
+        "narrative": {
+          "Acceptance": "Given content/skills/deft-directive-pre-pr/SKILL.md section Gate throughput, then the iteration-lane list names `verify:class-checks`."
+        }
+      },
+      {
+        "title": "One candidate tree for both checks.",
+        "status": "proposed",
+        "id": "clause.19",
+        "narrative": {
+          "Acceptance": "Given a working tree, then packages/core/src/class-checks/evaluate.ts and packages/core/src/evaluator-surface/evaluate.ts both take their file set from the working tree against the merge base plus untracked files."
+        }
+      },
+      {
+        "title": "The file set is the working tree against the merge base, plus untracked files.",
+        "status": "proposed",
+        "id": "clause.20",
+        "narrative": {
+          "Acceptance": "Given a protected-path change that is reverted in the working tree and not yet committed, when `verify:class-checks` in packages/core/src/class-checks/evaluate.ts runs, then it passes; given an untracked file that breaks a class rule, then it fails; given a branch behind its base, when `verify:evaluator-surface` runs, then changes that exist only on the base are not in its file set."
+        }
+      },
+      {
+        "title": "File contents, the head-side policy and the disposition record are read from that same tree.",
+        "status": "proposed",
+        "id": "clause.21",
+        "narrative": {
+          "Acceptance": "Given an uncommitted edit to the disposition record, when `verify:evaluator-surface` in packages/core/src/evaluator-surface/evaluate.ts runs, then it reads that record from the same working tree that supplies the file set."
+        }
+      },
+      {
+        "title": "On a clean committed tip the result equals CI's.",
+        "status": "proposed",
+        "id": "clause.22",
+        "narrative": {
+          "Acceptance": "Given a committed disposition record that omits a changed surface and an uncommitted edit that adds it, when the tree is committed and clean, then the local result of packages/core/src/evaluator-surface/evaluate.ts equals the CI result."
+        }
+      },
+      {
+        "title": "`verify:intent-constraint` lists every fact on each failure path, with path, line, kind and value.",
+        "status": "proposed",
+        "id": "clause.23",
+        "narrative": {
+          "Acceptance": "Given twelve unapproved intent facts, when `verify:intent-constraint` fails, then packages/core/src/intent-constraint/evaluate.ts lists all twelve with path, line, kind and value."
+        }
+      },
+      {
+        "title": "`pre-pr:run --complete` on a head with no pull request says that no pull request exists for the head and names the next command.",
+        "status": "proposed",
+        "id": "clause.24",
+        "narrative": {
+          "Acceptance": "Given a head with no pull request, when `pre-pr:run --complete` runs, then the message from packages/core/src/pre-pr-controller/controller.ts says that no pull request exists for the head and names the next command."
+        }
+      },
+      {
+        "title": "The first-hotfix bootstrap text is printed only when that mode is requested, not when the pull request number is missing.",
+        "status": "proposed",
+        "id": "clause.25",
+        "narrative": {
+          "Acceptance": "Given `--complete` with no pull request and no first-hotfix bootstrap request, then packages/core/src/pre-pr-controller/controller.ts does not print the first-hotfix bootstrap text; given the bootstrap request, it does."
+        }
+      },
+      {
+        "title": "The pre-PR body hash normalises line endings and the trailing newline on both the local body file and the stored body before it hashes.",
+        "status": "proposed",
+        "id": "clause.26",
+        "narrative": {
+          "Acceptance": "Given a local body file with CRLF line endings and a stored body with LF line endings and the same text, when pre-PR in packages/runtime/src/pre-pr-run.ts compares the hashes, then they match."
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6336",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6336: fix(pr): pr:watch and pre-PR give the same verdict as CI and name the cause"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6319",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6319"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6322",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6322"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6323",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6323"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6325",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6325"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft check",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "pre-pr:run --complete",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L10"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/class-checks/evaluate.ts",
+          "packages/core/src/class-checks/evaluate.test.ts",
+          "packages/core/src/evaluator-surface/evaluate.ts",
+          "packages/core/src/evaluator-surface/evaluate.test.ts",
+          "xbrief/evaluator-surface-disposition.json",
+          "packages/core/src/pr-merge-readiness/gh.ts",
+          "packages/core/src/pr-merge-readiness/gh.test.ts",
+          "packages/core/src/pr-merge-readiness/ci-gate.ts",
+          "packages/core/src/pr-merge-readiness/ci-gate.test.ts",
+          "packages/core/src/pr-merge-readiness/compute.test.ts",
+          "packages/core/src/pr-merge-readiness/fixtures/pr-6322-stall-check-runs.json",
+          "packages/core/src/pr-watch/probe.ts",
+          "packages/core/src/pr-watch/probe.test.ts",
+          "packages/core/src/pr-watch/types.ts",
+          "packages/core/src/pr-watch/watch.ts",
+          "packages/core/src/pr-watch/watch.test.ts",
+          "packages/core/src/pr-watch/main.ts",
+          "packages/core/src/pr-watch/main.test.ts",
+          "packages/core/src/pre-pr-controller/controller.ts",
+          "packages/core/src/pre-pr-controller/controller.test.ts",
+          "packages/core/src/pre-pr-controller/types.ts",
+          "packages/core/src/pre-pr-controller/index.ts",
+          "packages/core/src/pre-pr-controller/index.test.ts",
+          "packages/core/src/pre-pr-controller/evaluate.test.ts",
+          "packages/core/src/intent-constraint/evaluate.ts",
+          "packages/core/src/intent-constraint/evaluate.test.ts",
+          "packages/core/src/intent-constraint/extract.ts",
+          "packages/core/src/intent-constraint/extract.test.ts",
+          "packages/core/src/intent-constraint/types.ts",
+          "packages/runtime/src/pre-pr-run.ts",
+          "packages/runtime/src/pre-pr-run.test.ts",
+          "packages/runtime/src/plan-sequence-bound-push.test.ts",
+          "content/skills/deft-directive-pre-pr/SKILL.md",
+          "docs/RULE-MAP.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "large",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "pre-pr-controller",
+        "verify_commands": [
+          "npx vitest run packages/core/src/pr-merge-readiness/ci-gate.test.ts packages/core/src/pr-merge-readiness/gh.test.ts packages/core/src/pr-merge-readiness/compute.test.ts packages/core/src/pr-watch/probe.test.ts packages/core/src/pr-watch/watch.test.ts",
+          "npx vitest run packages/core/src/pre-pr-controller packages/runtime/src/pre-pr-run.test.ts packages/runtime/src/plan-sequence-bound-push.test.ts",
+          "npx vitest run packages/core/src/class-checks/evaluate.test.ts packages/core/src/evaluator-surface/evaluate.test.ts packages/core/src/intent-constraint/evaluate.test.ts packages/core/src/intent-constraint/extract.test.ts"
+        ],
+        "expected_outputs": [
+          "evaluateCiGate scores the newest run per (app id, check name) and counts every red completed conclusion as a named failure",
+          "pr:watch names failed checks on its verdict line, names missing required contexts and prints red bot review checks as advisory",
+          "pre-PR lint_iteration records verify:class-checks and verify:evaluator-surface results and completion requires both",
+          "verify:class-checks and verify:evaluator-surface read the working tree against the merge base plus untracked files",
+          "verify:intent-constraint lists every fact with path, line, kind and value",
+          "pre-pr:run --complete names a missing pull request; the body hash ignores CRLF and trailing-newline differences"
+        ],
+        "Traces": [
+          "#6336",
+          "#6319",
+          "#6322",
+          "#6323",
+          "#6325",
+          "#6040"
+        ],
+        "acceptance_criteria_justification": "Twenty-six clauses, one per admitted sentence of the Bound remedy on #6336 (successor lean 6907739361, accepted synthesis 6907796685); the seventeen Given/When/Then criteria of the lean are carried in the clause Acceptance narratives. parallel_safe is false because #6277 also edits intent-constraint/evaluate.ts and the pre-PR SKILL.md."
+      },
+      "kind": "story",
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Wave 2a additions (2026-11-15/16), not in the original list\n\nSlow or misleading signals seen after this issue was filed:\n\n- **`pre-pr:run --complete` waits for master's merge gate** after every master merge, about 5 minutes each time (#6317 worker).\n- **SLizard re-posts an answered P1 on every push**, so its non-required check stays red and GitHub shows the PR as unstable (#6316 worker).\n- **`task verify:scope-provenance` in a fresh worktree ran past 5 minutes** without a result (parent run on the #6315 worktree, stopped by timeout).\n\n",
+          "id": 6905848789,
+          "html_url": "https://github.com/deftai/directive/issues/6336#issuecomment-6905848789",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T02:44:40Z",
+          "updated_at": "2026-11-16T02:44:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6336; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes how `pr:watch` derives its verdict from check-runs and what the scoped pre-PR lane runs, and the #6040 rule deliberately keeps ordinary pre-PR smaller than the CI merge gate.\n\nTarget-digest: sha256:523ecb7424d4184205af39a4c1f17296dcb7eb47cd30d3b93e2f0f785917145c\ndispatch-sha: 06eda7e1377a981bc80e34f218ba039a99c7247c\ndest: .deft-scratch/worktrees/arc-6336 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: refutation\nrefutation-target: the local tools can give the same verdict as CI, and name its cause, by changing what they read and print only: `pr:watch` judges the newest run per check name and names the red required check, and the scoped pre-PR lane runs the two diff-scoped gates CI runs (`verify:class-checks`, `verify:evaluator-surface`) against committed changes; no new refusal is added and ordinary pre-PR does not grow back into the full merge gate that #6040 removed.\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: panel permission used. The target touches the verdict that every merge-path wait reads and the pre-PR lane that every story runs (high blast radius). The operator handoff for this arc asks for a cross-family panel.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 06eda7e1377a981bc80e34f218ba039a99c7247c: + dest cwd-without-occupy\ndual-stop-reserved: 1\npain: P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11\n\n## In plain English\nBefore a pull request merges, a worker uses two local tools. `pr:watch` waits for the review bot and CI and reports a verdict. The pre-PR lane runs checks before the pull request is opened. In one wave, both tools disagreed with CI or gave a verdict that did not say why. `pr:watch` read an old failed run of a check and reported a clean pull request as blocked. With a required check red it reported a generic stall. The pre-PR lane did not run two checks that CI runs, so a story first learned about a protected path in CI. Several refusals printed the wrong text or no cause. Each case cost a debugging round. The issue asks that the local tools read what CI reads and that every refusal names its cause. A merge queue has been turned on for the default branch since the issue was filed, which removes some of the waiting. The open question is how to close the gap without making the pre-PR lane as slow as the full CI gate, which an earlier decision (#6040) removed from ordinary pre-PR on purpose.\n\n## Pains\n- P1 — `pr:watch` judged an older failed run of a check on the same head, not the newest run per check name, and reported CI_BLOCKED on a clean pull request.\n- P2 — With a required check red, `pr:watch` returned STALL (exit 2) and did not name the check in its verdict.\n- P3 — The scoped pre-PR lane does not run `verify:class-checks` or `verify:evaluator-surface`, so a story first learns about a protected path or an evaluator surface in CI.\n- P4 — Those two CLIs count uncommitted changes, so a revert of a protected path cannot show green before its commit.\n- P5 — `verify:intent-constraint` does not name the facts it found.\n- P6 — `pre-pr:run --complete` on an unpushed head prints the first-hotfix bootstrap text, not \"no PR for this head\".\n- P7 — Pre-PR hashes the local body file; the stored GitHub body differs by line endings and the trailing newline.\n- P8 — The authz-store guard refuses a read-only listing of `.deft/approved-scope`.\n- P9 — `pre-pr:run --complete` waits about five minutes for the default branch's merge gate after every merge to it.\n- P10 — The SLizard bot re-posts an answered P1 on every push, so its non-required check stays red and the pull request shows as unstable.\n- P11 — `task verify:scope-provenance` in a fresh worktree ran past five minutes without a result.\n\n## Anchors at the dispatch SHA (claims, to be re-verified)\n- `packages/core/src/pr-watch/probe.ts` (221-250): the probe fetches check-runs for the head with `fetchCheckRunsRest` and calls `evaluateCiGate(check.checkRuns, {})` with no required-context list.\n- `packages/core/src/pr-merge-readiness/ci-gate.ts` `evaluateCiGate` (216-282): the loop visits every check-run record; every run that is not a bot review check and not operator-ignored counts as required; there is no grouping by check name.\n- `packages/core/src/pr-watch/watch.ts` (181-194, 223-235): CI_BLOCKED fires on a `ci_failures` state (one-shot, or three polls in a row); STALL fires on three polls that are not clean, not blocking and not a stale-SHA holdout.\n- `packages/core/src/pr-watch/main.ts` (725-726): the human output prints a `Failed checks:` line when the probe carries failed check names.\n- `packages/core/src/pre-pr-controller/phases.ts` (48-90): the pre-PR phases are branch policy, plan sequence, read, write, changed-path tests, coverage headroom, render export, diff, loop, and an optional `merge_chokepoint` phase that runs `deft check`.\n- `Taskfile.yml` (455-480, 540-555): the check aggregates run `verify:class-checks`, `verify:scope-provenance`, `verify:evaluator-surface --base-ref origin/master` and `verify:intent-constraint`.\n- `packages/core/src/pre-pr-controller/controller.ts` (899-918): `--complete` evaluates the named merge gate with `firstHotfixBootstrap` true when there is no pull request number, refuses only when the default branch's gate is red (not pending), and skips the refusal when a required merge queue is detected (#6295).\n\n## Operator direction recorded for this arc\nThe operator wants Directive to run more smoothly. A fix that removes steps, PRs and stops is preferred to one that adds a gate. A new refusal needs a reason that no existing control covers. A merge queue is on for the default branch since 2026-11-16 (#6295, playbook in #6366); the lean must say what the queue already fixes and bind only what is left.\n\n",
+          "id": 6907324226,
+          "html_url": "https://github.com/deftai/directive/issues/6336#issuecomment-6907324226",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:28:03Z",
+          "updated_at": "2026-11-16T04:28:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 6907326186\nseat: claude launcher: claude-code-native-subagent (model opus)\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\nseat: grok launcher: grok (--cwd dest --prompt-file --permission-mode auto --disable-web-search --no-subagents)\n\ncharter: refutation\nspend: N≥3\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 06eda7e1377a981bc80e34f218ba039a99c7247c\ndest: .deft-scratch/worktrees/arc-6336\nverification-path: pin-read git show 06eda7e1377a981bc80e34f218ba039a99c7247c: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6907324226\n\n## Launch posture (disclosed)\n- The parent is Claude Code. It does not use the playbook's bypass critic argv. Each seat uses a read-only launcher run against the dest.\n- Launch probe under the argv actually used: codex `--sandbox read-only` returned `pong` rc 0; grok `--permission-mode auto` returned `pong` rc 0. That proves launchability only, not method.\n- Codex and Grok seats have no GitHub access in that posture. They read a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit) from the dest. The Claude seat returns its body to the parent. For all three seats the parent posts the critic's final message verbatim, with no edits. Grok plain output can print progress narration before the `model:` line; the parent strips only that narration.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 6907326186,
+          "html_url": "https://github.com/deftai/directive/issues/6336#issuecomment-6907326186",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:28:11Z",
+          "updated_at": "2026-11-16T04:28:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe tools sometimes report an old failure or let a change reach CI without checking it locally. The proposed direction is useful, but the refutation target does not hold as written: selecting the newest run by name can discard a distinct required check, and selecting committed filenames does not ensure the gates inspect committed contents.\n\nThese gaps can be fixed within the two scoped gates and existing CI reader. They do not justify restoring the full local merge gate.\n\nAll code evidence below was read with `git show` at `06eda7e1377a981bc80e34f218ba039a99c7247c`. No tests, mutations, or network requests were performed.\n\n### 1. blocks-the-design — Check name alone loses producer identity\n\n**Evidence:** `packages/core/src/pr-merge-readiness/gh.ts:14–28` retains each run’s app ID; lines 77–88 match required contexts by name **and optional app ID**. `packages/core/src/pr-watch/probe.ts:240–249` passes the inventory to the shared CI evaluator.\n\n**Failure mode:** App A’s required check fails, then app B publishes a successful check with the same name. Keeping only the newest run per name discards A’s failure. A producer-controlled name would thereby override an existing producer-bound requirement. If required-context matching happens afterward, the result can instead become “absent,” losing the actual failure cause.\n\n**Disposition:** Replace the name-only rule with newest-run selection that preserves distinct producer identities and existing app-bound requirements. Define deterministic ordering, including queued reruns and timestamp ties. This is input correction, not a new refusal.\n\n### 2. blocks-the-design — Committed paths can still be evaluated using uncommitted contents\n\n**Evidence:** `packages/core/src/class-checks/evaluate.ts:180–225` unions committed, working-tree, and untracked paths, while lines 687–692 read file contents from disk. Its head policy also comes from disk at lines 348–355. `packages/core/src/evaluator-surface/evaluate.ts:151–160` already selects committed paths when given a base ref, but lines 225–241 read the disclosure from disk; lines 343–355 check its presence in the diff and its coverage.\n\n**Failure mode:** A committed disclosure omits a changed evaluator surface. An uncommitted edit adds the missing coverage. The local gate reads that edit and passes, while CI reads the committed disclosure and fails. Removing working-tree filenames from enumeration does not fix this mismatch. Class checks have the same mixed-snapshot problem for content inspection.\n\n**Disposition:** Define “against committed changes” as a consistent snapshot for paths, inspected contents, and head-side policy/disclosure inputs. Preserve the existing base-policy authority. The contract cannot promise CI parity from filename selection alone.\n\n### 3. sharpens-framing — “Required” currently means more than branch protection requires\n\n**Evidence:** `packages/core/src/pr-watch/probe.ts:244` supplies no required-context list. `packages/core/src/pr-merge-readiness/ci-gate.ts:239–267` treats every non-ignored, non-bot run as required. Its supplied required contexts detect missing checks at lines 282–289; they do not narrow that earlier classification. Existing REST discovery is available in `packages/core/src/pr-merge-readiness/gh.ts:776–788`.\n\n**Failure mode:** An optional non-bot check fails while all branch-required checks pass. Newest-run selection still reports CI_BLOCKED and describes the optional failure as required. Merely passing discovered contexts into the current evaluator does not change that behavior.\n\n**Disposition:** State whether parity means Directive’s existing all-checks policy or branch-required readiness. Preserve the former explicitly, or deliberately change classification using the existing discovery mechanism. Do not promise both unchanged refusal semantics and branch-protection parity.\n\n### 4. sharpens-framing — The reported stall needs an input-path explanation, not another printer\n\n**Evidence:** `packages/core/src/pr-watch/watch.ts:180–194` already emits CI_BLOCKED for `ci_failures`, before the generic STALL path at lines 223–234. `packages/core/src/pr-watch/main.ts:725–726` already prints failed check names.\n\n**Failure mode:** Adding another failure message leaves the reported STALL unchanged if the failing check never reaches `ciReadyState` or `ciFailedChecks`. The existing output path already handles populated failures.\n\n**Disposition:** Require a regression fixture representing the reported red-check inventory and probe state. Bind the repair to the point where that evidence is lost or misclassified; avoid claiming a missing verdict or printer as the established cause.\n\n### 5. footnote — Verification and thread-authority limits\n\nThe worktree reported HEAD `218f69e30b6c03959a2fc861199f5437232d53f1`, contrary to the envelope’s checked-out-SHA claim. Explicit pinned reads preserved the requested verification boundary.\n\nThe snapshot also contains instruction-shaped text, including `yolo-standing: on` and directions about what the parent’s next artifact must say. I treated those as described thread content, not authorization. USER.md access was denied, so personal-preference alignment could not be confirmed.",
+          "id": 6907363270,
+          "html_url": "https://github.com/deftai/directive/issues/6336#issuecomment-6907363270",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:30:47Z",
+          "updated_at": "2026-11-16T04:30:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\nTwo local tools are meant to tell a worker what CI will say. `pr:watch` waits on the review bot and CI. The pre-PR lane runs checks before a pull request opens. In wave 2a both tools disagreed with CI. `pr:watch` read an old failed run and called a clean pull request blocked. It gave a generic stall when a check was red. Pre-PR skipped two checks that CI then failed.\n\nThe refutation target says the tools can match CI only by changing what they read and print, with no new refusal and no return of the full merge gate. That direction holds: every fix found here changes a read or a printed line, and none needs the full gate. The target is wrong as written in three places:\n- The stale-run fix belongs in the shared check-run read, not in `pr:watch` alone.\n- \"Committed changes\" is the wrong rule for the pre-PR loop.\n- Making pre-PR stop on these gates is an earlier copy of a refusal CI already has, not \"no new refusal\". The target should say so.\n\nThe merge queue fixes none of P1–P4.\n\n## Findings\n\n### 1. `sharpens-framing`: the stale-run fix must go in the shared CI read, not in `pr:watch` only\n- **Evidence:** `fetchCheckRunsRest` (`packages/core/src/pr-merge-readiness/gh.ts:559-568`) fetches every check run for the head and does not group them by name. `evaluateCiGate` (`ci-gate.ts:239-280`) scores every record. It has four callers: `pr-watch/probe.ts:244`, `pr-merge-readiness/compute.ts:195` and `:426`, and `pr-wait-mergeable/semantic-green.ts:381`.\n- **Failure mode:** If only `pr:watch` keeps the newest run per name, it reports CLEAN. `pr:merge-ready` and `pr:wait-mergeable-and-merge` still see the old failed run and refuse with `ci_failures`. That is a new disagreement between two local tools, the class of bug the issue is about.\n- **Consequence:** Restate the target as \"the shared check-run read keeps the newest run per check\". Put it in one place: in `fetchCheckRunsRest`, or at the start of `evaluateCiGate`. All four callers then inherit it. This is still a read-only change.\n\n### 2. `sharpens-framing`: the cause of P2 is how runs are classified, not what is printed; and \"required\" in `pr:watch` does not mean the branch's required checks\n- **Evidence:** `main.ts:725-727` already prints `Failed checks:` whenever the probe has failed check names.\n- **Why P2 cannot be a plain failure:** In `watch.ts`, the CI_BLOCKED test (182-194) runs before the STALL test (228-235), and both thresholds are 3 (`constants.ts:142,147`). So a run with conclusion `failure` or `timed_out` gives CI_BLOCKED, never STALL.\n- **Gap 1:** `FAILURE_CONCLUSIONS` is only `failure` and `timed_out` (`ci-gate.ts:15`). A completed run with any other red conclusion, such as `startup_failure`, `action_required` or `stale`, matches none of the branches at `ci-gate.ts:262-279`. It is dropped without a word.\n- **Gap 2:** `probe.ts:244` passes `{}`, so no required-context list reaches the gate. Every non-bot run then counts as \"required\" (`ci-gate.ts:247`). A red check that is not required, for example a scanner, gives CI_BLOCKED while GitHub would allow the merge. A required context missing from the check-runs list is never seen.\n- **Failure mode:** Adding print output alone leaves P2 in place.\n- **Consequence:** The lean should:\n  - say that red conclusions outside `failure` / `timed_out` count as failures;\n  - have `pr:watch` load the ruleset or branch-protection contexts the way `compute.ts:187-194` does (#3234);\n  - name the check with that context.\n\n  These are read changes, so they stay inside the target's limit.\n\n### 3. `sharpens-framing`: \"against committed changes\" is right for one gate, wrong for the loop, and P4 is half wrong\n- **What each gate reads:**\n  - `verify:evaluator-surface --base-ref` already reads only committed changes: `git diff --name-only <base> HEAD` (`evaluator-surface/evaluate.ts:158-160`). P4 does not apply to it.\n  - `verify:class-checks` takes the union of `<base>...HEAD`, `git diff HEAD`, and untracked files (`class-checks/evaluate.ts:180-225`). Because it is a union, a path reverted in the working tree stays in the set through the committed range. That is P4.\n- **Failure mode 1:** If class-checks reads committed changes only, then during the pre-PR loop (before commit) a new untracked file that breaks a rule is invisible. The loop shows green and CI shows red. That is P3 again.\n- **Failure mode 2:** evaluator-surface uses a two-dot diff and class-checks uses a three-dot diff. On a branch that is behind, a two-dot diff against `origin/master` includes master's newer changes to `Taskfile.yml` or `tasks/verify.yml`. That gives a local red that CI, which runs on the PR merge ref, does not give.\n- **Consequence:** Restate the rule as \"the net change of the candidate tree against the merge base\". For both gates, use `git diff --name-only <merge-base>` (working tree against merge base) plus untracked files. A reverted path drops out, uncommitted work is still seen, and on a clean committed tip the result equals CI's file set.\n\n### 4. `sharpens-framing`: making pre-PR stop on these gates is an earlier copy of a CI refusal, so the target should not say \"no new refusal\"\n- **Evidence:**\n  - The pre-PR skill already lists `verify:evaluator-surface` in the iteration lane (`content/skills/deft-directive-pre-pr/SKILL.md:79`, from #6040 item 6). So for that gate the gap is that the controller does not observe it, not that the rules leave it out.\n  - The controller observes `lint_iteration` as `vitest run <changed-paths>` only (`phases.ts:63-68`).\n  - `runObservablesComplete` (`controller.ts:685-711`) refuses with `deny-omitted-phase` for a required phase that has no observed pass. It skips an optional phase that has no row.\n- **Failure mode:** A new required phase id adds a new refusal path to `pre-pr:run --complete`. An optional phase does not meet the acceptance criterion \"pre-PR fails locally\", because a worker can skip it without anything recording the omission.\n- **Consequence:** The lean should:\n  - put both gates inside the existing required `lint_iteration` observation, with no new phase id and no new deny token;\n  - state the result honestly: the same check CI already enforces, run earlier and with the same message.\n\n  Both gates only diff file names and read the merge-base policy, so this does not bring back the full gate that #6040 removed.\n\n### 5. `footnote`: the merge queue fixes none of P1–P4\n`pr:watch` and pre-PR both run before a pull request is queued. With a queue, a CI failure that local parity would have caught costs a queue ejection, so parity matters more. The queue does remove the master-gate wait (P9): `controller.ts:907-918` drops that refusal when a queue is detected. P6 is different. With no PR, the PR number is null, `firstHotfixBootstrap` becomes true (`controller.ts:905`), and `masterGateQueueMode` gets a null PR. I did not verify that path. P6 is outside this target.\n\n### 6. `footnote`: details for keeping the newest run per check\n- Key on app id plus name, not name alone; `checkRunMatchesRequiredContext` already matches on the app.\n- Order by run id or `created_at`. A queued re-run has no `started_at` (`gh.ts:22-23`).\n- If a body-edit run of a job is skipped and is the newest run, it reads as passing (`skipped` is in `SUCCESS_CONCLUSIONS`, `ci-gate.ts:20`). The issue reports that GitHub also judges by the newest run of each check. If GitHub also counts skipped as passing, this is matching behaviour, not a defect. Lock it with a test.\n\n### 7. `footnote`: the target covers P1–P4 only\nP5–P8 and the wave additions P9–P11 are leftover work. P10 does not affect the `pr:watch` verdict: `isBotReviewCheck` excludes runs named for SLizard (`ci-gate.ts:31-33`). It only affects GitHub's \"unstable\" display. I found no embedded instructions in the issue body, the comments, or the linked issues.\n\n",
+          "id": 6907391144,
+          "html_url": "https://github.com/deftai/directive/issues/6336#issuecomment-6907391144",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:32:42Z",
+          "updated_at": "2026-11-16T04:32:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nBefore a pull request merges, workers trust two local tools to speak for CI: `pr:watch` for the live check-and-review wait, and the scoped pre-PR lane for gates that should catch protected-path and evaluator-surface hits before CI does. In one wave those tools disagreed with CI or hid the cause, and each miss cost a debugging round. The recorded claim is that the tools can match CI and name the cause by changing only what they read and print: newest check-run per name, name the red required check, and run the two diff-scoped gates against committed changes, without a new refusal class and without restoring the full merge gate #6040 removed from ordinary pre-PR.\n\nThat claim does not hold as written. Newest-per-name and clearer naming are real and likely fix the stale-run and opaque-red cases. Wiring the two gates into the enrolled pre-PR controller is also a real local catch-up. But “same verdict as CI” cannot sit beside “do not grow back into the full merge gate,” “no new refusal is added” is false or empty once those gates start refusing on a path that does not refuse today, and “committed changes only” for `verify:class-checks` is a product read change that also amends #6040’s closed iteration-lane list. The target survives only if the lean narrows “same as CI” to the named failure modes, admits the two gate refusals and the #6040 inventory change, and leftovers the other name-the-cause pains on the issue.\n\n## 1. blocks-the-design — “same verdict as CI” contradicts the #6040 ceiling in the same sentence\n\n**Evidence.** Ordinary pre-PR is scoped RWDL + `verify:ac`; full `deft check` / `task check` stays off that path (`content/skills/deft-directive-pre-pr/SKILL.md` 75–84; `packages/core/src/pre-pr-controller/phases.ts` 83–88, `merge_chokepoint` `required: false`). CI’s merge path still aggregates many gates, including `verify:class-checks` and `verify:evaluator-surface` among a long list (`Taskfile.yml` 455–480). `pr:watch` calls `evaluateCiGate(check.checkRuns, {})` with no required-context list (`packages/core/src/pr-watch/probe.ts` 240–245), while merge-readiness can pass real required contexts (`packages/core/src/pr-merge-readiness/compute.ts` 180–193). Linked #6040 body in the snapshot states ordinary pre-PR must not become the full merge gate again.\n\n**Failure mode.** A bound lean that keeps both “local tools give the same verdict as CI” and “ordinary pre-PR does not grow back into the full merge gate” teaches implementers opposite goals: chase CI parity, or keep the #6040 cut. Workers then either re-expand pre-PR toward `task check`, or ship a partial local lane while the issue title still claims CI sameness.\n\n**Disposition consequence.** Before bind, replace the universal sameness claim with a scoped one: newest-run judgment and named red checks for `pr:watch`; local messages for the two named gates match those two CI messages. Do not claim full CI verdict parity.\n\n## 2. blocks-the-design — “no new refusal is added” cannot describe wiring two gates into the enrolled lane\n\n**Evidence.** `PRE_PR_PHASES` has no `verify:class-checks` or `verify:evaluator-surface` row (`packages/core/src/pre-pr-controller/phases.ts` 48–88). The skill iteration lane already names `verify:evaluator-surface` (and not `verify:class-checks`) (`content/skills/deft-directive-pre-pr/SKILL.md` 79). Completion authority for enrolled pre-PR is the controller private store and observed phases (`SKILL.md` 93–100; `observeCommandPhase` in `packages/core/src/pre-pr-controller/controller.ts`), so skill prose alone does not refuse.\n\n**Failure mode.** Implementing the target means those two gates start failing `pre-pr:run` where they do not fail today. That is new refusal on the enrolled path. A lean that also says “no new refusal is added” either blocks the useful wiring or stamps a false invariant that later review will reopen.\n\n**Disposition consequence.** Drop or rewrite that clause to: admit the two existing CI gate refusals into the scoped lane; forbid inventing a third refusal class and forbid restoring post-loop full `deft check` on ordinary pre-PR.\n\n## 3. sharpens-framing — “committed changes” for class-checks is a CLI read change and an #6040 inventory amend\n\n**Evidence.** `verify:class-checks` unions `base...HEAD`, `git diff HEAD`, and untracked (`packages/core/src/class-checks/evaluate.ts` 180–226). `verify:evaluator-surface` with `--base-ref` already diffs `baseRef` to `HEAD` only (`packages/core/src/evaluator-surface/evaluate.ts` 151–161). The skill’s closed iteration-lane list names evaluator-surface and does not name class-checks (`SKILL.md` 79). Linked #6040 Expected 6 (snapshot) lists the scoped commands and treats gates needing new path arguments as out of scope.\n\n**Failure mode.** Pre-PR “green against committed” while the working tree still dirties a protected path (or the reverse) disagrees with CI’s committed tree, recreating P4. Adding class-checks without saying #6040’s lane inventory grows also hides a settled-decision amend inside a “read/print only” story.\n\n**Disposition consequence.** Bind an explicit committed-scope mechanism for class-checks (flag or evaluate change) and record class-checks as an #6040 lane amend. Keep evaluator-surface as controller enrollment of an already-named scoped gate.\n\n## 4. sharpens-framing — the target is a P1–P4 slice; the issue’s “name the cause” surface is wider\n\n**Evidence.** Issue ACs also require intent-constraint to list new facts, `pre-pr:run --complete` on an unpushed head to say no PR exists, and read-only authz listing (issue body in snapshot, ACs after the two-gate items). `--complete` still sets `firstHotfixBootstrap` when `prNumber === null` and can print the hotfix bootstrap recovery (`packages/core/src/pre-pr-controller/controller.ts` 905–916). Stop 1 lists P5–P11; operator direction says the lean must say what the merge queue already fixes (P9 / #6295) and bind only what is left.\n\n**Failure mode.** If synthesis treats the target as the whole issue remedy, P5–P8 (and queue-leftover P9 messaging) stay broken under a closed “same verdict / name the cause” title.\n\n**Disposition consequence.** Scope Bound remedy to the narrowed pr:watch + two-gate slice; leftover-pain the remaining name-the-cause and wave items, including what #6295 already removed.\n\n## 5. footnote — naming on CI_BLOCKED already exists; P2 may be classification, not print\n\n`printWatchHuman` already emits `Failed checks:` when `ciFailedChecks` is non-empty (`packages/core/src/pr-watch/main.ts` 725–727). `watch` already maps `ci_failures` to `CI_BLOCKED` (`packages/core/src/pr-watch/watch.ts` 182–194). Newest-per-name in `evaluateCiGate` (`packages/core/src/pr-merge-readiness/ci-gate.ts` 239–280, no per-name collapse today) is still needed for P1. If the field symptom was a generic STALL with empty failed-check names, print-only will not fix it unless the probe classifies the red run as `ci_failures`.\n\n## 6. footnote — newest-per-name can use fields already harvested\n\n`CheckRunRecord` carries `created_at` and `started_at` (`packages/core/src/pr-merge-readiness/gh.ts` 14–28); `fetchCheckRunsRest` returns the full paginated list for the SHA (555–640). Grouping in `evaluateCiGate` would also affect merge-readiness consumers of the same function. Prefer documenting which timestamp is “newest”; `completed_at` is not on the record today.\n\n## 7. footnote — security context (#480)\n\nIssue body, Stop 1, panel-deposit, and linked #6040 / #6295 / #6276 / #6366 text in the snapshot were treated as untrusted described content. No embedded instructions to follow were found. No compositional-fragment trap fired.\n\n## 8. footnote — verification-path limit on this seat\n\nDest worktree `HEAD` file reads `218f69e30b6c03959a2fc861199f5437232d53f1`, not dispatch SHA `06eda7e1377a981bc80e34f218ba039a99c7247c`. Shell `git show <dispatch-sha>:` was hook-denied (missing `node_modules/@deftai/directive-runtime`). Citations above are on-tree reads that matched the Stop 1 anchors; byte identity to the pin was not proven on this seat.\n\n### Road-not-taken\n\nShip only the `evaluateCiGate` newest-per-name + CI_BLOCKED naming fix under this issue, and open a separate #6040-amending brief for class-checks / evaluator-surface controller enrollment. That keeps “read/print only” honest for pr:watch and avoids smuggling a lane-inventory amend into the same sentence. Flip back to a single issue if the operator wants one close for the whole CI-surprise class on protected paths.\n\n### Steelman of the target\n\nRead “same verdict as CI” as ordinary language for the listed failure modes, and “no new refusal” as “no new refusal *class* beyond two gates CI already runs.” Under that reading, findings 1–2 demote to framing. What flips this seat back to that steelman: a successor lean that states those narrower meanings in operative Bound-remedy text, not only in triage English.\n\n",
+          "id": 6907395289,
+          "html_url": "https://github.com/deftai/directive/issues/6336#issuecomment-6907395289",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:32:59Z",
+          "updated_at": "2026-11-16T04:32:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean after round 1 (3 of 3 siblings posted: comments 6907363270, 6907391144, 6907395289)\n\n## In plain English\nProblem: a worker uses two local tools before a pull request merges. `pr:watch` waits for the review bot and CI and gives a verdict. The pre-PR lane runs checks before the pull request opens. In one wave both tools disagreed with CI or did not say why. `pr:watch` judged an old failed run and called a clean pull request blocked. A red check produced a generic stall. Pre-PR did not run two checks that CI runs, so a story first learned about a protected path in CI. Several refusals printed the wrong text.\n\nWhat the three critics found: the direction holds, and none of the fixes needs the full CI gate. The proposal was wrong in its wording and in three details. \"Newest run per check name\" must also keep the app that produced the check, or one app can hide another app's failure. The fix must go in the one shared reader that four tools use, or the tools will disagree with each other. \"Committed changes only\" is the wrong rule for a loop that runs before commit; both checks must read one consistent tree. The critics also found that the red-check stall is caused by how runs are classified, not by a missing printed line, and that running two CI checks in pre-PR is an earlier copy of a refusal CI already has, so the design must not claim \"no new refusal\".\n\nSolution this lean proposes: the shared check-run reader keeps the newest run for each check, per app. Every red conclusion counts as a failure and is named. Pre-PR runs the two cheap checks inside the step it already requires, against the same tree CI will see. Three messages are corrected so that they name their cause, and a long-silent check says what it is doing.\n\nWhat this adds: no new gate, phase, deny token, approval or stop. It does move two refusals that CI already makes to an earlier point: `verify:class-checks` and `verify:evaluator-surface` now fail in pre-PR with CI's message. That is a deliberate amendment of the #6040 pre-PR list, and the reason is that with a merge queue a failure found in CI costs a queue ejection. It adds one REST read per `pr:watch` probe for the branch's required checks. It removes the debugging round after each wrong or silent verdict.\n\nWhat the merge queue already fixes: the wait for the default branch's merge gate in `pre-pr:run --complete` (the code drops that refusal when a queue is detected, #6295), and the \"behind the default branch\" rebase churn. It fixes none of the other pains, because both tools run before a pull request enters the queue.\n\nWhat it does not do: it does not make ordinary pre-PR equal to the full CI gate. It does not change which checks block a merge. It does not stop the SLizard bot from re-posting an answered finding; that behaviour is outside this repository, and the design only prints that a red bot check is not counted. The read-only listing refusal is deferred to #6276. The two deferrals follow the operator's handoff for this arc and have not been confirmed by the operator in a live turn. If confirmed, the synthesis would assert this design. The leftover next-build is #6276.\n\nDisclosure: the dest worktree was created one commit after the recorded dispatch SHA (`218f69e3`, which adds one brief file under `xbrief/` and changes no code). Parent pin-reads use `git show` at the dispatch SHA.\n\nTarget-digest: sha256:523ecb7424d4184205af39a4c1f17296dcb7eb47cd30d3b93e2f0f785917145c\n**Spec-path:** Bound remedy on this lean\nSupersedes Stop 1 write-back comment 6907324226. Sibling count: 3 (comments 6907363270, 6907391144, 6907395289). Panel deposit: comment 6907326186.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\nrelieves: P5\nrelieves: P6\nrelieves: P7\noperator-deferred: P8 #6276\noperator-deferred: P9 #6295\nrelieves: P10\nrelieves: P11\n\n## Bound remedy\n1. Newest run per check, in the shared reader. Before it scores, `evaluateCiGate` keeps one run for each pair of app id and check name: the newest by `created_at`, with the run id as the tie-break. All four callers inherit it (`pr:watch`, both merge-readiness paths, `pr:wait-mergeable-and-merge`). A newest run that is `skipped` counts as passing, as today.\n2. Every red conclusion is a failure with a name. A completed run whose conclusion is not `success`, `neutral`, `skipped` or `cancelled` counts as a failed check (`startup_failure`, `action_required` and `stale` included). The `pr:watch` verdict line carries the failed check names. A regression fixture built from the check inventory of the reported stall locks the path from check-run to verdict.\n3. Required checks. Which present checks count does not change: every check that is not a bot review check and not operator-ignored. `pr:watch` passes the branch's required contexts to the gate the way merge-readiness does, so a required check that is missing on the head is named. A red bot review check is printed as advisory and not counted.\n4. Two checks in pre-PR. `verify:class-checks` and `verify:evaluator-surface` run inside the existing required `lint_iteration` observation. There is no new phase id, no new deny token and no `deft check`. The #6040 iteration-lane list gains `verify:class-checks`.\n5. One candidate tree for both checks. The file set is the working tree against the merge base, plus untracked files. File contents, the head-side policy and the disposition record are read from that same tree. On a clean committed tip the result equals CI's.\n6. `verify:intent-constraint` lists every fact on each failure path, with path, line, kind and value.\n7. `pre-pr:run --complete` on a head with no pull request says that no pull request exists for the head and names the next command. The first-hotfix bootstrap text is printed only when that mode is requested, not when the pull request number is missing.\n8. The pre-PR body hash normalises line endings and the trailing newline on both the local body file and the stored body before it hashes.\n9. A verify task that has printed nothing for 30 seconds prints one line that names the step it is in.\n\n## Acceptance Criteria\n- Given two runs of one check from one app on a head, where the older run failed and the newer run passed, when `pr:watch` probes, then the check counts as passing.\n- Given the same two runs, when `pr:merge-ready` and `pr:wait-mergeable-and-merge` evaluate the head, then they reach the same result as `pr:watch`.\n- Given a failed check from one app and a passing check with the same name from another app, when the gate evaluates, then the failed check still counts as failed.\n- Given a completed check with conclusion `startup_failure`, when `pr:watch` probes, then the verdict is CI_BLOCKED and the verdict line names that check.\n- Given a required context that has no check-run on the head, when `pr:watch` probes, then the output names the missing context.\n- Given a head whose only red check is a bot review check, when `pr:watch` probes, then the check is printed as advisory and the verdict does not count it.\n- Given a change set that touches a protected path, when the pre-PR lane runs, then `verify:class-checks` fails locally with the message CI gives.\n- Given a change set that touches a declared evaluator surface without a disposition record, when the pre-PR lane runs, then `verify:evaluator-surface` fails locally with the message CI gives.\n- Given a protected-path change that is reverted in the working tree and not yet committed, when `verify:class-checks` runs, then it passes.\n- Given an untracked file that breaks a class rule, when `verify:class-checks` runs, then it fails.\n- Given a committed disposition record that omits a changed surface and an uncommitted edit that adds it, when the tree is committed and clean, then the local result equals the CI result.\n- Given a branch that is behind its base, when `verify:evaluator-surface` runs, then changes that exist only on the base are not in its file set.\n- Given a pre-PR pass with neither check observed, when `pre-pr:run --complete` runs, then it refuses with the existing omitted-phase token for `lint_iteration`.\n- Given twelve unapproved intent facts, when `verify:intent-constraint` fails, then it lists all twelve with path, line, kind and value.\n- Given a head with no pull request, when `pre-pr:run --complete` runs, then the message says that no pull request exists for the head.\n- Given a local body file with CRLF line endings and a stored body with LF line endings and the same text, when pre-PR compares the hashes, then they match.\n- Given a verify task that is silent for 30 seconds, then it prints one line that names its current step.\n\n## Reject\n- Keeping the newest run by check name alone (comment 6907363270 finding 1).\n- A newest-run rule in `pr:watch` only (comment 6907391144 finding 1).\n- \"Committed changes only\" as the pre-PR rule for `verify:class-checks` (comments 6907391144 finding 3, 6907363270 finding 2).\n- A new required pre-PR phase, a new deny token, or `deft check` in ordinary pre-PR (comment 6907391144 finding 4; #6040).\n- Narrowing the blocking set to the branch's required checks. That would change which checks block and is not needed for the reported pains.\n- A claim that ordinary pre-PR gives the full CI verdict (comment 6907395289 finding 1).\n- A second printer for the stall with no change to classification (comment 6907363270 finding 4).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6907363270 | 1. Check name alone loses producer identity | blocks-the-design | accept-into-contract (item 1) |\n| comment 6907363270 | 2. Committed paths can still be evaluated using uncommitted contents | blocks-the-design | accept-into-contract (item 5) |\n| comment 6907363270 | 3. \"Required\" currently means more than branch protection requires | sharpens-framing | accept-into-contract (item 3; the existing all-checks policy is kept and stated) |\n| comment 6907363270 | 4. The reported stall needs an input-path explanation, not another printer | sharpens-framing | accept-into-contract (item 2) |\n| comment 6907391144 | 1. the stale-run fix must go in the shared CI read, not in `pr:watch` only | sharpens-framing | accept-into-contract (item 1) |\n| comment 6907391144 | 2. the cause of P2 is how runs are classified, not what is printed; and \"required\" in `pr:watch` does not mean the branch's required checks | sharpens-framing | accept-into-contract (items 2, 3) |\n| comment 6907391144 | 3. \"against committed changes\" is right for one gate, wrong for the loop, and P4 is half wrong | sharpens-framing | accept-into-contract (item 5) |\n| comment 6907391144 | 4. making pre-PR stop on these gates is an earlier copy of a CI refusal, so the target should not say \"no new refusal\" | sharpens-framing | accept-into-contract (item 4; marker A1) |\n| comment 6907395289 | 1. \"same verdict as CI\" contradicts the #6040 ceiling in the same sentence | blocks-the-design | accept-into-contract (item 4; the claim is scoped to the named cases) |\n| comment 6907395289 | 2. \"no new refusal is added\" cannot describe wiring two gates into the enrolled lane | blocks-the-design | accept-into-contract (item 4) |\n| comment 6907395289 | 3. \"committed changes\" for class-checks is a CLI read change and an #6040 inventory amend | sharpens-framing | accept-into-contract (items 4, 5) |\n| comment 6907395289 | 4. the target is a P1–P4 slice; the issue's \"name the cause\" surface is wider | sharpens-framing | accept-into-contract (items 6 to 9 and the two deferrals) |\n\nFootnotes in the census, no take: comment 6907363270 finding 5; comment 6907391144 findings 5 to 7; comment 6907395289 findings 5 to 8.\n\nRefutation target: it survives in a narrowed form. The fixes are changes to what the tools read and print, and none restores the full gate. It does not survive as \"no new refusal\": item 4 runs two CI refusals earlier. It does not survive as \"newest run per check name\" or \"committed changes\": items 1 and 5 replace those rules.\n\n## Parent-side substantiation\n- audit:A1 sha=06eda7e1377a981bc80e34f218ba039a99c7247c pointer=packages/core/src/class-checks/evaluate.ts:180-226 reading=asserted\n- audit:A2 sha=06eda7e1377a981bc80e34f218ba039a99c7247c pointer=packages/core/src/pre-pr-controller/controller.ts:899-918 reading=measured\n- audit:A3 sha=06eda7e1377a981bc80e34f218ba039a99c7247c pointer=packages/core/src/pr-merge-readiness/ci-gate.ts:31-34 reading=measured\n\nA1: running the two checks in the pre-PR loop does not bring back the cost of the full gate, because both work on the changed-file set against the merge base and do not run the test suite or a whole-repository scan. A2: the wait for the default branch's merge gate is removed when a required merge queue is detected, so `P9` needs no further change. A3: a check whose name contains the bot's name is excluded from the CI verdict, so the SLizard re-post changes GitHub's display and not the `pr:watch` verdict; printing it as advisory is the relief this repository can give for `P10`. The `relieves` cites and the two `operator-deferred` cites are asserted premises.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back and this lean. A1, A2, A3 and the cites stay open until a later critic targets them.\n\n",
+          "id": 6907430982,
+          "html_url": "https://github.com/deftai/directive/issues/6336#issuecomment-6907430982",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:35:31Z",
+          "updated_at": "2026-11-16T04:35:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4, pain-P5, pain-P6, pain-P7, pain-P8, pain-P9, pain-P10, pain-P11, A1, A2, A3\nfinding-classes: blocking, sharpening, footnote\nharvest-changed: true\n\n## In plain English\n\nThe proposed check-run selection and consistent working-tree reads address the earlier design defects. Most diagnostic changes also match the reported problems.\n\nThe lean cannot bind with all its relief claims intact. Printing that SLizard is advisory does not stop repeated findings or remove GitHub’s unstable display. Printing progress does not resolve the slow verifier, and its synchronous execution needs an explicit way to emit that progress while blocked. The two added pre-PR checks also need to survive the existing lint-skip path.\n\n“holds” below means the proposed remedy covers the pain; it does not mean the change is already implemented. All code evidence was read at `06eda7e1377a981bc80e34f218ba039a99c7247c`. No tests, installations, writes or network requests were performed.\n\npain-P1: holds - Item 1 selects by app identity and check name inside the shared evaluator, covering all four callers. The reader must retain the run ID needed for its specified tie-break.\npain-P2: holds - Item 2 expands failure classification and requires a reported-inventory regression fixture. Existing watch logic already routes `ci_failures` to CI_BLOCKED.\npain-P3: does not hold - Item 4 leaves the existing whole-phase lint skip unresolved; the promised observation of both checks needs an explicit completion condition.\npain-P4: holds - Item 5 replaces the union of historical and working-tree paths with the net candidate diff, so a complete uncommitted revert can disappear from the change set.\npain-P5: holds - Item 6 covers both truncated fact lists and the failure path that currently names no facts.\npain-P6: holds - Item 7 separates missing-PR recovery from explicitly requested hotfix bootstrap, correcting the conflation at controller.ts:905.\npain-P7: holds - Item 8 specifies normalization on both sides of the hash comparison, covering the stated line-ending and final-newline mismatch.\npain-P8: unverifiable - #6276 covers the reported read-only-store refusal, but the snapshot explicitly lacks live operator confirmation of the deferral.\npain-P9: holds - As a code-level disposition to #6295: pending does not refuse completion, and a detected required queue removes the remaining named-gate refusal. Live queue configuration and deferral consent are not verified here.\npain-P10: does not hold - Item 3 explains the ignored bot check but leaves repeated findings and GitHub’s unstable display unchanged.\npain-P11: does not hold - Item 9 addresses silence, not the five-minute execution without a result; it also leaves progress delivery during synchronous work unspecified.\nA1: holds - The evaluators inspect changed paths and their contents rather than running the test suite or scanning all repository source contents. This supports the structural cost distinction, not a measured runtime guarantee.\nA2: holds - controller.ts:907-918 explicitly removes the refusal for pending and for a detected required queue; it does not establish live queue configuration.\nA3: does not hold - Bot-name exclusion from CI accounting is verified, but the compound claim that an advisory message relieves P10 is not.\n\n### 1. blocks-the-design — Advisory output does not relieve P10\n\n**Evidence:** `packages/core/src/pr-merge-readiness/ci-gate.ts:31-34` recognizes bot names; lines 239-257 exclude those runs from CI accounting. Bound remedy item 3 adds advisory output. The lean itself says repeated SLizard findings remain outside its remedy.\n\n**Failure mode:** After another push, SLizard can repeat the answered finding and GitHub can still show the red check. The new message explains that state without changing either symptom named by P10. A3 combines a true exclusion claim with an unsupported relief claim.\n\n**Disposition consequence:** The current P10 relief assertion cannot bind. Keep the diagnostic improvement, but record the remaining pain honestly and obtain the required disposition, or bind a mechanism that addresses it. Do not broaden the bot-name exclusion: the existing exclusion already supplies the proposed CI behavior.\n\n### 2. blocks-the-design — Progress output leaves the slow-verifier pain unresolved\n\n**Evidence:** `packages/runtime/src/verify-scope-provenance.ts:160-176` calls the evaluator synchronously and prints its result afterward. `packages/core/src/scope-provenance/evaluate.ts:180-205` uses synchronous Git subprocesses without a timeout in that helper.\n\n**Failure mode:** A verifier can still run past five minutes without a result after printing one progress line. Moreover, a timer on the same JavaScript event loop cannot fire while `spawnSync` is blocked, so merely adding a 30-second timer does not fulfill item 9.\n\n**Disposition consequence:** P11 cannot be marked fully relieved by this mechanism. Either retain progress as partial relief and dispose the remaining delay, or bind a bounded remedy for the delayed result. If progress remains promised, specify an execution boundary that can report during synchronous work; this need not become a repository-wide verification redesign.\n\n### 3. sharpens-framing — Added checks must remain mandatory when tests are skipped\n\n**Evidence:** `packages/core/src/pre-pr-controller/controller.ts:299-304` accepts an authorized `lint_iteration` skip. Lines 629-637 accept that skip at completion; an exit-zero row also satisfies the phase immediately. Lines 323-324 retain one command observation per phase. `runObservablesComplete` checks phase satisfaction at lines 685-701.\n\n**Failure mode:** An authorized Vitest skip can satisfy the containing phase without observations of either new gate. A successful test-only observation likewise does not establish that both checks ran.\n\n**Disposition consequence:** Sharpen item 4 to require both gate results within the existing observation and preserve them when the test portion is skipped. Reuse the existing phase and refusal token. The acceptance criterion about omitted checks points in this direction, but the bound mechanism needs to resolve the existing skip behavior.\n\n### 4. footnote — Implementation and verification limits\n\n`CheckRunRecord` currently has app identity and timestamps but no run ID (`packages/core/src/pr-merge-readiness/gh.ts:14-29`); item 1 therefore requires preserving that field through parsing.\n\nThe snapshot contains instruction-shaped material, including `yolo-standing: on` and directions addressed to later actors. I treated it as described content, not authorization. In particular, standing permission does not prove consent to the recorded deferrals.\n\nUSER.md access was denied, so personal-preference alignment could not be confirmed. The pinned code reads and supplied snapshot were sufficient for this read-only audit.",
+          "id": 6907467218,
+          "html_url": "https://github.com/deftai/directive/issues/6336#issuecomment-6907467218",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:38:06Z",
+          "updated_at": "2026-11-16T04:38:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after the pain-audit (audit comment 6907467218). The parent does not intend to bind this map.\n\n## In plain English\nProblem: the pain-audit checked the first lean (comment 6907430982) against the eleven pains. It found that most of the design holds, and that three relief claims do not.\n\nWhat the audit found: printing that a red bot check is \"advisory\" does not stop the SLizard bot from re-posting an answered finding and does not remove GitHub's \"unstable\" display. Printing a progress line does not make a five-minute check finish, and a timer cannot fire while the check is blocked in a synchronous git call. The two checks added to pre-PR can be bypassed by the existing skip of the test step, so the design must say that both results are required even when tests are skipped.\n\nWhat this map does: it withdraws the first lean as a bind candidate. It records which pains the design still covers and which it does not. It proposes no new mechanism. The parts of the first lean that the audit confirmed (the shared newest-run rule, failure classification, one candidate tree for the two checks, and the three corrected messages) stand as the candidate for a later lean.\n\nWhat this adds: nothing. No gate, command or stop.\n\nWhat it does not do: it does not make the first lean's remedy ready for ingest. If confirmed, the synthesis would assert nothing from this map; the next step is a Handoff to the operator.\n\nTarget-digest: sha256:523ecb7424d4184205af39a4c1f17296dcb7eb47cd30d3b93e2f0f785917145c\nSupersedes successor lean comment 6907430982. Stop 1 write-back: comment 6907324226.\n\nrelieves: P1\nrelieves: P2\ndoes-not-relieve: P3\nrelieves: P4\nrelieves: P5\nrelieves: P6\nrelieves: P7\noperator-deferred: P8 #6276\noperator-deferred: P9 #6295\ndoes-not-relieve: P10\ndoes-not-relieve: P11\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6907467218 | 1. Advisory output does not relieve P10 | blocks-the-design | accept-into-contract |\n| comment 6907467218 | 2. Progress output leaves the slow-verifier pain unresolved | blocks-the-design | accept-into-contract |\n| comment 6907467218 | 3. Added checks must remain mandatory when tests are skipped | sharpens-framing | accept-into-contract |\n\nFootnote in the census, no take: comment 6907467218 finding 4.\n\nMarker status after the audit: A1 holds and A2 holds (comment 6907467218). A3 does not hold as a compound claim; the parent withdraws its relief half. The bot-name exclusion from the CI verdict stays verified.\n\n## What a later lean would change\n- Item 3 of the first lean keeps the advisory line and no longer claims relief of `P10`.\n- Item 4 requires both check results inside the existing `lint_iteration` observation, and keeps them required when the test portion is skipped, with the existing phase and refusal token.\n- Item 9 is dropped. A slow `verify:scope-provenance` in a fresh worktree needs a diagnosis before a remedy can be bound.\n- Item 1 keeps the run id on the check-run record, because the tie-break needs it.\n- `P10` and `P11` need a home that the operator chooses: a new issue each, or a recorded decision that they are outside this story.\n\n",
+          "id": 6907480075,
+          "html_url": "https://github.com/deftai/directive/issues/6336#issuecomment-6907480075",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:39:02Z",
+          "updated_at": "2026-11-16T04:39:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nHandoff (after retraction; audit comment 6907467218)\n\n## In plain English\nThe design for this issue is mostly sound, but it cannot be accepted yet. An independent audit found that two of the eleven pains are not fixed by it and that one mechanism needs one more sentence. The arc has used its three round-1 posts and its one reserved audit post, so the parent stops here and does not raise the cap on its own.\n\nTwo pains have no home. The SLizard bot re-posts an answered finding on every push; that is the bot's behaviour and this repository's tools already ignore its check. `verify:scope-provenance` ran past five minutes in a fresh worktree; nobody has found the cause yet. Neither has an open issue. The operator decides where they go.\n\nThe rest is ready for a second lean: the shared newest-run rule per app and check name, failure classification for every red conclusion, the two checks inside the existing pre-PR step (required even when tests are skipped), one candidate tree for both checks, and the three corrected messages. That lean needs one more audit post, which needs the operator to raise the cap for this arc.\n\nopen-question: should the SLizard re-post pain and the slow fresh-worktree `verify:scope-provenance` pain each get a new issue, so that a second lean can bind the audited core with one more audit post?\n\ndesign-critique: halted, because the reserved pain-audit (comment 6907467218) returned blocking findings on two relief claims, the Dual-stop cap is spent, and the next bind lean needs an operator decision on two pains and a cap raise.\n\nRetraction map: the successor map posted directly before this comment. First lean (withdrawn): comment 6907430982. Round 1: comments 6907363270, 6907391144, 6907395289.\n\n",
+          "id": 6907480407,
+          "html_url": "https://github.com/deftai/directive/issues/6336#issuecomment-6907480407",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:39:03Z",
+          "updated_at": "2026-11-16T04:39:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nResume after halt (Handoff comment 6907480407)\n\n## In plain English\nThe operator answered the Handoff question in a live turn on 2026-11-16. The coordinating session relayed the answer to this parent. The arc resumes with one more bind map and one more audit.\n\nOperator decisions recorded:\n- The SLizard re-post pain gets its own issue: #6377 (filed by this parent on that decision; number taken from the issue-create output).\n- The slow fresh-worktree `verify:scope-provenance` pain gets its own issue: #6378 (same).\n- The read-only listing refusal is deferred to #6276. The wait for the default branch's merge gate is deferred to #6295. Both deferrals are now operator-confirmed.\n- The Dual-stop cap for this arc is raised by one bind map and one pain-audit post.\n- Running `verify:class-checks` and `verify:evaluator-surface` earlier, in pre-PR, is acceptable.\n\nResume is this operator verb, not a silent retry. The next parent comment is the second bind map. It supersedes the retraction map (comment 6907480075) and the first map (comment 6907430982).\n\n",
+          "id": 6907738914,
+          "html_url": "https://github.com/deftai/directive/issues/6336#issuecomment-6907738914",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:57:47Z",
+          "updated_at": "2026-11-16T04:57:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** second bind map, after the pain-audit (comment 6907467218), the retraction map (comment 6907480075) and the operator's resume (comment 6907738914)\n\n## In plain English\nProblem: a worker uses two local tools before a pull request merges. `pr:watch` waits for the review bot and CI and gives a verdict. The pre-PR lane runs checks before the pull request opens. In one wave both tools disagreed with CI or did not say why. `pr:watch` judged an old failed run and called a clean pull request blocked. A red check produced a generic stall. Pre-PR did not run two checks that CI runs. Several refusals printed the wrong text.\n\nWhat changed since the first map: an audit found that the first map claimed to fix two pains that it only explained (the SLizard bot's repeated finding, and a slow check in a fresh worktree), and that the two checks added to pre-PR could be skipped together with the tests. The operator then gave those two pains their own issues (#6377, #6378), confirmed the two earlier deferrals, and raised the cap by one map and one audit.\n\nSolution this map proposes: the audited core of the first map, with one sentence added. The shared check-run reader keeps the newest run for each check, per app. Every red conclusion counts as a failure and is named. Pre-PR runs the two cheap checks inside the step it already requires, they stay required when the tests are skipped, and they read the same tree CI will see. Three messages are corrected so that they name their cause.\n\nWhat this adds: no new gate, phase, deny token, approval or stop. It moves two refusals that CI already makes to an earlier point: `verify:class-checks` and `verify:evaluator-surface` now fail in pre-PR with CI's message. That amends the #6040 pre-PR list; the operator accepted it. It adds one REST read per `pr:watch` probe for the branch's required checks. It removes the debugging round after each wrong or silent verdict.\n\nWhat the merge queue already fixes: the wait for the default branch's merge gate in `pre-pr:run --complete` (the code drops that refusal when a queue is detected, #6295) and the \"behind the default branch\" rebase churn. It fixes none of the other pains, because both tools run before a pull request enters the queue.\n\nWhat it does not do: it does not make ordinary pre-PR equal to the full CI gate. It does not change which checks block a merge. It does not fix the SLizard re-post (#6377), the slow check in a fresh worktree (#6378) or the read-only listing refusal (#6276). If confirmed, the synthesis would assert this design. The leftover next-builds are #6276, #6377 and #6378.\n\nDisclosure: the dest worktree was created one commit after the recorded dispatch SHA (`218f69e3`, which adds one brief file under `xbrief/` and changes no code). Parent pin-reads use `git show` at the dispatch SHA.\n\nTarget-digest: sha256:523ecb7424d4184205af39a4c1f17296dcb7eb47cd30d3b93e2f0f785917145c\n**Spec-path:** Bound remedy on this lean\nSupersedes successor lean comment 6907480075 (retraction map) and successor lean comment 6907430982 (first map). Stop 1 write-back: comment 6907324226. Round 1: 3 siblings (comments 6907363270, 6907391144, 6907395289). Pain-audit: comment 6907467218 (`harvest-changed: true`).\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\nrelieves: P5\nrelieves: P6\nrelieves: P7\noperator-deferred: P8 #6276\noperator-deferred: P9 #6295\noperator-deferred: P10 #6377\noperator-deferred: P11 #6378\n\n## Bound remedy\n1. Newest run per check, in the shared reader. Before it scores, `evaluateCiGate` keeps one run for each pair of app id and check name: the newest by `created_at`, with the run id as the tie-break. The check-run record carries the run id. All four callers inherit the rule (`pr:watch`, both merge-readiness paths, `pr:wait-mergeable-and-merge`). A newest run that is `skipped` counts as passing, as today.\n2. Every red conclusion is a failure with a name. A completed run whose conclusion is not `success`, `neutral`, `skipped` or `cancelled` counts as a failed check (`startup_failure`, `action_required` and `stale` included). The `pr:watch` verdict line carries the failed check names. A regression fixture built from the check inventory of the reported stall locks the path from check-run to verdict.\n3. Required checks. Which present checks count does not change: every check that is not a bot review check and not operator-ignored. `pr:watch` passes the branch's required contexts to the gate the way merge-readiness does, so a required check that is missing on the head is named. A red bot review check is printed as advisory and not counted.\n4. Two checks in pre-PR. `verify:class-checks` and `verify:evaluator-surface` run inside the existing required `lint_iteration` observation, and the observation records each result. Both results are required for that phase to pass, also when the test portion is skipped by an authorized skip. There is no new phase id, no new deny token and no `deft check`. The #6040 iteration-lane list gains `verify:class-checks`.\n5. One candidate tree for both checks. The file set is the working tree against the merge base, plus untracked files. File contents, the head-side policy and the disposition record are read from that same tree. On a clean committed tip the result equals CI's.\n6. `verify:intent-constraint` lists every fact on each failure path, with path, line, kind and value.\n7. `pre-pr:run --complete` on a head with no pull request says that no pull request exists for the head and names the next command. The first-hotfix bootstrap text is printed only when that mode is requested, not when the pull request number is missing.\n8. The pre-PR body hash normalises line endings and the trailing newline on both the local body file and the stored body before it hashes.\n\n## Acceptance Criteria\n- Given two runs of one check from one app on a head, where the older run failed and the newer run passed, when `pr:watch` probes, then the check counts as passing.\n- Given the same two runs, when `pr:merge-ready` and `pr:wait-mergeable-and-merge` evaluate the head, then they reach the same result as `pr:watch`.\n- Given a failed check from one app and a passing check with the same name from another app, when the gate evaluates, then the failed check still counts as failed.\n- Given a completed check with conclusion `startup_failure`, when `pr:watch` probes, then the verdict is CI_BLOCKED and the verdict line names that check.\n- Given a required context that has no check-run on the head, when `pr:watch` probes, then the output names the missing context.\n- Given a head whose only red check is a bot review check, when `pr:watch` probes, then the check is printed as advisory and the verdict does not count it.\n- Given a change set that touches a protected path, when the pre-PR lane runs, then `verify:class-checks` fails locally with the message CI gives.\n- Given a change set that touches a declared evaluator surface without a disposition record, when the pre-PR lane runs, then `verify:evaluator-surface` fails locally with the message CI gives.\n- Given a pre-PR pass whose test portion is skipped by an authorized skip and where neither check result is recorded, when `pre-pr:run --complete` runs, then it refuses with the existing omitted-phase token for `lint_iteration`.\n- Given a pre-PR pass with passing tests and one of the two check results missing, when `pre-pr:run --complete` runs, then it refuses with the same token.\n- Given a protected-path change that is reverted in the working tree and not yet committed, when `verify:class-checks` runs, then it passes.\n- Given an untracked file that breaks a class rule, when `verify:class-checks` runs, then it fails.\n- Given a committed disposition record that omits a changed surface and an uncommitted edit that adds it, when the tree is committed and clean, then the local result equals the CI result.\n- Given a branch that is behind its base, when `verify:evaluator-surface` runs, then changes that exist only on the base are not in its file set.\n- Given twelve unapproved intent facts, when `verify:intent-constraint` fails, then it lists all twelve with path, line, kind and value.\n- Given a head with no pull request, when `pre-pr:run --complete` runs, then the message says that no pull request exists for the head.\n- Given a local body file with CRLF line endings and a stored body with LF line endings and the same text, when pre-PR compares the hashes, then they match.\n\n## Reject\n- Keeping the newest run by check name alone (comment 6907363270 finding 1).\n- A newest-run rule in `pr:watch` only (comment 6907391144 finding 1).\n- \"Committed changes only\" as the pre-PR rule for `verify:class-checks` (comments 6907391144 finding 3, 6907363270 finding 2).\n- A new required pre-PR phase, a new deny token, or `deft check` in ordinary pre-PR (comment 6907391144 finding 4; #6040).\n- Narrowing the blocking set to the branch's required checks.\n- A claim that ordinary pre-PR gives the full CI verdict (comment 6907395289 finding 1).\n- A claim that the advisory line relieves the SLizard re-post, or that a progress line relieves the slow check (comment 6907467218 findings 1 and 2).\n- A wider bot-name exclusion (comment 6907467218 finding 1).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6907363270 | 1. Check name alone loses producer identity | blocks-the-design | accept-into-contract (item 1) |\n| comment 6907363270 | 2. Committed paths can still be evaluated using uncommitted contents | blocks-the-design | accept-into-contract (item 5) |\n| comment 6907363270 | 3. \"Required\" currently means more than branch protection requires | sharpens-framing | accept-into-contract (item 3; the existing all-checks policy is kept and stated) |\n| comment 6907363270 | 4. The reported stall needs an input-path explanation, not another printer | sharpens-framing | accept-into-contract (item 2) |\n| comment 6907391144 | 1. the stale-run fix must go in the shared CI read, not in `pr:watch` only | sharpens-framing | accept-into-contract (item 1) |\n| comment 6907391144 | 2. the cause of P2 is how runs are classified, not what is printed; and \"required\" in `pr:watch` does not mean the branch's required checks | sharpens-framing | accept-into-contract (items 2, 3) |\n| comment 6907391144 | 3. \"against committed changes\" is right for one gate, wrong for the loop, and P4 is half wrong | sharpens-framing | accept-into-contract (item 5) |\n| comment 6907391144 | 4. making pre-PR stop on these gates is an earlier copy of a CI refusal, so the target should not say \"no new refusal\" | sharpens-framing | accept-into-contract (item 4) |\n| comment 6907395289 | 1. \"same verdict as CI\" contradicts the #6040 ceiling in the same sentence | blocks-the-design | accept-into-contract (item 4; the claim is scoped to the named cases) |\n| comment 6907395289 | 2. \"no new refusal is added\" cannot describe wiring two gates into the enrolled lane | blocks-the-design | accept-into-contract (item 4) |\n| comment 6907395289 | 3. \"committed changes\" for class-checks is a CLI read change and an #6040 inventory amend | sharpens-framing | accept-into-contract (items 4, 5) |\n| comment 6907395289 | 4. the target is a P1–P4 slice; the issue's \"name the cause\" surface is wider | sharpens-framing | accept-into-contract (items 6 to 8 and the four deferrals) |\n| comment 6907467218 | 1. Advisory output does not relieve P10 | blocks-the-design | accept-into-contract (`P10` deferred to #6377; item 3 claims no relief) |\n| comment 6907467218 | 2. Progress output leaves the slow-verifier pain unresolved | blocks-the-design | accept-into-contract (`P11` deferred to #6378; the progress item is removed) |\n| comment 6907467218 | 3. Added checks must remain mandatory when tests are skipped | sharpens-framing | accept-into-contract (item 4) |\n\nFootnotes in the census, no take: comment 6907363270 finding 5; comment 6907391144 findings 5 to 7; comment 6907395289 findings 5 to 8; comment 6907467218 finding 4 (its run-id note is taken into item 1).\n\nRefutation target: it survives in a narrowed form. The fixes are changes to what the tools read and print, and none restores the full gate. It does not survive as \"no new refusal\", as \"newest run per check name\" or as \"committed changes\".\n\n## Parent-side substantiation\nMarkers A1 and A2 of the first map were targeted by the audit (comment 6907467218) and hold. Marker A3 is withdrawn (retraction map 6907480075); this map does not rest on it. This map introduces no new premise beyond its cites. The seven `relieves` cites and the four `operator-deferred` cites are asserted premises. The four deferrals are operator-confirmed (comment 6907738914).\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back and all three maps. The cites stay open until a later critic targets them.\n\n",
+          "id": 6907739361,
+          "html_url": "https://github.com/deftai/directive/issues/6336#issuecomment-6907739361",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:57:49Z",
+          "updated_at": "2026-11-16T04:57:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4, pain-P5, pain-P6, pain-P7, pain-P8, pain-P9, pain-P10, pain-P11\nfinding-classes: footnote\nharvest-changed: false\n\n## In plain English\n\nThe revised design addresses the seven pains it claims to fix and honestly assigns the other four to separate issues. It closes the test-skip gap identified by the first audit. It no longer treats an explanatory message as a fix for repeated bot findings or slow verification.\n\nI found no blocking or sharpening finding against this Bound remedy. These are design-level judgments based on code reads at `06eda7e1377a981bc80e34f218ba039a99c7247c`, not claims that the changes are implemented or tested.\n\npain-P1: holds - Item 1 replaces scoring every historical run with selection by app identity and check name, retaining a run ID for deterministic ties. The existing loop scores every record (`packages/core/src/pr-merge-readiness/ci-gate.ts:239–280`); the current reader retains app identity and timestamps but drops run ID (`packages/core/src/pr-merge-readiness/gh.ts:433–460`).\n\npain-P2: holds - Items 2–3 address classification and named output, rather than output alone. The existing failure branch recognizes a narrow conclusion set, and the probe supplies no required contexts (`ci-gate.ts:266–279`; `packages/core/src/pr-watch/probe.ts:240–249`). The proposed incident-inventory fixture remains necessary to establish relief of the reported case.\n\npain-P3: holds - Item 4 requires both check results inside the existing observation, including when tests are skipped. This explicitly closes the current acceptance paths for exit zero and authorized exit five (`packages/core/src/pre-pr-controller/controller.ts:627–637`) without restoring the full merge gate.\n\npain-P4: holds - Item 5 defines a net candidate-tree diff against the merge base, with matching contents and disposition. That addresses the class-check union retaining reverted paths (`packages/core/src/class-checks/evaluate.ts:180–196`) and evaluator-surface’s current base-tip-to-HEAD comparison (`packages/core/src/evaluator-surface/evaluate.ts:151–161`). “Head-side policy” does not replace the separately loaded base authority.\n\npain-P5: holds - Item 6 covers omitted facts and truncation across failure paths. The evaluator currently limits lists to eight and has missing-mint failures without fact lists (`packages/core/src/intent-constraint/evaluate.ts:537–548, 585–609, 640–657`).\n\npain-P6: holds - Item 7 separates an absent PR from explicitly requested bootstrap mode. The current controller conflates them at `packages/core/src/pre-pr-controller/controller.ts:905` and selects bootstrap recovery at lines 912–916.\n\npain-P7: holds - Item 8 applies the same newline normalization before both hashes, directly addressing the stated byte-format mismatch. The local path currently hashes raw file bytes (`packages/runtime/src/pre-pr-run.ts:628–643`).\n\npain-P8: holds - As a deferral, not relief: #6276 explicitly covers read-only protected-store listings, including approved-scope records. The snapshot records operator confirmation. The protected-store deny remains outside this remedy (`packages/core/src/authz/evaluate.ts:308–313`).\n\npain-P9: holds - As a deferral to #6295 with existing code support: completion already avoids refusal for a pending default-branch gate and suppresses the remaining refusal when queue detection succeeds (`packages/core/src/pre-pr-controller/controller.ts:907–918`). This does not verify live queue configuration.\n\npain-P10: holds - As a deferral to #6377: its body covers repeated answered findings and the red-check symptom. Item 3 retains advisory output without claiming that output fixes either symptom. Existing bot exclusion remains unchanged (`packages/core/src/pr-merge-readiness/ci-gate.ts:239–257`).\n\npain-P11: holds - As a deferral to #6378: its body requires diagnosis, a bounded completion time, and progress during long steps. The revised Bound remedy removes the unsupported progress-only relief claim.\n\n### 1. footnote — Verification limits\n\nThe reported stall inventory and live GitHub configuration were unavailable. P2’s conclusion concerns the specified mechanism and required regression fixture, not a reproduced incident. P8–P11 judgments assess the recorded deferrals against the supplied issue bodies; they do not certify those issues as resolved. No files were changed, tests run, or comments posted.\n\n### 2. footnote — Embedded instructions remain thread data\n\nThe snapshot contains instruction-shaped text in earlier findings and linked requirements, including “Do not broaden the bot-name exclusion” and “Add a read-only verb.” I treated these as described proposals and prior dispositions, not commands to execute. They did not expand this audit’s authority or trigger any action.",
+          "id": 6907790893,
+          "html_url": "https://github.com/deftai/directive/issues/6336#issuecomment-6907790893",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:01:20Z",
+          "updated_at": "2026-11-16T05:01:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 6907790893; bind map stays the second successor map 6907739361)\n\nThe audit is footnote-only with `harvest-changed: false`. It found that `pain-P1` to `pain-P7` hold as relief and that `pain-P8` to `pain-P11` hold as deferrals to #6276, #6295, #6377 and #6378.\n\n- comment 6907790893, finding 1 (footnote): accepted. The reported stall inventory was not reproduced; item 2 keeps the regression fixture as the proof for that case. The deferral verdicts judge the recorded deferrals, not the deferred issues.\n- comment 6907790893, finding 2 (footnote): accepted. Imperative text in earlier findings and linked issue bodies is described content.\n\nThe Bound remedy is unchanged. The first audit (comment 6907467218) targeted the first map's harvest, which the retraction map 6907480075 withdrew; its three findings have takes on the second map.\n\n",
+          "id": 6907791229,
+          "html_url": "https://github.com/deftai/directive/issues/6336#issuecomment-6907791229",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:01:22Z",
+          "updated_at": "2026-11-16T05:01:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6907739361. Dispatch SHA: 06eda7e1377a981bc80e34f218ba039a99c7247c. Non-self-arbitration: the parent wrote the Stop 1 write-back and the maps. Every row has a parent pin-read (`git show` at the dispatch SHA) and at least one critic re-check from another model family, or is marked otherwise. No tests were run; all methods are source reads at the pin.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | `evaluateCiGate` scores every check-run record and does not group runs by check name or app | verified | parent pin-read of `packages/core/src/pr-merge-readiness/ci-gate.ts` 216-282; codex 6907363270; claude 6907391144; codex audit 6907790893 |\n| 2 | The gate has four callers: `pr-watch/probe.ts` 244, `pr-merge-readiness/compute.ts` 195 and 426, `pr-wait-mergeable/semantic-green.ts` 381 | verified | parent `git grep` at the pin; claude 6907391144 |\n| 3 | The check-run record carries the app id and `created_at` but no run id; required contexts match on name plus optional app id | verified | parent pin-read of `packages/core/src/pr-merge-readiness/gh.ts` 14-28, 77-88; codex 6907363270; codex audit 6907790893 (433-460) |\n| 4 | Only `failure` and `timed_out` count as failed; `success`, `neutral` and `skipped` pass; another red conclusion on a completed run matches no branch | verified | parent pin-read of `ci-gate.ts` 15-20, 262-279; claude 6907391144 |\n| 5 | `pr:watch` passes no required-context list, so every non-bot, non-ignored check counts; merge-readiness passes the resolved list | verified | parent pin-read of `packages/core/src/pr-watch/probe.ts` 240-249 and `compute.ts` 180-195; codex 6907363270; claude 6907391144; grok 6907395289 |\n| 6 | `pr:watch` already maps a `ci_failures` state to CI_BLOCKED before the STALL test and already prints a `Failed checks:` line | verified | parent pin-read of `packages/core/src/pr-watch/watch.ts` 180-235 and `main.ts` 722-727; codex 6907363270; claude 6907391144; grok 6907395289 |\n| 7 | The cause of the reported STALL on a red check is a conclusion outside the failure set | endorsed, not reproduced | claude 6907391144 finding 2 gives the mechanism; codex audit 6907790893 notes the incident inventory was not available. Item 2 binds a regression fixture for it |\n| 8 | Bot review checks (names containing greptile, slizard or coderabbit) are excluded from the CI verdict | verified | parent pin-read of `ci-gate.ts` 31-34, 239-257; claude 6907391144; codex audit 6907467218 |\n| 9 | The pre-PR phases have no row for `verify:class-checks` or `verify:evaluator-surface`; `lint_iteration` is required and observes `vitest run <changed-paths>`; `merge_chokepoint` is optional | verified | parent pin-read of `packages/core/src/pre-pr-controller/phases.ts` 48-90; claude 6907391144; grok 6907395289 |\n| 10 | A required phase with no observed pass refuses with `deny-omitted-phase`; an authorized skip or an exit-zero row satisfies `lint_iteration` today | verified | parent pin-read of `packages/core/src/pre-pr-controller/controller.ts` 685-711; codex audits 6907467218 (299-304, 629-637) and 6907790893 (627-637). The skip lines are the critic's read |\n| 11 | The pre-PR skill's iteration lane names `verify:evaluator-surface` and not `verify:class-checks`, and keeps `deft check` out of ordinary pre-PR | verified | parent pin-read of `content/skills/deft-directive-pre-pr/SKILL.md` 75-84; claude 6907391144; grok 6907395289 |\n| 12 | `verify:class-checks` unions the committed range, the working-tree diff against HEAD and untracked files; `verify:evaluator-surface --base-ref` diffs the base tip to HEAD (two-dot) and reads the disposition record from disk | verified | parent pin-read of `packages/core/src/class-checks/evaluate.ts` 180-226 and `packages/core/src/evaluator-surface/evaluate.ts` 148-162, 225-241; codex 6907363270; claude 6907391144; grok 6907395289 |\n| 13 | `verify:intent-constraint` lists at most eight facts with path and kind, and one failure path lists none | verified | parent pin-read of `packages/core/src/intent-constraint/evaluate.ts` 530-546, 648-660; codex audit 6907790893 (537-548, 585-609, 640-657) |\n| 14 | `--complete` sets the first-hotfix bootstrap mode when the pull request number is null, refuses only on a red (not pending) default-branch gate, and drops that refusal when a required merge queue is detected | verified | parent pin-read of `controller.ts` 895-918; claude 6907391144; codex audits 6907467218 and 6907790893 |\n| 15 | The pre-PR body hash is sha256 over the raw bytes of the local body file | verified | parent pin-read of `packages/runtime/src/pre-pr-run.ts` 618-646; codex audit 6907790893 |\n| 16 | The two added checks do not run the test suite or scan the whole repository | endorsed | codex audit 6907467218 (marker A1 holds, as a structural claim and not a measured runtime) |\n| 17 | The live merge queue configuration of the default branch | not verified | no critic had network access; the claim rests on #6295 and #6366 |\n\n",
+          "id": 6907791573,
+          "html_url": "https://github.com/deftai/directive/issues/6336#issuecomment-6907791573",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:01:23Z",
+          "updated_at": "2026-11-16T05:01:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: two local tools are meant to tell a worker what CI will say before a pull request merges. `pr:watch` judged an old failed run and called a clean pull request blocked, and it reported a generic stall for a red check. The pre-PR lane did not run two checks that CI runs, so a story first learned about a protected path in CI. Several refusals printed the wrong text.\n\nAccepted solution: the shared check-run reader that four tools use keeps the newest run for each check, per app. Every red conclusion counts as a failure and is named in the verdict, and a required check that is missing on the head is named. Pre-PR runs `verify:class-checks` and `verify:evaluator-surface` inside the step it already requires; both results stay required when the tests are skipped, and both read the same tree CI will see. `verify:intent-constraint` lists every fact. `pre-pr:run --complete` on a head with no pull request says so. The pre-PR body hash ignores line-ending and trailing-newline differences.\n\nThe design adds no new gate, phase, deny token or stop. It moves two refusals that CI already makes to an earlier point, which amends the #6040 pre-PR list; the operator accepted that. The merge queue already removed the wait for the default branch's merge gate (#6295). Three pains are deferred by operator decision to their own issues: the read-only listing refusal (#6276), the SLizard re-post (#6377) and the slow check in a fresh worktree (#6378).\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6907739361.\nverified-claims table 6907791573\n\nConfirm conjunct: yolo standing (Stop 1 6907324226, `yolo-standing: on`), with the operator decisions recorded in comment 6907738914 (deferrals confirmed, cap raised by one map and one audit). Clean audit: comment 6907790893 (`finding-classes: footnote`, `harvest-changed: false`); its footnotes are disposed in comment 6907791229. The first audit (comment 6907467218) was blocking on the first map 6907430982, which the retraction map 6907480075 withdrew; its findings have takes on the bound map. Round 1: comments 6907363270, 6907391144, 6907395289, each posted by the parent verbatim as disclosed on panel-deposit 6907326186.\n\n",
+          "id": 6907796685,
+          "html_url": "https://github.com/deftai/directive/issues/6336#issuecomment-6907796685",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:01:44Z",
+          "updated_at": "2026-11-16T05:01:44Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nSeveral pre-PR and review tools in wave 2a (2026-11-15) gave a wrong or opaque verdict, or missed a gate that CI then failed. Each one cost a debugging round.\n\n## What we saw\n\n1. **pr:watch reads a stale run.** After a body-only re-run it read the older failed run of a check on the same head instead of the newest run per check name, and reported CI_BLOCKED on a clean PR (#6319).\n2. **pr:watch STALL on red CI.** With a required check red it returns STALL (exit 2), not a verdict naming the check (#6322).\n3. **Pre-PR misses two CI gates.** The scoped pre-PR lane does not run `verify:class-checks` or `verify:evaluator-surface`, so a story first learns about a protected path or an evaluator surface in CI (#6325, #6323).\n4. **Those two CLIs count uncommitted changes**, so a revert of a protected path cannot show green before its commit.\n5. **verify:intent-constraint does not name the facts** it found; the worker had to call the extractor by hand.\n6. **`pre-pr:run --complete` on an unpushed head** prints the first-hotfix bootstrap text (\"deny-master-merge-gate-red\") instead of \"no PR for this head\".\n7. **Pre-PR body hash.** It hashes the local body file; the stored GitHub body differs by line endings and the trailing newline.\n8. **Read-only listing refused.** The authz-store guard refuses a read-only `ls` of `.deft/approved-scope`.\n\n## Expected\n\nFewer steps: pre-PR runs the gates CI runs, and every refusal names its cause.\n\n## Acceptance Criteria\n\n- Given several runs of one check on a head, then pr:watch judges by the newest run per check name.\n- Given a red required check, then pr:watch names that check in its verdict.\n- Given a change set that touches a protected path or a declared evaluator surface, then pre-PR fails locally with the same message CI gives.\n- Given new intent facts, then verify:intent-constraint lists each one.\n- Given an unpushed head, then `pre-pr:run --complete` says no PR exists for it.\n- Given a read-only listing of the authz store, then the guard admits it.\n\nRefs #6319. Refs #6322. Refs #6323. Refs #6325.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6406914496,
+        "origin": "deftai/directive#6336",
+        "id": "github.issue.6406914496"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "523ecb7424d4184205af39a4c1f17296dcb7eb47cd30d3b93e2f0f785917145c"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 26 independently testable clauses from the task statement before product edit (#3323)",
+      "sentences": [
+        "fix(pr): pr:watch and pre-PR give the same verdict as CI and name the cause",
+        "Newest run per check, in the shared reader.",
+        "Before it scores, `evaluateCiGate` keeps one run for each pair of app id and check name: the newest by `created_at`, with the run id as the tie-break.",
+        "The check-run record carries the run id.",
+        "All four callers inherit the rule (`pr:watch`, both merge-readiness paths, `pr:wait-mergeable-and-merge`).",
+        "A newest run that is `skipped` counts as passing, as today.",
+        "Every red conclusion is a failure with a name.",
+        "A completed run whose conclusion is not `success`, `neutral`, `skipped` or `cancelled` counts as a failed check (`startup_failure`, `action_required` and `stale` included).",
+        "The `pr:watch` verdict line carries the failed check names.",
+        "A regression fixture built from the check inventory of the reported stall locks the path from check-run to verdict.",
+        "Required checks.",
+        "Which present checks count does not change: every check that is not a bot review check and not operator-ignored.",
+        "`pr:watch` passes the branch's required contexts to the gate the way merge-readiness does, so a required check that is missing on the head is named.",
+        "A red bot review check is printed as advisory and not counted.",
+        "Two checks in pre-PR.",
+        "`verify:class-checks` and `verify:evaluator-surface` run inside the existing required `lint_iteration` observation, and the observation records each result.",
+        "Both results are required for that phase to pass, also when the test portion is skipped by an authorized skip.",
+        "There is no new phase id, no new deny token and no `deft check`.",
+        "The #6040 iteration-lane list gains `verify:class-checks`.",
+        "One candidate tree for both checks.",
+        "The file set is the working tree against the merge base, plus untracked files.",
+        "File contents, the head-side policy and the disposition record are read from that same tree.",
+        "On a clean committed tip the result equals CI's.",
+        "`verify:intent-constraint` lists every fact on each failure path, with path, line, kind and value.",
+        "`pre-pr:run --complete` on a head with no pull request says that no pull request exists for the head and names the next command.",
+        "The first-hotfix bootstrap text is printed only when that mode is requested, not when the pull request number is missing.",
+        "The pre-PR body hash normalises line endings and the trailing newline on both the local body file and the stored body before it hashes."
+      ],
+      "admitted_source_sentences": [
+        "Newest run per check, in the shared reader.",
+        "Before it scores, `evaluateCiGate` keeps one run for each pair of app id and check name: the newest by `created_at`, with the run id as the tie-break.",
+        "The check-run record carries the run id.",
+        "All four callers inherit the rule (`pr:watch`, both merge-readiness paths, `pr:wait-mergeable-and-merge`).",
+        "A newest run that is `skipped` counts as passing, as today.",
+        "Every red conclusion is a failure with a name.",
+        "A completed run whose conclusion is not `success`, `neutral`, `skipped` or `cancelled` counts as a failed check (`startup_failure`, `action_required` and `stale` included).",
+        "The `pr:watch` verdict line carries the failed check names.",
+        "A regression fixture built from the check inventory of the reported stall locks the path from check-run to verdict.",
+        "Required checks.",
+        "Which present checks count does not change: every check that is not a bot review check and not operator-ignored.",
+        "`pr:watch` passes the branch's required contexts to the gate the way merge-readiness does, so a required check that is missing on the head is named.",
+        "A red bot review check is printed as advisory and not counted.",
+        "Two checks in pre-PR.",
+        "`verify:class-checks` and `verify:evaluator-surface` run inside the existing required `lint_iteration` observation, and the observation records each result.",
+        "Both results are required for that phase to pass, also when the test portion is skipped by an authorized skip.",
+        "There is no new phase id, no new deny token and no `deft check`.",
+        "The #6040 iteration-lane list gains `verify:class-checks`.",
+        "One candidate tree for both checks.",
+        "The file set is the working tree against the merge base, plus untracked files.",
+        "File contents, the head-side policy and the disposition record are read from that same tree.",
+        "On a clean committed tip the result equals CI's.",
+        "`verify:intent-constraint` lists every fact on each failure path, with path, line, kind and value.",
+        "`pre-pr:run --complete` on a head with no pull request says that no pull request exists for the head and names the next command.",
+        "The first-hotfix bootstrap text is printed only when that mode is requested, not when the pull request number is missing.",
+        "The pre-PR body hash normalises line endings and the trailing newline on both the local body file and the stored body before it hashes."
+      ],
+      "admitted_source_digest": "c23efde1e987be1a312a4df8c0f5ce481d0ccb06fb08c04087e9fd4806ca51cc",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Newest run per check, in the shared reader.",
+          "artifact_path": "packages/core/src/pr-merge-readiness/ci-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Before it scores, `evaluateCiGate` keeps one run for each pair of app id and check name: the newest by `created_at`, with the run id as the tie-break.",
+          "artifact_path": "packages/core/src/pr-merge-readiness/ci-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The check-run record carries the run id.",
+          "artifact_path": "packages/core/src/pr-merge-readiness/gh.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "All four callers inherit the rule (`pr:watch`, both merge-readiness paths, `pr:wait-mergeable-and-merge`).",
+          "artifact_path": "packages/core/src/pr-merge-readiness/ci-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "A newest run that is `skipped` counts as passing, as today.",
+          "artifact_path": "packages/core/src/pr-merge-readiness/ci-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Every red conclusion is a failure with a name.",
+          "artifact_path": "packages/core/src/pr-merge-readiness/ci-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "A completed run whose conclusion is not `success`, `neutral`, `skipped` or `cancelled` counts as a failed check (`startup_failure`, `action_required` and `stale` included).",
+          "artifact_path": "packages/core/src/pr-merge-readiness/ci-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "The `pr:watch` verdict line carries the failed check names.",
+          "artifact_path": "packages/core/src/pr-watch/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "A regression fixture built from the check inventory of the reported stall locks the path from check-run to verdict.",
+          "artifact_path": "packages/core/src/pr-watch/probe.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Required checks.",
+          "artifact_path": "packages/core/src/pr-watch/probe.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Which present checks count does not change: every check that is not a bot review check and not operator-ignored.",
+          "artifact_path": "packages/core/src/pr-merge-readiness/ci-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "`pr:watch` passes the branch's required contexts to the gate the way merge-readiness does, so a required check that is missing on the head is named.",
+          "artifact_path": "packages/core/src/pr-watch/probe.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "A red bot review check is printed as advisory and not counted.",
+          "artifact_path": "packages/core/src/pr-watch/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Two checks in pre-PR.",
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "`verify:class-checks` and `verify:evaluator-surface` run inside the existing required `lint_iteration` observation, and the observation records each result.",
+          "artifact_path": "packages/runtime/src/pre-pr-run.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Both results are required for that phase to pass, also when the test portion is skipped by an authorized skip.",
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "There is no new phase id, no new deny token and no `deft check`.",
+          "artifact_path": "packages/core/src/pre-pr-controller/types.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "The #6040 iteration-lane list gains `verify:class-checks`.",
+          "artifact_path": "content/skills/deft-directive-pre-pr/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "One candidate tree for both checks.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "The file set is the working tree against the merge base, plus untracked files.",
+          "artifact_path": "packages/core/src/class-checks/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "File contents, the head-side policy and the disposition record are read from that same tree.",
+          "artifact_path": "packages/core/src/evaluator-surface/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "On a clean committed tip the result equals CI's.",
+          "artifact_path": "packages/core/src/evaluator-surface/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "`verify:intent-constraint` lists every fact on each failure path, with path, line, kind and value.",
+          "artifact_path": "packages/core/src/intent-constraint/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "`pre-pr:run --complete` on a head with no pull request says that no pull request exists for the head and names the next command.",
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "The first-hotfix bootstrap text is printed only when that mode is requested, not when the pull request number is missing.",
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "The pre-PR body hash normalises line endings and the trailing newline on both the local body file and the stored body before it hashes.",
+          "artifact_path": "packages/runtime/src/pre-pr-run.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "confessions": [
+        "fix(pr): pr:watch and pre-PR give the same verdict as CI and name the cause"
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6406914496",
+    "updated": "2026-11-16T07:43:26Z"
+  }
+}
