@@ -81,6 +81,7 @@ import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import {
   type ApplyingHostTransport,
   evaluateApplyingHostLifecycleAdmission,
+  evaluateOccupancyCeremonyEligibility,
   evaluateOccupancyWriteGate,
   formatOccupancyLeaseViewNote,
   liveOccupant,
@@ -1266,17 +1267,19 @@ function printedPathArg(path: string): string | null {
 /**
  * Ritual denial recovery that names the judged checkout (#6376). Appends the
  * checkout and one `session:start` command carrying `--project-root` for it, so
- * the command runs as printed from any directory. When the occupancy-aware
- * rewrite stripped every ceremony command (#4290), only the checkout is named.
+ * the command runs as printed from any directory. When occupancy does not admit
+ * the ceremony for this actor (#4290), only the checkout is named: a command
+ * the occupancy gate would refuse is never printed.
  */
 export function formatJudgedCheckoutRecovery(
   text: string,
   judgedRoot: string,
   tier: "rearm" | "cold",
   sessionId: string | null | undefined,
+  admitCeremony: boolean,
 ): string {
   const named = `Judged checkout: ${judgedRoot}.`;
-  if (!/\bsession:(?:start|ready)\b/.test(text)) return `${text} ${named}`;
+  if (!admitCeremony) return `${text} ${named}`;
   const rootArg = printedPathArg(judgedRoot);
   if (rootArg === null) {
     return `${text} ${named} Run the recovery from that checkout; its path cannot be printed as a literal shell argument.`;
@@ -2312,6 +2315,11 @@ function inspectMutationGates(
       effectiveRoot,
       recoveryTier,
       actor?.sessionId ?? environ.DEFT_SESSION_ID,
+      // Same eligibility the occupancy-aware rewrite applied (#4290).
+      evaluateOccupancyCeremonyEligibility(effectiveRoot, {
+        sessionId: actor?.sessionId ?? environ.DEFT_SESSION_ID,
+        env: environ,
+      }).admitCeremony,
     );
 
   const ritualDetailForOccupancyDeny = (): VerifyResult | null => {

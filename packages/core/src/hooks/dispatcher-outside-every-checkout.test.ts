@@ -290,14 +290,28 @@ describe("ritual recovery names the judged checkout (#6376 item 10)", () => {
   });
 
   it("single-quotes a path with spaces, omits an unsafe session id, and keeps stripped text", () => {
-    expect(formatJudgedCheckoutRecovery("Run `deft session:start`.", "/a b/c", "cold", "")).toBe(
+    expect(
+      formatJudgedCheckoutRecovery("Run `deft session:start`.", "/a b/c", "cold", "", true),
+    ).toBe(
       "Run `deft session:start`. Judged checkout: /a b/c. Recovery for that checkout " +
         "(runs as printed from any directory; the commands above act on the current directory): " +
         "`deft session:start --project-root='/a b/c'`.",
     );
-    expect(formatJudgedCheckoutRecovery("Occupied by another session.", "/r", "rearm", "s1")).toBe(
-      "Occupied by another session. Judged checkout: /r.",
+    expect(
+      formatJudgedCheckoutRecovery("Occupied by another session.", "/r", "rearm", "s1", false),
+    ).toBe("Occupied by another session. Judged checkout: /r.");
+  });
+
+  it("prints no ceremony command when occupancy does not admit it (#4290)", () => {
+    const text = formatJudgedCheckoutRecovery(
+      "session:start is owner-only.",
+      "/r",
+      "rearm",
+      "child",
+      false,
     );
+    expect(text).toBe("session:start is owner-only. Judged checkout: /r.");
+    expect(text).not.toContain("--session-id=child");
   });
 
   it("never prints a path the shell would expand or split", () => {
@@ -306,10 +320,11 @@ describe("ritual recovery names the judged checkout (#6376 item 10)", () => {
       "/home/u/$work/r",
       "cold",
       "",
+      true,
     );
     expect(dollar).toContain("--project-root='/home/u/$work/r'");
     for (const root of ["/home/u/it's", "/home/u/a\nb", "/home/u/a\u007fb"]) {
-      const text = formatJudgedCheckoutRecovery("deft session:start", root, "cold", "");
+      const text = formatJudgedCheckoutRecovery("deft session:start", root, "cold", "", true);
       expect(text).not.toContain("--project-root");
       expect(text).toContain("cannot be printed as a literal shell argument");
     }
