@@ -1080,6 +1080,91 @@ function ensureFeatureBranch(
   return { ok: true, error: null, branch: currentBranch };
 }
 
+/** Path of the registered worktree that has `branchName` checked out, from `git worktree list --porcelain`. */
+function worktreeHoldingBranch(porcelain: string, branchName: string): string | null {
+  const target = `branch refs/heads/${branchName}`;
+  let current: string | null = null;
+  for (const raw of porcelain.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (line.startsWith("worktree ")) {
+      current = line.slice("worktree ".length);
+    } else if (line.length === 0) {
+      current = null;
+    } else if (line === target && current !== null) {
+      return current;
+    }
+  }
+  return null;
+}
+
+/**
+ * Report-only leftover of a finalize run that did not finish (#6421).
+ *
+ * A killed run leaves its lifecycle worktree and its local `swarm/finalize/<label>`
+ * branch, so the next run's `git switch -c` fails. A run cannot tell a killed run
+ * from a live one, so this only names the leftover and the commands that remove
+ * it. It runs read-only git commands and changes nothing.
+ *
+ * Returns null, so the stop keeps today's text, when the local branch is absent,
+ * when origin has the branch (`ls-remote` asks origin itself, so a branch pushed
+ * from another clone or a removed tracking ref still counts; an open PR always
+ * has a pushed head), or when origin cannot be read.
+ */
+export function describeFinalizeBranchLeftover(
+  projectRoot: string,
+  branchName: string,
+  runGit: typeof runText,
+): string | null {
+  const local = runGit(["git", "rev-parse", "--verify", "--quiet", `refs/heads/${branchName}`], {
+    cwd: projectRoot,
+  });
+  if (local.returncode !== 0 || local.stdout.trim().length === 0) {
+    return null;
+  }
+  const remote = runGit(["git", "ls-remote", "--heads", "origin", `refs/heads/${branchName}`], {
+    cwd: projectRoot,
+  });
+  if (remote.returncode !== 0 || remote.stdout.trim().length > 0) {
+    return null;
+  }
+  const listed = runGit(["git", "worktree", "list", "--porcelain"], { cwd: projectRoot });
+  const holder = listed.returncode === 0 ? worktreeHoldingBranch(listed.stdout, branchName) : null;
+  const root = `"${projectRoot}"`;
+  const commands: string[] = [];
+  if (holder !== null) {
+    commands.push(
+      existsSync(holder)
+        ? `git -C ${root} worktree remove --force "${holder}"`
+        : `git -C ${root} worktree prune`,
+    );
+  }
+  commands.push(`git -C ${root} branch -D ${branchName}`);
+  const held = holder === null ? "" : ` (checked out in worktree ${holder})`;
+  return (
+    `Leftover of a finalize run that did not finish (#6421): local branch ${branchName}${held} ` +
+    "is not on origin. If no other finalize run for this cohort is still running, remove it, " +
+    `then re-run: ${commands.join(" && ")}`
+  );
+}
+
+/**
+ * Error for a failed finalize branch setup. A failed `git switch -c` gets the
+ * leftover report (#6421) appended; every other text is as before.
+ */
+export function finalizeBranchSetupError(
+  projectRoot: string,
+  branchName: string,
+  error: string | null,
+  runGit: typeof runText,
+): string {
+  const text = error ?? "branch setup failed";
+  if (!text.startsWith("git switch -c")) {
+    return text;
+  }
+  const leftover = describeFinalizeBranchLeftover(projectRoot, branchName, runGit);
+  return leftover === null ? text : `${text} ${leftover}`;
+}
+
 /**
  * Paths completeCohort may rewrite beside the selected stories: epic parents,
  * twin completions, and registry companions (#4714 R7).
@@ -2394,7 +2479,9 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
             const branchName = `swarm/finalize/${deriveLabel(args.label, prNumbers, storyTokens)}`;
             const branchResult = ensureFeatureBranch(prepared.checkout, branchName, runGit);
             if (!branchResult.ok) {
-              errors.push(branchResult.error ?? "branch setup failed");
+              errors.push(
+                finalizeBranchSetupError(projectRoot, branchName, branchResult.error, runGit),
+              );
               skipSweep = true;
             } else {
               branch = branchResult.branch;
