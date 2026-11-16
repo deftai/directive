@@ -169,3 +169,34 @@ export function occupancyAwareDenialMessage(
   const eligibility = evaluateOccupancyCeremonyEligibility(projectRoot, input);
   return applyOccupancyEligibilityToDenial(message, eligibility, tier);
 }
+
+/** Template token older ritual denials print in place of the caller's id. */
+export const SAME_SESSION_ID_TOKEN = "<same-session-id>";
+
+/** Session ids safe to splice into a printed shell command. */
+const FILLABLE_SESSION_ID = /^[A-Za-z0-9][\w.:=+/-]*$/;
+
+/**
+ * Bare `session:start`, `session:start --rearm` and `session:ready` with no
+ * further flag. Commands that already carry flags (for example
+ * `--session-id` or `-- --defer`) are left as printed.
+ */
+const BARE_RECOVERY_COMMAND =
+  /\b(?:deft|directive|task) session:(?:start(?: --rearm)?|ready)(?![\w:-])(?! --)/g;
+
+/**
+ * Fill the caller's session id into printed ritual recovery commands (#6279).
+ *
+ * Runs after the occupancy-aware rewrite, so commands that rewrite stripped
+ * stay stripped. A missing or unsafe id leaves the text unchanged.
+ */
+export function fillRecoveryCommandSessionId(
+  text: string,
+  sessionId: string | null | undefined,
+): string {
+  const id = sessionId?.trim() ?? "";
+  if (!FILLABLE_SESSION_ID.test(id)) return text;
+  return text
+    .replaceAll(SAME_SESSION_ID_TOKEN, () => id)
+    .replace(BARE_RECOVERY_COMMAND, (command) => `${command} --session-id=${id}`);
+}

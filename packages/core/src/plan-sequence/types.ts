@@ -6,11 +6,8 @@
  * triage queue continuationNumbers / continuationOrder.
  */
 
-import {
-  detectTerminalEntryDrift,
-  TERMINAL_LIFECYCLE_CODE,
-  type TerminalLifecycleOrigin,
-} from "./terminal-drift.js";
+import { derivePlanCursor } from "./derive.js";
+import { TERMINAL_LIFECYCLE_CODE, type TerminalLifecycleOrigin } from "./terminal-drift.js";
 
 export const PLAN_SEQUENCE_FILENAME = "plan-sequence.json";
 export const PLAN_SEQUENCE_CONTRACT = "ordered-plan-continuation" as const;
@@ -59,9 +56,23 @@ const PLAN_SEQUENCE_CLOSED_TOP_KEYS = new Set([
   "contract",
   "generation",
   "source_revision",
+  "insert_approvals",
 ]);
 
 const PLAN_SEQUENCE_ENTRY_CLOSED_KEYS = new Set(["id", "kind", "title", "issue", "status"]);
+
+/** Closed keys of one `insert_approvals` row (#6205). */
+const PLAN_INSERT_APPROVAL_CLOSED_KEYS = new Set(["entry_id", "grant_id", "approved_at"]);
+
+/**
+ * Approval row for an entry added by `plan-sequence:insert` (#6205). Lives
+ * under the top-level `insert_approvals` key so entry keys stay unchanged.
+ */
+export interface PlanInsertApproval {
+  readonly entry_id: string;
+  readonly grant_id: string;
+  readonly approved_at: string;
+}
 
 export interface PlanSequenceEntry {
   readonly id: string;
@@ -89,6 +100,31 @@ export interface PlanSequence {
   readonly generation: number;
   /** Source Git revision recorded at publish. Not the compare key (#3910). */
   readonly source_revision: string;
+  /** Approval rows for entries added by `plan-sequence:insert` (#6205). */
+  readonly insert_approvals?: readonly PlanInsertApproval[];
+}
+
+function isClosedInsertApprovalRow(raw: unknown): boolean {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return false;
+  const row = raw as Record<string, unknown>;
+  for (const key of Object.keys(row)) {
+    if (!PLAN_INSERT_APPROVAL_CLOSED_KEYS.has(key)) return false;
+  }
+  return [row.entry_id, row.grant_id, row.approved_at].every(
+    (value) => typeof value === "string" && value.length > 0,
+  );
+}
+
+function parseInsertApprovals(raw: unknown): PlanInsertApproval[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.filter(isClosedInsertApprovalRow).map((row) => {
+    const r = row as Record<string, string>;
+    return {
+      entry_id: r.entry_id as string,
+      grant_id: r.grant_id as string,
+      approved_at: r.approved_at as string,
+    };
+  });
 }
 
 export function isPlanSequenceKind(value: unknown): value is PlanSequenceKind {
@@ -132,6 +168,12 @@ export function isClosedPlanSequenceShape(raw: unknown): boolean {
     }
   }
   if (Object.hasOwn(obj, "source_revision") && typeof obj.source_revision !== "string") {
+    return false;
+  }
+  if (
+    Object.hasOwn(obj, "insert_approvals") &&
+    (!Array.isArray(obj.insert_approvals) || !obj.insert_approvals.every(isClosedInsertApprovalRow))
+  ) {
     return false;
   }
 
@@ -300,28 +342,22 @@ export function verifyPlanTarget(
         "No active ordered-plan sequence. Set one with plan-sequence:set, or obtain explicit operator approval for this target.",
     };
   }
-  if (sequence.exhausted || sequence.current_index >= sequence.entries.length) {
-    return {
-      ok: false,
-      code: "exhausted",
-      message: EXHAUSTED_FAIL_CLOSED_MESSAGE,
-    };
-  }
-  const index = sequence.current_index;
-  const entry = sequence.entries[index];
-  if (entry === undefined) {
-    return {
-      ok: false,
-      code: "exhausted",
-      message: EXHAUSTED_FAIL_CLOSED_MESSAGE,
-    };
-  }
-  const drift = detectTerminalEntryDrift(sequence, input.terminalOrigins ?? []);
-  if (drift.drifted) {
+  // #6205: the effective entry is derived from completed briefs, not the stored index.
+  const cursor = derivePlanCursor(sequence, input.terminalOrigins ?? []);
+  if (cursor.stop !== null) {
     return {
       ok: false,
       code: TERMINAL_LIFECYCLE_CODE,
-      message: drift.message,
+      message: cursor.stop.message,
+    };
+  }
+  const index = cursor.index;
+  const entry = cursor.entry;
+  if (cursor.exhausted || entry === null) {
+    return {
+      ok: false,
+      code: "exhausted",
+      message: EXHAUSTED_FAIL_CLOSED_MESSAGE,
     };
   }
   if (entry.kind !== input.targetKind) {
@@ -443,6 +479,7 @@ export function parsePlanSequence(raw: unknown): PlanSequence {
     generation = obj.generation;
   }
   const source_revision = typeof obj.source_revision === "string" ? obj.source_revision : "";
+  const insert_approvals = parseInsertApprovals(obj.insert_approvals);
   return {
     sequence_id: obj.sequence_id,
     sequence_kind: obj.sequence_kind as PlanSequenceKind,
@@ -456,5 +493,6 @@ export function parsePlanSequence(raw: unknown): PlanSequence {
     updated_at: typeof obj.updated_at === "string" ? obj.updated_at : new Date().toISOString(),
     generation,
     source_revision,
+    ...(insert_approvals !== undefined ? { insert_approvals } : {}),
   };
 }

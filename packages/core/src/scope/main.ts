@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { closerSetFromIssueIds } from "../one-pr-unit/closer-set.js";
 import { evaluateOnePrUnit } from "../one-pr-unit/evaluate.js";
@@ -9,6 +9,7 @@ import { releaseWorkClaimForBrief } from "../scm/work-claim.js";
 import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
 import { interceptHelp } from "../triage/help/index.js";
 import { reconcileUmbrellas, renderUmbrellasReport } from "../vbrief-reconcile/umbrellas.js";
+import { strictAxisAdvisoryLines } from "./acceptance-evidence.js";
 import { canonicalLogPath, readAll } from "./audit-log.js";
 import { batchPromote } from "./batch-promote.js";
 import { BIND_CLAUSE_ACTION, bindClauseOnBrief } from "./bind-clause.js";
@@ -86,6 +87,24 @@ export interface UndoArgs {
   dryRun?: boolean;
   actor?: string;
   projectRoot?: string;
+}
+
+/**
+ * Strict-axis advisory for a brief on disk (#6272). Best-effort: an unreadable
+ * or malformed brief yields no lines. Never changes an exit code.
+ */
+function briefStrictAxisAdvisory(path: string): string[] {
+  try {
+    return strictAxisAdvisoryLines(JSON.parse(readFileSync(path, "utf8")) as unknown);
+  } catch {
+    return [];
+  }
+}
+
+function writeLines(lines: readonly string[]): void {
+  for (const line of lines) {
+    process.stdout.write(`${line}\n`);
+  }
 }
 
 const LIFECYCLE_USAGE_STDERR =
@@ -481,6 +500,8 @@ export function lifecycleMain(argv: string[]): number {
             "audit: scope-lifecycle.jsonl entry tagged wip_cap_override (#1124).\n",
         );
       }
+      // #6272: advisory only; read the promoted brief (promote may stamp clauses).
+      writeLines(briefStrictAxisAdvisory(promoteResult.destPath ?? filePath));
       return 0;
     }
     process.stderr.write(
@@ -530,9 +551,12 @@ export function lifecycleMain(argv: string[]): number {
     deliveryEvidence,
     verifier: "scope:complete",
   };
+  // #6272: read before the move; activate does not change item text.
+  const activateAdvisory = action === "activate" ? briefStrictAxisAdvisory(filePath) : [];
   const result = runTransition(action, filePath, new Date(), transitionOptions);
   if (result.ok) {
     process.stdout.write(`${result.message}\n`);
+    writeLines(activateAdvisory);
     if (action === "complete") {
       try {
         const completedPath = completedPathForScopeMove(filePath);

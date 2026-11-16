@@ -7,6 +7,7 @@ import {
   issuelessCodeBearingNote,
   parseArgs,
   run,
+  strictAxisAdvisoryForBrief,
 } from "./vbrief-preflight.js";
 
 const temps: string[] = [];
@@ -275,6 +276,62 @@ describe("issue-less code-bearing remediation (#5710 P2)", () => {
     const notObject = briefWith({});
     writeFileSync(notObject, "[]", "utf8");
     expect(issuelessCodeBearingNote(notObject)).toBeNull();
+  });
+});
+
+describe("strict-axis advisory at preflight (#6272)", () => {
+  function briefWith(plan: Record<string, unknown>): string {
+    const root = mkdtempSync(join(tmpdir(), "deft-preflight-6272-"));
+    temps.push(root);
+    mkdirSync(join(root, "active"), { recursive: true });
+    const path = join(root, "active", "story.xbrief.json");
+    writeFileSync(path, JSON.stringify({ plan: { status: "running", ...plan } }), "utf8");
+    return path;
+  }
+
+  function capture(argv: string[]): { code: number; stdout: string; stderr: string } {
+    const out = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    try {
+      const code = run(argv, () => []);
+      return {
+        code,
+        stdout: out.mock.calls.map((call) => String(call[0])).join(""),
+        stderr: err.mock.calls.map((call) => String(call[0])).join(""),
+      };
+    } finally {
+      out.mockRestore();
+      err.mockRestore();
+    }
+  }
+
+  const items = [
+    { id: "clause.1", title: "Smoke check passes after deploy.", status: "pending" },
+    { id: "clause.2", title: "Unit tests cover the parser.", status: "pending" },
+  ];
+
+  it("clause.7: prints the clause id and axes; exit code unchanged", () => {
+    const strict = briefWith({ items });
+    const plain = briefWith({ items: [items[1]] });
+    const listed = capture(["--vbrief-path", strict]);
+    const quiet = capture(["--vbrief-path", plain]);
+    expect(listed.code, listed.stderr).toBe(0);
+    expect(quiet.code).toBe(listed.code);
+    expect(listed.stdout).toContain("  clause.1: smoke, deploy\n");
+    expect(listed.stdout).not.toContain("clause.2:");
+    expect(quiet.stdout).not.toContain("#6272");
+    const json = capture(["--vbrief-path", strict, "--json"]);
+    expect((JSON.parse(json.stdout.trim()) as { message: string }).message).toContain(
+      "clause.1: smoke, deploy",
+    );
+  });
+
+  it("clause.8: a refused preflight keeps its exit code and still lists", () => {
+    const path = briefWith({ status: "pending", items });
+    const result = capture(["--vbrief-path", path]);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("clause.1: smoke, deploy");
+    expect(strictAxisAdvisoryForBrief(join(tmpdir(), "missing-6272.xbrief.json"))).toEqual([]);
   });
 });
 

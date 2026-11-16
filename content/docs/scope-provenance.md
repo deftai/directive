@@ -101,6 +101,25 @@ When an active implementation brief is **outside** the change set, membership is
 
 `.deft/plan-sequence.json` is **never** membership-freed. Coverage inertness / N/A is **not** membership authorization for sequence, plan, spec, pending briefs, production fence, intent, identity, or lifecycle checks. `authorized_by`, narrative text, and head-authored confirmations are not consent; keep `verify:plan-sequence` and spec-guard on those records.
 
+#### Committing the planning package (#5839)
+
+The commit hook's prospective scope-cover (#5656) admits a **planning-publication** staged set without a ready scope. The check runs on the raw staged index entries before the ready-scope guard. It admits the set only when every staged path is one of:
+
+- **Inventory:** `CHANGELOG.md` (or a changelog fragment), `.deft/plan-sequence.json`, `docs/design/<name>.md`, `docs/decisions/<name>.md`.
+- **Record files:** `<name>.xbrief.json` or `<name>.vbrief.json` directly in `proposed/`, `pending/`, `completed/` or `cancelled/`, and `<name>.decision.json` directly in `xbrief/decisions/` or `vbrief/decisions/`.
+
+`<name>` is one path segment with no backslash. Each entry must be added or modified as a regular file (mode 100644), or deleted. A staged `.deft/plan-sequence.json` must pass the closed plan-sequence shape check on its index blob (an `insert_approvals` row from an approved insert passes). Nothing else is read. Any other path, a symlink, an executable, a typechange or a failed shape check means the set is not admitted, and today's rules decide the commit. Admission writes nothing and gives no merge-time credit: membership, coverage and `verify:plan-sequence` still run at the PR boundary.
+
+**Consumer recovery:**
+
+1. Upgrade to the first release that carries this admission. Older runtimes still deny the commit.
+2. Commit the documents, stories, decisions and plan-sequence file **before** `scope:promote`, because promotion rewrites the root plan files. If you already promoted, split them out into their own commit.
+3. Commit root `plan` / `specification` / `PROJECT-DEFINITION` changes in a separate commit (an `xbrief/`-only commit already passes).
+4. A change under `active/` is not admitted with `CHANGELOG.md`, a document or the plan-sequence file. Put lifecycle files in their own commit and the rest in another.
+5. A set with any path outside the inventory and record files is not admitted; it still needs a ready covering scope.
+
+Code: `packages/core/src/hooks/planning-publication.ts`.
+
 **Write-time requirements posture:** pending briefs and root plan/specification are merge-time (Path A / activation), not write-time under an active implementation fence. Do not widen write-time requirements-posture to admit them while the active story fence is live. Stale `parent_lineage` `target_path` values that still name `proposed/` after briefs move to `pending/` recover via unique-`plan.id` / documented parent_lineage resolver — not a membership exemption.
 
 ### What this remedy does not do
