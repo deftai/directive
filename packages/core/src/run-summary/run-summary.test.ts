@@ -155,6 +155,7 @@ describe("RunSummaryEmitter (#3282)", () => {
       "post-compact",
       "mutation-intent",
       "steal-recover",
+      "hook-compact-heal",
     ]);
     expect(lines[0]?.seq).toBe(1);
     expect(lines[1]?.event).toBe("check_invocation");

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - chore(dogfood): pin Directive to 0.129.10.
+- After a context compaction, the write hook restores the ritual clock for the session that owns the live lease and the ritual, and denies one call with the alignment lines instead of every write until a manual re-arm. Other stale-ritual denials print their recovery command with the caller's `--session-id` (#6279).
 
 ### Fixed
 
