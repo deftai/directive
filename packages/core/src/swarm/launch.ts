@@ -47,7 +47,7 @@ import {
   evaluateLeftoverBeforeActivation,
   type LeftoverLandEvidence,
 } from "./leftover-before-activation.js";
-import { originActiveBriefPresent } from "./origin-active-brief.js";
+import { originActiveBriefPresent, originOnePrBriefAdmitted } from "./origin-active-brief.js";
 import { readinessReport } from "./readiness.js";
 import {
   loadRoutingFile,
@@ -1656,6 +1656,8 @@ export function swarmLaunch(args: LaunchArgs): {
 
   const runGit = args.runGit ?? runText;
   const requireOriginActive = args.requireOriginActiveBrief !== false;
+  /** `origin/<base-branch>` when a one-PR brief was admitted there (#6361). */
+  let onePrWorktreeBase: string | null = null;
   if (requireOriginActive) {
     const inside = runGit(["git", "rev-parse", "--is-inside-work-tree"], { cwd: projectRoot });
     const remote = runGit(["git", "remote", "get-url", "origin"], { cwd: projectRoot });
@@ -1666,15 +1668,32 @@ export function swarmLaunch(args: LaunchArgs): {
         const result = runGit(["git", ...gitArgs], { cwd: root });
         return { code: result.returncode, stdout: result.stdout, stderr: result.stderr };
       });
+      const onePrBase = args.baseBranch?.trim() ?? "";
       for (const story of resolved) {
         const probe = originActiveBriefPresent(projectRoot, delivery.branch, story.relpath, runGit);
-        if (!probe.present) {
-          return {
-            exitCode: EXIT_GATE_FAILED,
-            stdout: "",
-            stderr: `Error: ${probe.error ?? `origin missing ${story.relpath}`}\n`,
-          };
+        if (probe.present) continue;
+        // #6361: a one-PR brief lives on the pushed --base-branch, not the delivery tip.
+        const onePr =
+          onePrBase.length > 0 && onePrBase !== delivery.branch
+            ? originOnePrBriefAdmitted(
+                projectRoot,
+                delivery.branch,
+                onePrBase,
+                story.relpath,
+                runGit,
+              )
+            : null;
+        if (onePr?.present === true && onePr.ref !== null) {
+          onePrWorktreeBase = onePr.ref;
+          continue;
         }
+        const onePrNote =
+          onePr !== null ? ` One-PR path (#6361) on origin/${onePrBase}: ${onePr.error}.` : "";
+        return {
+          exitCode: EXIT_GATE_FAILED,
+          stdout: "",
+          stderr: `Error: ${probe.error ?? `origin missing ${story.relpath}`}${onePrNote}\n`,
+        };
       }
     }
   }
@@ -1884,8 +1903,18 @@ export function swarmLaunch(args: LaunchArgs): {
           `Error: --worktree-map ${args.worktreeMap} must contain a JSON array of records.\n`,
         );
       }
-      const mapping = payload as Record<string, unknown>[];
-      const base = args.baseBranch ?? DEFAULT_BASE_BRANCH;
+      const requestedBase = args.baseBranch ?? DEFAULT_BASE_BRANCH;
+      // #6361: a one-PR dest is built from the pushed ref; no brief/record bytes are copied.
+      const base = onePrWorktreeBase ?? requestedBase;
+      const mapping = (payload as Record<string, unknown>[]).map((row) =>
+        onePrWorktreeBase !== null &&
+        row !== null &&
+        typeof row === "object" &&
+        typeof row.base_branch === "string" &&
+        row.base_branch.trim() === requestedBase
+          ? { ...row, base_branch: onePrWorktreeBase }
+          : row,
+      );
       const createMissing = !(args.noCreateWorktrees ?? false);
       const opts = { repoRoot: projectRoot };
       let records: WorktreeRecord[];

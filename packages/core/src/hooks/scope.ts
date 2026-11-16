@@ -44,6 +44,29 @@ export const POSITIVE_GOVERNING_ALLOW_REQUIRED =
   "`deft scope:activate -- <path>` (auto-promote from proposed/ is refused); " +
   "for an already-pending xBRIEF run `deft scope:activate -- <path>`.";
 
+/**
+ * Deny copy for a brief absent from the merge base when the merge-base one-PR
+ * level is on and the mint does not admit it (#6361). Lifecycle moves would
+ * rewrite the brief and void the mint, so the recovery names the mint only.
+ */
+export function formatOnePrMintNotAdmitted(reason: string): string {
+  return (
+    "Directive denied this mutation: the selected running scope is not on the merge base, " +
+    "and its one-PR mint does not admit it (#6361 / #6273): " +
+    `${fenceUntrustedAcceptanceText(reason)}. ` +
+    "Recovery: the human mints the current brief bytes with " +
+    "`deft scope:record-approved-scope -- <xbrief-path> --actor <you> --confirm`; " +
+    "any edit to the brief after the mint needs a new mint."
+  );
+}
+
+/** Positive-allow deny copy for a fence view: mint reason when it has one (#5656 / #6361). */
+export function formatPositiveGoverningAllowDeny(fence: StoryWriteFenceView): string {
+  const mint = fence.onePrMint;
+  if (mint !== undefined && !mint.admitted) return formatOnePrMintNotAdmitted(mint.reason);
+  return POSITIVE_GOVERNING_ALLOW_REQUIRED;
+}
+
 /** Hook/process env pin for the dispatched story when more than one brief is active (#4007). */
 export const ACTIVE_SCOPE_PIN_ENV = "DEFT_ACTIVE_SCOPE";
 

@@ -1783,3 +1783,43 @@ describe("dest-proven spawn dest unique-basename pin (#4393)", () => {
     expect(readSpawnReservationIncarnation(root, dest)).toBeNull();
   });
 });
+
+describe("implement spawn reaches the same one-PR mint admit as Write (#6361)", () => {
+  function spawn(fence: ReturnType<NonNullable<HookPolicySeams["loadStoryWriteFence"]>>) {
+    const { root, dest } = destFixture();
+    return decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { cwd: dest, prompt: "implement the story" },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      readySeams({ loadStoryWriteFence: () => fence }),
+    );
+  }
+
+  it("allows implement spawn on a mint-admitted fence", () => {
+    const decision = spawn({
+      fileScope: ["src/a.ts"],
+      denyPaths: [],
+      onePrMint: { admitted: true },
+    });
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+  });
+
+  it("denies implement spawn with the mint reject reason when the mint does not admit", () => {
+    const decision = spawn({
+      fileScope: [],
+      denyPaths: [],
+      onePrMint: { admitted: false, reason: "record authHashV1 differs from the head brief" },
+    });
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toContain("record authHashV1 differs from the head brief");
+    expect(decision.message).toContain("scope:record-approved-scope");
+    expect(decision.message).not.toMatch(/scope:promote|scope:activate/);
+  });
+});

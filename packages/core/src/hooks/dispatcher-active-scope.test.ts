@@ -7,7 +7,12 @@ import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
 import { SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE } from "../scope/transition-hint.js";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import { writeWorkerAuthAssignment } from "../swarm/worker-auth-assignment.js";
-import { ACTIVE_SCOPE_PIN_ENV, decideHook, type HookPolicySeams } from "./index.js";
+import {
+  ACTIVE_SCOPE_PIN_ENV,
+  decideHook,
+  evaluateProspectiveScopeCover,
+  type HookPolicySeams,
+} from "./index.js";
 
 const originFreshness = vi.hoisted(() => ({
   evaluate: vi.fn((_payload: unknown, _options?: { readonly skip?: boolean }) => ({
@@ -690,5 +695,55 @@ describe("commit gate judges the checkout the commit names (#6278 / #6247)", {
     expect(commit(primary, `git -C "${wtA}" commit -m x`).verdict).toBe("allow");
     git(wtA, ["add", "--", "xbrief/active/a-story.xbrief.json"]);
     expect(commit(primary, `git -C "${wtA}" commit -m x`).verdict).toBe("allow");
+  });
+});
+
+describe("prospective scope-cover uses the one-PR mint fence (#6361)", () => {
+  const scopePath = "/project/xbrief/active/one-pr.xbrief.json";
+  const ready = () => ({ ready: true, path: scopePath, message: "OK active scope" });
+
+  it("covers staged paths inside a mint-admitted file_scope and refuses the rest", () => {
+    const covered = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: ["src/a.ts"],
+      inspectScope: ready,
+      resolveStoryBinding: () => ({ kind: "none" }),
+      loadStoryWriteFence: () => ({
+        fileScope: ["src/a.ts"],
+        denyPaths: [],
+        onePrMint: { admitted: true },
+      }),
+    });
+    expect(covered).toMatchObject({ ok: true, scopePath });
+    const outside = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: ["src/b.ts"],
+      inspectScope: ready,
+      resolveStoryBinding: () => ({ kind: "none" }),
+      loadStoryWriteFence: () => ({
+        fileScope: ["src/a.ts"],
+        denyPaths: [],
+        onePrMint: { admitted: true },
+      }),
+    });
+    expect(outside).toMatchObject({ ok: false, uncovered: ["src/b.ts"] });
+  });
+
+  it("names the mint reject reason and scope:record-approved-scope when the mint does not admit", () => {
+    const denied = evaluateProspectiveScopeCover({
+      projectRoot: "/project",
+      stagedRelPaths: ["src/a.ts"],
+      inspectScope: ready,
+      resolveStoryBinding: () => ({ kind: "none" }),
+      loadStoryWriteFence: () => ({
+        fileScope: [],
+        denyPaths: [],
+        onePrMint: { admitted: false, reason: "no same-PR approved-scope record" },
+      }),
+    });
+    expect(denied.ok).toBe(false);
+    expect(denied.message).toContain("no same-PR approved-scope record");
+    expect(denied.message).toContain("scope:record-approved-scope");
+    expect(denied.message).not.toMatch(/scope:promote|scope:activate/);
   });
 });

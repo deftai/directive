@@ -240,6 +240,13 @@ describe("formatMintLevelAdmitBlock (#6273 / #6354)", () => {
     expect(block).not.toContain(MINT_LEVEL_CI_LIMIT_LINE);
     expect(MINT_LEVEL_LOCAL_CONTROL_LINE).toMatch(/CI verifies nothing human/);
     expect(MINT_LEVEL_LOCAL_CONTROL_LINE).toMatch(/local mint gate and the write fence/);
+    // #6361: the control is the protected-store deny, and the shell residual is named.
+    expect(MINT_LEVEL_LOCAL_CONTROL_LINE).toContain(
+      "protected-store deny on .deft/approved-scope/",
+    );
+    expect(MINT_LEVEL_LOCAL_CONTROL_LINE).toMatch(
+      /#3597, #3595\) also reaches local scope admission/,
+    );
     expect(mintLevelControlLine(false)).toBe(MINT_LEVEL_LOCAL_CONTROL_LINE);
     expect(mintLevelControlLine(true)).toBe(MINT_LEVEL_CI_LIMIT_LINE);
   });
@@ -297,6 +304,7 @@ describe("setOnePrScopeProof (#6273)", () => {
     expect(first.exitCode).toBe(0);
     expect(first.changed).toBe(true);
     expect(first.stdout).toContain("local mint gate and the write fence");
+    expect(first.stdout).toContain("protected-store deny on .deft/approved-scope/");
     expect(first.stdout).not.toMatch(/applies only when requireHumanMerge/);
     expect(readLevel(r)).toBe("mint");
     const again = setOnePrScopeProof(r, { level: "mint", confirm: true });

@@ -11,6 +11,8 @@ import {
 } from "../swarm/worker-auth-assignment.js";
 import {
   ACTIVE_SCOPE_PIN_ENV,
+  formatOnePrMintNotAdmitted,
+  formatPositiveGoverningAllowDeny,
   governingAllowCoversRelPath,
   hasPositiveGoverningStoryAllow,
   inspectActiveScope,
@@ -453,6 +455,76 @@ describe("non-fencing partition for unpinned multi-eligible (#4880 Prefer-A C')"
     });
     expect(result.ready).toBe(false);
     expect(result.denyKind).toBe("multiple-eligible");
+  });
+});
+
+describe("one-PR mint fence in selection and deny text (#6361)", () => {
+  function writeBrief(project: string, name: string, fileScope?: readonly string[]): string {
+    const active = join(project, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    const path = join(active, name);
+    const metadata =
+      fileScope === undefined
+        ? runningPlacement.metadata
+        : { ...runningPlacement.metadata, swarm: { file_scope: [...fileScope] } };
+    writeFileSync(path, JSON.stringify({ plan: { ...runningPlacement, metadata } }), "utf8");
+    return path;
+  }
+
+  it("brief selection reaches the same mint admit as Write: an admitted one-PR brief binds", () => {
+    const project = root();
+    // Absent from the merge base, so its own bytes give no fence; the mint does.
+    const onePr = writeBrief(project, "one-pr-story.xbrief.json");
+    writeBrief(project, "admin-story.xbrief.json");
+    const loadStoryWriteFence = (_root: string, scopePath: string) =>
+      scopePath === onePr
+        ? { fileScope: ["src/a.ts"], denyPaths: [], onePrMint: { admitted: true as const } }
+        : { fileScope: [], denyPaths: [] };
+
+    const result = inspectActiveScope(project, { env: {}, loadStoryWriteFence });
+    expect(result).toMatchObject({ ready: true, path: onePr });
+    expect(selectedBriefHasPositiveGoverningAllow(project, onePr, loadStoryWriteFence)).toBe(true);
+  });
+
+  it("a rejected mint gives no positive allow and does not win selection", () => {
+    const project = root();
+    writeBrief(project, "one-pr-story.xbrief.json");
+    const fencing = writeBrief(project, "fence-story.xbrief.json", ["packages/b/**"]);
+    const loadStoryWriteFence = (_root: string, scopePath: string) =>
+      scopePath === fencing
+        ? loadStoryWriteFenceFromPath(scopePath)
+        : {
+            fileScope: [],
+            denyPaths: [],
+            onePrMint: { admitted: false as const, reason: "no same-PR approved-scope record" },
+          };
+    const result = inspectActiveScope(project, { env: {}, loadStoryWriteFence });
+    expect(result).toMatchObject({ ready: true, path: fencing });
+  });
+
+  it("names the mint reject reason and scope:record-approved-scope, not promote or activate", () => {
+    const text = formatPositiveGoverningAllowDeny({
+      fileScope: [],
+      denyPaths: [],
+      onePrMint: { admitted: false, reason: "record authHashV1 differs from the head brief" },
+    });
+    expect(text).toBe(formatOnePrMintNotAdmitted("record authHashV1 differs from the head brief"));
+    expect(text).toContain("record authHashV1 differs from the head brief");
+    expect(text).toContain("scope:record-approved-scope");
+    expect(text).not.toMatch(/scope:promote|scope:activate/);
+  });
+
+  it("keeps the #5656 text when the merge-base level is off or the mint admitted", () => {
+    expect(formatPositiveGoverningAllowDeny({ fileScope: [], denyPaths: [] })).toBe(
+      POSITIVE_GOVERNING_ALLOW_REQUIRED,
+    );
+    expect(
+      formatPositiveGoverningAllowDeny({
+        fileScope: ["src/a.ts"],
+        denyPaths: [],
+        onePrMint: { admitted: true },
+      }),
+    ).toBe(POSITIVE_GOVERNING_ALLOW_REQUIRED);
   });
 });
 

@@ -22,6 +22,10 @@ import {
 import { fingerprintScope, recordClearance } from "../orchestration/verify-judgment-gates.js";
 import { DEFT_ALLOW_JUDGMENT_GATE_ENFORCE } from "../policy/capacity.js";
 import type { CompletedProcess } from "../scm/call.js";
+import { buildApprovedScopeRecord } from "../scope-provenance/digest.js";
+import { extractIntentFromRaw } from "../scope-provenance/extract-intent.js";
+import { computeAuthHashV1 } from "../scope-provenance/forge-approval.js";
+import { computeIntentDigest } from "../scope-provenance/intent-digest.js";
 import { applyWorktreeOccupancy, occupancyPath, readOccupancy } from "../session/occupancy.js";
 import { GATE_ADVISE, GATE_ENFORCE } from "./constants.js";
 import {
@@ -1539,5 +1543,173 @@ describe("evaluateJudgmentClearancePosture (#1511 P2-a)", () => {
     });
     expect(enforced.ok).toBe(false);
     expect(enforced.stderr).toMatch(/stale-story-gate/);
+  });
+});
+
+describe("swarmLaunch from a pushed one-PR branch (#6361)", { timeout: 60_000 }, () => {
+  const savedRouting = process.env.DEFT_ROUTING_PATH;
+  const cleanups: string[] = [];
+  afterEach(() => {
+    if (savedRouting === undefined) delete process.env.DEFT_ROUTING_PATH;
+    else process.env.DEFT_ROUTING_PATH = savedRouting;
+    for (const dir of cleanups.splice(0)) rmSync(dir, { recursive: true, force: true });
+  });
+
+  const PLAN_ID = "story-6361";
+  const BRIEF_REL = `xbrief/active/${PLAN_ID}.xbrief.json`;
+  const RECORD_REL = `.deft/approved-scope/${PLAN_ID}.json`;
+  const INTENT_REL = `.deft/approved-scope/${PLAN_ID}.intent.json`;
+
+  function write(root: string, rel: string, text: string): void {
+    const abs = join(root, ...rel.split("/"));
+    mkdirSync(join(abs, ".."), { recursive: true });
+    writeFileSync(abs, text, "utf8");
+  }
+
+  /**
+   * origin/master sets onePrScopeProof=mint and has no brief. origin/one-pr
+   * carries the brief and its human mint pair. The checkout stays on one-pr.
+   */
+  function onePrProject(options: { mint: boolean }): string {
+    const project = mkdtempSync(join(tmpdir(), "launch-6361-"));
+    cleanups.push(project);
+    const git = (...args: string[]) => execFileSync("git", args, { cwd: project });
+    git("init", "-q", "-b", "master");
+    git("config", "user.email", "t@t.local");
+    git("config", "user.name", "T");
+    write(
+      project,
+      "xbrief/PROJECT-DEFINITION.xbrief.json",
+      JSON.stringify({
+        plan: { title: "t", status: "running", policy: { onePrScopeProof: "mint" } },
+      }),
+    );
+    git("add", "-A");
+    git("commit", "-q", "-m", "base");
+    const bare = mkdtempSync(join(tmpdir(), "launch-6361-bare-"));
+    cleanups.push(bare);
+    execFileSync("git", ["init", "-q", "--bare", join(bare, "o.git")]);
+    git("remote", "add", "origin", join(bare, "o.git"));
+    git("push", "-q", "origin", "master");
+    git("checkout", "-q", "-b", "one-pr");
+    const payload = {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        id: PLAN_ID,
+        title: PLAN_ID,
+        status: "running",
+        references: [
+          { uri: "https://github.com/deftai/directive/issues/6361", type: "x-vbrief/github-issue" },
+        ],
+        metadata: {
+          kind: "story",
+          swarm: { readiness: "ready", file_scope: ["src/a.ts", RECORD_REL, INTENT_REL] },
+        },
+      },
+    };
+    const raw = JSON.stringify(payload);
+    write(project, BRIEF_REL, `${raw}\n`);
+    if (options.mint) {
+      const extracted = extractIntentFromRaw(`${raw}\n`, {});
+      if (!extracted.ok) throw new Error(extracted.error);
+      const record = {
+        ...buildApprovedScopeRecord({
+          xbriefRelPath: BRIEF_REL,
+          payload,
+          humanApproval: { kind: "operator", actor: "scott", mintedAt: "2026-11-16T00:00:00Z" },
+          intentDigest: computeIntentDigest(extracted.preimage),
+          digestAlgo: "intent-extract-v1",
+        }),
+        authHashV1: computeAuthHashV1(payload, BRIEF_REL) ?? "",
+      };
+      write(project, RECORD_REL, JSON.stringify(record));
+      write(project, INTENT_REL, JSON.stringify(extracted.preimage));
+    }
+    git("add", "-A");
+    git("commit", "-q", "-m", "one-PR brief");
+    git("push", "-q", "origin", "one-pr");
+    const routePath = join(project, "routing.local.json");
+    writeFileSync(
+      routePath,
+      JSON.stringify({
+        cursor: { "leaf-implementation": { model: "composer-2.5-fast", mode: "pinned" } },
+      }),
+    );
+    process.env.DEFT_ROUTING_PATH = routePath;
+    return project;
+  }
+
+  function launch(project: string, baseBranch: string | undefined, seen: string[]) {
+    const dest = join(project, "wt-6361");
+    const mapPath = join(project, "worktree-map.json");
+    writeFileSync(
+      mapPath,
+      JSON.stringify([
+        { story_id: PLAN_ID, worktree_path: dest, base_branch: baseBranch ?? "master" },
+      ]),
+    );
+    return swarmLaunch({
+      stories: [BRIEF_REL],
+      projectRoot: project,
+      autonomous: true,
+      ...(baseBranch !== undefined ? { baseBranch } : {}),
+      worktreeMap: mapPath,
+      // Stand-in for resolveWorktreeMap: build the dest from the base it is handed.
+      worktreeResolver: (mapping, base) => {
+        seen.push(base, ...mapping.map((row) => String(row.base_branch)));
+        execFileSync("git", ["worktree", "add", "-q", "--detach", dest, base], { cwd: project });
+        return mapping.map((row) => ({
+          story_id: String(row.story_id),
+          worktree_path: String(row.worktree_path),
+          base_branch: String(row.base_branch),
+        }));
+      },
+      preflightGate: () => ({ exitCode: 0, message: "" }),
+      readinessGate: () => ({ exitCode: 0, report: "" }),
+      runtimeAuthProbe: () => ["cloud-headless", "injected-token"],
+      environ: { CURSOR_AGENT: "1", GH_TOKEN: FAKE_TOKEN, GH_REPO: TARGET_REPO },
+      sessionId: "test-session",
+      runGh: stubGh({}),
+      ...LAUNCH_INJECTED_AUTH,
+    });
+  }
+
+  it("proceeds for a minted brief absent from origin/master and builds the dest from origin/<base-branch>", () => {
+    const project = onePrProject({ mint: true });
+    const seen: string[] = [];
+    const result = launch(project, "one-pr", seen);
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(seen).toEqual(["origin/one-pr", "origin/one-pr"]);
+    const dest = join(project, "wt-6361");
+    for (const rel of [BRIEF_REL, RECORD_REL, INTENT_REL]) {
+      expect(existsSync(join(dest, ...rel.split("/")))).toBe(true);
+    }
+  });
+
+  it("refuses as today when the brief is on neither ref", () => {
+    const project = onePrProject({ mint: true });
+    execFileSync("git", ["push", "-q", "origin", "master:empty"], { cwd: project });
+    const seen: string[] = [];
+    const result = launch(project, "empty", seen);
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toMatch(/protected delivery tip origin\/master is missing active brief/);
+    expect(result.stderr).toContain(`origin/empty has no active brief ${BRIEF_REL}`);
+    expect(seen).toEqual([]);
+    // No --base-branch: today's refusal, unchanged.
+    const plain = launch(project, undefined, seen);
+    expect(plain.exitCode).not.toBe(0);
+    expect(plain.stderr).not.toContain("One-PR path");
+    expect(seen).toEqual([]);
+  });
+
+  it("refuses with the mint reason when the pushed brief has no record", () => {
+    const project = onePrProject({ mint: false });
+    const seen: string[] = [];
+    const result = launch(project, "one-pr", seen);
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain(
+      "One-PR path (#6361) on origin/one-pr: no same-PR approved-scope record",
+    );
+    expect(seen).toEqual([]);
   });
 });

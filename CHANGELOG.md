@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore(dogfood): pin Directive to 0.129.10.
 
 ### Fixed
+- fix(scope): a one-PR story now has a worker path. The write fence admits a brief absent from the merge base when the merge-base level is `mint` and the same-PR record matches that exact brief (same checks as CI, never cached), `swarm:launch -- --base-branch <branch>` accepts such a brief from the pushed branch and builds the dest from it, and `task policy:set-one-pr-scope-proof` works. Refs #6361.
 
 ### Removed
 
