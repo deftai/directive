@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6277",
-    "updated": "2026-11-16T04:37:13Z"
+    "updated": "2026-11-16T17:03:50Z"
   },
   "plan": {
     "title": "feat(scope): complete a delivered story without a separate human-reviewed completion PR",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "A story's last product PR can carry its brief from active/ to completed/ with `scope:complete --in-pr`, so no separate human-reviewed completion PR is needed. In-PR mode refuses stories whose acceptance rests on a merge (judged by the brief's own inputs); those keep the post-merge path (#6303). CI admits the move only when the PR removes the brief from active/, changes code inside the brief's file_scope and has a closing keyword for the issue; after merge, `verify:completed-tracked` re-runs the identity join on the landing commit and `verify:orphan-active` lists a brief that fails it.",
       "UserStory": "As a maintainer shipping a story, I want the last product PR to complete the story, so that I do not open, review, run CI on and merge a second lifecycle PR for every delivered story.",
@@ -20,130 +20,242 @@
     "items": [
       {
         "title": "In-PR completion: `scope:complete -- <active-path> --in-pr` runs the transition on the product branch (acceptance evidence, acceptance walk, spec-drift, parent and twin moves, ledger) and writes `lifecycleWrite` with completion disposition `lands-with-product`.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given an active story brief on a product branch, when `scope:complete --in-pr` runs, then it moves the brief to completed/ and records lifecycleWrite.completionDisposition `lands-with-product`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "effef711d8116b020bbc4f25df89d9f59d925039",
+          "recorded_at": "2026-11-16T17:03:50Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "It writes no delivered provenance and no merge evidence.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given a successful in-PR completion, then the completed brief records no completionProvenance and no acceptance evidence of kind merge."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "effef711d8116b020bbc4f25df89d9f59d925039",
+          "recorded_at": "2026-11-16T17:03:50Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Before it runs, it refuses on the brief's own inputs: any acceptance item for which `itemDeclaresMergeRequirement` is true, any stored acceptance evidence of kind `merge`, any stored `completionProvenance`, clause-less acceptance (`isClauseLessAcceptance`), a brief with no GitHub issue reference, and a branch with no production file inside the brief's `file_scope`.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given a brief with a merge-requirement item, stored merge evidence, stored completionProvenance, clause-less acceptance, no issue reference or no in-scope production change, when `scope:complete --in-pr` runs, then it rejects the brief and leaves it in active/."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "effef711d8116b020bbc4f25df89d9f59d925039",
+          "recorded_at": "2026-11-16T17:03:50Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Each refusal names the post-merge path and #6303.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given any in-PR refusal, then the message returned names the post-merge `scope:complete` path and #6303."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "effef711d8116b020bbc4f25df89d9f59d925039",
+          "recorded_at": "2026-11-16T17:03:50Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Identity basis: `prDiffAddsBrief` also accepts a `renamed` entry whose previous path is the same brief basename under `active/`, beside a change outside the lifecycle folders.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given PR changed files with a `renamed` entry from active/ with the same brief basename beside a code change, then `prDiffAddsBrief` returns true."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "effef711d8116b020bbc4f25df89d9f59d925039",
+          "recorded_at": "2026-11-16T17:03:50Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A lifecycle-only PR still does not qualify.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given a PR whose changed files are only lifecycle brief moves, then `prDiffAddsBrief` returns false for that brief."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "effef711d8116b020bbc4f25df89d9f59d925039",
+          "recorded_at": "2026-11-16T17:03:50Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Admission: `verify:completed-write-guard` admits a code-bearing `completed/` add with disposition `lands-with-product` only when all of these hold on the PR's changed files: the brief leaves `active/` in the same change set (a rename from `active/`, or a delete of the same basename under `active/` beside the add); `prDiffAddsBrief` holds for that brief; the changed production files sit inside the brief's `file_scope`; and the PR body passes `bodyHasClosingKeywordFor` for the brief's issue.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given a lands-with-product completed/ add, when verify:completed-write-guard runs, then it passes only with the paired active/ removal, the brief diff, in-scope production files and a closing keyword, and otherwise fails naming the missing condition."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "effef711d8116b020bbc4f25df89d9f59d925039",
+          "recorded_at": "2026-11-16T17:03:50Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "No sole-mark check is used.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given a lands-with-product add whose other admission conditions hold, when verify:completed-write-guard runs, then it passes without any sole-mark scan of other PRs."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "effef711d8116b020bbc4f25df89d9f59d925039",
+          "recorded_at": "2026-11-16T17:03:50Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Every other case is unchanged.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given a completed/ add without the lands-with-product disposition, then verify:completed-write-guard returns the same verdict as before this change."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "effef711d8116b020bbc4f25df89d9f59d925039",
+          "recorded_at": "2026-11-16T17:03:50Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Close proof: for a completed brief with disposition `lands-with-product`, `verify:completed-tracked` finds the commit that added the brief on the delivery tip, resolves its pull request, and runs `verifyStoryPrMergeIdentity` with that commit as the merge commit.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given a lands-with-product brief on the delivery tip, when verify:completed-tracked runs, then it returns exit 0 only when verifyStoryPrMergeIdentity joins the landing commit's PR with that commit as the merge commit."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "effef711d8116b020bbc4f25df89d9f59d925039",
+          "recorded_at": "2026-11-16T17:03:50Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A failed join, or a landing commit with no pull request, exits 1 and names the brief and the post-merge recovery.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given a failed join or a landing commit with no pull request, then verify:completed-tracked fails with exit 1 and names the brief and the post-merge recovery."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "effef711d8116b020bbc4f25df89d9f59d925039",
+          "recorded_at": "2026-11-16T17:03:50Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Visible failure: `verify:orphan-active` also lists a `lands-with-product` brief on the delivery tip whose close proof (item 4) fails.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given a lands-with-product brief on the delivery tip whose close proof fails, when verify:orphan-active runs, then it fails and lists that brief."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "effef711d8116b020bbc4f25df89d9f59d925039",
+          "recorded_at": "2026-11-16T17:03:50Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Story gates: gates that look for the story's brief under `active/` on the PR head also accept it under `completed/` when the change set carries a `lands-with-product` move for that brief.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given a change set that moves a story brief to completed/ with lands-with-product, then verify:ac, pre-push story selection, intent-constraint, observable-scope, presentation-coverage and the story-line check select that brief instead of failing or skipping."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "effef711d8116b020bbc4f25df89d9f59d925039",
+          "recorded_at": "2026-11-16T17:03:50Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Default and docs: the pre-PR skill and `commands.md` name in-PR completion as the default for a story's last product PR; a refused story keeps the post-merge path (#6303).",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given the pre-PR skill and commands.md, then they show in-PR completion as the default for a story's last product PR and name the post-merge path (#6303) for refused stories."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "effef711d8116b020bbc4f25df89d9f59d925039",
+          "recorded_at": "2026-11-16T17:03:50Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Docs state that the human product merge plus the identity join is the completion proof.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given commands.md, then it shows that the human product merge plus the identity join is the completion proof for in-PR completion."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "effef711d8116b020bbc4f25df89d9f59d925039",
+          "recorded_at": "2026-11-16T17:03:50Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Tests: an accepted in-PR completion merged with the move reported as `renamed` passes items 3 and 4, and `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` exit 0 with no second PR; the same with the move reported as delete plus add; a story whose earlier merged PRs carry the same sole mark still passes; a PR body edited after CI to drop the keyword still passes on the diff basis; the guard refuses a missing keyword, a completed add that leaves the `active/` brief in place, and production files outside `file_scope`; in-PR mode refuses an item that declares the merge requirement, a brief with pre-stamped merge evidence, a brief with stored completion provenance, and clause-less acceptance; a `lands-with-product` brief landed by a direct commit fails item 4 and is listed by item 5; a lifecycle-only rename does not satisfy item 2; the post-merge path behaves as today.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given the Bound 8 fixtures (rename and delete-plus-add merges, earlier sole-mark PRs, a body edited after CI, guard and in-PR refusals, a direct-commit landing, a lifecycle-only rename), when the tests run, then each returns its stated pass or refusal verdict."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "effef711d8116b020bbc4f25df89d9f59d925039",
+          "recorded_at": "2026-11-16T17:03:50Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -922,6 +1034,33 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "733bce85df5086db0587dc228928c10b86d24f1a7c3ff6047c7661c264cffa28"
+      },
+      "productPullRequest": 6404,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "9d848271da8cd5de9e181a6dbdd72081724cbc3f",
+        "prNumber": 6404,
+        "prBase": "master",
+        "mergeCommit": "effef711d8116b020bbc4f25df89d9f59d925039",
+        "deliveryBranch": "master",
+        "deliveryCommit": "effef711d8116b020bbc4f25df89d9f59d925039",
+        "verifiedAt": "2026-11-16T17:03:50Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T17:03:50Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T17:03:50Z"
       }
     },
     "acceptance": {
@@ -1087,6 +1226,6 @@
       ]
     },
     "id": "github.issue.6374105155",
-    "updated": "2026-11-16T04:37:13Z"
+    "updated": "2026-11-16T17:03:50Z"
   }
 }
