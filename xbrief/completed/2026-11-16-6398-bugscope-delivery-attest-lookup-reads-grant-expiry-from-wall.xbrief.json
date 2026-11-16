@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6398",
-    "updated": "2026-11-16T10:24:28Z"
+    "updated": "2026-11-16T15:32:23Z"
   },
   "plan": {
     "title": "bug(scope): delivery attest lookup reads grant expiry from wall clock; master CI red after 2026-11-16T10:00Z",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The default delivery attestation lookup in evaluateDeliveryGate calls findDeliveryIdentityAttestation without now, so grant expiry is read from the wall clock instead of the transition clock (options.nowIso). Master CI has been red since 2026-11-16T10:00Z because two tests in delivery-identity-attest-grant.test.ts mint at a fixed time and pass only while the wall clock is before the 24-hour expiry. The fix passes now: new Date(options.nowIso) to the default lookup; no test changes.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6398",
@@ -20,105 +20,196 @@
       {
         "id": "clause.1",
         "title": "Problem Master CI fails from 2026-11-16T10:00Z.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Problem Master CI fails from 2026-11-16T10:00Z."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c3630b3c54fa2d68a07e10ae083aedbc7dffa7de",
+          "recorded_at": "2026-11-16T15:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.2",
         "title": "Every PR in the merge queue fails the same two tests in `packages/core/src/policy/delivery-identity-attest-grant.test.ts`: - `clause.7: an acceptance refusal after the join leaves the grant unused; finalize retry and restamp pass` - `clause.8: completion refuses on an expired unused grant, another target, an unreadable body, or a lifecycle-only PR` Both fail with `grant ...",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Every PR in the merge queue fails the same two tests in `packages/core/src/policy/delivery-identity-attest-grant.test.ts`: - `clause.7: an acceptance refusal after the join leaves the grant unused; finalize retry and restamp pass` - `clause.8: completion refuses on an expired unused grant, another target, an unreadable body, or a lifecycle-only PR` Both fail with `grant ..."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c3630b3c54fa2d68a07e10ae083aedbc7dffa7de",
+          "recorded_at": "2026-11-16T15:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.3",
         "title": "expired (or is not active) before first use`.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "expired (or is not active) before first use`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c3630b3c54fa2d68a07e10ae083aedbc7dffa7de",
+          "recorded_at": "2026-11-16T15:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.4",
         "title": "Cause `evaluateDeliveryGate` (`packages/core/src/scope/delivery-evidence.ts`, default `findDeliveryAttestation` near line 2586) calls `findDeliveryIdentityAttestation` without `now`.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Cause `evaluateDeliveryGate` (`packages/core/src/scope/delivery-evidence.ts`, default `findDeliveryAttestation` near line 2586) calls `findDeliveryIdentityAttestation` without `now`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c3630b3c54fa2d68a07e10ae083aedbc7dffa7de",
+          "recorded_at": "2026-11-16T15:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.5",
         "title": "The lookup then checks grant expiry against the real clock, not the transition clock (`options.nowIso`).",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "The lookup then checks grant expiry against the real clock, not the transition clock (`options.nowIso`)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c3630b3c54fa2d68a07e10ae083aedbc7dffa7de",
+          "recorded_at": "2026-11-16T15:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.6",
         "title": "The tests mint at a fixed `2026-11-15T10:00Z` with the 24-hour default expiry and run completion at a fixed `2026-11-15T12:00Z`.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "The tests mint at a fixed `2026-11-15T10:00Z` with the 24-hour default expiry and run completion at a fixed `2026-11-15T12:00Z`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c3630b3c54fa2d68a07e10ae083aedbc7dffa7de",
+          "recorded_at": "2026-11-16T15:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.7",
         "title": "They passed until the real clock passed the expiry.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "They passed until the real clock passed the expiry."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c3630b3c54fa2d68a07e10ae083aedbc7dffa7de",
+          "recorded_at": "2026-11-16T15:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.8",
         "title": "Came in with #6317 (PR #6330).",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Came in with #6317 (PR #6330)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c3630b3c54fa2d68a07e10ae083aedbc7dffa7de",
+          "recorded_at": "2026-11-16T15:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.9",
         "title": "The same gap affects production: a completion run with an injected or replayed clock reads grant expiry from wall time.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "The same gap affects production: a completion run with an injected or replayed clock reads grant expiry from wall time."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c3630b3c54fa2d68a07e10ae083aedbc7dffa7de",
+          "recorded_at": "2026-11-16T15:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.10",
         "title": "Fix Pass `now: new Date(options.nowIso)` to the default lookup.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Fix Pass `now: new Date(options.nowIso)` to the default lookup."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c3630b3c54fa2d68a07e10ae083aedbc7dffa7de",
+          "recorded_at": "2026-11-16T15:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.11",
         "title": "No test change.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "No test change."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c3630b3c54fa2d68a07e10ae083aedbc7dffa7de",
+          "recorded_at": "2026-11-16T15:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.12",
         "title": "Acceptance Criteria - Given a delivery gate run with `nowIso` before a grant's expiry, when the real clock is after that expiry, then the default attestation lookup treats the grant as unexpired.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "Acceptance Criteria - Given a delivery gate run with `nowIso` before a grant's expiry, when the real clock is after that expiry, then the default attestation lookup treats the grant as unexpired."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c3630b3c54fa2d68a07e10ae083aedbc7dffa7de",
+          "recorded_at": "2026-11-16T15:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "id": "clause.13",
         "title": "The two tests above pass at any wall-clock time.",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "The two tests above pass at any wall-clock time."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c3630b3c54fa2d68a07e10ae083aedbc7dffa7de",
+          "recorded_at": "2026-11-16T15:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -175,6 +266,33 @@
         "github_issue_id": 6418966722,
         "origin": "deftai/directive#6398",
         "id": "github.issue.6418966722"
+      },
+      "productPullRequest": 6399,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "787c6f5408f31cd7db958382ccc6e5ee256fb5cb",
+        "prNumber": 6399,
+        "prBase": "master",
+        "mergeCommit": "c3630b3c54fa2d68a07e10ae083aedbc7dffa7de",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c3630b3c54fa2d68a07e10ae083aedbc7dffa7de",
+        "verifiedAt": "2026-11-16T15:32:23Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T15:32:23Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T15:32:23Z"
       }
     },
     "acceptance": {
@@ -308,6 +426,7 @@
       ],
       "ambiguity_attestation": "none_found"
     },
-    "id": "github.issue.6418966722"
+    "id": "github.issue.6418966722",
+    "updated": "2026-11-16T15:32:23Z"
   }
 }

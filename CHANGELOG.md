@@ -13,11 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - chore(dogfood): pin Directive to 0.129.10.
+- chore(xbrief): widen the #6361 brief to `known-machine.ts` (import-cycle fix) and land its one-PR mint record (#6361).
 - After a context compaction, the write hook restores the ritual clock for the session that owns the live lease and the ritual, and denies one call with the alignment lines instead of every write until a manual re-arm. Other stale-ritual denials print their recovery command with the caller's `--session-id` (#6279).
 
 ### Fixed
 - `scope:complete` judges a `delivery-identity-attest` grant's expiry at the transition clock, not wall time; this turns master CI green again (#6398).
 - `git commit` of planning files only (`docs/design/*.md`, `docs/decisions/*.md`, proposed/pending/completed/cancelled briefs, decision records, `CHANGELOG.md`, a shape-checked `.deft/plan-sequence.json`) is no longer denied for want of a ready scope. Recovery: upgrade, commit these before `scope:promote`, then commit root plan/specification/PROJECT-DEFINITION and `active/` changes separately; any other path keeps today's rules (#5839).
+- `verify:class-checks` and `verify:evaluator-surface --base-ref` read one candidate tree: the working tree against the merge base, plus untracked files. A reverted protected path passes before its commit, and base-only commits stay out (#6336).
 - An approved parallel wave in the ordered plan now runs in parallel: push and `swarm:launch` admit every pending entry of the current batch. Before, `batching_allowed: true` was stored but had no effect (a misleading setting and lost throughput, not a security issue). To use it, give the entries that run together the same `batch` label; `plan-sequence:current` lists the batch, and `set` refuses unlabeled or split batches. While a plan file is present, `swarm:launch` also checks its real roster, solo included, against the current entry or batch (#4433).
 
 ### Removed

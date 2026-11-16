@@ -1,4 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   DEFAULT_TEST_ROOTS,
   defaultTestBoundaryPolicy,
@@ -738,5 +742,98 @@ describe("evaluateClassChecks (#4980)", () => {
       fileContents: new Map([["infra/scripts/test_release.py", "print(1)\n"]]),
     });
     expect(result.exitCode).toBe(1);
+  });
+});
+
+describe("candidate tree: working tree against the merge base (#6336)", () => {
+  const roots: string[] = [];
+  afterEach(() => {
+    for (const dir of roots.splice(0)) rmSync(dir, { recursive: true, force: true });
+  });
+
+  function git(root: string, ...args: string[]): string {
+    return execFileSync(
+      "git",
+      [
+        "-c",
+        "user.name=t",
+        "-c",
+        "user.email=t@example.com",
+        "-c",
+        "commit.gpgsign=false",
+        ...args,
+      ],
+      { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+    );
+  }
+
+  function put(root: string, rel: string, text: string): void {
+    mkdirSync(dirname(join(root, rel)), { recursive: true });
+    writeFileSync(join(root, rel), text);
+  }
+
+  /** master holds the base; branch `story` adds a protected path and story product. */
+  function seed(): string {
+    const root = mkdtempSync(join(tmpdir(), "class-checks-candidate-"));
+    roots.push(root);
+    git(root, "init", "-q", "-b", "master");
+    put(root, "src/app.py", "x = 1\n");
+    put(root, "protected/gate.txt", "base\n");
+    git(root, "add", "-A");
+    git(root, "commit", "-q", "-m", "base");
+    git(root, "checkout", "-q", "-b", "story");
+    put(root, "src/app.py", "x = 2\n");
+    put(root, "protected/gate.txt", "changed\n");
+    git(root, "add", "-A");
+    git(root, "commit", "-q", "-m", "story");
+    return root;
+  }
+
+  const options = {
+    baseRef: "master",
+    baseTestBoundaryPolicy: baseTb({
+      sourceRoots: ["src/**", "infra/**"],
+      testRoots: ["tests/**"],
+      enforcementMode: "enforce",
+    }),
+    classChecksPolicy: { ...defaultClassChecksPolicy(), protectedGlobs: ["protected/**"] },
+  };
+
+  it("fails a committed protected path mixed with story product", () => {
+    const root = seed();
+    const result = evaluateClassChecks(root, options);
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.map((f) => f.kind)).toContain("protected-glob");
+  });
+
+  it("passes once the protected path is reverted in the working tree, before commit", () => {
+    const root = seed();
+    put(root, "protected/gate.txt", "base\n");
+    const result = evaluateClassChecks(root, options);
+    expect(result.findings.filter((f) => f.kind === "protected-glob")).toEqual([]);
+    expect(result.exitCode).toBe(0);
+  });
+
+  it("fails an untracked file that breaks a class rule", () => {
+    const root = seed();
+    put(root, "protected/gate.txt", "base\n");
+    put(root, "infra/scripts/test_release.py", "print(1)\n");
+    const result = evaluateClassChecks(root, options);
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.map((f) => f.path)).toContain("infra/scripts/test_release.py");
+  });
+
+  it("leaves base-only commits out when the branch is behind its base", () => {
+    const root = seed();
+    put(root, "protected/gate.txt", "base\n");
+    git(root, "commit", "-q", "-am", "revert protected");
+    git(root, "checkout", "-q", "master");
+    put(root, "protected/other.txt", "base-only\n");
+    git(root, "add", "-A");
+    git(root, "commit", "-q", "-m", "base moves on");
+    git(root, "checkout", "-q", "story");
+    const result = evaluateClassChecks(root, options);
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toMatch(/clean|0 finding|no finding/i);
   });
 });
