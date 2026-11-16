@@ -208,6 +208,22 @@ describe("swarm:pre-dispatch begin writes the story-binding record (#6379)", {
     expect(storyOf(wtA)).toBeNull();
   });
 
+  it("prunes an ended id whose removal found the store locked at the next begin", () => {
+    const { primary, wtA } = fixture();
+    const first = begin(primary, "plan-a", wtA);
+    expect(first.exitCode).toBe(0);
+    const lock = join(primary, ".git", STORY_BINDING_STORE_DIR, STORY_BINDING_LOCK_NAME);
+    writeFileSync(lock, JSON.stringify({ pid: process.pid, token: "held" }), "utf8");
+    const done = complete(primary, "plan-a", wtA);
+    expect(done.exitCode).toBe(0);
+    expect(done.storyBinding).toContain("not removed");
+    expect(idsOf(wtA)).toEqual([first.attempt?.attemptId]);
+    rmSync(lock);
+    const next = begin(primary, "plan-a", wtA);
+    expect(next.exitCode).toBe(0);
+    expect(idsOf(wtA)).toEqual([next.attempt?.attemptId]);
+  });
+
   it("replaces a record for a different story with only the new attempt id", () => {
     const { primary, wtA } = fixture();
     expect(begin(primary, "plan-a", wtA).exitCode).toBe(0);
