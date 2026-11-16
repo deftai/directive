@@ -3,7 +3,9 @@
  *
  * Pure predicate: a non-terminal current plan entry whose resolvable
  * Directive lifecycle origin already sits in completed/ or cancelled/
- * (failed stamps live in completed/). Callers pass folder-scan facts.
+ * (failed stamps live in completed/). Only a cancelled or failed origin is an
+ * operator stop; a completed one finishes the entry through the derived
+ * cursor (derive.ts, #6205). Callers pass folder-scan facts.
  * Filesystem-only — no GitHub issue-state client.
  */
 import type { PlanSequenceEntry } from "./types.js";
@@ -131,7 +133,8 @@ export function resolvePlanEntryLifecycleOrigin(
   }
 }
 
-function originMatchesKey(term: TerminalLifecycleOrigin, key: PlanEntryOriginKey): boolean {
+/** True when a terminal fact matches one origin key (#4129 / #6205). */
+export function originMatchesKey(term: TerminalLifecycleOrigin, key: PlanEntryOriginKey): boolean {
   switch (key.kind) {
     case "issue":
       return term.issueNumbers.includes(Number(key.value));
@@ -156,14 +159,35 @@ function findMatchingTerminal(
   return null;
 }
 
+/**
+ * A cancelled or failed origin stops the plan; a completed origin finishes
+ * the entry instead (derived cursor, #6205).
+ */
+export function isStopOrigin(term: TerminalLifecycleOrigin): boolean {
+  return term.folder === "cancelled" || term.failed;
+}
+
+/**
+ * Terminal-lifecycle text. A cancelled or failed origin keeps the operator
+ * stop (#4129). A completed origin is not a stop: it finishes the entry and
+ * readers derive past it (#6205), so its text names that instead.
+ */
 export function formatTerminalLifecycleDriftMessage(
   entry: PlanSequenceEntry,
   originPath: string,
   folder: "completed" | "cancelled",
+  failed = false,
 ): string {
   const issue = entry.issue !== undefined ? ` (#${entry.issue})` : "";
+  if (folder === "completed" && !failed) {
+    return [
+      `Ordered-plan entry ${entry.kind}:${entry.id}${issue} is already terminal in ${originPath} (${folder}/).`,
+      "Its completed brief finishes the entry; readers derive the next entry (#6205).",
+    ].join("\n");
+  }
+  const state = failed ? "terminal (failed)" : "terminal";
   return [
-    `Current ordered-plan entry ${entry.kind}:${entry.id}${issue} is already terminal in ${originPath} (${folder}/).`,
+    `Current ordered-plan entry ${entry.kind}:${entry.id}${issue} is already ${state} in ${originPath} (${folder}/).`,
     "The sequence still lists it as the authorized next target.",
     "Do not treat this as permission to pick the next id.",
     "Do not run task plan-sequence:advance until the operator reviews this contradiction.",
@@ -186,10 +210,11 @@ export interface TerminalDriftSubject {
 }
 
 /**
- * Drift when the current entry is still pending and a resolvable origin
- * already sits in completed/ or cancelled/ (or carries a failed stamp
- * recorded on that terminal fact). One current entry, not every entry.
- * GitHub `closed` is not an input.
+ * Drift fact: the stored current entry is still pending and a resolvable
+ * origin already sits in completed/ or cancelled/ (or carries a failed
+ * stamp). One current entry, not every entry. GitHub `closed` is not an
+ * input. Readers act on derivePlanCursor (#6205), which finishes a completed
+ * origin and stops only on a cancelled or failed one; the message says which.
  */
 export function detectTerminalEntryDrift(
   sequence: TerminalDriftSubject | null,
@@ -221,6 +246,6 @@ export function detectTerminalEntryDrift(
     index,
     originPath: hit.path,
     folder: hit.folder,
-    message: formatTerminalLifecycleDriftMessage(entry, hit.path, hit.folder),
+    message: formatTerminalLifecycleDriftMessage(entry, hit.path, hit.folder, hit.failed),
   };
 }

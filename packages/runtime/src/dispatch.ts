@@ -371,6 +371,7 @@ export const PLAN_SEQUENCE_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> =
   "plan-sequence:current": "current",
   "plan-sequence:clear": "clear",
   "plan-sequence:advance": "advance",
+  "plan-sequence:insert": "insert",
 };
 
 const PLAN_SEQUENCE_COLON_ALIASES = Object.fromEntries(
@@ -3411,7 +3412,7 @@ async function invokeHandler(handler: CommandHandler, argv: string[]): Promise<n
   return typeof code === "number" ? code : 0;
 }
 
-const PLAN_SEQUENCE_VERBS = "set|current|clear|advance";
+const PLAN_SEQUENCE_VERBS = "set|current|clear|advance|insert";
 
 export type UnknownColonHintContext = "framework" | "include-only" | "no-taskfile" | "unknown";
 

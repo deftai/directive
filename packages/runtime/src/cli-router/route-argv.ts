@@ -152,6 +152,7 @@ export const SUBCOMMAND_ROUTES: Readonly<Record<string, readonly [string, string
   "plan-sequence:current": ["plan-sequence", "current"],
   "plan-sequence:clear": ["plan-sequence", "clear"],
   "plan-sequence:advance": ["plan-sequence", "advance"],
+  "plan-sequence:insert": ["plan-sequence", "insert"],
 };
 
 /** Eight scm:body:* dual-invoke names (#5521); keep in sync with SUBCOMMAND_ROUTES above. */

@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6279",
-    "updated": "2026-11-16T06:04:30Z"
+    "updated": "2026-11-16T07:08:08Z"
   },
   "plan": {
     "title": "feat(session,hooks): re-arm stale session ritual automatically when the same session still holds the checkout",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "After a context compaction the write hook restores the session ritual clock and answers the first write with one denial that carries the alignment lines; the retry is not denied for the compaction again. Only the session that owns both the live lease and the ritual can trigger this heal, and the heal stamps no new time, so age staleness and the finalize-owed cadence stay as before. Every other stale-ritual denial prints its recovery command with the caller's session id filled in; a branch switch stays a cold start and is deferred to #6293.",
       "UserStory": "As an agent session that still holds the checkout, I want a compaction to cost me one denial and no manual command, and every other stale-ritual denial to print a command I can run as printed, so that I stop spending turns on ritual recovery.",
@@ -20,122 +20,227 @@
     "items": [
       {
         "title": "Who may repair.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given a compact-marked ritual and a write, then the write gate in packages/core/src/hooks/dispatcher.ts decides whether the caller may trigger the heal before it returns the ritual-not-ready denial."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The in-hook repair in item 2 needs all of: the caller is the lease owner (`occupancyGate.admitted` is owner, not member); the lease is live; `ritual.boundSessionId` equals the caller's session id; the caller's host identity has no conflict; and the write's effective worktree is the ritual's worktree.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given a compact-marked ritual, when the caller owns the live lease, is the ritual's bound session, has no identity conflict and writes in the ritual's worktree, then the heal runs; when any one of these fails, it does not."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A member, a missing or conflicting identity, or any mismatch gets today's denial.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given a granted member, a foreign lease or a conflicting identity on a compact-marked ritual, when it writes, then it gets the ritual-not-ready or occupancy denial of today and the ritual state is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The repair write goes through `writeRitualStateIfStillOwned` under the existing ritual lock.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given a heal, then it persists through writeRitualStateIfStillOwned under the ritual lock, re-checks the live lease inside that lock, and writes nothing when the lease was lost between check and write."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Compaction heal.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given a compaction followed by an owner write, then packages/core/src/session/verify-session-ritual.ts provides the heal that the write gate calls."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`markRitualStaleAfterCompact` also records the `started_at` it overwrites, unless one is already recorded (a second compaction before any write).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given a fresh ritual, when markRitualStaleAfterCompact runs twice before a write, then the recorded clock equals the original started_at."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "When the write gate finds the compact mark, item 1 holds and `assessRearmEligibility` passes, the hook restores that recorded clock, clears the mark, and denies that one call with a message that carries the re-arm alignment lines (`READ_ONLY_ALIGNMENT_MESSAGE` and the USER.md line) and says to retry.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given an eligible owner write on a compact-marked ritual, then the hook denies that call once with a message that contains READ_ONLY_ALIGNMENT_MESSAGE, the USER.md line and a retry instruction, the ritual started_at equals the recorded clock and the mark is cleared, and the retry is admitted."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "It changes no step result, no gated-step record and no finalize-owed outcome, and it stamps no new time, so age staleness and the inventory cadence are exactly what they were before the compaction.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given a heal, then quick_steps and gated_steps are byte-equal to the pre-compaction state and started_at equals the pre-compaction value, so a ritual already stale by age before the compaction gets the age denial on the retry."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A mark with no recorded clock gets today's denial.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given a compact mark written by an older runtime with no recorded clock, when the owner writes, then the hook returns today's ritual-not-ready denial and the ritual state is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Age staleness and a discontinuous HEAD are never cleared by the hook.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given a ritual stale by age with no compact mark, or a discontinuous HEAD under a compact mark, when the owner writes, then the hook denies, does not heal and leaves started_at unchanged; a compaction heal of a ritual already stale by age restores the old clock, so the retry still gets the age denial (clause.8)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Their denials, and the other ritual denials that name a recovery command (`dispatcher.ts` 2388 and 2489, `formatSessionStartRecoveryCommand`), print that command with the caller's session id filled in.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given a ritual denial that names a session:start or session:ready recovery command, then the printed command carries --session-id with the caller's session id and inspectExactLifecycleCommand reads that id as present."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The occupancy-aware replacement of that text stays as it is.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given a caller whose occupancy refuses ceremony, then the denial still strips the ceremony commands exactly as before and no session id is filled into stripped text."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Recording.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given a heal, then it is recorded through packages/core/src/run-summary/types.ts tokens and the process-cost event log."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`SESSION_START_TRIGGERS` gains the closed token `hook-compact-heal`, and each heal emits the existing session-ritual process-cost record.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given the run-summary types, then SESSION_START_TRIGGERS includes hook-compact-heal, and given a heal, then one session:ritual-blocked process-cost event with code hook-compact-heal is appended."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Tests: for item 1, a granted member, a foreign lease, a conflicting identity and a lease lost between check and write; for item 2, a heal with one denial then an admitted retry, parallel calls, a failed quick step (no heal), a state that was already stale by age before the compaction (heal, then the age denial), a discontinuous HEAD under the mark (no heal), two compactions before a write, and a mark written by an older runtime; for item 3, the printed command run as printed, and the occupancy-aware text unchanged; a same-owner branch switch still refused (the locked #2782 test is untouched).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given packages/core/src/session/compact-ritual.test.ts, when it runs, then each listed case returns its stated verdict and the #2782 branch-switch test file is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+          "recorded_at": "2026-11-16T07:08:08Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -815,9 +920,36 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "e8c64c656290cfc39ed0a990267074495e83577d4d57ceee848b040860357ee6"
+      },
+      "productPullRequest": 6383,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "d637db0b05a9687321635a0e3d6df3a035dd2dca",
+        "prNumber": 6383,
+        "prBase": "master",
+        "mergeCommit": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2d897b3b083d152440ef5bb306cc4330640fdb09",
+        "verifiedAt": "2026-11-16T07:08:08Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T07:08:08Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T07:08:08Z"
       }
     },
     "id": "github.issue.6374106414",
-    "updated": "2026-11-16T06:04:30Z"
+    "updated": "2026-11-16T07:08:08Z"
   }
 }

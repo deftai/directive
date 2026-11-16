@@ -153,8 +153,9 @@ describe("detectTerminalEntryDrift (#4129)", () => {
       expect(result.code).not.toBe("mismatch");
       expect(result.code).not.toBe("exhausted");
       expect(result.originPath).toBe("xbrief/completed/2026-09-01-287.xbrief.json");
-      expect(result.message).toContain("Do not run task plan-sequence:advance until");
-      expect(result.message).toContain("Do not treat this as permission to pick the next id");
+      // #6205: a completed origin is a fact, not an operator stop.
+      expect(result.message).toContain("Its completed brief finishes the entry");
+      expect(result.message).not.toContain("Do not run task plan-sequence:advance until");
     }
   });
 
@@ -314,15 +315,38 @@ describe("detectTerminalEntryDrift (#4129)", () => {
   });
 });
 
-describe("formatTerminalLifecycleDriftMessage (#4129)", () => {
-  it("uses orphan-active stop/ask voice, not unattended advance", () => {
+describe("formatTerminalLifecycleDriftMessage (#4129 / #6205)", () => {
+  const entry = { id: "287", kind: "issue" as const, issue: 287 };
+  const STOP = "Stop and ask the operator whether to advance, replace, or clear the sequence.";
+
+  it("uses orphan-active stop/ask voice for a cancelled origin, not unattended advance", () => {
     const message = formatTerminalLifecycleDriftMessage(
-      { id: "287", kind: "issue", issue: 287 },
-      "xbrief/completed/287.xbrief.json",
-      "completed",
+      entry,
+      "xbrief/cancelled/287.xbrief.json",
+      "cancelled",
     );
     expect(message).toContain("issue:287 (#287)");
     expect(message).toContain("Do not run task plan-sequence:advance until the operator reviews");
+    expect(message).toContain(STOP);
     expect(message).not.toMatch(/run task plan-sequence:advance\n/);
+  });
+
+  it("keeps the stop for a failed origin and drops it for a completed one (clause 9)", () => {
+    const failed = formatTerminalLifecycleDriftMessage(
+      entry,
+      "xbrief/completed/287.xbrief.json",
+      "completed",
+      true,
+    );
+    expect(failed).toContain("terminal (failed)");
+    expect(failed).toContain(STOP);
+    const completed = formatTerminalLifecycleDriftMessage(
+      entry,
+      "xbrief/completed/287.xbrief.json",
+      "completed",
+    );
+    expect(completed).not.toContain(STOP);
+    expect(completed).not.toContain("Do not run task plan-sequence:advance");
+    expect(completed).toContain("readers derive the next entry");
   });
 });
