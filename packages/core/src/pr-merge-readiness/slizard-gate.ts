@@ -32,6 +32,10 @@ import type { CheckRunRecord } from "./gh.js";
  * (slizard#2694) before re-arming wait-mergeable. The HTML `slizard:verdict`
  * block is not on the live check-run; it lives on the PR review body. This
  * gate does not fetch reviews — compose existing head-blob falsify HOW.
+ *
+ * #6377: the blocked message prints the summary's actionable fingerprints and
+ * names the label sequence before `--skip-slizard`. A labelled finding is not
+ * ready here; the decision still comes only from the bot's next verdict.
  */
 
 /** Canonical SLizard check-run name; matching is case-insensitive substring for resilience. */
@@ -69,6 +73,29 @@ export interface SlizardGateSummary {
 export interface SlizardGateResult {
   readonly failures: readonly string[];
   readonly summary: SlizardGateSummary;
+}
+
+/**
+ * The one sequence that clears a red SLizard check for an answered finding
+ * (#6377). A label does not refresh the current check: the gate still reads
+ * only the bot's next verdict.
+ */
+export const LABEL_SEQUENCE_TEXT =
+  "For each answered finding: label it in one top-level PR comment " +
+  "(`@slizard label <fingerprint> fp|risk <reason>`; fp only after the head-blob check, " +
+  "risk only under the HEAD-policy rule, in-model defects are fixed, not labelled), " +
+  "read the bot's acknowledgement, request `@slizard review` when no further push follows, " +
+  "then run pr:merge-ready again (#6377).";
+
+/** Name the actionable fingerprints the check summary lists (#6377). */
+function formatFingerprintLine(fingerprints: readonly string[]): string {
+  if (fingerprints.length === 0) {
+    return "The check summary lists no actionable fingerprints; read them from the tip review body. ";
+  }
+  return (
+    `Actionable fingerprints on the check summary: ${fingerprints.join(", ")} ` +
+    "(the list can be capped; the tip review body is the complete list). "
+  );
 }
 
 export function isSlizardCheck(name: string): boolean {
@@ -162,9 +189,12 @@ export function evaluateSlizardGate(
           : "";
       failures.push(
         `SLizard review is blocking: ${reasons.join(", ")}${findings}. ` +
+          formatFingerprintLine(parsed.fingerprints) +
           "Unfinished residual (not #3167 weather): read tip SLizard review body, " +
           "falsify open fingerprints (git show <head>:<path> / slizard#2694) or fix " +
-          "before re-arming wait-mergeable; --skip-slizard is explicit override only (#5102 / #2189).",
+          "before re-arming wait-mergeable. " +
+          LABEL_SEQUENCE_TEXT +
+          " --skip-slizard is explicit override only (#5102 / #2189).",
       );
     } else {
       // Failed conclusion without parseable findings — block without fingerprint hunt.
