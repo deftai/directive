@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6421, hand-finished to cover #6421, #6410 and #6412 as one story",
-    "updated": "2026-11-16T18:38:14Z"
+    "updated": "2026-11-16T23:55:45Z"
   },
   "plan": {
     "title": "bug(swarm): a killed finalize-cohort run leaves a worktree and branch that block the next run",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "This story ships three small decided fixes as one product PR. The finalize-cohort stop after a killed run (#6421, direction 2, report only) names the leftover worktree and branch and prints the exact commands that remove them; when to stop, the claim rule and cleanup do not change. The design-critique playbook says that a redirect on a launcher command is refused and names how to capture each launcher's output (#6412, docs only), and it names the two-step launch form for a Claude CLI critic seat (#6410, docs only; the hook already admits that form).",
       "UserStory": "As an operator or agent who re-runs finalize or launches a design-critique seat, I want the stop message and the playbook to name the exact next command, so that I can recover or launch without reading hook or finalize code.",
@@ -20,58 +20,107 @@
     "items": [
       {
         "title": "Given a finalize run that was killed after it created its branch and before it pushed, when finalize runs again for the same cohort, then it completes or it stops with a message that names the leftover worktree and branch and the command that removes them.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given a local `swarm/finalize/<label>` branch that is not on origin and a registered worktree that holds it, when finalize fails to create the branch, then the error names the branch and the worktree and prints `git -C <projectRoot> worktree remove --force <path>` and `git -C <projectRoot> branch -D <branch>`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1d352d69c49738195c7ac9f57024c7ea3e1eb8be",
+          "recorded_at": "2026-11-16T23:55:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a finalize run that is still in progress, when a second run starts for the same cohort, then the first run's checkout and branch are not changed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given the same leftover state, when the second run builds its message, then it runs only read-only git commands and changes no worktree or branch."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1d352d69c49738195c7ac9f57024c7ea3e1eb8be",
+          "recorded_at": "2026-11-16T23:55:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a cohort whose finalize branch is already on origin or has an open PR, when finalize runs again, then the result is the same as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given a finalize branch that origin has (by `git ls-remote --heads origin`, with or without a local tracking ref), or an `ls-remote` that fails, when finalize fails to create the branch, then the run stops with the same error text as today and no removal commands."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1d352d69c49738195c7ac9f57024c7ea3e1eb8be",
+          "recorded_at": "2026-11-16T23:55:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The design-critique playbook states how to capture each launcher's output without a redirect.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given content/docs/grok-build-subscription-setup.md, then its Design-critique dispatch section says a redirect on a launcher command is refused and names `codex exec -o <file>` for Codex and the tool's own output capture for `claude` and `grok`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1d352d69c49738195c7ac9f57024c7ea3e1eb8be",
+          "recorded_at": "2026-11-16T23:55:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a shell whose working directory is an arc dest, when a read-only `claude -p` critic launch is issued, then the launcher hook admits it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given the existing hook test `allows dest-present claude argv via payload cwd (#4219)`, then a `claude -p` launch whose payload working directory is the arc dest is admitted; no hook change is made."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1d352d69c49738195c7ac9f57024c7ea3e1eb8be",
+          "recorded_at": "2026-11-16T23:55:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the same launch from a directory that is not a dest, then the hook refuses it as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given the existing hook tests for dest-absent launcher argv, then a `claude -p` launch from a directory that is not a dest is refused as today; no hook change is made."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1d352d69c49738195c7ac9f57024c7ea3e1eb8be",
+          "recorded_at": "2026-11-16T23:55:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The design-critique playbook names the working launch form for a Claude CLI seat.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given content/docs/grok-build-subscription-setup.md, then it names the two-step form: change the shell working directory to the dest in its own call, launch the bare `claude -p` command in the next call, then step back out."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1d352d69c49738195c7ac9f57024c7ea3e1eb8be",
+          "recorded_at": "2026-11-16T23:55:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -163,6 +212,34 @@
         "github_issue_id": 6426715570,
         "origin": "deftai/directive#6421",
         "id": "github.issue.6426715570"
+      },
+      "productPullRequest": 6457,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "046c5331d23427c7190a9619af35ddb1b51c5e5e",
+        "prNumber": 6457,
+        "prBase": "master",
+        "mergeCommit": "1d352d69c49738195c7ac9f57024c7ea3e1eb8be",
+        "deliveryBranch": "master",
+        "deliveryCommit": "4288b3cc02e1b86cf04a093ed68db64f6a0cd92d",
+        "verifiedAt": "2026-11-16T23:55:45Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "operator-attested",
+        "attestationGrantId": "grant-20261116224007-b8e724"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T23:55:45Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T23:55:45Z"
       }
     },
     "acceptance": {
@@ -249,6 +326,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6426715570",
-    "updated": "2026-11-16T18:38:14Z"
+    "updated": "2026-11-16T23:55:45Z"
   }
 }
