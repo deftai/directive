@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ENFORCE_NOOP_NOTICE,
+  formatGitTimeoutRemedy,
   PHASE_LINE_PREFIX,
   parseArgs,
   reportMintLevelAdmits,
@@ -428,6 +429,24 @@ describe("phase lines and per-call git limit (#6378)", () => {
     expect(parseArgs([]).gitTimeoutSeconds).toBeNull();
     expect(parseArgs(["--git-timeout-seconds", "x"]).error).toMatch(/whole number of seconds/);
     expect(parseArgs(["--git-timeout-seconds"]).error).toMatch(/whole number of seconds/);
+  });
+
+  it("prints the remedy as the run's own argv with a larger limit", () => {
+    expect(
+      formatGitTimeoutRemedy(
+        [
+          "--project-root",
+          "C:/a b",
+          "--git-timeout-seconds",
+          "30",
+          "--git-timeout-seconds=60",
+          "--quiet",
+        ],
+        240,
+      ),
+    ).toBe(
+      'deft verify:scope-provenance --project-root "C:/a b" --quiet --git-timeout-seconds 240',
+    );
   });
 
   it("writes each phase line before that phase starts", { timeout: 120_000 }, () => {

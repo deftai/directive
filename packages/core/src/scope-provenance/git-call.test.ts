@@ -169,6 +169,9 @@ describe("a call that reaches the limit (#6378 item 10)", () => {
     expect(line).toContain("Remedy: deft verify:scope-provenance --git-timeout-seconds 240");
     expect(line).toMatch(/later release/);
     expect(git.timedOut()).toBeNull();
+    expect(git.phase()).toBe("census");
+    expect(git.setPhase("per-story evaluation")).toBe("census");
+    expect(git.phase()).toBe("per-story evaluation");
   });
 
   it("enforce mode: throws the refusal line and keeps it", () => {

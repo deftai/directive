@@ -273,6 +273,17 @@ describe("evaluateScopeProvenance with the batched census (#6378)", () => {
     expect(result.message).toContain('phase "base resolution"');
   });
 
+  it("keeps a census that throws a non-timeout error a census read failure", () => {
+    const root = make();
+    const spawn: GitSpawn = (cmd, args, options) => {
+      if (args[0] === "ls-tree") throw new Error("boom");
+      return spawnSync(cmd, [...args], options) as SpawnSyncReturns<string | Buffer>;
+    };
+    const result = evaluateScopeProvenance(root, { ...BASE, gitSpawn: spawn });
+    expect(result.exitCode).toBe(1);
+    expect(result.findings.some((f) => /census read failed/.test(f.detail))).toBe(true);
+  });
+
   it("enforce mode: a change-set call that reaches the limit exits 2", () => {
     const root = make();
     const rec = recording((args, r) => (args[0] === "diff" ? timedOut(r) : r));

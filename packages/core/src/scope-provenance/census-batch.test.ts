@@ -386,6 +386,9 @@ describe("listLifecycleBriefsAtRef batched read (#6378)", () => {
       ) => SpawnSyncReturns<string | Buffer>
     > = [
       (args, r) => (args.join(" ") === "cat-file --batch" ? { ...r, status: 128 } : r),
+      (args, r) => (args.join(" ") === "cat-file --batch-check" ? { ...r, status: 128 } : r),
+      (args, r) =>
+        args.join(" ") === "cat-file --batch" ? { ...r, stdout: Buffer.from("no newline") } : r,
       (args, r) => (args.join(" ") === "cat-file --batch-check" ? { ...r, stdout: "" } : r),
       (args, r) =>
         args.join(" ") === "cat-file --batch-check" ? { ...r, stdout: "garbage line\nx\n" } : r,
