@@ -81,6 +81,9 @@ function repoRel(projectRoot: string, absPath: string): string | null {
   return rel.split(sep).join("/");
 }
 
+/** A full object id: SHA-1 (40 hex) or SHA-256 (64 hex). */
+const FULL_OBJECT_ID = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i;
+
 function showAtRef(
   projectRoot: string,
   ref: string,
@@ -134,7 +137,7 @@ export function originOnePrBriefAdmitted(
     const label = `origin/${safeBase.branch}`;
     let tip: string;
     if (pinnedCommit !== undefined) {
-      if (!/^[0-9a-f]{40}$/i.test(pinnedCommit)) return refuse("pinned commit is not a SHA");
+      if (!FULL_OBJECT_ID.test(pinnedCommit)) return refuse("pinned commit is not a SHA");
       tip = pinnedCommit;
     } else {
       const fetchArgv = trackingFetchArgv("origin", safeBase.branch);
@@ -150,7 +153,7 @@ export function originOnePrBriefAdmitted(
         cwd: projectRoot,
       });
       const sha = parsed.stdout.trim();
-      if (parsed.returncode !== 0 || !/^[0-9a-f]{40}$/i.test(sha)) {
+      if (parsed.returncode !== 0 || !FULL_OBJECT_ID.test(sha)) {
         return refuse(`git rev-parse ${label} failed`);
       }
       tip = sha;

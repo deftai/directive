@@ -357,6 +357,17 @@ describe("originOnePrBriefAdmitted refusals with a scripted git (#6361)", () => 
     }
   });
 
+  it("accepts a SHA-256 object id for the pinned tip", () => {
+    const sha256 = "b".repeat(64);
+    // Gets past the pin to the brief read, with both the fetched and the passed-in id.
+    expect(probe(git({ revParse: ok(`${sha256}\n`) })).error).toBe(
+      `origin/one-pr:${BRIEF} unreadable`,
+    );
+    expect(
+      originOnePrBriefAdmitted("/tmp/proj", "master", "one-pr", BRIEF, git({}), sha256).error,
+    ).toBe(`origin/one-pr:${BRIEF} unreadable`);
+  });
+
   it("refuses when merge-base fails", () => {
     expect(probe(git({ mergeBase: fail })).error).toBe(
       "git merge-base origin/master origin/one-pr failed",
