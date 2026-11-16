@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6376",
-    "updated": "2026-11-16T18:01:18Z"
+    "updated": "2026-11-16T23:42:28Z"
   },
   "plan": {
     "title": "bug(hooks): a write outside every checkout is judged by the launching checkout's session ritual",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "A Write or Edit to a file in the OS temp directory or an ordinary home folder outside every checkout is judged by the launching checkout's occupancy lease and session ritual, so a stale parent ritual or a foreign lease refuses a write that changes no checkout. This story adds a closed, fail-to-today class for such writes that skips occupancy, ritual, active scope and the story write fence while keeping the upstream gates, protected-store authz and runtime authority, and makes ritual refusals name the judged checkout with one runnable recovery command. It also renames the five temp-folder producers that lack `deft` and adds a unit test that keeps every Directive temp name under that rule.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6376",
@@ -20,314 +20,587 @@
     "items": [
       {
         "title": "Two paths.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given an absolute direct-write target, when the class test runs, then it builds a typed path and a physical destination in packages/core/src/hooks/outside-every-checkout.ts."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "For each direct-write target the class test builds the typed path (the target as given, normalized) and the complete physical destination.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given an absolute target whose last components do not exist, when the class test runs, then the physical destination is the resolved existing prefix with the missing rest appended unchanged (packages/core/src/hooks/outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The physical destination is built by walking the typed path from its root one component at a time: each existing component is resolved with the operating system's native resolver (links, junctions, short names, letter case), and the first component that does not exist starts the unresolved rest, appended unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given an ordinary home folder that is a symbolic link or junction to a file inside a checkout or a configuration area, when the hook evaluates a write through it, then the target is not in the class (packages/core/src/hooks/outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "An existing component that is a link whose target cannot be resolved makes the build fail.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given a link whose target cannot be resolved, when the hook evaluates a write through it, then the target is not in the class (packages/core/src/hooks/outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Positive location.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given a target on a path that is under neither a home directory nor the OS temp directory, when the hook evaluates the write, then the target is not in the class (packages/core/src/hooks/outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Both paths must be inside the physical OS temp directory, or inside a home directory.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given a stale session ritual in the payload root and a Write to a file in a folder under the home directory whose name does not start with a dot, when the hook evaluates the write, then the write is allowed (packages/core/src/hooks/dispatcher-outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The home directories are the operating system's home directory and the values of `HOME` and `USERPROFILE`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given `HOME` or `USERPROFILE` naming a directory, when the class test runs on a target in an ordinary folder under it, then the target passes the positive location rule (packages/core/src/hooks/outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Configuration areas.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given a target inside a dot-folder directly under the home directory, when the hook evaluates the write, then the target is not in the class (packages/core/src/hooks/outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A configuration area is a directory directly under a home directory whose name starts with a dot or is `Library` or `AppData` (any letter case), or a directory named by `APPDATA`, `LOCALAPPDATA`, `XDG_CONFIG_HOME`, `XDG_CACHE_HOME`, `XDG_DATA_HOME`, `XDG_STATE_HOME` or `XDG_RUNTIME_DIR`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given a Windows session with `APPDATA` not set and a target under `<home>\\AppData\\Roaming`, when the hook evaluates the write, then the target is not in the class (packages/core/src/hooks/outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "For each path, the innermost directory that contains it, among all configuration areas and the OS temp directory, decides: when that innermost directory is a configuration area the path is not in the class; when it is the OS temp directory the path passes this item.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given a home directory that is inside the OS temp directory and a target under that home directory's `.config` folder, then the target is not in the class; and given an OS temp directory that is inside a configuration area and a target directly in that temp directory, then the target passes the configuration-area rule (packages/core/src/hooks/outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "No repository and no Directive project.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given a target under a folder that holds a `.deft` entry or a `.git` entry, when the hook evaluates the write, then the target is not in the class (packages/core/src/hooks/outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A filesystem walk from the deepest existing folder of the physical destination to the filesystem root finds no `.git` entry and no `.deft` entry beside any ancestor and no ancestor that is itself a Git directory.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given a target whose ancestor holds a `.git` or `.deft` entry, or whose ancestor is itself a Git directory, when the class test walks to the filesystem root, then the target is not in the class (packages/core/src/hooks/outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The Git toplevel lookup at that folder ran to completion and reported no repository.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given a Git lookup that fails to run, when the hook evaluates a write to a path under the OS temp directory, then the target is not in the class (packages/core/src/hooks/outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The target is outside the payload root by the existing `isOutsideProjectRootWrite` test.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given a target inside the payload root, when the hook evaluates the write, then the result is the same as today (packages/core/src/hooks/dispatcher-outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Exclusions, on both paths, without regard to letter case.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given a target under `<temp>/deft-backups`, or a component spelled `DEFT` or `Directive` in any letter case, when the hook evaluates the write, then the target is not in the class (packages/core/src/hooks/outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A path is not in the class when any component contains `deft` or `directive`, or is named `.git`; when it is equal to or inside the resolved value of any environment variable whose value is a path and whose name starts with `DEFT_` or `DIRECTIVE_`, or is one of `OPENCLAW_STATE_DIR`, `CODEX_HOME`, `GH_CONFIG_DIR`, `PNPM_HOME`, `GIT_DIR`, `GIT_WORK_TREE`, `GITHUB_EVENT_PATH`, `GITHUB_STEP_SUMMARY`; when it is inside any directory listed in `PATH`; or when it is inside the physical package directory of the Directive runtime that is running the hook.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given a target with a component that contains `deft` or `directive`, or `DEFT_USER_PATH` set to that file in an ordinary home folder, or `OPENCLAW_STATE_DIR` set to an ordinary home folder holding the target, or a target inside a directory listed in `PATH`, when the hook evaluates the write, then the target is not in the class (packages/core/src/hooks/outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Doubt rules, on both paths.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "Given a target with a component in Windows short-name form, or one that ends with a dot or a space, when the hook evaluates the write, then the target is not in the class (packages/core/src/hooks/outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Not in the class: a relative typed path; a component that ends with a dot or a space, has the Windows short-name form, or contains a colon after the drive prefix; a device or network-share prefix; a directory on the walk that cannot be read; a Git lookup that could not run or disagrees with the walk; a home directory or OS temp directory that cannot be resolved; an existing target file with more than one hard link.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "Given a relative target, a target on a network share or with a device prefix, or an existing file with two hard links, when the hook evaluates the write, then the target is not in the class (packages/core/src/hooks/outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A target that is not in the class is judged exactly as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.19",
         "narrative": {
           "Acceptance": "Given a target inside a linked worktree of the same repository, when the hook evaluates the write, then the result is the same as today (packages/core/src/hooks/dispatcher-outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The class adds no deny.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.20",
         "narrative": {
           "Acceptance": "Given a no-toplevel target that is not in the class and a foreign lease on the payload root, when the hook evaluates the write, then it is denied `occupancy-occupied` as before and never with a new class code (packages/core/src/hooks/dispatcher-outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "No existing authz or store check is edited.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.21",
         "narrative": {
           "Acceptance": "Given a write in the class and an authz seam that denies on the payload root, when the hook evaluates it, then that authz deny is returned unchanged (packages/core/src/hooks/dispatcher.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Combining rule.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.22",
         "narrative": {
           "Acceptance": "Given a patch with one target in the class and one target that is not, when the hook evaluates it, then the result is the same as today (packages/core/src/hooks/dispatcher-outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`admitMutationTargetSet` runs first and unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.23",
         "narrative": {
           "Acceptance": "Given a mutation whose targets include one in the class and one in a foreign repository, when the hook evaluates it, then it is denied `foreign-repository-deny` as today (packages/core/src/hooks/dispatcher-outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The class applies only when every target of the mutation is in it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.24",
         "narrative": {
           "Acceptance": "Given a patch whose targets are all in the class, when the hook evaluates it, then it is allowed with the outside-every-checkout decision code; given one target out of the class, then it is judged as today (packages/core/src/hooks/dispatcher-outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Gates for a set in the class.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.25",
         "narrative": {
           "Acceptance": "Given a stale session ritual in the payload root and a Write whose only target is an absolute path under the OS temp directory, when the hook evaluates the write, then the write is allowed with the outside-every-checkout decision code (packages/core/src/hooks/dispatcher-outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Upstream and unchanged: the kill switch, the read-only posture deny, the mutation intent ceiling and the Cursor planning-choice store check.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.26",
         "narrative": {
           "Acceptance": "Given the kill switch or a read-only posture, when the hook evaluates a write in the class, then the result is the same as today (packages/core/src/hooks/dispatcher-outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Then protected-store authz and runtime authority run on the payload root, in the order the assist-scratch path runs them, and the write is allowed with its own decision code.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.27",
         "narrative": {
           "Acceptance": "Given a write in the class, when the hook allows it, then the decision code is `write-outside-every-checkout-ready` and authz and runtime authority were consulted on the payload root (packages/core/src/hooks/dispatcher.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The occupancy write gate, the gated session ritual, active scope and the story write fence do not run; the allow writes no product-mutation marker and does no write-gate lease refresh.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.28",
         "narrative": {
           "Acceptance": "Given a live lease held by another session on the payload root and a write in the class, when the hook evaluates it, then the write is allowed, and the occupancy record of the payload root has no new product-mutation marker (packages/core/src/hooks/dispatcher-outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The general owner-liveness renewal is unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.29",
         "narrative": {
           "Acceptance": "Given the payload root's lease owner and a write in the class, when the hook decides, then the general owner-liveness renewal runs as it does for every other allowed decision (packages/core/src/hooks/dispatcher.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The class selects no ritual, lease, story or worktree registration and has no posture condition.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.30",
         "narrative": {
           "Acceptance": "Given a write in the class under requirements posture and under no posture, when the hook evaluates it, then it is allowed and no ritual or scope seam is called (packages/core/src/hooks/dispatcher-outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Recovery text.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.31",
         "narrative": {
           "Acceptance": "Given a direct write that is refused on the session ritual, then the refusal names the judged checkout (packages/core/src/hooks/dispatcher-outside-every-checkout.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A direct write that is refused on the session ritual names the judged checkout and prints one recovery command that carries `--project-root <judged checkout>` and runs as printed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.32",
         "narrative": {
           "Acceptance": "Given that refusal, then it prints one recovery command that carries `--project-root` with the judged checkout (packages/core/src/hooks/dispatcher.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Docs.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.33",
         "narrative": {
           "Acceptance": "Given the docs, then `content/docs/hook-root-admission.md` has a section for the outside-every-checkout class."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`content/docs/hook-root-admission.md` states the class and its rules, and says that the ritual requirement is removed for the class on purpose and what that gives up.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.34",
         "narrative": {
           "Acceptance": "Given the docs, when a reader opens `content/docs/hook-root-admission.md`, then it states the class, its rules, what the removal of the ritual requirement gives up and the naming rule for Directive files outside a checkout."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "It states the naming rule for Directive code: a file or folder that Directive keeps outside a checkout has `deft` or `directive` in its name or in a parent folder name, or lives in a configuration area, or is named by a `DEFT_` or `DIRECTIVE_` environment variable.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.35",
         "narrative": {
           "Acceptance": "Given the docs, then `content/docs/hook-root-admission.md` states the naming rule for a file or folder that Directive keeps outside a checkout."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Temp names.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.36",
         "narrative": {
           "Acceptance": "Given the branch-protection request file that `packages/core/src/pr-merge-readiness/gh.ts` writes under the OS temp directory, when the hook evaluates a write to it, then the target is not in the class (packages/core/src/hooks/dispatcher-outside-root.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Every file or folder that Directive code creates under the OS temp directory has `deft` in its created name.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.37",
         "narrative": {
           "Acceptance": "Given the request payload file that `packages/core/src/scm/gh-rest.ts` writes under the OS temp directory, when the hook evaluates a write to it, then the target is not in the class (packages/core/src/hooks/dispatcher-outside-root.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The producers that lack it at the dispatch SHA are renamed: `mge-put-` in `packages/core/src/pr-merge-readiness/gh.ts`, `gh_rest_payload_` in `packages/core/src/scm/gh-rest.ts`, `release-proj-` in `packages/core/src/release/pipeline-fixture.ts`, the tutorial repository prefix in `packages/core/src/tutorial/cli.ts`, and the caller-supplied prefix in `packages/core/src/integration-e2e/helpers.ts`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.38",
         "narrative": {
           "Acceptance": "Given the five named producers, when they create their temp folder, then each created name contains `deft` (packages/core/src/hooks/dispatcher-outside-root.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "One unit test in this repository's suite reads the non-test source under `packages/core/src`, `packages/runtime/src` and `packages/cli/src` and fails when a temp-directory file or folder is created with a name that lacks `deft`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.39",
         "narrative": {
           "Acceptance": "Given non-test source that creates a temp-directory folder whose name lacks `deft`, when the repository's unit tests run, then the temp-name test fails (packages/core/src/hooks/dispatcher-outside-root.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+          "recorded_at": "2026-11-16T23:42:28Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -1757,9 +2030,39 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "f829ad3ea88567cc58331e568e2aabde02876f8d94f1960ffea418b1850c6126"
+      },
+      "productPullRequest": 6452,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "d10c7309f6585e42e92face534a4c858446d30b5",
+        "prNumber": 6452,
+        "prBase": "master",
+        "mergeCommit": "8b2ff04351dec8d46a383bb7b6c8b57e86055ef9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "257fcfe0ad49a2b4a29c86f7420a415c3b2d2513",
+        "verifiedAt": "2026-11-16T23:42:28Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6459
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T23:42:28Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T23:42:28Z"
       }
     },
     "id": "github.issue.6414483564",
-    "updated": "2026-11-16T18:01:18Z"
+    "updated": "2026-11-16T23:42:28Z"
   }
 }
