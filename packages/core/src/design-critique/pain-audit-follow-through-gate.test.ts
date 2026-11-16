@@ -164,4 +164,23 @@ describe("harvest identity and the harvest-digest count rule (#6333 item 3)", ()
     expect(gate(plainLean, audit(stalePlain)).ok).toBe(false);
     expect(gate(plainLean, audit("harvest-digest: nonsense\n")).ok).toBe(false);
   });
+
+  it("does not let a stale audit of an earlier lean text block a fresh counting audit", () => {
+    const oldLean = acLean.replace("both lists are harvested", "one list is harvested");
+    const staleBlocking =
+      "role: critic\n\naudit-targets: pain-P1\nfinding-classes: blocking\nharvest-changed: false\n" +
+      `harvest-digest: sha256:${hashHarvestIdentity(oldLean)}\n`;
+    const fresh = audit(`harvest-digest: sha256:${hashHarvestIdentity(acLean)}\n`);
+    const result = evaluateAccumulatedPainAuditFollowThrough({
+      comments: [
+        { id: 10, body: acLean },
+        { id: 11, body: staleBlocking },
+        { id: 12, body: fresh },
+      ],
+      citedLeanId: 10,
+      assertedPainIds: ["P1"],
+      isSuccessorLeanBody,
+    });
+    expect(result.ok).toBe(true);
+  });
 });

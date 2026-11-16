@@ -5,8 +5,9 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { hashHarvestIdentity } from "../design-critique/pain-audit-follow-through-gate.js";
 import type { CompletedProcess } from "../scm/call.js";
-import { extractBoundRemedyHarvest } from "./markdown-scanners.js";
+import { extractBoundRemedyHarvest, hasWrappedListItem } from "./markdown-scanners.js";
 import {
   attachSpecPathSourceRecord,
   fetchSpecPathLiveIdentities,
@@ -58,9 +59,45 @@ const RECORD: SpecPathSourceRecord = {
   repo: "o/r",
   issue: 6333,
   leanCommentId: LEAN_ID,
-  harvestDigest: "a".repeat(64),
+  harvestDigest: hashHarvestIdentity(lean()),
   slice: null,
 };
+
+describe("review fixes (#6333)", () => {
+  it("keeps a repeated requirement in each slice that names it", () => {
+    const body =
+      `${PLAIN}Spec-path: x\n\n## Bound remedy\n1. Same text.\n2. Other limb.\n\n` +
+      "## Acceptance Criteria\n- Same text.\n\n## Slices\n- slice-a: B1\n- slice-b: A1\n";
+    for (const label of ["slice-a", "slice-b"]) {
+      const harvest = harvestSpecPathLean(body, { kind: "label", label });
+      if (!harvest.ok) throw new Error(harvest.reason);
+      expect(harvest.items.map((item) => item.title)).toEqual(["Same text."]);
+    }
+  });
+
+  it("refuses a lean whose list item wraps onto a continuation line", () => {
+    const body =
+      `${PLAIN}Spec-path: x\n\n## Bound remedy\n1. Limb.\n\n` +
+      "## Acceptance Criteria\n- Reject the request\n  when the token has expired.\n";
+    expect(harvestSpecPathLean(body, { kind: "unlabeled" })).toMatchObject({
+      ok: false,
+      reason: expect.stringContaining("continuation line"),
+    });
+    expect(hasWrappedListItem("- a\n\nprose\n  indented prose\n")).toBe(false);
+  });
+
+  it("fails when the lean changed after ingest", () => {
+    const live = resolveSpecPathLiveIdentities({
+      comments: thread(lean()),
+      record: { ...RECORD, harvestDigest: "a".repeat(64) },
+    });
+    expect(live).toMatchObject({
+      ok: false,
+      kind: "mismatch",
+      reason: expect.stringContaining("changed after ingest"),
+    });
+  });
+});
 
 function page(stdout: string, returncode = 0, stderr = ""): CompletedProcess {
   return { args: ["gh"], returncode, stdout, stderr } as CompletedProcess;

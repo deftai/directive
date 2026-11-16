@@ -362,6 +362,7 @@ export function evaluateAccumulatedPainAuditFollowThrough(input: {
   let currentHarvestDigest: string | null = null;
   const targetingOnCitedHarvest: ThreadCommentLike[] = [];
   const priorHarvestChanging: ThreadCommentLike[] = [];
+  let staleOnCitedHarvest = 0;
 
   for (const comment of ordered) {
     if (input.isSuccessorLeanBody(comment.body)) {
@@ -373,6 +374,13 @@ export function evaluateAccumulatedPainAuditFollowThrough(input: {
     if (envelope === null || envelope.declaredNone) continue;
     if (!envelope.auditTargets.some((target) => assertedMarkers.has(target))) continue;
     if (currentHarvestDigest === citedHarvestDigest) {
+      // #6333: an audit that recorded another harvest digest audited an earlier
+      // text of this lean; it is not on the cited harvest and does not count.
+      const recorded = extractOperativeHarvestDigest(comment.body);
+      if (recorded?.ok === true && recorded.digest !== citedHarvestDigest) {
+        staleOnCitedHarvest += 1;
+        continue;
+      }
       targetingOnCitedHarvest.push(comment);
       continue;
     }
@@ -477,7 +485,7 @@ export function evaluateAccumulatedPainAuditFollowThrough(input: {
 
   // #6333 item 3: at least one targeting audit must count for this lean.
   const leanNeedsDigest = leanHasAcceptanceOrSlices(cited.body);
-  if (leanNeedsDigest || targetingOnCitedHarvest.length > 0) {
+  if (leanNeedsDigest || targetingOnCitedHarvest.length > 0 || staleOnCitedHarvest > 0) {
     const counting = targetingOnCitedHarvest.filter((audit) =>
       auditCountsForLean({ auditBody: audit.body, leanBody: cited.body }),
     );

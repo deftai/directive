@@ -488,6 +488,29 @@ export function parseSliceLine(body: string): SliceLine {
   return { kind: "slice", parent: first.parent, label: first.label };
 }
 
+/**
+ * True when a list item in `sectionText` wraps onto an indented continuation
+ * line (outside fences). The line-based item reader would drop that text (#6333).
+ */
+export function hasWrappedListItem(sectionText: string): boolean {
+  let inItem = false;
+  for (const line of stripFencedCodeBlocks(sectionText).split("\n")) {
+    if (line.trim().length === 0) {
+      inItem = false;
+      continue;
+    }
+    if (matchListItemLine(line) !== null) {
+      inItem = true;
+      continue;
+    }
+    if (inItem && /^[ \t]/.test(line)) {
+      return true;
+    }
+    inItem = false;
+  }
+  return false;
+}
+
 /** Bound-remedy limb titles: list items of the slice outside fenced examples. */
 export function boundRemedyLimbItems(sourceText: string): CheckboxItem[] {
   return parseListItems(stripFencedCodeBlocks(sourceText));

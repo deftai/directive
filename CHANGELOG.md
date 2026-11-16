@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `scope:promote`, `scope:activate` and `xbrief:preflight` now list the clauses that `scope:complete` will hold to deploy, smoke, UAT or observed-behaviour evidence, using the same classifier, so the wording or `x-directive/requires` can be fixed in the brief PR. Advisory only; exit codes are unchanged (#6272).
-- Ingested briefs need no hand-built clauses (#6333). A Spec-path ingest harvests the accepted lean's Bound remedy items and then its Acceptance Criteria items, with one plan item, clause and pin entry per item, and records the source issue, lean and harvest digest; `verify:ac` compares a brief that is not yet on the merge base with that lean over REST. A lean can give items to slice issues (`## Slices`, `deft-slice: <parent> <label>`), pain-audits carry `harvest-digest:` (a digestless audit no longer counts for a lean with Acceptance Criteria or Slices), and the body route writes one clause per sentence-list entry. One-time cost: a Spec-path brief that is still only in a working tree when this ships fails `verify:ac` until it is ingested again (`task issue:ingest -- <N>`).
+- `issue:ingest` writes the acceptance clauses itself: one per item of the accepted lean's Bound remedy and Acceptance Criteria lists, or one per body sentence. Leans can split items across slice issues, and pain-audits record a `harvest-digest:` (#6333). One-time cost: a Spec-path brief that is still only in a working tree fails `verify:ac` until it is ingested again (`task issue:ingest -- <N>`).
 
 ### Changed
 - chore(dogfood): pin Directive to 0.129.10.

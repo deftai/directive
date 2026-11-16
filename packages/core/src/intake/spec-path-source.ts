@@ -18,6 +18,7 @@ import { type CompletedProcess, call } from "../scm/call.js";
 import {
   type CheckboxItem,
   extractBoundRemedyHarvest,
+  hasWrappedListItem,
   leanAcceptanceCriteriaItems,
   parseLeanSlices,
   sliceLeanAcceptanceCriteriaSection,
@@ -118,18 +119,23 @@ export function harvestSpecPathLean(
     return { ok: false, reason: "cited successor lean has no Bound-remedy list" };
   }
   const acceptance = leanAcceptanceCriteriaItems(leanBody);
-  const tagged: { ref: string; item: CheckboxItem }[] = [];
-  const seen = new Set<string>();
-  bound.items.forEach((item, index) => {
-    seen.add(item.title);
-    tagged.push({ ref: `B${index + 1}`, item });
-  });
-  acceptance.forEach((item, index) => {
-    if (!seen.has(item.title)) {
-      seen.add(item.title);
-      tagged.push({ ref: `A${index + 1}`, item });
-    }
-  });
+  // A wrapped list item would lose its continuation text (the item reader is
+  // line-based, #6333 item 2), so refuse rather than drop part of a requirement.
+  const acSlice = sliceLeanAcceptanceCriteriaSection(leanBody);
+  const wrapped = [bound.sourceText, acSlice ?? ""].find(hasWrappedListItem);
+  if (wrapped !== undefined) {
+    return {
+      ok: false,
+      reason:
+        "cited lean has a list item that wraps onto a continuation line; put each Bound remedy and Acceptance Criteria item on one line",
+    };
+  }
+  // Every list position keeps its own row so a slice can name any item;
+  // duplicate titles are folded only inside the selected harvest.
+  const tagged: { ref: string; item: CheckboxItem }[] = [
+    ...bound.items.map((item, index) => ({ ref: `B${index + 1}`, item })),
+    ...acceptance.map((item, index) => ({ ref: `A${index + 1}`, item })),
+  ];
 
   const slices = parseLeanSlices(leanBody);
   const labelOf = new Map<string, string>();
@@ -173,7 +179,14 @@ export function harvestSpecPathLean(
   }
 
   const wanted = selection.kind === "label" ? selection.label : undefined;
-  const items = tagged.filter((row) => labelOf.get(row.ref) === wanted).map((row) => row.item);
+  const seen = new Set<string>();
+  const items: CheckboxItem[] = [];
+  for (const row of tagged) {
+    if (labelOf.get(row.ref) === wanted && !seen.has(row.item.title)) {
+      seen.add(row.item.title);
+      items.push(row.item);
+    }
+  }
   if (items.length === 0) {
     return {
       ok: false,
@@ -188,11 +201,10 @@ export function harvestSpecPathLean(
   if (slices.present) {
     sourceText = `${items.map((item) => `- ${item.title}`).join("\n")}\n`;
   } else {
-    const acSlice = acceptance.length > 0 ? sliceLeanAcceptanceCriteriaSection(leanBody) : null;
     sourceText =
-      acSlice === null
+      acSlice === null || acceptance.length === 0
         ? bound.sourceText
-        : `${bound.sourceText.replace(/\s+$/, "")}\n\n## Acceptance Criteria\n${acSlice}`;
+        : `${bound.sourceText.trimEnd()}\n\n## Acceptance Criteria\n${acSlice}`;
   }
   return {
     ok: true,
@@ -248,6 +260,17 @@ export function resolveSpecPathLiveIdentities(input: {
   );
   if (!harvest.ok) {
     return { ok: false, kind: "mismatch", reason: harvest.reason };
+  }
+  // The lean must still be the one ingest recorded (an in-place edit after
+  // ingest moves the harvest digest even when the pin is edited to follow it).
+  if (harvest.harvestDigest !== record.harvestDigest) {
+    return {
+      ok: false,
+      kind: "mismatch",
+      reason:
+        `lean ${record.leanCommentId} of #${record.issue} changed after ingest ` +
+        `(harvest digest ${harvest.harvestDigest.slice(0, 12)} is not the recorded ${record.harvestDigest.slice(0, 12)})`,
+    };
   }
   const identities: string[] = [];
   for (const item of harvest.items) {

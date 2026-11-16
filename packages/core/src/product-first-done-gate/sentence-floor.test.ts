@@ -8,6 +8,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { hashHarvestIdentity } from "../design-critique/pain-audit-follow-through-gate.js";
 import { applyClauseQualityForIngest } from "../intake/clause-derivation.js";
 import { buildIssueVbrief } from "../intake/issue-ingest.js";
 import {
@@ -1394,6 +1395,10 @@ describe("Spec-path merge-base boundary and live lean compare (#6333 items 4 and
   ];
   const liveFromThread = (record: SpecPathSourceRecord) =>
     resolveSpecPathLiveIdentities({ comments: THREAD, record });
+  const LIVE_RECORD: SpecPathSourceRecord = {
+    ...SAMPLE_RECORD,
+    harvestDigest: hashHarvestIdentity(THREAD[0]?.body ?? ""),
+  };
 
   function specPathBrief(withRecord: boolean): Record<string, unknown> {
     const [vbrief] = buildIssueVbrief(
@@ -1410,7 +1415,7 @@ describe("Spec-path merge-base boundary and live lean compare (#6333 items 4 and
     const plan = vbrief.plan as Record<string, unknown>;
     bindProbeClauses(plan);
     if (withRecord) {
-      attachSpecPathSourceRecord(plan, SAMPLE_RECORD);
+      attachSpecPathSourceRecord(plan, LIVE_RECORD);
     }
     return plan;
   }
@@ -1463,7 +1468,7 @@ describe("Spec-path merge-base boundary and live lean compare (#6333 items 4 and
 
   it("fails when the recorded lean id is changed to another comment", () => {
     const plan = specPathBrief(false);
-    attachSpecPathSourceRecord(plan, { ...SAMPLE_RECORD, leanCommentId: TABLE_ID });
+    attachSpecPathSourceRecord(plan, { ...LIVE_RECORD, leanCommentId: TABLE_ID });
     const result = evaluateVerifyAcFromPlan(plan, unlanded());
     expect(result.ok).toBe(false);
     expect(result.cause).toBe(ADMITTED_SOURCE_DIGEST_MISMATCH_CAUSE);
