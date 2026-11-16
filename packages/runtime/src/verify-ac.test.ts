@@ -532,5 +532,14 @@ describe("verify:ac run (#3284)", () => {
     expect(chunks.join("")).toContain(
       "verify:ac targeting lands-with-product brief(s) of this change set (#6277): xbrief/completed/story.xbrief.json",
     );
+    // A pin to the moved brief follows it; a pin to another story keeps priority.
+    chunks.length = 0;
+    vi.stubEnv("DEFT_ACTIVE_SCOPE", "xbrief/active/story.xbrief.json");
+    run(["--project-root", root, "--soft-missing-xbrief"]);
+    expect(chunks.join("")).toContain("targeting lands-with-product brief(s)");
+    chunks.length = 0;
+    vi.stubEnv("DEFT_ACTIVE_SCOPE", "xbrief/active/other.xbrief.json");
+    run(["--project-root", root, "--soft-missing-xbrief"]);
+    expect(chunks.join("")).not.toContain("targeting lands-with-product brief(s)");
   });
 });

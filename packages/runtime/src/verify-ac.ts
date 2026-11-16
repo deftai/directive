@@ -26,7 +26,10 @@ import {
   resolveSoftMissingAcTargets,
   VERIFY_AC_NO_OBLIGATION_EXIT,
 } from "@deftai/directive-core/product-first-done-gate";
-import { discoverLandsWithProductMoves } from "@deftai/directive-core/scope";
+import {
+  discoverLandsWithProductMoves,
+  pinNamesLandsWithProductMove,
+} from "@deftai/directive-core/scope";
 
 export { VERIFY_AC_NO_OBLIGATION_EXIT };
 
@@ -319,9 +322,15 @@ export function run(argv: string[]): number {
   const projectRoot = resolve(args.projectRoot);
   let paths: string[] = [];
   // #6277 Bound 6: a change set that moves its story brief to completed/ as
-  // lands-with-product runs that brief's AC, not another active story's.
+  // lands-with-product runs that brief's AC, not another active story's. An
+  // explicit DEFT_ACTIVE_SCOPE pin keeps priority unless it names the moved brief.
+  const pin = process.env.DEFT_ACTIVE_SCOPE?.trim() ?? "";
   const landed =
-    args.xbriefPath === null && !args.captureOnly ? discoverLandsWithProductMoves(projectRoot) : [];
+    args.xbriefPath === null && !args.captureOnly
+      ? discoverLandsWithProductMoves(projectRoot).filter(
+          (move) => pin.length === 0 || pinNamesLandsWithProductMove(projectRoot, pin, move),
+        )
+      : [];
   if (args.xbriefPath !== null) {
     paths = [resolve(projectRoot, args.xbriefPath)];
   } else if (landed.length > 0) {

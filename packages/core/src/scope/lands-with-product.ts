@@ -314,13 +314,22 @@ export function evaluateLandsWithProductAdmission(
   }
   const scope = planFileScope(input.plan);
   const outside = new Set<string>();
+  let inScopeProduction = false;
   for (const rec of input.records) {
     for (const path of rec.status === "R" ? [rec.src, rec.dest] : [rec.dest]) {
       const p = normalize(path);
-      if (isInPrProductionPath(p) && !pathMatchesFileScope(p, scope)) {
+      if (!isInPrProductionPath(p)) continue;
+      if (pathMatchesFileScope(p, scope)) {
+        inScopeProduction = true;
+      } else {
         outside.add(p);
       }
     }
+  }
+  // The move must still ride with an in-scope production change: a test or
+  // changelog edit alone is not the story's delivery.
+  if (!inScopeProduction) {
+    reasons.push("the change set changes no production file inside the brief's file_scope");
   }
   if (outside.size > 0) {
     reasons.push(

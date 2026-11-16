@@ -215,6 +215,21 @@ describe("evaluateLandsWithProductAdmission (#6277 Bound 3)", () => {
     });
     expect(lifecycleOnly.ok).toBe(false);
     if (!lifecycleOnly.ok) expect(lifecycleOnly.reasons.join(" ")).toMatch(/beside a code change/);
+    // A reverted production edit: only a test and the changelog ride with the move.
+    const testsOnly = evaluateLandsWithProductAdmission({
+      completedRel: COMPLETED,
+      plan: landedPlan(),
+      records: [
+        { status: "R", src: ACTIVE, dest: COMPLETED },
+        { status: "M", src: "tests/app.test.ts", dest: "tests/app.test.ts" },
+        { status: "M", src: "CHANGELOG.md", dest: "CHANGELOG.md" },
+      ],
+      prBody: "Closes #77\n",
+    });
+    expect(testsOnly).toEqual({
+      ok: false,
+      reasons: ["the change set changes no production file inside the brief's file_scope"],
+    });
   });
 
   it("refuses stored provenance, a missing issue reference and a non-completed path", () => {
