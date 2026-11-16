@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6409",
-    "updated": "2026-11-16T17:27:04Z"
+    "updated": "2026-11-16T20:59:22Z"
   },
   "plan": {
     "title": "bug(session): session:start refuses mutation for owed completions that belong to other stories",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Mutation session:start refuses every session when any story in the repository has an owed completion, so one owed story of another owner stops every worker in every worktree. This story keeps the finalize-owed inventory on every mutation start but turns the refusal into one always-on report line with the owed count and a clearing command that runs; the --json payload carries the count. Only the repository-not-resolved case keeps today's result.",
       "UserStory": "As an agent starting a mutation session, I want owed completions of other stories reported instead of refused, so that I can work without passing --defer-owed while the owed work stays visible with a command that clears it.",
@@ -20,154 +20,287 @@
     "items": [
       {
         "title": "No refusal for owed rows.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "The change adds no flag, no stored state and no refusal."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T20:59:22Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`evaluateFinalizeOwedSessionGate` does not return `blocks` true because of inventory rows, so `session:start`, cold and `--rearm`, is not refused for owed completions.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given owed items on the delivery tip that block today, when a mutation `session:start` runs cold or with `--rearm`, then it is not refused for finalize-owed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T20:59:22Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Inventory unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given any mutation `session:start`, then the inventory still runs."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T20:59:22Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`discoverFinalizeOwed` runs on every mutation `session:start` and `--rearm` as today, and its rows and their `blocks` field are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given any mutation `session:start`, cold or `--rearm`, then `discoverFinalizeOwed` runs and its rows and their `blocks` field are as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T20:59:22Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`swarm:finalize-owed` and `swarm:finalize-cohort` are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given `swarm:finalize-owed`, then it lists and acts on every owed item as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T20:59:22Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Report line.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given owed items that block today, then `session:start` prints one report line."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T20:59:22Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "When the inventory has one or more rows with `blocks` true, `session:start` prints one line with a fixed prefix that gives the number of those rows, says that they do not stop this session, and names the clearing command with the same wording as the remedy text that #5914 settles.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given the same state, then `session:start` prints one line on the default quiet output that gives the number of owed items and the command that clears them."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T20:59:22Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`isSessionStartAlwaysOnLine` returns true for that prefix.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given the report line, then `isSessionStartAlwaysOnLine` returns true and the quiet success output keeps it."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T20:59:22Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "JSON.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given owed items and `--json`, then the payload carries a count field."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T20:59:22Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The `session:start` payload carries the number of those rows.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given the same state and `--json`, then the payload carries the number of owed items."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T20:59:22Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Repository not resolved.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given a repository that cannot be resolved for the inventory, when a mutation `session:start` runs, then the result is the same as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T20:59:22Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "When the delivery tip is known and the repository cannot be resolved for the inventory, the result is the same as today, with or without `--defer-owed`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given a known delivery tip and no resolvable repository, then `session:start` refuses without `--defer-owed` and passes with it, as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T20:59:22Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Deferral.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given `--defer-owed <reason>`, then it is accepted as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T20:59:22Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`--defer-owed`, its record in the ritual state and the deferral inherited from the primary are unchanged in code.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given `--defer-owed` or a fresh primary deferral, then the deferral reason, its ritual-state record and the inherited deferral are as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T20:59:22Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Owner checks.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given a story whose completion is owed, then the owner checks before DONE are as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T20:59:22Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`verify:orphan-active` and `verify:completed-tracked` are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given a story whose completion is owed, then `verify:orphan-active` and `verify:completed-tracked` give the same result as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T20:59:22Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Docs.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "The session-start documentation and the finalize-owed text for agents describe the rule."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T20:59:22Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The session-start documentation, the AGENTS text and its template, the swarm skill and the agent prompt preamble state that owed completions are reported at `session:start` and not refused, including rows whose state is unknown.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "Given the session-start documentation, AGENTS.md and its template, the swarm skill and the agent prompt preamble, then each states that owed completions, including unknown rows, are reported at `session:start` and not refused."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T20:59:22Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an owed item, then the command that the report line names runs the finalize-owed verb.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.19",
         "narrative": {
           "Acceptance": "Given an owed item, then the command that the report line names runs the finalize-owed verb."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+          "recorded_at": "2026-11-16T20:59:22Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -777,9 +910,36 @@
         "schema": "deft.scope.admitted-target-digest.v1",
         "algorithm": "sha256",
         "sha256": "ced375947de27ba7199640ac3dd787b8aaca0af94377091e2e3784687ae34539"
+      },
+      "productPullRequest": 6442,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "bc7a8cac1585ee1ad717e66e358836e88f8474f0",
+        "prNumber": 6442,
+        "prBase": "master",
+        "mergeCommit": "f9a5e96f4c7623efe3dbe23ecbb6fc3761e52c2b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "391f77b76f2f3b882bcefda01778a1336e79363b",
+        "verifiedAt": "2026-11-16T20:59:22Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-16T20:59:22Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-16T20:59:22Z"
       }
     },
     "id": "github.issue.6425608463",
-    "updated": "2026-11-16T17:27:04Z"
+    "updated": "2026-11-16T20:59:22Z"
   }
 }
