@@ -1,0 +1,1039 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6205",
+    "updated": "2026-11-16T04:27:52Z"
+  },
+  "plan": {
+    "title": "feat(plan-sequence): keep the ordered plan current under the bound pre-push gate (advance on scope:complete, completion PR inherits entry, sanctioned unplanned-fix insert)",
+    "status": "running",
+    "narratives": {
+      "Description": "Under the bound pre-push gate the ordered plan needs hand edits after almost every story: a finished entry stays current, and an unplanned fix has no sanctioned way in. This story derives the plan cursor from completed briefs wherever the plan is read, so the plan moves on when the completed brief arrives. It adds `plan-sequence:insert`, which needs a single-use operator grant minted at a terminal, and guards replace and clear with the same grant class when `plan.policy.requireBoundPrePrPush` is true (operator ruling 6906744687). Completion-PR admission is out of scope and carried on #6303.",
+      "UserStory": "As an operator running the bound pre-push gate, I want the ordered plan to move on by itself when a story's brief is completed, and a sanctioned, attributable way to insert an unplanned fix, so that I stop hand-editing `.deft/plan-sequence.json` after every story.",
+      "ImplementationPlan": "1. packages/core/src/plan-sequence/derive.ts: `derivePlanCursor` (issue and story-id keys only; completed origin = finished; cancelled or failed origin = terminal-lifecycle stop; no-origin entry follows the stored cursor) and `materializeDerivedCursor`. Use it in `verifyPlanTarget` (types.ts); the #4129 drift text in terminal-drift.ts keeps the operator stop for the cancelled case only.\n2. types.ts: new closed top-level key `insert_approvals` (rows of entry_id, grant_id, approved_at) in the closed shape and the parser; entry keys unchanged.\n3. packages/core/src/plan-sequence/approval-grant.ts: one template `plan-sequence-approval` minted only through mintHumanOriginGrant into the main clone store, bound to repo, sequence_id, generation and action (insert kind:id, issue and position; replace; clear), single-use; find, claim and roll back on a failed write with returned failures.\n4. packages/core/src/plan-sequence/complete-advance.ts plus a hook in packages/core/src/scope/transition.ts: after a successful complete, write the stored cursor forward only for an untracked plan in the same checkout and print one named line; never fail or roll back the completion.\n5. packages/runtime/src/plan-sequence.ts: current, advance and the new insert verb derive first; set on an existing plan and clear need the grant only when requireBoundPrePrPush is true; verify-plan-sequence.ts prints the approval row. Wire the template in authz.ts, the verb in dispatch.ts, route-argv.ts and tasks/plan-sequence.yml.\n6. Skills: remove the CLEAN-time advance for entries that have a brief from the pre-pr and review-cycle skills (and the preamble and commands.md); refresh the skills pack and RULE-MAP; content-contract test.\n7. Tests for every case in the Bound test list, plus one disposable consumer fixture that runs complete, next-story push, approved insert and fix push through the real pre-PR controller and pre-push gate; tests mint through the core mint seam, never a real terminal mint. One CHANGELOG.md [Unreleased] line.",
+      "Traces": "#6205; bound lean 6861552782; verified-claims table 6861600112; operator ruling 6906744687; deferred P2 on #6303",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6205",
+      "Overview": "\n1. Derived cursor: wherever the plan is read (`plan-sequence:current`, `verify:plan-sequence`, every plan verb before it writes), an entry is finished when it is marked completed or when its lifecycle origin, matched by the issue and story-id keys of `resolvePlanEntryLifecycleOrigin` (never by title alone), is a brief in `completed/` in that checkout. The effective current entry is the first pending entry from the stored cursor on that is not finished; when none remains the plan is effectively exhausted. An entry whose origin is in `cancelled/` stops with `terminal-lifecycle`, as #4129 does today. An entry with no lifecycle origin follows the stored cursor.\n2. No second record: `scope:complete` and `scope:cancel` never depend on the plan and are never rolled back for it. After a completion, `scope:complete` writes the stored cursor forward only when its own checkout holds an untracked plan, never a tracked plan or another checkout's plan, and prints one named line (`advanced`, `derived-only`, `no-sequence`, `no-entry`, `not-current`, `store-failed`). A failed write changes nothing else, because readers derive.\n3. One advance owner: the CLEAN-time `plan-sequence:advance` step leaves the review-cycle and pre-pr skills for entries that have a brief. The #4129 remediation text keeps the operator stop for the cancelled case only.\n4. Approved insert: `plan-sequence:insert` adds one pending entry at the effective cursor or at a named later index. It needs a human-origin grant minted on a TTY through the existing `authz:grant` machinery (one new template), bound to the repository, `sequence_id`, generation, entry kind and id, and position, and usable once. It writes an approval row (entry id, grant id, time) under one new closed top-level key; entry keys are unchanged. `verify:plan-sequence` prints that row for the current entry.\n5. No unapproved chain: `plan-sequence:set` in a checkout that already holds a plan file (live or exhausted) and `plan-sequence:clear` need the same grant class. A first `set` in a checkout with no plan file is unchanged.\n6. Tests: a completed brief with a stale stored cursor; a store failure during completion; a tracked plan (never written by completion); a linked worktree with no plan; a cancelled origin; a title-only match (not finished); a manual advance after a derived advance; an insert without a grant, with a grant for another entry or position, and with a reused grant; advance to exhaustion then `set` without a grant; `clear` without a grant. One disposable consumer fixture with the bound pre-push gate enrolled runs complete, next-story push, approved insert and fix push through the real pre-PR controller and pre-push gate.\n\n\n",
+      "Constraint": "- A completion-PR classifier for plan admission in this issue (joint-arc retraction map 6861004147; Scott's option 2). The need moves to #6303.\n- Rolling a completion back because the plan could not be written; writing one checkout's plan from another; a second advance at CLEAN; advancing by title or on cancel (carried from 6859333665 and earlier).\n- `authorized_by`, `--approved-by`, `--confirm` or narrative text as consent; a new approval-record system beside `authz:grant`; new keys on plan entries (carried).\n- Operator ruling 6906744687 (2026-11-16): the replace and clear approval applies only when `plan.policy.requireBoundPrePrPush` is true; with it false or absent, `set` and `clear` need no approval. The derived cursor and `plan-sequence:insert` with its single-use approval are unchanged.\n- Neighbours #5839 (plan-only commit) and #4433 (parallel cohort admission) are not implemented here.",
+      "Labels": "design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Derived cursor: wherever the plan is read (`plan-sequence:current`, `verify:plan-sequence`, every plan verb before it writes), an entry is finished when it is marked completed or when its lifecycle origin, matched by the issue and story-id keys of `resolvePlanEntryLifecycleOrigin` (never by title alone), is a brief in `completed/` in that checkout.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a pending plan entry whose issue or story id matches a brief in `completed/` of the same checkout, when `plan-sequence:current`, `verify:plan-sequence` or a plan verb reads the plan, then that entry counts as finished; a title-only match does not."
+        }
+      },
+      {
+        "id": "clause.2",
+        "title": "The effective current entry is the first pending entry from the stored cursor on that is not finished; when none remains the plan is effectively exhausted.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a stale stored cursor on a finished entry, when the plan is read, then the effective current entry is the next unfinished pending entry, or the plan reads as exhausted when none remains."
+        }
+      },
+      {
+        "id": "clause.3",
+        "title": "An entry whose origin is in `cancelled/` stops with `terminal-lifecycle`, as #4129 does today.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a pending entry whose origin is in `cancelled/`, when the plan is read, then the reader stops on that entry with code `terminal-lifecycle`."
+        }
+      },
+      {
+        "id": "clause.4",
+        "title": "An entry with no lifecycle origin follows the stored cursor.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a task, phase, checklist or review entry with no issue, when the plan is read, then it stays current until it is advanced by hand."
+        }
+      },
+      {
+        "id": "clause.5",
+        "title": "No second record: `scope:complete` and `scope:cancel` never depend on the plan and are never rolled back for it.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given an unreadable or unwritable plan, when `scope:complete` runs, then the completion still succeeds and is not rolled back; `scope:cancel` does not read the plan."
+        }
+      },
+      {
+        "id": "clause.6",
+        "title": "After a completion, `scope:complete` writes the stored cursor forward only when its own checkout holds an untracked plan, never a tracked plan or another checkout's plan, and prints one named line (`advanced`, `derived-only`, `no-sequence`, `no-entry`, `not-current`, `store-failed`).",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a completion, then the stored cursor is written only for an untracked plan in the same checkout, and exactly one line names `advanced`, `derived-only`, `no-sequence`, `no-entry`, `not-current` or `store-failed`."
+        }
+      },
+      {
+        "id": "clause.7",
+        "title": "A failed write changes nothing else, because readers derive.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a plan write that fails during completion, then the line reads `store-failed`, the completed brief stays in `completed/`, and readers still derive the next entry."
+        }
+      },
+      {
+        "id": "clause.8",
+        "title": "One advance owner: the CLEAN-time `plan-sequence:advance` step leaves the review-cycle and pre-pr skills for entries that have a brief.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the pre-pr and review-cycle skills, then neither tells the agent to run `plan-sequence:advance` at CLEAN for an entry that has a brief."
+        }
+      },
+      {
+        "id": "clause.9",
+        "title": "The #4129 remediation text keeps the operator stop for the cancelled case only.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a terminal-lifecycle message, then the stop-and-ask-the-operator text appears for a cancelled or failed origin and not for a completed one."
+        }
+      },
+      {
+        "id": "clause.10",
+        "title": "Approved insert: `plan-sequence:insert` adds one pending entry at the effective cursor or at a named later index.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a matching grant, when `plan-sequence:insert` runs, then one pending entry is added at the effective cursor or at the named later index, and an earlier index is refused."
+        }
+      },
+      {
+        "id": "clause.11",
+        "title": "It needs a human-origin grant minted on a TTY through the existing `authz:grant` machinery (one new template), bound to the repository, `sequence_id`, generation, entry kind and id, and position, and usable once.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the `plan-sequence-approval` template, then its grant is minted only through `authz:grant` human presence, binds repository, sequence_id, generation, entry kind and id and position, and is spent on first use."
+        }
+      },
+      {
+        "id": "clause.12",
+        "title": "It writes an approval row (entry id, grant id, time) under one new closed top-level key; entry keys are unchanged.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given an approved insert, then the plan carries one `insert_approvals` row with entry_id, grant_id and approved_at, the closed-shape check admits it, and entry keys are unchanged."
+        }
+      },
+      {
+        "id": "clause.13",
+        "title": "`verify:plan-sequence` prints that row for the current entry.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given an inserted entry that is current, when `verify:plan-sequence` matches it, then the output shows its approval row in text and JSON."
+        }
+      },
+      {
+        "id": "clause.14",
+        "title": "No unapproved chain: `plan-sequence:set` in a checkout that already holds a plan file (live or exhausted) and `plan-sequence:clear` need the same grant class.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given `plan.policy.requireBoundPrePrPush` true and an existing plan file, when `set` or `clear` runs without a matching grant, then it refuses; with it false or absent, no grant is needed (ruling 6906744687)."
+        }
+      },
+      {
+        "id": "clause.15",
+        "title": "A first `set` in a checkout with no plan file is unchanged.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given no plan file, when `plan-sequence:set` runs under any policy, then it writes the plan with no grant."
+        }
+      },
+      {
+        "id": "clause.16",
+        "title": "Tests: a completed brief with a stale stored cursor; a store failure during completion; a tracked plan (never written by completion); a linked worktree with no plan; a cancelled origin; a title-only match (not finished); a manual advance after a derived advance; an insert without a grant, with a grant for another entry or position, and with a reused grant; advance to exhaustion then `set` without a grant; `clear` without a grant.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given the test suite, then each listed case has a named regression test."
+        }
+      },
+      {
+        "id": "clause.17",
+        "title": "One disposable consumer fixture with the bound pre-push gate enrolled runs complete, next-story push, approved insert and fix push through the real pre-PR controller and pre-push gate.",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a disposable git fixture with `requireBoundPrePrPush: true`, then completing a story admits the next story's push, an unplanned fix push is refused before insert and admitted after an approved insert, all through the real pre-PR controller and pre-push gate."
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6205",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6205: feat(plan-sequence): keep the ordered plan current under the bound pre-push gate (advance on scope:complete, completion PR inherits entry, sanctioned unplanned-fix insert)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 17 independently testable clauses, one per admitted Bound remedy sentence of lean 6861552782, before product edit (#3323)",
+      "sentences": [
+        "feat(plan-sequence): keep the ordered plan current under the bound pre-push gate (advance on scope:complete, completion PR inherits entry, sanctioned unplanned-fix insert)",
+        "Derived cursor: wherever the plan is read (`plan-sequence:current`, `verify:plan-sequence`, every plan verb before it writes), an entry is finished when it is marked completed or when its lifecycle origin, matched by the issue and story-id keys of `resolvePlanEntryLifecycleOrigin` (never by title alone), is a brief in `completed/` in that checkout.",
+        "The effective current entry is the first pending entry from the stored cursor on that is not finished; when none remains the plan is effectively exhausted.",
+        "An entry whose origin is in `cancelled/` stops with `terminal-lifecycle`, as #4129 does today.",
+        "An entry with no lifecycle origin follows the stored cursor.",
+        "No second record: `scope:complete` and `scope:cancel` never depend on the plan and are never rolled back for it.",
+        "After a completion, `scope:complete` writes the stored cursor forward only when its own checkout holds an untracked plan, never a tracked plan or another checkout's plan, and prints one named line (`advanced`, `derived-only`, `no-sequence`, `no-entry`, `not-current`, `store-failed`).",
+        "A failed write changes nothing else, because readers derive.",
+        "One advance owner: the CLEAN-time `plan-sequence:advance` step leaves the review-cycle and pre-pr skills for entries that have a brief.",
+        "The #4129 remediation text keeps the operator stop for the cancelled case only.",
+        "Approved insert: `plan-sequence:insert` adds one pending entry at the effective cursor or at a named later index.",
+        "It needs a human-origin grant minted on a TTY through the existing `authz:grant` machinery (one new template), bound to the repository, `sequence_id`, generation, entry kind and id, and position, and usable once.",
+        "It writes an approval row (entry id, grant id, time) under one new closed top-level key; entry keys are unchanged.",
+        "`verify:plan-sequence` prints that row for the current entry.",
+        "No unapproved chain: `plan-sequence:set` in a checkout that already holds a plan file (live or exhausted) and `plan-sequence:clear` need the same grant class.",
+        "A first `set` in a checkout with no plan file is unchanged.",
+        "Tests: a completed brief with a stale stored cursor; a store failure during completion; a tracked plan (never written by completion); a linked worktree with no plan; a cancelled origin; a title-only match (not finished); a manual advance after a derived advance; an insert without a grant, with a grant for another entry or position, and with a reused grant; advance to exhaustion then `set` without a grant; `clear` without a grant.",
+        "One disposable consumer fixture with the bound pre-push gate enrolled runs complete, next-story push, approved insert and fix push through the real pre-PR controller and pre-push gate."
+      ],
+      "admitted_source_sentences": [
+        "Derived cursor: wherever the plan is read (`plan-sequence:current`, `verify:plan-sequence`, every plan verb before it writes), an entry is finished when it is marked completed or when its lifecycle origin, matched by the issue and story-id keys of `resolvePlanEntryLifecycleOrigin` (never by title alone), is a brief in `completed/` in that checkout.",
+        "The effective current entry is the first pending entry from the stored cursor on that is not finished; when none remains the plan is effectively exhausted.",
+        "An entry whose origin is in `cancelled/` stops with `terminal-lifecycle`, as #4129 does today.",
+        "An entry with no lifecycle origin follows the stored cursor.",
+        "No second record: `scope:complete` and `scope:cancel` never depend on the plan and are never rolled back for it.",
+        "After a completion, `scope:complete` writes the stored cursor forward only when its own checkout holds an untracked plan, never a tracked plan or another checkout's plan, and prints one named line (`advanced`, `derived-only`, `no-sequence`, `no-entry`, `not-current`, `store-failed`).",
+        "A failed write changes nothing else, because readers derive.",
+        "One advance owner: the CLEAN-time `plan-sequence:advance` step leaves the review-cycle and pre-pr skills for entries that have a brief.",
+        "The #4129 remediation text keeps the operator stop for the cancelled case only.",
+        "Approved insert: `plan-sequence:insert` adds one pending entry at the effective cursor or at a named later index.",
+        "It needs a human-origin grant minted on a TTY through the existing `authz:grant` machinery (one new template), bound to the repository, `sequence_id`, generation, entry kind and id, and position, and usable once.",
+        "It writes an approval row (entry id, grant id, time) under one new closed top-level key; entry keys are unchanged.",
+        "`verify:plan-sequence` prints that row for the current entry.",
+        "No unapproved chain: `plan-sequence:set` in a checkout that already holds a plan file (live or exhausted) and `plan-sequence:clear` need the same grant class.",
+        "A first `set` in a checkout with no plan file is unchanged.",
+        "Tests: a completed brief with a stale stored cursor; a store failure during completion; a tracked plan (never written by completion); a linked worktree with no plan; a cancelled origin; a title-only match (not finished); a manual advance after a derived advance; an insert without a grant, with a grant for another entry or position, and with a reused grant; advance to exhaustion then `set` without a grant; `clear` without a grant.",
+        "One disposable consumer fixture with the bound pre-push gate enrolled runs complete, next-story push, approved insert and fix push through the real pre-PR controller and pre-push gate."
+      ],
+      "admitted_source_digest": "5313712c3a01a77d7c55717737b05dee505d2949cf04b3996cee1a674ae945f0",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Derived cursor: wherever the plan is read (`plan-sequence:current`, `verify:plan-sequence`, every plan verb before it writes), an entry is finished when it is marked completed or when its lifecycle origin, matched by the issue and story-id keys of `resolvePlanEntryLifecycleOrigin` (never by title alone), is a brief in `completed/` in that checkout.",
+          "artifact_path": "packages/core/src/plan-sequence/derive.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The effective current entry is the first pending entry from the stored cursor on that is not finished; when none remains the plan is effectively exhausted.",
+          "artifact_path": "packages/core/src/plan-sequence/derive.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "An entry whose origin is in `cancelled/` stops with `terminal-lifecycle`, as #4129 does today.",
+          "artifact_path": "packages/core/src/plan-sequence/derive.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "An entry with no lifecycle origin follows the stored cursor.",
+          "artifact_path": "packages/core/src/plan-sequence/derive.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "No second record: `scope:complete` and `scope:cancel` never depend on the plan and are never rolled back for it.",
+          "artifact_path": "packages/core/src/plan-sequence/complete-advance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "After a completion, `scope:complete` writes the stored cursor forward only when its own checkout holds an untracked plan, never a tracked plan or another checkout's plan, and prints one named line (`advanced`, `derived-only`, `no-sequence`, `no-entry`, `not-current`, `store-failed`).",
+          "artifact_path": "packages/core/src/plan-sequence/complete-advance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "A failed write changes nothing else, because readers derive.",
+          "artifact_path": "packages/core/src/plan-sequence/complete-advance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "One advance owner: the CLEAN-time `plan-sequence:advance` step leaves the review-cycle and pre-pr skills for entries that have a brief.",
+          "artifact_path": "packages/core/src/content-contracts/skills/plan_sequence_advance_owner_6205.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "The #4129 remediation text keeps the operator stop for the cancelled case only.",
+          "artifact_path": "packages/core/src/plan-sequence/terminal-drift.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Approved insert: `plan-sequence:insert` adds one pending entry at the effective cursor or at a named later index.",
+          "artifact_path": "packages/runtime/src/plan-sequence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "It needs a human-origin grant minted on a TTY through the existing `authz:grant` machinery (one new template), bound to the repository, `sequence_id`, generation, entry kind and id, and position, and usable once.",
+          "artifact_path": "packages/core/src/plan-sequence/approval-grant.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "It writes an approval row (entry id, grant id, time) under one new closed top-level key; entry keys are unchanged.",
+          "artifact_path": "packages/core/src/plan-sequence/types.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "`verify:plan-sequence` prints that row for the current entry.",
+          "artifact_path": "packages/runtime/src/verify-plan-sequence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "No unapproved chain: `plan-sequence:set` in a checkout that already holds a plan file (live or exhausted) and `plan-sequence:clear` need the same grant class.",
+          "artifact_path": "packages/runtime/src/plan-sequence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "A first `set` in a checkout with no plan file is unchanged.",
+          "artifact_path": "packages/runtime/src/plan-sequence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Tests: a completed brief with a stale stored cursor; a store failure during completion; a tracked plan (never written by completion); a linked worktree with no plan; a cancelled origin; a title-only match (not finished); a manual advance after a derived advance; an insert without a grant, with a grant for another entry or position, and with a reused grant; advance to exhaustion then `set` without a grant; `clear` without a grant.",
+          "artifact_path": "packages/runtime/src/plan-sequence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "One disposable consumer fixture with the bound pre-push gate enrolled runs complete, next-story push, approved insert and fix push through the real pre-PR controller and pre-push gate.",
+          "artifact_path": "packages/runtime/src/plan-sequence-bound-push.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "confessions": [
+        "feat(plan-sequence): keep the ordered plan current under the bound pre-push gate (advance on scope:complete, completion PR inherits entry, sanctioned unplanned-fix insert)"
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/plan-sequence/derive.ts",
+          "packages/core/src/plan-sequence/derive.test.ts",
+          "packages/core/src/plan-sequence/approval-grant.ts",
+          "packages/core/src/plan-sequence/approval-grant.test.ts",
+          "packages/core/src/plan-sequence/complete-advance.ts",
+          "packages/core/src/plan-sequence/complete-advance.test.ts",
+          "packages/core/src/plan-sequence/types.ts",
+          "packages/core/src/plan-sequence/types.test.ts",
+          "packages/core/src/plan-sequence/terminal-drift.ts",
+          "packages/core/src/plan-sequence/terminal-drift.test.ts",
+          "packages/core/src/plan-sequence/index.ts",
+          "packages/core/src/plan-sequence/index.test.ts",
+          "packages/core/src/plan-sequence/missing-kind.test.ts",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "packages/core/src/content-contracts/skills/plan_sequence_advance_owner_6205.test.ts",
+          "packages/runtime/src/plan-sequence.ts",
+          "packages/runtime/src/plan-sequence.test.ts",
+          "packages/runtime/src/plan-sequence-bound-push.test.ts",
+          "packages/runtime/src/verify-plan-sequence.ts",
+          "packages/runtime/src/verify-plan-sequence.test.ts",
+          "packages/runtime/src/authz.ts",
+          "packages/runtime/src/authz.test.ts",
+          "packages/runtime/src/dispatch.ts",
+          "packages/runtime/src/dispatch.test.ts",
+          "packages/runtime/src/cli-router/route-argv.ts",
+          "tasks/plan-sequence.yml",
+          "content/skills/deft-directive-pre-pr/SKILL.md",
+          "content/skills/deft-directive-review-cycle/SKILL.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/templates/agent-prompt-preamble.md",
+          "content/commands.md",
+          "docs/RULE-MAP.md",
+          "CHANGELOG.md"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "large",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "plan-sequence",
+        "verify_commands": [
+          "npx vitest run packages/core/src/plan-sequence packages/core/src/content-contracts/skills/plan_sequence_advance_owner_6205.test.ts",
+          "npx vitest run packages/runtime/src/plan-sequence.test.ts packages/runtime/src/plan-sequence-bound-push.test.ts packages/runtime/src/verify-plan-sequence.test.ts packages/runtime/src/authz.test.ts packages/runtime/src/dispatch.test.ts"
+        ],
+        "expected_outputs": [
+          "derived plan cursor used by plan-sequence:current, verify:plan-sequence and every plan verb before it writes",
+          "#4129 drift text keeps the operator stop for cancelled or failed origins only",
+          "scope:complete prints one named plan line and writes only an untracked plan in its own checkout",
+          "plan-sequence:insert with a single-use plan-sequence-approval grant and an insert_approvals row",
+          "set on an existing plan and clear need the grant only under requireBoundPrePrPush true",
+          "pre-pr and review-cycle skills no longer advance at CLEAN for entries that have a brief",
+          "consumer fixture through the real pre-PR controller and pre-push gate",
+          "one CHANGELOG.md [Unreleased] line"
+        ],
+        "Traces": [
+          "#6205",
+          "#6303",
+          "#4129"
+        ],
+        "acceptance_criteria_justification": "Seventeen clauses, one per admitted sentence of the Bound remedy in lean 6861552782 (accepted synthesis 6861603898), same text. Operator ruling 6906744687 scopes clause 14 to requireBoundPrePrPush true; its acceptance narrative carries that condition. Completion-PR admission (Ask 2) is deferred to #6303 and not a clause."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6205; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the three asks change what the ordered-plan check admits and add an operator-approval record; that is gate authority for every consumer, and the mechanism for each ask is still open.\n\ndispatch-sha: 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04\ndest: .deft-scratch/worktrees/arc-6205 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: high blast radius (gate admission and consent records for every consumer); panel permission used. `design-critique:spend-resolve` resolved the relayed operator wording against the recorded recommend.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04:; dest cwd-without-occupy\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\npain: P1, P2, P3\n\n## In plain English\nA consumer project reported that keeping the ordered plan (`.deft/plan-sequence.json`) current cost more than the delivery work: 82 plan-sequence commands in two days. Three routine updates have no supported command. A finished entry stays current until someone advances it. A completion PR has no entry of its own. A bug fix that is not in the plan has no sanctioned way in. The open question is which mechanism closes each gap without turning the plan into something an agent can rewrite to admit its own work.\n\n## Pains\n- P1 — A finished plan entry stays current until someone advances it by hand, so the next story's pre-PR pass and push are refused.\n- P2 — A completion (leftover-complete or lifecycle) PR for issue N is not admitted under the plan entry for issue N; it needs a separate entry or a hand edit.\n- P3 — An unplanned fix is refused, and there is no sanctioned, attributable way for the operator to insert it. The routes used today are hand edits to the plan, or a human commit outside the agent.\n\n## Notes for the arc\n- This repository runs with `requireBoundPrePrPush: false` (#6024; re-enabling is tracked on #6025). A fix cannot be field-tested here. The lean must say how it will be verified.\n- Tracked elsewhere and outside this warrant: plan-only commit with no active brief (#5839), parallel cohort entries (#4433), `pre-pr:run` as one command (#5933, #5977).\n\n## Operator launch\nRelayed by the dispatching session, not typed in this session. Scott answered \"Yes, arcs only\" to the question \"Start a third-clone session that runs arcs only for the next wave?\". Standing steer, verbatim: \"you can yolo them and start implementation when they land\". This session runs the arc only: no ingest, no brief, no code, no PR.\n\n",
+          "id": 6857544678,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6857544678",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:34:13Z",
+          "updated_at": "2026-11-13T15:34:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 6857551971\nseat: claude launcher: claude-code-native-subagent (model opus)\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest)\nseat: grok launcher: grok (--cwd dest --prompt-file --permission-mode auto --disable-web-search --no-subagents)\n\ncharter: open critique\nspend: N≥3\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04\ndest: .deft-scratch/worktrees/arc-6205\nverification-path: pin-read git show 1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04:; dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6857544678\n\n## Launch posture (disclosed)\n- The parent is Claude Code in auto mode. It does not use the playbook's bypass critic argv. Each seat uses a read-only launcher with the dest as its working directory.\n- Launch probe under the argv actually used: codex `--sandbox read-only` returned `pong` rc 0; grok `--permission-mode auto` returned `pong` rc 0. That proves launchability only, not method.\n- The Codex and Grok seats have no GitHub access in that posture. They read a parent-written thread snapshot (issue body, comments up to this deposit) and a filled brief; both files sit outside the repository, because the write gate refuses parent writes inside a process-only dest. The Claude seat reads the same two files and returns its body to the parent.\n- For all three seats the parent posts the critic's final message verbatim, with no edits. Grok plain output prints progress narration before the `model:` line; the parent strips only that narration.\n\n",
+          "id": 6857551971,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6857551971",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:34:32Z",
+          "updated_at": "2026-11-13T15:34:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe issue asks to advance the ordered plan when a story completes, admit its completion PR under the original entry, and provide an approved way to insert unplanned fixes. The pinned code already supports manual advancement and guarded plan writes; the missing work is their integration with completion and authorization. The proposal needs explicit rules for completion after the cursor advances, interrupted updates, and approval provenance before it can bind. Verification was read-only at dispatch SHA `1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04`; no tests were executed.\n\n### 1. Completion inheritance must survive advancement without admitting unrelated work — blocks-the-design\n\n**Evidence:** `packages/core/src/plan-sequence/types.ts:291–342` verifies only the current entry and rejects exhausted sequences before matching. Advancement at line 375 changes the current index or marks the sequence exhausted. Ask 2 and comment 6857544678 require completion PR inheritance.\n\n**Failure mode:** Completing A advances the cursor to B, so A’s subsequent lifecycle PR still fails. Completing the final entry produces the same failure through exhaustion. Conversely, admitting any PR that mentions an issue anywhere in the plan would authorize new product changes under old completed entries.\n\n**Disposition:** Bind a narrow completion admission branch that resolves the repository-qualified issue and brief continuity, proves the lifecycle-only change, and permits the relevant completed entry even after advancement or exhaustion. Preserve current-entry checking for product work. Existing lifecycle path classification in `packages/core/src/check/session-completed-ac.ts:29–56` is useful inventory, but path membership alone does not prove that edits belong to the claimed issue. Require negative cases for unrelated product changes and another issue’s lifecycle changes, alongside the requested no-entry case.\n\n### 2. “Same operation” needs recoverable, exactly-once advancement — blocks-the-design\n\n**Evidence:** `packages/core/src/plan-sequence/store.ts:258` uses a sidecar lock for plan mutation, with generation mismatch and persistence failures defined at lines 28–36. `packages/core/src/scope/transition.ts:1020–1054` separately publishes and rolls back lifecycle state. Its completed-brief restamp path writes again at line 1392.\n\n**Failure mode:** Appending an advance after completion can leave a completed brief with a stale cursor when persistence fails. Advancing first can release the next story before completion succeeds. Retrying completion or restamping an already completed brief must not advance a second entry. A concurrent insertion can also invalidate the entry observed before completion.\n\n**Disposition:** Bind reuse of the existing generation/lock mechanism plus an explicit recoverable completion-to-entry association. Require failure-injection coverage between durable writes, retry idempotency, and stale-generation refusal without consuming another entry. A simple sequential call is attractive because it is small, but becomes sufficient only if the surrounding operation demonstrably supplies rollback or recovery across both records.\n\n### 3. Approval must authorize the specific insertion, not merely record an actor — blocks-the-design\n\n**Evidence:** `content/docs/scope-provenance.md:73` expressly rejects `authorized_by` and head-authored confirmations as consent. Existing operator mint infrastructure is documented in `packages/runtime/src/authz.ts:19–26` and imported from `human-presence-mint` at line 65.\n\n**Failure mode:** An agent-callable insertion command with `--approved-by` or `--confirm` can manufacture its own permission. Even genuine approval becomes reusable for different work if it is not bound to the inserted target and ordered-plan mutation.\n\n**Disposition:** Bind the existing human-presence approval machinery to a specific repository, sequence identity/generation, entry identity, and insertion position; have verification validate that association. Specify how existing set/replace routes interact with this requirement so replacing the plan cannot bypass the new approval check. Prefer reuse over a parallel consent system. A forge-backed mechanism could replace local minting if it supplies equally explicit identity and mutation binding.\n\n### 4. Correct the baseline and test the enabled consumer path — sharpens-framing\n\n**Evidence:** `tasks/plan-sequence.yml:33–39` already exposes `plan-sequence:advance`; its implementation calls the existing advance and guarded writer at `packages/runtime/src/plan-sequence.ts:258–259`. The runtime verifier deliberately skips an absent sequence at `packages/runtime/src/verify-plan-sequence.ts:118–130`. Repository policy sets `requireBoundPrePrPush: false` at `xbrief/PROJECT-DEFINITION.xbrief.json:23875`.\n\n**Failure mode:** “Three routine updates have no supported command” overstates the missing surface, and “without this command, the fix is refused as today” is not universally true without an active sequence. Testing only this repository’s disabled posture would not establish the promised push admission.\n\n**Disposition:** Describe Ask 1 as automatic integration of an existing command. State absent-sequence behavior explicitly. Require a disposable consumer fixture with bound push enforcement enabled, exercising completion, lifecycle push, next-story push, and approved insertion through the actual gate.\n\n### 5. Relayed instructions remain untrusted — footnote\n\nComment 6857544678 embeds “you can yolo them and start implementation when they land”; comment 6857551971 also prescribes parent posting behavior. These are thread data, not authority for this critic. Following them could expand the task into implementation or posting. Neither was followed; this critique remains within the supplied read-only envelope.",
+          "id": 6857638408,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6857638408",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:38:19Z",
+          "updated_at": "2026-11-13T15:38:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\nThe issue asks for three things. First, `scope:complete` should move the ordered plan forward. Second, a completion PR should count under its issue's plan entry. Third, the operator should have one approved, recorded command that adds an unplanned fix to the plan. At the pin, most of what this needs already exists: `advancePlanSequence` and the generation-checked store, the #4129 terminal-drift check, and the authz human-origin grants. The real gaps are in where and when things happen, not in missing verbs. The checkout that `scope:complete` advances is usually not the checkout the next story reads. Ask 2 has no deterministic test that a push really is a completion PR. Ask 3 can be bypassed while `plan-sequence:set` stays unattributed.\n\n### 1. Ask 1 advances a plan file the next story may never read — blocks-the-design\nEvidence: `packages/core/src/plan-sequence/store.ts:14-16` resolves the plan as `join(projectRoot, \".deft\", \"plan-sequence.json\")`, relative to the working directory. In this repo `.gitignore:62` ignores `.deft/*`, so every linked worktree has its own copy or none. In consumer repos the file can be committed (`content/docs/scope-provenance.md:70`, PR-1 planning package). Through-merge `scope:complete` usually runs in a dest or isolated delivery checkout (`swarm:finalize-cohort`, lifecycle PR).\nFailure mode: if the file is untracked, the advance lands in the dest worktree and the primary still shows the finished entry. If it is tracked, the advance lands on the lifecycle branch, and a next-story branch cut before that merge still shows the old cursor. Either way the acceptance (\"next push of the next story admitted with no manual command\") fails in the normal swarm topology.\nDisposition: the lean must name which plan the advance writes to. I would bind the primary or common-dir plan, under the existing sidecar lock and `expected_generation`, and reject a per-worktree copy. If consumers commit the file, that choice changes. Then the lean must state how a committed advance reaches the delivery branch before the next story branches. That interacts with #5839.\n\n### 2. Ask 2 has no deterministic signal that a push is a completion PR — blocks-the-design\nEvidence: the agent supplies the target (`packages/runtime/src/verify-plan-sequence.ts:131-135`). The controller records only the exit code and skip token (`packages/core/src/pre-pr-controller/controller.ts:289-305`). Nothing binds the target to the branch or the diff. `isDocsOnlyOutgoing` (`packages/core/src/preflight-gh/pre-push.ts:233-243`) does not treat xBRIEF `.json` moves as inert. There is also an ordering link: the completion PR is where `scope:complete` runs, so after Ask 1 the cursor has already moved past N when that PR pushes.\nFailure mode: \"admit entry N because this is N's completion PR\" turns into \"admit any completed entry the agent names\". That reopens the plan for any push.\nDisposition: inheritance needs a closed path-class test where the diff is known: outgoing paths limited to N's xBRIEF lifecycle move, plus CHANGELOG. I would bind that as a closed `plan_sequence` skip reason, checked at the pre-push or controller arm. I would not widen `verifyPlanTarget` to non-current entries. Rejected option: a real plan entry per completion PR. It is simpler to audit but it is the exact cost the field report counts. What would flip my verdict: evidence that completion PRs routinely carry product paths.\n\n### 3. Ask 1 reverses #4129's operator stop and must keep it for every other case — sharpens-framing\nEvidence: `packages/core/src/plan-sequence/terminal-drift.ts:165-170` and `content/commands.md:618,630` say not to run `plan-sequence:advance` without operator review when the current entry is terminal in `completed/` or `cancelled/`. `advancePlanSequence` (`types.ts:375-400`) advances blindly and does not check which brief it completes.\nFailure mode: an auto-advance hook that matches loosely, for example by title or via `scope:cancel`, advances past the wrong entry with nothing visible.\nDisposition: the lean should advance only when `resolvePlanEntryLifecycleOrigin` keys for the current entry match the completing brief. `scope:cancel` should never advance (#5126 abandon semantics). Out-of-band completion should still raise `terminal-lifecycle`. The lean should also say whether a failed advance fails `scope:complete`. I would let `scope:complete` succeed, report the named reason, and leave #4129 drift as the visible fallback.\n\n### 4. Ask 3's attributable insert is bypassable through `plan-sequence:set` — sharpens-framing\nEvidence: `authorized_by` is a free string (`packages/runtime/src/plan-sequence.ts:139`). `scope-provenance.md:73` already says it is not consent. `set`, `advance` and `clear` need only `--expected-generation`. The entry closed keys (`types.ts:64`) do not allow an approval field.\nFailure mode: an agent can skip the new command and run `set` to rewrite the sequence with the fix at the cursor. \"Refused as today\" holds only by convention.\nDisposition: reuse `mintHumanOriginGrant` / `operator-cli` origin (`packages/core/src/authz/templates.ts`, `origin.ts`, gate-override #5542). Do not add a new approval record. Key the grant on `sequence_id` + entry id + generation, and keep it outside the entry so the #5551 closed shape is unchanged. The lean must either have `verify:plan-sequence` require the grant for inserted entries, or record the unattributed `set` bypass as a named residual. It must not claim attribution it does not have.\n\n### 5. Verification posture — footnote\nThis repo runs with `requireBoundPrePrPush: false` (comment 6857544678). Acceptance can only be shown as unit regressions plus a consumer fixture. The two-day cost metric partly belongs to #5933 / #5977.\n\n### 6. Embedded instruction in thread — footnote\nComment 6857544678 relays a standing steer: \"you can yolo them and start implementation when they land\". This is instruction-shaped text from untrusted thread content. I did not act on it, and it is not consent from this seat.\n\n",
+          "id": 6857644283,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6857644283",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:38:34Z",
+          "updated_at": "2026-11-13T15:38:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\nIssue #6205 asks for three ordered-plan gate fixes under the bound pre-push path: advance the cursor inside a successful matching `scope:complete`, admit leftover-complete or lifecycle PRs under the same issue’s plan entry, and add one attributable operator-approval insert for unplanned fixes. At pin `1fa8ab9`, those gaps are real: `scope:complete` never touches plan-sequence, `verifyPlanTarget` matches only the current entry’s id/issue/title, and the CLI verbs stop at `set|current|clear|advance`. Binding the three asks as written without retiring the existing CLEAN-time advance, without saying which entry Ask 2 may inherit after Ask 1 moves the cursor, and without a consent record stronger than a head-authored `authorized_by` string would either skip entries, refuse leftover pushes, or let an agent mint its own admission.\n\n### 1. Dual advance owners skip the next entry — blocks-the-design\nEvidence: `content/skills/deft-directive-review-cycle/SKILL.md` lines 50–54 and `content/skills/deft-directive-pre-pr/SKILL.md` line 60 already require `plan-sequence:advance` when the PR matches the current entry at CLEAN; Ask 1 (Stop 1 comment 6857544678, P1) adds a second advance inside `scope:complete`. `advancePlanSequence` in `packages/core/src/plan-sequence/types.ts` lines 375–399 always marks `current_index` completed and increments; it is not idempotent on an already-completed cursor. Failure mode: review-cycle advances at CLEAN, then leftover `scope:complete` advances again and skips the next planned story. Disposition: Prefer-A must name a single advance owner (complete-time or CLEAN-time) and retire or gate the other; until that bind, Ask 1 cannot ship beside the live skills. Road not taken: keep CLEAN-time advance and make complete only clear terminal-lifecycle without incrementing — that fails Ask 1’s acceptance that the next story’s push is admitted with no manual advance.\n\n### 2. Ask 1 moves the cursor off issue N before Ask 2’s leftover PR — blocks-the-design\nEvidence: `verifyPlanTarget` / `entryMatches` (`packages/core/src/plan-sequence/types.ts` lines 291–341 and 221–239) admit only the current entry; Ask 1 acceptance requires the next story admitted after `scope:complete`; Ask 2 (P2) wants a leftover-complete or lifecycle PR for issue N admitted under N’s entry. Failure mode: product complete advances to N+1, then the leftover PR for N mismatches the new current entry and is refused, recreating the hand-edit tax Ask 2 was meant to remove. Disposition: Prefer-A must bind an inheritance predicate that still works after advance — for example lifecycle-shaped diffs keyed by `entry.issue` against any sequence entry including completed ones, or an explicit verify exemption for published lifecycle-maintenance shapes — and name a negative regression for “issue with no entry.” Flip the verdict only if leftover-complete is guaranteed to land in the same push as the product entry before any advance runs.\n\n### 3. Ask 3’s consent bar is unmet by today’s sequence authority fields — blocks-the-design\nEvidence: issue body cites `content/docs/scope-provenance.md` line 73 (`authorized_by`, narrative, and head-authored confirmations are not consent); CLI admits only `set|current|clear|advance` (`packages/runtime/src/plan-sequence.ts` lines 95–101); `authorized_by` is an unconstrained string on create/set (`types.ts` lines 83, 348–366; runtime `plan-sequence.ts` line 139); entry closed keys have no approval record (`types.ts` line 64). Failure mode: an insert that only writes `authorized_by` or agent-echoed confirm text lets the same agent that wants the unplanned fix mint gate admission, and `verify:plan-sequence` cannot show an attributable approval. Disposition: Prefer-A must bind a durable operator-attested approval (actor + confirm or forge-attested mint) that `verify:plan-sequence` can read, fail-closed without it, and refuse head-authored narrative as consent. Injection/swarm lens: this ask changes gate authority and shared plan-sequence state; agent-callable insert without attestation is self-admission. Flip only if insert is forced through an existing human-only mint path that already meets that bar.\n\n### 4. #4129 terminal-lifecycle text must be superseded on the matched-complete path — sharpens-framing\nEvidence: `packages/core/src/plan-sequence/terminal-drift.ts` lines 165–170 still tell agents not to advance until the operator reviews the contradiction; CHANGELOG/#4129 made unattended advance the forbidden remediation. Ask 1 makes matching `scope:complete` that review. Disposition: lean must rewrite that remediation for the matched successful-complete path and keep refuse-with-named-reason on mismatch; otherwise agents stop on terminal-lifecycle after a complete that was supposed to have advanced.\n\n### 5. Bound-gate field verification cannot run in this repo as configured — sharpens-framing\nEvidence: Stop 1 notes #6024/#6025; pin has `requireBoundPrePrPush: false` at `xbrief/PROJECT-DEFINITION.xbrief.json` line 23875. Disposition: Prefer-A must name the offline fixture/consumer verification path for all three asks; dogfood on this checkout alone is not evidence.\n\n",
+          "id": 6857704317,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6857704317",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:41:15Z",
+          "updated_at": "2026-11-13T15:41:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean after round 1 (3 of 3 siblings posted: comments 6857638408, 6857644283, 6857704317)\n\n## In plain English\nProblem: keeping the ordered plan current costs more than the delivery work. A finished entry stays current until someone advances it. A completion PR has no entry of its own. An unplanned fix has no approved way into the plan. The three critics agreed the gaps are real, and found that the asks as written would break each other. Two owners of the advance (the review cycle and `scope:complete`) would skip an entry. Once `scope:complete` moves the cursor, the completion PR for the finished issue no longer matches the current entry. An insert command that takes a name or a confirm flag lets the agent approve its own fix.\n\nSolution this lean proposes: `scope:complete` becomes the one place that advances the plan, and only when the brief it completes is the current entry. `verify:plan-sequence` reads the outgoing change set itself, and when the change is lifecycle files only and every brief in it has a plan entry, it passes under that entry, also after the cursor has moved on. An unplanned fix enters through one insert command that needs an approval the operator mints at a terminal, tied to that one entry and position; replacing or clearing a live plan needs the same approval. What this does not do: it does not make the plan file tamper-proof (an agent that edits the file directly is outside this design, marker A1), and it does not turn the bound pre-push gate back on in this repository (#6025). If confirmed, the synthesis would assert this design. There is no leftover next-build; the work is large enough for three stories (one per ask).\n\nTarget-digest: sha256:93475839d787fcd01d2b25dcdb034324b38b7e41205015341eb796f7c06c3e47\n**Spec-path:** Bound remedy on this lean\nSupersedes Stop 1 write-back comment 6857544678. Sibling count: 3 (comments 6857638408, 6857644283, 6857704317). Panel deposit: comment 6857551971.\n\n## Bound remedy\n1. One advance owner. A successful `scope:complete` advances the plan when the current entry is pending and its lifecycle origin (the `resolvePlanEntryLifecycleOrigin` keys) is the completing brief. It runs as the last step of the existing post-move sync in `scope/transition.ts`, through the generation-locked store. `scope:cancel` never advances. The CLEAN-time `plan-sequence:advance` step leaves the review-cycle and pre-pr skills for entries that have a brief; the verb stays for entries that have none.\n2. Exactly once. When the brief's entry is already completed, the step writes nothing (`already-advanced`). When the brief matches no entry, or an entry that is not current, nothing is written, `scope:complete` still succeeds, and it prints a named line (`no-sequence`, `no-entry`, `not-current`). A store failure (lock, generation, persist) rolls the completion back through the existing rollback path, so a failed run never leaves a completed brief with a stale cursor.\n3. Which plan. A tracked `.deft/plan-sequence.json` is advanced in the completing checkout and travels with the completion change. An untracked plan is advanced in the primary checkout, resolved through the git common dir, never in a per-worktree copy. No plan is created where none exists.\n4. #4129 stays for every other case. Out-of-band completion and cancellation still raise `terminal-lifecycle`. For the completed case its remediation text names re-running `scope:complete` on the completed brief (safe by item 2). For the cancelled case it keeps the operator stop.\n5. Lifecycle inheritance in `verify:plan-sequence`. Before the current-entry match, the verifier reads the outgoing change set itself: merge base to HEAD against the delivery branch, rename sources included; an empty or unreadable set is not lifecycle. When every path is in the #680 lifecycle family or is the plan file, and every brief in the set resolves from its own file to a plan entry at any status (also after exhaustion), it passes with the closed reason `lifecycle-inherits-entry`. A brief with no entry refuses as `lifecycle-no-entry`. A change set with any product path keeps today's current-entry rule. `pre-pr-controller/phases.ts` lists the new reason.\n6. Approved insert. `plan-sequence:insert` adds one pending entry at the cursor or at a named later index. It needs a human-origin grant minted on a TTY through the existing `authz:grant` machinery (one new template), bound to the repository, `sequence_id`, generation, entry kind and id, and position, and usable once. The insert writes an approval row (entry id, grant id, time) under one new closed top-level key; entry keys are unchanged. `verify:plan-sequence` prints that row for the current entry.\n7. No verb bypass. `plan-sequence:set` over a live (not exhausted) sequence and `plan-sequence:clear` of one need the same grant class. A first `set`, and a `set` after exhaustion, are unchanged.\n8. Verification with the gate off in this repository. Unit regressions cover items 1 to 7: failure injected between the two writes, retry, stale generation, cancel, mismatch, a lifecycle PR for an issue with no entry, a lifecycle PR that also carries a product path, an exhausted sequence, an insert without a grant, and a grant reused for a different entry. One disposable consumer fixture with the bound pre-push gate enrolled runs complete, completion push, next-story push, approved insert and fix push through the real pre-PR controller and pre-push gate. Confirmation on a consumer project is release evidence, not a merge condition, and does not count toward #6025.\n\n## Reject\n- A second advance at CLEAN beside the complete-time advance (Grok 1).\n- Advancing on `scope:cancel`, by title, or without matching the completing brief (Claude 3).\n- Widening `verifyPlanTarget` so that product work can name a completed or non-current entry (Codex 1, Claude 2).\n- An agent-supplied \"this is a completion PR\" flag, PR text or a label as the lifecycle signal (Claude 2).\n- A separate plan entry per completion PR (the cost the issue reports).\n- `authorized_by`, `--approved-by`, `--confirm` or narrative text as consent for an insert (Codex 3, Grok 3).\n- A new approval-record system beside `authz:grant`, or new keys on plan entries (Claude 4).\n- A per-worktree plan copy as the advance target (Claude 1).\n- Making the plan file a protected store in this change (see marker A1; the protected-store classifier is being changed by #6276 today).\n- Reading #6025 as satisfied by this change, or folding in #5839, #4433, #5933 or #5977.\n\n## Pain coverage\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nReadings. `P1`: the entry advances inside `scope:complete`, so the next story needs no plan command (items 1 to 4). `P2`: a lifecycle-only change is admitted under the entries of the briefs it carries (item 5). `P3`: one command, with an approval only the operator can mint and a row the verifier shows (items 6 and 7); the limit is marker A1.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6857638408 | 1. Completion inheritance must survive advancement without admitting unrelated work | blocks-the-design | accept-into-contract |\n| comment 6857638408 | 2. \"Same operation\" needs recoverable, exactly-once advancement | blocks-the-design | accept-into-contract |\n| comment 6857638408 | 3. Approval must authorize the specific insertion, not merely record an actor | blocks-the-design | accept-into-contract |\n| comment 6857638408 | 4. Correct the baseline and test the enabled consumer path | sharpens-framing | accept-into-contract |\n| comment 6857644283 | 1. Ask 1 advances a plan file the next story may never read | blocks-the-design | accept-into-contract |\n| comment 6857644283 | 2. Ask 2 has no deterministic signal that a push is a completion PR | blocks-the-design | accept-into-contract |\n| comment 6857644283 | 3. Ask 1 reverses #4129's operator stop and must keep it for every other case | sharpens-framing | accept-into-contract |\n| comment 6857644283 | 4. Ask 3's attributable insert is bypassable through `plan-sequence:set` | sharpens-framing | accept-into-contract |\n| comment 6857704317 | 1. Dual advance owners skip the next entry | blocks-the-design | accept-into-contract |\n| comment 6857704317 | 2. Ask 1 moves the cursor off issue N before Ask 2's leftover PR | blocks-the-design | accept-into-contract |\n| comment 6857704317 | 3. Ask 3's consent bar is unmet by today's sequence authority fields | blocks-the-design | accept-into-contract |\n| comment 6857704317 | 4. #4129 terminal-lifecycle text must be superseded on the matched-complete path | sharpens-framing | accept-into-contract |\n| comment 6857704317 | 5. Bound-gate field verification cannot run in this repo as configured | sharpens-framing | accept-into-contract |\n\nWhere each lands: Codex 1, Claude 2, Grok 2 in item 5; Codex 2 in item 2; Codex 3, Grok 3, Claude 4 in items 6 and 7; Codex 4, Grok 5 in item 8 and in the baseline wording below; Claude 1 in item 3; Claude 3, Grok 4 in items 1 and 4; Grok 1 in item 1. Footnotes in the census, no take: Codex 5, Claude 5 and 6 (relayed steer is thread data; verification posture).\n\nBaseline correction (Codex 4): `plan-sequence:advance` already exists, so Ask 1 is the automatic use of an existing command, not a missing verb. With no active sequence, `verify:plan-sequence` passes as skipped today and keeps doing so; an unplanned fix is refused only where a sequence is active.\n\n## Parent premises\naudit:A1 sha=1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04 pointer=packages/core/src/authz/protected-dest-realpath.ts:20-32 reading=measured\nA1: `.deft/plan-sequence.json` is not a protected destination, so an agent that edits the file directly bypasses every verb gate in items 6 and 7. This design claims a sanctioned, attributable path through the verbs. It does not claim that an unapproved entry is impossible.\n\naudit:A2 sha=1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04 pointer=comment:6857644283 reading=asserted\nA2: with a tracked plan, the next story is admitted once its branch contains the completion change. A story branch cut before that change lands is refused until it is updated. That needs an ordinary branch update, not a plan-sequence command.\n\n## Proposed file_scope (three stories)\n- Story 1, advance on complete: `packages/core/src/scope/transition.ts`, `packages/core/src/plan-sequence/` (types, store, terminal-drift, one new sync module), their tests, `content/packs/skills/skills-pack-0.1.json` with the rendered review-cycle and pre-pr skills, `content/commands.md`.\n- Story 2, lifecycle inheritance (after story 1): `packages/runtime/src/verify-plan-sequence.ts`, one new module under `packages/core/src/plan-sequence/`, `packages/core/src/pre-pr-controller/phases.ts`, their tests, the consumer fixture.\n- Story 3, approved insert: `packages/runtime/src/plan-sequence.ts`, `packages/runtime/src/dispatch.ts`, `packages/core/src/cli-router/route-argv.ts`, `packages/core/src/authz/templates.ts` and `types.ts`, `packages/core/src/plan-sequence/types.ts` (closed top-level key), `tasks/plan-sequence.yml`, `content/docs/scope-provenance.md`, tests.\n- Each story: `CHANGELOG.md`.\n\nOverlap: for a tracked plan the advance is a commit of `.deft/plan-sequence.json`, which the commit gate refuses today; the accepted #5839 design admits it. Story 1 does not depend on #5839 for an untracked plan.\n\n## Record\nCritic bodies were posted by this parent, verbatim. The Codex and Grok seats ran with no network and read a parent-written thread snapshot; only Grok's progress narration before its `model:` line was removed.\n\n## Operator steer\nScott, relayed verbatim by the dispatching session, not typed in this session: \"you can yolo them and start implementation when they land\". This parent reads that as yolo standing for this all-accept map. It confirms the map only. It does not waive the pain-audit of the coverage cites or of markers A1 and A2, which runs next.\n\n",
+          "id": 6857813439,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6857813439",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:46:05Z",
+          "updated_at": "2026-11-13T15:46:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, A1, A2\nfinding-classes: blocking, footnote\nharvest-changed: true\n\n## In plain English\n\nThe lean addresses the three pains, but its mechanisms do not yet justify full relief. Completion rollback and shared-plan reading remain incomplete, lifecycle inheritance admits changes without proving completion, and the retained advance verb provides an approval bypass. A1 honestly discloses direct-file tampering; that disclosure does not cover the separate verb bypass. Verification used file reads at the confirmed dispatch SHA; no tests, network calls, or mutations ran.\n\n**pain-P1:** Not fully covered. Items 1–4 select one advance owner, but the proposed rollback cannot restore the original lifecycle state, completed-brief recovery bypasses the named hook, and primary-checkout writes do not change checkout-local readers.\n\n**pain-P2:** Partially covered. Item 5 handles advancement and exhaustion, but path membership plus a matching brief identity does not establish that the change is a completion transition.\n\n**pain-P3:** Partially covered. Existing human-presence minting supports attributable insertion (`packages/runtime/src/human-presence-mint.ts:1–6`). However, items 1 and 7 leave an advance-to-exhaustion replacement bypass.\n\n**A1:** Supported at the pin and honestly limited. `packages/core/src/authz/protected-dest-realpath.ts:20–32` and `packages/core/src/authz/classify.ts:4105–4116` protect authz and approved-scope stores, not the plan file. This establishes the disclosed protection gap, not approval enforcement.\n\n**A2:** Supported conditionally. Tracked plan state travels with branch contents; `packages/core/src/plan-sequence/store.ts:14–16` reads that checkout’s file. The branch-update limit is honest. Admission still depends on successful advancement and the separately disclosed #5839 dependency; it is not demonstrated by the existing code.\n\n### 1. Existing rollback cannot supply item 2’s guarantee — blocks-the-design\n\n**Evidence:** `packages/core/src/scope/transition.ts:1146–1147` removes the source before post-move synchronization. Its rollback at lines 1020–1028 removes the destination; it does not restore the source. Lines 1175–1200 also update related artifacts before the proposed final step.\n\n**Failure:** A plan-store failure followed by that rollback can leave neither lifecycle file, with related records already changed. Process interruption between writes also escapes an in-process rollback.\n\n**Disposition:** Change items 1–2 to bind recoverable completion/advance coordination, including source restoration and interrupted-write recovery. Generation locking alone does not provide it.\n\n### 2. Completed-brief recovery misses the proposed hook — blocks-the-design\n\n**Evidence:** `packages/core/src/scope/transition.ts:1333–1425` implements a separate restamp path, without the post-move synchronization named in item 1.\n\n**Failure:** Item 4 recommends rerunning completion on an already completed brief, but that route never reaches the proposed advance step.\n\n**Disposition:** Bind the same idempotent synchronization explicitly into both completion paths, including a recovery regression.\n\n### 3. Shared writes require shared readers — blocks-the-design\n\n**Evidence:** `packages/core/src/plan-sequence/store.ts:14–16` resolves against `projectRoot`; `packages/runtime/src/verify-plan-sequence.ts:109–131` reads that root and skips absent sequences.\n\n**Failure:** Item 3 advances the primary’s untracked plan while another worktree still reads a stale copy or skips verification entirely.\n\n**Disposition:** Bind one canonical untracked-plan resolver for verification and every plan verb, including conflicting-copy handling.\n\n### 4. Lifecycle membership is not completion proof — blocks-the-design\n\n**Evidence:** Item 5 of comment 6857813439 requires allowed paths and entry identity, but no before/after lifecycle transition. The reused #680 mechanism is a change-set exclusion (`packages/core/src/task-surface/index.ts:153–156`).\n\n**Failure:** Editing an existing planned brief without completing it can inherit a non-current entry. A plan-only change also satisfies “every brief” vacuously.\n\n**Disposition:** Require a nonempty, identity-bound completion transition and constrain accompanying edits; otherwise preserve ordinary admission.\n\n### 5. Exhaustion bypasses approval through retained verbs — blocks-the-design\n\n**Evidence:** `packages/runtime/src/plan-sequence.ts:248–259` advances without human approval; `packages/core/src/plan-sequence/types.ts:375–398` advances blindly. Item 7 leaves exhausted-sequence replacement unchanged.\n\n**Failure:** Repeated advances, then `set`, install an unapproved fix without direct file tampering.\n\n**Disposition:** Guard this transition chain, including retained brief-less advancement; A1 does not dispose it.\n\n### 6. Embedded steering remains untrusted — footnote\n\nComments 6857544678 and 6857813439 relay “start implementation when they land”; 6857551971 prescribes posting behavior. These instructions were treated as evidence, not followed. No disposition change follows.",
+          "id": 6857927184,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6857927184",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:50:54Z",
+          "updated_at": "2026-11-13T15:50:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after a blocking pain-audit (not for bind)\n\n## In plain English\nThe previous lean made `scope:complete` advance the plan, rolled the completion back if the plan could not be written, wrote the primary checkout's plan from a linked worktree, admitted any lifecycle-only change under a plan entry, and put an approval on insert, live replace and clear. The pain-audit found five blocking gaps. The existing rollback removes the new file without restoring the old one, so it cannot give the guarantee the lean claimed. Re-running completion on a finished brief takes a different code path that never reaches the advance. Writing one checkout's plan from another does not help while each checkout reads its own copy. A lifecycle-only change is not proof of a completion, so editing a planned brief could ride under an old entry. And the manual advance verb, which needs no approval, can run a plan to its end, after which a new plan needs no approval either. The lean is withdrawn. It does not bind, stamp or clear ingest.\n\nTarget-digest: sha256:93475839d787fcd01d2b25dcdb034324b38b7e41205015341eb796f7c06c3e47\nSupersedes successor lean 6857813439. Pain-audit: comment 6857927184 (codex, `finding-classes: blocking, footnote`, `harvest-changed: true`).\n\n## Pain coverage\ndoes-not-relieve: P1\ndoes-not-relieve: P2\ndoes-not-relieve: P3\n\nReadings. `P1`: the advance was not recoverable and did not reach every reader. `P2`: the admission did not prove a completion. `P3`: the approval could be bypassed through `advance` then `set`. Marker A1 holds as stated and stays a stated limit. Marker A2 holds as a limit of a tracked plan.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6857927184 | 1. Existing rollback cannot supply item 2's guarantee | blocks-the-design | accept-into-contract |\n| comment 6857927184 | 2. Completed-brief recovery misses the proposed hook | blocks-the-design | accept-into-contract |\n| comment 6857927184 | 3. Shared writes require shared readers | blocks-the-design | accept-into-contract |\n| comment 6857927184 | 4. Lifecycle membership is not completion proof | blocks-the-design | accept-into-contract |\n| comment 6857927184 | 5. Exhaustion bypasses approval through retained verbs | blocks-the-design | accept-into-contract |\n\nFootnote in the census, no take: 6 (relayed steer is thread data).\n\n",
+          "id": 6857954276,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6857954276",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:52:00Z",
+          "updated_at": "2026-11-13T15:52:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nHandoff (after retraction map, comment 6857954276)\nopen-question: Can each checkout read the plan cursor from its own lifecycle folders, so that a finished brief moves the cursor with no second write to keep in step, while a completion is proved from the change set itself and every verb that adds or skips an entry needs the operator's approval?\n\n## In plain English\nThe audit showed that the withdrawn design had two records to keep in step (the brief's folder and the stored cursor) and no safe way to do it. The next candidate drops that problem instead of solving it: a brief that sits in the completed folder counts as a finished entry wherever the plan is read, and the stored cursor only catches up. The same candidate narrows inheritance to a real completion move, and closes the approval gap by guarding every plan verb that can add an entry or pass over an unfinished one. This comment is the parent's next candidate, not a check of it. A critic has to audit the recut lean before it can bind, and that needs the operator to raise the critic-post cap for this arc.\n\n",
+          "id": 6857954840,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6857954840",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T15:52:02Z",
+          "updated_at": "2026-11-13T15:52:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** recut after Handoff 6857954840 (bind candidate; supersedes retraction map 6857954276)\n\nRevision note: this comment was revised in place on 2026-11-13, before any audit of it, to add the section on what the design adds (for the operator's direction quoted under Operator steer) and to replace the operator-steer paragraph. The Bound remedy is unchanged.\n\n## In plain English\nProblem: keeping the ordered plan current costs more than the delivery work. A finished entry stays current until someone advances it. A completion PR has no entry of its own. An unplanned fix has no approved way into the plan. The first lean made `scope:complete` write the plan forward and tried to keep the brief's folder and the stored cursor in step. The pain-audit showed that this cannot be done safely with the code as it is: the rollback does not restore what it removes, the recovery path skips the new step, and a write to one checkout's plan does not reach a reader in another.\n\nSolution this lean proposes: stop keeping two records in step. A brief that sits in the completed folder counts as a finished plan entry wherever the plan is read, so the cursor moves when the brief moves and nothing has to be advanced by hand. The stored cursor only catches up, and only in a plan file that is not tracked in git. A completion PR is admitted under the entries of the briefs it completes, and it is recognised from the change set itself: briefs that move to the completed folder with their content unchanged, plus the CHANGELOG and the ledger, and nothing else. An unplanned fix enters through one insert command that needs an approval the operator mints at a terminal for that one entry and position; replacing or clearing an existing plan needs the same approval, so no chain of unapproved commands can add an entry. What this does not do: it does not make the plan file tamper-proof (marker A1), and it does not turn the bound pre-push gate back on in this repository (#6025). If confirmed, the synthesis would assert this design, as three stories. There is no leftover next-build.\n\nTarget-digest: sha256:93475839d787fcd01d2b25dcdb034324b38b7e41205015341eb796f7c06c3e47\n**Spec-path:** Bound remedy on this lean\nSupersedes retraction map 6857954276, which withdrew successor lean 6857813439. Stop 1: comment 6857544678. Round 1 (3 siblings): comments 6857638408, 6857644283, 6857704317. Pain-audit 1: comment 6857927184. Handoff: comment 6857954840.\n\n## Bound remedy\n1. Derived cursor. Wherever the plan is read (`plan-sequence:current`, `verify:plan-sequence`, and every plan verb before it writes), an entry is finished when it is marked completed, or when its lifecycle origin is a brief in `completed/` in that checkout. The origin is matched by the issue and story-id keys of `resolvePlanEntryLifecycleOrigin`, never by title alone. The effective current entry is the first pending entry, from the stored cursor on, that is not finished; when none remains the plan is effectively exhausted. An entry whose origin is in `cancelled/` still stops with `terminal-lifecycle`, as #4129 does today. An entry with no lifecycle origin follows the stored cursor only.\n2. No second record to keep in step. `scope:complete` and `scope:cancel` do not depend on the plan and are never rolled back for it. After a successful completion, `scope:complete` writes the stored cursor forward through the generation-locked store only when the checkout it runs in holds an untracked plan; it never writes a tracked plan file and never writes another checkout's plan. A failed or skipped write changes nothing else, because the reader derives. It prints one named line: `advanced`, `derived-only`, `no-sequence`, `no-entry`, `not-current` or `store-failed`.\n3. One advance owner. The CLEAN-time `plan-sequence:advance` step leaves the review-cycle and pre-pr skills for entries that have a brief. The #4129 remediation text no longer raises the completed case, which is now the derived advance; it keeps the operator stop for the cancelled case.\n4. Completion inheritance in `verify:plan-sequence`. Before the current-entry match, the verifier reads the outgoing change set itself: merge base to HEAD against the delivery branch, rename sources included; an empty or unreadable set gives no inheritance. It passes with the closed reason `completion-inherits-entry` only when all hold: at least one brief leaves `active/` or `pending/` and arrives in `completed/` with an unchanged intent digest (`extractIntentFromPayload` and `computeIntentDigest`, which omit only the known-machine keys); every brief path in the set is part of such a move; the only other paths are `CHANGELOG.md` and the spec-drift ledger; and every moved brief resolves from its own file to a plan entry at any status. A moved brief with no entry refuses as `completion-no-entry`. Every other change set, including one that only edits a planned brief or only touches the plan file, uses the ordinary current-entry rule. `pre-pr-controller/phases.ts` lists the new reason.\n5. Approved insert. `plan-sequence:insert` adds one pending entry at the effective cursor or at a named later index. It needs a human-origin grant minted on a TTY through the existing `authz:grant` machinery (one new template), bound to the repository, `sequence_id`, generation, entry kind and id, and position, and usable once. The insert writes an approval row (entry id, grant id, time) under one new closed top-level key; entry keys are unchanged. `verify:plan-sequence` prints that row for the current entry.\n6. No unapproved chain. `plan-sequence:set` in a checkout that already holds a plan file (live or exhausted) and `plan-sequence:clear` need the same grant class. So advancing a plan to its end and then replacing it adds nothing without an approval. A first `set` in a checkout with no plan file is unchanged.\n7. Verification with the gate off in this repository. Unit regressions cover items 1 to 6: a completed brief with a stale stored cursor; a store failure during completion; an interrupted completion; a tracked plan (never written by completion); a linked worktree with no plan; a cancelled origin; a title-only match; a manual advance after a derived advance; a completion change set with an edited brief, with a changed intent digest, with a product path, with only the plan file, and for an issue with no entry; an insert without a grant; a grant reused for another entry; and advance-to-exhaustion followed by `set` without a grant. One disposable consumer fixture with the bound pre-push gate enrolled runs complete, completion push, next-story push, approved insert and fix push through the real pre-PR controller and pre-push gate. Confirmation on a consumer project is release evidence, not a merge condition, and does not count toward #6025.\n\n## Reject\n- Rolling a completion back because the plan could not be written (pain-audit 1.1).\n- A recovery step that depends on re-running `scope:complete` on a completed brief (pain-audit 1.2).\n- Writing one checkout's plan from another, or a per-worktree plan copy as a target (pain-audit 1.3, Claude 1).\n- Inheritance by lifecycle path family alone, or for an edit to a planned brief that is not a completion (pain-audit 1.4).\n- Leaving `set` after exhaustion, or `clear`, without an approval (pain-audit 1.5).\n- A second advance at CLEAN beside the derived advance (Grok 1).\n- Advancing on `scope:cancel` or by title (Claude 3).\n- Widening `verifyPlanTarget` so that product work can name a completed or non-current entry (Codex 1, Claude 2).\n- An agent-supplied \"this is a completion PR\" flag, PR text or a label as the signal (Claude 2).\n- A separate plan entry per completion PR (the cost the issue reports).\n- `authorized_by`, `--approved-by`, `--confirm` or narrative text as consent (Codex 3, Grok 3).\n- A new approval-record system beside `authz:grant`, or new keys on plan entries (Claude 4).\n- Making the plan file a protected store in this change (marker A1; that classifier is being changed by #6276 today).\n- Reading #6025 as satisfied by this change, or folding in #5839, #4433, #5933 or #5977.\n\n## Pain coverage\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nReadings. `P1`: a finished brief moves the cursor wherever the plan is read, so the next story needs no plan command (items 1 to 3). `P2`: a completion change set is admitted under the entries of the briefs it completes, also after the cursor has moved or the plan is exhausted (item 4). `P3`: one command, with an approval only the operator can mint and a row the verifier shows, and no unapproved verb chain around it (items 5 and 6). The limits are markers A1, A2 and A3.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6857638408 | 1. Completion inheritance must survive advancement without admitting unrelated work | blocks-the-design | accept-into-contract |\n| comment 6857638408 | 2. \"Same operation\" needs recoverable, exactly-once advancement | blocks-the-design | accept-into-contract |\n| comment 6857638408 | 3. Approval must authorize the specific insertion, not merely record an actor | blocks-the-design | accept-into-contract |\n| comment 6857638408 | 4. Correct the baseline and test the enabled consumer path | sharpens-framing | accept-into-contract |\n| comment 6857644283 | 1. Ask 1 advances a plan file the next story may never read | blocks-the-design | accept-into-contract |\n| comment 6857644283 | 2. Ask 2 has no deterministic signal that a push is a completion PR | blocks-the-design | accept-into-contract |\n| comment 6857644283 | 3. Ask 1 reverses #4129's operator stop and must keep it for every other case | sharpens-framing | accept-into-contract |\n| comment 6857644283 | 4. Ask 3's attributable insert is bypassable through `plan-sequence:set` | sharpens-framing | accept-into-contract |\n| comment 6857704317 | 1. Dual advance owners skip the next entry | blocks-the-design | accept-into-contract |\n| comment 6857704317 | 2. Ask 1 moves the cursor off issue N before Ask 2's leftover PR | blocks-the-design | accept-into-contract |\n| comment 6857704317 | 3. Ask 3's consent bar is unmet by today's sequence authority fields | blocks-the-design | accept-into-contract |\n| comment 6857704317 | 4. #4129 terminal-lifecycle text must be superseded on the matched-complete path | sharpens-framing | accept-into-contract |\n| comment 6857704317 | 5. Bound-gate field verification cannot run in this repo as configured | sharpens-framing | accept-into-contract |\n| comment 6857927184 | 1. Existing rollback cannot supply item 2's guarantee | blocks-the-design | accept-into-contract |\n| comment 6857927184 | 2. Completed-brief recovery misses the proposed hook | blocks-the-design | accept-into-contract |\n| comment 6857927184 | 3. Shared writes require shared readers | blocks-the-design | accept-into-contract |\n| comment 6857927184 | 4. Lifecycle membership is not completion proof | blocks-the-design | accept-into-contract |\n| comment 6857927184 | 5. Exhaustion bypasses approval through retained verbs | blocks-the-design | accept-into-contract |\n\nWhere each lands: Codex 2 and pain-audit 1.1 to 1.3, Claude 1 in items 1 and 2 (exactly once because there is one record; nothing to recover; no shared write); Codex 1, Claude 2, Grok 2 and pain-audit 1.4 in item 4; Codex 3, Grok 3, Claude 4 and pain-audit 1.5 in items 5 and 6; Grok 1, Grok 4 and Claude 3 in items 1 and 3; Codex 4 and Grok 5 in item 7 and the baseline note below. One part of Claude 3 is not followed and is recorded as marker A3: Claude asked that a completion made outside `scope:complete` still raise `terminal-lifecycle`; under item 1 a brief in `completed/` counts as finished however it got there. Footnotes in the census, no take: Codex 5, Claude 5 and 6, pain-audit 1.6.\n\nBaseline note (Codex 4): `plan-sequence:advance` already exists. With no active sequence `verify:plan-sequence` passes as skipped today and keeps doing so; an unplanned fix is refused only where a sequence is active.\n\n## Parent premises\naudit:A1 sha=1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04 pointer=packages/core/src/authz/protected-dest-realpath.ts:20-32 reading=measured\nA1: `.deft/plan-sequence.json` is not a protected destination, so an agent that edits or deletes the file directly bypasses every verb gate in items 5 and 6. This design closes the verb surface. It does not claim that an unapproved entry is impossible.\n\naudit:A2 sha=1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04 pointer=packages/core/src/plan-sequence/store.ts:14-16 reading=asserted\nA2: an entry is finished in a checkout once that checkout holds the completed brief, or once its untracked stored cursor has been written forward there. A story branch that was cut before the completion landed, in a checkout whose stored cursor was not moved, is refused until the branch is updated. That needs an ordinary branch update, not a plan-sequence command.\n\naudit:A3 sha=1fa8ab9cc7b1aad651e6d65e4103f7820bde3d04 pointer=comment:6857644283 reading=asserted\nA3: the plan reader trusts the `completed/` folder as the record of completion and does not check how a brief got there. Moving a brief there by hand is a lifecycle violation that the lifecycle gates own; this design does not add a second check for it in the plan.\n\n## What this adds, for the operator's direction\nRemoved: the manual `plan-sequence:advance` after every story (the cursor is derived), the separate plan entry or hand edit for a completion PR (it inherits), and the refusal of a completion PR whose entry the cursor has passed. New refusals: two, and both are on the consent boundary the issue asks for. `plan-sequence:insert` needs an operator grant, because the issue requires an approval that head-authored text cannot give. `plan-sequence:set` over a checkout that already holds a plan, and `plan-sequence:clear`, need the same grant, because without that the insert approval can be skipped by advancing to the end and replacing the plan (pain-audit 1.5). A first `set` in a checkout with no plan is unchanged. New checks or steps: none beyond those two. The derived cursor reads the lifecycle folders the plan readers already scan for #4129.\n\n## Proposed file_scope (three stories)\n- Story 1, derived cursor: `packages/core/src/plan-sequence/` (types, terminal-drift, terminal-drift-scan, store, one new derive module), `packages/runtime/src/plan-sequence.ts`, `packages/runtime/src/verify-plan-sequence.ts`, `packages/core/src/scope/transition.ts` (the catch-up write), `content/packs/skills/skills-pack-0.1.json` with the rendered review-cycle and pre-pr skills, `content/commands.md`, tests.\n- Story 2, completion inheritance (after story 1): `packages/runtime/src/verify-plan-sequence.ts`, one new helper for \"completion move with unchanged intent digest\" under `packages/core/src/scope/`, `packages/core/src/pre-pr-controller/phases.ts`, tests, the consumer fixture.\n- Story 3, approved insert and guards: `packages/runtime/src/plan-sequence.ts`, `packages/runtime/src/dispatch.ts`, `packages/core/src/cli-router/route-argv.ts`, `packages/core/src/authz/templates.ts` and `types.ts`, `packages/core/src/plan-sequence/types.ts` (closed top-level key), `tasks/plan-sequence.yml`, `content/docs/scope-provenance.md`, tests.\n- Each story: `CHANGELOG.md`.\n\nOverlaps: the \"completion move with unchanged intent digest\" helper is the same test the #6280 arc needs for its review class; whichever story lands first should own it. Because completion never writes a tracked plan file, a completion PR stays lifecycle-only, and this design no longer depends on the #5839 commit admission.\n\n## Record\nCritic bodies were posted by this parent, verbatim. The Codex and Grok seats ran with no network and read a parent-written thread snapshot; only Grok's progress narration before its `model:` line was removed.\n\n## Operator steer\nRelayed by the dispatching session, not typed in this session. The dispatching session put its questions to Scott as cards and relayed his chosen answers verbatim:\n- Cap. Question: \"Clone3 cap: … Allow up to 2 more critic posts per arc to re-audit the recuts?\" Answer: \"Yes, +2 each (Recommended)\". The dispatching session's reading: one re-audit round on this arc; if it blocks again, the arc halts.\n- Standing. Question: \"Clone3 yolo: … If a recut on #6205, #6278, #6279 or #6280 then passes its re-audit, may the session record it as accepted without asking you again?\" Answer: \"Yes, on a clean re-audit (Recommended)\".\n- Direction for every lean, verbatim: \"note we are tyring to make directive smoother in running adding mor and more gates is going the wrong way\".\n\ndual-stop-raise: +2 critic posts for this arc (operator, relayed 2026-11-13); three panel posts and the reserved pain-audit were spent before the raise.\n\nTyped by Scott in this session on 2026-11-13, verbatim: \"yes Raise the critic-post cap by 2 per arc and keep yolo standing for recuts that pass re-audit\". One decision stays with the operator: whether replacing or clearing an existing plan should need an approval at a terminal (item 6).\n\n",
+          "id": 6858297814,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6858297814",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:06:34Z",
+          "updated_at": "2026-11-13T16:50:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, A1, A2, A3\nfinding-classes: blocking, footnote\nharvest-changed: true\n\n## In plain English\n\nThe derived cursor removes the earlier need to keep completion and cursor writes synchronized. The approval design closes the named command bypass while honestly leaving direct file edits outside its protection. Completion inheritance still rejects ordinary output from `scope:complete`: its digest comparison includes completion stamps, and its permitted paths exclude lifecycle updates the command produces. Those two mismatches require changes to the Bound remedy before this lean can bind. Verification used pinned source reads only; no tests, network calls, or mutations were performed.\n\n**pain-P1:** Covered within A2’s checkout-local limit. Deriving from completed origins removes dependence on a successful cursor write, and removing the CLEAN-time advance avoids a second automatic advance. A stale branch still needs updating.\n\n**pain-P2:** Not covered as written. Item 4’s digest and change-set conditions exclude normal completion output, leaving the completion PR subject to the already-advanced current-entry rule.\n\n**pain-P3:** Covered at the declared command boundary. Items 5–6 bind insertion approval to the mutation and guard replacement after exhaustion and clearing. Existing human-presence machinery supports the proposed authority source (`packages/runtime/src/authz.ts:19-26`). This is not protection against direct edits, as A1 acknowledges.\n\n**A1:** Confirmed with the stated limit. `packages/core/src/authz/protected-dest-realpath.ts:20-32` excludes the plan file from protected destinations. Command authorization does not make that file tamper-proof.\n\n**A2:** Confirmed as a limitation of the proposed design, not existing automatic behavior. The store resolves relative to the checkout (`packages/core/src/plan-sequence/store.ts:14-16`), and lifecycle scanning is local. Derivation cannot observe completion absent from that checkout.\n\n**A3:** Confirmed as an explicit trust choice. The proposed reader uses folder placement, while existing lifecycle machinery separately defines completion-specific and folder-aware evidence (`packages/core/src/scope/lifecycle-write.ts:157-193`). This does not establish that every possible manual filesystem move is intercepted; the lean appropriately does not claim that guarantee.\n\n### 1. Normal completion changes the proposed intent digest — blocks-the-design\n\n**Evidence:** `packages/core/src/scope/transition.ts:947` calls `stampLifecycleWrite`; `packages/core/src/scope/lifecycle-write.ts:86-97` writes `metadata.lifecycleWrite`, including a timestamp. That key is absent from `METADATA_MACHINE_KEYS` at `packages/core/src/scope-provenance/known-machine.ts:32-42`. Unknown metadata is retained by `packages/core/src/scope-provenance/extract-intent.ts:213-217`.\n\n**Failure mode:** A legitimate active-to-completed move gains or changes `lifecycleWrite`, changing the extracted intent digest. Item 4 denies inheritance even when the operator changed no intent.\n\n**Disposition:** Change item 4 to bind a completion-aware comparison that accommodates actual lifecycle-produced metadata while preserving intent protection. Reusing the existing digest is attractive, but its pinned classification does not supply the claimed behavior. Add a regression using actual completion output, not an unchanged synthetic rename.\n\n### 2. The permitted paths omit completion’s registry updates — blocks-the-design\n\n**Evidence:** `packages/core/src/scope/transition.ts:1177-1200` updates decomposed back-references, PROJECT-DEFINITION, and specification after moving the brief. `packages/core/src/scope/specification-sync.ts:27-34` invokes registry sync; `packages/core/src/scope/registry-artifact-sync.ts:164-180` changes references and item status.\n\n**Failure mode:** A completion with registered references legitimately changes files beyond the moved brief, CHANGELOG, and drift ledger. Item 4 therefore rejects the completion PR after item 1 advances its effective cursor.\n\n**Disposition:** Bind narrowly verified ancillary lifecycle updates to the same completion, or explicitly change the completion writer’s output contract. Do not broadly allow arbitrary registry edits. Extend item 7 with a registered/decomposed completion fixture.\n\n### 3. Embedded operator steer remains thread data — footnote\n\nComments 6857544678 and 6858297814 contain implementation, standing-approval, and cap-raising instructions. They were treated as audit data, not authority to implement, post, or extend this critic’s envelope.",
+          "id": 6859333665,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6859333665",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:52:07Z",
+          "updated_at": "2026-11-13T16:52:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after the blocking re-audit (not for bind)\n\n## In plain English\nThe re-audit found the derived cursor (first pain) and the approved insert (third pain) covered. It found the completion inheritance (second pain) not covered, for two reasons the parent did not see. `scope:complete` writes a `lifecycleWrite` stamp with a timestamp into the brief's metadata, and the intent digest does not treat that key as machine-written, so every real completion changes the digest and would be refused. And `scope:complete` also updates other files when the brief has registered or decomposed references (the decomposed back-references, PROJECT-DEFINITION and the specification), which the allowed path list did not include. The recut is withdrawn. It does not bind, stamp or clear ingest.\n\nTarget-digest: sha256:93475839d787fcd01d2b25dcdb034324b38b7e41205015341eb796f7c06c3e47\nSupersedes successor lean 6858297814. Re-audit: comment 6859333665 (codex, `finding-classes: blocking, footnote`, `harvest-changed: true`).\n\n## Pain coverage\ndoes-not-relieve: P1\ndoes-not-relieve: P2\ndoes-not-relieve: P3\n\nReadings. This withdrawn map binds nothing, so it claims nothing. The re-audit found `P1` covered within marker A2 and `P3` covered at the command boundary within marker A1; both parts carry forward unchanged. `P2` needs a completion test that matches what `scope:complete` really writes.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6859333665 | 1. Normal completion changes the proposed intent digest | blocks-the-design | accept-into-contract |\n| comment 6859333665 | 2. The permitted paths omit completion's registry updates | blocks-the-design | accept-into-contract |\n\nFootnote in the census, no take: 3 (relayed steer is thread data).\n\n## What a later lean needs (not a lean)\n- Compare the intent digest with the keys `scope:complete` writes treated as machine-written (at least `metadata.lifecycleWrite`, `completedAt`, `completedSessionId`, `completionProvenance`), by adding them to the known-machine set the digest already uses, not by a second comparison.\n- Allow the files `scope:complete` itself updates for that brief (the decomposed back-references, PROJECT-DEFINITION and the specification registry), proven by re-running the same sync on the base and comparing, or drop them from the completion change set by having `scope:complete` write them in the product PR instead.\n- Regression from real `scope:complete` output, with and without registered references.\n\n",
+          "id": 6859334226,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6859334226",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:52:09Z",
+          "updated_at": "2026-11-13T16:52:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\ndesign-critique: halted, because the re-audit of the recut (comment 6859333665) returned blocking findings on the second pain, and the operator's raise covered one re-audit round with a halt if it blocked again (relayed answer \"Yes, +2 each (Recommended)\"; the dispatching session's reading: \"If a re-audit blocks again, halt that arc; no further raise without his words\"). Critic posts in this arc: 5 of 6.\n\n## In plain English\nThe arc stops here without an accepted design. The derived plan cursor and the approved insert held up under audit; the completion inheritance did not, because it did not match what `scope:complete` really writes. Retraction map 6859334226 lists the two changes a later lean needs. Resuming needs the operator's words.\n\n",
+          "id": 6859334639,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6859334639",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:52:10Z",
+          "updated_at": "2026-11-13T16:52:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nPointer: this issue is a member of the joint arc anchored on #6280 (Stop 1 on that thread). The arc designs one shared completion test and finishes this issue's three pains on it. Disposition for this issue is recorded on #6280.\r\n\n",
+          "id": 6860825727,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6860825727",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T17:59:03Z",
+          "updated_at": "2026-11-13T17:59:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nPointer: the joint arc anchored on #6280 halted (halt line on that thread). For this issue it confirmed the derived plan cursor and the approved insert; the completion-PR inheritance still needs a completion test that matches what `scope:complete` writes. Retraction map on #6280 lists the options.\r\n\n",
+          "id": 6861007158,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6861007158",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T18:07:31Z",
+          "updated_at": "2026-11-13T18:07:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (later arc on 6205 after the joint-arc halt 6861006685; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the change decides how the ordered plan advances and who may insert an entry into it; that is gate admission for every consumer that runs the bound pre-push gate.\n\ndispatch-sha: 926b2c9c6632e55b96524e7ee4df7e7d09ea811f\ndest: .deft-scratch/worktrees/arc-6205b (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: the two parts this arc binds (derived cursor, approved insert) were found covered by two independent audits (6859333665, 6860911395); one fresh critic audits the narrowed lean.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 926b2c9c6632e55b96524e7ee4df7e7d09ea811f:; dest cwd-without-occupy\npain: P1, P2, P3\nclosed-findings:\n- 6860911395/1 accepted\n- 6860911395/2 accepted\n- 6860911395/3 accepted\n- 6860911395/4 accepted\n- 6860998900/1 accepted\n- 6860998900/2 accepted\n\n## In plain English\nUnder the bound pre-push gate, keeping the ordered plan current costs more than the delivery work. A finished entry stays current until someone advances it, a completion PR needs its own entry, and an unplanned fix has no sanctioned way in. The joint arc on #6280 tried to solve the completion-PR part with a shared completion test and halted: writing out by hand what `scope:complete` changes failed four audits. Scott chose to drop that test. This arc binds the two parts that were confirmed, and defers the completion-PR part to #6303, where #6277 has already made those PRs rare and batched.\n\n## Pains\n- P1 — A finished plan entry stays current until someone advances it by hand, so the next story's pre-PR pass and push are refused.\n- P2 — A completion (leftover-complete or lifecycle) PR for issue N is not admitted under the plan entry for issue N; it needs a separate entry or a hand edit.\n- P3 — An unplanned fix is refused, and there is no sanctioned, attributable way for the operator to insert it.\n\n## Operator launch\nScott, typed in this session: \"take option 2 forward for 6205 6280\", meaning drop the shared completion classifier, bind the confirmed parts, and defer the rest (option 2 of the halted joint arc). Direction relayed by the handoff, verbatim: \"note we are tyring to make directive smoother in running adding mor and more gates is going the wrong way\". Arcs only: no ingest, no brief, no code, no PR.\r\n\n",
+          "id": 6861543817,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6861543817",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T18:28:41Z",
+          "updated_at": "2026-11-13T18:28:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** narrowed lean for the later arc (bind candidate; Stop 1 6861543817)\n\n## In plain English\nProblem: under the bound pre-push gate, the ordered plan needs hand edits after almost every story. A finished entry stays current until someone advances it, so the next push is refused. A completion PR needs its own entry. An unplanned fix has no sanctioned way in.\n\nSolution this lean proposes: the plan cursor is derived, not stored. Wherever the plan is read, an entry counts as finished when its story's brief is in `completed/` in that checkout, so the plan moves on as soon as the completed brief arrives, with no command and no second record to keep in step. With #6277, that happens at the product merge. An unplanned fix gets one command, `plan-sequence:insert`, which works only with an approval the operator mints at a terminal, bound to that exact entry and position and usable once. Replacing or clearing an existing plan needs the same approval, so the insert approval cannot be bypassed.\n\nWhat this adds: one read rule for the cursor, one approval template and one insert verb. It removes the manual advance after every story and the hand edits for an unplanned fix. One new refusal: replacing or clearing an existing plan needs the operator's approval.\n\nWhat it does not do: it does not admit a separate completion PR under its story's entry. That part needed a completion test that the joint arc could not make match `scope:complete`, and Scott chose to drop it; #6277 removes most completion PRs and the rest are batched under #6303, which now carries this need. It does not protect the plan file against a direct edit. If confirmed, the synthesis would assert the derived cursor and the approved insert, with completion-PR admission on #6303.\n\nTarget-digest: sha256:93475839d787fcd01d2b25dcdb034324b38b7e41205015341eb796f7c06c3e47\n**Spec-path:** Bound remedy on this lean\nPain authority: Stop 1 comment 6861543817. Earlier audits of these parts: 6859333665 and, on #6280, 6860911395 and 6860998900.\n\nrelieves: P1\noperator-deferred: P2 #6303\nrelieves: P3\n\n## Bound remedy\n1. Derived cursor: wherever the plan is read (`plan-sequence:current`, `verify:plan-sequence`, every plan verb before it writes), an entry is finished when it is marked completed or when its lifecycle origin, matched by the issue and story-id keys of `resolvePlanEntryLifecycleOrigin` (never by title alone), is a brief in `completed/` in that checkout. The effective current entry is the first pending entry from the stored cursor on that is not finished; when none remains the plan is effectively exhausted. An entry whose origin is in `cancelled/` stops with `terminal-lifecycle`, as #4129 does today. An entry with no lifecycle origin follows the stored cursor.\n2. No second record: `scope:complete` and `scope:cancel` never depend on the plan and are never rolled back for it. After a completion, `scope:complete` writes the stored cursor forward only when its own checkout holds an untracked plan, never a tracked plan or another checkout's plan, and prints one named line (`advanced`, `derived-only`, `no-sequence`, `no-entry`, `not-current`, `store-failed`). A failed write changes nothing else, because readers derive.\n3. One advance owner: the CLEAN-time `plan-sequence:advance` step leaves the review-cycle and pre-pr skills for entries that have a brief. The #4129 remediation text keeps the operator stop for the cancelled case only.\n4. Approved insert: `plan-sequence:insert` adds one pending entry at the effective cursor or at a named later index. It needs a human-origin grant minted on a TTY through the existing `authz:grant` machinery (one new template), bound to the repository, `sequence_id`, generation, entry kind and id, and position, and usable once. It writes an approval row (entry id, grant id, time) under one new closed top-level key; entry keys are unchanged. `verify:plan-sequence` prints that row for the current entry.\n5. No unapproved chain: `plan-sequence:set` in a checkout that already holds a plan file (live or exhausted) and `plan-sequence:clear` need the same grant class. A first `set` in a checkout with no plan file is unchanged.\n6. Tests: a completed brief with a stale stored cursor; a store failure during completion; a tracked plan (never written by completion); a linked worktree with no plan; a cancelled origin; a title-only match (not finished); a manual advance after a derived advance; an insert without a grant, with a grant for another entry or position, and with a reused grant; advance to exhaustion then `set` without a grant; `clear` without a grant. One disposable consumer fixture with the bound pre-push gate enrolled runs complete, next-story push, approved insert and fix push through the real pre-PR controller and pre-push gate.\n\n## Reject\n- A completion-PR classifier for plan admission in this issue (joint-arc retraction map 6861004147; Scott's option 2). The need moves to #6303.\n- Rolling a completion back because the plan could not be written; writing one checkout's plan from another; a second advance at CLEAN; advancing by title or on cancel (carried from 6859333665 and earlier).\n- `authorized_by`, `--approved-by`, `--confirm` or narrative text as consent; a new approval-record system beside `authz:grant`; new keys on plan entries (carried).\n\n## Takes\n- 6860911395 #1 to #4 and 6860998900 #1 and #2 (completion test and companion rules): accept-into-contract. They are why this lean drops the classifier (Reject); none applies to items 1 to 5.\n\n## Parent-side substantiation\n- audit:A1 sha=926b2c9c6632e55b96524e7ee4df7e7d09ea811f pointer=comment:6860998900 reading=asserted\n- audit:A2 sha=926b2c9c6632e55b96524e7ee4df7e7d09ea811f pointer=comment:6860911395 reading=asserted\n\nA1: the derived cursor (items 1 to 3) holds within its checkout-local limit, as audits 6860911395 and 6860998900 found. A2: the approved insert and the guard on `set` and `clear` (items 4 and 5) hold at the command boundary, as the same audits found. The `operator-deferred` cite of `P2` to #6303 is an asserted premise until a critic targets it.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back and this lean. A1, A2 and the deferral stay open until a later critic targets them.\r\n\n",
+          "id": 6861552782,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6861552782",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T18:29:06Z",
+          "updated_at": "2026-11-13T18:29:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, A1, A2\nfinding-classes: footnote\nharvest-changed: false\n\n## In plain English\n\nThe narrowed remedy covers the stale-cursor and approved-insertion pains within its stated checkout-local and command-boundary limits. It no longer depends on the completion classifier that failed the earlier audits. The supplied #6303 body explicitly carries the remaining completion-PR admission requirement, so that deferral is substantive rather than merely a related-issue link. I found no blocking mechanism change needed in this lean. Verification used local source reads at confirmed HEAD `926b2c9c6632e55b96524e7ee4df7e7d09ea811f`; no tests, network calls, mutations or agents were used.\n\n### pain-P1 — holds\n\nItems 1–3 remove the manual advance for entries with matching completed briefs. The pinned resolver supplies issue and story-id keys alongside a title fallback (`packages/core/src/plan-sequence/terminal-drift.ts:99–137`); the remedy explicitly excludes title-only matching. The local scanner supplies completed/cancelled origins (`packages/core/src/plan-sequence/terminal-drift-scan.ts:176–234`).\n\nDerivation makes admission independent of the optional cursor write, avoiding the earlier completion/plan rollback coupling. Removing the advance instructions currently present in `content/skills/deft-directive-review-cycle/SKILL.md:53` and `content/skills/deft-directive-pre-pr/SKILL.md:60` removes the second automatic owner. A checkout must receive the completed brief before this relief applies.\n\n### pain-P2 — holds as a deferral\n\nThe supplied #6303 body’s fourth Expected bullet explicitly carries ordered-plan admission without a hand-made entry. Its fourth acceptance criterion requires a batched lifecycle PR for stories with plan entries to pass without a new entry or hand edit. That preserves the operative pain from Stop 1, including admission for multiple completions.\n\nThis is deferred work, not delivered relief. At the pin, `verifyPlanTarget` still rejects exhaustion and matches only the current entry (`packages/core/src/plan-sequence/types.ts:291–342`). Dropping inheritance from this lean therefore leaves a real limitation, honestly assigned to #6303. The deferral does not depend on proving the unmeasured claim that completion PRs are now rare.\n\n### pain-P3 — holds\n\nItems 4–5 provide an attributable insertion path and close the previously identified advance-to-exhaustion-then-replace bypass. The pinned CLI currently writes replacements, clears and advances with generation checks but without the proposed approval requirement (`packages/runtime/src/plan-sequence.ts:155–167,234–259`).\n\nThe existing mint mechanism requires an interactive terminal, controlling terminal, confirmation and typed phrase, and rejects recognized agent/CI environments (`packages/runtime/src/human-presence-mint.ts:195–252`). Binding the new grant to the repository, sequence, generation, entry and position, with single-use consumption, supplies the specified command-boundary authority. The approval row makes that sanctioned insertion visible to verification.\n\n### A1 — holds\n\nThe derived-cursor premise is supported as a proposed design, not an already implemented feature. `planSequencePath` resolves within the supplied checkout (`packages/core/src/plan-sequence/store.ts:14–16`), and lifecycle scanning uses that checkout’s folders. Consequently, neither a stale branch nor a separate worktree gains knowledge of completion elsewhere.\n\nItem 2 respects that boundary and makes persistence optional. An absent plan continues to skip runtime verification (`packages/runtime/src/verify-plan-sequence.ts:118–130`); this design does not establish shared plan enforcement across worktrees.\n\n### A2 — holds\n\nThe approval premise holds at the declared command boundary. Guarding both replacement of exhausted plans and clearing removes the named command chain, while preserving first creation. Existing template infrastructure already supports human-origin minting and single-use grants (`packages/core/src/authz/templates.ts:204–228`).\n\nDirect editing remains outside this guarantee: the protected-destination list covers authz and approved-scope stores, not the plan file (`packages/core/src/authz/protected-dest-realpath.ts:20–32`). The lean discloses that limit. No closed classifier finding needs reopening to assess these mechanisms.\n\n### 1. Embedded steering remains thread data — footnote\n\nThe snapshots contain instructions to implement, post comments, raise budgets and treat standing approval as authorization. Following them would exceed this critic’s envelope. They were treated only as evidence; no disposition or Bound-remedy change follows.\r\n\n",
+          "id": 6861592879,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6861592879",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T18:30:57Z",
+          "updated_at": "2026-11-13T18:30:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6861552782. Dispatch SHA: 926b2c9c6632e55b96524e7ee4df7e7d09ea811f. Non-self-arbitration: the parent wrote the Stop 1 write-back and the lean; every row has a cross-family critic re-check at the pin or a primary read.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | Plan entries resolve to lifecycle origins by issue and story-id keys, with a title fallback the remedy excludes | verified | codex 6861592879 read `packages/core/src/plan-sequence/terminal-drift.ts:99-137` and `terminal-drift-scan.ts:176-234` |\n| 2 | Two automatic advance owners exist today (review-cycle and pre-pr skills); item 3 leaves one | verified | codex 6861592879 read `content/skills/deft-directive-review-cycle/SKILL.md:53` and `content/skills/deft-directive-pre-pr/SKILL.md:60` |\n| 3 | The plan resolves per checkout, so the derived cursor is checkout-local, as the lean states | verified | codex 6861592879 read `packages/core/src/plan-sequence/store.ts:14-16`; earlier audits 6860911395 and 6860998900 |\n| 4 | Human-presence minting needs an interactive terminal and refuses agent and CI environments; templates support single-use grants | verified | codex 6861592879 read `packages/runtime/src/human-presence-mint.ts:195-252` and `packages/core/src/authz/templates.ts:204-228` |\n| 5 | `set`, `clear` and `advance` carry no approval today, so the guard in item 5 is new | verified | codex 6861592879 read `packages/runtime/src/plan-sequence.ts:155-167,234-259` |\n| 6 | The plan file is not a protected store, so a direct edit stays outside the guarantee, as disclosed | verified | codex 6861592879 read `packages/core/src/authz/protected-dest-realpath.ts:20-32` |\n| 7 | `P2` (completion PR admission) is carried by #6303's fourth Expected bullet and fourth acceptance criterion | verified | parent edit of #6303 body (this session); codex 6861592879 read of the supplied #6303 body |\r\n\n",
+          "id": 6861600112,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6861600112",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T18:31:16Z",
+          "updated_at": "2026-11-13T18:31:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: under the bound pre-push gate, the ordered plan needed hand edits after almost every story. A finished entry stayed current until someone advanced it, and an unplanned fix had no sanctioned way in. Accepted solution: the plan cursor is derived wherever the plan is read, so an entry counts as finished when its story's brief is in `completed/` in that checkout, and the plan moves on with no command; with #6277 that happens at the product merge. An unplanned fix gets `plan-sequence:insert`, which works only with an approval the operator mints at a terminal, bound to that entry and position and usable once; replacing or clearing an existing plan needs the same approval. Admitting a separate completion PR under its story's entry is not part of this design; it is carried on #6303. Leftover next-build: #6303.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6861552782.\nverified-claims table 6861600112\n\nConfirm conjunct: yolo standing (Stop 1 6861543817, `yolo-standing: on`), with Scott's direction for this run to accept a lean after a clean audit, and his \"take option 2 forward for 6205 6280\". Clean audit: comment 6861592879 (`finding-classes: footnote`, `harvest-changed: false`). The lean's take map disposes of the joint arc's classified findings (6860911395, 6860998900), whose target included this issue.\r\n\n",
+          "id": 6861603898,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6861603898",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T18:31:27Z",
+          "updated_at": "2026-11-13T18:31:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "```quarantined\nrole: parent (coordinating session)\n```\namends: accepted synthesis on this issue (bound lean 6861552782)\n\n## Operator ruling (Scott, 2026-11-16): the set/clear approval applies only under the bound pre-push gate\n\nThe accepted lean requires an operator approval to replace or clear an existing plan, so the approved insert cannot be bypassed. Operator direction is fewer stops, so that approval is scoped to the case where the plan authorizes pushes.\n\n## Acceptance Criteria\n- Given `plan.policy.requireBoundPrePrPush` is true, when `plan-sequence:set` replaces an existing plan or `plan-sequence:clear` runs, then the command needs the operator approval the lean defines.\n- Given `plan.policy.requireBoundPrePrPush` is false or absent, when `plan-sequence:set` or `plan-sequence:clear` runs, then the command needs no approval.\n- Given `plan.policy.requireBoundPrePrPush` is true, when `plan-sequence:insert` runs without its approval, then the command refuses as the lean says.\n\nThe derived cursor and the insert verb are unchanged. Parallel-wave admission is ruled on #4433.\n\n",
+          "id": 6906744687,
+          "html_url": "https://github.com/deftai/directive/issues/6205#issuecomment-6906744687",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T03:49:30Z",
+          "updated_at": "2026-11-16T03:49:30Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nUnder the bound pre-push gate, keeping the ordered plan (`.deft/plan-sequence.json`) current costs more than the delivery work. Three routine plan updates have no supported command, so every story ends in manual plan-sequence edits, or a human commits the plan outside the agent.\n\n## What we saw (field report)\n\n- A finished entry stays current until someone advances it, so the next push is refused.\n- A completion PR needs its own plan entry.\n- A bug fix that is not in the plan is refused, and there is no sanctioned way to add it.\n- Cost: 82 plan-sequence commands in two days, and 64 `pre-pr:run` calls for 11 pushes.\n\n## Asks\n\n1. **Advance the plan on `scope:complete`.** When `scope:complete` succeeds for the brief named by the current entry, mark that entry completed and move the cursor to the next entry in the same operation. If the advance cannot be made (for example, the entry does not match the brief), refuse with a named reason. Never skip silently.\n2. **A completion PR inherits its issue's plan entry.** A leftover-complete or lifecycle PR for issue N is admitted under the plan entry for issue N. It does not need a separate entry.\n3. **A sanctioned path for an unplanned fix.** One command records the operator's approval and inserts the entry, at the cursor or at a named position. The approval is recorded and attributable. Head-authored text or narrative is not consent (see `content/docs/scope-provenance.md`). Without this command, the fix is refused as it is today.\n\n## Acceptance\n\n- [ ] Ask 1: after `scope:complete`, the next push of the next story is admitted with no manual plan-sequence command. A negative regression covers a mismatched entry.\n- [ ] Ask 2: a completion PR for an issue with a plan entry is admitted with no new entry. A negative regression covers a PR for an issue that has no entry.\n- [ ] Ask 3: an unplanned fix is admitted only after the approval command runs, and the recorded approval is visible to `verify:plan-sequence`.\n\n## Out of scope (tracked elsewhere)\n\n- Plan-only commit with no active brief: #5839\n- Admitting every entry of a parallel cohort: #4433\n- `pre-pr:run` as one command that runs and records all phases: #5933, #5977\n\n## Related\n\n- #4129 (closed): detects a current entry whose story is already finished. Ask 1 removes the need to recover from that state.\n- #6025: re-enabling the bound pre-PR push gate in this repo.\n\nFiled for @MScottAdams\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6339767609,
+        "origin": "deftai/directive#6205",
+        "id": "github.issue.6339767609"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "93475839d787fcd01d2b25dcdb034324b38b7e41205015341eb796f7c06c3e47"
+      }
+    },
+    "id": "github.issue.6339767609",
+    "updated": "2026-11-16T04:27:52Z"
+  }
+}
