@@ -64,7 +64,7 @@ import { assertAppendLockOwned, type HeldLock, withAppendLock } from "../slice/l
 import { ITEM_STATUS_ALIASES } from "../vbrief-validate/constants.js";
 import { validateFilename } from "../vbrief-validate/filename.js";
 import { readAcceptanceClauses } from "../verify-ac/clauses.js";
-import type { SpecDriftLedger } from "../verify-source/spec-drift.js";
+import type { SpecDriftDeliverySource, SpecDriftLedger } from "../verify-source/spec-drift.js";
 import {
   gateScopeCompleteSpecDrift,
   recordScopeCompleteDrift,
@@ -132,6 +132,7 @@ import {
   evaluateInPrCompletionInputs,
   IN_PR_POST_MERGE_PATH,
   listBranchChangedPaths,
+  resolveBranchMergeBase,
 } from "./lands-with-product.js";
 import { LANDS_WITH_PRODUCT, stampLifecycleWrite } from "./lifecycle-write.js";
 import { syncProjectDefinitionAfterScopeMove } from "./project-definition-sync.js";
@@ -777,7 +778,18 @@ export function runTransition(
   /** #6317: operator attestation grant whose use is recorded after the completed/ write. */
   let attestationGrantId: string | undefined;
   const inPr = act === "complete" && options.inPr === true;
+  /**
+   * #6335: the story's own delivery for the spec-drift rewrite proof, resolved
+   * only when the proof needs it. In-PR: merge base and branch head. Post-merge:
+   * first parent and the product merge commit. Unresolvable → unassessable.
+   */
+  let driftDelivery: SpecDriftDeliverySource | null = null;
   if (inPr) {
+    driftDelivery = () => ({
+      baseCommit: resolveBranchMergeBase(projectRoot, { runGit: options.runGit }),
+      deliveryCommit: "HEAD",
+      runGit: options.runGit,
+    });
     // #6277 Bound 1: refuse on the brief's own inputs, then skip the post-merge
     // delivery gate. No delivered provenance and no merge evidence are written.
     const inputs = evaluateInPrCompletionInputs(planObj, {
@@ -852,6 +864,12 @@ export function runTransition(
     // against the lane-admit base. Delivery identity above is unchanged.
     laneDeliveredCommit =
       options.smallChangeLane?.deliveredCommit ?? discovered.evidence?.mergeCommit ?? null;
+    const productMergeCommit = discovered.evidence?.mergeCommit ?? null;
+    driftDelivery = {
+      baseCommit: productMergeCommit === null ? null : `${productMergeCommit}^1`,
+      deliveryCommit: productMergeCommit,
+      runGit: options.runGit,
+    };
     const lane = evaluateSmallChangeLaneGate(planObj, {
       ...options.smallChangeLane,
       deliveredCommit: laneDeliveredCommit,
@@ -973,7 +991,9 @@ export function runTransition(
 
   // #5350: pre-move spec-drift gate under enforce (advise/shadow do not refuse).
   if (act === "complete") {
-    const driftGate = gateScopeCompleteSpecDrift(projectRoot, data, resolvedPath);
+    const driftGate = gateScopeCompleteSpecDrift(projectRoot, data, resolvedPath, {
+      delivery: driftDelivery,
+    });
     if (!driftGate.ok) {
       return { ok: false, message: driftGate.message };
     }
@@ -1168,6 +1188,7 @@ export function runTransition(
               projectRoot,
               data,
               relative(projectRoot, destPath).replace(/\\/g, "/"),
+              { delivery: driftDelivery },
             );
             if (driftRecord !== null) {
               // Lock refuse returns completedAt=null with no ledger write.
@@ -1289,6 +1310,7 @@ export function runTransition(
         destPath,
         vbriefRoot,
         targetStatus,
+        { delivery: driftDelivery },
       );
       if (!specSync.ok) {
         // Move already landed; roll back dest (+ enforce ledger) so failure does not
