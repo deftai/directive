@@ -448,6 +448,12 @@ export interface SlizardCheckRunVerdict {
   readonly p1Count: number | null;
   readonly p2Count: number | null;
   readonly source: SlizardCheckRunVerdictSource;
+  /**
+   * Ids from the `Fingerprints (actionable)` line (#6377), in summary order.
+   * Empty when the line is absent. The bot caps this list; the tip review body
+   * is the complete list. A discovery aid for `@slizard label`, not a verdict input.
+   */
+  readonly fingerprints: readonly string[];
 }
 
 const EMPTY_SLIZARD_CHECK_RUN_VERDICT: SlizardCheckRunVerdict = {
@@ -458,7 +464,20 @@ const EMPTY_SLIZARD_CHECK_RUN_VERDICT: SlizardCheckRunVerdict = {
   p1Count: null,
   p2Count: null,
   source: "empty",
+  fingerprints: [],
 };
+
+const FINGERPRINT_RE = /\b[0-9a-f]{16}\b/gi;
+
+/** Read the `Fingerprints (actionable)` line of a SLizard check-run summary (#6377). */
+function parseActionableFingerprints(text: string): readonly string[] {
+  const line = anchoredField(text, "Fingerprints (actionable)");
+  if (line === null) {
+    return [];
+  }
+  const ids = (line.match(FINGERPRINT_RE) ?? []).map((id) => id.toLowerCase());
+  return [...new Set(ids)];
+}
 
 function stripMarkdownEmphasis(text: string): string {
   // Stars and backticks only. Underscores are legal in values (`request_changes`).
@@ -545,6 +564,7 @@ function parseHtmlVerdictComment(text: string): SlizardCheckRunVerdict | null {
     p1Count: severity === null ? null : numberField(severity.P1),
     p2Count: severity === null ? null : numberField(severity.P2),
     source: "html-comment",
+    fingerprints: parseActionableFingerprints(stripMarkdownEmphasis(text)),
   };
 }
 
@@ -574,6 +594,7 @@ export function parseSlizardCheckRunSummary(
     p1Count: countOnLine(countLine, "P1"),
     p2Count: countOnLine(countLine, "P2"),
     source: "prose",
+    fingerprints: parseActionableFingerprints(text),
   };
 }
 
