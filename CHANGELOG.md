@@ -17,8 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **An operator can defer an acceptance clause without editing the active brief (#6318).** Run `deft authz:grant -- --template acceptance-disposition --plan-ref <scopeId> --story-ids <itemIds> --deferred-to <issue> --reason <text>`; `scope:complete` and finalize then record those items as `deferred` to that issue instead of stamping merge evidence. If the clause text changes or the grant expires unused, completion refuses and asks for a new grant. Refs #6310.
 
 ### Changed
-- This repository turns the #1193 human merge gate off again (`plan.policy.requireHumanMerge: false`, via `policy:allow-bot-merge`), so agents may merge their own clean PRs. The #6273 one-PR level stays `mint` but is inert while the gate is off.
-- This repository sets a typed `plan.policy.requireHumanMerge: true` and `plan.policy.onePrScopeProof: mint`, so a single maintainer can land a brief, its human mint record and its code in one PR (#6273). Refs #6327.
+- The one-PR `mint` level no longer needs `requireHumanMerge: true` on the merge base (#6354), so an agent or the merge queue may merge the PR. Every record check stays, and a change set that edits `onePrScopeProof` or `requireHumanMerge` still cannot use the path. The admit block names the control: the human merge, or else the local mint gate and the write fence (CI verifies nothing human). Refs #6354.
+- This repository turns the #1193 human merge gate off again (`plan.policy.requireHumanMerge: false`, via `policy:allow-bot-merge`), so agents may merge their own clean PRs.
+- This repository sets `plan.policy.onePrScopeProof: mint` (#6273), so a single maintainer can land a brief, its human mint record and its code in one PR. Refs #6327.
 - Minted the intent-constraint record for the #6295 merge-queue exit code (3) and GraphQL floor (500 points). Refs #6295.
 - chore(dogfood): pin Directive to 0.129.9.
 

@@ -12,6 +12,8 @@ import {
   formatMintLevelAdmitBlock,
   inspectOnePrScopeProof,
   MINT_LEVEL_CI_LIMIT_LINE,
+  MINT_LEVEL_LOCAL_CONTROL_LINE,
+  mintLevelControlLine,
   resolveOnePrScopeProof,
   resolveOnePrScopeProofFromPlan,
   setOnePrScopeProof,
@@ -71,14 +73,39 @@ describe("evaluateOnePrScopeProofGate (#6273)", () => {
     expect(evaluateOnePrScopeProofGate({ baseRaw: "{not json", headRaw: null }).kind).toBe("off");
   });
 
-  it("opens the mint level only with typed merge-base requireHumanMerge true", () => {
+  it("opens the mint level with typed merge-base requireHumanMerge true (human merge)", () => {
     expect(evaluateOnePrScopeProofGate({ baseRaw: pd(MINT_ON), headRaw: pd(MINT_ON) })).toEqual({
       kind: "mint",
+      humanMerge: true,
     });
+  });
+
+  it("opens the mint level without a human merge when requireHumanMerge is false or absent (#6354)", () => {
     for (const rhm of [false, undefined, "true"]) {
       const base = pd({ onePrScopeProof: "mint", requireHumanMerge: rhm });
-      const gate = evaluateOnePrScopeProofGate({ baseRaw: base, headRaw: base });
-      expect(gate.kind).toBe("refuse");
+      expect(evaluateOnePrScopeProofGate({ baseRaw: base, headRaw: base })).toEqual({
+        kind: "mint",
+        humanMerge: false,
+      });
+    }
+  });
+
+  it("still refuses a head that changes either field when requireHumanMerge is off (#6354)", () => {
+    const base = pd({ onePrScopeProof: "mint" });
+    for (const head of [
+      pd({ onePrScopeProof: "mint", requireHumanMerge: true }),
+      pd({ onePrScopeProof: "mint", requireHumanMerge: false }),
+      pd({ onePrScopeProof: "off" }),
+      pd(null),
+    ]) {
+      const gate = evaluateOnePrScopeProofGate({ baseRaw: base, headRaw: head });
+      expect(gate.kind === "refuse" && gate.reason).toMatch(/onePrScopeProof or requireHumanMerge/);
+    }
+  });
+
+  it("refuses a level set only in the head", () => {
+    for (const base of [pd(null), pd({ requireHumanMerge: false })]) {
+      expect(evaluateOnePrScopeProofGate({ baseRaw: base, headRaw: pd(MINT_ON) }).kind).toBe("off");
     }
   });
 
@@ -185,21 +212,36 @@ describe("evaluateMintLevelRecord (#6273)", () => {
   });
 });
 
-describe("formatMintLevelAdmitBlock (#6273)", () => {
-  it("names the plan id, the admitted scope, the production count and the CI limit", () => {
-    const block = formatMintLevelAdmitBlock({
-      planId: "s-1",
-      xbriefRelPath: "xbrief/active/s.xbrief.json",
-      fileScope: ["src/a.ts", "src/a.test.ts"],
-      productionFileCount: 1,
-    });
+describe("formatMintLevelAdmitBlock (#6273 / #6354)", () => {
+  const admit = {
+    planId: "s-1",
+    xbriefRelPath: "xbrief/active/s.xbrief.json",
+    fileScope: ["src/a.ts", "src/a.test.ts"],
+    productionFileCount: 1,
+  };
+
+  it("names the plan id, the admitted scope, the production count and the human-merge control", () => {
+    const block = formatMintLevelAdmitBlock({ ...admit, humanMerge: true });
     expect(block).toContain("plan id: s-1");
     expect(block).toContain("production files: 1");
     expect(block).toContain("    - src/a.ts");
+    expect(block).toContain("merge-base requireHumanMerge: true");
     expect(block).toContain(MINT_LEVEL_CI_LIMIT_LINE);
+    expect(block).not.toContain(MINT_LEVEL_LOCAL_CONTROL_LINE);
     expect(MINT_LEVEL_CI_LIMIT_LINE).toBe(
       "CI cannot tell this mint from a file an agent wrote; the human merge is the control",
     );
+  });
+
+  it("names the local mint gate and the write fence without a human merge", () => {
+    const block = formatMintLevelAdmitBlock({ ...admit, humanMerge: false });
+    expect(block).toContain("merge-base requireHumanMerge: not true");
+    expect(block).toContain(MINT_LEVEL_LOCAL_CONTROL_LINE);
+    expect(block).not.toContain(MINT_LEVEL_CI_LIMIT_LINE);
+    expect(MINT_LEVEL_LOCAL_CONTROL_LINE).toMatch(/CI verifies nothing human/);
+    expect(MINT_LEVEL_LOCAL_CONTROL_LINE).toMatch(/local mint gate and the write fence/);
+    expect(mintLevelControlLine(false)).toBe(MINT_LEVEL_LOCAL_CONTROL_LINE);
+    expect(mintLevelControlLine(true)).toBe(MINT_LEVEL_CI_LIMIT_LINE);
   });
 });
 
@@ -234,6 +276,7 @@ describe("setOnePrScopeProof (#6273)", () => {
     const result = setOnePrScopeProof(r, { level: "signed", confirm: true });
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toContain("#5862");
+    expect(result.stdout).not.toContain("needs requireHumanMerge");
     expect(readLevel(r)).toBeUndefined();
   });
 
@@ -243,6 +286,8 @@ describe("setOnePrScopeProof (#6273)", () => {
     const dry = setOnePrScopeProof(r, { level: "mint" });
     expect(dry.exitCode).toBe(1);
     expect(dry.stdout).toContain("--confirm");
+    expect(dry.stdout).toContain("With requireHumanMerge=true the human merge is the control");
+    expect(dry.stdout).toContain("local mint gate and the write fence");
     expect(readLevel(r)).toBeUndefined();
   });
 
@@ -251,7 +296,8 @@ describe("setOnePrScopeProof (#6273)", () => {
     const first = setOnePrScopeProof(r, { level: "mint", confirm: true, actor: "t", note: "n" });
     expect(first.exitCode).toBe(0);
     expect(first.changed).toBe(true);
-    expect(first.stdout).toContain("requireHumanMerge=true");
+    expect(first.stdout).toContain("local mint gate and the write fence");
+    expect(first.stdout).not.toMatch(/applies only when requireHumanMerge/);
     expect(readLevel(r)).toBe("mint");
     const again = setOnePrScopeProof(r, { level: "mint", confirm: true });
     expect(again.changed).toBe(false);

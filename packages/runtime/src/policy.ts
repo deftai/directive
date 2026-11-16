@@ -1038,7 +1038,8 @@ function runSetOnePrScopeProof(args: SetArgs): number {
   if (args.onePrScopeProof === undefined) {
     process.stdout.write(
       "usage: policy set-one-pr-scope-proof -- --set off|mint [--confirm] [--project-root PATH]\n" +
-        "  mint needs requireHumanMerge=true; signed is reserved for #5862.\n" +
+        "  mint: with requireHumanMerge=true the human merge is the control; otherwise the " +
+        "local mint gate and the write fence. signed is reserved for #5862.\n" +
         `  Inspect: ${policyColonInvocation("show", " --field=onePrScopeProof")}\n`,
     );
     return 1;

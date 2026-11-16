@@ -404,6 +404,40 @@ describe("evaluateScopeProvenance one-PR mint level (#6273)", () => {
     expect(admit?.fileScope).toContain(RECORD_REL);
     expect(admit?.fileScope).toContain(INTENT_REL);
     expect(admit?.productionFileCount).toBe(1);
+    expect(admit?.humanMerge).toBe(true);
+  });
+
+  it("admits without a human merge when merge-base requireHumanMerge is false (#6354)", () => {
+    root = mintRepo({ basePolicy: { onePrScopeProof: "mint", requireHumanMerge: false } });
+    landOnePr(root);
+    const result = evaluateScopeProvenance(root, { baseRef: "base" });
+    expect(result.exitCode, result.message).toBe(0);
+    expect(result.mintLevelAdmits).toHaveLength(1);
+    expect(result.mintLevelAdmits?.[0]?.planId).toBe(MINT_PLAN);
+    expect(result.mintLevelAdmits?.[0]?.humanMerge).toBe(false);
+  });
+
+  it("refuses a brief edited after the mint without a human merge (#6354)", () => {
+    root = mintRepo({ basePolicy: { onePrScopeProof: "mint" } });
+    landOnePr(root);
+    // Widen the brief after the mint: the record no longer names its scope.
+    writeBrief(root, mintBrief([...NEW_SCOPE, "packages/core/src/extra.ts"]));
+    writeTracked(root, "packages/core/src/extra.ts", "export const e = 1;\n");
+    commit(root, "widen after mint");
+    const result = evaluateScopeProvenance(root, { baseRef: "base" });
+    expect(result.exitCode).toBe(1);
+    expect(result.mintLevelAdmits ?? []).toHaveLength(0);
+    expect(result.message).toMatch(/one-PR scope proof \(#6273\)/);
+  });
+
+  it("refuses when the head sets requireHumanMerge on a bot-merge base (#6354)", () => {
+    root = mintRepo({ basePolicy: { onePrScopeProof: "mint" } });
+    writeTracked(root, "xbrief/PROJECT-DEFINITION.xbrief.json", projectDefinition(MINT_ON));
+    landOnePr(root);
+    const result = evaluateScopeProvenance(root, { baseRef: "base" });
+    expect(result.exitCode).toBe(1);
+    expect(result.mintLevelAdmits ?? []).toHaveLength(0);
+    expect(result.message).toMatch(/edits onePrScopeProof or requireHumanMerge/);
   });
 
   it("admits a brief widened past its merge-base mint", () => {

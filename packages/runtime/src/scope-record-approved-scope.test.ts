@@ -217,6 +217,11 @@ describe("scope-record-approved-scope CLI (#3205)", () => {
     expect(expected).toMatch(/^sha256:[0-9a-f]{64}$/);
     expect(rec.authHashV1).toBe(expected);
     expect(printed.join("")).toContain(`authHashV1: ${expected}`);
+    // The one-PR hint no longer states a requireHumanMerge precondition (#6354).
+    expect(printed.join("")).toContain(
+      "At merge-base onePrScopeProof=mint, the pair may ride in the same PR",
+    );
+    expect(printed.join("")).not.toContain("with requireHumanMerge=true");
   });
 
   it("shared-gate refuse matrix for scope:record-approved-scope (#3384)", () => {
