@@ -605,6 +605,7 @@
           "packages/core/src/swarm/launch.test.ts",
           "packages/core/src/swarm/launch-closeout-lock.test.ts",
           "packages/core/src/slice/lock.test.ts",
+          "packages/core/src/session/occupancy.test.ts",
           "content/commands.md",
           "changelog.d/6422-finalize-closeout-by-story.md"
         ],
