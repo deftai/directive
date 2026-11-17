@@ -3,7 +3,15 @@
  *
  * New-refusal census and net-posture are judgments. They are printed for the
  * operator and never fail-closed, never dressed as a computed verdict.
+ *
+ * Check 5 also lists every declared refusal (#6281) that is new or changed
+ * against the table at the previous release tag, and names that baseline.
  */
+import {
+  formatRefusalCensusLines,
+  type RefusalCensus,
+  refusalCensusForProject,
+} from "../refusal-declarations/census.js";
 
 const FAIL_CLOSED_HINT =
   /fail-closed|fail closed|refuses? to|MUST NOT|must not|blocks? (?:the )?(?:tag|cut|release)|new refusal/i;
@@ -16,7 +24,15 @@ export interface RefusalHint {
 export interface ConsumerReadinessDisclosure {
   readonly blocking: false;
   readonly newRefusalHints: readonly RefusalHint[];
+  readonly refusalCensus: RefusalCensus;
   readonly text: string;
+}
+
+export interface ConsumerReadinessDisclosureOptions {
+  /** Precomputed census (tests); else computed against `projectRoot`. */
+  readonly census?: RefusalCensus;
+  /** Repository root for the previous-release baseline; defaults to the working directory. */
+  readonly projectRoot?: string;
 }
 
 function unreleasedSection(changelogText: string): string {
@@ -44,8 +60,10 @@ export function collectNewRefusalHints(changelogText: string): RefusalHint[] {
 
 export function formatConsumerReadinessDisclosure(
   changelogText: string,
+  options: ConsumerReadinessDisclosureOptions = {},
 ): ConsumerReadinessDisclosure {
   const hints = collectNewRefusalHints(changelogText);
+  const census = options.census ?? refusalCensusForProject(options.projectRoot ?? process.cwd());
   const lines = [
     "Consumer-readiness disclosure (does not block the tag) -- #3900 checks 5 and 6.",
     "",
@@ -62,6 +80,7 @@ export function formatConsumerReadinessDisclosure(
   lines.push(
     "  Each new refusal needs remediation text and an escape hatch. This is not a computed verdict.",
   );
+  lines.push(...formatRefusalCensusLines(census));
   lines.push("");
   lines.push("Check 6 -- net-posture (operator judgment):");
   lines.push(
@@ -70,5 +89,10 @@ export function formatConsumerReadinessDisclosure(
   lines.push(
     "  Holding a release is only correct when that answer is negative. The operator decides.",
   );
-  return { blocking: false, newRefusalHints: hints, text: lines.join("\n") };
+  return {
+    blocking: false,
+    newRefusalHints: hints,
+    refusalCensus: census,
+    text: lines.join("\n"),
+  };
 }

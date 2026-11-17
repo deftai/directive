@@ -94,6 +94,10 @@ Parent epic: #3179. Extends #782 / #1499 / #3145 verification-independence theme
 - ! Prefer **thin closable slices** (optional complexity goes to a follow-up issue) over boil-the-ocean first ships
 - ⊗ Close a process gap with skill MUST text alone when a gate surface exists and is not landed
 - ⊗ Expand first-ship scope to multi-role matrices or multi-surface walls when one check plus one remediation would close the gap
+- ! **Warn-first refusals (#6281):** narrow or remove a gate before adding one. A new default consumer-visible refusal is declared in the refusal table (`packages/core/src/refusal-declarations/table.ts`) and ships in `warn` mode for at least one release; it turns to `enforce` in a later release with its own CHANGELOG entry
+- ! **Named exception (#6281):** a refusal that must refuse in its first release ships as `enforce` with an `exception` reason in its table row, and its CHANGELOG entry states that reason
+- ! Every declared refusal prints through the one helper, naming its gate id and a remedy that runs as printed; the remedy test runs it
+- ⊗ Ship a new default refusal that refuses in its first release with no named exception
 
 See Rule Authority (deterministic > prose). Safety via formal gates: #1200. Gate integrity: #3156. Practice examples: #3237, #3264.
 
