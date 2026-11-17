@@ -8,7 +8,18 @@
  * judged at the hook project root, as before. Any other `cd` / `-C` / location
  * override on a commit is unresolvable and refused by the caller. This is not a
  * general shell interpreter (content/docs/hook-root-admission.md).
+ *
+ * Every commit detector reads the command after the shared authz preprocess
+ * removes the bodies of quoted-delimiter heredocs (`<<'EOF'`, `<<"EOF"`,
+ * `<<\EOF`), which the shell never expands, so such a body that only names a
+ * commit is data, not a commit (#6187). An unquoted heredoc body stays visible,
+ * because the shell expands it (operator ruling 2026-11-16), but it is read as a
+ * chunk of its own, so a quote in it cannot run into the commands after the
+ * delimiter (operator ruling 2026-11-17). Other string literals stay a residual
+ * of the quote-aware tokenizer.
  */
+
+import { shellCommandChunksWithoutQuotedHereDocBodies } from "../authz/classify.js";
 
 /** One shell word after quote removal. */
 export interface ShellWord {
@@ -199,6 +210,16 @@ function commandWords(segment: ShellSegment): readonly ShellWord[] {
   return start === 0 ? segment.words : segment.words.slice(start);
 }
 
+/**
+ * Segments of the commands the shell runs: quoted heredoc bodies removed, and
+ * each unquoted body tokenized apart from the commands around it (#6187).
+ */
+function commandSegments(command: string): ShellSegment[] {
+  return shellCommandChunksWithoutQuotedHereDocBodies(command).flatMap((chunk) =>
+    tokenizeShellCommand(chunk),
+  );
+}
+
 function commitInvocations(
   segments: readonly ShellSegment[],
 ): { readonly index: number; readonly git: GitInvocation }[] {
@@ -217,7 +238,7 @@ function commitInvocations(
  * `--no-verify` residual.
  */
 export function commandHasGitCommitSubcommand(command: string): boolean {
-  return commitInvocations(tokenizeShellCommand(command)).length > 0;
+  return commitInvocations(commandSegments(command)).length > 0;
 }
 
 /** Commit options whose value is the next word (so it is not read as a pathspec). */
@@ -274,9 +295,7 @@ function commitArgsMutateIndex(git: GitInvocation): boolean {
  * that can change the checked file set after the pre-tool index snapshot (#5656).
  */
 export function commandHasGitCommitIndexMutatingForm(command: string): boolean {
-  return commitInvocations(tokenizeShellCommand(command)).some(({ git }) =>
-    commitArgsMutateIndex(git),
-  );
+  return commitInvocations(commandSegments(command)).some(({ git }) => commitArgsMutateIndex(git));
 }
 
 /** Where a Shell `git commit` lands, as far as the gate can tell (#6278). */
@@ -396,7 +415,7 @@ export function resolveCommitTarget(
   options: ResolveCommitTargetOptions = {},
 ): CommitTarget | null {
   const platform = options.platform ?? process.platform;
-  const segments = tokenizeShellCommand(command);
+  const segments = commandSegments(command);
   const commits = commitInvocations(segments);
   if (commits.length === 0) return null;
   let target: CommitTarget | null = null;
