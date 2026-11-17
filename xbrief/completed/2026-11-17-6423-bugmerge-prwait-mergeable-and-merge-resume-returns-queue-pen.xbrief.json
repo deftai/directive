@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6423",
-    "updated": "2026-11-17T01:22:02Z"
+    "updated": "2026-11-17T04:18:53Z"
   },
   "plan": {
     "title": "bug(merge): pr:wait-mergeable-and-merge --resume returns QUEUE-PENDING at once instead of waiting for the queue",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "On a branch with a GitHub merge queue, `pr:wait-mergeable-and-merge` enqueues the PR, reads its queue state once and exits 3 while the PR is still queued; `--resume` also reads once. Workers loop the resume command or poll GitHub by hand until the queue merges or removes the PR. This story adds one opt-in `--wait` option that repeats today's queue read every 60 seconds under one deadline (`--cap-minutes`) and ends on the first non-pending result, after three failed reads in a row, or at the cap, with a stop reason in the JSON and text output. Without `--wait` nothing changes.",
       "UserStory": "As a worker agent that merges through the merge queue, I want one command that waits until the queue merges or removes my PR, so that I do not loop the resume command or poll GitHub by hand.",
@@ -20,154 +20,287 @@
     "items": [
       {
         "title": "Flag. `pr:wait-mergeable-and-merge` accepts `--wait`. It applies to the read after enqueue on the first call in merge-queue mode, and to `--resume`. Without `--wait`, behaviour, output and exit codes are unchanged. Outside merge-queue mode the flag has no effect.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/main.ts, when `--wait` is passed with or without `--resume`, then the parser accepts it and passes it to the queue read; without `--wait` the run takes today's path, and on a branch with no merge queue the flag changes nothing."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7d0435521bb28dc4f4909b8f5607735efa911520",
+          "recorded_at": "2026-11-17T04:18:53Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Loop. With `--wait`, the verb makes today's queue read. When the read gives `queued` or `awaiting-admission`, the verb sleeps and reads again. The first read that gives any other result ends the wait with today's exit code and text for that result: `merged` 0 with post-merge reconciliation run once, `head-changed` 1, `removed` 1 with GitHub's reason, `inactive` 1.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.ts, when a read under `--wait` gives `queued` or `awaiting-admission`, then the verb sleeps one interval and reads again, and the first other result ends the wait with today's exit code and text: `merged` 0 with reconciliation run once, `head-changed` 1, `removed` 1 with GitHub's reason, `inactive` 1."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7d0435521bb28dc4f4909b8f5607735efa911520",
+          "recorded_at": "2026-11-17T04:18:53Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "One deadline. The deadline is the start of the wait plus `--cap-minutes` (existing flag and default). It bounds pending sleeps and failed-read retries alike. No sleep ends after the deadline, and no read starts after it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given the wait loop in packages/core/src/pr-wait-mergeable/cascade.ts, then one deadline (start of the wait plus `--cap-minutes`) bounds pending sleeps and failed-read retries alike: no sleep ends after the deadline and no read starts after it."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7d0435521bb28dc4f4909b8f5607735efa911520",
+          "recorded_at": "2026-11-17T04:18:53Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Failed reads. A read that the GraphQL floor refuses, or that fails, is tried again after the interval. A read that succeeds resets the count of failed reads. Three failed reads in a row end the wait with exit 2, the read error and the resume command.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given the wait loop in packages/core/src/pr-wait-mergeable/cascade.ts, when a read is refused by the GraphQL floor or fails, then it is tried again after the interval, a successful read resets the failed-read count, and three failed reads in a row end the wait with exit 2, the read error and the resume command."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7d0435521bb28dc4f4909b8f5607735efa911520",
+          "recorded_at": "2026-11-17T04:18:53Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "At the deadline the latest attempt decides. When the latest attempt was a successful read with a pending result, the verb exits 3 with today's pending result and resume command. When the latest attempt failed, the verb exits 2 with that error and the resume command. An earlier pending read is never reported as the current state.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given the wait loop in packages/core/src/pr-wait-mergeable/cascade.ts, when the deadline passes, then a latest successful pending read gives exit 3 with that result and the resume command, a latest failed read gives exit 2 with that error and the resume command, and an earlier pending read is never reported."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7d0435521bb28dc4f4909b8f5607735efa911520",
+          "recorded_at": "2026-11-17T04:18:53Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Stop reason. A result produced under `--wait` carries one structured field in the `--json` output, with the values `result`, `cap` and `read-unavailable`, and one matching line in the text output. A result produced without `--wait` does not carry the field.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/main.ts and cascade.ts, then every result under `--wait` carries `merge_queue.wait_stop_reason` (`result`, `cap` or `read-unavailable`) in `--json` output and one `wait stop:` line in text output, and a result without `--wait` carries neither."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7d0435521bb28dc4f4909b8f5607735efa911520",
+          "recorded_at": "2026-11-17T04:18:53Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Interval. The time between reads is one named constant of 60 seconds. Each poll is today's read (one `rate_limit` probe and one GraphQL query). No new GitHub call type is added.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/constants.ts, then the time between reads is one named constant of 60 seconds, and each poll is today's `readQueueState` read (one `rate_limit` probe and one GraphQL query) with no new GitHub call type."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7d0435521bb28dc4f4909b8f5607735efa911520",
+          "recorded_at": "2026-11-17T04:18:53Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Docs. `content/scm/github.md` \"Merge queue mode (#6295)\" and the swarm phase text that names the resume command state the `--wait` form, the three stop reasons, and that the wait ends early when queue reads are unavailable and does not wait through a rate limit. The printed resume command stays the one-read form.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given content/skills/deft-directive-swarm/references/core-phase-5-6.md and content/scm/github.md, then both name the `--wait` form, the three stop reasons, the early end when queue reads are unavailable and that the wait does not wait through a rate limit, and the printed resume command stays the one-read form."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7d0435521bb28dc4f4909b8f5607735efa911520",
+          "recorded_at": "2026-11-17T04:18:53Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a PR in the merge queue and `--resume --wait`, when a later read gives `merged` with the expected head, then the verb exits 0 and post-merge reconciliation has run once.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.test.ts, when a queued read is followed by a `merged` read with the expected head under `--resume --wait`, then the result is exit 0 and the reconciliation seam ran once."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7d0435521bb28dc4f4909b8f5607735efa911520",
+          "recorded_at": "2026-11-17T04:18:53Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a PR in the merge queue and `--resume --wait`, when a later read gives `removed`, then the verb exits 1 and the output names the reason GitHub gave.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.test.ts, when a queued read is followed by a `removed` read under `--resume --wait`, then the result is exit 1 and the output names the removal reason GitHub gave."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7d0435521bb28dc4f4909b8f5607735efa911520",
+          "recorded_at": "2026-11-17T04:18:53Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `--resume --wait` and a later read with a different head, then the verb exits 1 with `head-changed` and no reconciliation runs.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.test.ts, when a queued read is followed by a read with a different head under `--resume --wait`, then the result is exit 1 with `head-changed` and the reconciliation seam did not run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7d0435521bb28dc4f4909b8f5607735efa911520",
+          "recorded_at": "2026-11-17T04:18:53Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `--resume --wait` and a PR that stays queued, when the cap passes after a successful pending read, then the verb exits 3, prints the resume command and reports the stop reason `cap`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.test.ts, when every read stays queued until the deadline under `--resume --wait`, then the result is exit 3, carries the resume command and has the stop reason `cap`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7d0435521bb28dc4f4909b8f5607735efa911520",
+          "recorded_at": "2026-11-17T04:18:53Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `--resume --wait`, a successful pending read and then a failed read as the last attempt before the cap, then the verb exits 2 with the read error and the resume command, and does not report the pending result.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.test.ts, when a pending read is followed by a failed read as the last attempt before the deadline, then the result is exit 2 with the read error and the resume command, and its outcome is not the pending result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7d0435521bb28dc4f4909b8f5607735efa911520",
+          "recorded_at": "2026-11-17T04:18:53Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `--resume --wait` and three failed reads in a row before the cap, then the verb exits 2 with the stop reason `read-unavailable`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.test.ts, when three reads in a row fail before the deadline under `--resume --wait`, then the result is exit 2 with the stop reason `read-unavailable`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7d0435521bb28dc4f4909b8f5607735efa911520",
+          "recorded_at": "2026-11-17T04:18:53Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `--resume --wait`, two failed reads and then a successful pending read, then the count of failed reads starts again from zero.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.test.ts, when two failed reads are followed by a successful pending read, then the failed-read count starts again from zero, so two more failed reads do not end the wait."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7d0435521bb28dc4f4909b8f5607735efa911520",
+          "recorded_at": "2026-11-17T04:18:53Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the first call in merge-queue mode with `--wait`, when the read after enqueue gives `queued`, then the verb waits as in the cases above.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.test.ts, when the first call in merge-queue mode passes `--wait` and the read after enqueue gives `queued`, then the verb keeps reading as in the resume cases until a non-pending result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7d0435521bb28dc4f4909b8f5607735efa911520",
+          "recorded_at": "2026-11-17T04:18:53Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `--resume` without `--wait` and a queued PR, then the verb reads once, exits 3 and its output is the same as today, with no stop-reason field.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/main.test.ts, when `--resume` runs without `--wait` on a queued PR, then the verb reads once, exits 3, and its text and JSON output are the same as today with no stop-reason field."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7d0435521bb28dc4f4909b8f5607735efa911520",
+          "recorded_at": "2026-11-17T04:18:53Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `--wait` and `--json`, then standard output is one JSON document that carries the stop reason.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/main.test.ts, when `--wait` and `--json` are both passed, then standard output parses as one JSON document whose `merge_queue.wait_stop_reason` is set."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7d0435521bb28dc4f4909b8f5607735efa911520",
+          "recorded_at": "2026-11-17T04:18:53Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`content/scm/github.md` states the `--wait` form, the stop reasons and the early end on unavailable reads.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.19",
         "narrative": {
           "Acceptance": "Given content/scm/github.md \"Merge queue mode (#6295)\", then it states the `--wait` form, the stop reasons `result`, `cap` and `read-unavailable`, and that the wait ends early when queue reads are unavailable."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7d0435521bb28dc4f4909b8f5607735efa911520",
+          "recorded_at": "2026-11-17T04:18:53Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -472,6 +605,36 @@
         "leanCommentId": 6932799965,
         "harvestDigest": "39a1a79b1ce26298170a0110fc4979ad3849278a3520c90657bb86a730765388",
         "slice": null
+      },
+      "productPullRequest": 6490,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "8d5a5c0b8ab9dfbc7751cf83bea97af9f87377a9",
+        "prNumber": 6490,
+        "prBase": "master",
+        "mergeCommit": "7d0435521bb28dc4f4909b8f5607735efa911520",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7d0435521bb28dc4f4909b8f5607735efa911520",
+        "verifiedAt": "2026-11-17T04:18:53Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:NThmYjM3M2UtYjAzMC00MTgwLWFjZTQtZmQ5NDc0ZGNmOGQ4",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6489
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T04:18:53Z",
+      "completedSessionId": "host:claude:v1:NThmYjM3M2UtYjAzMC00MTgwLWFjZTQtZmQ5NDc0ZGNmOGQ4",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T04:18:53Z"
       }
     },
     "acceptance": {
@@ -660,6 +823,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6426915574",
-    "updated": "2026-11-17T01:22:02Z"
+    "updated": "2026-11-17T04:18:53Z"
   }
 }
