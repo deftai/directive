@@ -499,8 +499,11 @@ describe("shell writes and the read budget", () => {
         }),
       mergeGateRunGh: gh.run,
     };
-    const command = `Set-Content -Path "${join(root, "packages", "b", "x.ts")}" -Value x`;
-    const live = shell(root, command, seams("live", enforce));
+    // Four targets, each outside file_scope: each reaches a warn site in its own gate pass.
+    const targets = ["w", "x", "y", "z"].map((name) =>
+      join(root, "packages", "b", `${name}.ts`).replace(/\\/g, "/"),
+    );
+    const live = shell(root, `rm ${targets.join(" ")}`, seams("live", enforce));
     expect(live.verdict).toBe("allow");
     expect(live.message.startsWith("Warning:")).toBe(true);
     expect(gh.calls.filter((call) => call.includes("/contents/"))).toHaveLength(1);
