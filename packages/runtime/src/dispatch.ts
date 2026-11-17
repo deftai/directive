@@ -20,6 +20,7 @@ import { homedir, tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { engineInfo, userConfig } from "@deftai/directive-core";
 import { interceptHelp } from "@deftai/directive-core/dist/triage/help/index.js";
+import { isFrameworkSourceCheckoutAt } from "@deftai/directive-core/doctor";
 import { parseInitArgv, runInitDepositCli } from "@deftai/directive-core/init-deposit";
 import {
   appendAuditLog,
@@ -1515,10 +1516,22 @@ function writePack(out: string, pack: unknown): void {
 }
 
 /** Resolve the shippable content root: <root>/content when present, else <root> (#1875). */
-function resolveContentRoot(): string {
-  const root = resolveDeftRoot();
+function resolveContentRoot(root: string = resolveDeftRoot()): string {
   const candidate = join(root, "content");
   return isDirSafe(candidate) ? candidate : root;
+}
+
+/**
+ * Default roots for the pack-migrate verbs (#6337). The render tasks run in the
+ * user's working directory; when that directory is a framework source checkout
+ * (a linked worktree included), every default input and the output come from
+ * that one checkout. Any other project resolves as before (DEFT_ROOT or the
+ * running module's location). Explicit flags still override these defaults.
+ */
+function resolvePackMigrateRoots(): { deftRoot: string; contentRoot: string } {
+  const invoking = resolve(process.cwd());
+  const deftRoot = isFrameworkSourceCheckoutAt(invoking) ? invoking : resolveDeftRoot();
+  return { deftRoot, contentRoot: resolveContentRoot(deftRoot) };
 }
 
 interface ParsedPackArgs {
@@ -1572,14 +1585,14 @@ function parsePackArgs(
 }
 
 function runPackMigrateSkills(argv: string[], io: DispatchIo): number {
-  const contentRoot = resolveContentRoot();
+  const { deftRoot, contentRoot } = resolvePackMigrateRoots();
   const parsed = parsePackArgs(argv, ["--skills-dir", "--references-md", "--proof-skill", "--out"]);
   if (parsed.error !== undefined) {
     io.writeErr(`error: ${parsed.error}\n`);
     return 2;
   }
   const skillsDir = parsed.values["--skills-dir"] ?? join(contentRoot, "skills");
-  const referencesMd = parsed.values["--references-md"] ?? join(resolveDeftRoot(), "REFERENCES.md");
+  const referencesMd = parsed.values["--references-md"] ?? join(deftRoot, "REFERENCES.md");
   const proofSkill = parsed.values["--proof-skill"] ?? null;
   const out =
     parsed.values["--out"] ?? join(contentRoot, "packs", "skills", "skills-pack-0.1.json");
@@ -1604,8 +1617,7 @@ function runPackMigrateSkills(argv: string[], io: DispatchIo): number {
 }
 
 function runPackMigrateRules(argv: string[], io: DispatchIo): number {
-  const contentRoot = resolveContentRoot();
-  const deftRoot = resolveDeftRoot();
+  const { deftRoot, contentRoot } = resolvePackMigrateRoots();
   const parsed = parsePackArgs(argv, ["--coding-dir", "--out"], ["--extra-source"]);
   if (parsed.error !== undefined) {
     io.writeErr(`error: ${parsed.error}\n`);
@@ -1634,7 +1646,7 @@ function runPackMigrateRules(argv: string[], io: DispatchIo): number {
 }
 
 function runPackMigrateStrategies(argv: string[], io: DispatchIo): number {
-  const contentRoot = resolveContentRoot();
+  const { contentRoot } = resolvePackMigrateRoots();
   const parsed = parsePackArgs(argv, ["--strategies-dir", "--proof-strategy", "--out"]);
   if (parsed.error !== undefined) {
     io.writeErr(`error: ${parsed.error}\n`);
@@ -1661,7 +1673,7 @@ function runPackMigrateStrategies(argv: string[], io: DispatchIo): number {
 }
 
 function runPackMigratePatterns(argv: string[], io: DispatchIo): number {
-  const contentRoot = resolveContentRoot();
+  const { contentRoot } = resolvePackMigrateRoots();
   const parsed = parsePackArgs(argv, ["--patterns-dir", "--proof-pattern", "--out"]);
   if (parsed.error !== undefined) {
     io.writeErr(`error: ${parsed.error}\n`);
@@ -1688,7 +1700,7 @@ function runPackMigratePatterns(argv: string[], io: DispatchIo): number {
 }
 
 function runPackMigrateSwarmSpec(argv: string[], io: DispatchIo): number {
-  const contentRoot = resolveContentRoot();
+  const { contentRoot } = resolvePackMigrateRoots();
   const parsed = parsePackArgs(argv, ["--swarm-dir", "--proof-entry", "--out"]);
   if (parsed.error !== undefined) {
     io.writeErr(`error: ${parsed.error}\n`);

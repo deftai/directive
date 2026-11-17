@@ -16,9 +16,11 @@ version: '3'
 # DEFT_ROOT is defined locally via `{{joinPath .TASKFILE_DIR ".."}}` (same
 # idiom as tasks/issue.yml) so the scripts dispatch traversal-free on every
 # platform (#566). The slice / render scripts resolve their own pack source /
-# output paths relative to the framework root, so they are CWD-independent;
-# `dir: '{{.USER_WORKING_DIR}}'` keeps parity with the other Taskfile-
-# dispatched scripts. Per `conventions/task-caching.md` (#574) none of these
+# output paths relative to the framework root. The render-* migration verbs
+# take every default input and the output from `dir: '{{.USER_WORKING_DIR}}'`
+# when that directory is a framework source checkout (a linked worktree
+# included), so a worktree renders its own content (#6337); elsewhere they are
+# CWD-independent. Per `conventions/task-caching.md` (#574) none of these
 # declare `sources:` / `generates:` because they forward user-facing flags via
 # `{{.CLI_ARGS}}` (slice filters, --check) that go-task's incremental-build
 # cache would otherwise silently swallow.
