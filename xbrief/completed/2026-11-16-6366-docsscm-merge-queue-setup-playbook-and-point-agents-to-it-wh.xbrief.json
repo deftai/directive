@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6366",
-    "updated": "2026-11-16T23:16:43Z"
+    "updated": "2026-11-17T04:37:59Z"
   },
   "plan": {
     "title": "docs(scm): merge queue setup playbook, and point agents to it where they merge",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Master runs a GitHub merge queue since 2026-11-16, but nothing tells an agent or a consumer how to turn one on. This story adds a setup playbook at content/docs/github-merge-queue-setup.md and points agents to it where they merge: scm/github.md § Merge queue mode, the review-cycle merge step, and one advisory line from pr:wait-mergeable-and-merge on a strict branch with no queue. Operator additions fold in a Known issues and a Saving rounds section in the playbook, and one pointer in the consumer AGENTS.md template and the swarm skill to run swarm:pre-dispatch begin before any implementation worker (#6379).",
       "UserStory": "As a maintainer or agent on a repository with strict up-to-date checks, I want one playbook that sets up and explains the merge queue, so that every merge stops putting every open PR behind.",
@@ -20,58 +20,107 @@
     "items": [
       {
         "title": "`content/docs/github-merge-queue-setup.md` exists and covers prerequisites, settings, verify, agent merge behaviour and roll back.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given content/docs/github-merge-queue-setup.md, then it has sections for prerequisites, settings, verify, how agents merge afterwards and roll back, and its statements match master as of 0.129.11."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bf05d3cd21a2770503f98d7f7225b5ba09eb451d",
+          "recorded_at": "2026-11-17T04:37:59Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`content/scm/github.md` § Merge queue mode links the playbook.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given content/scm/github.md § Merge queue mode, then it links docs/github-merge-queue-setup.md."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bf05d3cd21a2770503f98d7f7225b5ba09eb451d",
+          "recorded_at": "2026-11-17T04:37:59Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The merge step of `content/skills/deft-directive-review-cycle/SKILL.md` links the playbook.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given the review-cycle SKILL.md merge step (rendered from content/packs/skills/skills-pack-0.1.json), then it links docs/github-merge-queue-setup.md."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bf05d3cd21a2770503f98d7f7225b5ba09eb451d",
+          "recorded_at": "2026-11-17T04:37:59Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a branch with strict required checks and no `merge_queue` rule, when `task pr:wait-mergeable-and-merge` runs, then it prints one advisory line naming the playbook and its exit code is unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given a direct-path run on a strict branch, then stderr carries exactly one advisory line naming content/docs/github-merge-queue-setup.md, and the outcome and exit code equal those of the non-strict run (merge-queue.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bf05d3cd21a2770503f98d7f7225b5ba09eb451d",
+          "recorded_at": "2026-11-17T04:37:59Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a branch with a `merge_queue` rule, when `task pr:wait-mergeable-and-merge` runs, then no advisory line is printed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given a queue-mode run, then no advisory line is printed and the strict read is never called (merge-queue.test.ts)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bf05d3cd21a2770503f98d7f7225b5ba09eb451d",
+          "recorded_at": "2026-11-17T04:37:59Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The consumer AGENTS.md template and the swarm skill tell a parent to run `swarm:pre-dispatch` begin before starting any implementation worker, because it also binds the worktree to its story so the worker's commits are admitted (#6379).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given content/templates/agents-entry.md, the refreshed AGENTS.md and content/skills/deft-directive-swarm/SKILL.md (rendered from the skills pack), then each carries one line naming swarm:pre-dispatch begin before any implementation worker and the worktree binding (#6379); AGENTS.md stays within its byte budget."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bf05d3cd21a2770503f98d7f7225b5ba09eb451d",
+          "recorded_at": "2026-11-17T04:37:59Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The playbook has a short Known issues section and a short Saving rounds in the queue section for agents on 0.129.11 or later.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given content/docs/github-merge-queue-setup.md, then a Known issues section lists the --resume single read (#6423), the red gate after a release until the pin PR lands, a conflict shown as absent-required, and the one-pr-unit-merge-group failure (#6424); and a Saving rounds section names changelog.d fragments, scope:complete --in-pr (#6277), @slizard label fp (#6377) and swarm:pre-dispatch begin (#6379)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "bf05d3cd21a2770503f98d7f7225b5ba09eb451d",
+          "recorded_at": "2026-11-17T04:37:59Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -157,6 +206,33 @@
         "github_issue_id": 6413877984,
         "origin": "deftai/directive#6366",
         "id": "github.issue.6413877984"
+      },
+      "productPullRequest": 6478,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "9d1323f8a41977b88d02056ffcad6861a1e35993",
+        "prNumber": 6478,
+        "prBase": "master",
+        "mergeCommit": "bf05d3cd21a2770503f98d7f7225b5ba09eb451d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2d0be0c54a383b6cbd90a181b3a921c6fb40a19d",
+        "verifiedAt": "2026-11-17T04:37:59Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:YWNiOGQ2MTYtNGUyOS00YzZlLTk2ZTMtNzgzOWI1MDEzODFj",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T04:37:59Z",
+      "completedSessionId": "host:claude:v1:YWNiOGQ2MTYtNGUyOS00YzZlLTk2ZTMtNzgzOWI1MDEzODFj",
+      "capacityBucket": "cognitive-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T04:37:59Z"
       }
     },
     "acceptance": {
@@ -237,6 +313,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6413877984",
-    "updated": "2026-11-16T23:16:43Z"
+    "updated": "2026-11-17T04:37:59Z"
   }
 }
