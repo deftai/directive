@@ -276,7 +276,7 @@ describe("quoted heredoc bodies are data to every commit detector (#6187)", () =
     }
   });
 
-  it("reads an unquoted heredoc and the text after it as written (operator ruling)", () => {
+  it("keeps an unquoted heredoc body visible (operator ruling)", () => {
     const plain = "cat >> /tmp/notes.md <<NOTE\ngit commit -am msg\nNOTE";
     expect(commandHasGitCommitSubcommand(plain)).toBe(true);
     expect(commandHasGitCommitIndexMutatingForm(plain)).toBe(true);
@@ -288,9 +288,12 @@ describe("quoted heredoc bodies are data to every commit detector (#6187)", () =
       expect(commandHasGitCommitIndexMutatingForm(nested)).toBe(true);
       expect(resolveCommitTarget(nested, posix)).toEqual({ kind: "hook-root" });
     }
-    // A quoted heredoc after an unquoted one is no longer stripped.
+    // A quoted heredoc after an unquoted one is still data; a commit after it is seen.
     const later = "cat <<A\nx\nA\ncat <<'B'\ngit commit -am msg\nB";
-    expect(commandHasGitCommitIndexMutatingForm(later)).toBe(true);
+    expect(commandHasGitCommitSubcommand(later)).toBe(false);
+    expect(commandHasGitCommitIndexMutatingForm(`${later}\ngit commit -am msg`)).toBe(true);
+    // An unclosed unquoted body stays visible to the end of the text.
+    expect(commandHasGitCommitIndexMutatingForm("cat <<EOF\ngit commit -am msg")).toBe(true);
     // A continued commit after an unquoted heredoc is one command.
     const continued = "cat <<EOF\nmessage\nEOF\ngit \\\n  commit -am msg";
     expect(commandHasGitCommitSubcommand(continued)).toBe(true);
@@ -298,10 +301,23 @@ describe("quoted heredoc bodies are data to every commit detector (#6187)", () =
     expect(resolveCommitTarget(continued, posix)).toEqual({ kind: "hook-root" });
   });
 
-  it("strips a quoted body before an unquoted heredoc and reads the rest as written", () => {
+  it("strips a quoted body before an unquoted heredoc and keeps the unquoted body", () => {
     const mixed = `${quotedNote}\ncat <<EOF\n$(\ngit commit -am msg\n)\nEOF`;
     expect(commandHasGitCommitIndexMutatingForm(mixed)).toBe(true);
     expect(commandHasGitCommitIndexMutatingForm(`${quotedNote}\ncat <<EOF\nok\nEOF`)).toBe(false);
+  });
+
+  it("does not let a quote in an unquoted body swallow the commands after it", () => {
+    const command = "cat <<EOF\n$(printf x)\n'\nEOF\ngit commit -am msg";
+    expect(commandHasGitCommitSubcommand(command)).toBe(true);
+    expect(commandHasGitCommitIndexMutatingForm(command)).toBe(true);
+    expect(resolveCommitTarget(command, posix)).toEqual({ kind: "hook-root" });
+    const doubleQuote = 'cat <<EOF\n"\nEOF\ncd /c/wt && git commit -F /c/msg.txt';
+    expect(resolveCommitTarget(doubleQuote, posix)).toEqual({
+      kind: "named",
+      path: "/c/wt",
+      shape: "cd",
+    });
   });
 
   it("keeps a real compound commit with a file message", () => {

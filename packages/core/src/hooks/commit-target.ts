@@ -12,13 +12,14 @@
  * Every commit detector reads the command after the shared authz preprocess
  * removes the bodies of quoted-delimiter heredocs (`<<'EOF'`, `<<"EOF"`,
  * `<<\EOF`), which the shell never expands, so such a body that only names a
- * commit is data, not a commit (#6187). An unquoted heredoc and everything after
- * it are read as written, as before, because the shell expands an unquoted body
- * (operator ruling 2026-11-16). Other string literals stay a residual of the
- * quote-aware tokenizer.
+ * commit is data, not a commit (#6187). An unquoted heredoc body stays visible,
+ * because the shell expands it (operator ruling 2026-11-16), but it is read as a
+ * chunk of its own, so a quote in it cannot run into the commands after the
+ * delimiter (operator ruling 2026-11-17). Other string literals stay a residual
+ * of the quote-aware tokenizer.
  */
 
-import { shellWithoutHereDocBodies } from "../authz/classify.js";
+import { shellCommandChunksWithoutQuotedHereDocBodies } from "../authz/classify.js";
 
 /** One shell word after quote removal. */
 export interface ShellWord {
@@ -209,9 +210,14 @@ function commandWords(segment: ShellSegment): readonly ShellWord[] {
   return start === 0 ? segment.words : segment.words.slice(start);
 }
 
-/** Segments of the commands the shell runs: quoted heredoc bodies removed first (#6187). */
+/**
+ * Segments of the commands the shell runs: quoted heredoc bodies removed, and
+ * each unquoted body tokenized apart from the commands around it (#6187).
+ */
 function commandSegments(command: string): ShellSegment[] {
-  return tokenizeShellCommand(shellWithoutHereDocBodies(command, { quotedOnly: true }));
+  return shellCommandChunksWithoutQuotedHereDocBodies(command).flatMap((chunk) =>
+    tokenizeShellCommand(chunk),
+  );
 }
 
 function commitInvocations(
