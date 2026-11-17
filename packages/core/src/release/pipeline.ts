@@ -13,7 +13,6 @@ import {
   parseExitCodeFromReason,
   reasonLooksLikeTimeout,
 } from "./auto-hatch.js";
-import { prependUpgradeBanner, sectionForVersion } from "./changelog.js";
 import { guardChangelogReadSafety } from "./changelog-read-safety.js";
 import {
   emitCliDriftReportBestEffort,
@@ -28,8 +27,6 @@ import {
   RELEASE_ARTIFACTS,
   RELEASE_CHECK_TIMEOUT_MINUTES,
   TOTAL_STEPS,
-  VERIFY_DRAFT_INTERVAL_SECONDS,
-  VERIFY_DRAFT_MAX_ATTEMPTS,
 } from "./constants.js";
 import { formatConsumerReadinessDisclosure } from "./consumer-readiness-disclosure.js";
 import {
@@ -37,7 +34,8 @@ import {
   probeOpenCoverageDebtLedger,
   probeSkipCiIncidentLedger,
 } from "./coverage-debt-ledger.js";
-import { checkTagAvailable, createGithubRelease, readTextFile, verifyReleaseDraft } from "./gh.js";
+import { runGithubReleaseSteps } from "./finish.js";
+import { checkTagAvailable } from "./gh.js";
 import {
   checkGitClean,
   commitReleaseArtifacts,
@@ -62,11 +60,17 @@ import {
   writeEscapedReleaseLine,
   writeReleaseInputDetails,
 } from "./release-input.js";
+import {
+  checkReleaseBranch,
+  finishCommand,
+  openReleasePr,
+  pushReleaseBranch,
+  releaseBranchName,
+} from "./release-pr.js";
 import { evaluateReleaseConsumerReadiness, issuesFromInventory } from "./run-consumer-readiness.js";
 import { formatSkipCiIncidentWarning, validateSkipCiUnpaidLedger } from "./skip-ci-incident.js";
 import { evaluateSuiteStamp, writeSuiteStamp } from "./suite-stamp.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
-import { isPrereleaseTag } from "./version.js";
 
 function resolveHeadSha(projectRoot: string, seams: ReleaseSeams): string | null {
   if (seams.headSha) return seams.headSha(projectRoot);
@@ -223,17 +227,37 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
     }
   }
 
-  // Step 2: branch guard.
-  label = `Pre-flight branch == ${config.baseBranch}`;
+  // Step 2: branch guard. #6296 item 1: the cut runs on release/v<version> at
+  // the fetched base tip; the base-branch run is break-glass only (item 10).
+  const breakGlass = config.breakGlass === true;
+  const releaseBranch = releaseBranchName(version);
+  label = breakGlass
+    ? `Pre-flight branch == ${config.baseBranch}`
+    : `Pre-flight branch == ${releaseBranch}`;
   if (config.dryRun) {
-    emit(2, label, `DRYRUN (would assert current branch == ${config.baseBranch})`);
-  } else {
+    emit(
+      2,
+      label,
+      breakGlass
+        ? `DRYRUN (would assert current branch == ${config.baseBranch})`
+        : `DRYRUN (would assert current branch == ${releaseBranch} at the fetched origin/${config.baseBranch} tip)`,
+    );
+  } else if (breakGlass) {
     const branch = currentBranch(projectRoot, seams);
     if (branch === config.baseBranch) {
       emit(2, label, `OK (on ${branch})`);
     } else {
       emit(2, label, `FAIL (on '${branch}'; expected '${config.baseBranch}')`);
       return EXIT_VIOLATION;
+    }
+  } else {
+    const branch = currentBranch(projectRoot, seams);
+    const check = checkReleaseBranch(projectRoot, version, config.baseBranch, branch, seams);
+    if (check.ok) {
+      emit(2, label, `OK (${check.reason})`);
+    } else {
+      emit(2, label, `FAIL (${check.reason})`);
+      return check.config ? EXIT_CONFIG_ERROR : EXIT_VIOLATION;
     }
   }
 
@@ -716,6 +740,54 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
     }
   }
 
+  // #6296 item 2: in place of Steps 10 and 11, push the release branch and open
+  // the release PR. Nothing updates the base branch; the finish step tags.
+  if (!breakGlass) {
+    label = `Push ${releaseBranch} to origin`;
+    if (config.skipTag) {
+      emit(10, label, "SKIP (--skip-tag)");
+    } else if (config.dryRun) {
+      emit(10, label, `DRYRUN (would run \`git push -u origin ${releaseBranch}\`)`);
+    } else {
+      const [ok, reason] = pushReleaseBranch(projectRoot, version, seams);
+      if (!ok) {
+        emit(10, label, `FAIL (${reason})`);
+        return EXIT_VIOLATION;
+      }
+      emit(10, label, `OK (${reason})`);
+    }
+    label = `Open release PR ${releaseBranch} -> ${config.baseBranch}`;
+    if (config.skipTag) {
+      emit(11, label, "SKIP (--skip-tag)");
+    } else if (config.dryRun) {
+      emit(
+        11,
+        label,
+        `DRYRUN (would run \`gh pr create --base ${config.baseBranch} --head ${releaseBranch}\` with the generated body)`,
+      );
+    } else {
+      const [ok, reason] = openReleasePr(
+        projectRoot,
+        version,
+        config.repo,
+        config.baseBranch,
+        seams,
+      );
+      if (!ok) {
+        emit(11, label, `FAIL (${reason})`);
+        return EXIT_VIOLATION;
+      }
+      emit(11, label, `OK (${reason})`);
+    }
+    process.stderr.write(
+      `Release v${version} is a release PR. Next: merge it through the merge queue ` +
+        "(`task pr:wait-mergeable-and-merge -- <N> --wait`), then tag the merged commit with " +
+        `\`${finishCommand(version)}\` (needs the release grant).\n`,
+    );
+    return EXIT_OK;
+  }
+
+  // Break-glass (#6296 item 10): Steps 10–11 tag and push the base branch.
   // Step 10–11 boundary: closed-verb gate before tag + atomic push (#3527).
   // npm publish fires on tag push; draft-flip `release:publish` stays (#1095).
   const tagPushGate = assertTagPushClosedVerb(config, seams);
@@ -759,74 +831,15 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
     }
   }
 
-  // Step 12: GitHub release.
-  const prerelease = isPrereleaseTag(version);
-  const draftSuffix = config.draft ? " (draft)" : " (PUBLIC)";
-  const prereleaseSuffix = prerelease ? " (prerelease)" : "";
-  label = `GitHub release v${version}${draftSuffix}${prereleaseSuffix}`;
-  let createSucceeded = false;
-  if (config.skipRelease) {
-    emit(12, label, "SKIP (--skip-release)");
-  } else if (config.dryRun) {
-    const draftFlag = config.draft ? " --draft" : "";
-    const prereleaseFlag = prerelease ? " --prerelease" : "";
-    emit(
-      12,
-      label,
-      `DRYRUN (would run \`gh release create v${version} --repo ${config.repo}${draftFlag}${prereleaseFlag} ...\`)`,
-    );
-  } else {
-    let notes = sectionForVersion(prepared.changelogBytes.toString("utf8"), version);
-    notes = prependUpgradeBanner(notes, config.repo, projectRoot, readTextFile);
-    const [ok, reason] = createGithubRelease(
-      projectRoot,
-      version,
-      config.repo,
-      notes,
-      { draft: config.draft, prerelease },
-      seams,
-    );
-    if (ok) {
-      emit(12, label, `OK (${reason})`);
-      createSucceeded = true;
-    } else {
-      emit(12, label, `FAIL (${reason})`);
-      return EXIT_VIOLATION;
-    }
-  }
-
-  // Step 13: post-create verify-isDraft gate (#724).
-  label = `Verify draft state of v${version} (#724 defense-in-depth)`;
-  if (config.skipRelease) {
-    emit(13, label, "SKIP (--skip-release)");
-  } else if (!config.draft) {
-    emit(13, label, "SKIP (--no-draft; intentional public release)");
-  } else if (config.dryRun) {
-    emit(
-      13,
-      label,
-      `DRYRUN (would poll \`gh release view v${version} --json isDraft\` up to ${VERIFY_DRAFT_MAX_ATTEMPTS}x at ${VERIFY_DRAFT_INTERVAL_SECONDS}s intervals; auto-flip via \`gh release edit --draft=true\` on isDraft=false)`,
-    );
-  } else if (!createSucceeded) {
-    emit(13, label, "SKIP (release was not created in this run)");
-  } else {
-    const [ok, reason] = verifyReleaseDraft(
-      projectRoot,
-      version,
-      config.repo,
-      {
-        maxAttempts: VERIFY_DRAFT_MAX_ATTEMPTS,
-        interval: VERIFY_DRAFT_INTERVAL_SECONDS,
-        sleep: seams.sleep,
-      },
-      seams,
-    );
-    if (ok) {
-      emit(13, label, `OK (${reason})`);
-    } else {
-      emit(13, label, `FAIL (${reason})`);
-      return EXIT_VIOLATION;
-    }
+  // Steps 12 and 13: GitHub release, then the draft-state check (#724).
+  const published = runGithubReleaseSteps(
+    config,
+    prepared.changelogBytes.toString("utf8"),
+    seams,
+    emit,
+  );
+  if (published !== EXIT_OK) {
+    return published;
   }
 
   process.stderr.write(

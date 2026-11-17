@@ -10,6 +10,8 @@ export function parseReleaseFlags(args: readonly string[]): ReleaseFlags {
   let skipRelease = false;
   let allowDirty = false;
   let allowVbriefDrift = false;
+  let breakGlass = false;
+  let finish: string | null = null;
   let allowCoverageDebtIssue: number | null = null;
   const skipCiIncident = parseSkipCiIncidentArgv(args);
   const allowSkipCiIssue: number | null =
@@ -50,6 +52,15 @@ export function parseReleaseFlags(args: readonly string[]): ReleaseFlags {
       allowDirty = true;
     } else if (token === "--allow-vbrief-drift") {
       allowVbriefDrift = true;
+    } else if (token === "--break-glass") {
+      // #6296 item 10: today's base-branch run with the atomic push.
+      breakGlass = true;
+    } else if (token === "--finish") {
+      finish = takeValue(token, i);
+      if (finish !== null) i += 1;
+    } else if (token.startsWith("--finish=")) {
+      finish = token.slice("--finish=".length) || null;
+      if (!finish) unknown.push("--finish= (empty value)");
     } else if (token === "--allow-coverage-debt") {
       const value = takeValue(token, i);
       if (value !== null) {
@@ -130,6 +141,14 @@ export function parseReleaseFlags(args: readonly string[]): ReleaseFlags {
   if (unpaidSkipCi.kind === "invalid") {
     unknown.push(`--allow-unpaid-skip-ci (${unpaidSkipCi.reason})`);
   }
+  // `--finish <version>` names the version; a positional must agree with it.
+  if (finish !== null) {
+    if (version !== null && version !== finish) {
+      unknown.push(`${version} (differs from --finish ${finish})`);
+    }
+    version = finish;
+    if (breakGlass) unknown.push("--break-glass (not valid with --finish)");
+  }
 
   return {
     help,
@@ -145,6 +164,8 @@ export function parseReleaseFlags(args: readonly string[]): ReleaseFlags {
     allowCoverageDebtIssue,
     allowSkipCiIssue,
     allowUnpaidSkipCiIssue,
+    breakGlass,
+    finish,
     skipCi,
     skipBuild,
     draft,

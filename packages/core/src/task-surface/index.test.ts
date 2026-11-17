@@ -12,7 +12,10 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { LEGACY_VBRIEF_VERSION } from "@deftai/directive-types";
 import { afterEach, describe, expect, it } from "vitest";
-import { evaluateChangelogGate } from "../changelog/fragment.js";
+import { mergeFragmentsIntoChangelogText } from "../changelog/effective-unreleased.js";
+import { evaluateChangelogGate, readChangelogFragments } from "../changelog/fragment.js";
+import { releaseLine } from "../changelog/release-line.js";
+import { promoteChangelog } from "../release/changelog.js";
 import { runChangeInit, runChangelogCheck, runCommitLint, runInstallUninstall } from "./index.js";
 
 const temps: string[] = [];
@@ -764,5 +767,262 @@ describe("evaluateChangelogGate (pure, #6315)", () => {
       "changelog.d/2-a.md",
       "changelog.d/9-b.md",
     ]);
+  });
+});
+
+describe("verify:changelog-unreleased release rule (#6296)", () => {
+  const V = "0.2.0";
+  const LINK_FOOTER =
+    "[Unreleased]: https://github.com/o/r/compare/v0.1.0...HEAD\n" +
+    "[0.1.0]: https://github.com/o/r/releases/tag/v0.1.0\n";
+  const BASE =
+    "# Changelog\n\n## [Unreleased]\n\n- [release-line] v0.1.0\n\n### Added\n\n" +
+    "- inline note (#1)\n\n  continued after a blank line\n\n### Fixed\n\n" +
+    "## [0.1.0] - 2026-01-01\n\n### Added\n- old entry (#0)\n\n" +
+    LINK_FOOTER;
+
+  function git(project: string, args: string[]): string {
+    return execFileSync("git", ["-c", "user.email=ci@test", "-c", "user.name=ci", ...args], {
+      cwd: project,
+      encoding: "utf8",
+    });
+  }
+
+  function put(project: string, rel: string, contents: string): void {
+    mkdirSync(dirname(join(project, rel)), { recursive: true });
+    writeFileSync(join(project, rel), contents, "utf8");
+  }
+
+  function commitAll(project: string, message: string): void {
+    git(project, ["add", "-A"]);
+    git(project, ["commit", "-q", "--allow-empty", "-m", message]);
+  }
+
+  /** master holds CHANGELOG.md, ROADMAP.md and `fragments`; HEAD is release/v0.2.0. */
+  function seed(fragments: Record<string, string> = {}, changelog = BASE): string {
+    const project = makeProject();
+    put(project, "CHANGELOG.md", changelog);
+    put(project, "ROADMAP.md", "# Roadmap\n");
+    for (const [name, text] of Object.entries(fragments)) put(project, `changelog.d/${name}`, text);
+    execFileSync("git", ["init", "-q", "-b", "master"], { cwd: project });
+    git(project, ["config", "core.autocrlf", "false"]);
+    commitAll(project, "init");
+    execFileSync("git", ["update-ref", "refs/remotes/origin/master", "HEAD"], { cwd: project });
+    execFileSync("git", ["checkout", "-q", "-b", `release/v${V}`], { cwd: project });
+    return project;
+  }
+
+  /** The release change the cut makes: promote with fragments, delete them, rewrite ROADMAP. */
+  function cutText(project: string): string {
+    const set = readChangelogFragments(project);
+    const text = readFileSync(join(project, "CHANGELOG.md"), "utf8");
+    return promoteChangelog(
+      mergeFragmentsIntoChangelogText(text, set.valid),
+      V,
+      "o/r",
+      "2026-02-01",
+    );
+  }
+
+  function cut(project: string, edit: (text: string) => string = (t) => t): void {
+    const promoted = edit(cutText(project));
+    for (const fragment of readChangelogFragments(project).valid) {
+      rmSync(join(project, fragment.path));
+    }
+    put(project, "CHANGELOG.md", promoted);
+    put(project, "ROADMAP.md", `# Roadmap\n\n## v${V}\n`);
+    commitAll(project, `chore(release): v${V}`);
+  }
+
+  function check(project: string): { code: number; out: string } {
+    const { lines, io } = captureIo();
+    const code = runChangelogCheck(project, io, { againstMergeBase: true });
+    return { code, out: lines.join("") };
+  }
+
+  const FRAGMENT_A = "section: Added\n- fragment a (#20)\n";
+  const FRAGMENT_B = "section: Fixed\n- fragment b (#30)\n  with a continuation line\n";
+
+  it("passes the release PR made by the cut with deleted fragments (merge-base mode)", () => {
+    const project = seed({ "20-a.md": FRAGMENT_A, "30-b.md": FRAGMENT_B });
+    cut(project);
+    const result = check(project);
+    expect(result.out).toContain(`OK: release change set for v${V} passes the release rule`);
+    expect(result.code).toBe(0);
+  });
+
+  it("passes the release PR made by the cut with no fragment and inline entries", () => {
+    const project = seed();
+    cut(project);
+    expect(check(project).code).toBe(0);
+  });
+
+  it("fails when a fragment another PR merged to the base after the cut is in the tree, and names it", () => {
+    const project = seed({ "20-a.md": FRAGMENT_A });
+    cut(project);
+    git(project, ["checkout", "-q", "master"]);
+    put(project, "changelog.d/40-late.md", "section: Changed\n- landed ahead (#40)\n");
+    commitAll(project, "late change");
+    execFileSync("git", ["update-ref", "refs/remotes/origin/master", "HEAD"], { cwd: project });
+    git(project, ["checkout", "-q", `release/v${V}`]);
+    git(project, ["merge", "-q", "--no-edit", "master"]);
+    const result = check(project);
+    expect(result.code).toBe(1);
+    expect(result.out).toContain("changelog.d/40-late.md");
+  });
+
+  it("fails a release line and heading that leave another entry under [Unreleased]", () => {
+    const project = seed();
+    cut(project, (t) => t.replace(releaseLine(V), `${releaseLine(V)}\n- left behind (#9)`));
+    const result = check(project);
+    expect(result.code).toBe(1);
+    expect(result.out).toContain("must hold only the release line");
+  });
+
+  it("fails a release attempt that drops a continuation line after a blank line", () => {
+    const project = seed();
+    cut(project, (t) => t.replace("\n  continued after a blank line\n", "\n"));
+    const result = check(project);
+    expect(result.code).toBe(1);
+    expect(result.out).toContain("continued after a blank line");
+  });
+
+  it("fails a release attempt that changes a line of an older version section", () => {
+    const project = seed();
+    cut(project, (t) => t.replace("- old entry (#0)", "- old entry, reworded (#0)"));
+    const result = check(project);
+    expect(result.code).toBe(1);
+    expect(result.out).toContain("missing at HEAD");
+  });
+
+  it("fails a change set that removes a version heading and its release line and adds none", () => {
+    const project = seed();
+    put(
+      project,
+      "CHANGELOG.md",
+      BASE.replace("- [release-line] v0.1.0\n\n", "").replace(
+        "## [0.1.0] - 2026-01-01\n\n### Added\n- old entry (#0)\n\n",
+        "",
+      ),
+    );
+    commitAll(project, "revert release");
+    const result = check(project);
+    expect(result.code).toBe(1);
+    expect(result.out).toContain("removes or changes the release line");
+  });
+
+  it("fails a release attempt that removes an inline [Unreleased] entry from both sections", () => {
+    const project = seed();
+    cut(project, (t) => t.replace("- inline note (#1)\n", ""));
+    const result = check(project);
+    expect(result.code).toBe(1);
+    expect(result.out).toContain("inline note (#1)");
+  });
+
+  it("passes a cut from fragments with trailing spaces, CRLF and a multi-line entry", () => {
+    const project = seed({
+      "20-trailing.md": "section: Added\n- trailing spaces (#20)   \n",
+      "30-crlf.md": "section: Fixed\r\n- crlf entry (#30)\r\n  crlf continuation\r\n",
+      "40-multi.md": "section: Changed\n- multi line (#40)\n  second line\n\n  after blank\n",
+    });
+    cut(project);
+    const result = check(project);
+    expect(result.out).toContain("passes the release rule");
+    expect(result.code).toBe(0);
+  });
+
+  it("fails a release attempt whose version section lacks a deleted fragment's continuation lines", () => {
+    const project = seed({ "30-b.md": FRAGMENT_B });
+    cut(project, (t) => t.replace("  with a continuation line\n", ""));
+    const result = check(project);
+    expect(result.code).toBe(1);
+    expect(result.out).toContain("with a continuation line");
+  });
+
+  it("fails a release line with a source change, also with another entry or a valid new fragment", () => {
+    for (const extra of ["entry", "fragment", "none"] as const) {
+      const project = seed();
+      cut(project, (t) =>
+        extra === "entry" ? t.replace(releaseLine(V), `${releaseLine(V)}\n- extra (#5)`) : t,
+      );
+      put(project, "src/app.ts", "export const x = 1;\n");
+      if (extra === "fragment") put(project, "changelog.d/50-new.md", "section: Added\n- new (#50)\n");
+      commitAll(project, "release plus source");
+      const result = check(project);
+      expect(result.code).toBe(1);
+      expect(result.out).toContain("A src/app.ts");
+    }
+  });
+
+  it("fails a release line and empty heading that delete a merge-base fragment", () => {
+    const project = seed({ "20-a.md": FRAGMENT_A });
+    const text = readFileSync(join(project, "CHANGELOG.md"), "utf8");
+    const promoted = promoteChangelog(text, V, "o/r", "2026-02-01");
+    rmSync(join(project, "changelog.d/20-a.md"));
+    put(project, "CHANGELOG.md", promoted);
+    commitAll(project, "release without the fragment's entry");
+    const result = check(project);
+    expect(result.code).toBe(1);
+    expect(result.out).toContain("fragment a (#20)");
+  });
+
+  it("fails a release line whose version has no matching new version heading", () => {
+    const project = seed();
+    cut(project, (t) => t.replace(`## [${V}] - 2026-02-01`, "## [0.1.9] - 2026-02-01"));
+    const result = check(project);
+    expect(result.code).toBe(1);
+    expect(result.out).toContain(`no new ## [${V}] heading`);
+  });
+
+  it("fails an ordinary change set that deletes a merge-base fragment, as today", () => {
+    const project = seed({ "20-a.md": FRAGMENT_A });
+    rmSync(join(project, "changelog.d/20-a.md"));
+    put(project, "CHANGELOG.md", BASE.replace("- inline note (#1)", "- inline note (#1)\n- mine"));
+    commitAll(project, "delete a fragment");
+    const result = check(project);
+    expect(result.code).toBe(1);
+    expect(result.out).toContain("deletes or renames changelog.d/20-a.md");
+  });
+
+  it("fails an ordinary change set that removes the release line", () => {
+    const project = seed();
+    put(project, "CHANGELOG.md", BASE.replace("- [release-line] v0.1.0\n\n", "- mine (#7)\n\n"));
+    commitAll(project, "drop the release line");
+    const result = check(project);
+    expect(result.code).toBe(1);
+    expect(result.out).toContain("removes or changes the release line");
+  });
+
+  it("fails an ordinary product change set with no new entry while a release line is present", () => {
+    const project = seed();
+    put(project, "src/app.ts", "export const x = 1;\n");
+    commitAll(project, "product only");
+    const result = check(project);
+    expect(result.code).toBe(1);
+    expect(result.out).toContain("no new");
+  });
+
+  it("passes on master's tip when it is a release commit holding only the release line", () => {
+    const project = seed();
+    cut(project);
+    // The release PR merged: master is the release commit, HEAD is the merge base.
+    execFileSync("git", ["update-ref", "refs/remotes/origin/master", "HEAD"], { cwd: project });
+    const result = check(project);
+    expect(result.code).toBe(0);
+    expect(result.out).toContain("1 entries");
+  });
+
+  it("passes the pin-bump PR after a release: its own entry next to the release line, no hotfix label", () => {
+    const project = seed();
+    cut(project);
+    execFileSync("git", ["update-ref", "refs/remotes/origin/master", "HEAD"], { cwd: project });
+    git(project, ["checkout", "-q", "-b", "chore/pin"]);
+    const released = readFileSync(join(project, "CHANGELOG.md"), "utf8");
+    put(project, "CHANGELOG.md", released.replace(releaseLine(V), `${releaseLine(V)}\n- pin (#8)`));
+    put(project, "package.json", '{"name":"x"}\n');
+    commitAll(project, "chore: pin");
+    const result = check(project);
+    expect(result.code).toBe(0);
+    expect(readFileSync(join(project, "CHANGELOG.md"), "utf8")).toContain(releaseLine(V));
   });
 });

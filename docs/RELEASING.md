@@ -8,11 +8,36 @@ The release process publishes `@deftai/directive` and `@deftai/directive-runtime
 
 The interactive operator-side workflow (`task release` / `task release:publish` / `task release:rollback` / `task release:e2e`) is encoded in `skills/deft-directive-release/SKILL.md`. The notes below cover the underlying CI workflow and manual smoke-test procedure.
 
-## Default-branch release policy (#1553)
+## Release through a PR (#6296)
 
-Releases run on the configured base branch (default `master`). The branch-protection gate (#746 / #747) blocks unauthorised direct commits unless the project has opted in.
+A maintainer cut needs one human act: the release grant. Branch protection stays on, nothing is pushed to `master` directly, and the next PR needs no `hotfix` label.
 
-**Prefer the typed policy opt-out** for a release session:
+1. Make the release branch from the fetched tip: `git fetch origin master && git switch -c release/vX.Y.Z origin/master`.
+2. Run `task release -- X.Y.Z`. Step 2 accepts only `release/vX.Y.Z` at the fetched `origin/master` tip. It refuses `master` (and every other branch) and names the release branch; it refuses a `release/vX.Y.Z` that already exists on origin or no longer sits at the tip (an earlier attempt) and names the recovery. Steps 3 to 9 are unchanged. In place of the old Steps 10 and 11, the cut pushes `release/vX.Y.Z` and opens the release PR. The generated body carries the version and the documentation-impact block, and no closing keyword or release notes. The cut then stops and prints the finish command.
+3. Merge the release PR through the merge queue like any PR: `task pr:wait-mergeable-and-merge -- <N> --wait`.
+4. Mint the grant (`deft authz:grant -- --template release-publish --target X.Y.Z --confirm`), then run `task release -- --finish X.Y.Z`. The finish step resolves the merged release PR and its merge commit M. It refuses before any tag unless M is on the fetched `origin/master`, has one parent, changes only `CHANGELOG.md`, `ROADMAP.md` and deleted `changelog.d/` fragments, holds the `## [X.Y.Z]` heading and the release line, holds no other `[Unreleased]` entry and no fragment, and the named `Merge gate (task check)` is green on M. Then it runs the release grant check, tags M by its SHA, pushes only the tag, and creates the draft GitHub release from `CHANGELOG.md` at M. The grant authorizes the version; it is not evidence about the commit.
+
+**The release line.** The release writes one line back under the fresh `[Unreleased]`: `- [release-line] vX.Y.Z`. It is an entry, so `[Unreleased]` is never empty after a release and master's merge gate stays green with no change to the empty-section rule. The next release drops it; it never enters a version section.
+
+**The release rule.** `verify:changelog-unreleased` treats a change set that adds a release line as a release attempt and judges it by the release rule only, never by the ordinary rules. It passes only when the change set touches `CHANGELOG.md`, `ROADMAP.md` and deleted fragments only; adds the matching `## [X.Y.Z]` heading; leaves the release line as the only `[Unreleased]` entry and no fragment in `changelog.d/`; keeps every non-blank `CHANGELOG.md` line of the merge base (other than the earlier release line); and puts every non-blank line of each deleted fragment into the new version section. Lines are compared after CRLF is read as LF and trailing whitespace is removed. An ordinary change set that removes or changes the release line fails. Every other change set is judged as before, and the release line already in the file does not count as its entry.
+
+**The merge queue skip.** `verify:changelog-unreleased` skips itself on a `merge_group` run and prints the PR-context skip notice, like the closing-keyword, scope-provenance and intent-constraint checks. What is given up: on a merge-queue commit nothing re-checks the changelog. The entry requirement and the release rule were judged on the PR at its last CI run.
+
+**Changes that land ahead.** Case A: a PR that adds a fragment or an `[Unreleased]` entry merges to `master` before the release PR's check runs. The release rule fails on the release PR and names the leftover. Recovery: close the release PR, delete the release branch, and run the cut again from a fresh branch. Case B: such a PR is still in the queue ahead of the release PR and lands first. No check sees it on the queue commit; the finish step refuses and names the leftover entries or fragments.
+
+**Recovery by state.**
+
+- Release PR open: close the PR and delete the release branch (`git push origin --delete release/vX.Y.Z`), or run the cut again.
+- Merged and not tagged: run the finish step. When the finish step refuses (case B), the release cannot be tagged. Abandoning it is break-glass until #6485 ships a queue path: an operator with ruleset bypass reverts the release commit on `master` directly (§ Break-glass below). A revert PR through the queue fails the release rule, because it removes the release line without adding one.
+- Tagged: `task release:rollback`, which is unchanged. It still pushes `master` directly and needs an operator with ruleset bypass, so it is break-glass.
+
+The pin-bump PR after a release is an ordinary PR: it adds its own entry next to the release line and merges through the queue with no `hotfix` label.
+
+## Break-glass: base-branch release (#1553 / #6296)
+
+The normal path above needs none of this section. `task release -- X.Y.Z --break-glass` keeps the old run on the base branch with the atomic push of the release commit and tag (it writes the release line too). Use it only when the queue itself is broken. Abandoning a merged, untagged release (a direct revert on `master`) is break-glass in the same way until #6485. Both need an operator with ruleset bypass. The branch-protection gate (#746 / #747) blocks direct commits unless the project has opted in.
+
+**Prefer the typed policy opt-out** for a break-glass session:
 
 ```bash
 task policy:allow-direct-commits -- --confirm
@@ -34,14 +59,14 @@ If the env-var bypass is unavoidable outside the enforce closeout above, scope i
 
 **PowerShell coverage-debt tip (#2621):** pass `--allow-coverage-debt=N` (no bare `#`) or quote `"#N"`. Unquoted `#N` is a PowerShell comment and silently drops the issue number.
 
-See `skills/deft-directive-release/SKILL.md` § Branch-Protection Policy Guard for the full operator workflow.
+See `skills/deft-directive-release/SKILL.md` § Release through a PR (#6296) for the operator workflow, and § Branch-Protection Policy Guard for the break-glass steps.
 
 ## Merge queue on master (#6295)
 
 `master` requires a GitHub merge queue (squash is the queue's merge method), and the repository allows auto-merge. Required checks: `TypeScript (build + lint + test)` and `Merge gate (task check)` from `ci.yml` (it also runs on `merge_group`), and `Greptile Review` (the org ruleset). On the group commit, `Greptile Review` comes from `.github/workflows/greptile-review-merge-group.yml`.
 
-- Release and policy commits land through the queue as PRs: push the `chore(release): vX.Y.Z` commit (and the `chore(policy): restore branch protection …` commit) on a branch, open a PR, and enqueue it with `task pr:wait-mergeable-and-merge -- <N>`. Tag the merge commit after the PR merges.
-- Direct pushes to `master` are not part of the normal path. The direct-commit steps in § Default-branch release policy above are break-glass only, for when the queue itself is broken, and need an operator with ruleset bypass.
+- Release and policy commits land through the queue as PRs: `task release` opens the release PR from `release/vX.Y.Z`, it merges with `task pr:wait-mergeable-and-merge -- <N>`, and `task release -- --finish X.Y.Z` tags the merge commit (§ Release through a PR (#6296)). The normal path has no policy commit.
+- Direct pushes to `master` are not part of the normal path. The direct-commit steps in § Break-glass: base-branch release above are break-glass only, for when the queue itself is broken, and need an operator with ruleset bypass.
 - Do not pass `--admin` to merge around the queue. A break-glass direct merge is a separate, named operator action, not an agent default.
 
 ## Release artifact write order (#4318)
@@ -52,7 +77,7 @@ See `skills/deft-directive-release/SKILL.md` § Branch-Protection Policy Guard f
 
 Step 6 also captures the `changelog.d/` fragments, applies the CHANGELOG read-safety refusal to each, and assembles the promoted section in memory (subsection order, then file name). It refuses an invalid fragment, an entry line held by two fragments, and a `CHANGELOG.md` that already holds the version heading. Step 7 deletes exactly the captured fragments after the CHANGELOG write. Step 9 stages the deletions in the release commit and refuses while a captured fragment is still on disk. A dry run writes and deletes nothing.
 
-Recovery after a failure between the Step 7 write and the Step 9 commit: restore `CHANGELOG.md`, `ROADMAP.md` and `changelog.d/` to HEAD (`git restore --source=HEAD --staged --worktree -- CHANGELOG.md ROADMAP.md changelog.d/`), then rerun. `--allow-dirty` is not a recovery path. After the release commit exists, use `task release:rollback`; its revert restores the fragments.
+Recovery after a failure between the Step 7 write and the Step 9 commit: restore `CHANGELOG.md`, `ROADMAP.md` and `changelog.d/` to HEAD (`git restore --source=HEAD --staged --worktree -- CHANGELOG.md ROADMAP.md changelog.d/`), then rerun. `--allow-dirty` is not a recovery path. After the release commit exists, follow § Release through a PR (#6296) recovery by state; for a tagged release, `task release:rollback` reverts the commit and restores the fragments.
 
 ## Windows Step 5 host coverage decision (#6041; reverses #5026)
 

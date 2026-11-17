@@ -1,4 +1,5 @@
 import { EXIT_CONFIG_ERROR } from "./constants.js";
+import { runFinish } from "./finish.js";
 import { formatReleaseHelp, parseReleaseFlags } from "./flags.js";
 import { resolveProjectRoot, resolveRepo } from "./paths.js";
 import { runPipeline } from "./pipeline.js";
@@ -62,7 +63,12 @@ export function cmdRelease(args: readonly string[], seams: ReleaseSeams = {}): n
     allowCoverageDebtIssue: flags.allowCoverageDebtIssue,
     allowSkipCiIssue: flags.allowSkipCiIssue,
     allowUnpaidSkipCiIssue: flags.allowUnpaidSkipCiIssue,
+    breakGlass: flags.breakGlass,
   };
 
+  // #6296 item 3: the finish step tags the merged release PR's commit.
+  if (flags.finish !== null) {
+    return runFinish(config, seams);
+  }
   return runPipeline(config, seams);
 }

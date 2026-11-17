@@ -1,6 +1,6 @@
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createGithubRelease, verifyReleaseDraft } from "./gh.js";
 import { checkGitClean, commitReleaseArtifacts, createTag, pushRelease } from "./git.js";
 import { runPipeline } from "./pipeline.js";
@@ -38,6 +38,7 @@ function baseConfig(): ReleaseConfig {
     version: "0.21.0",
     repo: "deftai/directive",
     baseBranch: "master",
+    breakGlass: true,
     projectRoot: seedReleaseProjectDir(),
     dryRun: false,
     skipTag: false,
@@ -264,5 +265,79 @@ describe("gh edge cases", () => {
       seams,
     );
     expect(ok).toBe(true);
+  });
+});
+
+describe("Step 2 release branch guard (#6296 item 1)", () => {
+  type Git = Readonly<Record<string, { status: number; stdout: string; stderr?: string }>>;
+
+  /** Seams whose git answers come from `answers`, keyed by the git verb. */
+  function branchSeams(branch: string, answers: Git = {}): ReleaseSeams {
+    return baseSeams({
+      spawnText: (_c, a) => {
+        if (a.includes("--show-current")) return { status: 0, stdout: `${branch}\n`, stderr: "" };
+        for (const verb of ["fetch", "ls-remote"]) {
+          const hit = answers[verb];
+          if (a.includes(verb) && hit !== undefined) return { stderr: "", ...hit };
+        }
+        if (a.includes("rev-parse")) {
+          const ref = a[a.length - 1] ?? "";
+          const hit = answers[`rev-parse ${ref}`];
+          return { stderr: "", ...(hit ?? { status: 0, stdout: "tip\n" }) };
+        }
+        if (a.includes("status")) return { status: 0, stdout: "", stderr: "" };
+        return { status: 0, stdout: "", stderr: "" };
+      },
+    });
+  }
+
+  function run(branch: string, answers: Git = {}): { code: number; out: string } {
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    try {
+      const code = runPipeline({ ...baseConfig(), breakGlass: false }, branchSeams(branch, answers));
+      return { code, out: spy.mock.calls.map((c) => String(c[0])).join("") };
+    } finally {
+      spy.mockRestore();
+    }
+  }
+
+  it("refuses the base branch without --break-glass and names the release branch", () => {
+    const result = run("master");
+    expect(result.code).toBe(1);
+    expect(result.out).toContain("Pre-flight branch == release/v0.21.0");
+    expect(result.out).toContain("git switch -c release/v0.21.0 origin/master");
+    expect(result.out).toContain("--break-glass");
+  });
+
+  it("refuses a release branch that already exists on the remote and names the recovery", () => {
+    const result = run("release/v0.21.0", {
+      "ls-remote": { status: 0, stdout: "abc\trefs/heads/release/v0.21.0\n" },
+    });
+    expect(result.code).toBe(1);
+    expect(result.out).toContain("already exists on origin");
+    expect(result.out).toContain("recovery: close the open release PR");
+  });
+
+  it("refuses a local release branch left by an earlier attempt (not at the base tip)", () => {
+    const result = run("release/v0.21.0", {
+      "rev-parse HEAD": { status: 0, stdout: "old-attempt\n" },
+      "rev-parse origin/master": { status: 0, stdout: "tip\n" },
+    });
+    expect(result.code).toBe(1);
+    expect(result.out).toContain("not at the fetched origin/master tip");
+    expect(result.out).toContain("git branch -D release/v0.21.0");
+  });
+
+  it("returns a config error when fetch, ls-remote or rev-parse fail", () => {
+    expect(run("release/v0.21.0", { fetch: { status: 1, stdout: "" } }).code).toBe(2);
+    expect(run("release/v0.21.0", { "ls-remote": { status: 1, stdout: "" } }).code).toBe(2);
+    expect(
+      run("release/v0.21.0", { "rev-parse HEAD": { status: 128, stdout: "", stderr: "x" } }).code,
+    ).toBe(2);
+  });
+
+  it("accepts release/v<version> at the fetched base tip", () => {
+    const result = run("release/v0.21.0");
+    expect(result.out).toContain("OK (on release/v0.21.0 at the fetched origin/master tip)");
   });
 });

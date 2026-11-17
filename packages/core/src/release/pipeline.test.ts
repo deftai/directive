@@ -10,8 +10,15 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
-import { prependUpgradeBanner } from "./changelog.js";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { HumanOriginGrant } from "../authz/types.js";
+import { releaseLine } from "../changelog/release-line.js";
+import { parseDocsImpactDeclaration } from "../docs/docs-impact.js";
+import { findAllClosingKeywordHits } from "../pr-closing-keywords/detect.js";
+import type { NamedMergeGateFn } from "../pr-wait-mergeable/semantic-green.js";
+import { prependUpgradeBanner, promoteChangelog } from "./changelog.js";
+import { EXIT_OK, EXIT_VIOLATION } from "./constants.js";
+import { runFinish } from "./finish.js";
 import { formatReleaseHelp } from "./flags.js";
 import { checkTagAvailable } from "./gh.js";
 import { cmdRelease } from "./main.js";
@@ -20,6 +27,326 @@ import { paidSkipCiLedgerSeam, seedReleaseProjectDir } from "./pipeline-fixture.
 import { passReleaseInputs } from "./release-input.js";
 import { spawnText } from "./spawn.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
+
+function publishGrant(version: string): HumanOriginGrant {
+  return {
+    schemaVersion: 1,
+    id: "grant-release-6296",
+    origin: {
+      kind: "operator-cli",
+      actor: "operator",
+      mintedAt: "2026-11-17T00:00:00Z",
+      mintedVia: "deft authz:grant",
+      eventRef: "template:release-publish",
+    },
+    scope: {
+      planRef: null,
+      repo: null,
+      branch: null,
+      worktree: null,
+      surfaces: [version, `v${version}`],
+      operations: ["release-publish"],
+      storyIds: [],
+      issueIds: [],
+      cohortId: null,
+    },
+    semantics: { expiresAt: null, singleUse: false, usedAt: null, revokedAt: null },
+  };
+}
+
+function namedGate(ok: boolean): NamedMergeGateFn {
+  return (() => ({
+    ok,
+    outcome: ok ? null : "master-merge-gate-red",
+    exitCode: ok ? null : 4,
+    error: ok ? null : "Merge gate (task check) is completed/failure",
+    status: ok ? "success" : "failure",
+    hotfix: null,
+  })) as unknown as NamedMergeGateFn;
+}
+
+describe("release PR path (#6296 items 1 and 2)", () => {
+  const V = "0.105.0";
+  const dirs: string[] = [];
+  afterEach(() => {
+    vi.restoreAllMocks();
+    for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+  });
+
+  function prConfig(projectRoot: string): ReleaseConfig {
+    return {
+      version: V,
+      repo: "deftai/directive",
+      baseBranch: "master",
+      projectRoot,
+      dryRun: false,
+      skipTag: false,
+      skipRelease: false,
+      allowDirty: false,
+      draft: true,
+      skipCi: true,
+      skipBuild: true,
+      summary: null,
+      allowVbriefDrift: true,
+      allowCoverageDebtIssue: null,
+      allowSkipCiIssue: 716,
+    };
+  }
+
+  function recording(): ReleaseSeams & { calls: string[][]; bodies: string[] } {
+    const calls: string[][] = [];
+    const bodies: string[] = [];
+    return {
+      calls,
+      bodies,
+      validateReleaseInputs: passReleaseInputs,
+      probeSkipCiIncidentLedger: paidSkipCiLedgerSeam,
+      whichGh: () => "gh",
+      spawnText: (cmd, args) => {
+        calls.push([cmd, ...args]);
+        if (cmd === "gh" && args.includes("create")) {
+          const i = args.indexOf("--body-file");
+          bodies.push(readFileSync(args[i + 1] ?? "", "utf8"));
+          return { status: 0, stdout: "https://github.com/deftai/directive/pull/9\n", stderr: "" };
+        }
+        if (args.includes("--show-current")) {
+          return { status: 0, stdout: `release/v${V}\n`, stderr: "" };
+        }
+        if (args.includes("rev-parse")) return { status: 0, stdout: "abc123\n", stderr: "" };
+        return { status: 0, stdout: "", stderr: "" };
+      },
+      checkTagAvailable: () => [true, "ok"],
+      checkVbriefLifecycleSync: () => [true, 0, ""],
+      runBuild: () => [true, "ok"],
+      todayIso: () => "2026-11-17",
+      closedVerbEnv: {},
+      closedVerbGrants: [publishGrant(V)],
+    };
+  }
+
+  it("pushes only the release branch and opens the release PR; never the base branch or the policy", () => {
+    const projectRoot = seedReleaseProjectDir();
+    dirs.push(projectRoot);
+    const policyPath = join(projectRoot, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    mkdirSync(join(projectRoot, "xbrief"));
+    const policy = JSON.stringify({ plan: { policy: { allowDirectCommitsToMaster: false } } });
+    writeFileSync(policyPath, policy, "utf8");
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const seams = recording();
+    expect(runPipeline(prConfig(projectRoot), seams)).toBe(EXIT_OK);
+    const pushes = seams.calls.filter((c) => c.includes("push"));
+    expect(pushes).toEqual([["git", "-C", projectRoot, "push", "-u", "origin", `release/v${V}`]]);
+    expect(seams.calls.some((c) => c.includes("tag") && c.includes("-a"))).toBe(false);
+    expect(seams.calls.some((c) => c.includes("--atomic"))).toBe(false);
+    expect(readFileSync(policyPath, "utf8")).toBe(policy);
+    const changelog = readFileSync(join(projectRoot, "CHANGELOG.md"), "utf8");
+    expect(changelog).toContain(releaseLine(V));
+  });
+
+  it("opens a release PR whose body passes verify:docs-impact and carries no closing keyword", () => {
+    const projectRoot = seedReleaseProjectDir();
+    dirs.push(projectRoot);
+    const out = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const seams = recording();
+    expect(runPipeline(prConfig(projectRoot), seams)).toBe(EXIT_OK);
+    expect(seams.bodies).toHaveLength(1);
+    const body = seams.bodies[0] ?? "";
+    expect(parseDocsImpactDeclaration(body).errors).toEqual([]);
+    expect(findAllClosingKeywordHits(body, "body")).toEqual([]);
+    expect(body).toContain(`v${V}`);
+    expect(body).toContain(`task release -- --finish ${V}`);
+    const printed = out.mock.calls.map((c) => String(c[0])).join("");
+    expect(printed).toContain("pull/9");
+    expect(printed).toContain(`task release -- --finish ${V}`);
+  });
+
+  it("reports a failed branch push or PR open as a violation", () => {
+    for (const failing of ["push", "create"]) {
+      const projectRoot = seedReleaseProjectDir();
+      dirs.push(projectRoot);
+      vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+      const base = recording();
+      const seams: ReleaseSeams = {
+        ...base,
+        spawnText: (cmd, args, opts) =>
+          args.includes(failing)
+            ? { status: 1, stdout: "", stderr: "boom" }
+            : (base.spawnText?.(cmd, args, opts) ?? { status: 0, stdout: "", stderr: "" }),
+      };
+      expect(runPipeline(prConfig(projectRoot), seams)).toBe(EXIT_VIOLATION);
+    }
+  });
+
+  it("dry-run and --skip-tag describe the release PR steps without running them", () => {
+    const projectRoot = seedReleaseProjectDir();
+    dirs.push(projectRoot);
+    const out = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const seams = recording();
+    expect(runPipeline({ ...prConfig(projectRoot), dryRun: true }, seams)).toBe(EXIT_OK);
+    expect(runPipeline({ ...prConfig(projectRoot), skipTag: true }, seams)).toBe(EXIT_OK);
+    const printed = out.mock.calls.map((c) => String(c[0])).join("");
+    expect(printed).toContain(`DRYRUN (would run \`git push -u origin release/v${V}\`)`);
+    expect(printed).toContain("SKIP (--skip-tag)");
+    expect(seams.calls.some((c) => c.includes("push"))).toBe(false);
+  });
+});
+
+describe("finish step (#6296 item 3)", () => {
+  const V = "0.2.0";
+  const dirs: string[] = [];
+  afterEach(() => {
+    vi.restoreAllMocks();
+    for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+  });
+
+  const PRE =
+    "# Changelog\n\n## [Unreleased]\n\n- [release-line] v0.1.0\n\n### Added\n- shipped (#1)\n\n" +
+    "## [0.1.0] - 2026-01-01\n\n- old\n\n" +
+    "[Unreleased]: https://github.com/o/r/compare/v0.1.0...HEAD\n" +
+    "[0.1.0]: https://github.com/o/r/releases/tag/v0.1.0\n";
+
+  function g(cwd: string, args: string[]): string {
+    return execFileSync("git", ["-c", "user.email=ci@test", "-c", "user.name=ci", ...args], {
+      cwd,
+      encoding: "utf8",
+    }).trim();
+  }
+
+  /** origin (bare) + work clone; the last master commit is the release merge commit M. */
+  function repo(shape: { fragment?: boolean; extra?: boolean; entry?: boolean } = {}) {
+    const root = mkdtempSync(join(tmpdir(), "release-finish-"));
+    dirs.push(root);
+    const origin = join(root, "origin.git");
+    const work = join(root, "work");
+    mkdirSync(work);
+    execFileSync("git", ["init", "-q", "--bare", "-b", "master", origin]);
+    execFileSync("git", ["init", "-q", "-b", "master"], { cwd: work });
+    g(work, ["config", "core.autocrlf", "false"]);
+    writeFileSync(join(work, "CHANGELOG.md"), PRE);
+    writeFileSync(join(work, "ROADMAP.md"), "# Roadmap\n");
+    g(work, ["add", "-A"]);
+    g(work, ["commit", "-q", "-m", "init"]);
+    g(work, ["remote", "add", "origin", origin]);
+    g(work, ["push", "-q", "origin", "master"]);
+    let released = promoteChangelog(PRE, V, "o/r", "2026-11-17");
+    if (shape.entry) released = released.replace(releaseLine(V), `${releaseLine(V)}\n- ahead (#5)`);
+    writeFileSync(join(work, "CHANGELOG.md"), released);
+    writeFileSync(join(work, "ROADMAP.md"), `# Roadmap\n\n## v${V}\n`);
+    if (shape.fragment) {
+      mkdirSync(join(work, "changelog.d"));
+      writeFileSync(join(work, "changelog.d", "9-left.md"), "section: Fixed\n- left (#9)\n");
+    }
+    if (shape.extra) writeFileSync(join(work, "app.ts"), "export {};\n");
+    g(work, ["add", "-A"]);
+    g(work, ["commit", "-q", "-m", `chore(release): v${V} (#7)`]);
+    g(work, ["push", "-q", "origin", "master"]);
+    return { work, origin, merge: g(work, ["rev-parse", "HEAD"]) };
+  }
+
+  function finishConfig(projectRoot: string): ReleaseConfig {
+    return {
+      version: V,
+      repo: "o/r",
+      baseBranch: "master",
+      projectRoot,
+      dryRun: false,
+      skipTag: false,
+      skipRelease: true,
+      allowDirty: false,
+      draft: true,
+      skipCi: false,
+      skipBuild: false,
+      summary: null,
+      allowVbriefDrift: false,
+      allowCoverageDebtIssue: null,
+      allowSkipCiIssue: null,
+    };
+  }
+
+  function finishSeams(
+    merge: string,
+    overrides: ReleaseSeams = {},
+  ): ReleaseSeams & { calls: string[][] } {
+    const calls: string[][] = [];
+    return {
+      calls,
+      spawnText: (cmd, args, opts) => {
+        calls.push([cmd, ...args]);
+        return spawnText(cmd, args, opts);
+      },
+      findMergedReleasePr: () => ({ ok: true, number: 7, mergeCommit: merge }),
+      checkTagAvailable: () => [true, "ok"],
+      namedMergeGateFn: namedGate(true),
+      closedVerbEnv: {},
+      closedVerbGrants: [publishGrant(V)],
+      checkActiveCli: () => ({ ok: true }) as never,
+      viewWorkspacePackage: (name, version) => ({ name, visible: true, version }),
+      ...overrides,
+    };
+  }
+
+  function tagOnOrigin(origin: string): string {
+    try {
+      return g(origin, ["rev-parse", `v${V}^{commit}`]);
+    } catch {
+      return "";
+    }
+  }
+
+  it("tags the merge commit by SHA with a valid grant and pushes only the tag", () => {
+    const { work, origin, merge } = repo();
+    const masterBefore = g(origin, ["rev-parse", "master"]);
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const seams = finishSeams(merge);
+    expect(runFinish(finishConfig(work), seams)).toBe(EXIT_OK);
+    expect(tagOnOrigin(origin)).toBe(merge);
+    expect(g(origin, ["rev-parse", "master"])).toBe(masterBefore);
+    const pushes = seams.calls.filter((c) => c.includes("push"));
+    expect(pushes).toEqual([["git", "-C", work, "push", "origin", `refs/tags/v${V}`]]);
+  });
+
+  it("refuses before the tag when changelog.d/ holds a fragment at the merge commit, naming it", () => {
+    const { work, origin, merge } = repo({ fragment: true });
+    const out = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    expect(runFinish(finishConfig(work), finishSeams(merge))).toBe(EXIT_VIOLATION);
+    const printed = out.mock.calls.map((c) => String(c[0])).join("");
+    expect(printed).toContain("changelog.d/9-left.md");
+    expect(tagOnOrigin(origin)).toBe("");
+  });
+
+  it("refuses before the tag when another entry is left under [Unreleased] (case B)", () => {
+    const { work, origin, merge } = repo({ entry: true });
+    const out = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    expect(runFinish(finishConfig(work), finishSeams(merge))).toBe(EXIT_VIOLATION);
+    expect(out.mock.calls.map((c) => String(c[0])).join("")).toContain("- ahead (#5)");
+    expect(tagOnOrigin(origin)).toBe("");
+  });
+
+  it("refuses before the tag when the merge commit changes a path outside the release files", () => {
+    const { work, origin, merge } = repo({ extra: true });
+    const out = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    expect(runFinish(finishConfig(work), finishSeams(merge))).toBe(EXIT_VIOLATION);
+    expect(out.mock.calls.map((c) => String(c[0])).join("")).toContain("A app.ts");
+    expect(tagOnOrigin(origin)).toBe("");
+  });
+
+  it("refuses before the tag when the named merge gate is not green on the merge commit", () => {
+    const { work, origin, merge } = repo();
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const seams = finishSeams(merge, { namedMergeGateFn: namedGate(false) });
+    expect(runFinish(finishConfig(work), seams)).toBe(EXIT_VIOLATION);
+    expect(tagOnOrigin(origin)).toBe("");
+  });
+
+  it("refuses before the tag without a valid release grant", () => {
+    const { work, origin, merge } = repo();
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const seams = finishSeams(merge, { closedVerbGrants: [publishGrant("9.9.9")] });
+    expect(runFinish(finishConfig(work), seams)).toBe(EXIT_VIOLATION);
+    expect(tagOnOrigin(origin)).toBe("");
+    expect(seams.calls.some((c) => c.includes("tag") && c.includes("-a"))).toBe(false);
+  });
+});
 
 describe("cmdRelease", () => {
   it("returns 2 for invalid version", () => {
@@ -62,6 +389,7 @@ describe("runPipeline dry-run", () => {
     version: "0.21.0",
     repo: "deftai/directive",
     baseBranch: "master",
+    breakGlass: true,
     projectRoot: "/tmp/proj",
     dryRun: true,
     skipTag: true,
@@ -200,6 +528,7 @@ describe("release markdown containment (#2470)", () => {
         version: "0.21.0",
         repo: "deftai/directive",
         baseBranch: "master",
+        breakGlass: true,
         projectRoot: projectDir,
         dryRun: false,
         skipTag: true,
@@ -315,6 +644,7 @@ describe("release recovery with changelog fragments (#6315 / #6286 item 6)", () 
       version: "0.21.0",
       repo: "deftai/directive",
       baseBranch: "master",
+      breakGlass: true,
       projectRoot: root,
       dryRun: false,
       skipTag: true,

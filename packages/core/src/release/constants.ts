@@ -53,7 +53,7 @@ export const CI_VITEST_COVERAGE_TIMEOUT_MINUTES = 20;
 
 export const PYPROJECT_VERSION_LINE_RE = /version\s*=\s*"[^"]*"/;
 
-/** Byte-identical argparse --help from scripts/release.py (Python 3.12). */
+/** --help, from the scripts/release.py argparse text plus the #6296 flags. */
 export const RELEASE_HELP =
   "usage: release [-h] [--dry-run] [--skip-tag] [--skip-release] [--allow-dirty]\n" +
   "               [--allow-vbrief-drift] [--allow-coverage-debt #N]\n" +
@@ -61,11 +61,14 @@ export const RELEASE_HELP =
   "               [--skip-ci] [--skip-build] [--no-draft]\n" +
   "               [--repo OWNER/REPO] [--base-branch BRANCH]\n" +
   "               [--project-root PATH] [--summary TEXT]\n" +
+  "               [--break-glass] [--finish VERSION]\n" +
   "               version\n" +
   "\n" +
   "Automate the v0.X.Y release flow (#74): pre-flight, CI, prepare artifacts,\n" +
-  "write ROADMAP then CHANGELOG, build, tag, push, gh release. Halt-friendly:\n" +
-  "supports --dry-run / --skip-tag / --skip-release for safe rehearsals.\n" +
+  "write ROADMAP then CHANGELOG, build, push the release/vX.Y.Z branch and open\n" +
+  "the release PR (#6296). After the PR merges through the merge queue,\n" +
+  "`--finish X.Y.Z` tags the merge commit, pushes only the tag and creates the\n" +
+  "gh release. Halt-friendly: supports --dry-run / --skip-tag / --skip-release.\n" +
   "\n" +
   "positional arguments:\n" +
   "  version               Release version, e.g. 0.21.0 (no leading 'v', strict\n" +
@@ -125,4 +128,10 @@ export const RELEASE_HELP =
   "                        blockquote at the top of the promoted CHANGELOG\n" +
   "                        section. Flows through to the GitHub release body and\n" +
   "                        the Slack announcement template (Phase 8). Recommended\n" +
-  "                        length 80-160 chars.\n";
+  "                        length 80-160 chars.\n" +
+  "  --break-glass         Break-glass only (#6296): run on the base branch and\n" +
+  "                        push the release commit and tag atomically, as before\n" +
+  "                        the release PR path. Needs ruleset bypass.\n" +
+  "  --finish VERSION      After the release PR merged: check the merge commit,\n" +
+  "                        tag it by SHA after the release grant, push only the\n" +
+  "                        tag, and create the gh release (#6296).\n";

@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { runChangelogCheck } from "@deftai/directive-core/task-surface";
+import { mergeGroupSkip } from "@deftai/directive-core/pr-wait-mergeable";
+// Deep dist import (#1993) so vitest resolves it to core's TS source.
+import { runChangelogCheck } from "@deftai/directive-core/dist/task-surface/index.js";
 
 function parseChangelogCheckArgs(argv: readonly string[]): {
   projectRoot: string;
@@ -34,11 +36,23 @@ function parseChangelogCheckArgs(argv: readonly string[]): {
   return { projectRoot, againstMergeBase };
 }
 
-export function run(argv: readonly string[]): number {
+export function run(
+  argv: readonly string[],
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): number {
   const args = parseChangelogCheckArgs(argv);
   if (args.error !== undefined) {
     process.stderr.write(`changelog-check: ${args.error}\n`);
     return 2;
+  }
+  // #6296 item 6: the merge-base form (`verify:changelog-unreleased`) judges one
+  // PR's own change set, so it skips the merge queue's group commit.
+  if (args.againstMergeBase) {
+    const skip = mergeGroupSkip("verify:changelog-unreleased", env);
+    if (skip !== null) {
+      process.stdout.write(`${skip}\n`);
+      return 0;
+    }
   }
   return runChangelogCheck(
     resolve(args.projectRoot),

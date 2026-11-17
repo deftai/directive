@@ -1,6 +1,8 @@
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { run as runChangelogCheckCli } from "./changelog-check.js";
 
 const REPO_ROOT = join(import.meta.dirname, "..", "..", "..");
 
@@ -49,5 +51,40 @@ describe("consumer task surface inline python cleanup (#2022 Phase 2)", () => {
 
   it("install.yml dispatches install-uninstall via deft-ts", () => {
     expect(readTaskfile("install.yml")).toContain("install-uninstall");
+  });
+});
+
+describe("verify:changelog-unreleased on merge_group (#6296 item 6)", () => {
+  function runCli(argv: string[], env: Record<string, string>): { code: number; out: string } {
+    const dir = mkdtempSync(join(tmpdir(), "deft-cl-mg-"));
+    const spy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    try {
+      const code = runChangelogCheckCli(["--project-root", dir, ...argv], env);
+      return { code, out: spy.mock.calls.map((c) => String(c[0])).join("") };
+    } finally {
+      spy.mockRestore();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  it("prints the skip notice and exits 0 on a merge_group run", () => {
+    const result = runCli(["--against-merge-base"], { GITHUB_EVENT_NAME: "merge_group" });
+    expect(result.code).toBe(0);
+    expect(result.out).toContain("verify:changelog-unreleased: skipped on merge_group");
+  });
+
+  it("still runs on a pull_request run and in presence-only mode", () => {
+    // The temp project has no CHANGELOG.md, so a check that runs fails.
+    expect(runCli(["--against-merge-base"], { GITHUB_EVENT_NAME: "pull_request" }).code).toBe(1);
+    expect(runCli([], { GITHUB_EVENT_NAME: "merge_group" }).code).toBe(1);
+  });
+
+  it("returns 2 on an unknown argument", () => {
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    try {
+      expect(runChangelogCheckCli(["--bogus"], {})).toBe(2);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

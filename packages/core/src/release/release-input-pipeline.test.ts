@@ -69,6 +69,7 @@ function config(root: string, overrides: Partial<ReleaseConfig> = {}): ReleaseCo
     version: "0.21.0",
     repo: "deftai/directive",
     baseBranch: "master",
+    breakGlass: true,
     projectRoot: root,
     dryRun: false,
     skipTag: true,
