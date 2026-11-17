@@ -27,6 +27,9 @@ export const INSTALLATION_RECOVERY_GUIDANCE =
  * (`pnpm install --frozen-lockfile`, `npm install`, `npm ci`), and only when
  * pin ≠ installed is the sole fault (#6313, `recovery-admit.ts`). This is not
  * the sealed #5956 allow-list; the global AC9.7 pair stays refused.
+ * The hook refusal for that sole fault shows root-specific text instead
+ * (`renderPinMismatchRecoveryGuidance`, #6375); this constant stays the
+ * `recoveryGuidance` of the cheap check.
  */
 export const PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE =
   "Run `npm install` or `pnpm install` in this project (use `--frozen-lockfile` when the lockfile already records the pin). Global `npm i -g @deftai/directive` / `directive install --repair` is not the fix when only node_modules lags the pin.";

@@ -17,6 +17,10 @@ import {
 } from "@deftai/directive-core/session";
 import { afterAll, describe, expect, it } from "vitest";
 import { PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE } from "../../core/src/install-health/constants.js";
+import {
+  PIN_MISMATCH_RETRY_LINE,
+  PIN_MISMATCH_ROOT_LABEL,
+} from "../../core/src/install-health/pin-mismatch-guidance.js";
 import { resolveCanonicalVerb } from "./dispatch.js";
 import {
   DEFAULT_STDIN_EMPTY_RETRY_MS,
@@ -862,7 +866,9 @@ describe("hook-dispatch pin-mismatch recovery admit (#6313)", () => {
     const wire = dispatch(command, () => cheapResult(true), workdir);
     expect(wire.decision).toBe("deny");
     expect(wire.reason ?? "").toContain(PIN_LINE);
-    expect(wire.reason ?? "").toContain(PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE);
+    // #6375: pin mismatch as the only fault shows the root-specific text.
+    expect(wire.reason ?? "").toContain(`\n${PIN_MISMATCH_ROOT_LABEL} `);
+    expect(wire.reason ?? "").toContain(PIN_MISMATCH_RETRY_LINE);
   });
 });
 

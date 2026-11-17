@@ -15,6 +15,10 @@ import {
 import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-health/types.js";
 import { afterEach, describe, expect, it } from "vitest";
 import { PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE } from "../../core/src/install-health/constants.js";
+import {
+  PIN_MISMATCH_RETRY_LINE,
+  PIN_MISMATCH_ROOT_LABEL,
+} from "../../core/src/install-health/pin-mismatch-guidance.js";
 import { resolveLaunchingCheckoutRootFromPath, run } from "./hook-dispatch.js";
 
 const OVERLAY_RECOVERY =
@@ -237,7 +241,9 @@ describe("HOOK-ID pin≠installed fail-closed (AC14.8 / AC14.65)", () => {
     expect(result.code).toBe(0);
     expect(result.body.permission ?? result.body.decision).toBe("deny");
     const msg = denyMessage(result.body);
-    expect(msg).toContain(PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE);
+    // #6375: a real pin-only mismatch shows the root-specific recovery text.
+    expect(msg).toContain(`${PIN_MISMATCH_ROOT_LABEL} ${resolve(root)}`);
+    expect(msg).toContain(PIN_MISMATCH_RETRY_LINE);
     expect(msg).not.toContain(INSTALLATION_RECOVERY_GUIDANCE);
     expect(msg.toLowerCase()).not.toContain("ritual");
     expect(String(result.body.code ?? "")).not.toBe("ritual-not-ready");
@@ -422,7 +428,9 @@ describe("pin-mismatch recovery admit (#6313)", () => {
     expect(isDeny(body)).toBe(true);
     const msg = wireMessage(body);
     expect(msg).toContain(PIN_LINE);
-    expect(msg).toContain(PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE);
+    // #6375: pin mismatch as the only fault shows the root-specific text.
+    expect(msg).toContain(`\n${PIN_MISMATCH_ROOT_LABEL} `);
+    expect(msg).toContain(PIN_MISMATCH_RETRY_LINE);
   }
 
   it("admits pnpm install --frozen-lockfile at the root, then the next command once installed", () => {
@@ -612,14 +620,18 @@ describe("pin-mismatch recovery admit (#6313)", () => {
 
   it("does not admit when pinMismatchOnly is absent (fail closed)", () => {
     const root = tempDir("pin-6313-absent");
-    expectPinRefusal(
-      dispatchTool({
-        projectRoot: root,
-        toolInput: { command: "pnpm install --frozen-lockfile" },
-        cwd: root,
-        cheapInSync: () => cheapFailClosed(),
-      }).body,
-    );
+    const body = dispatchTool({
+      projectRoot: root,
+      toolInput: { command: "pnpm install --frozen-lockfile" },
+      cwd: root,
+      cheapInSync: () => cheapFailClosed(),
+    }).body;
+    expect(isDeny(body)).toBe(true);
+    const msg = wireMessage(body);
+    expect(msg).toContain(PIN_LINE);
+    // Not marked pin-only: the cheap check's own guidance, not the #6375 text.
+    expect(msg).toContain(PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE);
+    expect(msg).not.toContain(PIN_MISMATCH_ROOT_LABEL);
   });
 
   it("overlay-present fault: install is not admitted; #5910 recovery stays", () => {

@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6372",
-    "updated": "2026-11-17T14:58:34Z"
+    "updated": "2026-11-17T16:29:15Z"
   },
   "plan": {
     "title": "feat(ingest,scope): ingest and promote write the derivable launch fields",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "After `issue:ingest`, a story brief still lacks the launch fields, and `swarm:readiness --scaffold` refuses it because ingest records no story kind. This story extends that one scaffold command so that one run records `kind: story` for a plain story, writes operator-named Description, UserStory, ImplementationPlan, Traces, the two justifications and per-item acceptance lines addressed by id or position, copies an item's acceptance line from its keyed clause, and then prints missing fields and blocked conditions as two separate lists. Paths, commands and the other authority fields still come only from explicit inputs or the existing brief, and when `file_scope` touches a declared evaluator surface the scaffold adds `xbrief/evaluator-surface-disposition.json` once (#6373, folded in by operator decision).",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6372",
@@ -20,170 +20,317 @@
     "items": [
       {
         "title": "Story kind. When `plan.metadata.kind` is absent and `kindOf` infers `story`, `swarm:readiness --scaffold` writes `kind: story` and proceeds. It still refuses an explicit or inferred epic or phase.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given an ingested brief with no `plan.metadata.kind` that `kindOf` infers as a story, when `swarm:readiness --scaffold` runs, then it records `kind: story` and returns success, and given an epic or phase brief it still rejects the write."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Narrative inputs. The scaffold command accepts explicit values for Description, UserStory, ImplementationPlan, Traces or the missing-traces justification, the acceptance-count justification, and an acceptance line per item. It accepts them as flags or as one values file that the operator names.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given explicit Description, UserStory, ImplementationPlan, Traces, justification and item acceptance values as flags or in one named values file, when the scaffold command runs, then the brief stores each given value."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Item addressing. An item acceptance input names the item by its id or by its one-based position in `plan.items`. The command does not assign or change item ids.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given an item acceptance input that names an item by id or by one-based position, when the scaffold command runs, then that item stores the line and no item id is created or changed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Item acceptance copy. When an item has an id, has no acceptance line, and no explicit line is given, the command copies the text of the acceptance clause keyed to that id. It copies nothing else from brief text.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given an item with an id, no acceptance line and no explicit line, when the scaffold command runs, then the item stores the text of the clause keyed to that id and no other brief text is copied."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Authority fields. `file_scope`, `verify_commands`, `file_scope_confidence`, `size`, `parallel_safe`, `model_tier`, `readiness`, `expected_outputs`, `depends_on` and `conflict_group` are written only from an explicit input or kept from the value already on the brief. No path, command or other value for these fields is read from Overview, item titles, narratives or the issue.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given a brief whose Overview, item titles or narratives name paths or commands, when the scaffold command runs, then each authority field stores only an explicit input or its existing value."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Write, then report. The command writes the given values without a quality check, as it does today. An input that is not given leaves the existing value unchanged. After the write it runs the existing readiness evaluation on that brief and prints the missing fields and the blocked conditions as separate lists, and says that no missing field does not mean the story can launch.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given values that break a story-quality rule, when the scaffold command runs, then it saves them, runs the readiness evaluation, and returns missing fields and blocked conditions as separate lists with the launch note."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a freshly ingested story brief with no `plan.metadata.kind`, when `swarm:readiness --scaffold` runs with the required inputs, then it writes `kind: story` and does not refuse.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given a freshly ingested story brief with no `plan.metadata.kind`, when `swarm:readiness --scaffold` runs with the required inputs, then it writes `kind: story` and does not refuse."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a brief that has child plan references, when the scaffold command runs, then it refuses as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given a brief that has child plan references, when the scaffold command runs, then it refuses as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given explicit values for Description, UserStory, ImplementationPlan and Traces, when the scaffold command runs, then the brief holds those values.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given explicit values for Description, UserStory, ImplementationPlan and Traces, when the scaffold command runs, then the brief holds those values."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a UserStory value that does not match the existing pattern, when the scaffold command runs, then the value is written and the output lists the existing UserStory message as a blocked condition.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given a UserStory value that does not match the existing pattern, when the scaffold command runs, then the value is written and the output lists the existing UserStory message as a blocked condition."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an item with no id, when the scaffold command is given an acceptance line for its position, then that item holds the line.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given an item with no id, when the scaffold command is given an acceptance line for its position, then that item holds the line."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an item with an id, no acceptance line and a clause keyed to that id, when the scaffold command runs with no line for it, then the item acceptance line equals the clause text.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given an item with an id, no acceptance line and a clause keyed to that id, when the scaffold command runs with no line for it, then the item acceptance line equals the clause text."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a scaffold run, then no item id is added or changed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given a scaffold run, then no item id is added or changed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a brief whose Overview names a file path and a shell command, when the scaffold command runs without `--file-scope` or `--verify-command`, then it refuses as today and writes neither.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given a brief whose Overview names a file path and a shell command, when the scaffold command runs without `--file-scope` or `--verify-command`, then it refuses as today and writes neither."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a brief with existing `expected_outputs`, when the scaffold command runs without that input, then the existing value is unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given a brief with existing `expected_outputs`, when the scaffold command runs without that input, then the existing value is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given one scaffold run that supplies every required value on a freshly ingested story brief, when `task swarm:readiness` runs, then it reports no missing field.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given one scaffold run that supplies every required value on a freshly ingested story brief, when `task swarm:readiness` runs, then it reports no missing field."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a large story with `parallel_safe` false, readiness `ready` and every field supplied, when the scaffold command runs, then the values are written, no field is listed as missing, and the story is listed as blocked.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "Given a large story with `parallel_safe` false, readiness `ready` and every field supplied, when the scaffold command runs, then the values are written, no field is listed as missing, and the story is listed as blocked."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a scaffold run, then its output lists missing fields and blocked conditions separately.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "Given a scaffold run, then its output lists missing fields and blocked conditions separately."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a `file_scope` that touches a declared evaluator surface, when `file_scope` is written, then it includes `xbrief/evaluator-surface-disposition.json`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.19",
         "narrative": {
           "Acceptance": "Given a `file_scope` that touches a declared evaluator surface, when `file_scope` is written, then it includes `xbrief/evaluator-surface-disposition.json`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a `file_scope` that touches no declared evaluator surface, when `file_scope` is written, then that path is not added.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.20",
         "narrative": {
           "Acceptance": "Given a `file_scope` that touches no declared evaluator surface, when `file_scope` is written, then that path is not added."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a `file_scope` that already lists the path, when `file_scope` is written, then the path appears once.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.21",
         "narrative": {
           "Acceptance": "Given a `file_scope` that already lists the path, when `file_scope` is written, then the path appears once."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -613,6 +760,33 @@
         "leanCommentId": 6908175115,
         "harvestDigest": "e303f417162af58ec50b8fd1f42ff5abd1b801e3cc1d5d6a1bad983b84df0715",
         "slice": null
+      },
+      "productPullRequest": 6527,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "466c924482280e24efd5b41e6ac6479d62a42d18",
+        "prNumber": 6527,
+        "prBase": "master",
+        "mergeCommit": "842868ec849da59aac8d9bbab23b836ac86d15db",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d645489e6e783ebf6ecb5693a8007508aacfe0ed",
+        "verifiedAt": "2026-11-17T16:29:15Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZjNmYWM0MTktZDc5Yy00YmFlLTlmN2UtMjdhMWZiYzJmNzYw",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T16:29:15Z",
+      "completedSessionId": "host:claude:v1:ZjNmYWM0MTktZDc5Yy00YmFlLTlmN2UtMjdhMWZiYzJmNzYw",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T16:29:15Z"
       }
     },
     "acceptance": {
@@ -816,6 +990,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6414479075",
-    "updated": "2026-11-17T14:58:34Z"
+    "updated": "2026-11-17T16:29:15Z"
   }
 }
