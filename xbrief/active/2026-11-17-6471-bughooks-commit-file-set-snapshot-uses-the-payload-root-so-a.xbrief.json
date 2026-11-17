@@ -357,7 +357,8 @@
           "packages/core/src/hooks/commit-target.ts",
           "packages/core/src/hooks/dispatcher.ts"
         ],
-        "module_boundary": "packages/core/src/hooks"
+        "module_boundary": "packages/core/src/hooks",
+        "cohesion_exemption": "dispatcher.ts changes by one refusal sentence (Bound item 5) that reads the tripping word from commit-target.ts; the parsing change lives in commit-target.ts, so no split of dispatcher.ts is in scope."
       },
       "issueCommentThread": [
         {
