@@ -8442,6 +8442,12 @@ describe("always-on kill-switch plant deny (#6136)", () => {
       `node -e "require('fs').writeFileSync('${kill}','x')"`,
       `python -c "open('${kill}','w').write('x')"`,
       `python -c "print('${kill}'); open('${kill}','w').write('x')"`,
+      `touch ${kill}; true`,
+      `touch ${kill}&& true`,
+      `cp x ${kill};ls`,
+      `echo x > "$(printf ${kill})"`,
+      `echo x > \`printf ${kill}\``,
+      `echo x > "\${VAR}${kill}"`,
     ];
     for (const seams of [inactiveAuthzSeams(), activeUatSeams()]) {
       for (const command of denies) {

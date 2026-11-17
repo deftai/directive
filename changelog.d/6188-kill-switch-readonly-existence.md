@@ -1,2 +1,2 @@
 section: Fixed
-- Authz: a read-only check of the kill-switch file is allowed, including ls, test, stat, and cat, a stderr redirect, and a literal-only console.log or print of the name. touch, redirection onto the file, and cp or mv onto it stay denied (#6188).
+- Authz: a read-only check of the kill-switch file is allowed, including ls, test, stat, and cat, a stderr redirect, and a literal-only console.log or print of the name. touch, redirection onto the file, and cp or mv onto it stay denied. A destination with a separator attached, and a redirect that hides the name inside command substitution, backticks, or ${} expansion, stay denied (#6188).

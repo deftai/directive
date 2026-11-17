@@ -2742,6 +2742,66 @@ describe("kill-switch read is not a plant (#6188)", () => {
     }
   });
 
+  it("denies a destination with an attached separator (#6188)", () => {
+    for (const command of [
+      `touch ${kill}; true`,
+      `touch ${opt}; true`,
+      `touch ${kill}&& true`,
+      `touch ${opt}&&true`,
+      `cp x ${kill};ls`,
+      `cp /tmp/a ${opt};ls`,
+      `touch ${kill}& true`,
+      `touch ${kill})`,
+    ]) {
+      expectPlant(command);
+    }
+  });
+
+  it("denies expanded redirect and write destinations that hide the kill-switch name (#6188)", () => {
+    for (const command of [
+      `echo x > "$(printf ${kill})"`,
+      `echo x > "$(printf ${opt})"`,
+      `echo x > $(printf ${kill})`,
+      `echo x > $(printf ${opt})`,
+      `echo x > \`printf ${kill}\``,
+      `echo x > \`printf ${opt}\``,
+      `echo x > "\${VAR}${kill}"`,
+      `echo x > "\${VAR}${opt}"`,
+      `echo x > "\${${kill}}"`,
+      `echo x > \${HOME}/${kill}`,
+      `cp x "$(printf ${kill})"`,
+      `touch "$(printf ${opt})"`,
+    ]) {
+      expectPlant(command);
+    }
+  });
+
+  it("does not treat an expanded read of the kill-switch name as a plant (#6188)", () => {
+    for (const command of [
+      `ls "$(printf ${kill})"`,
+      `cat "$(printf ${opt})"`,
+      `ls \`printf ${kill}\``,
+      `cat "\${VAR}${kill}"`,
+      `echo x > /tmp/ordinary; ls ${kill}`,
+      `echo x > /tmp/ordinary; cat ${opt}`,
+      `touch /tmp/ordinary ;ls ${kill}`,
+    ]) {
+      expect(hasKillSwitchShellWrite(command), command).toBe(false);
+      expect(classifyShellAuthzOps(command), command).not.toContain("settings");
+    }
+    expectRead(`ls ${kill}`);
+    expectRead(`cat ${opt}`);
+    expectRead(`touch /tmp/ordinary-file; ls ${kill}`);
+  });
+
+  it("denies an option-looking interpreter payload that names the kill switch (#6188)", () => {
+    expectPlant(`node -e -${kill}`);
+    expectPlant(`python -c -open('${kill}','w').write('x')`);
+    expectPlant(`node -e - "require('fs').writeFileSync('${kill}','x')"`);
+    expectRead(`node -e "console.log('${kill}')"`);
+    expectRead(`python -c "print('${opt}')"`);
+  });
+
   it("keeps non-proof interpreters and authz print literals unknown", () => {
     expect(classifyShellAuthzOps(`qjs -e 'print("${kill}")'`)).toEqual(["unknown"]);
     expect(hasKillSwitchShellWrite(`qjs -e 'print("${kill}")'`)).toBe(false);

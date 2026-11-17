@@ -2797,9 +2797,22 @@ function operandIsKillSwitch(operand: string): boolean {
 }
 
 /**
+ * Redirect / write-destination operand that cannot be proved safe (#6188).
+ * A literal basename still matches. Command substitution, backticks, `$VAR`,
+ * and `${VAR}` hide the runtime path, so a kill-switch name inside that
+ * operand stays a plant. Single-quoted text does not expand.
+ */
+function redirectOperandPlantsKillSwitch(operand: string): boolean {
+  if (operandIsKillSwitch(operand)) return true;
+  if (!textMentionsKillSwitch(operand)) return false;
+  return zipShellWordHasExpansion(operand);
+}
+
+/**
  * One redirect operand starting at `start` (already past `>|` / `>!` / `>&`).
- * Stops at unquoted whitespace or a real list separator. `>|` is noclobber,
- * so this walk must not use the segment splitter that treats `|` as a pipe.
+ * Stops at unquoted whitespace, a real list separator, or a grouping `)`.
+ * Backticks and `$(…)` stay one operand, including spaces inside them.
+ * `>|` is noclobber, so this walk must not treat that `|` as a pipe.
  */
 function readRedirectOperand(text: string, start: number): { word: string; end: number } | null {
   let quote: "'" | '"' | null = null;
@@ -2810,6 +2823,8 @@ function readRedirectOperand(text: string, start: number): { word: string; end: 
   if (first === ";" || first === "|" || first === "&" || first === "\n" || first === "\r") {
     return null;
   }
+  let inBacktick = false;
+  let substDepth = 0;
   for (; i < text.length; i++) {
     const char = text[i] as string;
     if (char === "\\" && quote !== "'" && i + 1 < text.length) {
@@ -2824,15 +2839,39 @@ function readRedirectOperand(text: string, start: number): { word: string; end: 
       word += char;
       continue;
     }
+    if (quote === null && char === "`") {
+      inBacktick = !inBacktick;
+      word += char;
+      continue;
+    }
+    if (quote === null && !inBacktick && char === "$" && text[i + 1] === "(") {
+      substDepth++;
+      word += "$(";
+      i++;
+      continue;
+    }
+    if (quote === null && !inBacktick && substDepth > 0 && char === "(") {
+      substDepth++;
+      word += char;
+      continue;
+    }
+    if (quote === null && !inBacktick && substDepth > 0 && char === ")") {
+      substDepth--;
+      word += char;
+      continue;
+    }
     if (
       quote === null &&
+      !inBacktick &&
+      substDepth === 0 &&
       (char === " " ||
         char === "\t" ||
         char === "\n" ||
         char === "\r" ||
         char === ";" ||
         char === "|" ||
-        char === "&")
+        char === "&" ||
+        char === ")")
     ) {
       break;
     }
@@ -2870,7 +2909,7 @@ function quoteAwareRedirectPlantsKillSwitch(command: string): boolean {
     }
     while (j < text.length && (text[j] === " " || text[j] === "\t")) j++;
     const operand = readRedirectOperand(text, j);
-    if (operand !== null && operandIsKillSwitch(operand.word)) return true;
+    if (operand !== null && redirectOperandPlantsKillSwitch(operand.word)) return true;
     if (operand !== null) i = operand.end - 1;
   }
   return false;
@@ -2890,6 +2929,29 @@ function killWriteScanStops(token: string): boolean {
     if (prev === ">" || prev === "<") return false;
   }
   return true;
+}
+
+/**
+ * Text before an attached list operator. `shellTokens` keeps `file;cmd` as one
+ * token, so the destination has to be checked before the scan stops (#6188).
+ * `2>&1` stays whole. A leading operator is not this command's operand.
+ * A trailing `)` is a group closer, not part of the basename.
+ */
+function operandBeforeAttachedSeparator(token: string): string | null {
+  const idx = firstUnquotedShellOpIndex(token);
+  let operand = token;
+  if (idx === 0) return null;
+  if (idx > 0) {
+    const ch = token[idx] as string;
+    const prev = token[idx - 1] as string;
+    if (!(ch === "&" && (prev === ">" || prev === "<"))) {
+      operand = token.slice(0, idx);
+    }
+  }
+  if (operand.endsWith(")") && !operand.includes("$(") && !operand.includes("`")) {
+    return operand.slice(0, -1);
+  }
+  return operand;
 }
 
 /** Trailing bin glued on a connector (`ok;touch`). Empty when the token only ends the segment. */
@@ -2914,18 +2976,22 @@ function gluedBinAfterConnector(token: string): string | null {
 function segmentInterpreterPlantsKillSwitch(words: readonly string[], binIndex: number): boolean {
   const family = printProofFamily(writeBinName(words[binIndex] as string));
   const payloadIndexes = new Set<number>();
+  const normalizedFlags = new Map<number, string>();
   let i = binIndex + 1;
   while (i < words.length) {
     const raw = words[i] as string;
     if (killWriteScanStops(raw)) break;
     const flag = normalizeToken(raw);
+    normalizedFlags.set(i, flag);
     const next = words[i + 1];
     if (
       (INTERPRETER_CODE_FLAGS.has(flag) || flag === "eval") &&
       next !== undefined &&
-      !next.startsWith("-") &&
       !killWriteScanStops(next)
     ) {
+      // A payload whose first token looks like an option is not a proven read.
+      // Fail closed: the command already names a kill-switch file.
+      if (next.startsWith("-")) return true;
       const payload = unwrapQuotedPayload(next);
       if (textMentionsKillSwitch(payload) && !isBoundedPrintMentionProof(family, payload)) {
         return true;
@@ -2940,7 +3006,9 @@ function segmentInterpreterPlantsKillSwitch(words: readonly string[], binIndex: 
     const raw = words[j] as string;
     if (killWriteScanStops(raw)) break;
     if (payloadIndexes.has(j)) continue;
-    if (normalizeToken(raw).startsWith("-")) continue;
+    const flag = normalizedFlags.get(j);
+    if (flag === undefined) break;
+    if (flag.startsWith("-")) continue;
     if (isKillSwitchPlantPath(pathishToken(raw))) return true;
   }
   return false;
@@ -4057,8 +4125,9 @@ function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]
     }
     for (let tj = ti + 1; tj < tokens.length; tj++) {
       const later = tokens[tj] as string;
+      const operand = operandBeforeAttachedSeparator(later);
+      if (operand !== null && operand.length > 0 && tokenPlantsKillSwitch(operand)) return true;
       if (killWriteScanStops(later)) break;
-      if (tokenPlantsKillSwitch(later)) return true;
     }
   }
   return false;
