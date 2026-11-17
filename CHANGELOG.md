@@ -10,9 +10,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-- chore(dogfood): pin Directive to 0.129.11.
 
 ### Fixed
+
+### Removed
+
+## [0.129.12] - 2026-11-17
+
+> scope-provenance in seconds instead of minutes, hook writes outside every checkout without the launching ritual, and no consumer deposits in the framework repository.
+
+### Added
+
+### Changed
+- chore(dogfood): pin Directive to 0.129.11.
+- Hooks: a Write or Edit to a file in the OS temp directory or an ordinary home folder outside every checkout is no longer refused for a stale session ritual or another session's lease (decision `write-outside-every-checkout-ready`), and a ritual refusal names the judged checkout with one `--project-root` recovery command. Directive temp folders now all carry `deft` in their names (#6376).
+- Minted the intent-constraint record for the #6378 per-call git timeout (120 s default, 1000000 s maximum, four enforce-mode throw sites). Refs #6378.
+
+### Fixed
+
+- **No consumer deposits in the framework repository**: `ensureGitattributes` no longer writes the consumer `.gitattributes` block in a checkout of this repository (linked worktrees and dogfood `.deft/core` included), so install, setup repair and `session:start` leave the tracked file alone. The pack-migrate verbs (`task packs:render-skills` and the other `render-*` tasks) take the skills directory, `REFERENCES.md` and the output path from the checkout they run in when it is this repository; explicit flags still win, and consumer projects resolve as before (#6337)
+- `verify:scope-provenance` reads the lifecycle census in a few batched `git cat-file` reads instead of one `git show` per brief, so it finishes in seconds instead of minutes. It prints one stderr line per phase (`--quiet` hides them), and each git call has a 120-second limit (`--git-timeout-seconds`, `DEFT_SCOPE_PROVENANCE_GIT_TIMEOUT_SECONDS`) that only warns in this release (#6378).
 
 ### Removed
 
@@ -8097,7 +8114,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.129.11...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.129.12...HEAD
+[0.129.12]: https://github.com/deftai/directive/compare/v0.129.11...v0.129.12
 [0.129.11]: https://github.com/deftai/directive/compare/v0.129.10...v0.129.11
 [0.129.10]: https://github.com/deftai/directive/compare/v0.129.9...v0.129.10
 [0.129.9]: https://github.com/deftai/directive/compare/v0.129.8...v0.129.9

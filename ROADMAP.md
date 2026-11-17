@@ -7,10 +7,11 @@
 
 ## Active
 
-- **#6376** -- bug(hooks): a write outside every checkout is judged by the launching checkout's session ritual -- `[running]`
-- **#6378** -- bug(scope-provenance): verify:scope-provenance runs past 5 minutes with no output in a fresh worktree -- `[running]`
-- **#6379** -- design(hooks,swarm): with more than one active brief, in-session workers cannot write; the only parallel route skips the local fence -- `[running]`
-- **#6421** -- bug(swarm): a killed finalize-cohort run leaves a worktree and branch that block the next run -- `[running]`
+- **#6187** -- Commit-shape check (#5656) refuses Bash calls whose heredoc text merely mentions a commit command -- `[running]`
+- **#6366** -- docs(scm): merge queue setup playbook, and point agents to it where they merge -- `[running]`
+- **#6422** -- bug(swarm): finalize-cohort fails after a correct sweep when the story was not launched by swarm:launch -- `[running]`
+- **#6423** -- bug(merge): pr:wait-mergeable-and-merge --resume returns QUEUE-PENDING at once instead of waiting for the queue -- `[running]`
+- **#6468** -- bug(scope): a story brief that names several issues cannot pass both closing-keywords and the completion identity join -- `[running]`
 
 ## Proposed
 
@@ -45,8 +46,13 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1960 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1965 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#6337** -- fix(install,hooks): no consumer deposits in this repo; render in worktrees; recovery on Codex -- `[completed]`
+- **#6421** -- bug(swarm): a killed finalize-cohort run leaves a worktree and branch that block the next run -- `[completed]`
+- **#6378** -- bug(scope-provenance): verify:scope-provenance runs past 5 minutes with no output in a fresh worktree -- `[completed]`
+- **#6376** -- bug(hooks): a write outside every checkout is judged by the launching checkout's session ritual -- `[completed]`
+- **#6379** -- design(hooks,swarm): with more than one active brief, in-session workers cannot write; the only parallel route skips the local fence -- `[completed]`
 - **#6409** -- bug(session): session:start refuses mutation for owed completions that belong to other stories -- `[completed]`
 - **#6335** -- feat(lifecycle): completion PRs without ledger conflicts or half-written finalize -- `[completed]`
 - **#6336** -- fix(pr): pr:watch and pre-PR give the same verdict as CI and name the cause -- `[completed]`
@@ -67,9 +73,4 @@ _Showing 25 of 1960 completed scopes (newest first). Full history: lifecycle `co
 - **#6273** -- feat(scope): one-PR path for a single maintainer: a new or widened brief lands with its code without a second human reviewer -- `[completed]`
 - **#6354** -- feat(scope): one-PR mint level without a human merge (drop the requireHumanMerge precondition) -- `[completed]`
 - **#6349** -- fix(scope-provenance): one-PR gate crashes with ENOBUFS when PROJECT-DEFINITION exceeds 1 MiB -- `[completed]`
-- **#6318** -- feat(scope): acceptance-disposition grant for a deferred clause (#6310 slice C) -- `[completed]`
-- **#6315** -- feat(changelog): fragment gate, release assembly and story scope (#6286 slice B) -- `[completed]`
-- **#6278** -- bug(hooks): a worker cannot commit in its linked worktree with cd-then-commit or git -C forms -- `[completed]`
-- **#6280** -- feat(review-cycle,pre-pr): lifecycle-only PRs do not need a review-bot pass -- `[completed]`
-- **#6317** -- feat(scope): identity join reads merge-time body; operator delivery attestation (#6310 slice B) -- `[completed]`
 
