@@ -54,6 +54,16 @@ Step 6 also captures the `changelog.d/` fragments, applies the CHANGELOG read-sa
 
 Recovery after a failure between the Step 7 write and the Step 9 commit: restore `CHANGELOG.md`, `ROADMAP.md` and `changelog.d/` to HEAD (`git restore --source=HEAD --staged --worktree -- CHANGELOG.md ROADMAP.md changelog.d/`), then rerun. `--allow-dirty` is not a recovery path. After the release commit exists, use `task release:rollback`; its revert restores the fragments.
 
+## Warn-first refusals (#6281)
+
+Narrow or remove a gate before adding one. A gate that must exist and adds a new default consumer-visible refusal is declared in the refusal table (`packages/core/src/refusal-declarations/table.ts`) and ships in `warn` mode for at least one release: the work proceeds and the line names the gate id, the remedy and that the gate can refuse from a later release. It turns to `enforce` in a later release with a one-line row change and its own CHANGELOG entry.
+
+A refusal that must refuse in its first release (for example a security fix) is a named exception: its row carries an `exception` reason and its CHANGELOG entry states the reason.
+
+Step 5 Check 5 lists every declared refusal that is new or changed against the table at the previous release tag, and names that baseline: warned in the previous release, new with no warn release, or unknown when the baseline cannot be read. It never stops the cut; the operator judges.
+
+The warn period is counted per release, not per consumer, and no per-consumer warn state is kept. A consumer who upgrades past the warn-only release meets the refusal first; the refusal line still names the gate id and the remedy. Walkthrough: `content/docs/gate-walkthrough.md`.
+
 ## Windows Step 5 host coverage decision (#6041; reverses #5026)
 
 **Decision.** PR CI and ordinary `ts:check-lane` run the suite **without** `--coverage`. Release Step 5 (`ts:check-lane` under `DEFT_RELEASE_PREFLIGHT=1`) runs host vitest **with** `--coverage` and enforces thresholds on the host. On-demand `task test:coverage` remains. Tip-SHA GHA coverage-of-record cites are retired from Step 5 success, stamp-hit, and auto-hatch paths.
