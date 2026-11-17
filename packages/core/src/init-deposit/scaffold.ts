@@ -14,6 +14,7 @@ import {
   agentsRefreshPlanWithInstalledTemplate,
   readAgentsTemplateFromContentTree,
 } from "../doctor/agents-md.js";
+import { isFrameworkSourceCheckoutAt } from "../doctor/paths.js";
 import {
   containedChmod,
   containedDestExec,
@@ -943,6 +944,12 @@ function coreGuardWorkflowContent(): string {
 }
 
 export function ensureGitattributes(projectDir: string, io: InitDepositIo): boolean {
+  // The framework source repository (linked worktrees and dogfood deposits
+  // included) is not a consumer: never write the consumer block there (#6337).
+  if (isFrameworkSourceCheckoutAt(projectDir)) {
+    io.printf(".gitattributes: framework source checkout — consumer block not written.\n");
+    return false;
+  }
   const path = projectionTarget(projectDir, ".gitattributes");
   const existing = existsSync(path) ? readFileSync(path, "utf8") : "";
   const lines = existing.length > 0 ? existing.split("\n") : [];
