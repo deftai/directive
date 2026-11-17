@@ -1,10 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 6336,
+  "issue": 6374,
   "surfaces": [
-    "packages/core/src/intent-constraint/**",
+    "tasks/verify.yml",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for #6336 Bound item 6: verify:intent-constraint now lists every unapproved fact on each failure path with path, line, kind and value (it listed at most eight, and the missing-mint paths listed none). extract.ts records each fact's source line; the line is display only and not part of the fact's identity, so which facts are new or covered does not change and verdicts do not change. Disclosure only; not #3164 authorization. Refs #6336."
+  "note": "Disclosure for #6374 Bound item 5: the `verify:ac` task description in tasks/verify.yml now says exit 0 means no clause failed, not that the requested work exists, and names the 'no acceptance evidence yet' first line. Text only: the task command, flags and exit codes do not change, and no gate is added or removed. Disclosure only; not #3164 authorization. Refs #6374."
 }

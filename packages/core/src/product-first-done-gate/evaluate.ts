@@ -72,6 +72,7 @@ import {
   UNMAPPED_STATEMENT_SENTENCE_CAUSE,
   walkAcceptanceClauses,
 } from "../verify-ac/clauses.js";
+import { annotateUnchangedSinceEntry } from "../verify-ac/entry-baseline-note.js";
 import {
   emitVerifyAcAttempts,
   evaluateProductOracleIntegrity,
@@ -1279,7 +1280,15 @@ function applyClauseWalk(
   const report = walkAcceptanceClauses(clauses, projectRoot, {
     declaredScope: readDeclaredArtifactScope(plan),
   });
-  const message = options.quiet ? result.message : formatClauseWalkMessage(report, result.message);
+  // #6374 item 4: context note on verified rows whose file is unchanged since the
+  // commit before this brief entered its folder. Display only: outcomes, counts,
+  // the lead and the exit code below are all computed from `report`.
+  const message = options.quiet
+    ? result.message
+    : formatClauseWalkMessage(
+        annotateUnchangedSinceEntry(report, { projectRoot, xbriefPath: options.xbriefPath }),
+        result.message,
+      );
   // #3497: a clause the static walk cannot decide is evidence of nothing. It blocks
   // only when nothing else verified the product; a green executable acceptance run
   // already is the product-first oracle. Failed clauses still block unconditionally.

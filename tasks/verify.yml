@@ -648,7 +648,7 @@ tasks:
           ENGINE_CMD: 'verify:literal-ac --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   ac:
-    desc: "Product-first acceptance gate (#3284). Runs plan.acceptance.commands (or #3267 literal ledger) FIRST and never skippable when commands exist. Check composition uses --soft-missing-xbrief. Rapid ceremony = AC-only; pressure/degraded makes hygiene advisory. Capture-only: --capture-only. Three-state exit (0 pass or none / 1 fail / 2 config). Architecture for #3267."
+    desc: "Product-first acceptance gate (#3284). Runs plan.acceptance.commands (or #3267 literal ledger) FIRST and never skippable when commands exist. Check composition uses --soft-missing-xbrief. Rapid ceremony = AC-only; pressure/degraded makes hygiene advisory. Capture-only: --capture-only. Three-state exit (0 no clause failed or none / 1 fail / 2 config). Exit 0 means no clause failed, not that the requested work exists; with zero verified clauses and no green acceptance command the first line reads 'verify:ac: no acceptance evidence yet' (#6374). Architecture for #3267."
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
