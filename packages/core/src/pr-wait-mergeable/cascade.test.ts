@@ -1,6 +1,19 @@
-import { describe, expect, it } from "vitest";
-import { waitMergeableAndMerge } from "./cascade.js";
-import { EXIT_CONFIG_ERROR, EXIT_MERGED, EXIT_TIMEOUT_OR_ESCALATION } from "./constants.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  reportMergeQueueState,
+  resumeMergeQueueRead,
+  sleepSecondsSync,
+  waitMergeableAndMerge,
+} from "./cascade.js";
+import {
+  EXIT_CONFIG_ERROR,
+  EXIT_MERGED,
+  EXIT_QUEUE_PENDING,
+  EXIT_TIMEOUT_OR_ESCALATION,
+  MERGE_QUEUE_WAIT_MAX_FAILED_READS,
+  MERGE_QUEUE_WAIT_POLL_SECONDS,
+} from "./constants.js";
+import type { QueueRead, QueueReadFn, QueueReadResult } from "./merge-queue.js";
 import { toResultDict } from "./result.js";
 import type { SemanticGreenResult } from "./semantic-green.js";
 import type { CloseoutAttestableFn, MergeFn, MonitorFn, ProtectedCheckFn } from "./types.js";
@@ -767,5 +780,309 @@ describe("closeout attestability gate before merge (#3781)", () => {
     expect(result.exitCode).toBe(EXIT_MERGED);
     expect((monitorFn as { calls: unknown[] }).calls).toHaveLength(1);
     expect((mergeFn as { calls: unknown[] }).calls).toHaveLength(1);
+  });
+});
+
+// ---- merge-queue --wait (#6423) --------------------------------------------
+
+const Q_REPO = "deftai/directive";
+const Q_HEAD = "a".repeat(40);
+const Q_NEW_HEAD = "b".repeat(40);
+const Q_GROUP_COMMIT = "c".repeat(40);
+const Q_SINCE = "2026-11-17T01:00:00.000Z";
+const Q_AFTER = "2026-11-17T01:05:00Z";
+const POLL_MS = MERGE_QUEUE_WAIT_POLL_SECONDS * 1000;
+
+function queueRead(overrides: Partial<QueueRead> = {}): QueueRead {
+  return {
+    headSha: Q_HEAD,
+    merged: false,
+    mergeCommitSha: null,
+    queueEntry: null,
+    autoMergeRequested: false,
+    events: [],
+    ...overrides,
+  };
+}
+
+const QUEUED = queueRead({ queueEntry: { state: "QUEUED", position: 2 } });
+const AWAITING = queueRead({ autoMergeRequested: true });
+const MERGED = queueRead({ merged: true, mergeCommitSha: Q_GROUP_COMMIT });
+const REMOVED = queueRead({
+  events: [{ type: "RemovedFromMergeQueueEvent", createdAt: Q_AFTER, reason: "CI failed" }],
+});
+const FAILED: QueueReadResult = { status: "error", message: "queue state read failed: 502" };
+const FLOOR: QueueReadResult = {
+  status: "rate-limited",
+  message: "GraphQL bucket has 12 points left (< 500, #954)",
+};
+
+/** Fake clock and sleep: reads take no time; sleep advances the clock. */
+function fakeTime(sleepOverrunMs = 0) {
+  const clock = { ms: 0, sleeps: [] as number[], readTimes: [] as number[] };
+  return {
+    clock,
+    clockMsFn: () => clock.ms,
+    sleepFn: (seconds: number) => {
+      clock.sleeps.push(seconds);
+      clock.ms += seconds * 1000 + sleepOverrunMs;
+    },
+  };
+}
+
+/** Queue reader that plays the given reads in order (last one repeats). */
+function playReads(
+  time: ReturnType<typeof fakeTime>,
+  ...steps: Array<QueueRead | QueueReadResult>
+): QueueReadFn & { count: number } {
+  const fn = (() => {
+    const step = steps[Math.min(fn.count, steps.length - 1)] as QueueRead | QueueReadResult;
+    fn.count += 1;
+    time.clock.readTimes.push(time.clock.ms);
+    return "status" in step ? step : ({ status: "ok", read: step } as const);
+  }) as QueueReadFn & { count: number };
+  fn.count = 0;
+  return fn;
+}
+
+function resumeWait(
+  time: ReturnType<typeof fakeTime>,
+  readFn: QueueReadFn,
+  capMinutes: number,
+  reconciled: string[] = [],
+) {
+  return resumeMergeQueueRead(5, Q_REPO, {
+    expectHead: Q_HEAD,
+    since: Q_SINCE,
+    projectRoot: "/tmp/unused",
+    queueReadFn: readFn,
+    umbrellaReconcileFn: (_root, repo) => reconciled.push(repo),
+    wait: { capMinutes, sleepFn: time.sleepFn, clockMsFn: time.clockMsFn },
+  });
+}
+
+describe("merge-queue --wait (#6423)", () => {
+  let stderr: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  });
+  afterEach(() => {
+    stderr.mockRestore();
+  });
+
+  it("waits through queued reads until merged; exits 0 and reconciles once (AC 1)", () => {
+    const time = fakeTime();
+    const reconciled: string[] = [];
+    const readFn = playReads(time, QUEUED, AWAITING, MERGED);
+    const result = resumeWait(time, readFn, 60, reconciled);
+    expect(result.exitCode).toBe(EXIT_MERGED);
+    expect(result.outcome).toBe("merged");
+    expect(result.mergeQueue?.wait_stop_reason).toBe("result");
+    expect(result.mergeQueue?.merge_commit_sha).toBe(Q_GROUP_COMMIT);
+    expect(reconciled).toEqual([Q_REPO]);
+    expect(readFn.count).toBe(3);
+    expect(time.clock.sleeps).toEqual([
+      MERGE_QUEUE_WAIT_POLL_SECONDS,
+      MERGE_QUEUE_WAIT_POLL_SECONDS,
+    ]);
+    expect(time.clock.readTimes).toEqual([0, POLL_MS, 2 * POLL_MS]);
+    const progress = stderr.mock.calls.map((c) => String(c[0])).join("");
+    expect(progress).toContain("queue wait: queued; next read in 60s");
+    expect(progress).toContain("queue wait: awaiting-admission; next read in 60s");
+  });
+
+  it("a removal ends the wait with exit 1 and GitHub's reason (AC 2)", () => {
+    const time = fakeTime();
+    const reconciled: string[] = [];
+    const result = resumeWait(time, playReads(time, QUEUED, REMOVED), 60, reconciled);
+    expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
+    expect(result.outcome).toBe("removed");
+    expect(result.mergeQueue?.removal_reason).toBe("CI failed");
+    expect(result.error).toContain("reason=CI failed");
+    expect(result.mergeQueue?.wait_stop_reason).toBe("result");
+    expect(reconciled).toEqual([]);
+  });
+
+  it("a changed head ends the wait with head-changed and no reconciliation (AC 3)", () => {
+    const time = fakeTime();
+    const reconciled: string[] = [];
+    const headMoved = queueRead({
+      headSha: Q_NEW_HEAD,
+      merged: true,
+      mergeCommitSha: Q_GROUP_COMMIT,
+    });
+    const result = resumeWait(time, playReads(time, QUEUED, headMoved), 60, reconciled);
+    expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
+    expect(result.outcome).toBe("head-changed");
+    expect(result.mergeQueue?.wait_stop_reason).toBe("result");
+    expect(reconciled).toEqual([]);
+  });
+
+  it("an inactive PR ends the wait with exit 1", () => {
+    const time = fakeTime();
+    const result = resumeWait(time, playReads(time, QUEUED, queueRead()), 60);
+    expect(result.exitCode).toBe(EXIT_TIMEOUT_OR_ESCALATION);
+    expect(result.outcome).toBe("inactive");
+  });
+
+  it("stays queued to the cap: exit 3, resume command, stop reason cap, no read after the deadline (AC 4, item 3)", () => {
+    const time = fakeTime();
+    const readFn = playReads(time, QUEUED);
+    const result = resumeWait(time, readFn, 3);
+    const deadline = 3 * 60_000;
+    expect(result.exitCode).toBe(EXIT_QUEUE_PENDING);
+    expect(result.outcome).toBe("queued");
+    expect(result.mergeQueue?.wait_stop_reason).toBe("cap");
+    expect(result.mergeQueue?.resume_command).toContain(
+      `--resume --expect-head ${Q_HEAD} --since ${Q_SINCE}`,
+    );
+    expect(result.mergeQueue?.resume_command).not.toContain("--wait");
+    expect(result.error).toContain("Resume:");
+    expect(time.clock.readTimes).toEqual([0, POLL_MS, 2 * POLL_MS, 3 * POLL_MS]);
+    expect(Math.max(...time.clock.readTimes)).toBeLessThanOrEqual(deadline);
+    expect(time.clock.ms).toBeLessThanOrEqual(deadline);
+  });
+
+  it("a cap shorter than the interval makes one read and no sleep", () => {
+    const time = fakeTime();
+    const readFn = playReads(time, QUEUED);
+    const result = resumeWait(time, readFn, 0.5);
+    expect(result.exitCode).toBe(EXIT_QUEUE_PENDING);
+    expect(result.mergeQueue?.wait_stop_reason).toBe("cap");
+    expect(readFn.count).toBe(1);
+    expect(time.clock.sleeps).toEqual([]);
+  });
+
+  it("a sleep that overruns the deadline starts no further read", () => {
+    const time = fakeTime(30_000);
+    const readFn = playReads(time, QUEUED);
+    const result = resumeWait(time, readFn, 1.25);
+    expect(result.exitCode).toBe(EXIT_QUEUE_PENDING);
+    expect(result.mergeQueue?.wait_stop_reason).toBe("cap");
+    expect(readFn.count).toBe(1);
+  });
+
+  it("a failed latest attempt at the cap exits 2 with its error, not the earlier pending read (AC 5)", () => {
+    const time = fakeTime();
+    const result = resumeWait(time, playReads(time, QUEUED, FAILED), 1);
+    expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
+    expect(result.outcome).toBe("queue-read-unavailable");
+    expect(result.error).toContain("queue state read failed: 502");
+    expect(result.error).toContain("Resume: task pr:wait-mergeable-and-merge -- 5");
+    expect(result.mergeQueue?.resume_command).toContain("--resume");
+    expect(result.mergeQueue?.result).toBeUndefined();
+    expect(result.mergeQueue?.queue_state).toBeUndefined();
+    expect(result.mergeQueue?.wait_stop_reason).toBe("cap");
+  });
+
+  it("three failed reads in a row end the wait early with read-unavailable (AC 6, item 4)", () => {
+    const time = fakeTime();
+    const readFn = playReads(time, FLOOR, FAILED, FAILED, QUEUED);
+    const result = resumeWait(time, readFn, 60);
+    expect(result.exitCode).toBe(EXIT_CONFIG_ERROR);
+    expect(result.mergeQueue?.wait_stop_reason).toBe("read-unavailable");
+    expect(readFn.count).toBe(MERGE_QUEUE_WAIT_MAX_FAILED_READS);
+    expect(result.error).toContain("queue state read failed");
+    const progress = stderr.mock.calls.map((c) => String(c[0])).join("");
+    expect(progress).toContain("read unavailable (2 of 3 in a row)");
+  });
+
+  it("a successful read resets the failed-read count (AC 7)", () => {
+    const time = fakeTime();
+    const readFn = playReads(time, FAILED, FAILED, QUEUED, FAILED, FAILED, MERGED);
+    const result = resumeWait(time, readFn, 60);
+    expect(result.exitCode).toBe(EXIT_MERGED);
+    expect(result.mergeQueue?.wait_stop_reason).toBe("result");
+    expect(readFn.count).toBe(6);
+  });
+
+  it("a first read that is not pending returns at once with the live clock and sleep", () => {
+    const reconciled: string[] = [];
+    const result = resumeMergeQueueRead(5, Q_REPO, {
+      expectHead: Q_HEAD,
+      since: Q_SINCE,
+      projectRoot: "/tmp/unused",
+      queueReadFn: () => ({ status: "ok", read: MERGED }),
+      umbrellaReconcileFn: (_root, repo) => reconciled.push(repo),
+      wait: { capMinutes: 60 },
+    });
+    expect(result.exitCode).toBe(EXIT_MERGED);
+    expect(result.mergeQueue?.wait_stop_reason).toBe("result");
+    expect(reconciled).toEqual([Q_REPO]);
+  });
+
+  it("without --wait the read happens once and carries no stop reason (AC 9, item 6)", () => {
+    const time = fakeTime();
+    const readFn = playReads(time, QUEUED, MERGED);
+    const result = resumeMergeQueueRead(5, Q_REPO, {
+      expectHead: Q_HEAD,
+      since: Q_SINCE,
+      projectRoot: "/tmp/unused",
+      queueReadFn: readFn,
+      umbrellaReconcileFn: null,
+    });
+    expect(result.exitCode).toBe(EXIT_QUEUE_PENDING);
+    expect(readFn.count).toBe(1);
+    expect(result.mergeQueue).not.toHaveProperty("wait_stop_reason");
+    const failed = reportMergeQueueState({
+      prNumber: 5,
+      repo: Q_REPO,
+      expectHead: Q_HEAD,
+      since: Q_SINCE,
+      projectRoot: "/tmp/unused",
+      queueReadFn: () => FAILED,
+    });
+    expect(failed.exitCode).toBe(EXIT_CONFIG_ERROR);
+    expect(failed.mergeQueue).not.toHaveProperty("wait_stop_reason");
+  });
+
+  it("the first call in queue mode with --wait waits after enqueue (AC 8)", () => {
+    const time = fakeTime();
+    const readFn = playReads(time, QUEUED, QUEUED, MERGED);
+    const merges: unknown[] = [];
+    const reconciled: string[] = [];
+    const result = waitMergeableAndMerge(5, Q_REPO, {
+      capMinutes: 30,
+      protected: [],
+      skipHumanMergeGate: true,
+      skipMergeApprovalHeadGate: true,
+      monitorFn: () => [
+        0,
+        JSON.stringify({
+          monitor_result: "CLEAN",
+          polls: 1,
+          readiness: { head_sha: Q_HEAD, merge_ready: true, failures: [], via: "primary" },
+        }),
+        "",
+      ],
+      fetchPrHeadShaFn: () => Q_HEAD,
+      semanticGreenFn: () => {
+        throw new Error("semantic-green must not run in queue mode");
+      },
+      mergeQueueDetectFn: () => ({ status: "queue", branch: "master" }) as const,
+      nowFn: () => new Date(Q_SINCE),
+      mergeFn: (n, r, o) => {
+        merges.push([n, r, o]);
+        return [0, "", ""];
+      },
+      queueReadFn: readFn,
+      umbrellaReconcileFn: (_root, repo) => reconciled.push(repo),
+      wait: true,
+      queueWaitSleepFn: time.sleepFn,
+      queueWaitClockMsFn: time.clockMsFn,
+    });
+    expect(merges).toEqual([[5, Q_REPO, { matchHeadCommit: Q_HEAD, queueMode: true }]]);
+    expect(result.exitCode).toBe(EXIT_MERGED);
+    expect(result.mergeQueue?.wait_stop_reason).toBe("result");
+    expect(readFn.count).toBe(3);
+    expect(reconciled).toEqual([Q_REPO]);
+    expect(result.monitorResult).toMatchObject({ monitor_result: "CLEAN" });
+  });
+
+  it("sleepSecondsSync blocks for the given time and returns at once for zero", () => {
+    const start = Date.now();
+    sleepSecondsSync(0);
+    sleepSecondsSync(0.02);
+    expect(Date.now() - start).toBeGreaterThanOrEqual(15);
   });
 });

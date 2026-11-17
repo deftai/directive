@@ -5,7 +5,7 @@ import {
   WAIT_HEARTBEAT_REFRESH_SECONDS,
   writePrWatchWaitHeartbeat,
 } from "../pr-watch/main.js";
-import { resumeMergeQueueRead, waitMergeableAndMerge } from "./cascade.js";
+import { type QueueWaitSleepFn, resumeMergeQueueRead, waitMergeableAndMerge } from "./cascade.js";
 import {
   EXIT_CONFIG_ERROR,
   EXIT_MERGED,
@@ -38,6 +38,11 @@ export interface ParsedWaitMergeableArgs {
   readonly resume: boolean;
   readonly expectHead: string | null;
   readonly since: string | null;
+  /**
+   * `--wait` (#6423): in merge-queue mode, repeat the queue read (after enqueue
+   * or on `--resume`) until it is not pending or `--cap-minutes` passes.
+   */
+  readonly wait: boolean;
   readonly error?: string;
 }
 
@@ -54,6 +59,7 @@ export function parseWaitMergeableArgs(argv: readonly string[]): ParsedWaitMerge
   let resume = false;
   let expectHead: string | null = null;
   let since: string | null = null;
+  let wait = false;
 
   const baseReturn = (): Omit<ParsedWaitMergeableArgs, "error"> => ({
     prNumber,
@@ -68,6 +74,7 @@ export function parseWaitMergeableArgs(argv: readonly string[]): ParsedWaitMerge
     resume,
     expectHead,
     since,
+    wait,
   });
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -76,6 +83,8 @@ export function parseWaitMergeableArgs(argv: readonly string[]): ParsedWaitMerge
       emitJson = true;
     } else if (arg === "--resume") {
       resume = true;
+    } else if (arg === "--wait") {
+      wait = true;
     } else if (arg === "--expect-head" || arg === "--since") {
       const value = argv[i + 1];
       if (value === undefined) {
@@ -204,6 +213,9 @@ export interface RunWaitMergeableOptions {
   readonly queueReadFn?: Parameters<typeof waitMergeableAndMerge>[2]["queueReadFn"];
   readonly nowFn?: Parameters<typeof waitMergeableAndMerge>[2]["nowFn"];
   readonly umbrellaReconcileFn?: Parameters<typeof waitMergeableAndMerge>[2]["umbrellaReconcileFn"];
+  /** `--wait` sleep and clock seams (#6423); live defaults otherwise. */
+  readonly queueWaitSleepFn?: QueueWaitSleepFn;
+  readonly queueWaitClockMsFn?: () => number;
   /**
    * Heartbeat refresh interval while the blocking monitor runs (#5020 P1).
    * Defaults to {@link WAIT_HEARTBEAT_REFRESH_SECONDS}; injectable for tests.
@@ -266,6 +278,13 @@ export function runWaitMergeable(
           projectRoot,
           queueReadFn: options.queueReadFn,
           umbrellaReconcileFn: options.umbrellaReconcileFn,
+          wait: args.wait
+            ? {
+                capMinutes: args.capMinutes,
+                sleepFn: options.queueWaitSleepFn,
+                clockMsFn: options.queueWaitClockMsFn,
+              }
+            : undefined,
         })
       : waitMergeableAndMerge(prNumber, repo, {
           capMinutes: args.capMinutes,
@@ -288,6 +307,9 @@ export function runWaitMergeable(
           queueReadFn: options.queueReadFn,
           nowFn: options.nowFn,
           umbrellaReconcileFn: options.umbrellaReconcileFn,
+          wait: args.wait,
+          queueWaitSleepFn: options.queueWaitSleepFn,
+          queueWaitClockMsFn: options.queueWaitClockMsFn,
         });
 
     const summaryLabel = summaryLabelForExit(result.exitCode);
@@ -309,6 +331,11 @@ export function runWaitMergeable(
       const resume = result.mergeQueue?.resume_command;
       if (typeof resume === "string" && resume.length > 0) {
         lines.push(`  resume:  ${resume}`);
+      }
+      // #6423 item 6: only `--wait` results carry a stop reason.
+      const waitStop = result.mergeQueue?.wait_stop_reason;
+      if (typeof waitStop === "string") {
+        lines.push(`  wait stop: ${waitStop}`);
       }
       if (result.mergeStdout.trim().length > 0) {
         lines.push("  merge stdout:");
