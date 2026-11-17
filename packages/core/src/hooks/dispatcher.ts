@@ -177,7 +177,7 @@ import {
 import { GROK_SPAWN_WRITING_SKIP_CLASS_FIELD, PROCESS_ONLY_FLAG_KEYS } from "./classify/payload.js";
 import {
   COMMIT_TARGET_ACCEPTED_FORMS,
-  commandHasGitCommitIndexMutatingForm,
+  findGitCommitIndexMutatingWord,
   resolveCommitTarget,
 } from "./commit-target.js";
 import {
@@ -5293,14 +5293,16 @@ function decideProspectiveGitCommitScopeCover(
         `${target.reason} (#6278). ${COMMIT_TARGET_ACCEPTED_FORMS}`,
     );
   }
-  if (commandHasGitCommitIndexMutatingForm(command)) {
+  const indexWord = findGitCommitIndexMutatingWord(command);
+  if (indexWord !== null) {
     return deny(
       input,
       "prospective-scope-cover-deny",
       toolName,
       `Directive denied ${toolName}: git commit -a/--all/-am/--include or pathspecs change the ` +
         "file set after the pre-tool index snapshot (#5656). Stage the intended paths first " +
-        "(git add …) then commit with -m/-F only — no -a/--all and no trailing pathspecs.",
+        "(git add …) then commit with -m/-F only — no -a/--all and no trailing pathspecs. " +
+        `Word read as index-changing: ${JSON.stringify(indexWord)} (#6471).`,
     );
   }
   // The payload root stays the identity for authz, kill-switch and deny(); only

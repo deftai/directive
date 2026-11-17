@@ -1,0 +1,618 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #5988",
+    "updated": "2026-11-17T17:01:02Z"
+  },
+  "plan": {
+    "title": "feat(check): warn when linked worktrees/branches exceed a small hygiene threshold",
+    "status": "running",
+    "narratives": {
+      "Description": "Linked worktrees slow Directive down: a write check on the primary checkout reads every linked worktree, and at high counts it outlasts the host hook limit, while nothing tells the operator the count is growing. This story adds a warn-only checkout hygiene line on a successful scope:complete: one line when live linked worktrees pass 25 and a separate line when local branches pass 100, each naming the manual cleanup. It adds no gate, hook, refusal or grant and changes no exit code.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/5988",
+      "Overview": "\n1. Function. A new module `packages/core/src/scope/checkout-hygiene-warning.ts` exports `checkoutHygieneWarningLines(projectRoot, runGit = defaultGitRunner)`, which returns zero, one or two lines and never throws.\n2. Worktree line. The worktree count is `listLinkedWorktreeCheckouts(projectRoot, runGit).length`; an empty list is a count of zero. When the count is over the named constant `CHECKOUT_HYGIENE_MAX_LINKED_WORKTREES` (25), the function returns one line that names the count and the threshold, says that Directive's write checks on the primary checkout read every linked worktree and slow down as the count grows (#5920), and names the manual cleanup `git worktree remove <path>` then `git worktree prune`.\n3. Branch line. The branch count is the number of non-empty output lines of one `git for-each-ref --format=%(refname) refs/heads` run through `runGit`. When that run exits non-zero or throws, there is no branch line. When the count is over the named constant `CHECKOUT_HYGIENE_MAX_LOCAL_BRANCHES` (100), the function returns one line that names the count and the threshold, describes local-branch clutter, and names `git branch -d <name>` for merged branches. It does not cite the worktree walk or the hook timeout.\n4. Independence. Each line is computed on its own: a failure of one read omits only that line.\n5. Call site. After a successful `complete` move, `scope:complete` (`packages/core/src/scope/main.ts`) calls the function once, in its own best-effort try/catch beside the existing advisories, and writes each line to stderr. The move, the stdout lines and the exit code are unchanged. No hook, `tool.before`, `session:start`, `deft check` or `deft doctor` path calls it.\n6. No action. The lines are fixed text plus the two counts and thresholds. The function runs no cleanup command and copies no path into its output.\n\n## Acceptance Criteria\n\n- Given a clone with 26 live linked worktrees, when `checkoutHygieneWarningLines` runs, then it returns a worktree line that names 26 and 25 and the `git worktree remove` / `git worktree prune` cleanup.\n- Given a clone with 25 or fewer live linked worktrees and 100 or fewer local branches, when the function runs, then it returns no lines.\n- Given 101 local branches, when the function runs, then it returns a branch line that names 101 and 100 and `git branch -d`, and that line does not mention the hook timeout or #5920.\n- Given 26 live linked worktrees and a branch read that exits non-zero, when the function runs, then it returns the worktree line only.\n- Given a `runGit` that fails every call, when the function runs, then it returns no lines and does not throw.\n- Given an admin entry under `<git-common-dir>/worktrees` whose checkout folder is gone, when the function counts worktrees, then that entry is not counted.\n- Given a successful `scope:complete` in a clone over either threshold, then the lines are written to stderr, the brief moves to `completed/`, and the exit code is 0, as without the warning.\n- Given a `scope:complete` whose move fails, then no hygiene line is printed.\n- Given the function throws inside `scope:complete`, then the completion still succeeds with exit 0.\n- No hook, `tool.before`, `session:start`, `deft check` or `deft doctor` code path imports `checkout-hygiene-warning`.\n\n\n",
+      "Constraint": "- Printing on `deft check` or `deft doctor` (comment 6954474687, road not taken): running stories #6469 and #6185 hold those files, and the completion surface already reaches the operator in the clone whose hooks slow down.\n- A trigger when a write gate is observed slow: it sits on the hook path, beside the walk #5920 owns.\n- Counting admin directories under `<git-common-dir>/worktrees` (comment 6954474687, finding 4): it warns about checkouts the walk never visits.\n- Reading each sibling's lease to count only busy worktrees (comment 6954474687, finding 4): it runs the per-worktree git call the warning exists to flag.\n- A new `plan.policy` threshold field: it would edit `packages/core/src/policy/index.ts`, held by running story #6275, for a tunability that none of the three pains needs.\n- Any automatic cleanup of worktrees or branches (operator-confirmed deferral).",
+      "Labels": "enhancement, area:installer, design-critique:ingest-ready",
+      "UserStory": "As an operator whose checkout collects linked worktrees and branches, I want scope:complete to tell me when the counts pass a small threshold, so that I clean them up before Directive slows down.",
+      "ImplementationPlan": "One product PR (deft-story: 5988), after the intent-constraint mint for the two thresholds lands. 1. packages/core/src/scope/checkout-hygiene-warning.ts (new): CHECKOUT_HYGIENE_MAX_LINKED_WORKTREES = 25 and CHECKOUT_HYGIENE_MAX_LOCAL_BRANCHES = 100; checkoutHygieneWarningLines counts listLinkedWorktreeCheckouts(projectRoot, runGit).length and the non-empty lines of one git for-each-ref --format=%(refname) refs/heads, each read in its own try, and returns the fixed-text lines over threshold. 2. packages/core/src/scope/main.ts: after the work-claim release in the complete success block, one try/catch writes each line to stderr. 3. Tests: checkout-hygiene-warning.test.ts (fixture common dir with gitdir files, fake runGit, import fence) and checkout-hygiene-scope-complete.test.ts (lifecycleMain complete with the module mocked). 4. One changelog.d fragment.",
+      "Traces": "#5988"
+    },
+    "items": [
+      {
+        "title": "Function. A new module `packages/core/src/scope/checkout-hygiene-warning.ts` exports `checkoutHygieneWarningLines(projectRoot, runGit = defaultGitRunner)`, which returns zero, one or two lines and never throws.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.ts, then it exports checkoutHygieneWarningLines(projectRoot, runGit = defaultGitRunner), which returns an array of zero, one or two strings and does not throw for any runGit result."
+        }
+      },
+      {
+        "title": "Worktree line. The worktree count is `listLinkedWorktreeCheckouts(projectRoot, runGit).length`; an empty list is a count of zero. When the count is over the named constant `CHECKOUT_HYGIENE_MAX_LINKED_WORKTREES` (25), the function returns one line that names the count and the threshold, says that Directive's write checks on the primary checkout read every linked worktree and slow down as the count grows (#5920), and names the manual cleanup `git worktree remove <path>` then `git worktree prune`.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.ts, when listLinkedWorktreeCheckouts returns more than CHECKOUT_HYGIENE_MAX_LINKED_WORKTREES (25) entries, then one line names the count, the threshold, the #5920 slowdown of primary-checkout write checks, and git worktree remove then git worktree prune; an empty list counts as zero."
+        }
+      },
+      {
+        "title": "Branch line. The branch count is the number of non-empty output lines of one `git for-each-ref --format=%(refname) refs/heads` run through `runGit`. When that run exits non-zero or throws, there is no branch line. When the count is over the named constant `CHECKOUT_HYGIENE_MAX_LOCAL_BRANCHES` (100), the function returns one line that names the count and the threshold, describes local-branch clutter, and names `git branch -d <name>` for merged branches. It does not cite the worktree walk or the hook timeout.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.ts, when one git for-each-ref --format=%(refname) refs/heads run returns more than CHECKOUT_HYGIENE_MAX_LOCAL_BRANCHES (100) non-empty lines, then one line names the count, the threshold, local-branch clutter and git branch -d; a non-zero or throwing run gives no branch line, and the line does not cite #5920 or the hook timeout."
+        }
+      },
+      {
+        "title": "Independence. Each line is computed on its own: a failure of one read omits only that line.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.ts, when one of the two reads fails, then the other line is still returned."
+        }
+      },
+      {
+        "title": "Call site. After a successful `complete` move, `scope:complete` (`packages/core/src/scope/main.ts`) calls the function once, in its own best-effort try/catch beside the existing advisories, and writes each line to stderr. The move, the stdout lines and the exit code are unchanged. No hook, `tool.before`, `session:start`, `deft check` or `deft doctor` path calls it.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/scope/main.ts, when a complete move succeeds, then lifecycleMain calls checkoutHygieneWarningLines once in its own try/catch and writes each line to stderr, with the move, stdout and exit code unchanged."
+        }
+      },
+      {
+        "title": "No action. The lines are fixed text plus the two counts and thresholds. The function runs no cleanup command and copies no path into its output.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.ts, then each line is fixed text plus the two counts and thresholds, and the module spawns no cleanup command and copies no path into its output."
+        }
+      },
+      {
+        "title": "Given a clone with 26 live linked worktrees, when `checkoutHygieneWarningLines` runs, then it returns a worktree line that names 26 and 25 and the `git worktree remove` / `git worktree prune` cleanup.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.test.ts, when a fixture common dir holds 26 live linked worktrees, then the test asserts a worktree line naming 26, 25, git worktree remove and git worktree prune."
+        }
+      },
+      {
+        "title": "Given a clone with 25 or fewer live linked worktrees and 100 or fewer local branches, when the function runs, then it returns no lines.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.test.ts, when the fixture has 25 live linked worktrees and 100 local branches, then the test asserts no lines."
+        }
+      },
+      {
+        "title": "Given 101 local branches, when the function runs, then it returns a branch line that names 101 and 100 and `git branch -d`, and that line does not mention the hook timeout or #5920.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.test.ts, when the branch read returns 101 refs, then the test asserts a branch line naming 101, 100 and git branch -d, without #5920 or the hook timeout."
+        }
+      },
+      {
+        "title": "Given 26 live linked worktrees and a branch read that exits non-zero, when the function runs, then it returns the worktree line only.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.test.ts, when the fixture has 26 live linked worktrees and the branch read exits non-zero, then the test asserts the worktree line only."
+        }
+      },
+      {
+        "title": "Given a `runGit` that fails every call, when the function runs, then it returns no lines and does not throw.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.test.ts, when runGit fails or throws on every call, then the test asserts an empty array and no throw."
+        }
+      },
+      {
+        "title": "Given an admin entry under `<git-common-dir>/worktrees` whose checkout folder is gone, when the function counts worktrees, then that entry is not counted.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.test.ts, when an admin entry gitdir points at a removed checkout folder, then the test asserts that entry is not counted."
+        }
+      },
+      {
+        "title": "Given a successful `scope:complete` in a clone over either threshold, then the lines are written to stderr, the brief moves to `completed/`, and the exit code is 0, as without the warning.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/scope/checkout-hygiene-scope-complete.test.ts, when lifecycleMain complete succeeds with the warning returning lines, then the test asserts the lines on stderr, the brief in completed/ and exit 0."
+        }
+      },
+      {
+        "title": "Given a `scope:complete` whose move fails, then no hygiene line is printed.",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/scope/checkout-hygiene-scope-complete.test.ts, when the complete move fails, then the test asserts the warning function was not called and no hygiene line was printed."
+        }
+      },
+      {
+        "title": "Given the function throws inside `scope:complete`, then the completion still succeeds with exit 0.",
+        "status": "proposed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/scope/checkout-hygiene-scope-complete.test.ts, when the warning function throws, then the test asserts the completion succeeds with exit 0."
+        }
+      },
+      {
+        "title": "No hook, `tool.before`, `session:start`, `deft check` or `deft doctor` code path imports `checkout-hygiene-warning`.",
+        "status": "proposed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.test.ts, then the test asserts that no hooks, session, check or doctor source imports checkout-hygiene-warning, and that packages/core/src/scope/main.ts does."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "area:installer",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/5988",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #5988: feat(check): warn when linked worktrees/branches exceed a small hygiene threshold"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5920",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5920"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "git for-each-ref --format=%(refname) refs/heads",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        },
+        {
+          "command": "git branch -d <name>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope/checkout-hygiene-warning.ts",
+          "packages/core/src/scope/checkout-hygiene-warning.test.ts",
+          "packages/core/src/scope/checkout-hygiene-scope-complete.test.ts",
+          "packages/core/src/scope/main.ts",
+          "changelog.d/5988-checkout-hygiene-warning.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "scope-complete-advisories",
+        "verify_commands": [
+          "npx vitest run packages/core/src/scope/checkout-hygiene-warning.test.ts packages/core/src/scope/checkout-hygiene-scope-complete.test.ts packages/core/src/scope/open-umbrella-warning.test.ts"
+        ],
+        "expected_outputs": [
+          "checkoutHygieneWarningLines returns a worktree line over 25 live linked worktrees and a branch line over 100 local branches, each independent and never throwing",
+          "scope:complete writes those lines to stderr after a successful move with the exit code unchanged",
+          "one changelog.d fragment"
+        ],
+        "Traces": [
+          "#5988"
+        ],
+        "acceptance_criteria_justification": "Sixteen clauses: the six Bound remedy items and the ten Acceptance Criteria of the accepted lean (comment 6954526220), one clause each as the harvest admitted them. parallel_safe is true: no running story lists packages/core/src/scope/main.ts or the new files; #6469 (deft check) and #6185 (doctor) hold the surfaces not chosen. The two thresholds are declared intent constraints and need an operator mint before the product PR."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 5988; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix adds a new warning to a lifecycle verb that every story runs, and the choice of surface, the count it reads and its cost decide whether it reaches the operator before the #5920 slowdown, or adds work to a hot path.\n\nTarget-digest: sha256:b045f6ab8f5713958d571b151eba68cc44ab8e749f3c7fd5c8bfeae817ebcb8c\ndispatch-sha: 842868ec849da59aac8d9bbab23b836ac86d15db\ndest: .deft-scratch/worktrees/arc-5988 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one small warn-only addition to an existing verb; the one critic seat is a different model family from the parent.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 842868ec849da59aac8d9bbab23b836ac86d15db: + dest cwd-without-occupy\npain: P1, P2, P3\n\n## In plain English\nWhen a checkout collects many linked worktrees, Directive gets slow. On #5920 a hook that checks a primary-checkout write walks every linked worktree, and at about 1,200 of them it ran past the host's 30-second hook limit and the host let the write through. On 2026-11-16/17 this repo's primary checkout reached 97 linked worktrees, a Grok PreToolUse hook hit its 30-second limit and failed open, and the operator removed 66 by hand. Nothing in Directive told anyone the count was growing. The issue asks for a rare warning, not a new gate: when linked worktrees pass about 25, or local branches pass a limit, tell the human to clean up. The recommended fix prints that warning once at the end of `scope:complete`, which every story runs, never refuses, and reads the count without a git call per worktree. The open questions are whether `scope:complete` is a good enough surface on its own, and whether the counts and thresholds are the right ones.\n\n## Pains\nThe issue has no Acceptance Criteria heading. These three pains are derived from its Proposal section (items 1 and 2) and the operator's direction on #5920 (comment 6454033703), and they are the only pains for this arc.\n- P1 — Nothing warns when the linked worktrees of a checkout grow past a small threshold (about 25), so checkouts drift silently into the #5920 regime.\n- P2 — Nothing warns when local branches grow past a threshold.\n- P3 — The warning runs on a rare surface (`deft check` or a late closing or check surface), never on every `tool.before`, and it never refuses or changes an exit code.\n\n## Constraints (not pains)\n- Operator direction: fewer gates and fewer stops. Add no gate, no grant, no hook and no refusal. Warn only.\n- Operator-confirmed deferrals, out of this arc: the #5920 fail-open and occupancy O(n) crawl fix; tiered hook deadlines (#5956, closed not_planned and sealed); any automatic cleanup of worktrees or branches.\n- Threshold: tunable through existing policy plumbing if any fits, otherwise a named constant. No existing `plan.policy` field fits; a new one would edit `packages/core/src/policy/index.ts`, which running story #6275 holds. So the thresholds are named constants, and each new numeric constant needs an operator intent-constraint mint (`packages/core/src/intent-constraint/extract.ts` 1-7).\n- Running stories hold the other candidate surfaces: #6469 holds `packages/core/src/check/orchestrator.ts`, `cached-orchestrator.ts`, `context.ts`, `index.ts` and `packages/runtime/src/check.ts` (the `deft check` path); #6185 holds `packages/core/src/doctor/main.ts` (the `deft doctor` path).\n- The issue's optional trigger \"if a write gate is observed slow\" is not one of the three pains; it would sit in the hook dispatcher (#5920 territory, held by #6471, #6221 and #6275).\n\n## Anchors at the dispatch SHA\n- `packages/core/src/session/main-worktree.ts` 73-110: `listLinkedWorktreeCheckouts` lists live linked checkouts by reading `<git-common-dir>/worktrees/*/gitdir` from disk: one `git rev-parse --git-common-dir` spawn, then file reads, no git spawn per worktree. Admin dirs whose checkout folder is gone are skipped.\n- `packages/core/src/session/occupancy.ts` 1878-1884: `primaryCheckoutHasLiveSiblingLease` walks that same list and reads each sibling's lease, which is the #5920 cost. So the list is the count that predicts the slowdown.\n- `packages/core/src/session/git.ts` 273-281: `gitCommonDir`.\n- `packages/core/src/scope/main.ts` 575-626: after a successful `complete` move, `scope:complete` runs three best-effort advisories (open-umbrella warning, staleness tickler, work-claim release), each in its own try/catch with the comment that lifecycle success remains authoritative; the verb then returns 0.\n- `packages/core/src/scope/open-umbrella-warning.ts`: the existing pattern for a warn-only line on `scope:complete`.\n- `packages/core/src/check/orchestrator.ts` 77-130 (`dispatchTaskCheck`) and `packages/core/src/doctor/main.ts` 605 on (`cmdDoctor`): the two other candidate surfaces, both held by running stories.\n\n## Recommended mechanism (the thing to critique)\n- M1. A new module `packages/core/src/scope/checkout-hygiene-warning.ts` exports `checkoutHygieneWarningLines(projectRoot, runGit?)`. It counts linked worktrees as `listLinkedWorktreeCheckouts(projectRoot).length` and local branches as the line count of one `git for-each-ref --format=%(refname) refs/heads`. It returns one line per count that is over its threshold, and an empty list when both are at or under, or when either read fails. It never throws.\n- M2. Two named constants in that module: linked worktrees over 25, local branches over 100.\n- M3. Each line names the count, the threshold, why it matters (Directive slows as the count grows, #5920) and the manual cleanup (`git worktree remove <path>` then `git worktree prune`; `git branch -d <name>` for merged branches). It runs nothing itself.\n- M4. `scope:complete` calls it once after a successful move, in a fourth best-effort try/catch next to the open-umbrella warning, and writes the lines to stderr. The exit code and the move are unchanged. Nothing else calls it: no hook, no `tool.before`, no `session:start`.\n\nQuestions for the critic:\n1. Is `scope:complete` alone a rare surface that reaches the operator before the #5920 regime, given that `deft check` and `deft doctor` are held by running stories? Or does P1 need a second surface?\n2. Is `listLinkedWorktreeCheckouts().length` the right worktree count, given that it skips admin dirs whose checkout folder is gone and counts nested linked worktrees with the rest?\n3. Are 25 and 100 sound thresholds, and is a branch count of local `refs/heads` the right reading of \"excessive local branches\"?\n\n",
+          "id": 6954226692,
+          "html_url": "https://github.com/deftai/directive/issues/5988#issuecomment-6954226692",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T16:32:26Z",
+          "updated_at": "2026-11-17T16:32:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6954252578\nseat: grok launcher: grok (--cwd dest --prompt-file --permission-mode auto --disable-web-search --no-subagents --output-format plain)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 842868ec849da59aac8d9bbab23b836ac86d15db\ndest: .deft-scratch/worktrees/arc-5988\nverification-path: pin-read git show 842868ec849da59aac8d9bbab23b836ac86d15db: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6954226692\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5), a headless worker for this arc. The one critic seat is Grok, a different model family, run with a read-only launcher against the dest. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Grok seat has no GitHub access in this posture (web search off). It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim. Grok plain output can print progress narration before the `model:` line; the parent strips only that narration and says so.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 6954252578,
+          "html_url": "https://github.com/deftai/directive/issues/5988#issuecomment-6954252578",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T16:33:23Z",
+          "updated_at": "2026-11-17T16:33:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nverification-path used: dest checkout files. The host hook refused `git show` because `node_modules/@deftai/directive-runtime` is missing. The parent stated that dest HEAD is 842868ec849da59aac8d9bbab23b836ac86d15db and the worktree is clean.\n\n## In plain English\n\nWhen a checkout collects many linked worktrees, a write on the main checkout walks those worktrees. Past a large count that walk runs longer than the host hook allows, the hook comes back with no decision, and the write goes through. Directive never says the count is growing.\n\nThe recommended warning is a sound mechanism for this story. It prints at the end of a successful scope complete, it leaves the exit code unchanged, and it stays off the hook path. Scope complete is a late closing command, which is a surface the issue already allows, and it runs once per completed story rather than on every tool call. `deft check` and `deft doctor` are the other candidates, and other stories currently own those files.\n\nThe warning appears the next time any story in that clone completes, when the command's stderr is visible. The count is one list for the whole clone, so the story that completes can be a different story from the one that added the worktrees. Until some scope complete succeeds, the warning stays silent, and that silence includes the period where the count is already high enough for hooks to time out.\n\nThe worktree figure is the number of live linked checkouts. That is the same list the slow walk uses. Checkout folders that are already gone stay out of both. Checkouts that sit in a nested folder under the clone stay in both. The main checkout stays out of the list. Twenty-five matches the operator's threshold.\n\nLocal branches are a second figure. `refs/heads` is the right reading of local branches. One hundred has no operator number and no measurement behind it. The slow walk reads checkout folders and their leases. A branch warning that blames the hook timeout points at the wrong cleanup. If the branch read fails, the worktree warning still has to print. An empty worktree list means zero live linked checkouts.\n\n## Findings\n\n### sharpens-framing: 1. The warning waits for a successful scope complete\n\nEvidence. `packages/core/src/scope/main.ts` lines 576-626. After `runTransition` returns ok, a complete runs the umbrella warning, the staleness tickler, and the work-claim release, each in its own try/catch, then returns 0. The success line and the tickler go to stdout (lines 578 and 604-606). The umbrella text goes to stderr (line 588). `packages/core/src/session/occupancy.ts` lines 1878-1884 run the sibling-lease walk on the primary-checkout claim path, which is the hook path in the issue. This mechanism leaves that path alone. `packages/core/src/check/orchestrator.ts` lines 77-81 and `packages/core/src/doctor/main.ts` lines 605 and 822-823 are the other entries. Doctor builds its sink with the quiet and json flags.\n\nFailure mode. Linked worktrees pass 25, and pass the band where a primary write hook exceeds the host limit, while no scope complete succeeds. The warning stays silent. When a complete does succeed, a caller that keeps stdout and drops stderr misses the new lines, the same way it misses the umbrella warning.\n\nDisposition consequence. The claim that binds is one stderr advisory on successful scope complete, visible to callers that surface stderr, on the next success anywhere in that clone. The quiet interval with no successful complete stays outside the claim. This story gains no second call site.\n\n### sharpens-framing: 2. Each count keeps its own line when the other read fails\n\nEvidence. `packages/core/src/session/main-worktree.ts` lines 82-87 and 105-107. A missing common dir, a missing worktrees directory, and a thrown read all return an empty array. Zero live checkouts and a failed git read look the same at `.length`. `packages/core/src/session/git.ts` lines 62-80 and 273-280. `defaultGitRunner` turns a spawn failure into a non-zero result (code 127 when git is missing, code 2 on sandbox EPERM). `gitCommonDir` turns that into null.\n\nFailure mode. The branch enumeration returns non-zero after the worktree list already counted past 25. The mechanism as written returns no lines, so the worktree warning disappears. The other way around: treating that empty array as a failed worktree read silences a real branch overrun on a clone that simply has no linked worktrees.\n\nDisposition consequence. Each count produces its own line. An empty linked-checkout list is a count of zero. A failed branch read omits the branch line only. A failed worktree read omits the worktree line only.\n\n### sharpens-framing: 3. The branch line describes local-branch clutter\n\nEvidence. `packages/core/src/session/occupancy.ts` lines 1878-1884 call `listLinkedWorktreeCheckouts`, then `liveOccupant` per checkout, and stop at the first live lease. With no live lease the walk visits every checkout in the list. `liveOccupant` (lines 1869-1875) calls `readOccupancy` (lines 1851-1853), which calls `resolveOccupancyLeaseRoot` (lines 1015-1023), which calls `worktreePathOrNull`. That helper (`packages/core/src/session/git.ts` lines 262-269) runs `git rev-parse --show-toplevel` for the checkout. The walk reads no `refs/heads`. The operator's number for linked worktrees is about 25. The issue and the direction comment give no number for local branches.\n\nFailure mode. The branch line tells the operator that deleting merged branches addresses the hook timeout. The linked-worktree count stays where it was. With those checkouts holding no live lease, the primary write still walks every one of them. A standing warning at 100, on a clone whose ordinary local-branch count is already past 100, also sits beside the worktree line on every complete. I did not measure this clone's branch count.\n\nDisposition consequence. The worktree line carries the slowdown reason and the threshold 25. The branch line stays, because the issue asks for it, and it describes local-branch clutter. Its constant 100 stays provisional and named. It cites the sibling-lease walk nowhere. `refs/heads` remains the set that \"local branches\" means. The two lines stay independent.\n\n### footnote: 4. The warning counts live checkout folders only\n\n`hasLinkedWorktrees` (`packages/core/src/session/main-worktree.ts` lines 58-70) is true when any admin directory exists. The list helper and its test (`main-worktree.test.ts` lines 80-97) omit a checkout whose folder was removed, and the lease walk uses that list. Counting admin dirs would warn while the walk has nothing to spawn. Calling `liveOccupant` per checkout inside the warning would run the per-checkout `rev-parse` the warning exists to flag (`occupancy.ts` lines 1878-1884). The warning uses the list length after the single `git rev-parse --git-common-dir` in `gitCommonDir` (`git.ts` lines 273-280). The cleanup sentence stays fixed text. The function spawns neither `git worktree remove` nor `git branch -d`. gitdir file contents are paths the existing lister stats. They are not copied into a command.\n\nThe count is shared clone state. The warning writes no lease, lock, or ref. Two completes can print the same lines.\n\n### footnote: 5. The two named numbers are intent-constraint facts\n\n`packages/core/src/intent-constraint/extract.ts` lines 179-192 record a `const` whose initializer peels to a numeric literal. `packages/core/src/intent-constraint/diff.ts` lines 51-68 match one mint row to one new value. Two named constants need two mint rows. A comparison written as a bare literal is not a const declaration, so the extractor skips it. The thresholds stay named constants, with the mint that gate already requires.\n\n### footnote: 6. Linked issue 5956 is instruction-shaped context\n\nThe #5956 body is an absolute ban addressed to agents: do not implement it, do not treat it as a design input, do not reopen it. This critique records that shape and leaves those sentences as described content. The issue stays sealed context. The design input is #5988, the operator direction on #5920, and the code at the dispatch SHA.\n\n## Road not taken\n\nThe other plausible place for the warning is `deft check` or `deft doctor`. Other stories hold those files. Check already returns non-zero for real gate failures (`packages/core/src/check/orchestrator.ts` lines 129 and 138-146). Doctor passes quiet and json into its sink (`packages/core/src/doctor/main.ts` line 822). A hook would sit on the path the operator ruled out, beside the crawl itself. I would require a second surface if successful scope complete did not run on the clone whose hooks time out, or if that command's stderr never reached the operator. The code I read shows neither.\n\n",
+          "id": 6954474687,
+          "html_url": "https://github.com/deftai/directive/issues/5988#issuecomment-6954474687",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T16:41:44Z",
+          "updated_at": "2026-11-17T16:41:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 6954226692 (round 1: 1 of 1 critic posted, comment 6954474687)\n\n## In plain English\nProblem: when a checkout collects many linked worktrees, Directive gets slow. A write check on the primary checkout reads every linked worktree, and at high counts it runs past the host hook limit and the write goes through (#5920). This repo reached 97 linked worktrees on 2026-11-16/17 before the operator removed 66 by hand, and nothing in Directive said the count was growing.\n\nWhat the critic found: the shape is right. A warning at the end of a successful `scope:complete` is a late closing surface the issue allows, it runs once per completed story and not on every tool call, and it stays off the hook path. The live linked-checkout list is the right worktree count, because it is the same list the slow walk reads, and 25 matches the operator's number. The critic sharpened three points: the claim is only a stderr line on the next successful completion in that clone; each count must keep its own line when the other read fails, and an empty list is a count of zero; and the branch line must describe local-branch clutter, not the hook timeout, because the slow walk does not read branches.\n\nSolution this lean proposes: a small function counts the live linked worktrees from disk (one git call for the common folder, no git call per worktree) and the local branches (one `git for-each-ref` call). Over 25 linked worktrees it returns a line that says Directive slows as they grow and names `git worktree remove` and `git worktree prune`. Over 100 local branches it returns a separate line about branch clutter that names `git branch -d`. `scope:complete` prints those lines to stderr once after a successful move. It changes no exit code, refuses nothing and cleans nothing.\n\nWhat this adds: one function with two named thresholds, and one call in `scope:complete`. No new gate, hook, refusal or grant. The two thresholds are new numeric constants, so they need the usual operator intent-constraint mint.\n\nWhat it does not do:\n- It does not warn while no story completes, and a caller that drops stderr does not see it.\n- It does not fix the slow walk itself or add hook deadlines (#5920, #5956), and it removes nothing.\n- It does not print on `deft check`, `deft doctor`, `session:start` or any hook.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:b045f6ab8f5713958d571b151eba68cc44ab8e749f3c7fd5c8bfeae817ebcb8c\n**Spec-path:** Bound remedy on this lean\nSupersedes: Stop 1 write-back, comment 6954226692. Sibling count: 1 (comment 6954474687). Panel deposit: comment 6954252578.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Function. A new module `packages/core/src/scope/checkout-hygiene-warning.ts` exports `checkoutHygieneWarningLines(projectRoot, runGit = defaultGitRunner)`, which returns zero, one or two lines and never throws.\n2. Worktree line. The worktree count is `listLinkedWorktreeCheckouts(projectRoot, runGit).length`; an empty list is a count of zero. When the count is over the named constant `CHECKOUT_HYGIENE_MAX_LINKED_WORKTREES` (25), the function returns one line that names the count and the threshold, says that Directive's write checks on the primary checkout read every linked worktree and slow down as the count grows (#5920), and names the manual cleanup `git worktree remove <path>` then `git worktree prune`.\n3. Branch line. The branch count is the number of non-empty output lines of one `git for-each-ref --format=%(refname) refs/heads` run through `runGit`. When that run exits non-zero or throws, there is no branch line. When the count is over the named constant `CHECKOUT_HYGIENE_MAX_LOCAL_BRANCHES` (100), the function returns one line that names the count and the threshold, describes local-branch clutter, and names `git branch -d <name>` for merged branches. It does not cite the worktree walk or the hook timeout.\n4. Independence. Each line is computed on its own: a failure of one read omits only that line.\n5. Call site. After a successful `complete` move, `scope:complete` (`packages/core/src/scope/main.ts`) calls the function once, in its own best-effort try/catch beside the existing advisories, and writes each line to stderr. The move, the stdout lines and the exit code are unchanged. No hook, `tool.before`, `session:start`, `deft check` or `deft doctor` path calls it.\n6. No action. The lines are fixed text plus the two counts and thresholds. The function runs no cleanup command and copies no path into its output.\n\n## Acceptance Criteria\n- Given a clone with 26 live linked worktrees, when `checkoutHygieneWarningLines` runs, then it returns a worktree line that names 26 and 25 and the `git worktree remove` / `git worktree prune` cleanup.\n- Given a clone with 25 or fewer live linked worktrees and 100 or fewer local branches, when the function runs, then it returns no lines.\n- Given 101 local branches, when the function runs, then it returns a branch line that names 101 and 100 and `git branch -d`, and that line does not mention the hook timeout or #5920.\n- Given 26 live linked worktrees and a branch read that exits non-zero, when the function runs, then it returns the worktree line only.\n- Given a `runGit` that fails every call, when the function runs, then it returns no lines and does not throw.\n- Given an admin entry under `<git-common-dir>/worktrees` whose checkout folder is gone, when the function counts worktrees, then that entry is not counted.\n- Given a successful `scope:complete` in a clone over either threshold, then the lines are written to stderr, the brief moves to `completed/`, and the exit code is 0, as without the warning.\n- Given a `scope:complete` whose move fails, then no hygiene line is printed.\n- Given the function throws inside `scope:complete`, then the completion still succeeds with exit 0.\n- No hook, `tool.before`, `session:start`, `deft check` or `deft doctor` code path imports `checkout-hygiene-warning`.\n\n## Reject\n- Printing on `deft check` or `deft doctor` (comment 6954474687, road not taken): running stories #6469 and #6185 hold those files, and the completion surface already reaches the operator in the clone whose hooks slow down.\n- A trigger when a write gate is observed slow: it sits on the hook path, beside the walk #5920 owns.\n- Counting admin directories under `<git-common-dir>/worktrees` (comment 6954474687, finding 4): it warns about checkouts the walk never visits.\n- Reading each sibling's lease to count only busy worktrees (comment 6954474687, finding 4): it runs the per-worktree git call the warning exists to flag.\n- A new `plan.policy` threshold field: it would edit `packages/core/src/policy/index.ts`, held by running story #6275, for a tunability that none of the three pains needs.\n- Any automatic cleanup of worktrees or branches (operator-confirmed deferral).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6954474687 | 1. The warning waits for a successful scope complete | sharpens-framing | accept-into-contract (item 5; the claim is one stderr advisory on the next successful completion, stated under what it does not do) |\n| comment 6954474687 | 2. Each count keeps its own line when the other read fails | sharpens-framing | accept-into-contract (items 2, 3 and 4) |\n| comment 6954474687 | 3. The branch line describes local-branch clutter | sharpens-framing | accept-into-contract (item 3) |\n\nFootnotes in the census, no take: comment 6954474687 findings 4, 5 and 6. Finding 4 is reflected in items 2 and 6, finding 5 in the mint note above.\n\nRelay disclosure: the critic body on comment 6954474687 is the Grok seat's final message, posted verbatim; the parent stripped only the progress narration printed before its `model:` line. The critic reports that the host hook refused `git show` because the dest has no runtime install, so it read the dest's checked-out files. The parent confirmed the dest HEAD is the dispatch SHA with a clean worktree, and re-read the lines cited for findings 2 and 3 at that SHA (`main-worktree.ts` 78-110, `git.ts` 273-281, `occupancy.ts` 1878-1884).\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The `relieves` cites stay open until a later critic targets them. This lean introduces no premise beyond the accepted findings, so it records no audit marker.\n\n",
+          "id": 6954526220,
+          "html_url": "https://github.com/deftai/directive/issues/5988#issuecomment-6954526220",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T16:43:33Z",
+          "updated_at": "2026-11-17T16:43:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:01fb31c89d09c6d95358ff6ee342af226d4e6f508044e24ca228f93d4c95ac9c\n\n## In plain English\n\nA checkout that piles up linked worktrees makes a write check on the main checkout read every one of them. At a high count that read outlasts the host hook, the hook returns no decision, and the write goes through. The count grew with no warning.\n\nBuilding the bound remedy relieves all three pains. After a successful scope complete, the command prints a stderr line when live linked worktrees pass 25, and a separate stderr line when local branches pass 100. The brief still moves and the process still exits 0. The hook path stays untouched. The host hook refused git show, so this audit read the dest checkout. The parent said that checkout is the dispatch SHA and the worktree is clean.\n\nThe worktree count is the live linked-checkout list. A linked worktree shares the main checkout's git directory, so a complete run in the checkout whose hooks slow down counts that same clone. The scope-complete command copies the child process's stderr out to the person who ran it. The branch line is a clutter warning at 100 local branches and names the manual delete. The new call sits in its own catch after the move has succeeded, with the other asides that already leave the exit code at 0.\n\npain-P1: holds - `scope:complete` is `scope-lifecycle` with `--project-root` set to the working checkout (`tasks/scope.yml` 48-54, `route-argv.ts` 288-290). That checkout and the main checkout share one git directory (`git.test.ts` 381-386), and `listLinkedWorktreeCheckouts` (`main-worktree.ts` 78-108) is the list the slow primary write walks (`occupancy.ts` 1878-1883). The child writes stderr and the parent copies it out (`scope-lifecycle.ts` 22-32) on the same success path that already returns 0 (`main.ts` 577-626).\npain-P2: holds - Item 3 counts non-empty lines of one `git for-each-ref` on `refs/heads` and, over the named constant 100, returns its own line naming the count, the threshold, local-branch clutter, and `git branch -d`. That is a warning when local branches pass a threshold, on the same stderr path as P1, and the line leaves the hook timeout out.\npain-P3: holds - The call is inside the `action === \"complete\"` block after `runTransition` has returned ok, in its own catch, and `lifecycleMain` then returns 0 (`main.ts` 577-626). A throw still ends at exit 0. `decideHook` on `tool.before` is a separate function. The in-PR completion fixture rewrites the brief on disk and then calls `decideHook` (`story-binding-in-pr-completion.test.ts` 137-176). It never calls `lifecycleMain`. Hooks, session start, check, and doctor do not import it.\n\n## Findings\n\n### footnote: 1. Cohort sweep completes on `runTransition` alone\n\nEvidence. `complete-cohort.ts` 390-407 and 496-517 call `runTransition(\"complete\")` and return that result. They never enter `lifecycleMain`. The stderr asides, including a fourth catch placed beside them, run only in `main.ts` 580-626.\n\nFailure mode. A story that finishes only through the cohort sweep moves to `completed/` with no hygiene line. The person who then runs `scope:complete` in that same clone still gets the line, because the count is clone-wide.\n\nThe bound remedy stays the one call on the scope:complete verb. A second call on the sweep would be another surface.\n\n### footnote: 2. Linked issue 5920 carries build instructions\n\nThe #5920 body in the snapshot tells an agent to add hook deadlines, fail closed, and finish the deny path in under 20 seconds. This audit records that shape and leaves those sentences as described content. The design input stays #5988, the operator direction on #5920, and the code at the dispatch SHA.\n\n",
+          "id": 6954741097,
+          "html_url": "https://github.com/deftai/directive/issues/5988#issuecomment-6954741097",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T16:51:50Z",
+          "updated_at": "2026-11-17T16:51:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6954526220. Dispatch SHA: 842868ec849da59aac8d9bbab23b836ac86d15db. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and the lean. Each row has a parent pin-read at the dispatch SHA (files in the dest worktree, whose HEAD is that SHA with a clean tree) and a re-check by a Grok critic, a different model family, or is marked otherwise. No tests were run; every method is a source read. Both critic posts are from one family (Grok), so agreement between them is not counted as extra confirmation.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | `listLinkedWorktreeCheckouts` lists live linked checkouts from `<git-common-dir>/worktrees/*/gitdir` with one `git rev-parse --git-common-dir` spawn and no git spawn per worktree; it skips admin dirs whose checkout folder is gone and returns an empty list on any read failure | verified | parent pin-read of `packages/core/src/session/main-worktree.ts` 78-110 and `packages/core/src/session/git.ts` 273-281; critic 6954474687 findings 2 and 4 |\n| 2 | The primary-checkout sibling-lease walk reads that same list and runs a git call per checkout through `liveOccupant`, which is the #5920 cost | verified | parent pin-read of `packages/core/src/session/occupancy.ts` 1869-1884; critic 6954474687 finding 3 |\n| 3 | After a successful `complete` move, `scope:complete` runs its advisories each in its own try/catch and returns 0 | verified | parent pin-read of `packages/core/src/scope/main.ts` 575-626; critic 6954474687 finding 1; audit 6954741097 (`pain-P3`) |\n| 4 | Each new `const` with a numeric initializer is an intent-constraint fact, and each needs its own mint row | verified | parent pin-read of `packages/core/src/intent-constraint/extract.ts` 179-192; critic 6954474687 finding 5 |\n| 5 | The cohort sweep completes stories through `runTransition` and does not enter `lifecycleMain`, so it prints none of the `scope:complete` advisories | endorsed, not verified by the parent | audit 6954741097 finding 1 (`complete-cohort.ts` 390-407 and 496-517); recorded as a stated limit |\n| 6 | The Bound remedy relieves pains P1, P2 and P3 | verified as design coverage | audit 6954741097 (`pain-P1`, `pain-P2` and `pain-P3` hold; `finding-classes: footnote`; `harvest-changed: false`; harvest digest equal to the lean's) |\n| 7 | The warning behaves as designed in a live clone | endorsed, not verified | nothing was executed; the implementer covers it with the tests the Acceptance Criteria name |\n\n",
+          "id": 6954759544,
+          "html_url": "https://github.com/deftai/directive/issues/5988#issuecomment-6954759544",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T16:52:33Z",
+          "updated_at": "2026-11-17T16:52:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: when a checkout collects many linked worktrees, Directive gets slow. A write check on the primary checkout reads every linked worktree, and at high counts it runs past the host hook limit and the write goes through (#5920). This repo reached 97 linked worktrees on 2026-11-16/17 before the operator removed 66 by hand, and nothing in Directive said the count was growing.\n\nAccepted solution: a small function counts the live linked worktrees from disk (one git call for the common folder, none per worktree) and the local branches (one `git for-each-ref` call). Over 25 linked worktrees it gives a line that says Directive's write checks slow down as they grow and names `git worktree remove` and `git worktree prune`. Over 100 local branches it gives a separate line about branch clutter that names `git branch -d`. Each line stands on its own when the other read fails. `scope:complete` prints those lines to stderr once after a successful move, beside its other advisories.\n\nLimits accepted: the warning appears only on the next successful `scope:complete` in that clone, not on a cohort sweep that completes stories without that verb, and not to a caller that drops stderr. It changes no exit code, refuses nothing, runs on no hook, `deft check`, `deft doctor` or `session:start` path, and cleans nothing. The two thresholds are new named constants and need an operator intent-constraint mint. It was checked by reading the source at the pinned commit; no code was run. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6954526220.\nverified-claims table 6954759544\n\nConfirm conjunct: yolo standing (Stop 1 6954226692, `yolo-standing: on`) and the operator's live ruling \"Yes, arc and build\" (#5988), relayed to this worker by the parent session. Round-1 critic: comment 6954474687, posted by the parent verbatim as disclosed on panel-deposit 6954252578. Every classified finding of the round-1 critic is accepted on the lean. Clean audit: comment 6954741097 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's). Critic posts used: 2 of 6.\n\n",
+          "id": 6954760218,
+          "html_url": "https://github.com/deftai/directive/issues/5988#issuecomment-6954760218",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T16:52:35Z",
+          "updated_at": "2026-11-17T16:52:35Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Background\n\n#5920 showed that at pathological linked-worktree counts, occupancy/write paths can take longer than the host hook budget and fail open. #5956’s generic timeout OS was rejected. Operator direction: warn early about hygiene, and fix occupancy crawl separately.\n\n## Environment\n\nAny consumer or maintainer checkout that accumulates many linked worktrees / stale local branches (dogfood + Windows scale repro on #5920).\n\n## Proposal\n\n1. Add a **rare** gate (prefer `deft check` or a late closing/check surface — not every `tool.before`) that **WARNs** when linked worktrees exceed ~25 (threshold tunable) and similarly flags excessive local branches.\n2. Message: clean up worktrees/branches or the system will get progressively slower; optional trigger if a write gate is observed slow.\n3. Keep **#5920** as the home for occupancy O(n) crawl investigation / fix (dispatcher/occupancy) — this ticket is the hygiene warn only.\n\n## Non-goals\n\n- Tiered hook soft/hard deadlines, T=600 deposit program, pending-warnings archive (#5956 closed not_planned).\n- Changing OVPR AC8.6.\n\nRefs #5920 #5956 https://github.com/deftai/directive/pull/5987\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6068045336,
+        "origin": "deftai/directive#5988",
+        "id": "github.issue.6068045336"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "b045f6ab8f5713958d571b151eba68cc44ab8e749f3c7fd5c8bfeae817ebcb8c"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 5988,
+        "leanCommentId": 6954526220,
+        "harvestDigest": "01fb31c89d09c6d95358ff6ee342af226d4e6f508044e24ca228f93d4c95ac9c",
+        "slice": null
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (16), in list order (#6333)",
+      "sentences": [
+        "Function. A new module `packages/core/src/scope/checkout-hygiene-warning.ts` exports `checkoutHygieneWarningLines(projectRoot, runGit = defaultGitRunner)`, which returns zero, one or two lines and never throws.",
+        "Worktree line. The worktree count is `listLinkedWorktreeCheckouts(projectRoot, runGit).length`; an empty list is a count of zero. When the count is over the named constant `CHECKOUT_HYGIENE_MAX_LINKED_WORKTREES` (25), the function returns one line that names the count and the threshold, says that Directive's write checks on the primary checkout read every linked worktree and slow down as the count grows (#5920), and names the manual cleanup `git worktree remove <path>` then `git worktree prune`.",
+        "Branch line. The branch count is the number of non-empty output lines of one `git for-each-ref --format=%(refname) refs/heads` run through `runGit`. When that run exits non-zero or throws, there is no branch line. When the count is over the named constant `CHECKOUT_HYGIENE_MAX_LOCAL_BRANCHES` (100), the function returns one line that names the count and the threshold, describes local-branch clutter, and names `git branch -d <name>` for merged branches. It does not cite the worktree walk or the hook timeout.",
+        "Independence. Each line is computed on its own: a failure of one read omits only that line.",
+        "Call site. After a successful `complete` move, `scope:complete` (`packages/core/src/scope/main.ts`) calls the function once, in its own best-effort try/catch beside the existing advisories, and writes each line to stderr. The move, the stdout lines and the exit code are unchanged. No hook, `tool.before`, `session:start`, `deft check` or `deft doctor` path calls it.",
+        "No action. The lines are fixed text plus the two counts and thresholds. The function runs no cleanup command and copies no path into its output.",
+        "Given a clone with 26 live linked worktrees, when `checkoutHygieneWarningLines` runs, then it returns a worktree line that names 26 and 25 and the `git worktree remove` / `git worktree prune` cleanup.",
+        "Given a clone with 25 or fewer live linked worktrees and 100 or fewer local branches, when the function runs, then it returns no lines.",
+        "Given 101 local branches, when the function runs, then it returns a branch line that names 101 and 100 and `git branch -d`, and that line does not mention the hook timeout or #5920.",
+        "Given 26 live linked worktrees and a branch read that exits non-zero, when the function runs, then it returns the worktree line only.",
+        "Given a `runGit` that fails every call, when the function runs, then it returns no lines and does not throw.",
+        "Given an admin entry under `<git-common-dir>/worktrees` whose checkout folder is gone, when the function counts worktrees, then that entry is not counted.",
+        "Given a successful `scope:complete` in a clone over either threshold, then the lines are written to stderr, the brief moves to `completed/`, and the exit code is 0, as without the warning.",
+        "Given a `scope:complete` whose move fails, then no hygiene line is printed.",
+        "Given the function throws inside `scope:complete`, then the completion still succeeds with exit 0.",
+        "No hook, `tool.before`, `session:start`, `deft check` or `deft doctor` code path imports `checkout-hygiene-warning`."
+      ],
+      "admitted_source_sentences": [
+        "Function. A new module `packages/core/src/scope/checkout-hygiene-warning.ts` exports `checkoutHygieneWarningLines(projectRoot, runGit = defaultGitRunner)`, which returns zero, one or two lines and never throws.",
+        "Worktree line. The worktree count is `listLinkedWorktreeCheckouts(projectRoot, runGit).length`; an empty list is a count of zero. When the count is over the named constant `CHECKOUT_HYGIENE_MAX_LINKED_WORKTREES` (25), the function returns one line that names the count and the threshold, says that Directive's write checks on the primary checkout read every linked worktree and slow down as the count grows (#5920), and names the manual cleanup `git worktree remove <path>` then `git worktree prune`.",
+        "Branch line. The branch count is the number of non-empty output lines of one `git for-each-ref --format=%(refname) refs/heads` run through `runGit`. When that run exits non-zero or throws, there is no branch line. When the count is over the named constant `CHECKOUT_HYGIENE_MAX_LOCAL_BRANCHES` (100), the function returns one line that names the count and the threshold, describes local-branch clutter, and names `git branch -d <name>` for merged branches. It does not cite the worktree walk or the hook timeout.",
+        "Independence. Each line is computed on its own: a failure of one read omits only that line.",
+        "Call site. After a successful `complete` move, `scope:complete` (`packages/core/src/scope/main.ts`) calls the function once, in its own best-effort try/catch beside the existing advisories, and writes each line to stderr. The move, the stdout lines and the exit code are unchanged. No hook, `tool.before`, `session:start`, `deft check` or `deft doctor` path calls it.",
+        "No action. The lines are fixed text plus the two counts and thresholds. The function runs no cleanup command and copies no path into its output.",
+        "Given a clone with 26 live linked worktrees, when `checkoutHygieneWarningLines` runs, then it returns a worktree line that names 26 and 25 and the `git worktree remove` / `git worktree prune` cleanup.",
+        "Given a clone with 25 or fewer live linked worktrees and 100 or fewer local branches, when the function runs, then it returns no lines.",
+        "Given 101 local branches, when the function runs, then it returns a branch line that names 101 and 100 and `git branch -d`, and that line does not mention the hook timeout or #5920.",
+        "Given 26 live linked worktrees and a branch read that exits non-zero, when the function runs, then it returns the worktree line only.",
+        "Given a `runGit` that fails every call, when the function runs, then it returns no lines and does not throw.",
+        "Given an admin entry under `<git-common-dir>/worktrees` whose checkout folder is gone, when the function counts worktrees, then that entry is not counted.",
+        "Given a successful `scope:complete` in a clone over either threshold, then the lines are written to stderr, the brief moves to `completed/`, and the exit code is 0, as without the warning.",
+        "Given a `scope:complete` whose move fails, then no hygiene line is printed.",
+        "Given the function throws inside `scope:complete`, then the completion still succeeds with exit 0.",
+        "No hook, `tool.before`, `session:start`, `deft check` or `deft doctor` code path imports `checkout-hygiene-warning`."
+      ],
+      "admitted_source_digest": "783cde3eea5d2c9a3372cafdf6d5d5bbf68e018432db47330e6292fc7a47bd0c",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Function. A new module `packages/core/src/scope/checkout-hygiene-warning.ts` exports `checkoutHygieneWarningLines(projectRoot, runGit = defaultGitRunner)`, which returns zero, one or two lines and never throws.",
+          "artifact_path": "packages/core/src/scope/checkout-hygiene-warning.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Worktree line. The worktree count is `listLinkedWorktreeCheckouts(projectRoot, runGit).length`; an empty list is a count of zero. When the count is over the named constant `CHECKOUT_HYGIENE_MAX_LINKED_WORKTREES` (25), the function returns one line that names the count and the threshold, says that Directive's write checks on the primary checkout read every linked worktree and slow down as the count grows (#5920), and names the manual cleanup `git worktree remove <path>` then `git worktree prune`.",
+          "artifact_path": "packages/core/src/scope/checkout-hygiene-warning.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Branch line. The branch count is the number of non-empty output lines of one `git for-each-ref --format=%(refname) refs/heads` run through `runGit`. When that run exits non-zero or throws, there is no branch line. When the count is over the named constant `CHECKOUT_HYGIENE_MAX_LOCAL_BRANCHES` (100), the function returns one line that names the count and the threshold, describes local-branch clutter, and names `git branch -d <name>` for merged branches. It does not cite the worktree walk or the hook timeout.",
+          "artifact_path": "packages/core/src/scope/checkout-hygiene-warning.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Independence. Each line is computed on its own: a failure of one read omits only that line.",
+          "artifact_path": "packages/core/src/scope/checkout-hygiene-warning.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Call site. After a successful `complete` move, `scope:complete` (`packages/core/src/scope/main.ts`) calls the function once, in its own best-effort try/catch beside the existing advisories, and writes each line to stderr. The move, the stdout lines and the exit code are unchanged. No hook, `tool.before`, `session:start`, `deft check` or `deft doctor` path calls it.",
+          "artifact_path": "packages/core/src/scope/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "No action. The lines are fixed text plus the two counts and thresholds. The function runs no cleanup command and copies no path into its output.",
+          "artifact_path": "packages/core/src/scope/checkout-hygiene-warning.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Given a clone with 26 live linked worktrees, when `checkoutHygieneWarningLines` runs, then it returns a worktree line that names 26 and 25 and the `git worktree remove` / `git worktree prune` cleanup.",
+          "artifact_path": "packages/core/src/scope/checkout-hygiene-warning.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given a clone with 25 or fewer live linked worktrees and 100 or fewer local branches, when the function runs, then it returns no lines.",
+          "artifact_path": "packages/core/src/scope/checkout-hygiene-warning.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given 101 local branches, when the function runs, then it returns a branch line that names 101 and 100 and `git branch -d`, and that line does not mention the hook timeout or #5920.",
+          "artifact_path": "packages/core/src/scope/checkout-hygiene-warning.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given 26 live linked worktrees and a branch read that exits non-zero, when the function runs, then it returns the worktree line only.",
+          "artifact_path": "packages/core/src/scope/checkout-hygiene-warning.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given a `runGit` that fails every call, when the function runs, then it returns no lines and does not throw.",
+          "artifact_path": "packages/core/src/scope/checkout-hygiene-warning.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given an admin entry under `<git-common-dir>/worktrees` whose checkout folder is gone, when the function counts worktrees, then that entry is not counted.",
+          "artifact_path": "packages/core/src/scope/checkout-hygiene-warning.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given a successful `scope:complete` in a clone over either threshold, then the lines are written to stderr, the brief moves to `completed/`, and the exit code is 0, as without the warning.",
+          "artifact_path": "packages/core/src/scope/checkout-hygiene-scope-complete.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given a `scope:complete` whose move fails, then no hygiene line is printed.",
+          "artifact_path": "packages/core/src/scope/checkout-hygiene-scope-complete.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given the function throws inside `scope:complete`, then the completion still succeeds with exit 0.",
+          "artifact_path": "packages/core/src/scope/checkout-hygiene-scope-complete.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "No hook, `tool.before`, `session:start`, `deft check` or `deft doctor` code path imports `checkout-hygiene-warning`.",
+          "artifact_path": "packages/core/src/scope/checkout-hygiene-warning.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": []
+    },
+    "id": "github.issue.6068045336",
+    "x-directive/intentConstraint": {
+      "constraints": [
+        {
+          "value": "25",
+          "unit": "linked worktrees",
+          "rejectionScope": "invocation"
+        },
+        {
+          "value": "100",
+          "unit": "local branches",
+          "rejectionScope": "invocation"
+        }
+      ]
+    },
+    "updated": "2026-11-17T17:01:02Z"
+  }
+}

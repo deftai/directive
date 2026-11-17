@@ -13,7 +13,9 @@ import {
   evaluateChangelogGate,
   evaluateFragmentIntegrity,
   readChangelogFragment,
+  readChangelogFragments,
 } from "../changelog/fragment.js";
+import { evaluateReleaseRule, type ReleaseRuleVerdict } from "../changelog/release-line.js";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import {
   assertProjectionContained,
@@ -153,6 +155,28 @@ function normalizeEol(text: string): string {
 
 type MergeBaseVerdict = { readonly exit: number; readonly final: boolean };
 
+/** Fragment paths present in the tree under check, valid or not (#6296). */
+function treeFragmentPaths(root: string): string[] {
+  const set = readChangelogFragments(root);
+  return [...set.valid.map((f) => f.path), ...set.invalid.map((f) => f.path)];
+}
+
+/** Release rule inputs read from git and the tree (#6296 Bound item 5). */
+function releaseRuleVerdict(
+  root: string,
+  mergeBaseSha: string,
+  headText: string,
+  rows: readonly ChangelogChangeSetEntry[],
+): ReleaseRuleVerdict {
+  return evaluateReleaseRule({
+    changeSet: rows,
+    baseChangelog: gitText(root, ["show", `${mergeBaseSha}:${CHANGELOG_FILE_REL}`]),
+    headChangelog: headText,
+    readBaseFragment: (rel) => gitText(root, ["show", `${mergeBaseSha}:${rel}`]),
+    treeFragmentPaths: treeFragmentPaths(root),
+  });
+}
+
 const NO_ENTRIES = 'FAIL: [Unreleased] section has no entries (no lines starting with "- ")\n';
 
 /**
@@ -194,6 +218,26 @@ function checkAgainstMergeBase(
   if (rows === null) {
     io.writeOut("FAIL: could not list the change set versus merge-base (git diff failed)\n");
     return { exit: 2, final: true };
+  }
+  // #6296: a change set that adds a release line is judged by the release rule
+  // only; one that removes a release line without adding one fails.
+  const release = releaseRuleVerdict(root, mergeBase.sha, text, rows);
+  if (release.kind === "release") {
+    if (!release.ok) {
+      for (const problem of release.problems) io.writeOut(`FAIL: ${problem}\n`);
+      io.writeOut(
+        `  release attempt for v${release.version ?? "?"}: judged by the release rule only (#6296)\n`,
+      );
+      return { exit: 1, final: true };
+    }
+    io.writeOut(
+      `OK: release change set for v${release.version ?? "?"} passes the release rule (#6296)\n`,
+    );
+    return { exit: 0, final: true };
+  }
+  if (release.kind === "release-line-removed") {
+    for (const problem of release.problems) io.writeOut(`FAIL: ${problem}\n`);
+    return { exit: 1, final: true };
   }
   const readFragment = (rel: string) => readChangelogFragment(root, rel);
   // #6315: in every mode a change set only adds fragments, and each is valid.

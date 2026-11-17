@@ -64,6 +64,7 @@ function pipelineConfig(root: string, overrides: Partial<ReleaseConfig> = {}): R
     version: "0.21.0",
     repo: "deftai/directive",
     baseBranch: "master",
+    breakGlass: true,
     projectRoot: root,
     dryRun: false,
     skipTag: true,

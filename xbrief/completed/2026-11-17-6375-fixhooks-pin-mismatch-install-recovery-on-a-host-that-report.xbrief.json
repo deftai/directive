@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6375",
-    "updated": "2026-11-17T14:57:20Z"
+    "updated": "2026-11-17T17:00:04Z"
   },
   "plan": {
     "title": "fix(hooks): pin-mismatch install recovery on a host that reports no run directory (Codex)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "After a pin bump the hook refuses every shell command until the project's packages are installed again. On a host that does not report where a command runs (Codex), the hook also refuses the install itself, and the refusal names no directory and no exact command, so nobody can follow it. This story keeps the admit as it is and rewrites the pin-mismatch-only refusal: a labelled project-root line, an instruction to use a terminal outside the blocked session at that directory, the plain install of the package manager whose lockfile is at that root, and a retry note.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6375",
@@ -20,226 +20,422 @@
     "items": [
       {
         "title": "The pin-mismatch recovery admit does not change. The three exact commands, the simple-command grammar and the run-directory proof stay as they are. No install form that names its own directory (`--dir`, `--prefix`, `-C`) is admitted. A plain `pnpm install` stays refused inside the session.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given pin mismatch is the only fault, when a self-locating install form (`--dir`, `--prefix`, `-C`) or a plain `pnpm install` is sent, then the hook refuses; when one of the three exact commands is sent at the proven project root, then the hook admits it as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Root line. When pin mismatch is the only fault, the refusal shows the project root that the hook resolved and passed to the install check, after the existing launching-checkout guard. It is a labelled line of its own, with control characters escaped, and it is not placed inside shell syntax. No second root resolver is added.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Root line. When pin mismatch is the only fault, the refusal shows the project root that the hook resolved and passed to the install check, after the existing launching-checkout guard. It is a labelled line of its own, with control characters escaped, and it is not placed inside shell syntax. No second root resolver is added."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Where to run. The text says to open a terminal outside the blocked agent session at that directory.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given a pin-mismatch-only refusal, then the message shows the instruction to open a terminal outside the blocked agent session at the project root."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Command by package manager only. The refusal uses `readLockfileRuntimeVersion` at that root for its `kind` and ignores the version it returns. Kind `pnpm` gives the command `pnpm install`. Kind `npm` gives the command `npm install`. Kind `absent` gives no exact command: the text says that no lockfile was found at that directory and tells the reader to run the project's own install from the directory that holds its lockfile. For `pnpm` and `npm` the text adds one sentence: the frozen form (`pnpm install --frozen-lockfile` or `npm ci`) can be used instead when the lockfile already records the pin.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Command by package manager only. The refusal uses `readLockfileRuntimeVersion` at that root for its `kind` and ignores the version it returns. Kind `pnpm` gives the command `pnpm install`. Kind `npm` gives the command `npm install`. Kind `absent` gives no exact command: the text says that no lockfile was found at that directory and tells the reader to run the project's own install from the directory that holds its lockfile. For `pnpm` and `npm` the text adds one sentence: the frozen form (`pnpm install --frozen-lockfile` or `npm ci`) can be used instead when the lockfile already records the pin."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "After the install. The text says to retry the command once the installed runtime matches the pin, that this pin-mismatch check needs no session restart, and that normal checks still apply.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given a pin-mismatch-only refusal, then the message shows that the command can be retried once the installed runtime matches the pin, that this check needs no session restart, and that normal checks still apply."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The overlay case keeps its own guidance and behaviour. The new text is used only when `pinMismatchOnly` is true.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "The overlay case keeps its own guidance and behaviour. The new text is used only when `pinMismatchOnly` is true."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Tests. A dispatcher test with host `codex` and a nested tool-input run directory equal to the project root asserts the allow decision for an exact admitted command. It is paired with refusals for an absent run directory, for conflicting run directories, for an overlay with matching versions, for the self-locating install forms, and for a plain `pnpm install`. The tests are named as dispatcher tests, not as live-host evidence.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given dispatcher tests with host `codex`, when the tool-input run directory equals the project root, then an exact admitted command is allowed; when the run directory is absent or conflicting, an overlay is present, or a self-locating or plain install is sent, then the hook refuses."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a Codex session where pin mismatch is the only fault, when a shell command is sent with only the session directory, then the hook refuses.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given a Codex session where pin mismatch is the only fault, when a shell command is sent with only the session directory, then the hook refuses."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that refusal, then the message has a labelled line that holds the resolved project root and nothing else.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given that refusal, then the message has a labelled line that holds the resolved project root and nothing else."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that refusal, then the message says to use a terminal outside the blocked agent session at that directory.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given that refusal, then the message says to use a terminal outside the blocked agent session at that directory."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that refusal and a `pnpm-lock.yaml` path at the root, then the message names `pnpm install` as the command to run.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given that refusal and a `pnpm-lock.yaml` path at the root, then the message names `pnpm install` as the command to run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that refusal and a `pnpm-lock.yaml` path at the root, then the message names no npm command.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given that refusal and a `pnpm-lock.yaml` path at the root, then the message names no npm command."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that refusal and only a `package-lock.json` path at the root, then the message names `npm install` as the command to run.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given that refusal and only a `package-lock.json` path at the root, then the message names `npm install` as the command to run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that refusal and only a `package-lock.json` path at the root, then the message names no pnpm command.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given that refusal and only a `package-lock.json` path at the root, then the message names no pnpm command."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that refusal and both lockfile paths at the root, then the message names `pnpm install` as the command to run.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given that refusal and both lockfile paths at the root, then the message names `pnpm install` as the command to run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that refusal and a lockfile at the root, then the message says that the frozen form can be used when the lockfile already records the pin.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given that refusal and a lockfile at the root, then the message says that the frozen form can be used when the lockfile already records the pin."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that refusal and no lockfile path at the root, then the message says that no lockfile was found there and names no exact install command.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "Given that refusal and no lockfile path at the root, then the message says that no lockfile was found there and names no exact install command."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given two lockfiles of the same kind that differ only in the runtime version they record, then the two refusal messages are the same.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "Given two lockfiles of the same kind that differ only in the runtime version they record, then the two refusal messages are the same."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that refusal, then the message says to retry after the install, that this check needs no restart, and that normal checks still apply.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.19",
         "narrative": {
           "Acceptance": "Given that refusal, then the message says to retry after the install, that this check needs no restart, and that normal checks still apply."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a project root whose path contains a space, then the root line holds the whole path.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.20",
         "narrative": {
           "Acceptance": "Given a project root whose path contains a space, then the root line holds the whole path."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a project root whose path contains a control character, then the root line shows it escaped.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.21",
         "narrative": {
           "Acceptance": "Given a project root whose path contains a control character, then the root line shows it escaped."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an overlay marker with matching versions, when a shell command is sent, then the refusal is the overlay refusal with the overlay guidance.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.22",
         "narrative": {
           "Acceptance": "Given an overlay marker with matching versions, when a shell command is sent, then the refusal is the overlay refusal with the overlay guidance."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the same Codex session, when the command is `pnpm --dir <project root> install --frozen-lockfile`, then the hook refuses.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.23",
         "narrative": {
           "Acceptance": "Given the same Codex session, when the command is `pnpm --dir <project root> install --frozen-lockfile`, then the hook refuses."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the same Codex session, when the command is `npm --prefix <project root> ci`, then the hook refuses.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.24",
         "narrative": {
           "Acceptance": "Given the same Codex session, when the command is `npm --prefix <project root> ci`, then the hook refuses."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the same Codex session, when the command is `pnpm install`, then the hook refuses.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.25",
         "narrative": {
           "Acceptance": "Given the same Codex session, when the command is `pnpm install`, then the hook refuses."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a Codex payload whose tool input names a run directory equal to the project root, when the command is `pnpm install --frozen-lockfile`, then the decision is the recovery allow.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.26",
         "narrative": {
           "Acceptance": "Given a Codex payload whose tool input names a run directory equal to the project root, when the command is `pnpm install --frozen-lockfile`, then the decision is the recovery allow."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a Codex payload whose tool input names two run directories that differ, when the command is `pnpm install --frozen-lockfile`, then the hook refuses.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.27",
         "narrative": {
           "Acceptance": "Given a Codex payload whose tool input names two run directories that differ, when the command is `pnpm install --frozen-lockfile`, then the hook refuses."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a host that reports the run directory, when pin mismatch is the only fault, then the admit behaves as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.28",
         "narrative": {
           "Acceptance": "Given a host that reports the run directory, when pin mismatch is the only fault, then the admit behaves as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d32e72bd4f285a242d159215311a79142d858d6",
+          "recorded_at": "2026-11-17T17:00:04Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -868,6 +1064,33 @@
         "leanCommentId": 6922277372,
         "harvestDigest": "e68eada44c8a4483176cac1c920f432211aa4dcd581c26c85306e99b088e0146",
         "slice": null
+      },
+      "productPullRequest": 6534,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "36940eba98bea7d5d1d3ae3638c88f27f5332281",
+        "prNumber": 6534,
+        "prBase": "master",
+        "mergeCommit": "3d32e72bd4f285a242d159215311a79142d858d6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "3d32e72bd4f285a242d159215311a79142d858d6",
+        "verifiedAt": "2026-11-17T17:00:04Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MzEzNmU4MzMtOWYwMy00Mzc5LThmZjktMWZjYjYzYjZmYTgz",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T17:00:04Z",
+      "completedSessionId": "host:claude:v1:MzEzNmU4MzMtOWYwMy00Mzc5LThmZjktMWZjYjYzYjZmYTgz",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T17:00:04Z"
       }
     },
     "acceptance": {
@@ -1137,6 +1360,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6414483436",
-    "updated": "2026-11-17T14:57:20Z"
+    "updated": "2026-11-17T17:00:04Z"
   }
 }

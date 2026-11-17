@@ -1,3 +1,4 @@
+import { releaseLine, stripReleaseLines } from "../changelog/release-line.js";
 import {
   DEFAULT_REPO,
   FRESH_UNRELEASED_BLOCK,
@@ -28,6 +29,16 @@ function extractPreviousVersion(footer: string): string | null {
   return match?.groups?.prev ?? null;
 }
 
+/**
+ * The fresh `[Unreleased]` block a release writes: the heading, the one release
+ * line for `version` (#6296 item 4), then the empty subsections.
+ */
+export function freshUnreleasedBlock(version: string): string {
+  const heading = "## [Unreleased]\n";
+  const rest = FRESH_UNRELEASED_BLOCK.slice(heading.length).replace(/^\n/, "");
+  return `${heading}\n${releaseLine(version)}\n\n${rest}`;
+}
+
 /** Promote [Unreleased] to [<version>] - <today> and refresh the link footer. */
 export function promoteChangelog(
   text: string,
@@ -46,12 +57,14 @@ export function promoteChangelog(
     );
   }
 
-  const [body, footer] = splitBodyAndLinks(text);
+  // #6296 item 4: the previous release line never enters the promoted section.
+  const [rawBody, footer] = splitBodyAndLinks(text);
+  const body = stripReleaseLines(rawBody);
   let promotedHeading = `## [${version}] - ${today}`;
   if (summary) {
     promotedHeading = `${promotedHeading}\n\n> ${summary}\n`;
   }
-  const freshBlock = `${FRESH_UNRELEASED_BLOCK.trimEnd()}\n\n`;
+  const freshBlock = `${freshUnreleasedBlock(version).trimEnd()}\n\n`;
   const replacement = freshBlock + promotedHeading;
   const newBody = body.replace(UNRELEASED_RE, () => replacement);
   if (newBody === body) {
