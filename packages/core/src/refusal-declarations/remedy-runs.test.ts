@@ -14,7 +14,11 @@ import { afterEach, describe, expect, it } from "vitest";
 import { runInstall } from "../../../cli/src/bookends.js";
 import { readProjectInstallState } from "../../../cli/src/pin.js";
 import { ensureGitHooks } from "../../../runtime/src/setup-wiring.js";
-import { evaluatePrePush, prePrPushGateRefusalLine } from "../preflight-gh/pre-push.js";
+import {
+  evaluatePrePush,
+  prePrPushGateRefusal,
+  prePrPushGateRefusalLine,
+} from "../preflight-gh/pre-push.js";
 import { evaluate as evaluateHooksInstalled } from "../verify-env/verify-hooks-installed.js";
 import { formatDeclaredRefusal, parsePrintedRemedy } from "./print.js";
 import { loadRefusalDeclarations, rowsWithoutRemedyCase } from "./table.js";
@@ -204,6 +208,16 @@ describe("declared refusal remedies run as printed (#6281 item 5)", () => {
       expect(ran.code, `${command}: ${ran.stderr}`).toBe(0);
     }
     expect(remedyCase.retry(root)).toBe(true);
+  });
+
+  it("the bound pre-PR push gate honors its row mode: enforce refuses, warn lets the push proceed", () => {
+    expect(prePrPushGateRefusal("d", "h")[0]).toBe(1);
+    const warnRows = ROWS.map((r) =>
+      r.id === "pre-pr-push-gate" ? { ...r, mode: "warn" as const } : r,
+    );
+    const [code, line] = prePrPushGateRefusal("d", "h", warnRows);
+    expect(code).toBe(0);
+    expect(line).toContain("can refuse from a later release");
   });
 
   it("the bound pre-PR push gate names the head it knows and the controller sequence", () => {
