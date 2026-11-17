@@ -1,0 +1,711 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6467",
+    "updated": "2026-11-17T06:36:06Z"
+  },
+  "plan": {
+    "title": "bug(merge): a PR that conflicts with its base is reported as absent-required, not as a conflict",
+    "status": "running",
+    "narratives": {
+      "Description": "When a PR conflicts with its base branch, GitHub does not run its pull_request CI, so pr:wait-mergeable-and-merge waits, finds the required checks absent and reports absent-required, which workers read as a CI problem. This story adds one REST read of pulls/<N> after the monitor ends with absent-required or cap-reached; when GitHub reports mergeable_state dirty the verb reports the outcome base-conflict with exit 1 and an error that names the base branch and the merge-or-rebase fix. Every other case keeps today's outcome and text, and no gate, flag, exit code or stored state is added.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6467",
+      "Overview": "\n1. Trigger. In `waitMergeableAndMerge`, after `classifyMonitorOutcome`, when the outcome is `absent-required` or `cap-reached`, the verb makes one REST read of `pulls/<N>`. This applies in direct mode and in merge-queue mode, because the monitor runs before the enqueue. No other outcome makes the read. A clean monitor run makes no extra call. The outcomes the verb returns before the monitor (preflight refusals, `semantic-green-blocked` and its named outcomes, `new-p0-p1`) are unchanged.\n2. Reader. One new reader in `packages/core/src/pr-wait-mergeable/` takes `mergeable_state` and `base.ref` from that one response. It is injectable through one new option on `WaitMergeableOptions`. Under the existing test-harness convention (`skipHumanMergeGate` or `VITEST`, no injected function) the read is skipped, as for `watchFn` and `mergeQueueDetectFn`.\n3. Conflict outcome. When `mergeable_state` is `dirty`, the verb reports the outcome `base-conflict` with exit 1 (`EXIT_TIMEOUT_OR_ESCALATION`); its error text says that PR #N conflicts with its base branch and names that branch from `base.ref` (or says \"its base branch\" when `base.ref` is missing), says that required checks do not run on a conflicted PR only when the replaced outcome is `absent-required`, names the fix (merge or rebase the base branch into the PR branch, resolve the conflicts, push, then run `task pr:wait-mergeable-and-merge` again), and names the replaced monitor outcome; the monitor payload stays in `monitor_result`.\n4. Fallback. When the read fails, cannot be parsed, or gives any state other than `dirty` (including `unknown`, null, `blocked`, `behind` and `unstable`, whatever `mergeable` says), the verb reports today's outcome, exit code and error text unchanged.\n5. Unchanged. No new exit code, flag, gate, refusal or stored state. The printed result label for exit 1 stays `TIMEOUT-OR-ESCALATION`; `outcome` and `error` carry the conflict. The merge-queue `--resume` / `--wait` path is not changed.\n6. Docs. The #6467 line under \"Known issues\" in `content/docs/github-merge-queue-setup.md` says that on 0.129.11 a conflicted PR shows `absent-required`, and that from the release with #6467 the verb reports `base-conflict` and names the fix. The line keeps `#6467` and `absent-required`, which the `merge_queue_playbook_6366` lock test requires.\n\n## Acceptance Criteria\n\n- Given a monitor result `absent-required` and a read with `mergeable_state` `dirty` and `base.ref` `master`, when the verb runs, then the outcome is `base-conflict`, the exit code is 1, and the error names the conflict with `master`, says required checks do not run on a conflicted PR, and names the merge-or-rebase fix.\n- Given a monitor result `cap-reached` and a read with `mergeable_state` `dirty`, when the verb runs, then the outcome is `base-conflict`, the exit code is 1, and the error names the conflict and the fix and does not say that required checks do not run.\n- Given a monitor result `absent-required` and a read with `mergeable_state` `blocked`, when the verb runs, then the outcome is `absent-required` and the error text is the same as today.\n- Given a monitor result `absent-required` and a read that fails, or gives `unknown` or null, when the verb runs, then the outcome is `absent-required` and the error text is the same as today.\n- Given a read with `mergeable_state` `dirty` and no `base.ref`, when the verb reports `base-conflict`, then the error says \"its base branch\" and still names the fix.\n- Given a clean monitor result, when the verb runs, then the conflict read is not made.\n- Given a SHA-matched `new-p0-p1` probe before the monitor, when the verb runs, then the outcome is `new-p0-p1` and the conflict read is not made.\n- Given merge-queue mode, a monitor result `absent-required` and a `dirty` read, when the verb runs, then the outcome is `base-conflict` and the PR is not enqueued.\n- Given `--json` and a `base-conflict` result, then standard output is one JSON document with `outcome` `base-conflict` and the error text.\n- `content/docs/github-merge-queue-setup.md` Known issues names `base-conflict` for #6467 and still contains `#6467` and `absent-required`.\n\n\n",
+      "Constraint": "- A read before the monitor, or a branch on the queue-detection fetch of `pulls/<N>` (comment 6940312614, Road not taken: that first read is often `unknown`).\n- `mergeable` `false` as a conflict signal by itself (comment 6940312614, answer to question 3).\n- Reading `mergeable_state` from the monitor payload (comment 6940312614, finding 5: the main readiness path does not fill it when CI fails).\n- Folding `new-p0-p1` or a red master gate into `base-conflict` (comment 6940312614, finding 2: that would hide the review finding or the gate).\n- A new exit code for a conflict.",
+      "Labels": "bug",
+      "UserStory": "As a worker merging a PR with pr:wait-mergeable-and-merge, I want a PR that conflicts with its base reported as a conflict with the fix named, so that I merge or rebase the base branch instead of waiting on CI that will never run.",
+      "ImplementationPlan": "1. New packages/core/src/pr-wait-mergeable/base-conflict.ts: readBaseConflictState(prNumber, repo, runGh) reads mergeable_state and base.ref from one gh api repos/<repo>/pulls/<N> call, and formatBaseConflictError(prNumber, baseRef, replacedOutcome) builds the Bound item 3 text.\n2. packages/core/src/pr-wait-mergeable/cascade.ts: WaitMergeableOptions gains baseConflictReadFn (skipped under the test-harness convention when not injected); after classifyMonitorOutcome, on absent-required or cap-reached, a dirty read returns outcome base-conflict with exit 1, otherwise today's result.\n3. packages/core/src/pr-wait-mergeable/main.ts passes baseConflictReadFn through, so the --json case is testable.\n4. Tests in packages/core/src/pr-wait-mergeable/base-conflict.test.ts cover clauses 7-15; cascade.test.ts changes only if an existing expectation moves.\n5. Docs: the #6467 Known issues line in content/docs/github-merge-queue-setup.md; changelog.d/6467-base-conflict.md.",
+      "Traces": "#6467"
+    },
+    "items": [
+      {
+        "title": "Trigger. In `waitMergeableAndMerge`, after `classifyMonitorOutcome`, when the outcome is `absent-required` or `cap-reached`, the verb makes one REST read of `pulls/<N>`. This applies in direct mode and in merge-queue mode, because the monitor runs before the enqueue. No other outcome makes the read. A clean monitor run makes no extra call. The outcomes the verb returns before the monitor (preflight refusals, `semantic-green-blocked` and its named outcomes, `new-p0-p1`) are unchanged.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.ts, when the monitor outcome is absent-required or cap-reached, then waitMergeableAndMerge makes one REST read of pulls/<N> before any enqueue, and makes no read for any other outcome or for a return before the monitor."
+        }
+      },
+      {
+        "title": "Reader. One new reader in `packages/core/src/pr-wait-mergeable/` takes `mergeable_state` and `base.ref` from that one response. It is injectable through one new option on `WaitMergeableOptions`. Under the existing test-harness convention (`skipHumanMergeGate` or `VITEST`, no injected function) the read is skipped, as for `watchFn` and `mergeQueueDetectFn`.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.ts, when the reader runs, then it takes mergeable_state and base.ref from one pulls/<N> response, and the cascade reaches it through one injectable WaitMergeableOptions option that is skipped under the test-harness convention when not injected."
+        }
+      },
+      {
+        "title": "Conflict outcome. When `mergeable_state` is `dirty`, the verb reports the outcome `base-conflict` with exit 1 (`EXIT_TIMEOUT_OR_ESCALATION`); its error text says that PR #N conflicts with its base branch and names that branch from `base.ref` (or says \"its base branch\" when `base.ref` is missing), says that required checks do not run on a conflicted PR only when the replaced outcome is `absent-required`, names the fix (merge or rebase the base branch into the PR branch, resolve the conflicts, push, then run `task pr:wait-mergeable-and-merge` again), and names the replaced monitor outcome; the monitor payload stays in `monitor_result`.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.ts, when the read gives mergeable_state dirty, then the outcome is base-conflict with exit 1 and the error names the base branch (or its base branch), the missing-checks sentence only for absent-required, the merge-or-rebase fix and the replaced monitor outcome; monitor_result keeps the monitor payload."
+        }
+      },
+      {
+        "title": "Fallback. When the read fails, cannot be parsed, or gives any state other than `dirty` (including `unknown`, null, `blocked`, `behind` and `unstable`, whatever `mergeable` says), the verb reports today's outcome, exit code and error text unchanged.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.ts, when the read fails, cannot be parsed, or gives any state other than dirty, then the outcome, exit code and error text are those of today."
+        }
+      },
+      {
+        "title": "Unchanged. No new exit code, flag, gate, refusal or stored state. The printed result label for exit 1 stays `TIMEOUT-OR-ESCALATION`; `outcome` and `error` carry the conflict. The merge-queue `--resume` / `--wait` path is not changed.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.ts, when the change lands, then it adds no exit code, flag, gate, refusal or stored state, the exit-1 label stays TIMEOUT-OR-ESCALATION, and the merge-queue --resume / --wait path is unchanged."
+        }
+      },
+      {
+        "title": "Docs. The #6467 line under \"Known issues\" in `content/docs/github-merge-queue-setup.md` says that on 0.129.11 a conflicted PR shows `absent-required`, and that from the release with #6467 the verb reports `base-conflict` and names the fix. The line keeps `#6467` and `absent-required`, which the `merge_queue_playbook_6366` lock test requires.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given content/docs/github-merge-queue-setup.md, when Known issues is read, then the #6467 line says 0.129.11 shows absent-required and the release with #6467 reports base-conflict with the fix, and it still contains #6467 and absent-required."
+        }
+      },
+      {
+        "title": "Given a monitor result `absent-required` and a read with `mergeable_state` `dirty` and `base.ref` `master`, when the verb runs, then the outcome is `base-conflict`, the exit code is 1, and the error names the conflict with `master`, says required checks do not run on a conflicted PR, and names the merge-or-rebase fix.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.test.ts, a test named for clause.7 injects the monitor result and the pulls/<N> read the clause states, runs the verb, and asserts the stated outcome, exit code, error text and read count."
+        }
+      },
+      {
+        "title": "Given a monitor result `cap-reached` and a read with `mergeable_state` `dirty`, when the verb runs, then the outcome is `base-conflict`, the exit code is 1, and the error names the conflict and the fix and does not say that required checks do not run.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.test.ts, a test named for clause.8 injects the monitor result and the pulls/<N> read the clause states, runs the verb, and asserts the stated outcome, exit code, error text and read count."
+        }
+      },
+      {
+        "title": "Given a monitor result `absent-required` and a read with `mergeable_state` `blocked`, when the verb runs, then the outcome is `absent-required` and the error text is the same as today.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.test.ts, a test named for clause.9 injects the monitor result and the pulls/<N> read the clause states, runs the verb, and asserts the stated outcome, exit code, error text and read count."
+        }
+      },
+      {
+        "title": "Given a monitor result `absent-required` and a read that fails, or gives `unknown` or null, when the verb runs, then the outcome is `absent-required` and the error text is the same as today.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.test.ts, a test named for clause.10 injects the monitor result and the pulls/<N> read the clause states, runs the verb, and asserts the stated outcome, exit code, error text and read count."
+        }
+      },
+      {
+        "title": "Given a read with `mergeable_state` `dirty` and no `base.ref`, when the verb reports `base-conflict`, then the error says \"its base branch\" and still names the fix.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.test.ts, a test named for clause.11 injects the monitor result and the pulls/<N> read the clause states, runs the verb, and asserts the stated outcome, exit code, error text and read count."
+        }
+      },
+      {
+        "title": "Given a clean monitor result, when the verb runs, then the conflict read is not made.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.test.ts, a test named for clause.12 injects the monitor result and the pulls/<N> read the clause states, runs the verb, and asserts the stated outcome, exit code, error text and read count."
+        }
+      },
+      {
+        "title": "Given a SHA-matched `new-p0-p1` probe before the monitor, when the verb runs, then the outcome is `new-p0-p1` and the conflict read is not made.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.test.ts, a test named for clause.13 injects the monitor result and the pulls/<N> read the clause states, runs the verb, and asserts the stated outcome, exit code, error text and read count."
+        }
+      },
+      {
+        "title": "Given merge-queue mode, a monitor result `absent-required` and a `dirty` read, when the verb runs, then the outcome is `base-conflict` and the PR is not enqueued.",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.test.ts, a test named for clause.14 injects the monitor result and the pulls/<N> read the clause states, runs the verb, and asserts the stated outcome, exit code, error text and read count."
+        }
+      },
+      {
+        "title": "Given `--json` and a `base-conflict` result, then standard output is one JSON document with `outcome` `base-conflict` and the error text.",
+        "status": "proposed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.test.ts, a test named for clause.15 injects the monitor result and the pulls/<N> read the clause states, runs the verb, and asserts the stated outcome, exit code, error text and read count."
+        }
+      },
+      {
+        "title": "`content/docs/github-merge-queue-setup.md` Known issues names `base-conflict` for #6467 and still contains `#6467` and `absent-required`.",
+        "status": "proposed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "Given content/docs/github-merge-queue-setup.md, when the merge_queue_playbook_6366 lock test runs, then it passes and the Known issues section names base-conflict for #6467."
+        }
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6467",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6467: bug(merge): a PR that conflicts with its base is reported as absent-required, not as a conflict"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "task pr:wait-mergeable-and-merge",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/pr-wait-mergeable/base-conflict.ts",
+          "packages/core/src/pr-wait-mergeable/base-conflict.test.ts",
+          "packages/core/src/pr-wait-mergeable/cascade.ts",
+          "packages/core/src/pr-wait-mergeable/cascade.test.ts",
+          "packages/core/src/pr-wait-mergeable/main.ts",
+          "content/docs/github-merge-queue-setup.md",
+          "changelog.d/6467-base-conflict.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "pr-wait-mergeable-base-conflict",
+        "Traces": [
+          "#6467"
+        ],
+        "acceptance_criteria_justification": "Sixteen clauses: the six Bound remedy items and the ten Acceptance Criteria of the accepted lean (comment 6940541014, synthesis 6940623062), one clause each as the harvest admitted them. parallel_safe is true: no running story touches packages/core/src/pr-wait-mergeable/ or content/docs/github-merge-queue-setup.md.",
+        "verify_commands": [
+          "npx vitest run packages/core/src/pr-wait-mergeable/ packages/core/src/content-contracts/skills/merge_queue_playbook_6366.test.ts"
+        ],
+        "expected_outputs": [
+          "pr:wait-mergeable-and-merge reports base-conflict (exit 1) with the base branch and the merge-or-rebase fix when the monitor ends absent-required or cap-reached and GitHub reports mergeable_state dirty",
+          "every other read result keeps today's outcome and error text",
+          "no read on a clean monitor run or on a return before the monitor",
+          "one changelog fragment changelog.d/6467-base-conflict.md"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6467; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes which outcome and exit text the merge verb reports for a PR that is blocked, and workers and skills branch on that outcome to decide whether to wait, escalate or merge the base branch.\n\nTarget-digest: sha256:7709d433165362c7315e7ea42824a029ee5c60857dc24d2047294236c13df9d1\ndispatch-sha: 2f30fc5a4716fe53ad7011b0ea5da22debd5145d\ndest: .deft-scratch/worktrees/arc-6467 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one small reporting change on one verb; the one critic seat is a different model family from the parent.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 2f30fc5a4716fe53ad7011b0ea5da22debd5145d: + dest cwd-without-occupy\npain: P1, P2, P3\n\n## In plain English\nWhen a PR conflicts with its base branch, GitHub does not run the PR's CI, so the required checks never appear. The merge command waits, sees the checks are missing, and reports `absent-required`. A worker reads that as a CI problem and waits or escalates, while the real fix is to merge or rebase the base branch. The recommended fix changes only the report: when the wait ends without a merge, the command reads GitHub's merge state for the PR once, and if GitHub says the PR conflicts, it reports a conflict outcome that names the fix. It adds no gate, no new exit code and no new wait. The open question for the critic is whether that one read is in the right place and covers the Acceptance Criteria.\n\n## Pains\nThe pains are exactly the issue's Acceptance Criteria as written.\n- P1 — Given a PR whose `mergeable_state` is `dirty`, when `pr:wait-mergeable-and-merge` runs, then it reports a conflict outcome that says the PR conflicts with its base and names the fix (merge or rebase the base branch).\n- P2 — Given a PR whose `mergeable_state` is `dirty`, when its required checks are absent, then the verb does not report `absent-required`.\n- P3 — Given a PR with no conflict and missing required checks, when the verb runs, then it still reports `absent-required` as today.\n\n## Constraints (not pains)\n- No new gate, refusal, grant or exit code. A conflicted PR still ends with exit 1, as `absent-required` does today.\n- The merge-queue `--resume` / `--wait` path (#6423) is unchanged; the queue already names a `merge_conflict` removal.\n- A failed or unclear read of the merge state never makes the result worse than today.\n\n## Anchors at the dispatch SHA\n- `packages/core/src/pr-wait-mergeable/cascade.ts` 607-628: the verb runs the monitor, maps its exit with `classifyMonitorOutcome`, and returns any non-`clean` outcome with `error: monitor exited <rc> (outcome=<outcome>)`. The enqueue (merge-queue mode) at 772-789 comes after this, so both modes pass through it.\n- `packages/core/src/pr-wait-mergeable/classify.ts` 16-17 and 27-28: monitor `ABSENT-REQUIRED` or exit 4 maps to `absent-required`, exit 1. Nothing reads `mergeable_state`.\n- `packages/core/src/pr-monitor/monitor.ts` 231-245: absent-required escalates from CI data only (`readAbsentRequiredContexts`); 92-114 `mergeStateFromPayload` feeds only the heartbeat line.\n- `packages/core/src/pr-merge-readiness/compute.ts` 460-470: on the main path the readiness payload reads mergeability only after review and CI pass, so an absent-required payload usually has no `mergeable_state` in it.\n- `packages/core/src/pr-merge-readiness/mergeability.ts` 28-66: `fetchMergeability` is an existing one-call REST read of `pulls/<N>` that returns `mergeable_state` and `mergeable`.\n- `packages/core/src/pr-wait-mergeable/main.ts` 315-330: text output prints `outcome:` and `error:` lines; `--json` prints `outcome` and `error`.\n- `content/docs/github-merge-queue-setup.md` 97: \"Known issues\" line for #6467 tells the reader to merge master and re-run.\n\n## Recommended mechanism (the thing to critique)\n- C1. After the monitor, when the outcome is `absent-required` or `cap-reached`, the verb makes one REST read of `pulls/<N>` with the existing `fetchMergeability` reader.\n- C2. When that read gives `mergeable_state` `dirty`, the verb reports a new outcome `base-conflict` with exit 1 (the same code as today). The error text says the PR conflicts with its base branch, names the base branch, says that required checks do not run on a conflicted PR, and names the fix: merge or rebase the base branch into the PR branch, resolve the conflicts, push, and run the verb again.\n- C3. When the read fails, or gives any other state (including `unknown` or null while GitHub is still computing), the verb reports today's outcome and text unchanged.\n- C4. No other outcome changes. No new exit code, flag, gate or stored state. The read happens only on the two outcomes in C1, so a clean run makes no extra call.\n- C5. Docs: the #6467 line under \"Known issues\" in `content/docs/github-merge-queue-setup.md` is replaced by one line that names the `base-conflict` outcome and its fix.\n\nQuestions for the critic:\n1. Should `cap-reached` be in C1, or only `absent-required` as the issue names it?\n2. Should the verb also read the merge state once before the monitor starts, so a PR that is already conflicted is reported at once rather than after the monitor's grace polls?\n3. Is `mergeable_state` `dirty` alone the right test, or should `mergeable` `false` also count?\n\n",
+          "id": 6940182563,
+          "html_url": "https://github.com/deftai/directive/issues/6467#issuecomment-6940182563",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:02:46Z",
+          "updated_at": "2026-11-17T06:02:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6940182973\nseat: grok launcher: grok (--cwd dest --prompt-file --permission-mode auto --disable-web-search --no-subagents)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 2f30fc5a4716fe53ad7011b0ea5da22debd5145d\ndest: .deft-scratch/worktrees/arc-6467\nverification-path: pin-read git show 2f30fc5a4716fe53ad7011b0ea5da22debd5145d: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6940182563\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Grok, a different model family, run with the Grok launcher (`--permission-mode auto --disable-web-search --no-subagents`) against the dest and told to do read-only work. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only. Grok plain output can print progress narration before the `model:` line; the parent strips only that narration and says so on the relay.\n- The Grok seat is told not to use GitHub. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 6940182973,
+          "html_url": "https://github.com/deftai/directive/issues/6467#issuecomment-6940182973",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:02:48Z",
+          "updated_at": "2026-11-17T06:02:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nWorktree HEAD file is `2f30fc5a4716fe53ad7011b0ea5da22debd5145d`. The shell hook denied `git show` because `node_modules/@deftai/directive-runtime` is missing. The lines below are from that checkout.\n\n## In plain English\n\nWhen a pull request conflicts with its base, GitHub does not start the pull-request checks. The merge command waits, sees the required checks missing, and reports `absent-required`. Whoever is watching treats that as a CI problem. The fix is to merge or rebase the base branch into the pull request and run the command again.\n\nThe recommended mechanism is the right one and can bind. After the monitor, and only when that ending is `absent-required` or `cap-reached`, read the pull request once. If GitHub's merge state is `dirty`, report `base-conflict`, keep exit 1, and name the merge-or-rebase fix. A failed read, or any other state, keeps today's outcome and text. A clean run makes no extra call. The merge-queue resume and wait path stays as it is.\n\n`cap-reached` stays in that read. A conflicted pull request whose checks failed, are still running, or were never classed as absent waits out the cap and never becomes `absent-required`. Limiting the read to `absent-required` leaves those as a timeout.\n\nThe read stays after the monitor. The command already fetches the pull request while detecting the merge queue, and that first response is often still unknown. The later read, after the one-poll grace, is the one that can see `dirty`. Returning early on the first body would miss a cold conflict.\n\nThe positive test is the state string `dirty` alone. A known state such as `blocked`, `behind`, or `unstable` keeps today's outcome, including when `mergeable` is false.\n\nTwo statement changes belong with that mechanism. The existing mergeability reader does not return the base branch, so the branch name comes from the same response. And this conflict report replaces only those two monitor endings. A review finding or a red master gate that returns earlier stays that earlier report.\n\n## Road not taken\n\nReturning immediately when the queue-detection fetch is already `dirty` would skip the grace. That fetch already happens (`merge-queue.ts` 117-130) and keeps only `base.ref`. The same code maps a null `mergeable` to unknown (`mergeability.ts` 9-10, 63), which is what a first fetch often is while GitHub computes the state. Branching on that body would miss the cold conflict and would still need the later read. One site, after the monitor classifies the ending, is enough. A requirement that a known-dirty pull request must not spend the grace would flip this.\n\n## 1. The mergeability reader cannot name the base branch — sharpens-framing\n\nEvidence: `packages/core/src/pr-merge-readiness/mergeability.ts` 14-17 and 58-65. `fetchMergeability` returns `mergeableState`, `mergeable`, and `error`. `packages/core/src/pr-wait-mergeable/merge-queue.ts` 116-130 reads `base.ref` from the same `pulls/<N>` body and drops the merge state. `cascade.ts` 530-545 stores only whether queue mode is on, so `detection.branch` is gone by the time the monitor returns.\n\nFailure mode: a call to `fetchMergeability`, as C1 names it, can see `dirty` and still have no branch name for the C2 sentence. A second call to the base-ref reader is a second GET, and a missing name can be treated as \"skip the conflict report.\"\n\nDisposition consequence: the one response supplies both `mergeable_state` and `base.ref`. A missing `base.ref` still reports `base-conflict` and the merge-or-rebase fix.\n\n## 2. The acceptance text is wider than the two endings — sharpens-framing\n\nEvidence: `cascade.ts` 557-575 returns `semantic-green-blocked` before the monitor on the non-queue path. Queue mode skips that block (`cascade.ts` 557). `cascade.ts` 590-604 returns `new-p0-p1` before the monitor. The mechanism edits the non-clean return at `cascade.ts` 613-629, and only for `absent-required` and `cap-reached`.\n\nFailure mode: a dirty pull request that already has a SHA-matched P0, or a non-queue pull request blocked on the master gate, still reports that earlier outcome. Calling the unconditional \"whenever `dirty`\" acceptance satisfied would be a false relief. Folding those returns into `base-conflict` would hide the P0 or the red gate.\n\nDisposition consequence: relief of that acceptance is the two monitor endings only. The earlier returns stay as they are, and the bound says so.\n\n## 3. The checks sentence is wrong for a cap ending — sharpens-framing\n\nEvidence: `packages/core/src/pr-monitor/absent-required.ts` 35-48. Pending required checks, `not_ready_yet`, and any structured CI state other than `ci_absent_required` do not escalate. `packages/core/src/pr-merge-readiness/ci-gate.ts` 398-412 sets `ci_failures` even when absent contexts are also listed. `ci-gate.ts` 365-384 sets `ci_never_scheduled` when no workflow runs exist and the required-context list is empty. `monitor.ts` 231-248 then 250-254 waits until the cap and returns cap-reached. The default cap is 60 minutes (`monitor.ts` 170). The absent grace is one poll (`packages/core/src/pr-monitor/constants.ts` 13) and the first sleep is 60 seconds (`constants.ts` 16-19).\n\nFailure mode: a conflicted pull request that also has a failed check, a still-running check, or no required-context inventory spends the cap. The C2 sentence then says required checks do not run. Some of those checks did run, or are still running, and the reader of the error drops that fact. Removing `cap-reached` from the read to avoid the sentence leaves the same pull request as a timeout, which is the miss the acceptance is trying to close.\n\nDisposition consequence: `cap-reached` stays in the read. The error always names the conflict and the merge-or-rebase fix. It says the required checks did not appear only when the ending being replaced is `absent-required`.\n\n## 4. The known-issues lock still requires the old words — footnote\n\n`packages/core/src/content-contracts/skills/merge_queue_playbook_6366.test.ts` 35-43 requires the Known issues section to contain `#6467` and the substring `absent-required`. The current sentence is `content/docs/github-merge-queue-setup.md` 97. A replacement line that drops that substring fails this lock. The same section's `#6423` bullet still says `--resume` returns at once (`github-merge-queue-setup.md` 95); `main.ts` 274-288 already has the wait path. That bullet is outside this mechanism.\n\n## 5. The printed result label stays the timeout label — footnote\n\nExit 1 still prints `TIMEOUT-OR-ESCALATION` (`main.ts` 188-196). The distinct signal is `outcome` and `error` (`main.ts` 321-328, `result.ts` 7 and 28-29). The monitor payload is the wrong place to read the state: a clean review plus `ci_absent_required` does not call `fetchMergeability` (`compute.test.ts` 375-396, `compute.ts` 460-479). The soft-verdict path does include it (`compute.ts` 500-502). The fresh read is the reliable one.\n\n",
+          "id": 6940312614,
+          "html_url": "https://github.com/deftai/directive/issues/6467#issuecomment-6940312614",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:10:18Z",
+          "updated_at": "2026-11-17T06:10:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 6940182563 (round 1: 1 of 1 critic posted, comment 6940312614)\n\n## In plain English\nProblem: when a PR conflicts with its base branch, GitHub does not run the PR's CI, so the required checks never appear. The merge command waits, sees the checks are missing, and reports `absent-required`. A worker reads that as a CI problem and waits or escalates. The real fix is to merge or rebase the base branch.\n\nWhat the critic found: the recommended fix is right and can bind. Keep the one read after the monitor, and keep `cap-reached` in it. A conflicted PR that also has a failed or still-running check never becomes `absent-required` and would otherwise end as a timeout. Three points were made sharper. The existing mergeability reader does not return the base branch, so the branch name must come from the same response. Reports that the verb returns before the monitor (a review finding, a red master gate) keep their place. The sentence \"required checks do not run\" is true only when the replaced result was `absent-required`.\n\nSolution this lean proposes: when the monitor ends with `absent-required` or `cap-reached`, the merge command reads the PR once from GitHub. If GitHub says the PR's merge state is `dirty`, the command reports a new outcome, `base-conflict`. Its error names the base branch and the fix: merge or rebase the base branch into the PR branch, resolve the conflicts, push, and run the command again. The exit code stays 1. If the read fails, or GitHub gives any other state, the command reports exactly what it reports today.\n\nWhat this adds: one REST read on two failing outcomes, one outcome name and one error text. No new gate, refusal, flag, exit code or stored state.\n\nWhat it does not do:\n- It does not check before the monitor starts. GitHub often has not computed the merge state yet at that point.\n- It does not change a report the verb returns before the monitor. Such a run reports that blocker first; the next run, after the fix, reports `base-conflict`.\n- It does not change the merge-queue `--resume` / `--wait` path.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:7709d433165362c7315e7ea42824a029ee5c60857dc24d2047294236c13df9d1\n**Spec-path:** Bound remedy on this lean\nSupersedes: Stop 1 write-back, comment 6940182563. Sibling count: 1 (comment 6940312614). Panel deposit: comment 6940182973.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Trigger. In `waitMergeableAndMerge`, after `classifyMonitorOutcome`, when the outcome is `absent-required` or `cap-reached`, the verb makes one REST read of `pulls/<N>`. This applies in direct mode and in merge-queue mode, because the monitor runs before the enqueue. No other outcome makes the read. A clean monitor run makes no extra call. The outcomes the verb returns before the monitor (preflight refusals, `semantic-green-blocked` and its named outcomes, `new-p0-p1`) are unchanged.\n2. Reader. One new reader in `packages/core/src/pr-wait-mergeable/` takes `mergeable_state` and `base.ref` from that one response. It is injectable through one new option on `WaitMergeableOptions`. Under the existing test-harness convention (`skipHumanMergeGate` or `VITEST`, no injected function) the read is skipped, as for `watchFn` and `mergeQueueDetectFn`.\n3. Conflict outcome. When `mergeable_state` is `dirty`, the verb reports the outcome `base-conflict` with exit 1 (`EXIT_TIMEOUT_OR_ESCALATION`). The error text:\n   - says that PR #N conflicts with its base branch and names that branch from `base.ref`, or says \"its base branch\" when `base.ref` is missing;\n   - says that required checks do not run on a conflicted PR, only when the replaced outcome is `absent-required`;\n   - names the fix: merge or rebase the base branch into the PR branch, resolve the conflicts, push, then run `task pr:wait-mergeable-and-merge` again;\n   - names the replaced monitor outcome.\n   The monitor payload stays in `monitor_result`.\n4. Fallback. When the read fails, cannot be parsed, or gives any state other than `dirty` (including `unknown`, null, `blocked`, `behind` and `unstable`, whatever `mergeable` says), the verb reports today's outcome, exit code and error text unchanged.\n5. Unchanged. No new exit code, flag, gate, refusal or stored state. The printed result label for exit 1 stays `TIMEOUT-OR-ESCALATION`; `outcome` and `error` carry the conflict. The merge-queue `--resume` / `--wait` path is not changed.\n6. Docs. The #6467 line under \"Known issues\" in `content/docs/github-merge-queue-setup.md` says that on 0.129.11 a conflicted PR shows `absent-required`, and that from the release with #6467 the verb reports `base-conflict` and names the fix. The line keeps `#6467` and `absent-required`, which the `merge_queue_playbook_6366` lock test requires.\n\n## Acceptance Criteria\n- Given a monitor result `absent-required` and a read with `mergeable_state` `dirty` and `base.ref` `master`, when the verb runs, then the outcome is `base-conflict`, the exit code is 1, and the error names the conflict with `master`, says required checks do not run on a conflicted PR, and names the merge-or-rebase fix.\n- Given a monitor result `cap-reached` and a read with `mergeable_state` `dirty`, when the verb runs, then the outcome is `base-conflict`, the exit code is 1, and the error names the conflict and the fix and does not say that required checks do not run.\n- Given a monitor result `absent-required` and a read with `mergeable_state` `blocked`, when the verb runs, then the outcome is `absent-required` and the error text is the same as today.\n- Given a monitor result `absent-required` and a read that fails, or gives `unknown` or null, when the verb runs, then the outcome is `absent-required` and the error text is the same as today.\n- Given a read with `mergeable_state` `dirty` and no `base.ref`, when the verb reports `base-conflict`, then the error says \"its base branch\" and still names the fix.\n- Given a clean monitor result, when the verb runs, then the conflict read is not made.\n- Given a SHA-matched `new-p0-p1` probe before the monitor, when the verb runs, then the outcome is `new-p0-p1` and the conflict read is not made.\n- Given merge-queue mode, a monitor result `absent-required` and a `dirty` read, when the verb runs, then the outcome is `base-conflict` and the PR is not enqueued.\n- Given `--json` and a `base-conflict` result, then standard output is one JSON document with `outcome` `base-conflict` and the error text.\n- `content/docs/github-merge-queue-setup.md` Known issues names `base-conflict` for #6467 and still contains `#6467` and `absent-required`.\n\n## Reject\n- A read before the monitor, or a branch on the queue-detection fetch of `pulls/<N>` (comment 6940312614, Road not taken: that first read is often `unknown`).\n- `mergeable` `false` as a conflict signal by itself (comment 6940312614, answer to question 3).\n- Reading `mergeable_state` from the monitor payload (comment 6940312614, finding 5: the main readiness path does not fill it when CI fails).\n- Folding `new-p0-p1` or a red master gate into `base-conflict` (comment 6940312614, finding 2: that would hide the review finding or the gate).\n- A new exit code for a conflict.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6940312614 | 1. The mergeability reader cannot name the base branch | sharpens-framing | accept-into-contract (items 2 and 3) |\n| comment 6940312614 | 2. The acceptance text is wider than the two endings | sharpens-framing | accept-into-contract (item 1; relief statement below) |\n| comment 6940312614 | 3. The checks sentence is wrong for a cap ending | sharpens-framing | accept-into-contract (item 3) |\n\nFootnotes in the census: comment 6940312614 finding 4 is taken into item 6 (the lock test); finding 5 needs no change (item 5 keeps the label; the monitor payload is not read for the state).\n\nRelief statement for P1 (finding 2): P1 is relieved for every run that reaches the monitor, which is every run whose PR has no earlier blocker. A run that returns before the monitor with a separate blocker (a SHA-matched P0/P1 finding, or a red master gate on the direct path) reports that blocker first, and the next run after it is fixed reports `base-conflict`. P2 and P3 are relieved by items 1, 3 and 4.\n\nRelay disclosure: the parent posted comment 6940312614 verbatim, after removing only the Grok progress narration printed before its `model:` line. The Grok seat's own shell was refused by the hook in the dest (the dest has no installed runtime under `process-only-no-install`), so it read the checked-out files; the dest HEAD equals the dispatch SHA, as the critic states. The parent re-read the cited lines with `git show 2f30fc5a4716fe53ad7011b0ea5da22debd5145d:<path>`: `merge-queue.ts` 116-130, `cascade.ts` 525-606 and 607-629, and `merge_queue_playbook_6366.test.ts` 35-43 match the findings.\n\nEdit disclosure: the parent edited this lean once after posting, only to put each `relieves` cite on its own line, the cite form the completed-arc parser reads. The Bound remedy and Acceptance Criteria are unchanged, so the harvest digest is unchanged.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The `relieves` cite stays open until a later critic targets it. This lean introduces no premise beyond the accepted findings, so it records no audit marker.\n\n",
+          "id": 6940335825,
+          "html_url": "https://github.com/deftai/directive/issues/6467#issuecomment-6940335825",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:11:37Z",
+          "updated_at": "2026-11-17T06:19:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:5f729e015bac1467fdbea5d1957b5fae85ea4920cdeb8325d85621669fe2e98e\n\n## In plain English\n\nThe shell hook in this worktree refused `git show` because `node_modules/@deftai/directive-runtime` is missing. The worktree HEAD file is `2f30fc5a4716fe53ad7011b0ea5da22debd5145d`, the dispatch SHA. The lines below are from that checkout.\n\nA pull request that conflicts with its base is reported as a conflict after the monitor finishes, and that covers all three pains. A run that stops before the monitor keeps the report it already returned. The one GitHub read runs only when that ending is `absent-required` or `cap-reached`, and that return sits before the merge-queue enqueue. A conflicted pull request cannot come back clean, because a clean result requires GitHub to say the pull request is mergeable and its merge state is `clean`, so the enqueue is not reached. When the pull request is not in conflict, a failed read or any other merge state leaves the missing-checks report as it is today.\n\npain-P1: holds - Item 1 leaves every return before the monitor unchanged (`cascade.ts` 436-604, monitor call at 607), so a review finding or a red master gate stays that report, and the next run that reaches the monitor can report the conflict. A dirty pull request that does reach the monitor ends `absent-required` or `cap-reached`: `merge_ready` is an empty failure list (`evaluate.ts` 196-198), and any state other than clean adds a failure (`compute.ts` 468-478, `mergeability.ts` 69-71), so `monitor.ts` 221-224 does not return clean. Those two endings become `base-conflict` and name the merge-or-rebase fix, and the return at `cascade.ts` 613-629 is before the enqueue at 763-780 in queue mode and on the direct path.\npain-P2: holds - Missing required checks escalate from CI data alone (`absent-required.ts` 30-48, `monitor.ts` 231-244) to outcome `absent-required`. Item 3 replaces that outcome with `base-conflict` when the one read returns `dirty`, which is the case this pain names.\npain-P3: holds - Item 4 keeps today's outcome, exit code, and error text when the read fails or `mergeable_state` is anything other than `dirty`, including `blocked`, `behind`, `unstable`, `unknown`, and null. That text is the non-clean return at `cascade.ts` 613-619. A pull request with no conflict stays on that path.\n\n",
+          "id": 6940438140,
+          "html_url": "https://github.com/deftai/directive/issues/6467#issuecomment-6940438140",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:17:35Z",
+          "updated_at": "2026-11-17T06:17:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6940335825. Dispatch SHA: 2f30fc5a4716fe53ad7011b0ea5da22debd5145d. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and the lean. Each row has a parent pin-read (`git show <sha>:<path>`) and a re-check by a Grok critic, a different model family, or is marked otherwise. No tests were run; every method is a source read at the pin. Both critic posts are from one family (Grok), so agreement between them is not counted as extra confirmation. The Grok seat read the dest's checked-out files because the dest hook refused its `git show`; the dest HEAD equals the dispatch SHA.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | Monitor `ABSENT-REQUIRED` or exit 4 maps to outcome `absent-required`, exit 1; nothing in that mapping reads `mergeable_state` | verified | parent pin-read of `packages/core/src/pr-wait-mergeable/classify.ts` 1-30; critic 6940312614 |\n| 2 | The monitor escalates absent-required from CI data only, and reads `mergeable_state` only for the heartbeat line | verified | parent pin-read of `packages/core/src/pr-monitor/monitor.ts` 92-114, 231-245 and `absent-required.ts` 30-48; audit 6940438140 (pain-P2) |\n| 3 | On the main readiness path the payload carries `mergeable_state` only after review and CI pass, so an absent-required payload usually lacks it | verified | parent pin-read of `packages/core/src/pr-merge-readiness/compute.ts` 455-480; critic 6940312614 finding 5 |\n| 4 | The verb returns any non-clean monitor outcome at `cascade.ts` 613-629, before the merge-queue enqueue at 763-780, so both modes pass the new read before any enqueue | verified | parent pin-read of `cascade.ts` 607-629 and 760-782; audit 6940438140 (pain-P1) |\n| 5 | A dirty PR cannot reach a clean monitor result: clean needs an empty failure list, and any state other than clean adds a failure | verified | parent pin-read of `monitor.ts` 218-224 and `evaluate.ts` 195-197; audit 6940438140 cites `compute.ts` 468-478 and `mergeability.ts` 69-71 |\n| 6 | `fetchMergeability` returns `mergeable_state` and `mergeable` but not `base.ref`; `fetchPrBaseRef` reads `base.ref` from the same `pulls/<N>` body | verified | parent pin-read of `pr-merge-readiness/mergeability.ts` 14-66 and `pr-wait-mergeable/merge-queue.ts` 116-130; critic 6940312614 finding 1 |\n| 7 | `semantic-green-blocked` (direct path) and `new-p0-p1` return before the monitor and are left unchanged | verified | parent pin-read of `cascade.ts` 555-604; critic 6940312614 finding 2 |\n| 8 | The `merge_queue_playbook_6366` lock test requires the Known issues section to contain `#6467` and `absent-required` | verified | parent pin-read of `packages/core/src/content-contracts/skills/merge_queue_playbook_6366.test.ts` 35-43; critic 6940312614 finding 4 |\n| 9 | The Bound remedy relieves pains P1, P2 and P3 | verified as design coverage | audit 6940438140 (`pain-P1: holds`, `pain-P2: holds`, `pain-P3: holds`, `finding-classes: none`, `harvest-changed: false`, digest equal to the lean's) |\n| 10 | GitHub reports `mergeable_state` `dirty` for a conflicted PR whose required checks are absent, once it has computed the state | endorsed, not verified | GitHub behaviour; nothing was executed. The implementer covers the verb's handling with the tests the Acceptance Criteria name |\n\n",
+          "id": 6940449292,
+          "html_url": "https://github.com/deftai/directive/issues/6467#issuecomment-6940449292",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:18:15Z",
+          "updated_at": "2026-11-17T06:18:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: when a PR conflicts with its base branch, GitHub does not run the PR's CI, so the required checks never appear. The merge command waited, saw the checks missing, and reported `absent-required`. Workers read that as a CI problem and waited or escalated, while the real fix was to merge or rebase the base branch.\n\nAccepted solution: when the monitor ends with `absent-required` or `cap-reached`, the merge command reads the PR once from GitHub. If GitHub says the PR's merge state is `dirty`, the command reports a new outcome, `base-conflict`, with exit 1 as before. Its error names the base branch and the fix: merge or rebase the base branch into the PR branch, resolve the conflicts, push, and run the command again. It says that required checks do not run on a conflicted PR only when the replaced result was `absent-required`. If the read fails, or GitHub gives any other state, the command reports exactly what it reports today. The read happens before any merge-queue enqueue, so a conflicted PR is never queued.\n\nLimits accepted: reports that the command returns before the monitor (a review finding, a red master gate) keep their place; the next run after that fix reports the conflict. There is no check before the monitor starts. The merge-queue `--resume` / `--wait` path is unchanged. The design adds one read on two failing outcomes, one outcome name and one error text, and no new gate, refusal, flag, exit code or stored state. The design was checked by reading the source at the pinned commit; no code was run. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6940335825.\nverified-claims table 6940449292\n\nConfirm conjunct: yolo standing (Stop 1 6940182563, `yolo-standing: on`). Round-1 critic: comment 6940312614, posted by the parent verbatim as disclosed on panel-deposit 6940182973 and lean 6940335825; all three classified findings are accepted on the lean. Clean audit: comment 6940438140 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's). Critic posts used: 2 of 6.\n\n",
+          "id": 6940449710,
+          "html_url": "https://github.com/deftai/directive/issues/6467#issuecomment-6940449710",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:18:16Z",
+          "updated_at": "2026-11-17T06:18:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** second successor lean under Stop 1 6940182563 (round 1: 1 of 1 critic posted, comment 6940312614). Format recut of lean 6940335825: Bound remedy item 3 is now one line, because `issue:ingest` reads each item as one line and refused the sub-list. No mechanism, wording or Acceptance Criteria change.\n\n## In plain English\nProblem: when a PR conflicts with its base branch, GitHub does not run the PR's CI, so the required checks never appear. The merge command waits, sees the checks are missing, and reports `absent-required`. A worker reads that as a CI problem and waits or escalates. The real fix is to merge or rebase the base branch.\n\nWhat the critic found: the recommended fix is right and can bind. Keep the one read after the monitor, and keep `cap-reached` in it. A conflicted PR that also has a failed or still-running check never becomes `absent-required` and would otherwise end as a timeout. Three points were made sharper. The existing mergeability reader does not return the base branch, so the branch name must come from the same response. Reports that the verb returns before the monitor (a review finding, a red master gate) keep their place. The sentence \"required checks do not run\" is true only when the replaced result was `absent-required`.\n\nSolution this lean proposes: when the monitor ends with `absent-required` or `cap-reached`, the merge command reads the PR once from GitHub. If GitHub says the PR's merge state is `dirty`, the command reports a new outcome, `base-conflict`. Its error names the base branch and the fix: merge or rebase the base branch into the PR branch, resolve the conflicts, push, and run the command again. The exit code stays 1. If the read fails, or GitHub gives any other state, the command reports exactly what it reports today.\n\nWhat this adds: one REST read on two failing outcomes, one outcome name and one error text. No new gate, refusal, flag, exit code or stored state.\n\nWhat it does not do:\n- It does not check before the monitor starts. GitHub often has not computed the merge state yet at that point.\n- It does not change a report the verb returns before the monitor. Such a run reports that blocker first; the next run, after the fix, reports `base-conflict`.\n- It does not change the merge-queue `--resume` / `--wait` path.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:7709d433165362c7315e7ea42824a029ee5c60857dc24d2047294236c13df9d1\n**Spec-path:** Bound remedy on this lean\nSupersedes: lean 6940335825 (format only) and the Stop 1 write-back, comment 6940182563. Sibling count: 1 (comment 6940312614). Panel deposit: comment 6940182973.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Trigger. In `waitMergeableAndMerge`, after `classifyMonitorOutcome`, when the outcome is `absent-required` or `cap-reached`, the verb makes one REST read of `pulls/<N>`. This applies in direct mode and in merge-queue mode, because the monitor runs before the enqueue. No other outcome makes the read. A clean monitor run makes no extra call. The outcomes the verb returns before the monitor (preflight refusals, `semantic-green-blocked` and its named outcomes, `new-p0-p1`) are unchanged.\n2. Reader. One new reader in `packages/core/src/pr-wait-mergeable/` takes `mergeable_state` and `base.ref` from that one response. It is injectable through one new option on `WaitMergeableOptions`. Under the existing test-harness convention (`skipHumanMergeGate` or `VITEST`, no injected function) the read is skipped, as for `watchFn` and `mergeQueueDetectFn`.\n3. Conflict outcome. When `mergeable_state` is `dirty`, the verb reports the outcome `base-conflict` with exit 1 (`EXIT_TIMEOUT_OR_ESCALATION`); its error text says that PR #N conflicts with its base branch and names that branch from `base.ref` (or says \"its base branch\" when `base.ref` is missing), says that required checks do not run on a conflicted PR only when the replaced outcome is `absent-required`, names the fix (merge or rebase the base branch into the PR branch, resolve the conflicts, push, then run `task pr:wait-mergeable-and-merge` again), and names the replaced monitor outcome; the monitor payload stays in `monitor_result`.\n4. Fallback. When the read fails, cannot be parsed, or gives any state other than `dirty` (including `unknown`, null, `blocked`, `behind` and `unstable`, whatever `mergeable` says), the verb reports today's outcome, exit code and error text unchanged.\n5. Unchanged. No new exit code, flag, gate, refusal or stored state. The printed result label for exit 1 stays `TIMEOUT-OR-ESCALATION`; `outcome` and `error` carry the conflict. The merge-queue `--resume` / `--wait` path is not changed.\n6. Docs. The #6467 line under \"Known issues\" in `content/docs/github-merge-queue-setup.md` says that on 0.129.11 a conflicted PR shows `absent-required`, and that from the release with #6467 the verb reports `base-conflict` and names the fix. The line keeps `#6467` and `absent-required`, which the `merge_queue_playbook_6366` lock test requires.\n\n## Acceptance Criteria\n- Given a monitor result `absent-required` and a read with `mergeable_state` `dirty` and `base.ref` `master`, when the verb runs, then the outcome is `base-conflict`, the exit code is 1, and the error names the conflict with `master`, says required checks do not run on a conflicted PR, and names the merge-or-rebase fix.\n- Given a monitor result `cap-reached` and a read with `mergeable_state` `dirty`, when the verb runs, then the outcome is `base-conflict`, the exit code is 1, and the error names the conflict and the fix and does not say that required checks do not run.\n- Given a monitor result `absent-required` and a read with `mergeable_state` `blocked`, when the verb runs, then the outcome is `absent-required` and the error text is the same as today.\n- Given a monitor result `absent-required` and a read that fails, or gives `unknown` or null, when the verb runs, then the outcome is `absent-required` and the error text is the same as today.\n- Given a read with `mergeable_state` `dirty` and no `base.ref`, when the verb reports `base-conflict`, then the error says \"its base branch\" and still names the fix.\n- Given a clean monitor result, when the verb runs, then the conflict read is not made.\n- Given a SHA-matched `new-p0-p1` probe before the monitor, when the verb runs, then the outcome is `new-p0-p1` and the conflict read is not made.\n- Given merge-queue mode, a monitor result `absent-required` and a `dirty` read, when the verb runs, then the outcome is `base-conflict` and the PR is not enqueued.\n- Given `--json` and a `base-conflict` result, then standard output is one JSON document with `outcome` `base-conflict` and the error text.\n- `content/docs/github-merge-queue-setup.md` Known issues names `base-conflict` for #6467 and still contains `#6467` and `absent-required`.\n\n## Reject\n- A read before the monitor, or a branch on the queue-detection fetch of `pulls/<N>` (comment 6940312614, Road not taken: that first read is often `unknown`).\n- `mergeable` `false` as a conflict signal by itself (comment 6940312614, answer to question 3).\n- Reading `mergeable_state` from the monitor payload (comment 6940312614, finding 5: the main readiness path does not fill it when CI fails).\n- Folding `new-p0-p1` or a red master gate into `base-conflict` (comment 6940312614, finding 2: that would hide the review finding or the gate).\n- A new exit code for a conflict.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6940312614 | 1. The mergeability reader cannot name the base branch | sharpens-framing | accept-into-contract (items 2 and 3) |\n| comment 6940312614 | 2. The acceptance text is wider than the two endings | sharpens-framing | accept-into-contract (item 1; relief statement below) |\n| comment 6940312614 | 3. The checks sentence is wrong for a cap ending | sharpens-framing | accept-into-contract (item 3) |\n\nFootnotes in the census: comment 6940312614 finding 4 is taken into item 6 (the lock test); finding 5 needs no change (item 5 keeps the label; the monitor payload is not read for the state).\n\nRelief statement for P1 (finding 2): P1 is relieved for every run that reaches the monitor, which is every run whose PR has no earlier blocker. A run that returns before the monitor with a separate blocker (a SHA-matched P0/P1 finding, or a red master gate on the direct path) reports that blocker first, and the next run after it is fixed reports `base-conflict`. P2 and P3 are relieved by items 1, 3 and 4.\n\nRelay disclosure: the parent posted comment 6940312614 verbatim, after removing only the Grok progress narration printed before its `model:` line. The Grok seat's own shell was refused by the hook in the dest (the dest has no installed runtime under `process-only-no-install`), so it read the checked-out files; the dest HEAD equals the dispatch SHA, as the critic states. The parent re-read the cited lines with `git show 2f30fc5a4716fe53ad7011b0ea5da22debd5145d:<path>`: `merge-queue.ts` 116-130, `cascade.ts` 525-606 and 607-629, and `merge_queue_playbook_6366.test.ts` 35-43 match the findings.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The `relieves` cite stays open until a later critic targets it. This lean changes only the layout of item 3 against lean 6940335825 and introduces no premise beyond the accepted findings, so it records no audit marker.\n\n",
+          "id": 6940541014,
+          "html_url": "https://github.com/deftai/directive/issues/6467#issuecomment-6940541014",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:23:40Z",
+          "updated_at": "2026-11-17T06:23:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:91f01470a0f4d843b4ae3242bba9daa8f1a371d3468f74b656aaae1b309697b7\n\n## In plain English\n\nThe shell hook in this worktree refused `git show` because `node_modules/@deftai/directive-runtime` is missing. The worktree HEAD file is `2f30fc5a4716fe53ad7011b0ea5da22debd5145d`, the dispatch SHA. These notes are from that checkout.\n\nA pull request that conflicts with its base is still reported as a conflict after the monitor finishes, and that covers all three pains. The new one-line conflict item says the same thing as the earlier sub-list: the outcome is `base-conflict`, the exit code stays 1, the error names the base branch when GitHub sent one and says \"its base branch\" when the name is missing, it mentions missing checks only for an `absent-required` ending, it names the merge-or-rebase fix and the monitor ending it replaced, and the monitor payload stays on the result. The other remedy items and the acceptance list match the earlier lean word for word. The opening line, the supersedes line, and the closing note are the only other differences. A run that stops before the monitor keeps the report it already returned. The one GitHub read runs only for `absent-required` or `cap-reached`, and that return sits before any merge-queue enqueue. When the pull request has no conflict, a failed read or any other merge state leaves the missing-checks report as it is today.\n\npain-P1: holds - Item 3 still reports `base-conflict` at exit 1 when the one read is `dirty`, and the error still names the conflict with the base and the merge-or-rebase fix. Item 1 still limits that read to a monitor ending of `absent-required` or `cap-reached`, after `classifyMonitorOutcome` (`cascade.ts` 607-629). Returns before the monitor stay as they are (`cascade.ts` 436-605). A dirty pull request that reaches the monitor is not a clean result: `isMergeReady` is an empty failure list (`evaluate.ts` 196-198), and `finalizeVerdictGate` adds a failure unless GitHub reports mergeable and `clean` (`compute.ts` 468-478`, `mergeability.ts` 68-71) on both the primary and fallback1 paths (`compute.ts` 556-562` and 612). The monitor returns clean only for that ready result (`monitor.ts` 221-224). The return at `cascade.ts` 613-629 is before queue enqueue at `cascade.ts` 763-780. `--resume` calls `resumeMergeQueueRead` and never enters this function (`main.ts` 274-289).\npain-P2: holds - Missing required checks escalate from CI data alone (`absent-required.ts` 30-48, `monitor.ts` 231-244), and `classify.ts` 16-17 and 27-28 map that to `absent-required`. Item 3 replaces that outcome with `base-conflict` when the one read is `dirty`.\npain-P3: holds - Item 4 keeps today's outcome, exit code, and error text when the read fails or `mergeable_state` is any value other than `dirty`, including `blocked`, `behind`, `unstable`, `unknown`, and null. That text is the return at `cascade.ts` 613-619. A pull request with no conflict stays on that path.\n\n",
+          "id": 6940618213,
+          "html_url": "https://github.com/deftai/directive/issues/6467#issuecomment-6940618213",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:28:13Z",
+          "updated_at": "2026-11-17T06:28:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6940541014 (format recut of lean 6940335825; Bound remedy item 3 is on one line, with no change of meaning). Dispatch SHA: 2f30fc5a4716fe53ad7011b0ea5da22debd5145d. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and the lean. Each row has a parent pin-read (`git show <sha>:<path>`) and a re-check by a Grok critic, a different model family, or is marked otherwise. No tests were run; every method is a source read at the pin. Both critic posts are from one family (Grok), so agreement between them is not counted as extra confirmation. The Grok seat read the dest's checked-out files because the dest hook refused its `git show`; the dest HEAD equals the dispatch SHA.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | Monitor `ABSENT-REQUIRED` or exit 4 maps to outcome `absent-required`, exit 1; nothing in that mapping reads `mergeable_state` | verified | parent pin-read of `packages/core/src/pr-wait-mergeable/classify.ts` 1-30; critic 6940312614 |\n| 2 | The monitor escalates absent-required from CI data only, and reads `mergeable_state` only for the heartbeat line | verified | parent pin-read of `packages/core/src/pr-monitor/monitor.ts` 92-114, 231-245 and `absent-required.ts` 30-48; audit 6940618213 (pain-P2) |\n| 3 | On the main readiness path the payload carries `mergeable_state` only after review and CI pass, so an absent-required payload usually lacks it | verified | parent pin-read of `packages/core/src/pr-merge-readiness/compute.ts` 455-480; critic 6940312614 finding 5 |\n| 4 | The verb returns any non-clean monitor outcome at `cascade.ts` 613-629, before the merge-queue enqueue at 763-780, so both modes pass the new read before any enqueue | verified | parent pin-read of `cascade.ts` 607-629 and 760-782; audit 6940618213 (pain-P1) |\n| 5 | A dirty PR cannot reach a clean monitor result: clean needs an empty failure list, and any state other than clean adds a failure | verified | parent pin-read of `monitor.ts` 218-224 and `evaluate.ts` 195-197; audit 6940618213 cites `compute.ts` 468-478 and `mergeability.ts` 69-71 |\n| 6 | `fetchMergeability` returns `mergeable_state` and `mergeable` but not `base.ref`; `fetchPrBaseRef` reads `base.ref` from the same `pulls/<N>` body | verified | parent pin-read of `pr-merge-readiness/mergeability.ts` 14-66 and `pr-wait-mergeable/merge-queue.ts` 116-130; critic 6940312614 finding 1 |\n| 7 | `semantic-green-blocked` (direct path) and `new-p0-p1` return before the monitor and are left unchanged | verified | parent pin-read of `cascade.ts` 555-604; critic 6940312614 finding 2 |\n| 8 | The `merge_queue_playbook_6366` lock test requires the Known issues section to contain `#6467` and `absent-required` | verified | parent pin-read of `packages/core/src/content-contracts/skills/merge_queue_playbook_6366.test.ts` 35-43; critic 6940312614 finding 4 |\n| 9 | The Bound remedy relieves pains P1, P2 and P3 | verified as design coverage | audit 6940618213 on lean 6940541014 (`pain-P1: holds`, `pain-P2: holds`, `pain-P3: holds`, `finding-classes: none`, `harvest-changed: false`, digest equal to the lean's); earlier audit 6940438140 on lean 6940335825 gave the same result |\n| 11 | Lean 6940541014 differs from lean 6940335825 only in the layout of item 3, the opening line, the supersedes line and the closing note | verified | parent diff of the two lean files; audit 6940618213 states the same |\n| 10 | GitHub reports `mergeable_state` `dirty` for a conflicted PR whose required checks are absent, once it has computed the state | endorsed, not verified | GitHub behaviour; nothing was executed. The implementer covers the verb's handling with the tests the Acceptance Criteria name |\n\n",
+          "id": 6940622688,
+          "html_url": "https://github.com/deftai/directive/issues/6467#issuecomment-6940622688",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:28:28Z",
+          "updated_at": "2026-11-17T06:28:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: when a PR conflicts with its base branch, GitHub does not run the PR's CI, so the required checks never appear. The merge command waited, saw the checks missing, and reported `absent-required`. Workers read that as a CI problem and waited or escalated, while the real fix was to merge or rebase the base branch.\n\nAccepted solution: when the monitor ends with `absent-required` or `cap-reached`, the merge command reads the PR once from GitHub. If GitHub says the PR's merge state is `dirty`, the command reports a new outcome, `base-conflict`, with exit 1 as before. Its error names the base branch and the fix: merge or rebase the base branch into the PR branch, resolve the conflicts, push, and run the command again. It says that required checks do not run on a conflicted PR only when the replaced result was `absent-required`. If the read fails, or GitHub gives any other state, the command reports exactly what it reports today. The read happens before any merge-queue enqueue, so a conflicted PR is never queued.\n\nLimits accepted: reports that the command returns before the monitor (a review finding, a red master gate) keep their place; the next run after that fix reports the conflict. There is no check before the monitor starts. The merge-queue `--resume` / `--wait` path is unchanged. The design adds one read on two failing outcomes, one outcome name and one error text, and no new gate, refusal, flag, exit code or stored state. The design was checked by reading the source at the pinned commit; no code was run. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6940541014.\nverified-claims table 6940622688\n\nConfirm conjunct: yolo standing (Stop 1 6940182563, `yolo-standing: on`). Round-1 critic: comment 6940312614, posted by the parent verbatim as disclosed on panel-deposit 6940182973 and the leans; all three classified findings are accepted on the lean. Clean audit: comment 6940618213 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's). This record supersedes synthesis 6940449710, which cited lean 6940335825: `issue:ingest` refused that lean because Bound remedy item 3 was a sub-list, so lean 6940541014 puts it on one line with no change of meaning, and audit 6940618213 re-checked it. Critic posts used: 3 of 6.\n\n",
+          "id": 6940623062,
+          "html_url": "https://github.com/deftai/directive/issues/6467#issuecomment-6940623062",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:28:30Z",
+          "updated_at": "2026-11-17T06:28:30Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nWhen a PR conflicts with its base branch, `pr:wait-mergeable-and-merge` reports `absent-required` (TIMEOUT-OR-ESCALATION), not a conflict. GitHub does not run `pull_request` CI on a conflicted PR, so the required checks never appear. The worker reads this as a CI problem and waits or escalates. The merge queue says `removed` / `merge_conflict` only after a full cycle.\n\n## Evidence\n\n- `packages/core/src/pr-wait-mergeable/classify.ts` (origin/master `7aef28cb5`): monitor exit 4, or `monitor_result: ABSENT-REQUIRED`, maps to outcome `absent-required`. No branch reads `mergeable_state`.\n- `packages/core/src/pr-monitor/monitor.ts`: `mergeable_state` is read only by `mergeStateFromPayload` for the per-poll heartbeat line. It does not change the result.\n- `packages/core/src/pr-monitor/absent-required.ts`: `readAbsentRequiredContexts` decides from CI data only.\n- Seen on 2026-11-16 after the v0.129.11 release commit: #6451 and #6456 (#6409 completion), #6447 and #6450 (#6336 completion), and #6452. Each one was reported as `absent-required` while the real cause was a conflict with master (reported by a worker, not re-read).\n\n## Acceptance Criteria\n\n- Given a PR whose `mergeable_state` is `dirty`, when `pr:wait-mergeable-and-merge` runs, then it reports a conflict outcome that says the PR conflicts with its base and names the fix (merge or rebase the base branch).\n- Given a PR whose `mergeable_state` is `dirty`, when its required checks are absent, then the verb does not report `absent-required`.\n- Given a PR with no conflict and missing required checks, when the verb runs, then it still reports `absent-required` as today.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6432923326,
+        "origin": "deftai/directive#6467",
+        "id": "github.issue.6432923326"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "7709d433165362c7315e7ea42824a029ee5c60857dc24d2047294236c13df9d1"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6467,
+        "leanCommentId": 6940541014,
+        "harvestDigest": "91f01470a0f4d843b4ae3242bba9daa8f1a371d3468f74b656aaae1b309697b7",
+        "slice": null
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (16), in list order (#6333)",
+      "sentences": [
+        "Trigger. In `waitMergeableAndMerge`, after `classifyMonitorOutcome`, when the outcome is `absent-required` or `cap-reached`, the verb makes one REST read of `pulls/<N>`. This applies in direct mode and in merge-queue mode, because the monitor runs before the enqueue. No other outcome makes the read. A clean monitor run makes no extra call. The outcomes the verb returns before the monitor (preflight refusals, `semantic-green-blocked` and its named outcomes, `new-p0-p1`) are unchanged.",
+        "Reader. One new reader in `packages/core/src/pr-wait-mergeable/` takes `mergeable_state` and `base.ref` from that one response. It is injectable through one new option on `WaitMergeableOptions`. Under the existing test-harness convention (`skipHumanMergeGate` or `VITEST`, no injected function) the read is skipped, as for `watchFn` and `mergeQueueDetectFn`.",
+        "Conflict outcome. When `mergeable_state` is `dirty`, the verb reports the outcome `base-conflict` with exit 1 (`EXIT_TIMEOUT_OR_ESCALATION`); its error text says that PR #N conflicts with its base branch and names that branch from `base.ref` (or says \"its base branch\" when `base.ref` is missing), says that required checks do not run on a conflicted PR only when the replaced outcome is `absent-required`, names the fix (merge or rebase the base branch into the PR branch, resolve the conflicts, push, then run `task pr:wait-mergeable-and-merge` again), and names the replaced monitor outcome; the monitor payload stays in `monitor_result`.",
+        "Fallback. When the read fails, cannot be parsed, or gives any state other than `dirty` (including `unknown`, null, `blocked`, `behind` and `unstable`, whatever `mergeable` says), the verb reports today's outcome, exit code and error text unchanged.",
+        "Unchanged. No new exit code, flag, gate, refusal or stored state. The printed result label for exit 1 stays `TIMEOUT-OR-ESCALATION`; `outcome` and `error` carry the conflict. The merge-queue `--resume` / `--wait` path is not changed.",
+        "Docs. The #6467 line under \"Known issues\" in `content/docs/github-merge-queue-setup.md` says that on 0.129.11 a conflicted PR shows `absent-required`, and that from the release with #6467 the verb reports `base-conflict` and names the fix. The line keeps `#6467` and `absent-required`, which the `merge_queue_playbook_6366` lock test requires.",
+        "Given a monitor result `absent-required` and a read with `mergeable_state` `dirty` and `base.ref` `master`, when the verb runs, then the outcome is `base-conflict`, the exit code is 1, and the error names the conflict with `master`, says required checks do not run on a conflicted PR, and names the merge-or-rebase fix.",
+        "Given a monitor result `cap-reached` and a read with `mergeable_state` `dirty`, when the verb runs, then the outcome is `base-conflict`, the exit code is 1, and the error names the conflict and the fix and does not say that required checks do not run.",
+        "Given a monitor result `absent-required` and a read with `mergeable_state` `blocked`, when the verb runs, then the outcome is `absent-required` and the error text is the same as today.",
+        "Given a monitor result `absent-required` and a read that fails, or gives `unknown` or null, when the verb runs, then the outcome is `absent-required` and the error text is the same as today.",
+        "Given a read with `mergeable_state` `dirty` and no `base.ref`, when the verb reports `base-conflict`, then the error says \"its base branch\" and still names the fix.",
+        "Given a clean monitor result, when the verb runs, then the conflict read is not made.",
+        "Given a SHA-matched `new-p0-p1` probe before the monitor, when the verb runs, then the outcome is `new-p0-p1` and the conflict read is not made.",
+        "Given merge-queue mode, a monitor result `absent-required` and a `dirty` read, when the verb runs, then the outcome is `base-conflict` and the PR is not enqueued.",
+        "Given `--json` and a `base-conflict` result, then standard output is one JSON document with `outcome` `base-conflict` and the error text.",
+        "`content/docs/github-merge-queue-setup.md` Known issues names `base-conflict` for #6467 and still contains `#6467` and `absent-required`."
+      ],
+      "admitted_source_sentences": [
+        "Trigger. In `waitMergeableAndMerge`, after `classifyMonitorOutcome`, when the outcome is `absent-required` or `cap-reached`, the verb makes one REST read of `pulls/<N>`. This applies in direct mode and in merge-queue mode, because the monitor runs before the enqueue. No other outcome makes the read. A clean monitor run makes no extra call. The outcomes the verb returns before the monitor (preflight refusals, `semantic-green-blocked` and its named outcomes, `new-p0-p1`) are unchanged.",
+        "Reader. One new reader in `packages/core/src/pr-wait-mergeable/` takes `mergeable_state` and `base.ref` from that one response. It is injectable through one new option on `WaitMergeableOptions`. Under the existing test-harness convention (`skipHumanMergeGate` or `VITEST`, no injected function) the read is skipped, as for `watchFn` and `mergeQueueDetectFn`.",
+        "Conflict outcome. When `mergeable_state` is `dirty`, the verb reports the outcome `base-conflict` with exit 1 (`EXIT_TIMEOUT_OR_ESCALATION`); its error text says that PR #N conflicts with its base branch and names that branch from `base.ref` (or says \"its base branch\" when `base.ref` is missing), says that required checks do not run on a conflicted PR only when the replaced outcome is `absent-required`, names the fix (merge or rebase the base branch into the PR branch, resolve the conflicts, push, then run `task pr:wait-mergeable-and-merge` again), and names the replaced monitor outcome; the monitor payload stays in `monitor_result`.",
+        "Fallback. When the read fails, cannot be parsed, or gives any state other than `dirty` (including `unknown`, null, `blocked`, `behind` and `unstable`, whatever `mergeable` says), the verb reports today's outcome, exit code and error text unchanged.",
+        "Unchanged. No new exit code, flag, gate, refusal or stored state. The printed result label for exit 1 stays `TIMEOUT-OR-ESCALATION`; `outcome` and `error` carry the conflict. The merge-queue `--resume` / `--wait` path is not changed.",
+        "Docs. The #6467 line under \"Known issues\" in `content/docs/github-merge-queue-setup.md` says that on 0.129.11 a conflicted PR shows `absent-required`, and that from the release with #6467 the verb reports `base-conflict` and names the fix. The line keeps `#6467` and `absent-required`, which the `merge_queue_playbook_6366` lock test requires.",
+        "Given a monitor result `absent-required` and a read with `mergeable_state` `dirty` and `base.ref` `master`, when the verb runs, then the outcome is `base-conflict`, the exit code is 1, and the error names the conflict with `master`, says required checks do not run on a conflicted PR, and names the merge-or-rebase fix.",
+        "Given a monitor result `cap-reached` and a read with `mergeable_state` `dirty`, when the verb runs, then the outcome is `base-conflict`, the exit code is 1, and the error names the conflict and the fix and does not say that required checks do not run.",
+        "Given a monitor result `absent-required` and a read with `mergeable_state` `blocked`, when the verb runs, then the outcome is `absent-required` and the error text is the same as today.",
+        "Given a monitor result `absent-required` and a read that fails, or gives `unknown` or null, when the verb runs, then the outcome is `absent-required` and the error text is the same as today.",
+        "Given a read with `mergeable_state` `dirty` and no `base.ref`, when the verb reports `base-conflict`, then the error says \"its base branch\" and still names the fix.",
+        "Given a clean monitor result, when the verb runs, then the conflict read is not made.",
+        "Given a SHA-matched `new-p0-p1` probe before the monitor, when the verb runs, then the outcome is `new-p0-p1` and the conflict read is not made.",
+        "Given merge-queue mode, a monitor result `absent-required` and a `dirty` read, when the verb runs, then the outcome is `base-conflict` and the PR is not enqueued.",
+        "Given `--json` and a `base-conflict` result, then standard output is one JSON document with `outcome` `base-conflict` and the error text.",
+        "`content/docs/github-merge-queue-setup.md` Known issues names `base-conflict` for #6467 and still contains `#6467` and `absent-required`."
+      ],
+      "admitted_source_digest": "9dab0ca4f515167c3766031cbc959dcc05a00211cb6c014a3a874bb0eccf8680",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Trigger. In `waitMergeableAndMerge`, after `classifyMonitorOutcome`, when the outcome is `absent-required` or `cap-reached`, the verb makes one REST read of `pulls/<N>`. This applies in direct mode and in merge-queue mode, because the monitor runs before the enqueue. No other outcome makes the read. A clean monitor run makes no extra call. The outcomes the verb returns before the monitor (preflight refusals, `semantic-green-blocked` and its named outcomes, `new-p0-p1`) are unchanged.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/cascade.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Reader. One new reader in `packages/core/src/pr-wait-mergeable/` takes `mergeable_state` and `base.ref` from that one response. It is injectable through one new option on `WaitMergeableOptions`. Under the existing test-harness convention (`skipHumanMergeGate` or `VITEST`, no injected function) the read is skipped, as for `watchFn` and `mergeQueueDetectFn`.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/base-conflict.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Conflict outcome. When `mergeable_state` is `dirty`, the verb reports the outcome `base-conflict` with exit 1 (`EXIT_TIMEOUT_OR_ESCALATION`); its error text says that PR #N conflicts with its base branch and names that branch from `base.ref` (or says \"its base branch\" when `base.ref` is missing), says that required checks do not run on a conflicted PR only when the replaced outcome is `absent-required`, names the fix (merge or rebase the base branch into the PR branch, resolve the conflicts, push, then run `task pr:wait-mergeable-and-merge` again), and names the replaced monitor outcome; the monitor payload stays in `monitor_result`.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/cascade.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Fallback. When the read fails, cannot be parsed, or gives any state other than `dirty` (including `unknown`, null, `blocked`, `behind` and `unstable`, whatever `mergeable` says), the verb reports today's outcome, exit code and error text unchanged.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/cascade.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Unchanged. No new exit code, flag, gate, refusal or stored state. The printed result label for exit 1 stays `TIMEOUT-OR-ESCALATION`; `outcome` and `error` carry the conflict. The merge-queue `--resume` / `--wait` path is not changed.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/cascade.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Docs. The #6467 line under \"Known issues\" in `content/docs/github-merge-queue-setup.md` says that on 0.129.11 a conflicted PR shows `absent-required`, and that from the release with #6467 the verb reports `base-conflict` and names the fix. The line keeps `#6467` and `absent-required`, which the `merge_queue_playbook_6366` lock test requires.",
+          "artifact_path": "content/docs/github-merge-queue-setup.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Given a monitor result `absent-required` and a read with `mergeable_state` `dirty` and `base.ref` `master`, when the verb runs, then the outcome is `base-conflict`, the exit code is 1, and the error names the conflict with `master`, says required checks do not run on a conflicted PR, and names the merge-or-rebase fix.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/base-conflict.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given a monitor result `cap-reached` and a read with `mergeable_state` `dirty`, when the verb runs, then the outcome is `base-conflict`, the exit code is 1, and the error names the conflict and the fix and does not say that required checks do not run.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/base-conflict.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given a monitor result `absent-required` and a read with `mergeable_state` `blocked`, when the verb runs, then the outcome is `absent-required` and the error text is the same as today.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/base-conflict.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given a monitor result `absent-required` and a read that fails, or gives `unknown` or null, when the verb runs, then the outcome is `absent-required` and the error text is the same as today.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/base-conflict.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given a read with `mergeable_state` `dirty` and no `base.ref`, when the verb reports `base-conflict`, then the error says \"its base branch\" and still names the fix.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/base-conflict.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given a clean monitor result, when the verb runs, then the conflict read is not made.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/base-conflict.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given a SHA-matched `new-p0-p1` probe before the monitor, when the verb runs, then the outcome is `new-p0-p1` and the conflict read is not made.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/base-conflict.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given merge-queue mode, a monitor result `absent-required` and a `dirty` read, when the verb runs, then the outcome is `base-conflict` and the PR is not enqueued.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/base-conflict.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given `--json` and a `base-conflict` result, then standard output is one JSON document with `outcome` `base-conflict` and the error text.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/base-conflict.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "`content/docs/github-merge-queue-setup.md` Known issues names `base-conflict` for #6467 and still contains `#6467` and `absent-required`.",
+          "artifact_path": "content/docs/github-merge-queue-setup.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": []
+    },
+    "id": "github.issue.6432923326",
+    "updated": "2026-11-17T06:36:06Z"
+  }
+}
