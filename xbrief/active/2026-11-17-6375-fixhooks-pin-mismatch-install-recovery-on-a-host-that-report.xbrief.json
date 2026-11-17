@@ -1,0 +1,1142 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6375",
+    "updated": "2026-11-17T14:57:20Z"
+  },
+  "plan": {
+    "title": "fix(hooks): pin-mismatch install recovery on a host that reports no run directory (Codex)",
+    "status": "running",
+    "narratives": {
+      "Description": "After a pin bump the hook refuses every shell command until the project's packages are installed again. On a host that does not report where a command runs (Codex), the hook also refuses the install itself, and the refusal names no directory and no exact command, so nobody can follow it. This story keeps the admit as it is and rewrites the pin-mismatch-only refusal: a labelled project-root line, an instruction to use a terminal outside the blocked session at that directory, the plain install of the package manager whose lockfile is at that root, and a retry note.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6375",
+      "Overview": "\n1. The pin-mismatch recovery admit does not change. The three exact commands, the simple-command grammar and the run-directory proof stay as they are. No install form that names its own directory (`--dir`, `--prefix`, `-C`) is admitted. A plain `pnpm install` stays refused inside the session.\n2. Root line. When pin mismatch is the only fault, the refusal shows the project root that the hook resolved and passed to the install check, after the existing launching-checkout guard. It is a labelled line of its own, with control characters escaped, and it is not placed inside shell syntax. No second root resolver is added.\n3. Where to run. The text says to open a terminal outside the blocked agent session at that directory.\n4. Command by package manager only. The refusal uses `readLockfileRuntimeVersion` at that root for its `kind` and ignores the version it returns. Kind `pnpm` gives the command `pnpm install`. Kind `npm` gives the command `npm install`. Kind `absent` gives no exact command: the text says that no lockfile was found at that directory and tells the reader to run the project's own install from the directory that holds its lockfile. For `pnpm` and `npm` the text adds one sentence: the frozen form (`pnpm install --frozen-lockfile` or `npm ci`) can be used instead when the lockfile already records the pin.\n5. After the install. The text says to retry the command once the installed runtime matches the pin, that this pin-mismatch check needs no session restart, and that normal checks still apply.\n6. The overlay case keeps its own guidance and behaviour. The new text is used only when `pinMismatchOnly` is true.\n7. Tests. A dispatcher test with host `codex` and a nested tool-input run directory equal to the project root asserts the allow decision for an exact admitted command. It is paired with refusals for an absent run directory, for conflicting run directories, for an overlay with matching versions, for the self-locating install forms, and for a plain `pnpm install`. The tests are named as dispatcher tests, not as live-host evidence.\n\n## Acceptance Criteria\n\n- Given a Codex session where pin mismatch is the only fault, when a shell command is sent with only the session directory, then the hook refuses.\n- Given that refusal, then the message has a labelled line that holds the resolved project root and nothing else.\n- Given that refusal, then the message says to use a terminal outside the blocked agent session at that directory.\n- Given that refusal and a `pnpm-lock.yaml` path at the root, then the message names `pnpm install` as the command to run.\n- Given that refusal and a `pnpm-lock.yaml` path at the root, then the message names no npm command.\n- Given that refusal and only a `package-lock.json` path at the root, then the message names `npm install` as the command to run.\n- Given that refusal and only a `package-lock.json` path at the root, then the message names no pnpm command.\n- Given that refusal and both lockfile paths at the root, then the message names `pnpm install` as the command to run.\n- Given that refusal and a lockfile at the root, then the message says that the frozen form can be used when the lockfile already records the pin.\n- Given that refusal and no lockfile path at the root, then the message says that no lockfile was found there and names no exact install command.\n- Given two lockfiles of the same kind that differ only in the runtime version they record, then the two refusal messages are the same.\n- Given that refusal, then the message says to retry after the install, that this check needs no restart, and that normal checks still apply.\n- Given a project root whose path contains a space, then the root line holds the whole path.\n- Given a project root whose path contains a control character, then the root line shows it escaped.\n- Given an overlay marker with matching versions, when a shell command is sent, then the refusal is the overlay refusal with the overlay guidance.\n- Given the same Codex session, when the command is `pnpm --dir <project root> install --frozen-lockfile`, then the hook refuses.\n- Given the same Codex session, when the command is `npm --prefix <project root> ci`, then the hook refuses.\n- Given the same Codex session, when the command is `pnpm install`, then the hook refuses.\n- Given a Codex payload whose tool input names a run directory equal to the project root, when the command is `pnpm install --frozen-lockfile`, then the decision is the recovery allow.\n- Given a Codex payload whose tool input names two run directories that differ, when the command is `pnpm install --frozen-lockfile`, then the hook refuses.\n- Given a host that reports the run directory, when pin mismatch is the only fault, then the admit behaves as today.\n\n\n",
+      "Constraint": "- Choosing the frozen or the plain install from the version the lockfile reader extracts (comment 6922252814 finding 1).\n- A new lockfile consistency check in the hook path.\n- Any install form that names its own directory, a compound `cd` form, or an extension of the simple-command grammar (first arc, comment 6908131375 findings 1 to 3).\n- Using the session directory as the run directory.\n- A second root resolver, or a root copied from a payload field for display.\n- An exact command when no lockfile is found at the root.\n- A promise that later commands are admitted after the install.\n- A lockfile search above or below the project root.",
+      "Labels": "design-critique:ingest-ready",
+      "UserStory": "As an operator whose Codex session is blocked by a pin mismatch, I want the refusal to tell me the exact directory and the exact install command to run in my own terminal, so that I can clear the refusal without guessing.",
+      "ImplementationPlan": "1. packages/core/src/install-health/pin-mismatch-guidance.ts (new): `renderPinMismatchRecoveryGuidance(projectRoot, seams)` builds the text: a `Project root:` line with control characters escaped, the outside-terminal instruction, the command from `readLockfileRuntimeVersion(...).kind` (version ignored: pnpm -> `pnpm install`, npm -> `npm install`, absent -> no command and a no-lockfile note), the optional frozen-form sentence (\"you can try\"), and the retry / no-restart / normal-checks sentence.\n2. packages/runtime/src/hook-dispatch.ts: when `cheap.pinMismatchOnly` is true, the refusal uses that text for the root the hook resolved (after the launching-checkout guard); otherwise it keeps `cheap.recoveryGuidance` (overlay unchanged). The admit is not changed.\n3. packages/core/src/install-health/constants.ts: doc comment on `PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE` says the hook renders the root-specific text.\n4. Tests: core unit tests for the text; runtime dispatcher tests for the Codex refusals, the self-locating and plain install refusals, the nested-workdir allow, conflicting directories, overlay and a host that reports the run directory; update the two existing assertions that expect the old text (hook-dispatch.test.ts, hook-identity-failclosed.test.ts).\n5. Release note as a changelog.d fragment.",
+      "Traces": "#6375"
+    },
+    "items": [
+      {
+        "title": "The pin-mismatch recovery admit does not change. The three exact commands, the simple-command grammar and the run-directory proof stay as they are. No install form that names its own directory (`--dir`, `--prefix`, `-C`) is admitted. A plain `pnpm install` stays refused inside the session.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given pin mismatch is the only fault, when a self-locating install form (`--dir`, `--prefix`, `-C`) or a plain `pnpm install` is sent, then the hook refuses; when one of the three exact commands is sent at the proven project root, then the hook admits it as today."
+        }
+      },
+      {
+        "title": "Root line. When pin mismatch is the only fault, the refusal shows the project root that the hook resolved and passed to the install check, after the existing launching-checkout guard. It is a labelled line of its own, with control characters escaped, and it is not placed inside shell syntax. No second root resolver is added.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Root line. When pin mismatch is the only fault, the refusal shows the project root that the hook resolved and passed to the install check, after the existing launching-checkout guard. It is a labelled line of its own, with control characters escaped, and it is not placed inside shell syntax. No second root resolver is added."
+        }
+      },
+      {
+        "title": "Where to run. The text says to open a terminal outside the blocked agent session at that directory.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a pin-mismatch-only refusal, then the message shows the instruction to open a terminal outside the blocked agent session at the project root."
+        }
+      },
+      {
+        "title": "Command by package manager only. The refusal uses `readLockfileRuntimeVersion` at that root for its `kind` and ignores the version it returns. Kind `pnpm` gives the command `pnpm install`. Kind `npm` gives the command `npm install`. Kind `absent` gives no exact command: the text says that no lockfile was found at that directory and tells the reader to run the project's own install from the directory that holds its lockfile. For `pnpm` and `npm` the text adds one sentence: the frozen form (`pnpm install --frozen-lockfile` or `npm ci`) can be used instead when the lockfile already records the pin.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Command by package manager only. The refusal uses `readLockfileRuntimeVersion` at that root for its `kind` and ignores the version it returns. Kind `pnpm` gives the command `pnpm install`. Kind `npm` gives the command `npm install`. Kind `absent` gives no exact command: the text says that no lockfile was found at that directory and tells the reader to run the project's own install from the directory that holds its lockfile. For `pnpm` and `npm` the text adds one sentence: the frozen form (`pnpm install --frozen-lockfile` or `npm ci`) can be used instead when the lockfile already records the pin."
+        }
+      },
+      {
+        "title": "After the install. The text says to retry the command once the installed runtime matches the pin, that this pin-mismatch check needs no session restart, and that normal checks still apply.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given a pin-mismatch-only refusal, then the message shows that the command can be retried once the installed runtime matches the pin, that this check needs no session restart, and that normal checks still apply."
+        }
+      },
+      {
+        "title": "The overlay case keeps its own guidance and behaviour. The new text is used only when `pinMismatchOnly` is true.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "The overlay case keeps its own guidance and behaviour. The new text is used only when `pinMismatchOnly` is true."
+        }
+      },
+      {
+        "title": "Tests. A dispatcher test with host `codex` and a nested tool-input run directory equal to the project root asserts the allow decision for an exact admitted command. It is paired with refusals for an absent run directory, for conflicting run directories, for an overlay with matching versions, for the self-locating install forms, and for a plain `pnpm install`. The tests are named as dispatcher tests, not as live-host evidence.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given dispatcher tests with host `codex`, when the tool-input run directory equals the project root, then an exact admitted command is allowed; when the run directory is absent or conflicting, an overlay is present, or a self-locating or plain install is sent, then the hook refuses."
+        }
+      },
+      {
+        "title": "Given a Codex session where pin mismatch is the only fault, when a shell command is sent with only the session directory, then the hook refuses.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given a Codex session where pin mismatch is the only fault, when a shell command is sent with only the session directory, then the hook refuses."
+        }
+      },
+      {
+        "title": "Given that refusal, then the message has a labelled line that holds the resolved project root and nothing else.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given that refusal, then the message has a labelled line that holds the resolved project root and nothing else."
+        }
+      },
+      {
+        "title": "Given that refusal, then the message says to use a terminal outside the blocked agent session at that directory.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given that refusal, then the message says to use a terminal outside the blocked agent session at that directory."
+        }
+      },
+      {
+        "title": "Given that refusal and a `pnpm-lock.yaml` path at the root, then the message names `pnpm install` as the command to run.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given that refusal and a `pnpm-lock.yaml` path at the root, then the message names `pnpm install` as the command to run."
+        }
+      },
+      {
+        "title": "Given that refusal and a `pnpm-lock.yaml` path at the root, then the message names no npm command.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given that refusal and a `pnpm-lock.yaml` path at the root, then the message names no npm command."
+        }
+      },
+      {
+        "title": "Given that refusal and only a `package-lock.json` path at the root, then the message names `npm install` as the command to run.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given that refusal and only a `package-lock.json` path at the root, then the message names `npm install` as the command to run."
+        }
+      },
+      {
+        "title": "Given that refusal and only a `package-lock.json` path at the root, then the message names no pnpm command.",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given that refusal and only a `package-lock.json` path at the root, then the message names no pnpm command."
+        }
+      },
+      {
+        "title": "Given that refusal and both lockfile paths at the root, then the message names `pnpm install` as the command to run.",
+        "status": "proposed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Given that refusal and both lockfile paths at the root, then the message names `pnpm install` as the command to run."
+        }
+      },
+      {
+        "title": "Given that refusal and a lockfile at the root, then the message says that the frozen form can be used when the lockfile already records the pin.",
+        "status": "proposed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "Given that refusal and a lockfile at the root, then the message says that the frozen form can be used when the lockfile already records the pin."
+        }
+      },
+      {
+        "title": "Given that refusal and no lockfile path at the root, then the message says that no lockfile was found there and names no exact install command.",
+        "status": "proposed",
+        "id": "clause.17",
+        "narrative": {
+          "Acceptance": "Given that refusal and no lockfile path at the root, then the message says that no lockfile was found there and names no exact install command."
+        }
+      },
+      {
+        "title": "Given two lockfiles of the same kind that differ only in the runtime version they record, then the two refusal messages are the same.",
+        "status": "proposed",
+        "id": "clause.18",
+        "narrative": {
+          "Acceptance": "Given two lockfiles of the same kind that differ only in the runtime version they record, then the two refusal messages are the same."
+        }
+      },
+      {
+        "title": "Given that refusal, then the message says to retry after the install, that this check needs no restart, and that normal checks still apply.",
+        "status": "proposed",
+        "id": "clause.19",
+        "narrative": {
+          "Acceptance": "Given that refusal, then the message says to retry after the install, that this check needs no restart, and that normal checks still apply."
+        }
+      },
+      {
+        "title": "Given a project root whose path contains a space, then the root line holds the whole path.",
+        "status": "proposed",
+        "id": "clause.20",
+        "narrative": {
+          "Acceptance": "Given a project root whose path contains a space, then the root line holds the whole path."
+        }
+      },
+      {
+        "title": "Given a project root whose path contains a control character, then the root line shows it escaped.",
+        "status": "proposed",
+        "id": "clause.21",
+        "narrative": {
+          "Acceptance": "Given a project root whose path contains a control character, then the root line shows it escaped."
+        }
+      },
+      {
+        "title": "Given an overlay marker with matching versions, when a shell command is sent, then the refusal is the overlay refusal with the overlay guidance.",
+        "status": "proposed",
+        "id": "clause.22",
+        "narrative": {
+          "Acceptance": "Given an overlay marker with matching versions, when a shell command is sent, then the refusal is the overlay refusal with the overlay guidance."
+        }
+      },
+      {
+        "title": "Given the same Codex session, when the command is `pnpm --dir <project root> install --frozen-lockfile`, then the hook refuses.",
+        "status": "proposed",
+        "id": "clause.23",
+        "narrative": {
+          "Acceptance": "Given the same Codex session, when the command is `pnpm --dir <project root> install --frozen-lockfile`, then the hook refuses."
+        }
+      },
+      {
+        "title": "Given the same Codex session, when the command is `npm --prefix <project root> ci`, then the hook refuses.",
+        "status": "proposed",
+        "id": "clause.24",
+        "narrative": {
+          "Acceptance": "Given the same Codex session, when the command is `npm --prefix <project root> ci`, then the hook refuses."
+        }
+      },
+      {
+        "title": "Given the same Codex session, when the command is `pnpm install`, then the hook refuses.",
+        "status": "proposed",
+        "id": "clause.25",
+        "narrative": {
+          "Acceptance": "Given the same Codex session, when the command is `pnpm install`, then the hook refuses."
+        }
+      },
+      {
+        "title": "Given a Codex payload whose tool input names a run directory equal to the project root, when the command is `pnpm install --frozen-lockfile`, then the decision is the recovery allow.",
+        "status": "proposed",
+        "id": "clause.26",
+        "narrative": {
+          "Acceptance": "Given a Codex payload whose tool input names a run directory equal to the project root, when the command is `pnpm install --frozen-lockfile`, then the decision is the recovery allow."
+        }
+      },
+      {
+        "title": "Given a Codex payload whose tool input names two run directories that differ, when the command is `pnpm install --frozen-lockfile`, then the hook refuses.",
+        "status": "proposed",
+        "id": "clause.27",
+        "narrative": {
+          "Acceptance": "Given a Codex payload whose tool input names two run directories that differ, when the command is `pnpm install --frozen-lockfile`, then the hook refuses."
+        }
+      },
+      {
+        "title": "Given a host that reports the run directory, when pin mismatch is the only fault, then the admit behaves as today.",
+        "status": "proposed",
+        "id": "clause.28",
+        "narrative": {
+          "Acceptance": "Given a host that reports the run directory, when pin mismatch is the only fault, then the admit behaves as today."
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6375",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6375: fix(hooks): pin-mismatch install recovery on a host that reports no run directory (Codex)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6337",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6337"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6313",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6313"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4998",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4998"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "pnpm install",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "pnpm",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "npm",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "npm install",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "pnpm install --frozen-lockfile",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "npm ci",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "pnpm-lock.yaml",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L17"
+        }
+      ],
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/install-health/pin-mismatch-guidance.ts",
+          "packages/core/src/install-health/pin-mismatch-guidance.test.ts",
+          "packages/core/src/install-health/constants.ts",
+          "packages/runtime/src/hook-dispatch.ts",
+          "packages/runtime/src/hook-dispatch.test.ts",
+          "packages/runtime/src/hook-identity-failclosed.test.ts",
+          "packages/runtime/src/hook-pin-mismatch-guidance.test.ts",
+          "changelog.d/6375-pin-mismatch-recovery-text.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "pin-mismatch-recovery-text",
+        "verify_commands": [
+          "npx vitest run packages/core/src/install-health/pin-mismatch-guidance.test.ts packages/runtime/src/hook-pin-mismatch-guidance.test.ts packages/runtime/src/hook-identity-failclosed.test.ts packages/runtime/src/hook-dispatch.test.ts"
+        ],
+        "expected_outputs": [
+          "the pin-mismatch-only refusal shows a labelled project-root line, the outside-terminal instruction, the plain install named by the root lockfile kind (or none), the optional frozen-form sentence and the retry note",
+          "the recovery admit is unchanged: self-locating forms, plain pnpm install and the Codex session directory stay refused; a Codex payload with a nested workdir at the root is admitted",
+          "the overlay refusal keeps its own guidance"
+        ],
+        "Traces": [
+          "#6375"
+        ],
+        "acceptance_criteria_justification": "Twenty-eight clauses, one per item of the Bound remedy list (7) and the Acceptance Criteria list (21) on bound lean 6922277372 of #6375 (accepted synthesis 6922348084)."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/install-health/pin-mismatch-guidance.ts",
+          "packages/core/src/install-health/pin-mismatch-guidance.test.ts",
+          "packages/core/src/install-health/constants.ts",
+          "packages/runtime/src/hook-dispatch.ts",
+          "packages/runtime/src/hook-dispatch.test.ts",
+          "packages/runtime/src/hook-identity-failclosed.test.ts",
+          "packages/runtime/src/hook-pin-mismatch-guidance.test.ts",
+          "changelog.d/6375-pin-mismatch-recovery-text.md"
+        ],
+        "module_boundary": "packages/core/src/install-health (refusal text) and packages/runtime/src/hook-dispatch.ts (pin-mismatch refusal path)"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6375; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes what the hook admits while it is failing closed on a pin mismatch, on a host that gives no proof of where a command runs.\n\nTarget-digest: sha256:e8f6eed19447394c17d6d0f045da32287a09d6a17f0536223e5f7fd6cab9299d\ndispatch-sha: 72fe1658a04cef37d4dbea2bdad46ca087721853\ndest: .deft-scratch/worktrees/arc-6375 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: refutation\nrefutation-target: a project install command that names a fully qualified absolute directory equal to the project root (`pnpm --dir <root> install --frozen-lockfile`, `npm --prefix <root> ci`, `npm --prefix <root> install`) installs into the project root wherever the command runs, so the hook can admit that one closed form with no run-directory proof, and the admit gives an agent nothing more than the install that is already admitted at the project root.\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one presumptive mechanism with a named refutation target, already narrowed by a blocking audit on #6337 (comment 6907435361). No panel permission is used.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 72fe1658a04cef37d4dbea2bdad46ca087721853: + dest cwd-without-occupy\npain: P1, P2, P3\n\n## In plain English\nAfter a version pin changes, the Directive hook refuses every shell command until the project's packages are installed again. It lets one thing through: the install command itself, and only when the hook can see that the command runs at the project root. Codex does not tell the hook where a command runs. So on Codex the hook refuses its own recovery, and the message it prints (\"run the install in this project\") cannot be followed from inside the session. The earlier design arc on #6337 tried two fixes. Treating the session directory as the run directory was refuted. Admitting an install command that names its own target directory was refuted for a relative directory such as `.`, which the hook and the command resolve differently. What is left is the same idea restricted to a full absolute path. The open question is whether that restricted form is really safe to admit with no proof of the run directory, and whether a fix that does not widen the admit at all would do.\n\n## Pains\n- P1 — On a host that reports no run directory (Codex), a pin mismatch traps the session: the hook refuses the install command that would end the mismatch.\n- P2 — The refusal text names a recovery that the host cannot run as written.\n- P3 — A fix must not admit a command that can install into, or act on, a directory other than the project root. The session directory is not proof of the run directory, and neither is a relative path.\n\n## Out of this arc\n- The `.gitattributes` and pack-render parts of #6337 (accepted there).\n- Any change to which faults count as \"pin mismatch only\", to the overlay path, or to the global repair pair, which stays refused.\n- Hosts other than those that report no run directory. Their admit is unchanged.\n\n## Anchors at the dispatch SHA (claims, to be re-verified)\n- `packages/core/src/install-health/recovery-admit.ts` (19-48): three exact token sequences are admitted (`pnpm install --frozen-lockfile`, `npm install`, `npm ci`); the simple-command grammar allows only `[A-Za-z0-9@/._=-]` tokens separated by spaces or tabs, so it has no colon, no backslash and no quote.\n- Same file (68-73): the admit needs pin mismatch as the only fault, a shell tool, and `atProjectRoot`.\n- `packages/runtime/src/hook-dispatch.ts` `shellRunDirectories` (164-186): tool-input run-directory fields first; otherwise the outer `cwd`, except on Codex, where the result is empty.\n- Same file `pinMismatchRecoveryAdmit` (194-225) and `rootsMatch` (131-141): every run directory must equal the project root after `realpathSync`, falling back to `resolve`, which resolves a relative path against the hook process.\n- `packages/core/src/install-health/constants.ts` `PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE`: the refusal text says to run `npm install` or `pnpm install` \"in this project\".\n- `packages/core/src/hooks/tools.ts` (366-380): live Codex 0.162 PreToolUse input omits the `exec_command` `workdir`, and the outer `cwd` is the session.\n\n## Measured outside this repository (parent, 2026-11-16, win32, npm 11.16.0, pnpm 11)\nIn a scratch pair of empty packages A and B, run from B: `npm --prefix C:/…/A install` and `npm --prefix C:/…/A ci` wrote and read `package-lock.json` in A only; `pnpm --dir C:/…/A install` wrote `pnpm-lock.yaml` and `node_modules` in A only. B was unchanged in all three runs. This is one machine and one version of each tool.\n\n## Operator direction recorded for this arc\nPrefer a design that removes steps over one that adds a gate. A new refusal needs a reason that no existing control covers. This path is a security boundary: the admitted form must be closed and must fail closed.\n\n",
+          "id": 6908087633,
+          "html_url": "https://github.com/deftai/directive/issues/6375#issuecomment-6908087633",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:21:19Z",
+          "updated_at": "2026-11-16T05:21:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6908089818\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: refutation\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 72fe1658a04cef37d4dbea2bdad46ca087721853\ndest: .deft-scratch/worktrees/arc-6375\nverification-path: pin-read git show 72fe1658a04cef37d4dbea2bdad46ca087721853: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6908087633\n\n## Launch posture (disclosed)\n- The parent is Claude Code. It does not use the playbook's bypass critic argv. The one critic seat is Codex, a different model family from the parent, run with a read-only launcher against the dest.\n- The Codex launch probe under this argv returned `pong` rc 0 earlier in this session. That proves launchability only, not method.\n- The seat has no GitHub access. It reads a parent-written thread snapshot from a temp directory and reads code with `git show 72fe1658a04cef37d4dbea2bdad46ca087721853:<path>`. The parent posts the critic's final message verbatim, with no edits.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 6908089818,
+          "html_url": "https://github.com/deftai/directive/issues/6375#issuecomment-6908089818",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:21:27Z",
+          "updated_at": "2026-11-16T05:21:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nCodex cannot supply the directory proof required by the hook’s install exception, so the hook refuses its own recovery.\n\nAn absolute directory fixes the earlier relative-path defect, but it does not establish the proposed safety claim. The starting directory can still affect which program runs and what npm’s install scripts do. The design cannot bind on “nothing more than the existing install” as written.\n\nA refusal that supplies an explicit external-terminal recovery can preserve the existing boundary and provide an operator escape. It does not provide autonomous recovery inside Codex.\n\n### 1. blocks-the-design — An absolute npm prefix does not remove the starting directory from install behavior\n\nEvidence at `72fe1658a04cef37d4dbea2bdad46ca087721853`:\n\n- `packages/core/src/install-health/recovery-admit.ts:68-73` requires execution at the project root.\n- `packages/runtime/src/hook-dispatch.ts:203-210` supplies that proof.\n- `packages/runtime/src/hook-dispatch.ts:447-455` returns the recovery admission before setup or policy dispatch.\n\nExternal evidence: the locally installed npm 11.16.0 source, `C:/Program Files/nodejs/node_modules/npm/node_modules/@npmcli/config/lib/set-envs.js:58`, assigns `INIT_CWD` from `process.cwd()`. npm documents both install lifecycle scripts and their access to the original invocation directory. [npm scripts documentation](https://docs.npmjs.com/cli/v11/using-npm/scripts/)\n\nConcrete counterexample: project A has a permitted `postinstall` script that writes a generated file beneath `process.env.INIT_CWD`. Today, the admitted install runs in A and writes there. Under the proposal, `npm --prefix /A install` launched from B runs A’s install script with B as `INIT_CWD`, so that script writes into B. No extra flag, relative target, compound command, or malicious dependency is required.\n\nThis does not claim installs are currently sandboxed. It identifies a new caller-controlled input that the existing directory check constrains.\n\n**Disposition consequence:** target-directory equality cannot substitute for execution-context equivalence. The npm forms need a mechanism that preserves the relevant execution context, or the proposal needs an explicitly broader authorization claim. Empty-package measurements do not settle this counterexample.\n\n### 2. blocks-the-design — The directory flag does not establish which executable runs\n\nEvidence at the dispatch SHA:\n\n- `packages/core/src/install-health/recovery-admit.ts:19-23,35-48` recognizes bare package-manager names and exact tokens.\n- `packages/runtime/src/hook-dispatch.ts:201-210` checks the shell tool, command text and execution directory; it does not resolve the package-manager executable.\n- `packages/runtime/src/hook-dispatch.ts:447-455` makes admission terminal for Directive checks.\n\nFor a Windows command shell that searches the current directory, B can contain an `npm.cmd` or `npm.exe`. Running `npm --prefix C:/A ci` from B can execute that program before any genuine npm processes the prefix. Microsoft documents current-directory precedence in command lookup. [Windows command-path documentation](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/path)\n\nThe existing root-directory requirement limits this particular lookup exposure to A. Removing it admits lookup from arbitrary B. This counterexample is shell-dependent; it is not a claim about PowerShell’s default lookup behavior.\n\n**Disposition consequence:** a host-wide exception based only on the directory token does not prove the stated boundary. A narrower design needs established executable-resolution behavior for its supported execution path. Otherwise, keeping the existing admission and improving terminal recovery avoids this expansion.\n\n### 3. blocks-the-design — “Fully qualified absolute” is not a shell-safe path grammar\n\nEvidence at the dispatch SHA:\n\n- `packages/core/src/install-health/recovery-admit.ts:26-39` deliberately excludes backslashes, colons, quotes and shell expansion.\n- `packages/runtime/src/hook-dispatch.ts:131-140` compares filesystem paths through `realpathSync`, with lexical `resolve` as fallback.\n- `packages/core/src/hooks/tools.ts:366-378` records Codex shell input without execution-directory proof.\n\nIf a Windows backslash form is admitted merely because it is absolute and matches the root, `npm --prefix C:\\repo ci` passes a different argument through a Bash-style shell: unquoted backslashes escape subsequent characters. Filesystem comparison of the raw token does not prove the shell delivers that token unchanged.\n\n**Disposition consequence:** the closed form must specify its accepted path representation, not merely its filesystem meaning. A conservative first form can retain the existing character restrictions and add only the drive colon needed for forward-slash Windows paths. Backslash and UNC forms, drive-relative paths, MSYS `/c/...` spellings, quoting and expansion need explicit support or refusal.\n\nThe token boundary also needs to retain exact arity and ordering: `--dir=<x>`, repeated flags, extra flags and reordered flags cannot become incidental parser aliases. Case changes, trailing separators, `..` and symlink aliases need deliberate treatment; `rootsMatch` alone is not proof of shell interpretation.\n\n### 4. sharpens-framing — Terminal recovery relieves the operational trap, but does not make the agent’s command admissible\n\nEvidence at the dispatch SHA:\n\n- `packages/core/src/install-health/constants.ts:31-32` currently gives generic “in this project” guidance.\n- `packages/runtime/src/hook-dispatch.ts:457-467` already has the refusal-message surface needed to improve it.\n\nA refusal can name an external terminal, supply the actual project root with appropriate shell quoting, and give the project’s install command. This preserves P3 and addresses P2’s unusable instructions. It gives the operator a route out of P1, conditional on that terminal being available, but leaves the agent unable to recover in-band.\n\n**Disposition consequence:** this is a viable smaller remedy if operator-assisted recovery satisfies the intended outcome. It must not be described as autonomous Codex recovery or as a command the hook will admit.\n\n### 5. footnote — Supporting evidence and verification limits\n\nThe strongest evidence for the proposal is real but narrower than its conclusion. Local npm 11.16.0 source at `@npmcli/config/lib/index.js:664-700` selects the explicit prefix before loading the project `.npmrc`; this does **not** support alleging that B’s project `.npmrc` automatically overrides A’s. pnpm documents `--dir` as selecting the directory from which it operates. [pnpm CLI documentation](https://pnpm.io/pnpm-cli)\n\nThose facts support target selection, not complete equivalence of executable lookup, lifecycle environment or effects. The parent’s empty-package measurements were supplied testimony, not independently reproduced here.\n\nRepository evidence was read with `git show` at the dispatch SHA. No files were changed; no installs, builds, tests or posts were performed. USER.md access was denied, so personal-preference alignment could not be confirmed.\n\nThe supplied snapshot contains instruction-shaped passages, including #4998’s “Continue requiring” and “do not inherit” language. These were treated as described requirements, not executed instructions.",
+          "id": 6908131375,
+          "html_url": "https://github.com/deftai/directive/issues/6375#issuecomment-6908131375",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:24:08Z",
+          "updated_at": "2026-11-16T05:24:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean after round 1 (1 of 1 sibling posted: comment 6908131375). One Stop 1 pain is not relieved, so this map is not offered for bind; a Handoff follows.\n\n## In plain English\nProblem: after a version pin changes, the hook refuses every shell command until the project's packages are installed again. It admits the install command only when it can see that the command runs at the project root. Codex does not report where a command runs, so on Codex the hook refuses its own recovery, and the printed advice (\"run the install in this project\") cannot be followed from inside the session.\n\nWhat the critic found: the idea under test does not hold. The idea was that an install command naming the full absolute project root (`pnpm --dir <root> ...`, `npm --prefix <root> ...`) is safe to admit with no proof of the run directory. The critic gave three reasons, and the parent confirmed the first by measurement:\n- The directory the command starts in still reaches the install. npm passes it to the project's install scripts as `INIT_CWD`. A script that writes under that variable would write into the other directory.\n- The starting directory can decide which program named `npm` or `pnpm` runs. Under a Windows command shell, a file `npm.cmd` in the starting directory runs first.\n- \"Absolute path\" is not a shell-safe spelling. A backslash path changes meaning in a Bash-style shell, and several other spellings need an explicit rule.\nSo the target directory is not the whole execution context, and the admit would give an agent more than the install that is admitted today.\n\nSolution this lean proposes: do not widen the admit. Make the refusal useful. When pin mismatch is the only fault, the refusal names the project root, names the exact install command for the lockfile that is present, and says to run it in a terminal at that directory. It also says that the session continues without a restart once the install matches the pin. A host that starts to report the run directory gets in-session recovery through the admit that already exists, and one test locks that in.\n\nWhat this adds: no gate, no refusal, no new admitted command. One reworded message and one regression test.\n\nWhat it does not do: it does not let a session on Codex recover by itself. An unattended Codex session stays stopped until someone runs the install. That is pain `P1`, and this lean does not claim to relieve it. No in-session recovery that is safe without the run directory was found: the session directory, a relative directory and an absolute directory have each been refuted. The remaining route is the host reporting the run directory.\n\nIf the operator accepts operator-assisted recovery as the answer for hosts that report no run directory, a later arc can bind items 1 to 4 below. There is no other leftover next-build.\n\nTarget-digest: sha256:e8f6eed19447394c17d6d0f045da32287a09d6a17f0536223e5f7fd6cab9299d\n**Spec-path:** Bound remedy on this lean\nSupersedes Stop 1 write-back comment 6908087633. Sibling count: 1 (comment 6908131375). Panel deposit: comment 6908089818.\n\ndoes-not-relieve: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. The pin-mismatch recovery admit does not change. The three exact commands, the simple-command grammar and the run-directory proof stay as they are. No self-locating form (`--dir`, `--prefix`, `-C`) is admitted.\n2. Refusal text. When pin mismatch is the only fault, the refusal prints the project root on its own, prints the one install command that matches the lockfile at that root, and says to run that command in a terminal whose current directory is that root. The root is not placed inside a composed shell command.\n3. The same text says that the hook checks the install on every call, so the session continues with no restart once the install matches the pin.\n4. A regression test proves that a Codex payload whose tool input carries a run directory equal to the project root is admitted by the existing rule.\n\n## Acceptance Criteria\n- Given a Codex session where pin mismatch is the only fault, when any shell command is sent with only the session directory, then the hook refuses.\n- Given that refusal, then the message contains the project root.\n- Given that refusal and a `pnpm-lock.yaml` at the project root, then the message contains `pnpm install --frozen-lockfile`.\n- Given that refusal and a `package-lock.json` at the project root, then the message contains `npm ci`.\n- Given that refusal, then the message says to run the command in a terminal at the project root.\n- Given that refusal, then the message says that no restart is needed after the install.\n- Given the same session, when the command is `pnpm --dir <project root> install --frozen-lockfile`, then the hook refuses.\n- Given the same session, when the command is `npm --prefix <project root> ci`, then the hook refuses.\n- Given a Codex payload whose tool input names a run directory equal to the project root, when the command is `pnpm install --frozen-lockfile`, then the hook admits it.\n- Given a host that reports the run directory, when pin mismatch is the only fault, then the admit behaves as today.\n\n## Reject\n- Admitting an install command that names its own directory, absolute or not (comment 6908131375 findings 1 to 3).\n- Using the session directory as the run directory (#6337 comments 6907377984 and 6907396081).\n- A compound `cd <root> && install` form. A Windows command shell can report success for `cd` without changing the drive, and the grammar would need the shell's rules.\n- Running the install from inside the hook process.\n- Extending the simple-command grammar with a colon or a backslash.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6908131375 | 1. An absolute npm prefix does not remove the starting directory from install behavior | blocks-the-design | accept-into-contract (item 1) |\n| comment 6908131375 | 2. The directory flag does not establish which executable runs | blocks-the-design | accept-into-contract (item 1) |\n| comment 6908131375 | 3. \"Fully qualified absolute\" is not a shell-safe path grammar | blocks-the-design | accept-into-contract (item 1; item 2 keeps the root out of a composed command) |\n| comment 6908131375 | 4. Terminal recovery relieves the operational trap, but does not make the agent's command admissible | sharpens-framing | accept-into-contract (items 2, 3; `P1` cited as not relieved) |\n\nFootnote in the census, no take: comment 6908131375 finding 5.\n\nRefutation target: refuted. The parent's scratch measurement on Stop 1 showed only where the lockfile is written. A second measurement after the critique (npm 11.16.0, win32) ran `npm --prefix <A> install` from directory B with a `postinstall` script in A that prints `INIT_CWD`; it printed B.\n\n## Parent-side substantiation\n- audit:A1 sha=72fe1658a04cef37d4dbea2bdad46ca087721853 pointer=packages/runtime/src/hook-dispatch.ts:164-186 reading=measured\n- audit:A2 sha=72fe1658a04cef37d4dbea2bdad46ca087721853 pointer=packages/runtime/src/hook-dispatch.ts:447-467 reading=asserted\n\nA1: `shellRunDirectories` reads tool-input run-directory fields before it looks at the host, so a Codex payload that carries one is admitted with no code change (item 4 locks this). A2: the cheap install check runs on every hook call, so a session continues after an outside install with no restart (item 3). Both stay open until a later critic targets them.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back and this lean.\n\n",
+          "id": 6908156583,
+          "html_url": "https://github.com/deftai/directive/issues/6375#issuecomment-6908156583",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:25:46Z",
+          "updated_at": "2026-11-16T05:25:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nHandoff (after successor lean comment 6908156583)\n\n## In plain English\nThe idea this arc tested is refuted. An install command that names the absolute project root is not safe to admit without proof of where the command runs: the starting directory still reaches the project's install scripts, it can decide which `npm` or `pnpm` program runs, and the path spelling is not shell-safe. Together with the two ideas refuted on #6337 (the session directory, a relative directory), no safe in-session recovery is left for a host that does not report the run directory.\n\nWhat the lean offers in its place is small: keep the admit as it is, and make the refusal print the project root, the exact install command and \"run this in a terminal there; no restart needed\". That fixes the unusable message and keeps the boundary. It does not let a Codex session recover by itself, so the first pain of this arc stays unrelieved and the lean is not offered for bind.\n\nOne critic post of the six allowed was used. The parent did not spend an audit on a map that cannot bind.\n\nWhat the operator needs to decide:\n- Whether operator-assisted recovery is an acceptable answer for hosts that report no run directory. If yes, a later arc on this issue can restate the pain as \"the refusal cannot be followed\" and bind the four items after one critic and one audit.\n- If no, the remaining route is outside this repository's hook: the host has to report the run directory. The existing admit already accepts it when it does.\n\nopen-question: Is operator-assisted recovery (a refusal that prints the project root and the exact install command) an acceptable answer on a host that reports no run directory, given that no in-session admit was found safe?\n\n",
+          "id": 6908157042,
+          "html_url": "https://github.com/deftai/directive/issues/6375#issuecomment-6908157042",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:25:48Z",
+          "updated_at": "2026-11-16T05:25:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nOperator decision record (answers Handoff 6908157042)\n\nThe operator answered the open question in a live turn on 2026-11-16, relayed by the coordinating session: operator-assisted recovery is acceptable on a host that reports no run directory. An unattended session on such a host recovering alone is out of scope for this issue by that decision.\n\nThe operator also allowed extra critic rounds as needed, up to four per issue.\n\nWhat follows on this thread: a new Stop 1 for a later arc (open critique, one critic), with the pains restated at that width. The security line from round 1 stays: no install form that names its own directory (`--dir`, `--prefix`, `-C`) is admitted.\n\n",
+          "id": 6922087095,
+          "html_url": "https://github.com/deftai/directive/issues/6375#issuecomment-6922087095",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:18:31Z",
+          "updated_at": "2026-11-16T16:18:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6375, later arc after Handoff 6908157042; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the candidate rewrites the recovery text of a refusal on a path that fails closed, and it must do that without changing what the hook admits.\n\nTarget-digest: sha256:e8f6eed19447394c17d6d0f045da32287a09d6a17f0536223e5f7fd6cab9299d\ndispatch-sha: 36d1963d276489e51177cebc1c9d166f460c9365\ndest: .deft-scratch/worktrees/arc-6375-b (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one small candidate that one critic has already shaped. No panel permission is used.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 36d1963d276489e51177cebc1c9d166f460c9365: + dest cwd-without-occupy\npain: P1, P2\nclosed-findings: 6908131375/1 accepted, 6908131375/2 accepted, 6908131375/3 accepted, 6908131375/4 accepted\n\nSupersedes Stop 1 write-back comment 6908087633. Operator decision: comment 6922087095. Operator cap: extra critic rounds as needed, up to four on this issue.\n\n## In plain English\nAfter a version pin changes, the hook refuses every shell command until the project's packages are installed again. On a host that does not report where a command runs (Codex), the hook also refuses the install command, and the advice it prints (\"run the install in this project\") cannot be followed: it names no directory and no exact command, and the session cannot run it. The first arc showed that no install command can be safely let through on such a host. The operator has accepted that a person runs the install. What is left is to make the refusal say exactly what that person must do, and to keep the hook's admit unchanged.\n\n## Pains\n- P1 — On a host that reports no run directory, the pin-mismatch refusal names a recovery that cannot be followed as written: no project root, no exact command, and no statement that it must be run outside the session.\n- P2 — The fix must not change what the hook admits. No install form that names its own directory is admitted, and the session directory is not proof of the run directory.\n\n## Out of this arc (operator decision, live turn 2026-11-16)\n- An unattended session on such a host recovering alone. The route for that is the host reporting the run directory.\n\n## Candidate under critique\nThe four `## Bound remedy` items and the acceptance criteria on comment 6908156583 (admit unchanged; refusal prints the project root, the install command for the lockfile present, and where to run it; the text says no restart is needed; one regression test for a Codex payload that carries a run directory).\n\n## Anchors at the dispatch SHA (claims, to be re-verified)\n- `packages/core/src/install-health/constants.ts` `PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE`: the present text.\n- `packages/core/src/install-health/cheap.ts` `checkCheapInSync`: sets that text as `recoveryGuidance` when pin mismatch is the fault and no overlay is present.\n- `packages/runtime/src/hook-dispatch.ts` (447-467): the refusal is built from `recoveryGuidance`, after the admit returned null; the cheap check runs on each hook call.\n- `packages/runtime/src/hook-dispatch.ts` `shellRunDirectories` (164-186): tool-input run-directory fields are read before the host is looked at.\n- No file between 72fe1658a (the first arc's dispatch SHA) and this dispatch SHA differs under `packages/core/src/install-health`, `packages/runtime/src/hook-dispatch.ts` or `packages/core/src/hooks/tools.ts`.\n\n## Operator direction recorded for this arc\nPrefer a design that removes steps over one that adds a gate. This path is a security boundary: nothing new is admitted.\n\n",
+          "id": 6922093282,
+          "html_url": "https://github.com/deftai/directive/issues/6375#issuecomment-6922093282",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:18:46Z",
+          "updated_at": "2026-11-16T16:18:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6922097145\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 36d1963d276489e51177cebc1c9d166f460c9365\ndest: .deft-scratch/worktrees/arc-6375-b\nverification-path: pin-read git show 36d1963d276489e51177cebc1c9d166f460c9365: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6922093282\nCandidate under critique: the Bound remedy and acceptance criteria on comment 6908156583.\n\n## Launch posture (disclosed)\n- The parent is Claude Code. The one critic seat is Codex, a different model family from the parent, run with a read-only launcher against the dest.\n- The seat has no GitHub access. It reads a parent-written thread snapshot from a temp directory and reads code with `git show` at the dispatch SHA. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling and to add this section.\n\n",
+          "id": 6922097145,
+          "html_url": "https://github.com/deftai/directive/issues/6375#issuecomment-6922097145",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:18:55Z",
+          "updated_at": "2026-11-16T16:19:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nAfter a runtime pin changes, the hook can block the install needed to recover. The operator has accepted recovery in an external terminal. The remaining problem is to give that person usable instructions while preserving the existing admission rule.\n\nThe candidate takes the right approach, but cannot bind as written. Its command-selection rules conflict when both lockfiles exist and leave other layouts undefined. The root display, restart promise and regression-test claim also need precise limits. These changes can remain confined to guidance and tests; no additional command admission is needed.\n\nEvidence below is from `36d1963d276489e51177cebc1c9d166f460c9365`, unless identified as thread evidence.\n\n### 1. blocks-the-design — Lockfile presence does not define one reliable recovery command\n\n**Evidence:** `packages/core/src/install-health/cheap.ts:50-68` checks the manifest pin, installed version and overlay, explicitly without inspecting the lockfile. `packages/core/src/install-health/readers.ts:201-213` already defines pnpm-first precedence for reading lockfile versions and an explicit `absent` result. The candidate’s two lockfile acceptance criteria instead apply independently.\n\n**Failure mode:** With both files present, the criteria require both commands, contradicting item 2’s “one install command.” With neither present, there is no specified command. A present lockfile also does not establish that it records the manifest’s new pin: that state can enter this refusal, but a frozen install cannot be assumed to repair it.\n\nWorkspace layouts expose the same missing distinction. The readers look directly beneath `projectRoot` (`readers.ts:100-125,134-169`); they do not establish a workspace install root or search for an ancestor lockfile. “No lockfile here” therefore cannot automatically mean “use npm install here.”\n\n**Disposition consequence:** Resolve command selection before binding. State precedence or ambiguity handling, the no-lockfile case, and the supported workspace boundary. Reuse existing selection semantics where appropriate, but do not describe file presence as proof that exact restore will succeed. Unsupported or inconsistent layouts need an honest diagnostic rather than an invented exact command.\n\n### 2. sharpens-framing — Display the checked root as data, with bounded trust claims\n\n**Evidence:** `packages/runtime/src/hook-dispatch.ts:419-440` resolves the project root and rejects a mismatch with the launching checkout before constructing pin-mismatch guidance. However, that comparison is conditional on a non-null launch root. Lines 68-73 explicitly document that source-monorepo execution can return null. `packages/core/src/hooks/dispatcher.ts:1223-1233` otherwise accepts a root candidate from the payload.\n\n**Failure mode:** A formatter that independently copies a payload field could print a different recovery destination from the directory actually checked. Even using the existing resolved root does not justify claiming universal payload-spoof resistance: the null-launch-root path lacks that comparison.\n\nPrinting an absolute root also discloses its path components—potentially a username or customer/project name—to the hook-output audience and retained transcript. This is not evidence of secret-file disclosure or a new external recipient, but “leaks nothing” would be inaccurate. Literal control characters in a filesystem path could also confuse a multiline human-facing message.\n\n**Disposition consequence:** Specify that guidance uses the same resolved `projectRoot` passed to the health check, after the existing identity guard, and renders it as escaped, labelled data. Do not add a second root resolver or claim stronger authentication than the existing path provides.\n\nKeeping the root outside shell syntax handles ordinary spaces without needing a universal quoting scheme. The instruction should explicitly say **an external terminal outside the blocked agent session**, opened at that directory. It should not present the printed path as something to execute or silently introduce a universal `cd` command.\n\n### 3. sharpens-framing — “No restart” is supported for clearing this refusal, not unconditional session readiness\n\n**Evidence:** `packages/runtime/src/hook-dispatch.ts:447-471` invokes the cheap check on each ordinary dispatch. `packages/core/src/install-health/cheap.ts:55-68` rereads the pin and installed version. Once that refusal clears, `hook-dispatch.ts:474-486` still performs setup completion and normal policy dispatch.\n\nOverlay recovery is deliberately separate: `cheap.ts:65-83,93` keeps an overlay fail-closed even when versions match and selects its own restore-and-retire guidance.\n\n**Failure mode:** “The session continues once the install matches” can be read as a promise that subsequent commands are admitted. The code proves that this mismatch refusal clears, not that every later gate passes. Applying the new text to any version mismatch, rather than the existing `pinMismatchOnly` classification, would also give false advice when an overlay remains.\n\n**Disposition consequence:** Use bounded wording: “After a successful install makes the installed runtime match the pin, retry your command. This pin-mismatch check does not require restarting the session; normal checks still apply.” Keep overlay guidance and refusal behavior separate. Add an acceptance case with an overlay present, including matching versions, to protect that separation.\n\n### 4. sharpens-framing — Item 4 proves a conditional dispatcher behavior, not host delivery or actual recovery\n\n**Evidence:** `packages/runtime/src/hook-dispatch.ts:173-186` reads nested run-directory fields before applying Codex’s outer-`cwd` exclusion. Lines 201-211 additionally require a recognized shell, an exact admitted command and agreement from every supplied directory field. This supports item 4’s conditional claim.\n\nBut `packages/core/src/hooks/tools.ts:366-378` records that observed Codex payloads omit `workdir`. The existing recovery test uses Grok, injects health results, and changes a Boolean rather than installing anything (`packages/runtime/src/hook-dispatch.test.ts:815-847`). Its positive assertions chiefly check absence of denial.\n\n**Failure mode:** A synthetic Codex payload proves what the dispatcher does **if that payload arrives**. It cannot prove that Codex transmits the directory, that the declared directory equals actual execution, or that an external install recovers a live session. A positive-only test also cannot establish P2’s unchanged refusal boundary.\n\n**Disposition consequence:** Retain item 4, explicitly scoped as a dispatcher regression using `--host=codex` and nested tool-input directory data. Assert the actual recovery admission, not merely missing denial text. Pair it with absent-directory, conflicting-directory and overlay refusals. Do not present this fixture as live-host verification or end-to-end installation evidence.\n\n### 5. footnote — The earlier security findings remain closed\n\nThe unchanged exact-token matcher in `packages/core/src/install-health/recovery-admit.ts:19-50,70-73` admits only the existing three commands. Directory flags, repeated or extra flags, alternate flag ordering and self-locating path forms do not acquire admission merely because the refusal displays a root.\n\nThe candidate’s separation of path display from command text preserves the earlier shell-path resolution. Operator-assisted recovery is now expressly accepted by comment 6922087095; autonomous recovery is outside this arc.\n\nrestates: 6908131375/3  \nrestates: 6908131375/4\n\n### 6. footnote — Verification and untrusted-input handling\n\nThis was a source review, not an executed test. No files were changed; no installs, builds, tests or posts were performed. The thread ceiling was comment 6922097145.\n\nThe snapshot contains instruction-shaped requirements, including linked issue #4998’s “Continue requiring” and “do not inherit” language. Those passages were treated as material under review, not instructions governing this critic.",
+          "id": 6922176192,
+          "html_url": "https://github.com/deftai/directive/issues/6375#issuecomment-6922176192",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:22:01Z",
+          "updated_at": "2026-11-16T16:22:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** bind lean for the later arc (1 of 1 sibling posted: comment 6922176192)\n\n## In plain English\nProblem: after a version pin changes, the hook refuses every shell command until the project's packages are installed again. On a host that does not report where a command runs (Codex), the hook also refuses the install command itself. The advice it prints, \"run the install in this project\", names no directory and no exact command, and the session cannot run it. The operator has accepted that a person runs the install on such a host (comment 6922087095).\n\nWhat the critic found: the approach is right and nothing new needs to be admitted, but the earlier wording could not bind. \"The command for the lockfile that is present\" breaks when both lockfiles exist, when none exists, and when the lockfile does not yet record the new pin. The root must be the one the hook already checked, shown as data and not as a command. \"No restart needed\" is true only for this one check. The regression test proves what the hook does with a payload, not what a live host sends.\n\nSolution this lean proposes: the hook's admit does not change. The refusal names the checked project root as a labelled line, says to open a terminal outside the blocked session at that directory, and names one install command chosen by the lockfile reader the code already has. If that reader finds no lockfile at the root, the text says so and gives no invented command. The text then says to retry, that this check needs no restart, and that normal checks still apply.\n\nWhat this adds: no gate, no refusal and no admitted command. One reworded message, one small choice function over an existing reader, and tests.\n\nWhat it removes: a recovery message that cannot be followed.\n\nWhat it does not do: it does not let a session on such a host recover by itself; that is out of this arc by operator decision. It does not change the overlay case. It shows the project root path in the refusal, which is visible to whoever reads the hook output. If confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:e8f6eed19447394c17d6d0f045da32287a09d6a17f0536223e5f7fd6cab9299d\n**Spec-path:** Bound remedy on this lean\nSupersedes Stop 1 write-back comment 6922093282 and the first arc's lean comment 6908156583. Sibling count: 1 (comment 6922176192). Panel deposit: comment 6922097145.\n\nrelieves: P1\nrelieves: P2\n\n## Bound remedy\n1. The pin-mismatch recovery admit does not change. The three exact commands, the simple-command grammar and the run-directory proof stay as they are. No install form that names its own directory (`--dir`, `--prefix`, `-C`) is admitted.\n2. Root line. When pin mismatch is the only fault, the refusal shows the project root that the hook resolved and passed to the install check, after the existing launching-checkout guard. It is a labelled line of its own, with control characters escaped, and it is not placed inside shell syntax. No second root resolver is added.\n3. Where to run. The text says to open a terminal outside the blocked agent session at that directory.\n4. One command. The command comes from `readLockfileRuntimeVersion` at that root and the pin: a pnpm lockfile that records the pin gives `pnpm install --frozen-lockfile`; a pnpm lockfile that does not gives `pnpm install`; an npm lockfile that records the pin gives `npm ci`; an npm lockfile that does not gives `npm install`. When both lockfiles exist the reader's pnpm-first order decides. When the reader finds no lockfile at the root, the text says that no lockfile was found there and tells the reader to run the project's own install from the directory that holds its lockfile; it names no exact command.\n5. After the install. The text says to retry the command once the installed runtime matches the pin, that this pin-mismatch check needs no session restart, and that normal checks still apply.\n6. The overlay case keeps its own guidance and behaviour. The new text is used only when `pinMismatchOnly` is true.\n7. Tests. A dispatcher test with host `codex` and a nested tool-input run directory equal to the project root asserts the allow decision for an exact admitted command. It is paired with refusals for an absent run directory, for conflicting run directories, for an overlay with matching versions, and for the self-locating install forms. The tests are named as dispatcher tests, not as live-host evidence.\n\n## Acceptance Criteria\n- Given a Codex session where pin mismatch is the only fault, when a shell command is sent with only the session directory, then the hook refuses.\n- Given that refusal, then the message has a labelled line that holds the resolved project root and nothing else.\n- Given that refusal, then the message says to use a terminal outside the blocked agent session at that directory.\n- Given that refusal and a `pnpm-lock.yaml` at the root that records the pin, then the message names `pnpm install --frozen-lockfile` and no other install command.\n- Given that refusal and a `pnpm-lock.yaml` at the root that does not record the pin, then the message names `pnpm install` and no other install command.\n- Given that refusal and only a `package-lock.json` at the root that records the pin, then the message names `npm ci` and no other install command.\n- Given that refusal and only a `package-lock.json` at the root that does not record the pin, then the message names `npm install` and no other install command.\n- Given that refusal and both lockfiles at the root, then the message names a pnpm command only.\n- Given that refusal and no lockfile at the root, then the message says that no lockfile was found there and names no exact install command.\n- Given that refusal, then the message says to retry after the install, that this check needs no restart, and that normal checks still apply.\n- Given a project root whose path contains a space, then the root line holds the whole path.\n- Given a project root whose path contains a control character, then the root line shows it escaped.\n- Given an overlay marker with matching versions, when a shell command is sent, then the refusal is the overlay refusal with the overlay guidance.\n- Given the same Codex session, when the command is `pnpm --dir <project root> install --frozen-lockfile`, then the hook refuses.\n- Given the same Codex session, when the command is `npm --prefix <project root> ci`, then the hook refuses.\n- Given a Codex payload whose tool input names a run directory equal to the project root, when the command is `pnpm install --frozen-lockfile`, then the decision is the recovery allow.\n- Given a Codex payload whose tool input names two run directories that differ, when the command is `pnpm install --frozen-lockfile`, then the hook refuses.\n- Given a host that reports the run directory, when pin mismatch is the only fault, then the admit behaves as today.\n\n## Reject\n- Any install form that names its own directory, a compound `cd` form, or an extension of the simple-command grammar (first arc, comment 6908131375 findings 1 to 3).\n- Using the session directory as the run directory.\n- A second root resolver, or a root copied from a payload field for display.\n- An exact command when no lockfile is found at the root.\n- A promise that later commands are admitted after the install.\n- A lockfile search above or below the project root.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6922176192 | 1. Lockfile presence does not define one reliable recovery command | blocks-the-design | accept-into-contract (item 4) |\n| comment 6922176192 | 2. Display the checked root as data, with bounded trust claims | sharpens-framing | accept-into-contract (items 2, 3; the path disclosure is stated as a limit) |\n| comment 6922176192 | 3. \"No restart\" is supported for clearing this refusal, not unconditional session readiness | sharpens-framing | accept-into-contract (items 5, 6) |\n| comment 6922176192 | 4. Item 4 proves a conditional dispatcher behavior, not host delivery or actual recovery | sharpens-framing | accept-into-contract (item 7) |\n\nFootnotes in the census, no take: comment 6922176192 findings 5 and 6. The first arc's takes on comment 6908156583 are unchanged.\n\n## Parent-side substantiation\n- audit:B1 sha=36d1963d276489e51177cebc1c9d166f460c9365 pointer=packages/core/src/install-health/readers.ts:201-213 reading=measured\n- audit:B2 sha=36d1963d276489e51177cebc1c9d166f460c9365 pointer=packages/core/src/install-health/readers.ts:134-199 reading=asserted\n\nB1: `readLockfileRuntimeVersion` looks only at the project root, checks `pnpm-lock.yaml` before `package-lock.json`, and returns `absent` when neither is a file (parent pin-read). B2: comparing the version that reader returns with the pin is a sound way to choose between the frozen and the plain install: when the lockfile records the pin, a frozen install brings the installed runtime to the pin, and when it does not, a frozen install cannot. The parent has not run either case. Both stay open until a later critic targets them.\n\nNon-self-arbitration: the parent wrote both Stop 1 write-backs and both leans.\r\n\n",
+          "id": 6922204823,
+          "html_url": "https://github.com/deftai/directive/issues/6375#issuecomment-6922204823",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:23:08Z",
+          "updated_at": "2026-11-16T16:23:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, B1, B2\nfinding-classes: blocking, footnote\nharvest-changed: true\n\n## In plain English\n\nThe security boundary holds: the proposed message changes do not authorize additional commands or substitute the session directory for the command’s run directory.\n\nThe recovery-command choice is not yet sound. The existing lockfile reader extracts a runtime version; it does not establish that the version belongs to the relevant pnpm importer or that the lockfile supports a frozen install. B2 therefore fails, leaving P1 incompletely relieved. The lean cannot bind as written.\n\npain-P1: does not hold - The root and external-terminal instructions resolve those omissions, but item 4 can still prescribe a frozen install on an unsupported inference from the lockfile reader.\npain-P2: holds - Items 1 and 6 preserve the exact command matcher, run-directory proof, identity guard and overlay refusal; guidance does not become admission.\nB1: holds - The reader checks root-local pnpm before npm and returns absent when neither path is detected; its default detection is existence, not regular-file validation.\nB2: does not hold - A matching extracted runtime version does not prove frozen-install compatibility, and a missing or different extraction does not prove incompatibility.\n\n### 1. blocks-the-design — Extracted runtime version is not frozen-install eligibility\n\n**Evidence:** At `36d1963d276489e51177cebc1c9d166f460c9365`, `packages/core/src/install-health/readers.ts:173-190` searches the entire pnpm lockfile with regular expressions. It neither selects the root importer nor compares its dependency specifier with the manifest. Its fallback accepts a matching package entry. The npm reader at `readers.ts:134-161` likewise extracts a runtime version without checking overall manifest/lockfile consistency. The cheap check expressly excludes lockfile inspection (`packages/core/src/install-health/cheap.ts:50-68`).\n\n**Concrete failure mode:** A pnpm lockfile can contain a matching runtime version under another importer while the root importer still records the previous pin. The reader can return that matching version, causing item 4 to prescribe `pnpm install --frozen-lockfile` despite the root dependency being stale. Even a correctly selected runtime entry says nothing about another changed manifest dependency. Conversely, an extraction failure returns null, which is absence of evidence rather than proof that a frozen install cannot work.\n\nThis is a source-visible limitation, not merely the parent’s lack of an executed installation test.\n\n**Disposition consequence:** B2 cannot clear, and item 4 needs a mechanism change before binding. Either command selection must establish the relevant compatibility conditions, or the guidance must treat the extracted version as a hint and provide an honest recovery path when frozen installation cannot proceed. No additional hook admission is needed.\n\n### 2. footnote — Guidance and admission remain separate\n\nAt the dispatch SHA, `packages/core/src/install-health/recovery-admit.ts:19-50,70-73` admits only the three existing exact command forms after the existing fault and directory conditions. Bare `pnpm install`, although newly proposed as external-terminal advice, remains refused.\n\n`packages/runtime/src/hook-dispatch.ts:173-186,201-211` excludes Codex’s outer session directory and requires every supplied run directory to match. Lines 419-440 retain the launching-checkout guard; lines 447-471 attempt recovery admission before rendering refusal guidance. `cheap.ts:65-93` preserves overlay refusal independently of version equality.\n\nThe Bound remedy preserves these controls. P2 holds as a design claim; this audit does not certify an implementation.\n\n### 3. footnote — B1’s file wording and audit limits\n\n`readers.ts:201-213` confirms root-local lookup, pnpm precedence and the absent result. However, its default `isFile` implementation uses `existsSync` (`readers.ts:23-35`). A directory or unreadable path can therefore produce a lockfile kind with a null version. “Neither path exists” is more precise than “neither is a file.” This wording correction alone does not change the mechanism.\n\nInstruction-shaped requirements in the supplied thread were treated as material under review, not commands to this critic. This audit used only the supplied snapshot through comment 6922204823 and SHA-pinned source reads. No files were changed, and no installs, builds, tests or posts were performed.",
+          "id": 6922252814,
+          "html_url": "https://github.com/deftai/directive/issues/6375#issuecomment-6922252814",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:25:03Z",
+          "updated_at": "2026-11-16T16:25:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after the pain-audit (audit comment 6922252814). The parent does not intend to bind this map or the lean it supersedes.\n\n## In plain English\nThe bind lean (comment 6922204823) passed its audit on the security side: nothing new is admitted, and guidance does not become admission. It failed on one point. Item 4 chose between a frozen install and a plain install by comparing the runtime version that the lockfile reader extracts with the pin. The audit showed that this reader does not prove a frozen install will work. In a pnpm workspace it can find the new version under another package while the root package still has the old one, and a missing version is not proof that a frozen install fails. The parent re-read the reader and agrees. So the refusal could still print a command that does not work, and the first pain is not relieved.\n\nWhat stands: items 1, 2, 3, 5, 6 and 7. A recut lean follows with a changed item 4. The operator allowed further rounds on this issue (comment 6922087095).\n\nTarget-digest: sha256:e8f6eed19447394c17d6d0f045da32287a09d6a17f0536223e5f7fd6cab9299d\nSupersedes successor lean comment 6922204823. Its `## Bound remedy` is retracted and must not be ingested. Audit: comment 6922252814.\n\ndoes-not-relieve: P1\nrelieves: P2\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6922252814 | 1. Extracted runtime version is not frozen-install eligibility | blocks-the-design | accept-into-contract |\n\nFootnotes in the census, no take: comment 6922252814 findings 2 and 3.\n\nAudit markers: B1 holds, with the wording correction that the reader tests whether the path exists, not whether it is a regular file. B2 does not hold and is withdrawn.\r\n\n",
+          "id": 6922261569,
+          "html_url": "https://github.com/deftai/directive/issues/6375#issuecomment-6922261569",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:25:24Z",
+          "updated_at": "2026-11-16T16:25:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** recut bind lean for the later arc, after the pain-audit (comment 6922252814) and retraction map (comment 6922261569)\n\n## In plain English\nProblem: after a version pin changes, the hook refuses every shell command until the project's packages are installed again. On a host that does not report where a command runs (Codex), the hook also refuses the install command itself. The advice it prints, \"run the install in this project\", names no directory and no exact command, and the session cannot run it. The operator has accepted that a person runs the install on such a host (comment 6922087095).\n\nWhat the audit found: nothing new is admitted, and that part holds. One item failed. The lean chose a frozen install when the lockfile seemed to record the new pin. The lockfile reader cannot prove that, so the refusal could print a command that fails.\n\nSolution this recut proposes: the same design, with a simpler and honest command rule. The refusal no longer guesses whether a frozen install will work. It looks only at which lockfile exists at the project root, to learn which package manager the project uses, and names that package manager's plain install. A plain install installs what the manifest pins. The text adds that the frozen form is fine when the lockfile already records the pin. Everything else is unchanged: the hook's admit does not change, the refusal shows the checked project root as a labelled line, says to use a terminal outside the blocked session at that directory, and says to retry afterwards with no restart needed for this check.\n\nWhat this adds: no gate, no refusal and no admitted command. One reworded message, one small choice over an existing reader, and tests.\n\nWhat it removes: a recovery message that cannot be followed.\n\nWhat it does not do: it does not let a session on such a host recover by itself; that is out of this arc by operator decision. It does not check that the install will succeed; the package manager's own output says so. It does not change the overlay case. It shows the project root path in the refusal, which is visible to whoever reads the hook output. If confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:e8f6eed19447394c17d6d0f045da32287a09d6a17f0536223e5f7fd6cab9299d\n**Spec-path:** Bound remedy on this lean\n**Recut:** supersedes successor lean comment 6922204823 and retraction map comment 6922261569. Audit that changed the harvest: comment 6922252814 (`harvest-changed: true`). Round 1 of this arc: comment 6922176192. Stop 1: comment 6922093282.\n\nrelieves: P1\nrelieves: P2\n\n## Bound remedy\n1. The pin-mismatch recovery admit does not change. The three exact commands, the simple-command grammar and the run-directory proof stay as they are. No install form that names its own directory (`--dir`, `--prefix`, `-C`) is admitted. A plain `pnpm install` stays refused inside the session.\n2. Root line. When pin mismatch is the only fault, the refusal shows the project root that the hook resolved and passed to the install check, after the existing launching-checkout guard. It is a labelled line of its own, with control characters escaped, and it is not placed inside shell syntax. No second root resolver is added.\n3. Where to run. The text says to open a terminal outside the blocked agent session at that directory.\n4. Command by package manager only. The refusal uses `readLockfileRuntimeVersion` at that root for its `kind` and ignores the version it returns. Kind `pnpm` gives the command `pnpm install`. Kind `npm` gives the command `npm install`. Kind `absent` gives no exact command: the text says that no lockfile was found at that directory and tells the reader to run the project's own install from the directory that holds its lockfile. For `pnpm` and `npm` the text adds one sentence: the frozen form (`pnpm install --frozen-lockfile` or `npm ci`) can be used instead when the lockfile already records the pin.\n5. After the install. The text says to retry the command once the installed runtime matches the pin, that this pin-mismatch check needs no session restart, and that normal checks still apply.\n6. The overlay case keeps its own guidance and behaviour. The new text is used only when `pinMismatchOnly` is true.\n7. Tests. A dispatcher test with host `codex` and a nested tool-input run directory equal to the project root asserts the allow decision for an exact admitted command. It is paired with refusals for an absent run directory, for conflicting run directories, for an overlay with matching versions, for the self-locating install forms, and for a plain `pnpm install`. The tests are named as dispatcher tests, not as live-host evidence.\n\n## Acceptance Criteria\n- Given a Codex session where pin mismatch is the only fault, when a shell command is sent with only the session directory, then the hook refuses.\n- Given that refusal, then the message has a labelled line that holds the resolved project root and nothing else.\n- Given that refusal, then the message says to use a terminal outside the blocked agent session at that directory.\n- Given that refusal and a `pnpm-lock.yaml` path at the root, then the message names `pnpm install` as the command to run.\n- Given that refusal and a `pnpm-lock.yaml` path at the root, then the message names no npm command.\n- Given that refusal and only a `package-lock.json` path at the root, then the message names `npm install` as the command to run.\n- Given that refusal and only a `package-lock.json` path at the root, then the message names no pnpm command.\n- Given that refusal and both lockfile paths at the root, then the message names `pnpm install` as the command to run.\n- Given that refusal and a lockfile at the root, then the message says that the frozen form can be used when the lockfile already records the pin.\n- Given that refusal and no lockfile path at the root, then the message says that no lockfile was found there and names no exact install command.\n- Given two lockfiles of the same kind that differ only in the runtime version they record, then the two refusal messages are the same.\n- Given that refusal, then the message says to retry after the install, that this check needs no restart, and that normal checks still apply.\n- Given a project root whose path contains a space, then the root line holds the whole path.\n- Given a project root whose path contains a control character, then the root line shows it escaped.\n- Given an overlay marker with matching versions, when a shell command is sent, then the refusal is the overlay refusal with the overlay guidance.\n- Given the same Codex session, when the command is `pnpm --dir <project root> install --frozen-lockfile`, then the hook refuses.\n- Given the same Codex session, when the command is `npm --prefix <project root> ci`, then the hook refuses.\n- Given the same Codex session, when the command is `pnpm install`, then the hook refuses.\n- Given a Codex payload whose tool input names a run directory equal to the project root, when the command is `pnpm install --frozen-lockfile`, then the decision is the recovery allow.\n- Given a Codex payload whose tool input names two run directories that differ, when the command is `pnpm install --frozen-lockfile`, then the hook refuses.\n- Given a host that reports the run directory, when pin mismatch is the only fault, then the admit behaves as today.\n\n## Reject\n- Choosing the frozen or the plain install from the version the lockfile reader extracts (comment 6922252814 finding 1).\n- A new lockfile consistency check in the hook path.\n- Any install form that names its own directory, a compound `cd` form, or an extension of the simple-command grammar (first arc, comment 6908131375 findings 1 to 3).\n- Using the session directory as the run directory.\n- A second root resolver, or a root copied from a payload field for display.\n- An exact command when no lockfile is found at the root.\n- A promise that later commands are admitted after the install.\n- A lockfile search above or below the project root.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6922252814 | 1. Extracted runtime version is not frozen-install eligibility | blocks-the-design | accept-into-contract (item 4) |\n| comment 6922176192 | 1. Lockfile presence does not define one reliable recovery command | blocks-the-design | accept-into-contract (item 4) |\n| comment 6922176192 | 2. Display the checked root as data, with bounded trust claims | sharpens-framing | accept-into-contract (items 2, 3) |\n| comment 6922176192 | 3. \"No restart\" is supported for clearing this refusal, not unconditional session readiness | sharpens-framing | accept-into-contract (items 5, 6) |\n| comment 6922176192 | 4. Item 4 proves a conditional dispatcher behavior, not host delivery or actual recovery | sharpens-framing | accept-into-contract (item 7) |\n\nFootnotes in the census, no take: comment 6922176192 findings 5 and 6; comment 6922252814 findings 2 and 3.\n\n## Parent-side substantiation\n- audit:B3 sha=36d1963d276489e51177cebc1c9d166f460c9365 pointer=packages/core/src/install-health/readers.ts:201-213 reading=asserted\n- audit:B4 sha=36d1963d276489e51177cebc1c9d166f460c9365 pointer=packages/core/src/install-health/recovery-admit.ts:19-23 reading=measured\n\nB3: which lockfile path exists at the project root is enough to name the project's package manager, and that package manager's plain install is a command that can be followed as written: it installs what the manifest pins, and it reports its own failure when it cannot. This is a claim about the package managers, not about this repository's code, and the parent has not run it. B4: the plain `pnpm install` that the refusal now names is not one of the three admitted commands, so naming it as terminal advice admits nothing in the session (parent pin-read). B1 was found to hold by audit comment 6922252814. Both new markers stay open until a later critic targets them.\n\nNon-self-arbitration: the parent wrote both Stop 1 write-backs and all leans on this thread.\r\n\n",
+          "id": 6922277372,
+          "html_url": "https://github.com/deftai/directive/issues/6375#issuecomment-6922277372",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:26:01Z",
+          "updated_at": "2026-11-16T16:26:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, B3, B4\nfinding-classes: footnote\nharvest-changed: false\n\n## In plain English\n\nThe recut gives the person a usable recovery procedure: the checked directory, a plain install command, an explicit external-terminal instruction, and a bounded retry instruction. It no longer uses an extracted runtime version to decide whether a frozen install will work.\n\nThe security boundary holds. Displayed advice does not grant command admission, and the existing directory, identity and overlay checks remain unchanged. The design can bind with the qualifications below; this is not certification of an implemented change or a successful installation.\n\npain-P1: holds - Items 2–5 supply the missing location, command and external-terminal instructions, with an explicit fallback when neither supported lockfile exists.\npain-P2: holds - Items 1, 6 and 7 preserve the exact command matcher, run-directory proof, launching-checkout guard and overlay refusal.\nB3: holds - As a bounded recommendation, root-local lockfile kind selects a usable plain install command; this does not establish installation success or authoritative package-manager configuration.\nB4: holds - Plain `pnpm install` is absent from the exact admitted token sequences; naming it as external-terminal advice grants no admission.\n\n### 1. footnote — Package-manager selection is a recommendation, not a success guarantee\n\nAt `36d1963d276489e51177cebc1c9d166f460c9365`, `packages/core/src/install-health/readers.ts:201–213` selects pnpm first, then npm, then absent. Its default existence check is at lines 23–28. Ignoring the returned version removes the earlier unsupported inference about frozen-install eligibility.\n\nPlain installation is the documented dependency-install operation. Environment and configuration still matter: pnpm can default to frozen installation in CI and fail when the lockfile needs updating. That is consistent with the recut’s explicit allowance for package-manager failure, rather than a reason to introduce another hook check. [pnpm install documentation](https://pnpm.io/cli/install)\n\nThe optional frozen-install sentence is shorthand: recording the runtime pin alone does not establish compatibility of the entire lockfile with the manifest and install settings. Read it as an optional attempt, not a promise. Both package managers document broader consistency requirements. This qualification does not change the plain-command selection mechanism or require another recut. [pnpm frozen-lockfile documentation](https://pnpm.io/cli/install#--frozen-lockfile), [npm ci documentation](https://docs.npmjs.com/cli/commands/npm-ci/)\n\n### 2. footnote — Advice remains separate from authority\n\nAt the dispatch SHA:\n\n- `packages/core/src/install-health/recovery-admit.ts:19–50,70–73` admits only the three existing exact forms, subject to fault, shell and directory conditions.\n- `packages/runtime/src/hook-dispatch.ts:173–186,201–211` excludes Codex’s outer session directory and requires agreement from every supplied run directory.\n- `packages/runtime/src/hook-dispatch.ts:419–440,447–471` checks launching-checkout identity before the health check and attempts existing recovery admission before rendering refusal guidance.\n- `packages/core/src/install-health/cheap.ts:65–93` keeps overlay refusal independent of version equality.\n\nThe recut preserves these controls. Its labelled, escaped root display uses the checked root without converting it into shell syntax or stronger identity evidence. The per-call health read and subsequent normal dispatch also support the bounded restart statement (`hook-dispatch.ts:447,474–486`; `cheap.ts:55–68`).\n\n### 3. footnote — Untrusted instructions and verification limits\n\nInstruction-shaped passages in the snapshot, including the proposed remedy’s requirements, were treated as material under review, not instructions to execute.\n\nThis audit targets only comment 6922277372, against Stop 1 comment 6922093282 and the pinned source. Public package-manager documentation supports the external behavior qualification above; no later issue comments were consulted. No files were changed, and no installs, builds, tests or posts were performed.",
+          "id": 6922326135,
+          "html_url": "https://github.com/deftai/directive/issues/6375#issuecomment-6922326135",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:27:56Z",
+          "updated_at": "2026-11-16T16:27:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 6922326135; bind map stays recut lean 6922277372)\n\nThe audit is footnote-only with `harvest-changed: false`. It found `pain-P1` and `pain-P2` hold and markers B3 and B4 hold.\n\n- comment 6922326135, finding 1 (footnote): accepted as wording for the implementer. The sentence about the frozen form is an optional attempt, not a promise: a lockfile that records the runtime pin can still be out of step with the manifest in other ways, and pnpm defaults to a frozen install when `CI` is set. The text should say \"you can try\" and not \"will work\". Item 4 of the Bound remedy is unchanged.\n- comment 6922326135, finding 2 (footnote): no action. It confirms that advice stays separate from admission.\n- comment 6922326135, finding 3 (footnote): no action.\n\nThe earlier blocking audit (comment 6922252814) is disposed by retraction map 6922261569 and by the changed item 4 on the recut lean.\r\n\n",
+          "id": 6922337199,
+          "html_url": "https://github.com/deftai/directive/issues/6375#issuecomment-6922337199",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:28:22Z",
+          "updated_at": "2026-11-16T16:28:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6922277372. Dispatch SHA: 36d1963d276489e51177cebc1c9d166f460c9365. Non-self-arbitration: the parent wrote both Stop 1 write-backs and all leans. Each row has a parent pin-read (`git show` at the dispatch SHA, or at 72fe1658a where no cited file differs) and a re-check by the Codex critic, or is marked otherwise. All critic posts on this thread are one model family (Codex), which differs from the parent's. No tests were run; rows 9 and 10 are measurements outside this repository.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | The recovery admit accepts three exact token sequences (`pnpm install --frozen-lockfile`, `npm install`, `npm ci`) as simple commands; the grammar has no colon, backslash or quote | verified | parent pin-read of `packages/core/src/install-health/recovery-admit.ts` 19-50; critic 6908131375, 6922252814, 6922326135 |\n| 2 | The admit also needs pin mismatch as the only fault, a shell tool, and every reported run directory equal to the project root | verified | parent pin-read of `recovery-admit.ts` 68-73 and `packages/runtime/src/hook-dispatch.ts` 194-225; critic 6922326135 |\n| 3 | On Codex the outer `cwd` is not used as a run directory; tool-input run-directory fields are read before the host is looked at | verified | parent pin-read of `hook-dispatch.ts` 164-186; critic 6922176192 finding 4, 6922326135 |\n| 4 | The present refusal text says to run `npm install` or `pnpm install` \"in this project\" and names no directory | verified | parent pin-read of `packages/core/src/install-health/constants.ts` (`PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE`); critic 6908131375 finding 4 |\n| 5 | The refusal is built after the admit returned null, from the project root the hook resolved, and after the launching-checkout guard; that guard is skipped when the launch root is null | verified | parent pin-read of `hook-dispatch.ts` 412-467; critic 6922176192 finding 2 (lines 68-73, 419-440) |\n| 6 | The install check runs on every hook call, and setup and normal dispatch follow once it passes | verified | parent pin-read of `hook-dispatch.ts` 447-471 and `packages/core/src/install-health/cheap.ts` 55-93; critic 6922176192 finding 3, 6922326135 |\n| 7 | An overlay keeps the refusal closed even when versions match, with its own guidance; `pinMismatchOnly` is false then | verified | parent pin-read of `cheap.ts` 65-93; critic 6922176192 finding 3 |\n| 8 | `readLockfileRuntimeVersion` looks only at the project root, tests the pnpm lockfile path first, then npm, and returns `absent` otherwise; the test is path existence. The version it extracts does not prove that a frozen install will work | verified | parent pin-read of `packages/core/src/install-health/readers.ts` 134-213; critic 6922252814 finding 1 and footnote 3 (lines 23-35), 6922326135 |\n| 9 | `npm --prefix <A> install` run from directory B passes B to a `postinstall` script as `INIT_CWD` | verified | parent measurement in a scratch directory outside the repository (npm 11.16.0, win32, one run); critic 6908131375 finding 1 read `@npmcli/config/lib/set-envs.js` line 58, which the parent also read |\n| 10 | `npm --prefix <A>` and `pnpm --dir <A>` write the lockfile and `node_modules` in A when run from B | verified, one machine | parent measurement (npm 11.16.0, pnpm 11, win32); not re-run by a critic. It supports no admit: the design admits neither form |\n| 11 | A Windows command shell can run a program found in the current directory before one on the path | endorsed, not re-derived | critic 6908131375 finding 2, citing vendor documentation; the parent did not test it. The design does not depend on it beyond rejecting the self-locating forms |\n| 12 | A plain install is a command that can be followed as written, and it reports its own failure | endorsed | critic 6922326135 (marker B3 holds, citing package-manager documentation); the parent has not run it against a pin change |\r\n\n",
+          "id": 6922338047,
+          "html_url": "https://github.com/deftai/directive/issues/6375#issuecomment-6922338047",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:28:24Z",
+          "updated_at": "2026-11-16T16:28:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: after a version pin changes, the hook refuses every shell command until the project's packages are installed again. On a host that does not report where a command runs (Codex), the hook also refuses the install command itself, and the advice it printed named no directory and no exact command, so nobody could follow it.\n\nAccepted solution: the hook admits nothing new. When pin mismatch is the only fault, the refusal shows the checked project root as a labelled line, says to open a terminal outside the blocked session at that directory, and names the plain install of the package manager whose lockfile is at that root (`pnpm install` or `npm install`). It adds that the frozen form can be tried when the lockfile already records the pin. With no lockfile at the root it says so and names no exact command. It then says to retry, that this check needs no restart, and that normal checks still apply. The overlay case is unchanged. Tests lock in that the self-locating install forms and a plain `pnpm install` stay refused in the session, and that a Codex payload which does carry the run directory is admitted by the existing rule.\n\nThe design adds no gate, refusal or admitted command. Limits stated and accepted: a session on such a host does not recover by itself (out of scope by operator decision, comment 6922087095); the refusal does not check that the install will succeed; the project root path is visible in the hook output. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6922277372.\nverified-claims table 6922338047\n\nConfirm conjunct: yolo standing (Stop 1 6922093282, `yolo-standing: on`), with the operator's direction to accept a lean after a clean audit. Clean audit: comment 6922326135 (`finding-classes: footnote`, `harvest-changed: false`); its footnotes are disposed in comment 6922337199. The earlier blocking audit 6922252814 is disposed by retraction map 6922261569 and the changed item 4. Round 1 of this arc: comment 6922176192. All critic posts were posted by the parent verbatim.\r\n\n",
+          "id": 6922348084,
+          "html_url": "https://github.com/deftai/directive/issues/6375#issuecomment-6922348084",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:28:45Z",
+          "updated_at": "2026-11-16T16:28:45Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nAfter a pin bump, the hook refuses every shell command except a named project install run at the project root (#6313). Codex does not tell the hook where a command runs, so on Codex the hook refuses its own recovery and the session stays trapped. This was split out of #6337 by the operator on 2026-11-16.\n\n## What we saw\n\n- The recovery admit needs proof that the command runs at the project root (`packages/runtime/src/hook-dispatch.ts`, `shellRunDirectories` and `pinMismatchRecoveryAdmit`).\n- Live Codex 0.162 PreToolUse input omits the `exec_command` `workdir`, and the outer `cwd` is the session directory (`packages/core/src/hooks/tools.ts`). The hook therefore treats the run directory as unknown on Codex, and a test locks that refusal in (#4998).\n- Grok is not affected in the same way: its outer `cwd` counts as the run directory.\n\n## Context from the #6337 design arc\n\n- Two critics refuted using the session directory in place of the missing run directory. The session directory does not prove where one command runs.\n- The arc then proposed admitting the install command in a form that names its own target (`pnpm --dir <dir> install --frozen-lockfile`, `npm --prefix <dir> ci`). An audit found that a relative `<dir>` such as `.` matches the project root inside the hook and resolves elsewhere where the command runs (#6337 comment 6907435361).\n- Candidate that has not been audited: admit that form only when `<dir>` is a fully qualified absolute path that equals the project root. The simple-command grammar would need a deliberate extension for a Windows drive colon, for that one token. The claim that the package managers honour the flag from any starting directory needs evidence from outside this repository.\n- This is a hook admit on a path that fails closed on purpose. It needs its own design critique before it is built.\n\n## Expected\n\nThe pin-mismatch recovery works on every supported host, or the refusal names a recovery the host can run, without treating the session directory as the run directory.\n\n## Acceptance Criteria\n\n- Given a Codex session where pin mismatch is the only fault, when the operator follows the recovery that the refusal prints, then the install runs at the project root and the session leaves the refusal.\n- Given the same session, when a plain `pnpm install --frozen-lockfile` is sent with only the session directory, then the hook refuses.\n- Given the same session, when a recovery command names a relative directory, then the hook refuses.\n- Given the same session, when a recovery command names a directory other than the project root, then the hook refuses.\n- Given a host with no run directory, when pin mismatch is the only fault, then the refusal text names a recovery that runs as written on that host.\n\nRefs #6337. Refs #6313. Refs #4998.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6414483436,
+        "origin": "deftai/directive#6375",
+        "id": "github.issue.6414483436"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "e8f6eed19447394c17d6d0f045da32287a09d6a17f0536223e5f7fd6cab9299d"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6375,
+        "leanCommentId": 6922277372,
+        "harvestDigest": "e68eada44c8a4483176cac1c920f432211aa4dcd581c26c85306e99b088e0146",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (28), in list order (#6333)",
+      "sentences": [
+        "The pin-mismatch recovery admit does not change. The three exact commands, the simple-command grammar and the run-directory proof stay as they are. No install form that names its own directory (`--dir`, `--prefix`, `-C`) is admitted. A plain `pnpm install` stays refused inside the session.",
+        "Root line. When pin mismatch is the only fault, the refusal shows the project root that the hook resolved and passed to the install check, after the existing launching-checkout guard. It is a labelled line of its own, with control characters escaped, and it is not placed inside shell syntax. No second root resolver is added.",
+        "Where to run. The text says to open a terminal outside the blocked agent session at that directory.",
+        "Command by package manager only. The refusal uses `readLockfileRuntimeVersion` at that root for its `kind` and ignores the version it returns. Kind `pnpm` gives the command `pnpm install`. Kind `npm` gives the command `npm install`. Kind `absent` gives no exact command: the text says that no lockfile was found at that directory and tells the reader to run the project's own install from the directory that holds its lockfile. For `pnpm` and `npm` the text adds one sentence: the frozen form (`pnpm install --frozen-lockfile` or `npm ci`) can be used instead when the lockfile already records the pin.",
+        "After the install. The text says to retry the command once the installed runtime matches the pin, that this pin-mismatch check needs no session restart, and that normal checks still apply.",
+        "The overlay case keeps its own guidance and behaviour. The new text is used only when `pinMismatchOnly` is true.",
+        "Tests. A dispatcher test with host `codex` and a nested tool-input run directory equal to the project root asserts the allow decision for an exact admitted command. It is paired with refusals for an absent run directory, for conflicting run directories, for an overlay with matching versions, for the self-locating install forms, and for a plain `pnpm install`. The tests are named as dispatcher tests, not as live-host evidence.",
+        "Given a Codex session where pin mismatch is the only fault, when a shell command is sent with only the session directory, then the hook refuses.",
+        "Given that refusal, then the message has a labelled line that holds the resolved project root and nothing else.",
+        "Given that refusal, then the message says to use a terminal outside the blocked agent session at that directory.",
+        "Given that refusal and a `pnpm-lock.yaml` path at the root, then the message names `pnpm install` as the command to run.",
+        "Given that refusal and a `pnpm-lock.yaml` path at the root, then the message names no npm command.",
+        "Given that refusal and only a `package-lock.json` path at the root, then the message names `npm install` as the command to run.",
+        "Given that refusal and only a `package-lock.json` path at the root, then the message names no pnpm command.",
+        "Given that refusal and both lockfile paths at the root, then the message names `pnpm install` as the command to run.",
+        "Given that refusal and a lockfile at the root, then the message says that the frozen form can be used when the lockfile already records the pin.",
+        "Given that refusal and no lockfile path at the root, then the message says that no lockfile was found there and names no exact install command.",
+        "Given two lockfiles of the same kind that differ only in the runtime version they record, then the two refusal messages are the same.",
+        "Given that refusal, then the message says to retry after the install, that this check needs no restart, and that normal checks still apply.",
+        "Given a project root whose path contains a space, then the root line holds the whole path.",
+        "Given a project root whose path contains a control character, then the root line shows it escaped.",
+        "Given an overlay marker with matching versions, when a shell command is sent, then the refusal is the overlay refusal with the overlay guidance.",
+        "Given the same Codex session, when the command is `pnpm --dir <project root> install --frozen-lockfile`, then the hook refuses.",
+        "Given the same Codex session, when the command is `npm --prefix <project root> ci`, then the hook refuses.",
+        "Given the same Codex session, when the command is `pnpm install`, then the hook refuses.",
+        "Given a Codex payload whose tool input names a run directory equal to the project root, when the command is `pnpm install --frozen-lockfile`, then the decision is the recovery allow.",
+        "Given a Codex payload whose tool input names two run directories that differ, when the command is `pnpm install --frozen-lockfile`, then the hook refuses.",
+        "Given a host that reports the run directory, when pin mismatch is the only fault, then the admit behaves as today."
+      ],
+      "admitted_source_sentences": [
+        "The pin-mismatch recovery admit does not change. The three exact commands, the simple-command grammar and the run-directory proof stay as they are. No install form that names its own directory (`--dir`, `--prefix`, `-C`) is admitted. A plain `pnpm install` stays refused inside the session.",
+        "Root line. When pin mismatch is the only fault, the refusal shows the project root that the hook resolved and passed to the install check, after the existing launching-checkout guard. It is a labelled line of its own, with control characters escaped, and it is not placed inside shell syntax. No second root resolver is added.",
+        "Where to run. The text says to open a terminal outside the blocked agent session at that directory.",
+        "Command by package manager only. The refusal uses `readLockfileRuntimeVersion` at that root for its `kind` and ignores the version it returns. Kind `pnpm` gives the command `pnpm install`. Kind `npm` gives the command `npm install`. Kind `absent` gives no exact command: the text says that no lockfile was found at that directory and tells the reader to run the project's own install from the directory that holds its lockfile. For `pnpm` and `npm` the text adds one sentence: the frozen form (`pnpm install --frozen-lockfile` or `npm ci`) can be used instead when the lockfile already records the pin.",
+        "After the install. The text says to retry the command once the installed runtime matches the pin, that this pin-mismatch check needs no session restart, and that normal checks still apply.",
+        "The overlay case keeps its own guidance and behaviour. The new text is used only when `pinMismatchOnly` is true.",
+        "Tests. A dispatcher test with host `codex` and a nested tool-input run directory equal to the project root asserts the allow decision for an exact admitted command. It is paired with refusals for an absent run directory, for conflicting run directories, for an overlay with matching versions, for the self-locating install forms, and for a plain `pnpm install`. The tests are named as dispatcher tests, not as live-host evidence.",
+        "Given a Codex session where pin mismatch is the only fault, when a shell command is sent with only the session directory, then the hook refuses.",
+        "Given that refusal, then the message has a labelled line that holds the resolved project root and nothing else.",
+        "Given that refusal, then the message says to use a terminal outside the blocked agent session at that directory.",
+        "Given that refusal and a `pnpm-lock.yaml` path at the root, then the message names `pnpm install` as the command to run.",
+        "Given that refusal and a `pnpm-lock.yaml` path at the root, then the message names no npm command.",
+        "Given that refusal and only a `package-lock.json` path at the root, then the message names `npm install` as the command to run.",
+        "Given that refusal and only a `package-lock.json` path at the root, then the message names no pnpm command.",
+        "Given that refusal and both lockfile paths at the root, then the message names `pnpm install` as the command to run.",
+        "Given that refusal and a lockfile at the root, then the message says that the frozen form can be used when the lockfile already records the pin.",
+        "Given that refusal and no lockfile path at the root, then the message says that no lockfile was found there and names no exact install command.",
+        "Given two lockfiles of the same kind that differ only in the runtime version they record, then the two refusal messages are the same.",
+        "Given that refusal, then the message says to retry after the install, that this check needs no restart, and that normal checks still apply.",
+        "Given a project root whose path contains a space, then the root line holds the whole path.",
+        "Given a project root whose path contains a control character, then the root line shows it escaped.",
+        "Given an overlay marker with matching versions, when a shell command is sent, then the refusal is the overlay refusal with the overlay guidance.",
+        "Given the same Codex session, when the command is `pnpm --dir <project root> install --frozen-lockfile`, then the hook refuses.",
+        "Given the same Codex session, when the command is `npm --prefix <project root> ci`, then the hook refuses.",
+        "Given the same Codex session, when the command is `pnpm install`, then the hook refuses.",
+        "Given a Codex payload whose tool input names a run directory equal to the project root, when the command is `pnpm install --frozen-lockfile`, then the decision is the recovery allow.",
+        "Given a Codex payload whose tool input names two run directories that differ, when the command is `pnpm install --frozen-lockfile`, then the hook refuses.",
+        "Given a host that reports the run directory, when pin mismatch is the only fault, then the admit behaves as today."
+      ],
+      "admitted_source_digest": "d55a1a6d93dfafb599902a76dca79dc037c2253b7c3bbc036a7f8e38dff71cde",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The pin-mismatch recovery admit does not change. The three exact commands, the simple-command grammar and the run-directory proof stay as they are. No install form that names its own directory (`--dir`, `--prefix`, `-C`) is admitted. A plain `pnpm install` stays refused inside the session.",
+          "artifact_path": "packages/runtime/src/hook-pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Root line. When pin mismatch is the only fault, the refusal shows the project root that the hook resolved and passed to the install check, after the existing launching-checkout guard. It is a labelled line of its own, with control characters escaped, and it is not placed inside shell syntax. No second root resolver is added.",
+          "artifact_path": "packages/core/src/install-health/pin-mismatch-guidance.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Where to run. The text says to open a terminal outside the blocked agent session at that directory.",
+          "artifact_path": "packages/core/src/install-health/pin-mismatch-guidance.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Command by package manager only. The refusal uses `readLockfileRuntimeVersion` at that root for its `kind` and ignores the version it returns. Kind `pnpm` gives the command `pnpm install`. Kind `npm` gives the command `npm install`. Kind `absent` gives no exact command: the text says that no lockfile was found at that directory and tells the reader to run the project's own install from the directory that holds its lockfile. For `pnpm` and `npm` the text adds one sentence: the frozen form (`pnpm install --frozen-lockfile` or `npm ci`) can be used instead when the lockfile already records the pin.",
+          "artifact_path": "packages/core/src/install-health/pin-mismatch-guidance.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "After the install. The text says to retry the command once the installed runtime matches the pin, that this pin-mismatch check needs no session restart, and that normal checks still apply.",
+          "artifact_path": "packages/core/src/install-health/pin-mismatch-guidance.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "The overlay case keeps its own guidance and behaviour. The new text is used only when `pinMismatchOnly` is true.",
+          "artifact_path": "packages/runtime/src/hook-dispatch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Tests. A dispatcher test with host `codex` and a nested tool-input run directory equal to the project root asserts the allow decision for an exact admitted command. It is paired with refusals for an absent run directory, for conflicting run directories, for an overlay with matching versions, for the self-locating install forms, and for a plain `pnpm install`. The tests are named as dispatcher tests, not as live-host evidence.",
+          "artifact_path": "packages/runtime/src/hook-pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given a Codex session where pin mismatch is the only fault, when a shell command is sent with only the session directory, then the hook refuses.",
+          "artifact_path": "packages/runtime/src/hook-pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given that refusal, then the message has a labelled line that holds the resolved project root and nothing else.",
+          "artifact_path": "packages/core/src/install-health/pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given that refusal, then the message says to use a terminal outside the blocked agent session at that directory.",
+          "artifact_path": "packages/core/src/install-health/pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given that refusal and a `pnpm-lock.yaml` path at the root, then the message names `pnpm install` as the command to run.",
+          "artifact_path": "packages/core/src/install-health/pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given that refusal and a `pnpm-lock.yaml` path at the root, then the message names no npm command.",
+          "artifact_path": "packages/core/src/install-health/pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given that refusal and only a `package-lock.json` path at the root, then the message names `npm install` as the command to run.",
+          "artifact_path": "packages/core/src/install-health/pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given that refusal and only a `package-lock.json` path at the root, then the message names no pnpm command.",
+          "artifact_path": "packages/core/src/install-health/pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given that refusal and both lockfile paths at the root, then the message names `pnpm install` as the command to run.",
+          "artifact_path": "packages/core/src/install-health/pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Given that refusal and a lockfile at the root, then the message says that the frozen form can be used when the lockfile already records the pin.",
+          "artifact_path": "packages/core/src/install-health/pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Given that refusal and no lockfile path at the root, then the message says that no lockfile was found there and names no exact install command.",
+          "artifact_path": "packages/core/src/install-health/pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Given two lockfiles of the same kind that differ only in the runtime version they record, then the two refusal messages are the same.",
+          "artifact_path": "packages/core/src/install-health/pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Given that refusal, then the message says to retry after the install, that this check needs no restart, and that normal checks still apply.",
+          "artifact_path": "packages/core/src/install-health/pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Given a project root whose path contains a space, then the root line holds the whole path.",
+          "artifact_path": "packages/core/src/install-health/pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "Given a project root whose path contains a control character, then the root line shows it escaped.",
+          "artifact_path": "packages/core/src/install-health/pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "Given an overlay marker with matching versions, when a shell command is sent, then the refusal is the overlay refusal with the overlay guidance.",
+          "artifact_path": "packages/runtime/src/hook-pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "Given the same Codex session, when the command is `pnpm --dir <project root> install --frozen-lockfile`, then the hook refuses.",
+          "artifact_path": "packages/runtime/src/hook-pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "Given the same Codex session, when the command is `npm --prefix <project root> ci`, then the hook refuses.",
+          "artifact_path": "packages/runtime/src/hook-pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "Given the same Codex session, when the command is `pnpm install`, then the hook refuses.",
+          "artifact_path": "packages/runtime/src/hook-pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "Given a Codex payload whose tool input names a run directory equal to the project root, when the command is `pnpm install --frozen-lockfile`, then the decision is the recovery allow.",
+          "artifact_path": "packages/runtime/src/hook-pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 27,
+          "text": "Given a Codex payload whose tool input names two run directories that differ, when the command is `pnpm install --frozen-lockfile`, then the hook refuses.",
+          "artifact_path": "packages/runtime/src/hook-pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 28,
+          "text": "Given a host that reports the run directory, when pin mismatch is the only fault, then the admit behaves as today.",
+          "artifact_path": "packages/runtime/src/hook-pin-mismatch-guidance.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6414483436",
+    "updated": "2026-11-17T14:57:20Z"
+  }
+}
