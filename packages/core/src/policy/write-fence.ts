@@ -18,6 +18,7 @@ import {
   extractPlanId,
   readApprovedScopeRecord,
 } from "../scope-provenance/digest.js";
+import { defaultGitRunner, type GitRunner } from "../session/git.js";
 import { resolveDeliveryBranch } from "./delivery-branch.js";
 import { evaluateMintLevelRecord, evaluateOnePrScopeProofGate } from "./one-pr-scope-proof.js";
 import { PROJECT_DEFINITION_REL_PATH } from "./resolve.js";
@@ -568,18 +569,74 @@ function mintRejected(reason: string): StoryWriteFenceView {
 }
 
 /**
+ * Newest commit, among the merge base and the commits HEAD adds after it,
+ * whose tree still has `relPath` (#6480). While a move of that path is not yet
+ * committed this is HEAD. Commits behind the merge base are never candidates.
+ * Null when no such commit has the path or git cannot answer.
+ */
+export function newestInRangeCommitWithPath(
+  projectRoot: string,
+  mergeBaseSha: string,
+  relPath: string,
+  runGit: GitRunner = defaultGitRunner,
+): string | null {
+  const base = mergeBaseSha.trim();
+  const path = relPath.replace(/\\/g, "/").replace(/^\.\//, "");
+  if (base.length === 0 || path.length === 0) return null;
+  let listed: { readonly code: number; readonly stdout: string };
+  try {
+    listed = runGit(projectRoot, ["rev-list", "--topo-order", `${base}..HEAD`]);
+  } catch {
+    return null;
+  }
+  if (listed.code !== 0) return null;
+  const commits = listed.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  commits.push(base);
+  for (const commit of commits) {
+    try {
+      if (runGit(projectRoot, ["cat-file", "-e", `${commit}:${path}`]).code === 0) return commit;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Head brief for the one-PR mint gate: the working-tree file when it exists.
+ * After in-PR completion moved it out of active/ (#6480), the blob at the
+ * newest in-range commit that still has it at this path; never the completed/
+ * copy. Null when neither can be read.
+ */
+function readMintHeadBriefRaw(root: string, rel: string, mergeBaseSha: string): string | null {
+  const abs = join(root, ...rel.split("/"));
+  if (existsSync(abs)) return readTextOrNull(abs);
+  const commit = newestInRangeCommitWithPath(root, mergeBaseSha, rel);
+  if (commit === null) return null;
+  const shown = gitFenceSpawn(root, ["show", `${commit}:${rel}`]);
+  return shown.error === undefined && shown.signal === null && shown.status === 0
+    ? shown.stdout
+    : null;
+}
+
+/**
  * One-PR mint admission for a brief absent from the merge base (#6361).
  *
  * Uses the same two evaluators as `verify:scope-provenance`: the merge base
  * sets the level (`evaluateOnePrScopeProofGate`, head must not change it) and
- * the same-PR record must match the working-tree brief exactly
- * (`evaluateMintLevelRecord`). Reads the working tree on every call, so an
- * edited brief or record is never served from a cache. Level off → today's
- * empty fence. Never throws.
+ * the same-PR record must match the head brief exactly
+ * (`evaluateMintLevelRecord`). The head brief is the working-tree file, or,
+ * once in-PR completion moved it (#6480), its blob at the newest in-range
+ * commit that still has it. Reads on every call, so an edited brief or record
+ * is never served from a cache. Level off → today's empty fence. Never throws.
  */
 function loadOnePrMintFence(
   root: string,
   rel: string,
+  mergeBaseSha: string,
   basePolicy: BasePolicyRead,
 ): StoryWriteFenceView {
   try {
@@ -592,7 +649,7 @@ function loadOnePrMintFence(
     if (gate.kind === "off") return emptyFence();
     if (gate.kind === "refuse") return mintRejected(gate.reason);
 
-    const headRaw = readTextOrNull(join(root, ...rel.split("/")));
+    const headRaw = readMintHeadBriefRaw(root, rel, mergeBaseSha);
     if (headRaw === null) return mintRejected("working-tree brief unreadable");
     let payload: unknown;
     try {
@@ -668,7 +725,7 @@ export function loadStoryWriteFenceFromMergeBase(
   if (cached !== undefined) {
     return cached.kind === "fence"
       ? cached.fence
-      : withBase(loadOnePrMintFence(root, rel, cached.basePolicy));
+      : withBase(loadOnePrMintFence(root, rel, resolved.sha, cached.basePolicy));
   }
 
   const raw = readMergeBaseBriefRaw(root, resolved.sha, rel);
@@ -679,7 +736,7 @@ export function loadStoryWriteFenceFromMergeBase(
     if (basePolicy.kind !== "error") {
       memoSet(fenceLoadMemo, loadKey, { kind: "absent", basePolicy });
     }
-    return withBase(loadOnePrMintFence(root, rel, basePolicy));
+    return withBase(loadOnePrMintFence(root, rel, resolved.sha, basePolicy));
   }
   const loaded = loadStoryWriteFenceFromBaseRaw(raw.text, `merge-base:${rel}`);
   if (isStoryWriteFenceUnreadable(loaded)) return withBase(loaded);

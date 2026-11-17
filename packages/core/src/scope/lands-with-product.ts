@@ -20,6 +20,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
+import { newestInRangeCommitWithPath } from "../policy/write-fence.js";
 import { isTestOrFixturePath, pathMatchesFileScope } from "../scope-provenance/base-fence.js";
 import { defaultGitRunner, type GitRunner } from "../session/git.js";
 import {
@@ -425,6 +426,82 @@ export function discoverLandsWithProductMoves(
       completedRel,
       plan,
       planId: typeof plan.id === "string" ? plan.id.trim() : "",
+    });
+  }
+  return moves;
+}
+
+/** A lands-with-product move found against its containing commit (#6480). */
+export interface InRangeLandsWithProductMove extends LandsWithProductMove {
+  /** Newest commit at or after the merge base whose tree still has `activeRel`. */
+  readonly containingCommit: string;
+}
+
+/**
+ * Lands-with-product moves for the worktree story binding (#6480). Each
+ * candidate is an `active/` brief path that the merge-base tree or a commit
+ * this branch adds after it has, and the worktree does not. Its containing
+ * commit is the newest of those commits that still has it (HEAD while the move
+ * is uncommitted); the move is a D or R of that path in `git diff --name-status
+ * -M <containing commit>` whose same-basename `completed/` file on disk is
+ * stamped `lands-with-product`. An uncommitted move and the same move committed
+ * on the branch give the same result. Commits behind the merge base are never
+ * candidates, so a completion already inside the merge base finds nothing.
+ * Empty when git cannot answer.
+ */
+export function discoverInRangeLandsWithProductMoves(
+  projectRoot: string,
+  options: { readonly baseRef?: string | null; readonly runGit?: GitRunner } = {},
+): InRangeLandsWithProductMove[] {
+  const root = resolve(projectRoot);
+  const runGit = options.runGit ?? defaultGitRunner;
+  const base = resolveBranchMergeBase(root, { ...options, runGit });
+  if (base === null) return [];
+  const dirs = ["xbrief/active", "vbrief/active"];
+  const inBase = runGitOut(runGit, root, ["ls-tree", "-r", "--name-only", base, "--", ...dirs]);
+  const onBranch = runGitOut(runGit, root, [
+    "log",
+    "--format=",
+    "--name-only",
+    "--no-renames",
+    `${base}..HEAD`,
+    "--",
+    ...dirs,
+  ]);
+  if (inBase === null || onBranch === null) return [];
+  const candidates = new Set<string>();
+  for (const line of `${inBase}\n${onBranch}`.split(/\r?\n/)) {
+    const rel = normalize(line.trim());
+    if (briefParts(rel, ACTIVE_BRIEF_RE) === null) continue;
+    if (existsSync(join(root, ...rel.split("/")))) continue;
+    candidates.add(rel);
+  }
+  const diffs = new Map<string, ChangeSetRecord[] | null>();
+  const moves: InRangeLandsWithProductMove[] = [];
+  for (const activeRel of [...candidates].sort()) {
+    const active = briefParts(activeRel, ACTIVE_BRIEF_RE);
+    if (active === null) continue;
+    const commit = newestInRangeCommitWithPath(root, base, activeRel, runGit);
+    if (commit === null) continue;
+    let records = diffs.get(commit);
+    if (records === undefined) {
+      const stdout = runGitOut(runGit, root, ["diff", "--name-status", "-M", commit]);
+      records = stdout === null ? null : parseNameStatus(stdout);
+      diffs.set(commit, records);
+    }
+    const moved = (records ?? []).some(
+      (rec) => (rec.status === "D" || rec.status === "R") && rec.src === activeRel,
+    );
+    if (!moved) continue;
+    const completedRel = `${active.root}/completed/${active.name}`;
+    const plan = readPlan(join(root, ...completedRel.split("/")));
+    if (plan === null || !isLandsWithProductPlan(plan)) continue;
+    moves.push({
+      activeRel,
+      completedRel,
+      plan,
+      planId: typeof plan.id === "string" ? plan.id.trim() : "",
+      containingCommit: commit,
     });
   }
   return moves;

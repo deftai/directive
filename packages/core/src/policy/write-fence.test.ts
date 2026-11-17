@@ -7,6 +7,7 @@ import { buildApprovedScopeRecord } from "../scope-provenance/digest.js";
 import { extractIntentFromRaw } from "../scope-provenance/extract-intent.js";
 import { computeAuthHashV1 } from "../scope-provenance/forge-approval.js";
 import { computeIntentDigest } from "../scope-provenance/intent-digest.js";
+import type { GitRunner } from "../session/git.js";
 import {
   DEFAULT_RUNTIME_AUTHORITY_POLICY,
   evaluateRuntimeAuthorityDirectWrite,
@@ -22,6 +23,7 @@ import {
   loadStoryWriteFenceFromBaseRaw,
   loadStoryWriteFenceFromMergeBase,
   loadStoryWriteFenceFromPath,
+  newestInRangeCommitWithPath,
   normalizeStoryWriteScope,
   resolveWriteFence,
 } from "./write-fence.js";
@@ -641,5 +643,71 @@ describe("one fence loader admits a one-PR mint brief (#6361)", () => {
     const fence = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
     const reason = fence.onePrMint?.admitted === false ? fence.onePrMint.reason : "";
     expect(reason).toMatch(/#5862/);
+  });
+
+  it("runs the mint gate on the containing commit after an in-PR completion moves the brief (#6480)", () => {
+    const root = repo({ basePolicy: MINT });
+    execFileSync("git", ["add", "-A"], { cwd: root });
+    execFileSync("git", ["commit", "-q", "-m", "activate"], { cwd: root });
+    const completedRel = BRIEF_REL.replace("/active/", "/completed/");
+    rmSync(join(root, ...BRIEF_REL.split("/")));
+    // The completed copy is never the mint head, even when it says something else.
+    write(root, completedRel, JSON.stringify(briefPayload([...SCOPE, "src/widened.ts"])));
+    const uncommitted = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+    expect(uncommitted.fileScope).toEqual(sorted);
+    expect(uncommitted.onePrMint).toEqual({ admitted: true });
+    execFileSync("git", ["add", "-A"], { cwd: root });
+    execFileSync("git", ["commit", "-q", "-m", "complete in PR"], { cwd: root });
+    const committed = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+    expect(committed.fileScope).toEqual(sorted);
+    expect(committed.onePrMint).toEqual({ admitted: true });
+  });
+
+  it("keeps the merge-base blob as the fence after the brief moves out of active/ (#6480)", () => {
+    const root = repo({ basePolicy: MINT, briefOnBase: ["src/base-only.ts"] });
+    rmSync(join(root, ...BRIEF_REL.split("/")));
+    const fence = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+    expect(fence.fileScope).toEqual(["src/base-only.ts"]);
+    expect(fence.onePrMint).toBeUndefined();
+  });
+});
+
+describe("newestInRangeCommitWithPath (#6480)", () => {
+  it("returns null when git cannot answer or the inputs are empty", () => {
+    const failing: GitRunner = () => ({ code: 1, stdout: "", stderr: "boom" });
+    const throwing: GitRunner = () => {
+      throw new Error("spawn failed");
+    };
+    expect(newestInRangeCommitWithPath("/nowhere", "", "xbrief/active/a.json")).toBeNull();
+    expect(newestInRangeCommitWithPath("/nowhere", "abc", "./")).toBeNull();
+    expect(newestInRangeCommitWithPath("/nowhere", "abc", "a.json", failing)).toBeNull();
+    expect(newestInRangeCommitWithPath("/nowhere", "abc", "a.json", throwing)).toBeNull();
+    const catFileThrows: GitRunner = (_cwd, args) => {
+      if (args[0] === "rev-list") return { code: 0, stdout: "def\n", stderr: "" };
+      throw new Error("spawn failed");
+    };
+    expect(newestInRangeCommitWithPath("/nowhere", "abc", "a.json", catFileThrows)).toBeNull();
+  });
+
+  it("checks HEAD-side commits newest first, then the merge base, and nothing behind it", () => {
+    const probed: string[] = [];
+    const runGit: GitRunner = (_cwd, args) => {
+      if (args[0] === "rev-list") return { code: 0, stdout: "c2\nc1\n", stderr: "" };
+      probed.push(String(args[2]));
+      return { code: String(args[2]).startsWith("base:") ? 0 : 1, stdout: "", stderr: "" };
+    };
+    expect(newestInRangeCommitWithPath("/r", "base", "xbrief\\active\\a.json", runGit)).toBe(
+      "base",
+    );
+    expect(probed).toEqual([
+      "c2:xbrief/active/a.json",
+      "c1:xbrief/active/a.json",
+      "base:xbrief/active/a.json",
+    ]);
+    const none: GitRunner = (_cwd, args) =>
+      args[0] === "rev-list"
+        ? { code: 0, stdout: "", stderr: "" }
+        : { code: 128, stdout: "", stderr: "" };
+    expect(newestInRangeCommitWithPath("/r", "base", "a.json", none)).toBeNull();
   });
 });
