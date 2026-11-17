@@ -45,7 +45,7 @@ import {
   resolveGh,
   verifyReleaseDraft,
 } from "./gh.js";
-import { runGit } from "./git.js";
+import { releaseSubprocessEnv, runGit } from "./git.js";
 import { releaseBranchName } from "./release-pr.js";
 import { spawnText } from "./spawn.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
@@ -420,9 +420,18 @@ export function runFinish(config: ReleaseConfig, seams: ReleaseSeams = {}): numb
   emitFinish(6, label, `OK (${tag} -> ${merge.slice(0, 12)})`);
 
   label = `Push only ${tag}`;
-  const pushed = runGit(projectRoot, ["push", "origin", `refs/tags/${tag}`], seams);
+  // A tag-only push must not depend on the checked-out branch: the pre-push
+  // branch gate would refuse it on the base branch (same bypass as the cut).
+  const pushed = runGit(
+    projectRoot,
+    ["push", "origin", `refs/tags/${tag}`],
+    seams,
+    releaseSubprocessEnv(),
+  );
   if (pushed.status !== 0) {
-    emitFinish(7, label, `FAIL (git push failed: ${pushed.stderr.trim()})`);
+    // Drop the unpushed local tag so a retry passes the availability check.
+    runGit(projectRoot, ["tag", "-d", tag], seams);
+    emitFinish(7, label, `FAIL (git push failed: ${pushed.stderr.trim()}; local tag removed)`);
     return EXIT_VIOLATION;
   }
   emitFinish(7, label, `OK (pushed refs/tags/${tag})`);

@@ -348,6 +348,26 @@ describe("finish step (#6296 item 3)", () => {
     expect(tagOnOrigin(origin)).toBe("");
     expect(seams.calls.some((c) => c.includes("tag") && c.includes("-a"))).toBe(false);
   });
+
+  it("pushes the tag with the branch-gate bypass and drops the local tag when the push fails", () => {
+    const { work, merge } = repo();
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    let pushEnv: NodeJS.ProcessEnv | undefined;
+    const base = finishSeams(merge);
+    const seams: ReleaseSeams = {
+      ...base,
+      spawnText: (cmd, args, opts) => {
+        if (args.includes("push")) {
+          pushEnv = opts?.env;
+          return { status: 1, stdout: "", stderr: "hook refused" };
+        }
+        return spawnText(cmd, args, opts);
+      },
+    };
+    expect(runFinish(finishConfig(work), seams)).toBe(EXIT_VIOLATION);
+    expect(pushEnv?.DEFT_ALLOW_DEFAULT_BRANCH_COMMIT).toBe("1");
+    expect(() => g(work, ["rev-parse", "--verify", `refs/tags/v${V}`])).toThrow();
+  });
 });
 
 describe("cmdRelease", () => {
