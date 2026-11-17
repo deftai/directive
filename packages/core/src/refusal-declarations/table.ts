@@ -59,9 +59,9 @@ export const REFUSAL_DECLARATION_ROWS: readonly RawRefusalDeclaration[] = /* ref
     "mode": "enforce",
     "remedy": [
       "deft pre-pr:run --repo <owner/name> --base-sha <merge-base-sha> --head-sha {head} --tree-hash <head-tree-sha> --body-file <pr-body-file> --approved-revision <brief-revision-sha>",
-      "deft pre-pr:run --observe-command --phase <phase> --command <command> --exit-code <n>",
-      "deft pre-pr:run --observe-semantic --phase <phase> --reviewed-file <path> --supplied-contents-hash <hex>",
-      "deft pre-pr:run --complete",
+      "deft pre-pr:run --observe-command --run-id <run-id> --phase <phase> --command <command> --exit-code <n>",
+      "deft pre-pr:run --observe-semantic --run-id <run-id> --phase <phase> --reviewed-file <path> --supplied-contents-hash <hex>",
+      "deft pre-pr:run --complete --run-id <run-id>",
       "git push"
     ],
     "exception": "existing refusal that refused before this table existed; seed row from #5977",

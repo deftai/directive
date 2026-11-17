@@ -212,9 +212,9 @@ describe("declared refusal remedies run as printed (#6281 item 5)", () => {
     const commands = parsePrintedRemedy(line);
     expect(commands[0]).toContain("--head-sha abc123 ");
     expect(commands.slice(1)).toEqual([
-      "deft pre-pr:run --observe-command --phase <phase> --command <command> --exit-code <n>",
-      "deft pre-pr:run --observe-semantic --phase <phase> --reviewed-file <path> --supplied-contents-hash <hex>",
-      "deft pre-pr:run --complete",
+      "deft pre-pr:run --observe-command --run-id <run-id> --phase <phase> --command <command> --exit-code <n>",
+      "deft pre-pr:run --observe-semantic --run-id <run-id> --phase <phase> --reviewed-file <path> --supplied-contents-hash <hex>",
+      "deft pre-pr:run --complete --run-id <run-id>",
       "git push",
     ]);
     expect(line).toContain("#5933");
