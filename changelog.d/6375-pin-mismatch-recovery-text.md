@@ -1,0 +1,2 @@
+section: Fixed
+- Hooks: when a pinned runtime mismatch is the only fault, the refusal now shows the checked project root on its own line, says to open a terminal outside the blocked session there, and names the plain install for the lockfile at that root (`pnpm install` or `npm install`, or no command when there is none), with a retry note. A host that does not report where a command runs (Codex) can now follow it. What the hook admits is unchanged (#6375).
