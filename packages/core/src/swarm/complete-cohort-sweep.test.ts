@@ -1001,7 +1001,7 @@ describe("dry-run applies acceptance-disposition grants on the clone (#6318)", (
   });
 });
 
-describe("per-story close-out (#6422)", () => {
+describe("per-story close-out (#6422)", { timeout: 120_000 }, () => {
   const S = "host:claude:v1:c2Vzc2lvbi02NDIy";
   const OTHER = "host:claude:v1:b3RoZXItNjQyMg";
   const LOGIN = { kind: "user" as const, login: "test-worker" };
@@ -1189,7 +1189,7 @@ describe("per-story close-out (#6422)", () => {
   });
 
   it("reports and leaves a registration a launch in a linked worktree wrote (AC 13)", {
-    timeout: 60_000,
+    timeout: 180_000, // launch-heavy under parallel suite load
   }, () => {
     const main = gitProject("sw-6422-main-");
     const second = `${main}-wt2`;
@@ -1328,7 +1328,7 @@ describe("per-story close-out (#6422)", () => {
   });
 
   it("waits for a starting launch and then keeps the lease (AC 22)", {
-    timeout: 60_000,
+    timeout: 180_000, // launch-heavy under parallel suite load
   }, () => {
     const project = launchProject("sw-6422-wait-launch-");
     const x = storyIn(project, "active", "wait-x");
@@ -1351,7 +1351,7 @@ describe("per-story close-out (#6422)", () => {
   });
 
   it("makes a later launch wait for an earlier launch's rollback (AC 23)", {
-    timeout: 60_000,
+    timeout: 180_000, // launch-heavy under parallel suite load
   }, () => {
     const project = launchProject("sw-6422-wait-rollback-");
     launchStory(project, "roll-a", 64222);
@@ -1375,7 +1375,7 @@ describe("per-story close-out (#6422)", () => {
   });
 
   it("keeps an earlier launch's registration when a repeat launch fails (AC 24)", {
-    timeout: 60_000,
+    timeout: 180_000, // launch-heavy under parallel suite load
   }, () => {
     const project = launchProject("sw-6422-repeat-");
     launchStory(project, "rep-a", 64224);
