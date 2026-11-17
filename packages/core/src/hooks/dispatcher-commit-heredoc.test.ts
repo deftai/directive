@@ -91,3 +91,17 @@ describe("commit-shape check ignores heredoc bodies end to end (#6187)", () => {
     expect(decision.message).toMatch(/-a\/--all\/-am/);
   });
 });
+
+describe("commit-shape check reads pipes and redirections (#6471)", () => {
+  it("admits a commit that ends in 2>&1 | tail", () => {
+    const decision = decideBash("git commit -m msg 2>&1 | tail -3");
+    expect(decision.code).not.toBe("prospective-scope-cover-deny");
+  });
+
+  it("names the word that made the commit index-changing", () => {
+    const decision = decideBash("git commit -m msg 2>&1 src/a.ts | tail -3", ["src/a.ts"]);
+    expect(decision).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
+    expect(decision.message).toMatch(/-a\/--all\/-am/);
+    expect(decision.message).toContain('"src/a.ts"');
+  });
+});

@@ -26,10 +26,17 @@ export interface ShellWord {
   readonly value: string;
   /** True when the word holds `$`, a backtick or a leading `~` outside single quotes. */
   readonly expands: boolean;
+  /**
+   * Set when the word starts with an unquoted, unescaped redirection (optional
+   * digits or one `&`, then `<` or `>`): `"operator"` when the operator stands
+   * alone so the next word is its target, `"attached"` when the target is in the
+   * same word. A redirection and its target are not command arguments (#6471).
+   */
+  readonly redirect?: "operator" | "attached";
 }
 
 /** Operator that ends a segment (`null` for the last segment). */
-export type ShellSegmentSeparator = "&&" | "||" | ";" | "\n" | null;
+export type ShellSegmentSeparator = "&&" | "||" | "|" | ";" | "\n" | null;
 
 export interface ShellSegment {
   readonly words: readonly ShellWord[];
@@ -37,7 +44,7 @@ export interface ShellSegment {
 }
 
 /** Characters an unquoted backslash escapes; other backslashes stay literal (Windows paths). */
-const UNQUOTED_ESCAPABLE = new Set([" ", "\t", '"', "'", "\\", "$", "`", ";", "&", "|"]);
+const UNQUOTED_ESCAPABLE = new Set([" ", "\t", '"', "'", "\\", "$", "`", ";", "&", "|", "<", ">"]);
 /** Characters a backslash escapes inside double quotes (POSIX). */
 const DOUBLE_QUOTED_ESCAPABLE = new Set(['"', "\\", "$", "`"]);
 
@@ -54,11 +61,25 @@ export function tokenizeShellCommand(command: string): ShellSegment[] {
   let started = false;
   let expands = false;
   let quote: '"' | "'" | null = null;
+  // True once a quote or an escape is in the word, so a later `<` / `>` is not
+  // read as the start of a redirection (`'2'>x`, `\2>x`).
+  let literalPrefix = false;
+  let redirect = false;
   const flushWord = (): void => {
-    if (started) words.push({ value: cur, expands });
+    if (started) {
+      const word: ShellWord = { value: cur, expands };
+      // An operator alone (`>`, `2>>`, `&>`, `<<<`) takes the next word as its
+      // target; anything attached after it (`2>&1`, `>out`) carries its own.
+      const redirection = redirect
+        ? ({ redirect: /^(?:\d*|&)[<>|&]+$/.test(cur) ? "operator" : "attached" } as const)
+        : {};
+      words.push({ ...word, ...redirection });
+    }
     cur = "";
     started = false;
     expands = false;
+    literalPrefix = false;
+    redirect = false;
   };
   const endSegment = (next: ShellSegmentSeparator): void => {
     flushWord();
@@ -88,11 +109,13 @@ export function tokenizeShellCommand(command: string): ShellSegment[] {
     if (ch === '"' || ch === "'") {
       quote = ch;
       started = true;
+      literalPrefix = true;
       continue;
     }
     if (ch === "\\" && UNQUOTED_ESCAPABLE.has(nextCh)) {
       cur += nextCh;
       started = true;
+      literalPrefix = true;
       i += 1;
       continue;
     }
@@ -104,10 +127,30 @@ export function tokenizeShellCommand(command: string): ShellSegment[] {
       endSegment(";");
       continue;
     }
+    // `||` and `|&` are recognized before a lone `|`; a `|` right after a
+    // redirect's `>` belongs to it (`>|`).
     if ((ch === "&" || ch === "|") && nextCh === ch) {
       endSegment(ch === "&" ? "&&" : "||");
       i += 1;
       continue;
+    }
+    if (ch === "|" && redirect && cur.endsWith(">")) {
+      cur += ch;
+      continue;
+    }
+    if (ch === "|") {
+      endSegment("|");
+      if (nextCh === "&") i += 1;
+      continue;
+    }
+    if (
+      (ch === "<" || ch === ">") &&
+      !redirect &&
+      !literalPrefix &&
+      /^(?:\d*|&)$/.test(cur) &&
+      !(cur === "" && nextCh === "(")
+    ) {
+      redirect = true;
     }
     if (ch === " " || ch === "\t") {
       flushWord();
@@ -215,9 +258,34 @@ function commandWords(segment: ShellSegment): readonly ShellWord[] {
  * each unquoted body tokenized apart from the commands around it (#6187).
  */
 function commandSegments(command: string): ShellSegment[] {
-  return shellCommandChunksWithoutQuotedHereDocBodies(command).flatMap((chunk) =>
-    tokenizeShellCommand(chunk),
-  );
+  // A dangling `||` or `|` at the end of a chunk is still pending after the
+  // heredoc body, so it is carried to the end of the next chunk (#6471).
+  let pending: ShellSegmentSeparator = null;
+  return shellCommandChunksWithoutQuotedHereDocBodies(command).flatMap((chunk) => {
+    const segments = tokenizeShellCommand(chunk);
+    // The end of a chunk is a heredoc boundary, not an `&&` join: a dangling
+    // `&&` must not tie a `cd` here to a commit after the delimiter.
+    const last = segments[segments.length - 1];
+    if (last !== undefined) {
+      const open = last.next === "||" || last.next === "|" ? last.next : null;
+      const next = open ?? pending ?? (last.next === ";" ? ";" : "\n");
+      segments[segments.length - 1] = { words: last.words, next };
+      pending = open;
+    }
+    return segments;
+  });
+}
+
+/** The words of a segment that are command arguments: redirections and their targets dropped. */
+function withoutRedirections(words: readonly ShellWord[]): ShellWord[] {
+  const out: ShellWord[] = [];
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    if (word === undefined) continue;
+    if (word.redirect === "operator") i += 1;
+    else if (word.redirect === undefined) out.push(word);
+  }
+  return out;
 }
 
 function commitInvocations(
@@ -241,16 +309,12 @@ export function commandHasGitCommitSubcommand(command: string): boolean {
   return commitInvocations(commandSegments(command)).length > 0;
 }
 
-/** Commit options whose value is the next word (so it is not read as a pathspec). */
+/** Long commit options whose value is the next word (so it is not read as a pathspec). */
 const COMMIT_VALUE_OPTIONS = new Set([
-  "-m",
-  "-F",
   "--message",
   "--file",
   "--author",
   "--date",
-  "-c",
-  "-C",
   "--reuse-message",
   "--reedit-message",
   "--fix",
@@ -258,36 +322,75 @@ const COMMIT_VALUE_OPTIONS = new Set([
   "--untracked-files",
 ]);
 
-function commitArgsMutateIndex(git: GitInvocation): boolean {
+/** Short options whose value is the rest of the cluster, or the next word when last. */
+const SHORT_VALUE_LETTERS = new Set(["m", "F", "c", "C", "t"]);
+/** Short options that take the rest of the cluster and never the next word. */
+const SHORT_ATTACHED_ONLY_LETTERS = new Set(["u", "S"]);
+
+/**
+ * The first word that makes a commit change the file set after the pre-tool
+ * index snapshot, or null (#5656 / #6471): `-a`, `--all`, `-i`, `--include` in
+ * any short-option cluster, or a pathspec. Short clusters are read as git reads
+ * them, letter by letter: the first value-taking letter (m F c C t) ends the
+ * cluster and takes the rest of it, or the next word when it is last; `u` and
+ * `S` take the rest of the cluster only. Redirections and their targets are
+ * not arguments.
+ */
+function commitIndexMutatingWord(git: GitInvocation): string | null {
   const words = git.words;
   let i = git.argsStart;
+  let afterDashDash = false;
   while (i < words.length) {
-    const w = words[i]?.value ?? "";
-    if (w === "--") return i + 1 < words.length;
-    if (w === "-a" || w === "--all" || w === "-i" || w === "--include" || w === "-am") return true;
-    if (w.startsWith("--message=") || w.startsWith("--file=") || w.startsWith("--author=")) {
+    const word = words[i];
+    const w = word?.value ?? "";
+    if (word?.redirect !== undefined) {
+      i += word.redirect === "operator" ? 2 : 1;
+      continue;
+    }
+    if (!afterDashDash && w === "--") {
+      afterDashDash = true;
       i += 1;
       continue;
     }
-    if (COMMIT_VALUE_OPTIONS.has(w)) {
-      i += 2;
+    if (afterDashDash) return w;
+    if (w === "--all" || w === "--include") return w;
+    if (w.startsWith("--")) {
+      i += w.includes("=") || !COMMIT_VALUE_OPTIONS.has(w) ? 1 : 2;
       continue;
     }
-    // Attached value-taking shorts (-mMSG / -Ffile / -cSHA / -CSHA) before the
-    // combined-flag scan so letters inside the value are not read as -a/-i
-    // (#5656 Greptile: `git commit -m"fix parser"` / `-Fmessage.txt`).
-    if (w.startsWith("-") && !w.startsWith("--") && /^[mFcC].+/.test(w.slice(1))) {
+    if (w.startsWith("-") && w.length > 1) {
+      let nextWordIsValue = false;
+      for (let k = 1; k < w.length; k++) {
+        const letter = w.charAt(k);
+        if (letter === "a" || letter === "i") return w;
+        if (SHORT_VALUE_LETTERS.has(letter)) {
+          nextWordIsValue = k === w.length - 1;
+          break;
+        }
+        if (SHORT_ATTACHED_ONLY_LETTERS.has(letter)) break;
+      }
+      i += nextWordIsValue ? 2 : 1;
+      continue;
+    }
+    if (w === "-") {
       i += 1;
       continue;
     }
-    if (w.startsWith("-") && !w.startsWith("--") && /[ai]/.test(w.slice(1))) return true;
-    if (w.startsWith("-")) {
-      i += 1;
-      continue;
-    }
-    return true;
+    return w;
   }
-  return false;
+  return null;
+}
+
+/**
+ * The first word that makes a Shell git commit index-changing (`-a`, `--all`,
+ * `-am`, `--include` or a pathspec), or null (#5656 / #6471). The refusal names it.
+ */
+export function findGitCommitIndexMutatingWord(command: string): string | null {
+  for (const { git } of commitInvocations(commandSegments(command))) {
+    const word = commitIndexMutatingWord(git);
+    if (word !== null) return word;
+  }
+  return null;
 }
 
 /**
@@ -295,7 +398,7 @@ function commitArgsMutateIndex(git: GitInvocation): boolean {
  * that can change the checked file set after the pre-tool index snapshot (#5656).
  */
 export function commandHasGitCommitIndexMutatingForm(command: string): boolean {
-  return commitInvocations(commandSegments(command)).some(({ git }) => commitArgsMutateIndex(git));
+  return findGitCommitIndexMutatingWord(command) !== null;
 }
 
 /** Where a Shell `git commit` lands, as far as the gate can tell (#6278). */
@@ -390,6 +493,10 @@ function resolveOneCommit(
   if (segments[cdIndex - 1]?.next === "||") {
     return { kind: "unresolvable", reason: "an `||` before the `cd` can skip it" };
   }
+  // A command on the right of a pipe runs in a subshell, so a `cd` there moves nothing.
+  if (segments[cdIndex - 1]?.next === "|") {
+    return { kind: "unresolvable", reason: "a pipe before the `cd` runs it in a subshell" };
+  }
   // The commit runs only after the `cd` succeeded when every operator between
   // them is `&&`; with `;` or `||` the commit can run in the inherited cwd.
   for (let j = cdIndex; j < index; j++) {
@@ -397,7 +504,7 @@ function resolveOneCommit(
       return { kind: "unresolvable", reason: "the `cd` is not joined to the commit by `&&`" };
     }
   }
-  const args = cd !== undefined ? commandWords(cd).slice(1) : [];
+  const args = cd !== undefined ? withoutRedirections(commandWords(cd).slice(1)) : [];
   const pathWord = args[0];
   if (args.length !== 1 || pathWord === undefined || pathWord.value.startsWith("-")) {
     return { kind: "unresolvable", reason: "the `cd` does not name exactly one path" };
