@@ -121,6 +121,9 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
   "vbrief:validate": "Fix xBRIEF/vBRIEF schema errors reported by the gate",
   "codebase:validate-structure":
     "Fix plan.architecture.codeStructure / codebase layout mismatches named by the gate",
+  // #6469: CI's merge gate runs this fail-closed (verify-contained-writes-enforce).
+  "verify:contained-writes":
+    "Route the named raw write sink through containedWrite (packages/core/src/fs/contained-write.ts), or add it to the reviewed allowlist (task verify:contained-writes -- --enforce)",
   "verify:codebase-map-fresh":
     "Run task codebase:map to refresh .planning/codebase/MAP.md, then re-verify",
   "verify:spec-prd-fresh":

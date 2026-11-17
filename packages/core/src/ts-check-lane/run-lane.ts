@@ -148,6 +148,16 @@ export interface RunTsLaneOptions {
   readonly now?: () => number;
   readonly cpus?: number;
   readonly tsbuildinfoExists?: (path: string) => boolean;
+  /**
+   * `--no-test` (#6469): run the lint and build commands in order and not the
+   * test command. Used by `deft check --no-suite`.
+   */
+  readonly noTest?: boolean;
+}
+
+/** Lane commands for one run: all of LANE_COMMANDS, or lint and build only under `noTest` (#6469). */
+export function laneCommandsFor(noTest: boolean): ReadonlyArray<readonly string[]> {
+  return noTest ? LANE_COMMANDS.filter((command) => command[1] !== "test") : LANE_COMMANDS;
 }
 
 /** Windows command shims (.cmd/.bat) need a shell; native executables do not. */
@@ -268,7 +278,7 @@ export function runTsLane(projectRoot: string, options: RunTsLaneOptions): numbe
   };
 
   try {
-    for (const command of LANE_COMMANDS) {
+    for (const command of laneCommandsFor(options.noTest === true)) {
       const resolved =
         command[1] === "test"
           ? resolveHostLaneTestCommand(projectRoot, {

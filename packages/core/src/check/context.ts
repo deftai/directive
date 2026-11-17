@@ -5,9 +5,17 @@ import { walkTestFiles } from "./walk-test-files.js";
 export interface CheckOrchestratorOptions {
   readonly noCache?: boolean;
   readonly useTaskCache?: boolean;
+  /**
+   * `deft check --no-suite` (#6469): the context's gate list without the
+   * product-first AC gate or `verify:consumer-test-lane`, `ts:check-lane
+   * --no-test`, no mode signals, every gate fail-closed, every gate run.
+   */
+  readonly noSuite?: boolean;
 }
 
 export interface CheckOrchestratorSeams extends CheckOrchestratorOptions {
+  /** #6469: no-suite run preparation seam (fetch, PR lookup, gate env). */
+  readonly prepareNoSuite?: import("./no-suite.js").PrepareNoSuiteRunFn;
   /** Override the `task` binary path (default: "task"). */
   readonly taskBin?: string;
   /** Override the spawnSync implementation for unit testing. */

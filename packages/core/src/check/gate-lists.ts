@@ -160,7 +160,8 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
   { task: "verify:eval-health-relocation", args: ["--base-ref", "origin/master"] },
   { task: "verify:eval-triggers-relocation", args: ["--base-ref", "origin/master"] },
   "vbrief:validate",
-  "codebase:validate-structure",
+  // #6469: CI's merge gate passes --enforce (Taskfile check:framework-source).
+  { task: "codebase:validate-structure", args: ["--enforce"] },
   "verify:codebase-map-fresh",
   "verify:spec-prd-fresh",
   // #4095: committed RULE-MAP byte-identical to renderer (framework-only).
@@ -168,9 +169,35 @@ export const FRAMEWORK_CHECK_GATES: readonly CheckGateSpec[] = [
   // #4099: committed capability index byte-identical to overlay+registries.
   "docs:capability-map:check",
   "verify-strategy-output",
+  // #6469: public surface for the internal verify-contained-writes-enforce shim
+  // (#2980 residual), with the --enforce argument CI's merge gate passes.
+  { task: "verify:contained-writes", args: ["--enforce"] },
   // --- Suite last: vitest + coverage via ts:check-lane (#3188) ---
   "ts:check-lane",
 ];
+
+/**
+ * `deft check --no-suite` lane flag (#6469): lint and build, not the test command.
+ */
+export const NO_SUITE_TS_LANE_GATE: CheckGateSpec = {
+  task: "ts:check-lane",
+  args: ["--no-test"],
+};
+
+/**
+ * Gate list for `deft check --no-suite` (#6469): the context's list without
+ * the product-first AC gate and `verify:consumer-test-lane`, with
+ * `ts:check-lane` replaced by its `--no-test` form. Order is unchanged.
+ */
+export function noSuiteGateList(gates: readonly CheckGateSpec[]): readonly CheckGateSpec[] {
+  const out: CheckGateSpec[] = [];
+  for (const gate of gates) {
+    const id = checkGateId(gate);
+    if (id === PRODUCT_AC_GATE_ID || id === "verify:consumer-test-lane") continue;
+    out.push(id === "ts:check-lane" ? NO_SUITE_TS_LANE_GATE : gate);
+  }
+  return out;
+}
 
 export const CONSUMER_CHECK_GATES: readonly CheckGateSpec[] = [
   // Product-first: stated AC before hygiene (#3284)

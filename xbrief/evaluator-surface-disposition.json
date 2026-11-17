@@ -1,10 +1,11 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 6281,
+  "issue": 6469,
   "surfaces": [
     "Taskfile.yml",
+    "packages/core/src/check/gate-lists.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for #6281 seed row setup-hook-files (#5977): the shipped `setup` task's hook-file loop now checks pre-commit, pre-push and _directive-run.sh (what a fresh install deposits) instead of the retired _deft-run.sh, and its refusal line is the declared refusal line that names `directive install --repair --yes`. No check, verifier, threshold or task name changes; the loop still requires three hook files and only the helper's name changes, so the verdict changes only where the retired name made a fresh install refuse. Disclosure only; not #3164 authorization. Refs #6281."
+  "note": "Disclosure for #6469 Bound items 1, 6 and 7: the Taskfile `check` task passes its CLI arguments to the engine (`task check -- --no-suite`), and FRAMEWORK_CHECK_GATES gains the two `--enforce` arguments CI's merge gate already passes (`verify:contained-writes --enforce`, `codebase:validate-structure --enforce`), plus the no-suite list helper. The Taskfile `check:framework-source` deps are unchanged, so CI's merge gate does not change; local full `deft check` now matches it on those two gates. Disclosure only; not #3164 authorization. Refs #6469."
 }
