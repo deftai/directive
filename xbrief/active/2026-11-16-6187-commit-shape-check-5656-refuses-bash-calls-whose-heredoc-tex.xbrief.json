@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6187",
-    "updated": "2026-11-17T01:00:34Z"
+    "updated": "2026-11-16T23:55:10Z"
   },
   "plan": {
     "title": "Commit-shape check (#5656) refuses Bash calls whose heredoc text merely mentions a commit command",
-    "status": "completed",
+    "status": "running",
     "narratives": {
       "Description": "The #5656 commit-shape check reads the whole Bash command text, so a heredoc body that only names a commit command (for example a note appended to a file) is treated as a commit and can be refused with the -a/pathspecs message. This story exports the authz preprocess chain (line continuations removed, then heredoc bodies removed) from `packages/core/src/authz/classify.ts` and runs it inside every commit-shape detector in `packages/core/src/hooks/commit-target.ts` before tokenizing. Real commits, compound `cd <abs> && git commit -F <file>` forms and -a/pathspec refusals stay as they are; non-heredoc string literals stay residual.",
       "UserStory": "As a worker agent writing notes through Bash, I want heredoc text that only names a commit command to be ignored by the commit-shape check, so that I can record the real cause without rewording it.",
@@ -20,58 +20,34 @@
     "items": [
       {
         "title": "relieves: P1, P2, P3 — Shared sanitize: export/share the authz preprocess chain `zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(…))` (quoted and unquoted delimiters; preserve commands before/after; unclosed early-return residual); do not fork a third lexer.",
-        "status": "completed",
+        "status": "proposed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given packages/core/src/authz/classify.ts, when the commit-shape detectors need the heredoc strip, then they import one exported helper from it that runs line-continuation removal and then heredoc-body removal, the authz zip and protected-dest classifiers call the same helper, and packages/core/src/hooks/commit-target.ts holds no heredoc lexer of its own."
-        },
-        "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/authz/classify.ts",
-          "recorded_at": "2026-11-17T01:00:21Z",
-          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
         "title": "relieves: P1, P2, P3 — Detector-wide apply: every exported #5656 detector (`commandHasGitCommitSubcommand`, index-mutating, checkout-retarget) and the prospective-cover entry must run that shared sanitize before split/token scan so production entry and unit-test helper calls cannot diverge.",
-        "status": "completed",
+        "status": "proposed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/commit-target.ts, when `commandHasGitCommitSubcommand`, `commandHasGitCommitIndexMutatingForm` or `resolveCommitTarget` reads a command, then each tokenizes the sanitized command from the shared helper, so a heredoc note gives the same answer when called directly and through the prospective-cover entry in dispatcher.ts."
-        },
-        "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/hooks/commit-target.ts",
-          "recorded_at": "2026-11-17T01:00:21Z",
-          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
         "title": "relieves: P1, P2, P3 — Proof fixtures: quoted-heredoc note that mentions a commit (issue repro, including `&&` inside the body) must not match subcommand/index-mutating; real `cd <wt> && git … -F <file>` still matches subcommand and stays non-mutating; real `-am` / trailing pathspecs still refuse; line-continued heredoc opener covered via shared chain; unclosed heredoc residual stays residual.",
-        "status": "completed",
+        "status": "proposed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given the fixtures in packages/core/src/hooks/commit-target.test.ts and packages/core/src/hooks/dispatcher-commit-heredoc.test.ts, then: the issue repro (quoted and unquoted delimiter, `&&` and a fake `-F <file>` with trailing prose in the body) matches neither the subcommand nor the index-mutating detector and the hook does not refuse it; a real `cd <abs> && git commit -F <file>` still matches the subcommand, stays non-mutating and resolves to the named checkout; real `-am` and trailing pathspecs still refuse; a commit after a heredoc that closes still matches; a line-continued heredoc opener is stripped; text after an unclosed heredoc opener stays dropped as the authz residual does."
-        },
-        "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/hooks/commit-target.test.ts",
-          "recorded_at": "2026-11-17T01:00:21Z",
-          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
         "title": "CHANGELOG Unreleased notes the false-positive fix; Refs #6187 / #5656.",
-        "status": "completed",
+        "status": "proposed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given changelog.d/6187-commit-shape-heredoc-bodies.md, then it holds one Unreleased line that names the heredoc false-positive fix and cites #6187 and #5656."
-        },
-        "x-directive/evidence": {
-          "kind": "review",
-          "pointer": "changelog.d/6187-commit-shape-heredoc-bodies.md",
-          "recorded_at": "2026-11-17T01:00:21Z",
-          "recorded_by": "scope:stamp-evidence"
         }
       }
     ],
@@ -463,17 +439,9 @@
         "leanCommentId": 6808087408,
         "harvestDigest": "cd699800acd85b1d70a5e3e30a3f58193aecc531cf0e71f9001a2ce0567795d2",
         "slice": null
-      },
-      "completedAt": "2026-11-17T01:00:34Z",
-      "completedSessionId": "host:claude:v1:YmFmYzNkMzMtNmFiMS00N2ZlLTg5ODktMzk3ZWI4OTJmNWRl",
-      "capacityBucket": "technical-debt",
-      "lifecycleWrite": {
-        "action": "complete",
-        "writtenAt": "2026-11-17T01:00:34Z",
-        "completionDisposition": "lands-with-product"
       }
     },
     "id": "github.issue.6319836133",
-    "updated": "2026-11-17T01:00:34Z"
+    "updated": "2026-11-16T23:55:10Z"
   }
 }
