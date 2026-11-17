@@ -7,6 +7,7 @@ import { buildApprovedScopeRecord } from "../scope-provenance/digest.js";
 import { extractIntentFromRaw } from "../scope-provenance/extract-intent.js";
 import { computeAuthHashV1 } from "../scope-provenance/forge-approval.js";
 import { computeIntentDigest } from "../scope-provenance/intent-digest.js";
+import type { GitRunner } from "../session/git.js";
 import {
   DEFAULT_RUNTIME_AUTHORITY_POLICY,
   evaluateRuntimeAuthorityDirectWrite,
@@ -22,6 +23,7 @@ import {
   loadStoryWriteFenceFromBaseRaw,
   loadStoryWriteFenceFromMergeBase,
   loadStoryWriteFenceFromPath,
+  newestInRangeCommitWithPath,
   normalizeStoryWriteScope,
   resolveWriteFence,
 } from "./write-fence.js";
@@ -641,5 +643,121 @@ describe("one fence loader admits a one-PR mint brief (#6361)", () => {
     const fence = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
     const reason = fence.onePrMint?.admitted === false ? fence.onePrMint.reason : "";
     expect(reason).toMatch(/#5862/);
+  });
+
+  it("runs the mint gate on the containing commit after an in-PR completion moves the brief (#6480)", () => {
+    const root = repo({ basePolicy: MINT });
+    execFileSync("git", ["add", "-A"], { cwd: root });
+    execFileSync("git", ["commit", "-q", "-m", "activate"], { cwd: root });
+    const completedRel = BRIEF_REL.replace("/active/", "/completed/");
+    rmSync(join(root, ...BRIEF_REL.split("/")));
+    // The completed copy is never the mint head, even when it says something else.
+    write(root, completedRel, JSON.stringify(briefPayload([...SCOPE, "src/widened.ts"])));
+    const uncommitted = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+    expect(uncommitted.fileScope).toEqual(sorted);
+    expect(uncommitted.onePrMint).toEqual({ admitted: true });
+    execFileSync("git", ["add", "-A"], { cwd: root });
+    execFileSync("git", ["commit", "-q", "-m", "complete in PR"], { cwd: root });
+    const committed = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+    expect(committed.fileScope).toEqual(sorted);
+    expect(committed.onePrMint).toEqual({ admitted: true });
+  });
+
+  it("keeps the merge-base blob as the fence after the brief moves out of active/ (#6480)", () => {
+    const root = repo({ basePolicy: MINT, briefOnBase: ["src/base-only.ts"] });
+    rmSync(join(root, ...BRIEF_REL.split("/")));
+    const fence = loadStoryWriteFenceFromMergeBase(root, join(root, BRIEF_REL));
+    expect(fence.fileScope).toEqual(["src/base-only.ts"]);
+    expect(fence.onePrMint).toBeUndefined();
+  });
+});
+
+describe("newestInRangeCommitWithPath (#6480)", () => {
+  it("returns null when git cannot answer or the inputs are empty", () => {
+    const failing: GitRunner = () => ({ code: 1, stdout: "", stderr: "boom" });
+    const throwing: GitRunner = () => {
+      throw new Error("spawn failed");
+    };
+    expect(newestInRangeCommitWithPath("/nowhere", "", "xbrief/active/a.json")).toBeNull();
+    expect(newestInRangeCommitWithPath("/nowhere", "abc", "./")).toBeNull();
+    expect(newestInRangeCommitWithPath("/nowhere", "abc", "a.json", failing)).toBeNull();
+    expect(newestInRangeCommitWithPath("/nowhere", "abc", "a.json", throwing)).toBeNull();
+    const catFileThrows: GitRunner = (_cwd, args) => {
+      if (args[0] === "rev-list") return { code: 0, stdout: "def\n", stderr: "" };
+      throw new Error("spawn failed");
+    };
+    expect(newestInRangeCommitWithPath("/nowhere", "abc", "a.json", catFileThrows)).toBeNull();
+  });
+
+  it("falls back to probing HEAD-side commits newest first, then the merge base", () => {
+    const probed: string[] = [];
+    const runGit: GitRunner = (_cwd, args) => {
+      if (args[0] === "log") return { code: 1, stdout: "", stderr: "no history" };
+      if (args[0] === "rev-list") return { code: 0, stdout: "c2\nc1\n", stderr: "" };
+      probed.push(String(args[2]));
+      return { code: String(args[2]).startsWith("base:") ? 0 : 1, stdout: "", stderr: "" };
+    };
+    expect(newestInRangeCommitWithPath("/r", "base", "xbrief\\active\\a.json", runGit)).toBe(
+      "base",
+    );
+    expect(probed).toEqual([
+      "c2:xbrief/active/a.json",
+      "c1:xbrief/active/a.json",
+      "base:xbrief/active/a.json",
+    ]);
+    const none: GitRunner = (_cwd, args) =>
+      args[0] === "rev-list"
+        ? { code: 0, stdout: "", stderr: "" }
+        : { code: 128, stdout: "", stderr: "" };
+    expect(newestInRangeCommitWithPath("/r", "base", "a.json", none)).toBeNull();
+  });
+
+  /** Fake history: `touch` is the last in-range commit touching the path. */
+  function history(opts: {
+    readonly touch: string;
+    readonly has: readonly string[];
+    readonly descends?: boolean;
+  }): { runGit: GitRunner; calls: string[][] } {
+    const calls: string[][] = [];
+    const runGit: GitRunner = (_cwd, args) => {
+      calls.push([...args]);
+      const [cmd] = args;
+      if (cmd === "log") return { code: 0, stdout: `${opts.touch}\n`, stderr: "" };
+      if (cmd === "rev-parse") {
+        const ref = String(args[3]);
+        return {
+          code: 0,
+          stdout: ref === "HEAD" ? "head\n" : `${ref.replace("^", "-parent")}\n`,
+          stderr: "",
+        };
+      }
+      if (cmd === "cat-file") {
+        const commit = String(args[2]).split(":")[0] ?? "";
+        return { code: opts.has.includes(commit) ? 0 : 1, stdout: "", stderr: "" };
+      }
+      if (cmd === "merge-base")
+        return { code: opts.descends === false ? 1 : 0, stdout: "", stderr: "" };
+      return { code: 1, stdout: "", stderr: "" };
+    };
+    return { runGit, calls };
+  }
+
+  it("answers from the path's own history in a fixed number of calls", () => {
+    const untouched = history({ touch: "", has: ["head"] });
+    expect(newestInRangeCommitWithPath("/r", "base", "a.json", untouched.runGit)).toBe("head");
+    expect(untouched.calls.some((c) => c[0] === "rev-list")).toBe(false);
+    const edited = history({ touch: "c3", has: ["c3", "head"] });
+    expect(newestInRangeCommitWithPath("/r", "base", "a.json", edited.runGit)).toBe("head");
+    const deleted = history({ touch: "c3", has: ["c3-parent"] });
+    expect(newestInRangeCommitWithPath("/r", "base", "a.json", deleted.runGit)).toBe("c3-parent");
+    expect(deleted.calls.length).toBeLessThanOrEqual(5);
+  });
+
+  it("does not trust a fast-path candidate outside the range or without the path", () => {
+    const behind = history({ touch: "", has: ["head"], descends: false });
+    expect(newestInRangeCommitWithPath("/r", "base", "a.json", behind.runGit)).toBeNull();
+    expect(behind.calls.some((c) => c[0] === "rev-list")).toBe(true);
+    const missing = history({ touch: "", has: [] });
+    expect(newestInRangeCommitWithPath("/r", "base", "a.json", missing.runGit)).toBeNull();
   });
 });

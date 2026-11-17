@@ -7,6 +7,7 @@ import type { GitRunner } from "../session/git.js";
 import {
   type ChangeSetRecord,
   changeSetRecordsToPrFiles,
+  discoverInRangeLandsWithProductMoves,
   discoverLandsWithProductMoves,
   evaluateInPrCompletionInputs,
   evaluateLandsWithProductAdmission,
@@ -413,5 +414,106 @@ describe("discoverLandsWithProductMoves (#6277 Bound 6)", () => {
     expect(listBranchChangedPaths("/nowhere", { runGit: failing })).toBeNull();
     expect(resolveBranchMergeBase("/nowhere", { baseRef: "", runGit: failing })).toBeNull();
     expect(soleLandsWithProductMove("/nowhere", { runGit: failing })).toBeNull();
+  });
+});
+
+describe("discoverInRangeLandsWithProductMoves (#6480)", () => {
+  const OTHER = "2026-11-16-78-other.xbrief.json";
+  const OTHER_ACTIVE = `xbrief/active/${OTHER}`;
+  const OTHER_COMPLETED = `xbrief/completed/${OTHER}`;
+  let root = "";
+  afterEach(() => {
+    if (root !== "") rmSync(root, { recursive: true, force: true });
+    root = "";
+  });
+
+  function repo(baseBriefs: readonly string[]): string {
+    const dir = mkdtempSync(join(tmpdir(), "lwp-inrange-"));
+    git(dir, ["init", "-q", "-b", "main"]);
+    for (const rel of baseBriefs) writeJson(dir, rel, storyPlan());
+    mkdirSync(join(dir, "src"), { recursive: true });
+    writeFileSync(join(dir, "src", "app.ts"), "export const a = 1;\n", "utf8");
+    git(dir, ["add", "-A"]);
+    git(dir, ["commit", "-q", "-m", "base"]);
+    git(dir, ["update-ref", "refs/remotes/origin/main", "HEAD"]);
+    git(dir, ["checkout", "-q", "-b", "story"]);
+    return dir;
+  }
+
+  function moveOnDisk(dir: string, activeRel: string, completedRel: string): void {
+    rmSync(join(dir, ...activeRel.split("/")));
+    writeJson(dir, completedRel, landedPlan());
+  }
+
+  function head(dir: string): string {
+    return git(dir, ["rev-parse", "HEAD"]).trim();
+  }
+
+  it("finds an uncommitted move against HEAD and the same move once committed", () => {
+    root = repo([ACTIVE]);
+    writeFileSync(join(root, "src", "app.ts"), "export const a = 2;\n", "utf8");
+    git(root, ["commit", "-q", "-am", "product"]);
+    const beforeMove = head(root);
+    moveOnDisk(root, ACTIVE, COMPLETED);
+    const uncommitted = discoverInRangeLandsWithProductMoves(root, { baseRef: "origin/main" });
+    expect(
+      uncommitted.map((m) => [m.activeRel, m.completedRel, m.planId, m.containingCommit]),
+    ).toEqual([[ACTIVE, COMPLETED, "github.issue.77", beforeMove]]);
+    git(root, ["add", "-A"]);
+    git(root, ["commit", "-q", "-m", "complete in PR"]);
+    writeFileSync(join(root, "src", "app.ts"), "export const a = 3;\n", "utf8");
+    git(root, ["commit", "-q", "-am", "review fix"]);
+    const committed = discoverInRangeLandsWithProductMoves(root, { baseRef: "origin/main" });
+    expect(committed.map((m) => [m.activeRel, m.completedRel, m.containingCommit])).toEqual([
+      [ACTIVE, COMPLETED, beforeMove],
+    ]);
+  });
+
+  it("finds a brief added on this branch against the commit that added it", () => {
+    root = repo([]);
+    writeJson(root, ACTIVE, storyPlan());
+    git(root, ["add", "-A"]);
+    git(root, ["commit", "-q", "-m", "activate"]);
+    const added = head(root);
+    moveOnDisk(root, ACTIVE, COMPLETED);
+    git(root, ["add", "-A"]);
+    git(root, ["commit", "-q", "-m", "complete in PR"]);
+    const moves = discoverInRangeLandsWithProductMoves(root, { baseRef: "origin/main" });
+    expect(moves.map((m) => [m.activeRel, m.containingCommit])).toEqual([[ACTIVE, added]]);
+  });
+
+  it("finds nothing for a completion already inside the merge base", () => {
+    root = repo([ACTIVE]);
+    git(root, ["checkout", "-q", "main"]);
+    moveOnDisk(root, ACTIVE, COMPLETED);
+    git(root, ["add", "-A"]);
+    git(root, ["commit", "-q", "-m", "completed on main"]);
+    git(root, ["update-ref", "refs/remotes/origin/main", "HEAD"]);
+    git(root, ["checkout", "-q", "-b", "next"]);
+    expect(discoverInRangeLandsWithProductMoves(root, { baseRef: "origin/main" })).toEqual([]);
+  });
+
+  it("returns every move, skips a move without the disposition, and keeps active briefs out", () => {
+    root = repo([ACTIVE, OTHER_ACTIVE, `xbrief/active/2026-11-16-79-still.xbrief.json`]);
+    moveOnDisk(root, ACTIVE, COMPLETED);
+    moveOnDisk(root, OTHER_ACTIVE, OTHER_COMPLETED);
+    const moves = discoverInRangeLandsWithProductMoves(root, { baseRef: "origin/main" });
+    expect(moves.map((m) => m.completedRel)).toEqual([COMPLETED, OTHER_COMPLETED]);
+    writeJson(root, OTHER_COMPLETED, storyPlan({ status: "completed" }));
+    expect(
+      discoverInRangeLandsWithProductMoves(root, { baseRef: "origin/main" }).map(
+        (m) => m.completedRel,
+      ),
+    ).toEqual([COMPLETED]);
+  });
+
+  it("returns empty when git cannot answer", () => {
+    const failing: GitRunner = () => ({ code: 1, stdout: "", stderr: "boom" });
+    expect(discoverInRangeLandsWithProductMoves("/nowhere", { runGit: failing })).toEqual([]);
+    const partial: GitRunner = (_cwd, args) =>
+      args[0] === "merge-base"
+        ? { code: 0, stdout: "abc\n", stderr: "" }
+        : { code: 1, stdout: "", stderr: "boom" };
+    expect(discoverInRangeLandsWithProductMoves("/nowhere", { runGit: partial })).toEqual([]);
   });
 });

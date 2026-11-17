@@ -231,6 +231,7 @@ import {
   type ActiveScopeInspection,
   formatPositiveGoverningAllowDeny,
   type InspectActiveScopeOptions,
+  inPrCompletionScopeMessage,
   inspectActiveScope,
   resolveWorktreeStoryBinding,
   type WorktreeStoryBinding,
@@ -2790,6 +2791,16 @@ function inspectMutationGates(
         path: null,
         message: worktreeBinding.message,
         denyKind: "pin-miss",
+      };
+    } else if (worktreeBinding.kind === "bound" && worktreeBinding.landsWithProductMove) {
+      // #6480: the story was admitted through its in-PR completion move; its
+      // brief is no longer under active/, so skip inspectActiveScope and its
+      // active-folder and running-status refusals. The implement intent
+      // ceiling below still applies.
+      scope = {
+        ready: true,
+        path: worktreeBinding.path,
+        message: inPrCompletionScopeMessage(worktreeBinding),
       };
     } else {
       const boundPath = worktreeBinding.kind === "bound" ? worktreeBinding.path : spawnBoundPath;
@@ -5405,10 +5416,27 @@ export function evaluateProspectiveScopeCover(
       scopePath: null,
     };
   }
-  const scope = (input.inspectScope ?? inspectActiveScope)(projectRoot, {
-    env,
-    ...(binding.kind === "bound" ? { boundPath: binding.path } : {}),
-  });
+  let scope: ActiveScopeInspection;
+  if (binding.kind === "bound" && binding.landsWithProductMove) {
+    // #6480: admitted through the in-PR completion move. inspectActiveScope
+    // (and the intent ceiling inside its preflight) is skipped, so the commit
+    // path applies the implement intent ceiling itself.
+    const intent = evaluateIntentCeilingFromEnv("implement", env);
+    if (!intent.allowed) {
+      return {
+        ok: false,
+        message: `Prospective scope-cover denied (#6480): ${intent.reason}`,
+        uncovered: productStaged,
+        scopePath: null,
+      };
+    }
+    scope = { ready: true, path: binding.path, message: inPrCompletionScopeMessage(binding) };
+  } else {
+    scope = (input.inspectScope ?? inspectActiveScope)(projectRoot, {
+      env,
+      ...(binding.kind === "bound" ? { boundPath: binding.path } : {}),
+    });
+  }
   if (!scope.ready || scope.path === null) {
     return {
       ok: false,
