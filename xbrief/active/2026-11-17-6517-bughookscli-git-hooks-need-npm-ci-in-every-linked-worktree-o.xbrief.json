@@ -1,0 +1,893 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6517",
+    "updated": "2026-11-17T17:53:40Z"
+  },
+  "plan": {
+    "title": "bug(hooks,cli): git hooks need npm ci in every linked worktree; old global CLI says 'unknown verb install' for the repair command",
+    "status": "running",
+    "narratives": {
+      "Description": "A new linked git worktree has no node_modules, so the git commit hook (the `.githooks/_directive-run.sh` helper) fails on the first commit although the primary checkout already has the pinned runtime, and the Grok and Cursor agent hooks deny every shell call in that state, including the install command their own message names (#6466 is folded in). This story lets the git hook helper run the primary checkout's runtime when the worktree's exact pin equals the version installed there, keeps setup from running for a project the runtime is not installed in, and lets the agent-hook outer admit exactly `npm ci`, `npm install` or `pnpm install --frozen-lockfile` at the project root when the runtime is missing. It adds no gate, grant, flag or stored state; the missing-runtime exit code on Claude Code and Codex stays separate work.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6517",
+      "Overview": "\n1. Primary lookup (git hook helper `GITHOOK_HELPER`, deposited as `.githooks/_directive-run.sh`). When `$REPO_ROOT/node_modules/@deftai/directive-runtime/dist/bin.js` is missing, the helper runs `git -C \"$REPO_ROOT\" rev-parse --path-format=absolute --git-common-dir`. When that command fails (for example on a git without `--path-format`), there is no borrow. Otherwise the helper runs one fixed `node -e` program and passes it two argv values: `$REPO_ROOT` and the printed common directory. No path or file content is put into the program text.\n2. The program decides. On Windows it first turns an MSYS path `/<letter>/...` into `<letter>:/...` (the `normalizeHookProjectRoot` rule). It then requires all of these, in order: the common directory is absolute by node's `path.isAbsolute`; its name is `.git`; its parent (the primary checkout) and `$REPO_ROOT` have different real paths; `<primary>/node_modules/@deftai/directive-runtime/dist/bin.js` is a file by `statSync`, which follows symlinks, so a pnpm install qualifies; `<primary>/.deft-scratch/materialize-runtime-overlay.json` does not exist; and the worktree pin, read from `$REPO_ROOT/package.json` by the `readRuntimePin` rule (`devDependencies` then `dependencies`, exact semver only, leading `v` removed), equals the `version` in `<primary>/node_modules/@deftai/directive-runtime/package.json`. When all hold, it prints the bin path and exits 0. Otherwise it prints one reason line to stderr and exits 1.\n3. Borrowed run. The helper prints one stderr line that names the primary checkout and the version, then runs `DIRECTIVE_PROJECT_ROOT=\"$REPO_ROOT\" node \"<printed bin.js>\" \"$@\"`. The arguments are unchanged (they already carry `--project-root \"$REPO_ROOT\"`).\n4. No borrow. The helper fails exactly as today (the two stderr lines, exit 1), and also shows the program's reason line: no primary checkout found, no runtime in the primary, overlay marker present, pin not exact, or pin X against installed Y.\n5. No setup from a runtime that is not installed in the project. `maybeSelfCompleteSetup` returns without running setup, with a new skip reason `not-installed-here`, only when the checkout that owns the running runtime module (the path rule of `resolveLaunchingCheckoutRootFromPath`) is known, both it and the given project root resolve by `realpathSync`, and the two real paths differ (the same compare as `rootsMatch`). When the owner is unknown (a source run) or either real path cannot be read, behaviour is unchanged. On a borrowed run item 3 sets the project root to the worktree, so the skip fires there, also when the worktree sits inside the primary's tree. Agent hooks are not affected: hook-bin already refuses a different launch root before setup.\n6. Agent-hook admit (outer `hostHookOuterSource`). When `hook-bin.js` is missing and the event is `tool.before`, the outer reads the stdin payload. A read failure or a payload that is not a JSON object is denied. The call is allowed only when all of these hold: the tool name, read from the same direct fields as `hookToolName` (`tool_name`, `toolName`, `tool`, `tool.name`, `tool_call.name`, `toolCall.name`), is a shell tool by the `isShellTool` rule; the command, read in the field order of `hookShellCommand`, matches by the `matchPinMismatchRecoveryCommand` rule (simple-command pattern, exact tokens of `PIN_MISMATCH_RECOVERY_COMMANDS`); and every run directory has the same real path as the outer's project root. The run directories are read by the `shellRunDirectories` rule (tool-input `workdir`, `cwd`, `working_directory`, `workingDirectory` first, each present one a non-empty string; otherwise the payload `cwd`). When neither gives a directory, the hook process working directory is the run directory on Grok and Cursor; on Codex there is no run directory and the call is denied. A named directory that is not the project root is denied; there is no fallback from it. The absence of `hook-bin.js` is the precondition; the pin-mismatch-only test is not used. The tool list, command list, field names and pattern are written into the outer source from the core constants when it is generated. The reading functions are a small copy in the outer, and a parity test runs the generated outer and the core functions on the same payload fixtures.\n7. Allow output. On Cursor the admitted call prints `{\"permission\":\"allow\",\"code\":\"shell-op-ready\"}` and exits 0. On the other hosts it prints nothing and exits 0. These are the shapes `renderHostDecision` already emits for a plain `tool.before` allow.\n8. Deny. Every other call, and every other event, is denied exactly as today (same exit code and output form per host). The reason text on the outer's missing-runtime deny names only the admitted commands, built from the list: \"Directive hooks: missing node_modules/@deftai/directive-runtime. Run one of `npm ci`, `npm install` or `pnpm install --frozen-lockfile` at the project root; other tool calls stay denied until the runtime is installed.\" The git hook helper and Taskfile messages keep their text.\n9. Unchanged: the hook-bin launch-root refusal (AC9.4 / AC9.5), the #6313 admit and its list, and the cheap in-sync check.\n\n## Acceptance Criteria\n\n- Given a linked worktree without `node_modules` whose exact pin equals the version installed in the primary checkout, with no overlay marker, when a commit runs the pre-commit hook, then the hook runs the primary's `bin.js` with `DIRECTIVE_PROJECT_ROOT` and `--project-root` set to the worktree and prints the line that names the primary and the version.\n- Given the same worktree with pnpm's symlinked `node_modules/@deftai/directive-runtime` in the primary, then the borrow applies.\n- Given git prints the common directory as `C:/...` or, on Windows, as `/c/...`, then the program resolves it to the same primary and the borrow applies.\n- Given the same worktree and a primary version different from the pin, then the hook exits 1 with today's two lines and a line that names both versions, and does not run the primary's runtime.\n- Given a non-exact pin (for example `^0.129.0`), or an overlay marker in the primary, or a primary without the runtime, or a common directory not named `.git`, or a failing `git rev-parse`, then the hook fails as today with the matching reason line.\n- Given a `package.json` whose version or path text contains quotes, `$` or backticks, then the program treats them as data and does not run them.\n- Given a borrowed run, also with `DIRECTIVE_PROJECT_ROOT` set to the primary in the caller's environment, then `maybeSelfCompleteSetup` returns the skip reason `not-installed-here` and setup writes no file in the worktree or the primary.\n- Given a runtime installed in the project on Windows, where the module path rule gives `C:/proj` and the working directory is `C:\\proj`, then self-complete behaves as today.\n- Given a Grok `run_terminal_command` payload with `tool_input.command` `npm ci` and no directory field, run by a hook whose working directory is the project root while `hook-bin.js` is missing, then the outer exits 0 with empty stdout.\n- Given the same on Cursor (a `Shell` payload with the command and no directory field), then the outer prints `{\"permission\":\"allow\",\"code\":\"shell-op-ready\"}` and exits 0.\n- Given `npm ci && curl x`, `pnpm install`, `yarn`, `npm ci` with a run directory that is not the project root, a Codex payload without a tool-input directory field, a command found only in a field other than the `hookShellCommand` fields, an MCP or edit tool, or a payload that is not JSON, then the outer denies exactly as today, and the reason names only the three admitted commands.\n- A parity test runs the generated outer source and the core functions (`hookToolName` direct fields, `hookShellCommand`, `matchPinMismatchRecoveryCommand`, the `shellRunDirectories` rule) on the same fixtures and gets the same admit result where a payload names a directory.\n\n\n",
+      "Constraint": "- Keeping setup parity for a borrowed runtime (comment 6954388515, finding 1).\n- Setting `DEFT_DOCTOR_HOOK_DIAGNOSTIC` in the helper to skip setup: it is the doctor probe's switch, not a rule about where a runtime is installed.\n- A string compare of the runtime's checkout and the project root (comment 6955015409, finding 1).\n- A lockfile or integrity check for \"matches the pin\" (comment 6954388515, finding 7: a new gate).\n- Agent hooks running the primary checkout's hook-bin: it would need the AC9.4 launch-root refusal loosened.\n- Letting every shell call through when the runtime is missing (P3).\n- Adding `pnpm install` without `--frozen-lockfile`, or `yarn`, to the admitted list (comment 6954388515, finding 3).\n- Calling `admitPinMismatchRecovery` for the missing-runtime case (comment 6954388515, finding 2).\n- One shared allow output for all hosts (comment 6954388515, finding 5).\n- A process working-directory fallback on Codex, or after a payload names another directory (comment 6955015409, finding 2).",
+      "Labels": "bug, consumer-example, harness, Upgrade Blocker, urgent, area:installer, area:cli, design-critique:ingest-ready, framework-gap",
+      "UserStory": "As a developer or agent who opens a new linked worktree, I want the first commit to work and the agent hook to let the install command through, so that I do not need a full install in every worktree and cannot be locked out by the hook that tells me to run it.",
+      "ImplementationPlan": "1. packages/runtime/src/setup-wiring.ts `GITHOOK_HELPER` and the tracked twin .githooks/_directive-run.sh (kept byte-identical): when the worktree bin is missing, run `git rev-parse --path-format=absolute --git-common-dir`, then one fixed `node -e` program (argv: REPO_ROOT, common dir) that applies the Bound item 2 checks and prints the primary bin path or a reason line; borrow with `DIRECTIVE_PROJECT_ROOT=$REPO_ROOT`; no borrow keeps the two existing lines plus the reason.\n2. packages/runtime/src/self-complete.ts: `maybeSelfCompleteSetup` skips with `not-installed-here` when the owning checkout (imported `resolveLaunchingCheckoutRootFromPath`; hook-dispatch.ts stays untouched) and the project root have different `realpathSync` paths.\n3. packages/core/src/init-deposit/host-hook-outer.ts `hostHookOuterSource`: on a missing `hook-bin.js` and a `tool.before` event, read the payload and admit only the Bound item 6 shape; Cursor allow output per item 7; deny reason per item 8. Tool list, command list, field names and pattern come from the core constants when the source is generated; a small copy of the reading functions lives in the outer.\n4. Tests: deft_run_resolver.test.ts (real git worktrees: borrow, pnpm symlink, MSYS and C:/ forms, mismatch, non-exact pin, overlay, quoting), self-complete.test.ts, host-hook-outer.test.ts (Grok and Cursor admits, denies, parity fixtures; the `shellRunDirectories` rule is not exported from hook-dispatch.ts, so its cases are table-driven fixtures in core), and setup-wiring.test.ts where the helper text is asserted.\n5. Two PRs, one story (operator ruling 2026-11-17, because class 4 refuses a protected `.githooks/` path together with a non-companion story file). PR A first: item 2 only (self-complete.ts + self-complete.test.ts) with its own fragment changelog.d/6517-self-complete-not-installed-here.md; body `Refs #6517` and `deft-story-part: 6517`. PR B second, a protected-only landing: items 1 and 3 (.githooks/_directive-run.sh, setup-wiring.ts GITHOOK_HELPER byte-identical, host-hook-outer.ts, their tests and deft_run_resolver.test.ts) with its own fragment changelog.d/6517-worktree-hooks-without-node-modules.md; body `Refs #6517` and `deft-story: 6517`, and PR B completes the story. PR A lands before PR B so a borrowed runtime never runs setup in a worktree.\n6. The tracked agent-hook deposits (the deft-hook-<sha8>.mjs files for the four hosts and their registrations) are not edited here; they follow the next pin bump.",
+      "Traces": "#6517"
+    },
+    "items": [
+      {
+        "title": "Primary lookup (git hook helper `GITHOOK_HELPER`, deposited as `.githooks/_directive-run.sh`). When `$REPO_ROOT/node_modules/@deftai/directive-runtime/dist/bin.js` is missing, the helper runs `git -C \"$REPO_ROOT\" rev-parse --path-format=absolute --git-common-dir`. When that command fails (for example on a git without `--path-format`), there is no borrow. Otherwise the helper runs one fixed `node -e` program and passes it two argv values: `$REPO_ROOT` and the printed common directory. No path or file content is put into the program text.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given a worktree helper run with no worktree runtime, when the primary checkout lookup runs, then `git rev-parse --path-format=absolute --git-common-dir` feeds one fixed node program through two argv values and a failing rev-parse means no borrow."
+        }
+      },
+      {
+        "title": "The program decides. On Windows it first turns an MSYS path `/<letter>/...` into `<letter>:/...` (the `normalizeHookProjectRoot` rule). It then requires all of these, in order: the common directory is absolute by node's `path.isAbsolute`; its name is `.git`; its parent (the primary checkout) and `$REPO_ROOT` have different real paths; `<primary>/node_modules/@deftai/directive-runtime/dist/bin.js` is a file by `statSync`, which follows symlinks, so a pnpm install qualifies; `<primary>/.deft-scratch/materialize-runtime-overlay.json` does not exist; and the worktree pin, read from `$REPO_ROOT/package.json` by the `readRuntimePin` rule (`devDependencies` then `dependencies`, exact semver only, leading `v` removed), equals the `version` in `<primary>/node_modules/@deftai/directive-runtime/package.json`. When all hold, it prints the bin path and exits 0. Otherwise it prints one reason line to stderr and exits 1.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given the program, when each condition (absolute `.git` common dir, distinct real paths, runtime bin by statSync, no overlay marker, exact pin equals installed version) holds, then it prints the bin path and exits 0; otherwise it prints one reason line to stderr and exits 1."
+        }
+      },
+      {
+        "title": "Borrowed run. The helper prints one stderr line that names the primary checkout and the version, then runs `DIRECTIVE_PROJECT_ROOT=\"$REPO_ROOT\" node \"<printed bin.js>\" \"$@\"`. The arguments are unchanged (they already carry `--project-root \"$REPO_ROOT\"`).",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a borrow, when the helper runs, then it prints one stderr line naming the primary and the version and runs the primary bin with `DIRECTIVE_PROJECT_ROOT` set to the worktree and the arguments unchanged."
+        }
+      },
+      {
+        "title": "No borrow. The helper fails exactly as today (the two stderr lines, exit 1), and also shows the program's reason line: no primary checkout found, no runtime in the primary, overlay marker present, pin not exact, or pin X against installed Y.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given no borrow, when the helper runs, then it prints today's two lines and the program's reason line, and exits 1."
+        }
+      },
+      {
+        "title": "No setup from a runtime that is not installed in the project. `maybeSelfCompleteSetup` returns without running setup, with a new skip reason `not-installed-here`, only when the checkout that owns the running runtime module (the path rule of `resolveLaunchingCheckoutRootFromPath`) is known, both it and the given project root resolve by `realpathSync`, and the two real paths differ (the same compare as `rootsMatch`). When the owner is unknown (a source run) or either real path cannot be read, behaviour is unchanged. On a borrowed run item 3 sets the project root to the worktree, so the skip fires there, also when the worktree sits inside the primary's tree. Agent hooks are not affected: hook-bin already refuses a different launch root before setup.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given a runtime whose owning checkout and the project root have different real paths, when `maybeSelfCompleteSetup` runs, then it returns skip reason `not-installed-here`; an unknown owner or an unreadable real path keeps today's behaviour."
+        }
+      },
+      {
+        "title": "Agent-hook admit (outer `hostHookOuterSource`). When `hook-bin.js` is missing and the event is `tool.before`, the outer reads the stdin payload. A read failure or a payload that is not a JSON object is denied. The call is allowed only when all of these hold: the tool name, read from the same direct fields as `hookToolName` (`tool_name`, `toolName`, `tool`, `tool.name`, `tool_call.name`, `toolCall.name`), is a shell tool by the `isShellTool` rule; the command, read in the field order of `hookShellCommand`, matches by the `matchPinMismatchRecoveryCommand` rule (simple-command pattern, exact tokens of `PIN_MISMATCH_RECOVERY_COMMANDS`); and every run directory has the same real path as the outer's project root. The run directories are read by the `shellRunDirectories` rule (tool-input `workdir`, `cwd`, `working_directory`, `workingDirectory` first, each present one a non-empty string; otherwise the payload `cwd`). When neither gives a directory, the hook process working directory is the run directory on Grok and Cursor; on Codex there is no run directory and the call is denied. A named directory that is not the project root is denied; there is no fallback from it. The absence of `hook-bin.js` is the precondition; the pin-mismatch-only test is not used. The tool list, command list, field names and pattern are written into the outer source from the core constants when it is generated. The reading functions are a small copy in the outer, and a parity test runs the generated outer and the core functions on the same payload fixtures.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given `hook-bin.js` missing and a `tool.before` event, when the outer reads the payload, then only a shell tool with an exact install command at the project root is admitted and everything else (including a non-object payload) is denied."
+        }
+      },
+      {
+        "title": "Allow output. On Cursor the admitted call prints `{\"permission\":\"allow\",\"code\":\"shell-op-ready\"}` and exits 0. On the other hosts it prints nothing and exits 0. These are the shapes `renderHostDecision` already emits for a plain `tool.before` allow.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given an admitted call, when the outer answers, then Cursor prints `{\"permission\":\"allow\",\"code\":\"shell-op-ready\"}` with exit 0 and the other hosts print nothing with exit 0."
+        }
+      },
+      {
+        "title": "Deny. Every other call, and every other event, is denied exactly as today (same exit code and output form per host). The reason text on the outer's missing-runtime deny names only the admitted commands, built from the list: \"Directive hooks: missing node_modules/@deftai/directive-runtime. Run one of `npm ci`, `npm install` or `pnpm install --frozen-lockfile` at the project root; other tool calls stay denied until the runtime is installed.\" The git hook helper and Taskfile messages keep their text.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given any other call or event, when the runtime is missing, then the outer denies as today and its reason names only `npm ci`, `npm install` and `pnpm install --frozen-lockfile`."
+        }
+      },
+      {
+        "title": "Unchanged: the hook-bin launch-root refusal (AC9.4 / AC9.5), the #6313 admit and its list, and the cheap in-sync check.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given the unchanged surfaces, when the tests run, then the hook-bin launch-root refusal, the #6313 admit and its list, and the cheap in-sync check keep their current results."
+        }
+      },
+      {
+        "title": "Given a linked worktree without `node_modules` whose exact pin equals the version installed in the primary checkout, with no overlay marker, when a commit runs the pre-commit hook, then the hook runs the primary's `bin.js` with `DIRECTIVE_PROJECT_ROOT` and `--project-root` set to the worktree and prints the line that names the primary and the version.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given a linked worktree with no `node_modules` and a matching exact pin in the primary, when pre-commit runs, then the primary bin runs with the worktree as project root and the borrow line is printed."
+        }
+      },
+      {
+        "title": "Given the same worktree with pnpm's symlinked `node_modules/@deftai/directive-runtime` in the primary, then the borrow applies.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given the primary's runtime is a pnpm symlink, when the helper runs, then the borrow applies."
+        }
+      },
+      {
+        "title": "Given git prints the common directory as `C:/...` or, on Windows, as `/c/...`, then the program resolves it to the same primary and the borrow applies.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given git prints the common directory as `C:/...` or `/c/...` on Windows, when the program runs, then it resolves to the same primary and the borrow applies."
+        }
+      },
+      {
+        "title": "Given the same worktree and a primary version different from the pin, then the hook exits 1 with today's two lines and a line that names both versions, and does not run the primary's runtime.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given a primary version that differs from the pin, when the helper runs, then it exits 1 with today's two lines and a line naming both versions and does not run the primary runtime."
+        }
+      },
+      {
+        "title": "Given a non-exact pin (for example `^0.129.0`), or an overlay marker in the primary, or a primary without the runtime, or a common directory not named `.git`, or a failing `git rev-parse`, then the hook fails as today with the matching reason line.",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given a non-exact pin, an overlay marker, a primary without the runtime, a common dir not named `.git`, or a failing rev-parse, when the helper runs, then it fails as today with the matching reason line."
+        }
+      },
+      {
+        "title": "Given a `package.json` whose version or path text contains quotes, `$` or backticks, then the program treats them as data and does not run them.",
+        "status": "proposed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Given a package.json whose version or path text contains quotes, `$` or backticks, when the helper runs, then the text is data and nothing in it runs."
+        }
+      },
+      {
+        "title": "Given a borrowed run, also with `DIRECTIVE_PROJECT_ROOT` set to the primary in the caller's environment, then `maybeSelfCompleteSetup` returns the skip reason `not-installed-here` and setup writes no file in the worktree or the primary.",
+        "status": "proposed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "Given a borrowed run with `DIRECTIVE_PROJECT_ROOT` set to the primary in the caller's environment, when setup self-completes, then it returns `not-installed-here` and writes no file in the worktree or the primary."
+        }
+      },
+      {
+        "title": "Given a runtime installed in the project on Windows, where the module path rule gives `C:/proj` and the working directory is `C:\\proj`, then self-complete behaves as today.",
+        "status": "proposed",
+        "id": "clause.17",
+        "narrative": {
+          "Acceptance": "Given an installed runtime on Windows where the module path rule gives `C:/proj` and the cwd is `C:\\proj`, when self-complete runs, then it behaves as today."
+        }
+      },
+      {
+        "title": "Given a Grok `run_terminal_command` payload with `tool_input.command` `npm ci` and no directory field, run by a hook whose working directory is the project root while `hook-bin.js` is missing, then the outer exits 0 with empty stdout.",
+        "status": "proposed",
+        "id": "clause.18",
+        "narrative": {
+          "Acceptance": "Given a Grok `run_terminal_command` payload with `npm ci` and no directory field, run from the project root with `hook-bin.js` missing, when the outer runs, then it exits 0 with empty stdout."
+        }
+      },
+      {
+        "title": "Given the same on Cursor (a `Shell` payload with the command and no directory field), then the outer prints `{\"permission\":\"allow\",\"code\":\"shell-op-ready\"}` and exits 0.",
+        "status": "proposed",
+        "id": "clause.19",
+        "narrative": {
+          "Acceptance": "Given a Cursor `Shell` payload with the command and no directory field, when the outer runs, then it prints `{\"permission\":\"allow\",\"code\":\"shell-op-ready\"}` and exits 0."
+        }
+      },
+      {
+        "title": "Given `npm ci && curl x`, `pnpm install`, `yarn`, `npm ci` with a run directory that is not the project root, a Codex payload without a tool-input directory field, a command found only in a field other than the `hookShellCommand` fields, an MCP or edit tool, or a payload that is not JSON, then the outer denies exactly as today, and the reason names only the three admitted commands.",
+        "status": "proposed",
+        "id": "clause.20",
+        "narrative": {
+          "Acceptance": "Given `npm ci && curl x`, `pnpm install`, `yarn`, a run directory that is not the project root, a Codex payload with no directory field, a command in a non-`hookShellCommand` field, an MCP or edit tool, or non-JSON, when the outer runs, then it denies as today and the reason names only the three admitted commands."
+        }
+      },
+      {
+        "title": "A parity test runs the generated outer source and the core functions (`hookToolName` direct fields, `hookShellCommand`, `matchPinMismatchRecoveryCommand`, the `shellRunDirectories` rule) on the same fixtures and gets the same admit result where a payload names a directory.",
+        "status": "proposed",
+        "id": "clause.21",
+        "narrative": {
+          "Acceptance": "Given the same payload fixtures, when the generated outer and the core functions run, then both give the same admit result wherever a payload names a directory."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "consumer-example",
+      "harness",
+      "Upgrade Blocker",
+      "urgent",
+      "area:installer",
+      "area:cli",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6517",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6517: bug(hooks,cli): git hooks need npm ci in every linked worktree; old global CLI says 'unknown verb install' for the repair command"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "git -C \"$REPO_ROOT\" rev-parse --path-format=absolute --git-common-dir",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "node -e",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "DIRECTIVE_PROJECT_ROOT=\"$REPO_ROOT\" node \"<printed bin.js>\" \"$@\"",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        },
+        {
+          "command": "--project-root \"$REPO_ROOT\"",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        },
+        {
+          "command": "npm ci",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        },
+        {
+          "command": "npm install",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        },
+        {
+          "command": "pnpm install --frozen-lockfile",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        },
+        {
+          "command": "npm ci && curl x",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L26"
+        },
+        {
+          "command": "pnpm install",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L26"
+        },
+        {
+          "command": "yarn",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L26"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/runtime/src/setup-wiring.test.ts",
+          ".githooks/_directive-run.sh",
+          "packages/runtime/src/self-complete.ts",
+          "packages/runtime/src/self-complete.test.ts",
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "packages/core/src/content-contracts/standards/deft_run_resolver.test.ts",
+          "changelog.d/6517-self-complete-not-installed-here.md",
+          "changelog.d/6517-worktree-hooks-without-node-modules.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "worktree-hooks-no-node-modules",
+        "verify_commands": [
+          "npx vitest run packages/core/src/content-contracts/standards/deft_run_resolver.test.ts packages/runtime/src/self-complete.test.ts packages/runtime/src/setup-wiring.test.ts packages/core/src/init-deposit/host-hook-outer.test.ts"
+        ],
+        "expected_outputs": [
+          "the git hook helper runs the primary checkout's runtime for a worktree whose exact pin equals the primary's installed version, and fails as today with a reason line otherwise",
+          "maybeSelfCompleteSetup returns not-installed-here when the runtime's owning checkout and the project root differ, so a borrowed run writes nothing",
+          "the agent-hook outer admits only npm ci, npm install or pnpm install --frozen-lockfile at the project root when hook-bin.js is missing, with Cursor's own allow output, and denies everything else naming only those commands",
+          "a parity test over shared payload fixtures, and one changelog.d fragment per PR (PR A self-complete, PR B protected hooks landing)"
+        ],
+        "Traces": [
+          "#6517"
+        ],
+        "acceptance_criteria_justification": "Twenty-one clauses, one per item of the Bound remedy list (9) and the Acceptance Criteria list (12) on bound lean 6955063880 of #6517 (accepted synthesis 6955447640); #6466 is folded in by the same remedy."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/runtime/src/setup-wiring.test.ts",
+          ".githooks/_directive-run.sh",
+          "packages/runtime/src/self-complete.ts",
+          "packages/runtime/src/self-complete.test.ts",
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "packages/core/src/content-contracts/standards/deft_run_resolver.test.ts",
+          "changelog.d/6517-self-complete-not-installed-here.md",
+          "changelog.d/6517-worktree-hooks-without-node-modules.md"
+        ],
+        "module_boundary": "packages/runtime/src/setup-wiring.ts (git hook helper), packages/runtime/src/self-complete.ts (setup skip) and packages/core/src/init-deposit/host-hook-outer.ts (agent-hook outer)",
+        "cohesion_exemption": "setup-wiring.ts is over the review trigger, but the change is one shell-helper string (GITHOOK_HELPER) that must stay byte-identical to the tracked .githooks/_directive-run.sh; the helper is deposited from this file, so it cannot move out of it within this story."
+      },
+      "issueCommentThread": [
+        {
+          "body": "Part 2 (old global CLI answers `unknown verb 'install'` for the AC9.7 repair command) is split into #6530. This issue now tracks part 1: git hooks in a linked worktree with no `node_modules`, together with #6466 (agent hooks in the same state).\r\n\n",
+          "id": 6953560595,
+          "html_url": "https://github.com/deftai/directive/issues/6517#issuecomment-6953560595",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T16:07:27Z",
+          "updated_at": "2026-11-17T16:07:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6517; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes which runtime a git hook runs in a linked worktree and which shell command an agent hook lets through when the runtime is missing, and a wrong rule there runs a runtime that does not match the pin or opens the shell in a checkout the hooks cannot check.\n\nTarget-digest: sha256:3bcd76991eba3e6fbfb2205cddea9d82f15067dc6c91eb6c4fa174147c7936f7\ndispatch-sha: 6e6d88b8035fe3c71bdbcab3102a394b5761859d\ndest: .deft-scratch/worktrees/arc-6517 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: two small changes in two hook entry files that share one rule (fail closed when no matching runtime is found); the operator set N=1 for this arc. One critic of a different model family.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 6e6d88b8035fe3c71bdbcab3102a394b5761859d: + dest cwd-without-occupy\npain: P1, P2, P3\n\n## In plain English\nA new linked worktree (`git worktree add`) has no `node_modules`. Two kinds of hooks then stop the work. The git commit hook looks for the runtime only in the worktree, so the first commit fails, although the primary checkout of the same repository already has the pinned runtime. The Grok and Cursor agent hooks deny every shell call in that state, including the install command that their own message tells the agent to run. The recommended fix has two small parts. The git hook may use the primary checkout's runtime, but only when its version is exactly the worktree's pin. The agent hook lets through only the exact project install commands that the hooks already admit for a pin mismatch (#6313), run at the project root. Everything else still fails closed. The operator folded #6466 into this issue and split the old-CLI wording problem into #6530 (comment 6953560595).\n\n## Pains\n#6517 has no Acceptance Criteria heading. These three pains are the operator's live ruling for this arc (chat 2026-11-17), derived from the Problem and Expected sections of #6517 part 1 and #6466.\n- P1 — A commit in a new linked worktree without `node_modules` fails at the git hook, although the primary checkout already has the pinned runtime (#6517 part 1). Its \"Expected\" paragraph is the proposed remedy: fall back to the primary checkout's runtime via `git rev-parse --git-common-dir` only when that runtime matches the pin, otherwise fail as today.\n- P2 — Grok and Cursor agent hooks deny every Shell and MCP call in a checkout without the runtime, including the install command their own deny message tells the agent to run (#6466 \"Expected\").\n- P3 — Both must keep failing closed when no matching runtime can be found; a runtime that does not match the pin is never used.\n\n## Constraints (not pains)\n- Add no gate and no grant. Prefer the smallest rule.\n- The #6313 admit list and its rules stay as they are; this arc reuses them.\n- Deferred, confirmed by the operator before the arc: the #6530 wording fix, registry / auth / update problems (#6503, #6141, #6465), and anything wider than P1-P3.\n- Running stories not to overlap: #6471 (`hooks/commit-target.ts`, `hooks/dispatcher.ts`), #6275 (`dispatcher.ts`, escalation), #6507 (`agents-md.ts`, `setup-wiring.ts`), #6375 (pin-mismatch recovery text: `install-health/constants.ts`, `pin-mismatch-guidance.ts`, `hook-dispatch.ts`), #6185.\n\n## Anchors at the dispatch SHA\n- `packages/runtime/src/setup-wiring.ts` 1081-1107 `GITHOOK_HELPER` (deposited as `.githooks/_directive-run.sh`): the runtime is looked up only at `$REPO_ROOT/node_modules/@deftai/directive-runtime/dist/bin.js`; when missing, two stderr lines and exit 1. `pre-commit` and `pre-push` (1110-1124) pass `--project-root \"$REPO_ROOT\"` to every verb.\n- `packages/core/src/init-deposit/host-hook-outer.ts` 259-373 `hostHookOuterSource`: the outer deposited for every host. When `hook-bin.js` is missing (345-348) it denies for every event and tool: Grok gets deny JSON and exit 0, other hosts exit 1 (324-334). It does not read the payload.\n- `packages/runtime/src/hook-dispatch.ts` 425-441: hook-bin refuses when the payload project root is not the checkout that owns the running hook-bin (AC9.4 / AC9.5). 447-456 and 161-226: the #6313 recovery admit on pin mismatch.\n- `packages/core/src/install-health/recovery-admit.ts` 19-74: `PIN_MISMATCH_RECOVERY_COMMANDS` (`pnpm install --frozen-lockfile`, `npm install`, `npm ci`), simple-command rule, exact token match.\n- `packages/core/src/install-health/readers.ts` 100-129 and `cheap.ts` 54-96: the pin is the exact-semver spec of `@deftai/directive-runtime` in `package.json`; installed is the `version` in `node_modules/@deftai/directive-runtime/package.json`; a materialize overlay marker fails closed even when they match.\n- `packages/runtime/src/bin.ts` 17-18 and `self-complete.ts` 112-169: an ordinary runtime command self-completes setup for `DIRECTIVE_PROJECT_ROOT ?? cwd` when readiness is missing.\n\n## Recommended mechanism (the thing to critique)\n- G1 (P1, git hooks). In `run_directive`, when the worktree runtime is missing, try exactly one other place: the primary checkout, which is the parent directory of the absolute `git rev-parse --git-common-dir`. Use it only when all of these hold: the common directory is named `.git`; the primary is not `$REPO_ROOT`; the primary's `dist/bin.js` is a regular file; the worktree's pin (same rule as `readRuntimePin`: exact semver in `package.json`) equals the `version` in the primary's `node_modules/@deftai/directive-runtime/package.json`; and the primary has no materialize overlay marker. Then run `node <primary bin.js> \"$@\"` (the arguments already carry `--project-root \"$REPO_ROOT\"`) and print one stderr line that names the borrowed runtime and its version. The version check is a short `node -e` program inside the helper; `node` is already required.\n- G2 (P1 failure path and P3). When any G1 condition fails, the helper fails exactly as today, with one added stderr line that says why the primary runtime was not used (not found, or pin X against installed Y).\n- G3 (P2, agent hooks). In the outer, when `hook-bin.js` is missing and the event is `tool.before`, read the stdin payload. Allow the call only when the tool is a shell tool (`SHELL_TOOL_NAMES`), the command is exactly one of `PIN_MISMATCH_RECOVERY_COMMANDS` under the same simple-command rule, and the run directory is proved to be the project root by the same rule as #6313 (`shellRunDirectories`; Codex never proves it). The outer source embeds those lists from core when it is generated, so there is one source. An admitted call exits 0 with the host's allow. Any other call, an unreadable payload, or any other event is denied exactly as today; the deny reason adds one sentence that names the admitted commands.\n- G4 (P3). Agent hooks never borrow the primary checkout's runtime: hook-bin refuses a payload root that is not its own checkout (hook-dispatch.ts 425-441), and this arc does not change that.\n\nQuestions for the critic:\n1. Is running the primary checkout's runtime from a linked worktree of the same repository acceptable when \"matches the pin\" means the same identity the hooks already trust (exact pin equals installed version, no overlay marker)? Or must it also check integrity (lockfile hash)?\n2. A borrowed runtime self-completes setup for the worktree on its first hook (bin.ts 17-18), as an installed runtime would after `pnpm install`. Keep that parity, or skip self-complete when the runtime is borrowed?\n3. Is a small payload reader in the outer (G3) the smallest way to admit the install, or is there a smaller rule that keeps MCP, edits and every other shell command denied?\r\n\n",
+          "id": 6954061759,
+          "html_url": "https://github.com/deftai/directive/issues/6517#issuecomment-6954061759",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T16:26:22Z",
+          "updated_at": "2026-11-17T16:26:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6954062510\nseat: grok launcher: grok (--cwd dest --prompt-file --permission-mode auto --disable-web-search --no-subagents --output-format plain)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 6e6d88b8035fe3c71bdbcab3102a394b5761859d\ndest: .deft-scratch/worktrees/arc-6517\nverification-path: pin-read git show 6e6d88b8035fe3c71bdbcab3102a394b5761859d: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6954061759\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Grok, a different model family, run with the launcher above against the dest (permission mode auto, no web search, no sub-agents). The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Grok seat is told not to read GitHub. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim. Grok plain output can print progress narration before the `model:` line; the parent strips only that narration and says so.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 6954062510,
+          "html_url": "https://github.com/deftai/directive/issues/6517#issuecomment-6954062510",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T16:26:24Z",
+          "updated_at": "2026-11-17T16:26:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nA new linked worktree has no `node_modules`. The git commit hook looks only in that worktree, so the first commit fails even when the main checkout already has the same pinned runtime. In that same state the Grok and Cursor agent hooks refuse every shell call, including the install their own message tells the agent to run.\n\nThe recommended shape is right. The git hook may run the main checkout's runtime when the worktree pin equals that installed version and the main checkout has no materialize overlay marker. The agent hook may let through only the three project install commands already admitted for a pin mismatch, and only at the project root. Agent hooks should keep refusing to load the main checkout's hook program. Everything else stays refused.\n\nThat shape does not bind as written. One change is required before the git-hook half can bind, and the agent-hook half needs tighter wording so the admit is real on both hosts.\n\nOn the version check: the identity the hooks already trust is enough. That is an exact version in the worktree `package.json` against the `version` in the main checkout's installed runtime, with the overlay marker still failing closed. The cheap check does not read the lockfile. A lockfile hash would be a new gate.\n\nOn setup repair: it should not run when the runtime is borrowed. An installed tree runs repair once, then the versions match and later commands skip it. A borrowed tree has no installed copy in the worktree, so that skip never arrives. Every commit and every push would run repair again and rewrite project files that are not part of the commit.\n\nOn the payload reader: it is the smallest rule that still refuses every other command. The host matcher only knows that the tool is a shell. It cannot see the command text. Letting every shell command through would drop the fail-closed rule. The reader has to use the existing command list and the existing payload fields. Grok and Cursor do not share one allow message. The pin-mismatch function itself will not admit this case, because a missing install leaves the mismatch flags false.\n\n## Findings\n\n### 1. blocks-the-design — A borrowed runtime rewrites the worktree on every hook\n\nEvidence: `packages/runtime/src/bin.ts` lines 16–19, `packages/runtime/src/self-complete.ts` lines 136–168, `packages/core/src/install-health/cheap.ts` lines 59–77, `packages/runtime/src/setup.ts` lines 418–447 and 494–507, read at the dispatch SHA.\n\nG1 runs `node <primary bin.js>` with the hook arguments, as an ordinary command. That entry always calls `maybeSelfCompleteSetup`. The project root for that call is `DIRECTIVE_PROJECT_ROOT` if set, otherwise the process cwd. A git hook's cwd is the linked worktree. A consumer worktree with a pin and committed wiring counts as configured even when `node_modules` is absent (`self-complete.ts` lines 139–144). A missing install is not fail-closed: both versions have to be present before they can mismatch (`cheap.ts` lines 59–68). `cheap.ok` stays false because the installed version is read from the worktree's own `node_modules`. The fast path requires `cheap.ok`, so it never hits. Repair setup runs on every `pre-commit` and every `pre-push`. Repair rewrites wiring (`.gitignore`, `AGENTS.md`, host hooks, the ownership record) and does not stage those writes.\n\nFailure mode: the commit the worktree was opened for also mutates the tree, and the next commit does it again. If `DIRECTIVE_PROJECT_ROOT` points at the main checkout, those writes land there instead. A throw inside setup still fails the commit, so P1 is not reliably relieved either.\n\nDisposition: the borrow can stand. The \"run it as a normal command and keep setup parity\" limb cannot bind. The borrowed git-hook path has to skip `maybeSelfCompleteSetup`. Teaching the cheap check to pretend the worktree has the package would make later reads treat `node_modules` as present and then fail when they open it. Skipping setup is the smaller rule. Parity would be the right call only if the fast path could succeed with no local install. It cannot.\n\n### 2. sharpens-framing — A missing runtime is outside the pin-mismatch admit\n\nEvidence: `packages/core/src/install-health/cheap.ts` lines 59–68 and 93, `packages/core/src/install-health/recovery-admit.ts` lines 8–14 and 53–73, `packages/runtime/src/hook-dispatch.ts` lines 194–211 and 447–456.\n\n`admitPinMismatchRecovery` returns null unless pin ≠ installed is the only fault. With no installed version, both `identityMismatch` and `pinMismatchOnly` are false, and `failClosed` is false unless an overlay marker is present. Calling that function, or reusing \"the #6313 rules\" including that precondition, denies `npm ci` while `hook-bin.js` is missing. P2 stays.\n\nDisposition: the new precondition is \"`hook-bin.js` is absent.\" The reused pieces are the three token lists, the simple-command pattern, and the run-directory proof. `isPinMismatchOnly` stays on the path that already has a runtime.\n\n### 3. sharpens-framing — The deny text still names commands the list refuses\n\nEvidence: `packages/core/src/init-deposit/host-hook-outer.ts` lines 22–24 and 324–333, `packages/core/src/install-health/recovery-admit.ts` lines 20–24 and 27–31.\n\nThe outer's deny reason is the fixed guidance string: run `npm install`, or `pnpm install`, or `yarn`. The admitted list is `pnpm install --frozen-lockfile`, `npm install`, and `npm ci`. A compound command, an extra token, and `yarn` fail the simple-command match. G3 adds a sentence that names the real list and leaves the old sentence in place. An agent that follows `pnpm install` or `yarn` is still denied. That is the bug in #6466 for those two spellings.\n\nDisposition: the recovery clause names only the three admitted commands. `pnpm install` without `--frozen-lockfile`, and `yarn`, are not added to the list.\n\n### 4. sharpens-framing — The payload reader has to use the existing fields\n\nEvidence: `packages/core/src/hooks/classify/paths.ts` lines 176–190, `packages/core/src/hooks/classify/payload.ts` lines 30–42, `packages/runtime/src/hook-dispatch.ts` lines 161–186, `packages/core/src/hooks/tools.ts` lines 41–49.\n\nHosts put the command and the working directory in different places. The existing extractor looks at `tool_input.command`, `cmd`, and `shell_command` before the top-level command, and the directory proof uses `workdir`, `cwd`, `working_directory`, and `workingDirectory`, with no Codex fallback. A reader that checks one top-level string misses the Grok install and P2 stays closed. A reader that searches the raw JSON can treat a command sitting in some other field as the command to allow. The outer cannot import the runtime package while that package is missing, so the deposited file has to contain this predicate, generated from the same source as the list.\n\nDisposition: G3's reader is that predicate, including the Codex rule, plus a fixture where `npm ci && …` and a command buried in another field stay denied. A shorter parser does not bind.\n\n### 5. sharpens-framing — Grok and Cursor do not share an allow wire\n\nEvidence: `packages/core/src/hooks/dispatcher.ts` lines 5511–5516 and 5667–5747, `packages/core/src/init-deposit/host-hook-outer.ts` lines 324–333, `packages/core/src/init-deposit/agent-hooks.ts` lines 158–159.\n\nCursor with `failClosed` treats empty stdout as a hook failure, so a Cursor allow is `{\"permission\":\"allow\",\"code\":...}` and exit 0. A Grok tool-before allow with no advisory is exit 0 and empty stdout. Grok's deny is `{\"decision\":\"deny\",...}` and exit 0. A Cursor permission object on Grok is not a `decision` of allow or deny. One shared \"exit 0\" leaves Cursor blocking the install. One shared permission object leaves Grok denying it. Either way one of the two hosts in P2 stays broken.\n\nDisposition: the admitted call uses those two existing wires. No new JSON shape. The admit message is not an advisory (`allowAdvisoryText` only keeps a kill-force reason or a `Warning:`), so Grok's allow stays empty.\n\n### 6. sharpens-framing — The main-checkout lookup can bind the wrong tree, or miss a pnpm install\n\nEvidence: `packages/runtime/src/setup-wiring.ts` lines 1085–1106, `packages/core/src/init-deposit/host-hook-outer.ts` lines 298–305, `packages/core/src/install-health/cheap.ts` lines 25–26 and 50–52, `packages/core/src/install-health/readers.ts` lines 100–131.\n\nToday the helper only resolves the worktree toplevel. G1 then takes the parent of `git rev-parse --git-common-dir`. That flag is not always absolute. A relative print, resolved from the wrong base, either fails closed (P1 stays) or selects some neighboring directory. If that neighbor has a `dist/bin.js` whose package version equals the pin, the hook runs that runtime. The design already requires an absolute path and the name `.git`. It does not say what the helper does with a relative print.\n\nThe same limb says the bin is \"a regular file.\" The helper's current test is `[ -f ]`, which follows symlinks. pnpm's `node_modules/@deftai/directive-runtime` is usually a symlink into the store. `isRegularFile` in the outer returns false for a symlink. Copying that test onto the git helper means a pnpm main checkout never qualifies, and P1 stays for pnpm.\n\nThe version check is a `node -e` program inside the shell helper. A program that pastes the version or the path into the script string turns `package.json` into shell or JS on the commit hook. The pin read has to match `readRuntimePin`: `dependencies` and `devDependencies`, exact semver only, leading `v` stripped. The overlay marker is `.deft-scratch/materialize-runtime-overlay.json` on the main checkout, not a file inside the package.\n\nDisposition: the helper requests an absolute common dir and refuses a relative one. It tests the bin with `[ -f ]`. The version program receives the two `package.json` paths as argv and parses them in node. The overlay check is the main checkout's marker file.\n\n### 7. footnote — Lockfile integrity stays out of this rule\n\n`checkCheapInSync` does not inspect the lockfile (`cheap.ts` lines 50–52). The overlay marker is the existing control for a version string that matches while a tip build is still on disk. Borrowing the main checkout extends that same version trust to other worktrees of the repo. A lockfile hash would be a new gate, which this arc does not add.\n\n### 8. footnote — How these lines were read\n\n`git show 6e6d88b8035fe3c71bdbcab3102a394b5761859d:` was refused in this seat because `node_modules/@deftai/directive-runtime` is absent, and this arc does not install it. The lines above are from the checkout whose branch ref `story/6471-commit-shape` is that SHA. The same regions match the later checkout of its descendant. The suite was not run. No instructions were embedded in the issue text or the comments through the ceiling.\n\n\n",
+          "id": 6954388515,
+          "html_url": "https://github.com/deftai/directive/issues/6517#issuecomment-6954388515",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T16:38:28Z",
+          "updated_at": "2026-11-17T16:38:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 6954061759 (round 1: 1 of 1 critic posted, comment 6954388515)\n\n## In plain English\nProblem: a new linked worktree has no `node_modules`. The git commit hook looks for the runtime only in that worktree, so the first commit fails, although the primary checkout of the same repository already has the pinned runtime. The Grok and Cursor agent hooks deny every shell call in that state, including the install command that their own message names.\n\nWhat the critic found: the shape is right, and the version check the hooks already trust is enough. One part could not stand: a borrowed runtime would run setup repair for the worktree on every commit and push, and rewrite files that are not part of the commit. Five parts had to be made exact: the agent-hook admit cannot reuse the pin-mismatch precondition; the deny text must name only the commands that pass; the payload reader must read the same fields as the runtime; Grok and Cursor need different allow outputs; and the primary-checkout lookup must use an absolute path, accept a pnpm symlink, and never paste file content into a program.\n\nSolution this lean proposes: the git hook may run the primary checkout's runtime when the worktree's exact pin equals that runtime's version and the primary has no overlay marker; it then runs without setup repair. The agent hook, when the runtime is missing, lets through only `npm ci`, `npm install` or `pnpm install --frozen-lockfile` as a simple command at the project root, and its deny text names those three. Every other case fails closed as today.\n\nWhat this adds: one lookup in the git hook helper, one skip reason in setup self-complete, and one small payload check in the agent-hook outer. No new gate, grant, flag or stored state.\n\nWhat it does not do:\n- Agent hooks never use the primary checkout's runtime; hook-bin still refuses a payload root that is not its own checkout.\n- It does not check lockfile integrity; \"matches the pin\" is the same identity the hooks already trust.\n- It does not change the exit code of the missing-runtime deny on Claude Code or Codex; that is #6201.\n- A helper with the borrow can meet a pinned runtime older than this change only when the pin was moved below this release without running setup. That older runtime then self-completes as today, and its setup writes back its own helper.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:3bcd76991eba3e6fbfb2205cddea9d82f15067dc6c91eb6c4fa174147c7936f7\n**Spec-path:** Bound remedy on this lean\nSupersedes: Stop 1 write-back, comment 6954061759. Sibling count: 1 (comment 6954388515). Panel deposit: comment 6954062510.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Primary lookup (git hook helper `GITHOOK_HELPER`, deposited as `.githooks/_directive-run.sh`). When `$REPO_ROOT/node_modules/@deftai/directive-runtime/dist/bin.js` is missing, the helper runs `git -C \"$REPO_ROOT\" rev-parse --path-format=absolute --git-common-dir`. When that command fails or prints a path that is not absolute, there is no borrow. The primary checkout is the parent of that directory, and only when the directory is named `.git` and the parent is not `$REPO_ROOT` (both compared as physical paths).\n2. Borrow conditions. All must hold: `[ -f \"<primary>/node_modules/@deftai/directive-runtime/dist/bin.js\" ]` (this test follows symlinks, so a pnpm install qualifies); `<primary>/.deft-scratch/materialize-runtime-overlay.json` does not exist; and a `node -e` program exits 0. That program receives two paths as argv, `$REPO_ROOT/package.json` and `<primary>/node_modules/@deftai/directive-runtime/package.json`; no path or file content is put into the program text. It reads the worktree pin by the `readRuntimePin` rule (`devDependencies` then `dependencies`, exact semver only, leading `v` removed) and exits 0 only when that pin equals the package `version`.\n3. Borrowed run. The helper runs `node \"<primary bin.js>\" \"$@\"` with the arguments unchanged (they already carry `--project-root \"$REPO_ROOT\"`), and first prints one stderr line that names the primary checkout path and the version.\n4. No borrow. The helper fails exactly as today (the two stderr lines, exit 1), with one added stderr line that names the reason: no primary checkout found, no runtime in the primary, overlay marker present, pin not exact, or pin X against installed Y.\n5. No setup from a runtime that is not installed in the project. `maybeSelfCompleteSetup` returns without running setup, with a new skip reason `not-installed-here`, when the checkout that owns the running runtime module (the path rule of `resolveLaunchingCheckoutRootFromPath`) is known and is not the project root it was given. When that checkout is unknown (a source run), behaviour is unchanged. Agent hooks are not affected: hook-bin already refuses a different launch root before setup.\n6. Agent-hook admit (outer `hostHookOuterSource`). When `hook-bin.js` is missing and the event is `tool.before`, the outer reads the stdin payload. A read failure or a payload that is not a JSON object is denied. The call is allowed only when all of these hold: the tool name, read from the same direct fields as `hookToolName` (`tool_name`, `toolName`, `tool`, `tool.name`, `tool_call.name`, `toolCall.name`), is a shell tool by the `isShellTool` rule; the command, read in the field order of `hookShellCommand`, matches by the `matchPinMismatchRecoveryCommand` rule (simple-command pattern, exact tokens of `PIN_MISMATCH_RECOVERY_COMMANDS`); and the run directories, read by the `shellRunDirectories` rule (tool-input fields first, each present one a non-empty string; otherwise the payload `cwd`; never on Codex), are not empty and each one's real path equals the outer's project root real path. The absence of `hook-bin.js` is the precondition; the pin-mismatch-only test is not used. The tool list, command list, field names and pattern are written into the outer source from the core constants when it is generated. The reading functions are a small copy in the outer, and a parity test runs the generated outer and the core functions on the same payload fixtures.\n7. Allow output. On Cursor the admitted call prints `{\"permission\":\"allow\",\"code\":\"shell-op-ready\"}` and exits 0. On the other hosts it prints nothing and exits 0. These are the shapes `renderHostDecision` already emits for a plain `tool.before` allow.\n8. Deny. Every other call, and every other event, is denied exactly as today (same exit code and output form per host). The reason text on the outer's missing-runtime deny names only the admitted commands, built from the list: \"Directive hooks: missing node_modules/@deftai/directive-runtime. Run one of `npm ci`, `npm install` or `pnpm install --frozen-lockfile` at the project root; other tool calls stay denied until the runtime is installed.\" The git hook helper and Taskfile messages keep their text.\n9. Unchanged: the hook-bin launch-root refusal (AC9.4 / AC9.5), the #6313 admit and its list, and the cheap in-sync check.\n\n## Acceptance Criteria\n- Given a linked worktree without `node_modules` whose exact pin equals the version installed in the primary checkout, with no overlay marker, when a commit runs the pre-commit hook, then the hook runs the primary's `bin.js` with `--project-root` set to the worktree and prints the line that names the primary and the version.\n- Given the same worktree with pnpm's symlinked `node_modules/@deftai/directive-runtime` in the primary, then the borrow applies.\n- Given the same worktree and a primary version different from the pin, then the hook exits 1 with today's two lines and a line that names both versions, and does not run the primary's runtime.\n- Given a non-exact pin (for example `^0.129.0`), or an overlay marker in the primary, or a primary without the runtime, or a common directory not named `.git`, then the hook fails as today with the matching reason line.\n- Given a `package.json` whose version or path text contains quotes, `$` or backticks, then the version check treats them as data and does not run them.\n- Given a borrowed run, then `maybeSelfCompleteSetup` returns the skip reason `not-installed-here` and no file in the worktree or the primary is written by setup.\n- Given a runtime installed in the project (launching checkout equals project root), then self-complete behaves as today.\n- Given a Grok payload for a shell tool with command `npm ci` and a run directory at the project root while `hook-bin.js` is missing, then the outer exits 0 with empty stdout.\n- Given the same on Cursor, then the outer prints `{\"permission\":\"allow\",\"code\":\"shell-op-ready\"}` and exits 0.\n- Given `npm ci && curl x`, `pnpm install`, `yarn`, `npm ci` run in another directory, a payload with no run directory, a Codex payload, a command found only in a field other than the `hookShellCommand` fields, an MCP or edit tool, or a payload that is not JSON, then the outer denies exactly as today, and the reason names only the three admitted commands.\n- A parity test runs the generated outer source and the core functions (`hookToolName` direct fields, `hookShellCommand`, `matchPinMismatchRecoveryCommand`, the `shellRunDirectories` rule) on the same fixtures and gets the same admit result.\n\n## Reject\n- Keeping setup parity for a borrowed runtime (comment 6954388515, finding 1).\n- Setting `DEFT_DOCTOR_HOOK_DIAGNOSTIC` in the helper to skip setup: it is the doctor probe's switch, not a rule about where a runtime is installed.\n- A lockfile or integrity check for \"matches the pin\" (finding 7: a new gate).\n- Agent hooks running the primary checkout's hook-bin: it would need the AC9.4 launch-root refusal loosened.\n- Letting every shell call through when the runtime is missing (P3).\n- Adding `pnpm install` without `--frozen-lockfile`, or `yarn`, to the admitted list (finding 3).\n- Calling `admitPinMismatchRecovery` for the missing-runtime case (finding 2).\n- One shared allow output for all hosts (finding 5).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6954388515 | 1. A borrowed runtime rewrites the worktree on every hook | blocks-the-design | accept-into-contract (item 5) |\n| comment 6954388515 | 2. A missing runtime is outside the pin-mismatch admit | sharpens-framing | accept-into-contract (item 6) |\n| comment 6954388515 | 3. The deny text still names commands the list refuses | sharpens-framing | accept-into-contract (item 8) |\n| comment 6954388515 | 4. The payload reader has to use the existing fields | sharpens-framing | accept-into-contract (item 6 and the parity criterion) |\n| comment 6954388515 | 5. Grok and Cursor do not share an allow wire | sharpens-framing | accept-into-contract (item 7) |\n| comment 6954388515 | 6. The main-checkout lookup can bind the wrong tree, or miss a pnpm install | sharpens-framing | accept-into-contract (items 1 and 2) |\n\nFootnotes in the census, no take: comment 6954388515 findings 7 and 8.\n\nRelated input: #6201 asks that the missing-runtime path block on every host, because exit 1 is a non-blocking error on Claude Code. Items 6 to 9 are consistent with it and with P2 and P3: the only new allow is the exact install at the project root, and every other call keeps the deny. Changing the deny's exit code or output per host is #6201's work and is not in this design. #6201 and item 8 both edit `packages/core/src/init-deposit/host-hook-outer.ts`, so they land one after the other.\n\nRelay: the parent posted the critic body verbatim. It removed only the Grok progress text printed before the `model:` line and the launcher's trailing exit-code line, as the panel deposit says. Finding 8 of the critic says its `git show` at the dispatch SHA was refused in the dest because the dest has no runtime installed, and that it read the same SHA from another checkout.\n\n- audit:A1 sha=6e6d88b8035fe3c71bdbcab3102a394b5761859d pointer=packages/runtime/src/hook-dispatch.ts:97-129 reading=asserted\n\nA1: a runtime can tell from its own module path which checkout it is installed in (`resolveLaunchingCheckoutRootFromPath`, including the pnpm store path), and that is enough for item 5 to tell a borrowed run from an installed one. The parent read these lines but did not run them.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. A1 and the three `relieves` cites stay open until a later critic targets them.\r\n\n",
+          "id": 6954473331,
+          "html_url": "https://github.com/deftai/directive/issues/6517#issuecomment-6954473331",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T16:41:41Z",
+          "updated_at": "2026-11-17T16:41:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, A1\nfinding-classes: blocking, sharpening, footnote\nharvest-changed: true\nharvest-digest: sha256:ba949dd7a3ed65637fa50ad777ea9c0ac9988c125f1cad5d0b8fc11c58ca0698\n\n## In plain English\n\nA linked worktree with no runtime of its own can run the primary checkout's runtime when the pin is that exact version, and that borrowed run does not set the worktree up. A runtime whose version string is not the pin is not used. That part holds, including an in-project pnpm store path.\n\nThe install named in the missing-runtime message still does not run. The Grok and Cursor shell calls recorded in this tree carry the command and no directory, and the admit refuses a call that has no directory. On Windows the module path comes back with forward slashes and the working directory uses backslashes, so an installed runtime looks borrowed and skips its own setup.\n\npain-P1: holds - a linked worktree whose exact pin equals the primary's installed version, with no overlay, runs that primary `bin.js` with the worktree `--project-root`, and the borrowed module's checkout differs from the worktree so the skip fires, including a worktree nested under the primary and an in-project `.pnpm` path after the collapse; a different version string, a non-exact pin, an overlay, a missing primary runtime, or a common directory not named `.git` does not borrow.\npain-P2: does not hold - item 6 allows the three install commands only when `shellRunDirectories` is non-empty, and the Grok and Cursor shell payloads in this tree carry `tool_input.command` alone, so `npm ci` stays denied while `hook-bin.js` is missing.\npain-P3: holds - borrow runs only when the pin and the installed `version` are the same exact semver and the overlay marker is absent, and every other call keeps today's deny; no payload shape admits a command outside those three tokens.\nA1: does not hold - `resolveLaunchingCheckoutRootFromPath` does collapse an in-project pnpm path, including a Windows `join()` path, to the checkout, and that string is forward-slash, so it does not match the project root `process.cwd()` returns on Windows and an installed runtime takes the skip.\n\n### 1. blocks-the-design — An installed Windows runtime takes the skip\n\nEvidence: `packages/runtime/src/hook-dispatch.ts` 102-119 returns the sliced prefix after `replace(/\\\\/g, \"/\")`, and 116-119 strips an in-project `/node_modules/.pnpm/` segment. `packages/runtime/src/hook-identity-failclosed.test.ts` 323-336 builds that path with `join()` and compares only after `resolved?.replace(/\\\\/g, \"/\")`, because the return is not the operating-system spelling. `packages/runtime/src/bin.ts` 18 passes `process.env.DIRECTIVE_PROJECT_ROOT ?? process.cwd()` into `maybeSelfCompleteSetup` before argv is read. `packages/runtime/src/self-complete.ts` 112-168 has no checkout check today. `packages/runtime/src/setup-wiring.ts` 1100-1106 starts `node \"$RUNTIME_BIN\" \"$@\"` with the environment unchanged. `packages/cli/src/contract-invoke.ts` 51-56 sets that variable and the child working directory to the same project root on an ordinary launch.\n\nFailure mode: item 5 skips when the path-rule checkout \"is not\" the root it was given. On Windows the path rule yields `C:/proj` and `process.cwd()` yields `C:\\proj`. A string compare skips setup for a runtime that is installed in the project, which breaks the acceptance line that an installed runtime self-completes as today. The same item misses the other way when `DIRECTIVE_PROJECT_ROOT` names the primary: the given root then equals the owner, the skip does not fire, and setup writes the primary. The acceptance line says a borrowed run writes no file in the primary. Git hooks do not set the variable; they inherit it, and `--project-root` is not what `bin.ts` 18 reads.\n\nA virtual store whose `.pnpm` directory sits outside the project also collapses to the store rather than the checkout, so that install skips too. Default pnpm keeps `.pnpm` inside the project, and that layout does collapse (`hook-dispatch.ts` 116-119, test 123-128).\n\nDisposition: the bound remedy cannot bind until item 5's comparison changes. The comparison that passes is real-path equality, the same compare as `rootsMatch` (`hook-dispatch.ts` 131-141), skipping only when both real paths exist and differ. The borrowed exec clears `DIRECTIVE_PROJECT_ROOT`, so the root the runtime is given is the worktree working directory. An ordinary launch already sets the variable and the working directory to the same root, so an installed launch still runs setup. A rule that treats a working directory inside the owner as installed misses a linked worktree that sits inside the primary tree (`.deft-scratch/worktrees/...`). A null path-rule result stays on today's path.\n\n### 2. blocks-the-design — The install admit never sees the command the agent can run\n\nEvidence: `packages/runtime/src/hook-dispatch.ts` 161-186. Tool-input `workdir`, `cwd`, `working_directory`, and `workingDirectory` win when any is present; otherwise the payload `cwd` counts, and Codex returns nothing even then (184). No field at all returns `[]`. `packages/runtime/src/hook-dispatch.test.ts` 743-746 and 769-772 send Grok `run_terminal_command` with `tool_input.command` only; 822-826 adds `tool_input.cwd` only when a test passes a directory, and that is the admit. `packages/runtime/src/hook-identity-failclosed.test.ts` 529-537 denies when no run directory is sent; 468-480 admits Cursor only after a payload `cwd` is injected; 540-562 denies Codex on session `cwd` and admits it only with tool-input `workdir`. `packages/core/src/hooks/fixtures/cases.ts` 688-692 and 778-781 are Cursor and Grok shell fixtures with `tool_input.command` and no directory. `packages/core/src/hooks/classify/stdin.test.ts` 27-36 puts `cwd` on `spawn_subagent`, not on the shell tool. `packages/core/src/install-health/recovery-admit.ts` 20-24 and 31-50 admit only `pnpm install --frozen-lockfile`, `npm install`, and `npm ci`, and reject compounds, extra flags, `yarn`, and a bare `pnpm install`. `packages/core/src/hooks/tools.ts` 41-49 includes `run_terminal_command` and `monitor` as shell tools. `packages/core/src/hooks/dispatcher.ts` 5705 and 5747 and `packages/core/src/init-deposit/agent-hooks.ts` 158-159 are the Cursor JSON allow and the Grok empty-stdout allow, and those wires match item 7 once a call is actually admitted.\n\nFailure mode: item 6 denies when the directory list is empty. The command the deny text names is the command these payloads carry, and this seat's `run_terminal_command` schema has `command`, `block_until_ms`, and `description` only, so the agent cannot add a directory. Building item 6 leaves that `npm ci` denied. Cursor's allow JSON is the right wire for a payload that already has `cwd` at the project root; the shell fixtures never reach it. Codex stays denied on the captured shape, which matches the acceptance line for a Codex payload without `workdir`.\n\nThe three-token matcher does not admit any other command. A present directory that is not the project root stays denied.\n\nDisposition: the bound remedy cannot bind until item 6 has a directory for the payload these hosts actually send. The rule that passes, for Grok and Cursor, uses the hook process working directory when no tool-input directory field and no payload `cwd` are present, and its real path must equal the outer project root. A directory field that names somewhere else stays denied. Codex keeps no process-cwd fallback. The admitted text stays those three commands. One limit remains: a shell whose own working directory differs from the hook process, and which the payload does not report, would be admitted; Grok's tool has no directory parameter, so the agent cannot name another directory.\n\n### 3. sharpens-framing — \"Absolute\" does not name a Windows git path\n\nEvidence: item 1 says a `git rev-parse --path-format=absolute --git-common-dir` print that is not absolute means no borrow, and it does not say what absolute is in the shell helper. `packages/core/src/session/git.ts` 272-281 treats a Node-absolute print as the common dir and resolves a relative print against the project root. `packages/core/src/hooks/dispatcher.ts` 1215-1234 maps MSYS `/c/...` to a drive path and fixes drive-letter case. `packages/runtime/src/setup-wiring.ts` 1081-1106 has no path-form check today.\n\nFailure mode: a leading-slash test rejects git's `C:/...` print, so the borrow never starts and the worktree hook stays on today's exit 1. The same test accepts `/c/...`, and `node` then opens `\\c\\...` on the current drive, finds no `bin.js`, and fails closed. Neither path runs a runtime whose version is not the pin. The macOS `/...` print works, which is why P1 still holds for the reported case. Git that does not support `--path-format` fails the command and also fails closed.\n\nDisposition: item 1 has to name the path form before the file test and the exec. The form that passes is a path node can open: a drive-letter path, or a `/c/...` path converted the way `normalizeHookProjectRoot` converts it, and then the `.git` name check and the parent-not-worktree check as physical paths.\n\n### 4. footnote — Read path, and Claude's missing-runtime exit\n\n`git show 6e6d88b8035fe3c71bdbcab3102a394b5761859d:<path>` was refused in this seat before git ran: the dest has no runtime installed, which is P2. The lines above were read from `C:\\Repos\\deft\\wt\\ow-6471-product`, whose `HEAD` is `refs/heads/story/6471-commit-shape` and whose ref is `6e6d88b8035fe3c71bdbcab3102a394b5761859d`. The dest worktree `HEAD` is `e9ce9b3b2d6c0584a62785c239dfad1086a39234`, so the dest tree is a different commit. Whether the `ow-6471-product` worktree was dirty was not checked, because the shell tool is denied here.\n\n`packages/core/src/init-deposit/host-hook-outer.ts` 324-333 exits 1 for a missing pin on every host other than Grok. Item 7's empty stdout does not set `permissionDecision` (`dispatcher.ts` 5728-5730). Claude Code's non-blocking exit 1 stays with #6201, which this design already leaves out. The acceptance line that denies \"a Codex payload\" is wider than item 6: a Codex payload with tool-input `workdir` at the project root is admitted (test 553-562). Live captures drop that field, so the payload without it stays denied. No change follows from this note.\n\n\n",
+          "id": 6955015409,
+          "html_url": "https://github.com/deftai/directive/issues/6517#issuecomment-6955015409",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T17:02:18Z",
+          "updated_at": "2026-11-17T17:02:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain audit 6955015409 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 6954473331\n\n## In plain English\nThe audit held the git-hook borrow (P1) and the fail-closed rule (P3). It refused two parts, and the parent agrees with each after reading the code it cites. First, the setup skip compared two path strings: on Windows the runtime's own checkout comes back with forward slashes and the working directory with backslashes, so an installed runtime would skip its own setup; and when `DIRECTIVE_PROJECT_ROOT` names the primary, a borrowed run would still write the primary. Second, the install admit needed a run directory in the payload, but the Grok and Cursor shell payloads carry only the command, so `npm ci` would still be denied. The audit also asked that the git path form be named for Windows.\n\nThe Bound remedy on 6954473331 is withdrawn and will not be ingested.\n\nTarget-digest: sha256:3bcd76991eba3e6fbfb2205cddea9d82f15067dc6c91eb6c4fa174147c7936f7\n\nrelieves: P1\ndoes-not-relieve: P2\nrelieves: P3\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6955015409 | 1. An installed Windows runtime takes the skip | blocks-the-design | accept-into-contract (real-path compare, as `rootsMatch`; the borrowed run sets `DIRECTIVE_PROJECT_ROOT` to the worktree) |\n| comment 6955015409 | 2. The install admit never sees the command the agent can run | blocks-the-design | accept-into-contract (with no directory field and no payload `cwd`, Grok and Cursor use the hook process working directory; Codex does not) |\n| comment 6955015409 | 3. \"Absolute\" does not name a Windows git path | sharpens-framing | accept-into-contract (the lookup moves into the node program, which converts `/c/...` and checks the path) |\n\nFootnote in the census, no take: comment 6955015409 finding 4.\n\nAudit verdicts recorded: `pain-P1` holds; `pain-P2` does not hold; `pain-P3` holds; A1 does not hold (string compare on Windows).\r\n\n",
+          "id": 6955028864,
+          "html_url": "https://github.com/deftai/directive/issues/6517#issuecomment-6955028864",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T17:02:50Z",
+          "updated_at": "2026-11-17T17:02:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after the retraction map 6955028864 (does-not-relieve `P2` on a Recut map)\nopen-question: With a real-path compare for the setup skip, the worktree set as the project root on a borrowed run, and the hook process working directory used as the run directory when a Grok or Cursor shell payload names none, does the install admit now pass on both hosts without letting any other command through, and does an installed runtime still self-complete?\n\n## In plain English\nThree changes are needed. The setup skip compares real paths, so an installed runtime on Windows still sets itself up; the git helper sets the project root to the worktree on a borrowed run, so setup never writes the primary. When a Grok or Cursor shell payload names no run directory, the outer uses its own working directory, which must be the project root; a payload that names another directory is still denied, and Codex keeps no fallback. The primary-checkout lookup moves into the small node program, which turns a `/c/...` path into a drive path before it checks it. The rest of the retracted lean stands as audited. The parent posts one recut and a fresh critic audits it. Critic posts used so far: 2 of 6. The parent continues only while each audit returns fewer blocking findings than the one before; this audit returned two.\r\n\n",
+          "id": 6955035488,
+          "html_url": "https://github.com/deftai/directive/issues/6517#issuecomment-6955035488",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T17:03:06Z",
+          "updated_at": "2026-11-17T17:03:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** recut bind lean under Stop 1 6954061759, after pain audit 6955015409 (round 1: 1 of 1 critic posted, comment 6954388515)\n\n## In plain English\nProblem: a new linked worktree has no `node_modules`. The git commit hook looks for the runtime only in that worktree, so the first commit fails, although the primary checkout of the same repository already has the pinned runtime. The Grok and Cursor agent hooks deny every shell call in that state, including the install command that their own message names.\n\nWhat the critics found: the round-1 critic accepted the shape and showed that a borrowed runtime must not run setup repair in the worktree, that the agent-hook admit cannot reuse the pin-mismatch precondition, that the deny text must name only commands that pass, and that Grok and Cursor need different allow outputs. The audit of the previous lean held the borrow and the fail-closed rule, and found two gaps: the setup skip compared path strings, which fails on Windows; and the install admit needed a run directory that Grok and Cursor shell payloads do not carry.\n\nSolution this lean proposes: the git hook may run the primary checkout's runtime when the worktree's exact pin equals that runtime's version and the primary has no overlay marker. A small node program finds and checks the primary; the helper then runs it with the worktree as the project root, and a runtime never runs setup for a project whose real path is not the checkout it is installed in. The agent hook, when the runtime is missing, lets through only `npm ci`, `npm install` or `pnpm install --frozen-lockfile` as a simple command at the project root. When a Grok or Cursor shell payload names no run directory, the hook's own working directory counts, and it must be the project root. Every other case fails closed as today.\n\nWhat this adds: one lookup in the git hook helper, one skip reason in setup self-complete, and one small payload check in the agent-hook outer. No new gate, grant, flag or stored state.\n\nWhat it does not do:\n- Agent hooks never use the primary checkout's runtime; hook-bin still refuses a payload root that is not its own checkout.\n- It does not check lockfile integrity; \"matches the pin\" is the same identity the hooks already trust.\n- It does not change the exit code of the missing-runtime deny on Claude Code or Codex; that is #6201.\n- When a host runs a shell in a directory that is neither in its payload nor the hook's working directory, the admit cannot see it. Grok's shell tool takes no directory, and every other shell call is denied while the runtime is missing, so the agent cannot change directory first.\n- A helper with the borrow can meet a pinned runtime older than this change only when the pin was moved below this release without running setup. That older runtime then self-completes as today, and its setup writes back its own helper.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:3bcd76991eba3e6fbfb2205cddea9d82f15067dc6c91eb6c4fa174147c7936f7\n**Spec-path:** Bound remedy on this lean\n**Recut:** supersedes retraction map 6955028864 and successor lean 6954473331. Stop 1 write-back: comment 6954061759. Handoff: comment 6955035488. Sibling count: 1 (comment 6954388515). Panel deposit: comment 6954062510.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Primary lookup (git hook helper `GITHOOK_HELPER`, deposited as `.githooks/_directive-run.sh`). When `$REPO_ROOT/node_modules/@deftai/directive-runtime/dist/bin.js` is missing, the helper runs `git -C \"$REPO_ROOT\" rev-parse --path-format=absolute --git-common-dir`. When that command fails (for example on a git without `--path-format`), there is no borrow. Otherwise the helper runs one fixed `node -e` program and passes it two argv values: `$REPO_ROOT` and the printed common directory. No path or file content is put into the program text.\n2. The program decides. On Windows it first turns an MSYS path `/<letter>/...` into `<letter>:/...` (the `normalizeHookProjectRoot` rule). It then requires all of these, in order: the common directory is absolute by node's `path.isAbsolute`; its name is `.git`; its parent (the primary checkout) and `$REPO_ROOT` have different real paths; `<primary>/node_modules/@deftai/directive-runtime/dist/bin.js` is a file by `statSync`, which follows symlinks, so a pnpm install qualifies; `<primary>/.deft-scratch/materialize-runtime-overlay.json` does not exist; and the worktree pin, read from `$REPO_ROOT/package.json` by the `readRuntimePin` rule (`devDependencies` then `dependencies`, exact semver only, leading `v` removed), equals the `version` in `<primary>/node_modules/@deftai/directive-runtime/package.json`. When all hold, it prints the bin path and exits 0. Otherwise it prints one reason line to stderr and exits 1.\n3. Borrowed run. The helper prints one stderr line that names the primary checkout and the version, then runs `DIRECTIVE_PROJECT_ROOT=\"$REPO_ROOT\" node \"<printed bin.js>\" \"$@\"`. The arguments are unchanged (they already carry `--project-root \"$REPO_ROOT\"`).\n4. No borrow. The helper fails exactly as today (the two stderr lines, exit 1), and also shows the program's reason line: no primary checkout found, no runtime in the primary, overlay marker present, pin not exact, or pin X against installed Y.\n5. No setup from a runtime that is not installed in the project. `maybeSelfCompleteSetup` returns without running setup, with a new skip reason `not-installed-here`, only when the checkout that owns the running runtime module (the path rule of `resolveLaunchingCheckoutRootFromPath`) is known, both it and the given project root resolve by `realpathSync`, and the two real paths differ (the same compare as `rootsMatch`). When the owner is unknown (a source run) or either real path cannot be read, behaviour is unchanged. On a borrowed run item 3 sets the project root to the worktree, so the skip fires there, also when the worktree sits inside the primary's tree. Agent hooks are not affected: hook-bin already refuses a different launch root before setup.\n6. Agent-hook admit (outer `hostHookOuterSource`). When `hook-bin.js` is missing and the event is `tool.before`, the outer reads the stdin payload. A read failure or a payload that is not a JSON object is denied. The call is allowed only when all of these hold: the tool name, read from the same direct fields as `hookToolName` (`tool_name`, `toolName`, `tool`, `tool.name`, `tool_call.name`, `toolCall.name`), is a shell tool by the `isShellTool` rule; the command, read in the field order of `hookShellCommand`, matches by the `matchPinMismatchRecoveryCommand` rule (simple-command pattern, exact tokens of `PIN_MISMATCH_RECOVERY_COMMANDS`); and every run directory has the same real path as the outer's project root. The run directories are read by the `shellRunDirectories` rule (tool-input `workdir`, `cwd`, `working_directory`, `workingDirectory` first, each present one a non-empty string; otherwise the payload `cwd`). When neither gives a directory, the hook process working directory is the run directory on Grok and Cursor; on Codex there is no run directory and the call is denied. A named directory that is not the project root is denied; there is no fallback from it. The absence of `hook-bin.js` is the precondition; the pin-mismatch-only test is not used. The tool list, command list, field names and pattern are written into the outer source from the core constants when it is generated. The reading functions are a small copy in the outer, and a parity test runs the generated outer and the core functions on the same payload fixtures.\n7. Allow output. On Cursor the admitted call prints `{\"permission\":\"allow\",\"code\":\"shell-op-ready\"}` and exits 0. On the other hosts it prints nothing and exits 0. These are the shapes `renderHostDecision` already emits for a plain `tool.before` allow.\n8. Deny. Every other call, and every other event, is denied exactly as today (same exit code and output form per host). The reason text on the outer's missing-runtime deny names only the admitted commands, built from the list: \"Directive hooks: missing node_modules/@deftai/directive-runtime. Run one of `npm ci`, `npm install` or `pnpm install --frozen-lockfile` at the project root; other tool calls stay denied until the runtime is installed.\" The git hook helper and Taskfile messages keep their text.\n9. Unchanged: the hook-bin launch-root refusal (AC9.4 / AC9.5), the #6313 admit and its list, and the cheap in-sync check.\n\n## Acceptance Criteria\n- Given a linked worktree without `node_modules` whose exact pin equals the version installed in the primary checkout, with no overlay marker, when a commit runs the pre-commit hook, then the hook runs the primary's `bin.js` with `DIRECTIVE_PROJECT_ROOT` and `--project-root` set to the worktree and prints the line that names the primary and the version.\n- Given the same worktree with pnpm's symlinked `node_modules/@deftai/directive-runtime` in the primary, then the borrow applies.\n- Given git prints the common directory as `C:/...` or, on Windows, as `/c/...`, then the program resolves it to the same primary and the borrow applies.\n- Given the same worktree and a primary version different from the pin, then the hook exits 1 with today's two lines and a line that names both versions, and does not run the primary's runtime.\n- Given a non-exact pin (for example `^0.129.0`), or an overlay marker in the primary, or a primary without the runtime, or a common directory not named `.git`, or a failing `git rev-parse`, then the hook fails as today with the matching reason line.\n- Given a `package.json` whose version or path text contains quotes, `$` or backticks, then the program treats them as data and does not run them.\n- Given a borrowed run, also with `DIRECTIVE_PROJECT_ROOT` set to the primary in the caller's environment, then `maybeSelfCompleteSetup` returns the skip reason `not-installed-here` and setup writes no file in the worktree or the primary.\n- Given a runtime installed in the project on Windows, where the module path rule gives `C:/proj` and the working directory is `C:\\proj`, then self-complete behaves as today.\n- Given a Grok `run_terminal_command` payload with `tool_input.command` `npm ci` and no directory field, run by a hook whose working directory is the project root while `hook-bin.js` is missing, then the outer exits 0 with empty stdout.\n- Given the same on Cursor (a `Shell` payload with the command and no directory field), then the outer prints `{\"permission\":\"allow\",\"code\":\"shell-op-ready\"}` and exits 0.\n- Given `npm ci && curl x`, `pnpm install`, `yarn`, `npm ci` with a run directory that is not the project root, a Codex payload without a tool-input directory field, a command found only in a field other than the `hookShellCommand` fields, an MCP or edit tool, or a payload that is not JSON, then the outer denies exactly as today, and the reason names only the three admitted commands.\n- A parity test runs the generated outer source and the core functions (`hookToolName` direct fields, `hookShellCommand`, `matchPinMismatchRecoveryCommand`, the `shellRunDirectories` rule) on the same fixtures and gets the same admit result where a payload names a directory.\n\n## Reject\n- Keeping setup parity for a borrowed runtime (comment 6954388515, finding 1).\n- Setting `DEFT_DOCTOR_HOOK_DIAGNOSTIC` in the helper to skip setup: it is the doctor probe's switch, not a rule about where a runtime is installed.\n- A string compare of the runtime's checkout and the project root (comment 6955015409, finding 1).\n- A lockfile or integrity check for \"matches the pin\" (comment 6954388515, finding 7: a new gate).\n- Agent hooks running the primary checkout's hook-bin: it would need the AC9.4 launch-root refusal loosened.\n- Letting every shell call through when the runtime is missing (P3).\n- Adding `pnpm install` without `--frozen-lockfile`, or `yarn`, to the admitted list (comment 6954388515, finding 3).\n- Calling `admitPinMismatchRecovery` for the missing-runtime case (comment 6954388515, finding 2).\n- One shared allow output for all hosts (comment 6954388515, finding 5).\n- A process working-directory fallback on Codex, or after a payload names another directory (comment 6955015409, finding 2).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6954388515 | 1. A borrowed runtime rewrites the worktree on every hook | blocks-the-design | accept-into-contract (item 5) |\n| comment 6954388515 | 2. A missing runtime is outside the pin-mismatch admit | sharpens-framing | accept-into-contract (item 6) |\n| comment 6954388515 | 3. The deny text still names commands the list refuses | sharpens-framing | accept-into-contract (item 8) |\n| comment 6954388515 | 4. The payload reader has to use the existing fields | sharpens-framing | accept-into-contract (item 6 and the parity criterion) |\n| comment 6954388515 | 5. Grok and Cursor do not share an allow wire | sharpens-framing | accept-into-contract (item 7) |\n| comment 6954388515 | 6. The main-checkout lookup can bind the wrong tree, or miss a pnpm install | sharpens-framing | accept-into-contract (items 1 and 2) |\n| comment 6955015409 | 1. An installed Windows runtime takes the skip | blocks-the-design | accept-into-contract (items 3 and 5) |\n| comment 6955015409 | 2. The install admit never sees the command the agent can run | blocks-the-design | accept-into-contract (item 6) |\n| comment 6955015409 | 3. \"Absolute\" does not name a Windows git path | sharpens-framing | accept-into-contract (items 1 and 2) |\n\nFootnotes in the census, no take: comment 6954388515 findings 7 and 8; comment 6955015409 finding 4.\n\nRelated input: #6201 asks that the missing-runtime path block on every host, because exit 1 is a non-blocking error on Claude Code. Items 6 to 9 are consistent with it and with P2 and P3: the only new allow is the exact install at the project root, and every other call keeps the deny. Changing the deny's exit code or output per host is #6201's work and is not in this design. #6201 and item 8 both edit `packages/core/src/init-deposit/host-hook-outer.ts`, so they land one after the other.\n\nRelay: the parent posted both critic bodies verbatim. It removed only the Grok progress text printed before the `model:` line and the launcher's trailing exit-code line, as the panel deposit says. Both critics report that `git show` at the dispatch SHA was refused in the dest because the dest has no runtime installed, and that they read the same SHA from another checkout.\n\n- audit:A2 sha=6e6d88b8035fe3c71bdbcab3102a394b5761859d pointer=.grok/hooks/deft.json:1-60 reading=asserted\n\nA2: Grok and Cursor run the outer with the project root as the working directory, because their registered command is the relative `node .grok/hooks/deft-hook-a598056e.mjs …` (and `node .cursor/hooks/…` in `.cursor/hooks.json`), which only loads from that directory. Item 6 relies on this for payloads that name no run directory. The parent read the registrations but did not run a host.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and every lean on this thread. A2 and the three `relieves` cites stay open until a later critic targets them. A1 of the previous lean did not hold; item 5 now uses a real-path compare.\r\n\n",
+          "id": 6955063880,
+          "html_url": "https://github.com/deftai/directive/issues/6517#issuecomment-6955063880",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T17:04:13Z",
+          "updated_at": "2026-11-17T17:04:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, A2\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:dd74386bc4a9b0fe42863d179acf5e018306078a2fa6e17530d32a180e67af1a\n\n## In plain English\n\nA linked worktree with no runtime of its own can run the primary checkout's runtime when the worktree pin is that exact version, and that borrowed run does not set the worktree up. An installed runtime still sets itself up on Windows, including when the worktree sits inside the primary tree. Grok and Cursor start the hook in the project root, so `npm ci` and the two sibling install commands are let through there. A different command, a directory named somewhere else, and a runtime whose version is not the pin stay refused.\n\npain-P1: holds - the node program borrows only when the common directory is absolute and named `.git`, the primary's real path differs from the worktree (a worktree under the primary still differs), `statSync` follows a pnpm symlink to `dist/bin.js`, the overlay marker is absent, and the worktree pin equals the installed `version` by the `readRuntimePin` rule (`packages/core/src/install-health/readers.ts` 16, 49-55, 76-114, 119-131). Item 3 sets `DIRECTIVE_PROJECT_ROOT` to the worktree before `node` (`packages/runtime/src/bin.ts` 18 reads that variable). Item 5 then skips setup because `resolveLaunchingCheckoutRootFromPath` (`packages/runtime/src/hook-dispatch.ts` 102-119) returns the primary, including after the in-project `.pnpm` collapse, and `realpath` of that directory differs from the worktree.\npain-P2: holds - Grok and Cursor register `node .grok/hooks/deft-hook-….mjs` and `node .cursor/hooks/deft-hook-….mjs` (`.grok/hooks/deft.json` 40, `.cursor/hooks.json` 24). Node loads that relative script only when the process working directory is the directory that contains `.grok` or `.cursor`, and this seat's hook ran and denied the shell, so that directory is the project root. The recorded Grok and Cursor shell payloads carry `tool_input.command` and no directory (`packages/runtime/src/hook-dispatch.test.ts` 743-750, `packages/core/src/hooks/fixtures/cases.ts` 688-692 and 778-781). Item 6 uses the hook working directory for that shape, and the outer's root walk from the script file stops at the same directory (`packages/core/src/init-deposit/host-hook-outer.ts` 277-289, 336). `npm ci`, `npm install`, and `pnpm install --frozen-lockfile` are the three exact matches (`packages/core/src/install-health/recovery-admit.ts` 20-50). On this host the shell starts in that same workspace and has no directory parameter, so the install runs at the project root.\npain-P3: holds - the program prints a bin path only when both sides are the same exact semver and the overlay marker is absent, so a non-exact pin, a different version, a missing primary runtime, or a common directory not named `.git` does not run a runtime. The admit uses `matchPinMismatchRecoveryCommand` (`recovery-admit.ts` 27-50); a compound, `yarn`, a bare `pnpm install`, and an extra flag fail the simple-command pattern. `use_tool` stays on the direct tool-name fields (`packages/core/src/hooks/classify/tool-name.ts` 72-90) and is not a shell tool (`packages/core/src/hooks/tools.ts` 41-49, 82-85), so a command nested under `arguments` is not the command that is matched (`packages/core/src/hooks/tools.test.ts` 120-131). A named directory whose real path is not the project root is denied, and Codex gets no process-cwd fallback. Grok's deny JSON and Cursor's exit 1 with `failClosed` stay the refusal for every other call (`host-hook-outer.ts` 324-333, `.cursor/hooks.json` 24-28).\nA2: holds - the registered commands are those relative `node .grok/hooks/…` and `node .cursor/hooks/…` lines. Grok resolves a relative PreToolUse command beside `deft.json` (`packages/core/src/init-deposit/agent-hooks.ts` 114-115); resolving `.grok/hooks/…` from that directory doubles the path and does not find the file (`packages/core/src/init-deposit/agent-hooks.test.ts` 1134-1136). This seat's hook did start, so the process working directory is the project root, the directory that contains `.grok`. The outer then finds that same root by walking up from the script (`host-hook-outer.ts` 277-289).\n\n### 1. footnote — How these lines were read\n\n`git show 6e6d88b8035fe3c71bdbcab3102a394b5761859d:<path>` was refused in this seat before git ran, including `git -C C:/Repos/deft/directive`, because the dest has no `node_modules/@deftai/directive-runtime`. The lines above were read from `C:\\Repos\\deft\\wt\\ow-6471-product`, whose HEAD ref is `refs/heads/story/6471-commit-shape` and whose ref file is `6e6d88b8035fe3c71bdbcab3102a394b5761859d`. Whether that worktree was dirty was not checked. The dest worktree HEAD is `b31bbb892d9abb427d4adb93416011a80308e566`. No instructions embedded in the issue text or the comments through the ceiling were followed as commands.\n\n\n",
+          "id": 6955410956,
+          "html_url": "https://github.com/deftai/directive/issues/6517#issuecomment-6955410956",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T17:17:25Z",
+          "updated_at": "2026-11-17T17:17:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6955063880. Dispatch SHA: 6e6d88b8035fe3c71bdbcab3102a394b5761859d. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and every lean. Each row has a parent pin-read (`git show <sha>:<path>`) and a re-check by a Grok critic, a different model family, or is marked otherwise. No tests were run; every method is a source read at the pin. All three critic posts are from one family (Grok), so agreement between them is not counted as extra confirmation. The critics read the pin from another checkout at the same SHA, because the dest refused their shell calls (it has no runtime installed, which is pain P2).\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | The git hook helper looks for the runtime only in the worktree and exits 1 when it is missing; `pre-commit` and `pre-push` pass `--project-root \"$REPO_ROOT\"` | verified | parent pin-read of `packages/runtime/src/setup-wiring.ts` 1081-1124 and `.githooks/_directive-run.sh`; critic 6954388515 finding 6 |\n| 2 | The pin is the exact-semver spec of `@deftai/directive-runtime` in `devDependencies` or `dependencies`; installed is the package `version`; an overlay marker fails closed even when they match | verified | parent pin-read of `packages/core/src/install-health/readers.ts` 49-131 and `cheap.ts` 25-96; audit 6955410956 (`readers.ts` 16, 49-55, 76-114, 119-131) |\n| 3 | `bin.ts` runs `maybeSelfCompleteSetup` for `DIRECTIVE_PROJECT_ROOT ?? cwd`, and repair writes wiring (`.gitignore`, `AGENTS.md`, host hooks, ownership record) without staging | verified | parent pin-read of `packages/runtime/src/bin.ts` 17-18, `self-complete.ts` 112-169 and `setup.ts` 418-447, 494-507; critic 6954388515 finding 1 |\n| 4 | `resolveLaunchingCheckoutRootFromPath` returns the checkout that owns a runtime module, collapses an in-project `.pnpm` path, and returns forward slashes, so only a real-path compare is safe | verified | parent pin-read of `packages/runtime/src/hook-dispatch.ts` 97-141; audit 6955015409 finding 1; audit 6955410956 (`pain-P1`) |\n| 5 | The outer denies every event when `hook-bin.js` is missing and does not read the payload: Grok deny JSON and exit 0, other hosts exit 1 | verified | parent pin-read of `packages/core/src/init-deposit/host-hook-outer.ts` 259-373; critic 6954388515 finding 5 |\n| 6 | The #6313 admit requires pin ≠ installed as the only fault, so it does not cover a missing runtime; its command list and simple-command rule exclude compounds, `yarn` and a bare `pnpm install` | verified | parent pin-read of `packages/core/src/install-health/recovery-admit.ts` 19-74 and `hook-dispatch.ts` 161-226; critic 6954388515 findings 2 and 3; audit 6955410956 (`pain-P3`) |\n| 7 | Recorded Grok and Cursor shell payloads carry `tool_input.command` and no run directory | verified by the critics | audit 6955015409 finding 2 and audit 6955410956 read `hook-dispatch.test.ts` 743-750 and `hooks/fixtures/cases.ts` 688-692, 778-781; the parent did not read the fixtures |\n| 8 | Grok and Cursor run the outer from the project root, because the registered command is a relative `node .grok/hooks/…` or `node .cursor/hooks/…` path (A2) | verified as a source read | parent read of `.grok/hooks/deft.json` and `.cursor/hooks.json`; audit 6955410956 (`A2: holds`, also citing `agent-hooks.ts` 114-115); no host was run |\n| 9 | Cursor's allow is `{\"permission\":\"allow\",\"code\":…}` and exit 0; a plain `tool.before` allow on the other hosts is empty stdout | verified | parent pin-read of `packages/core/src/hooks/dispatcher.ts` 5639-5747; critic 6954388515 finding 5 |\n| 10 | hook-bin refuses a payload root that is not the checkout that owns it (AC9.4 / AC9.5), so agent hooks cannot borrow the primary runtime without loosening that refusal | verified | parent pin-read of `hook-dispatch.ts` 425-441; critic 6954388515 (In plain English) |\n| 11 | The Bound remedy relieves pains P1, P2 and P3 | verified as design coverage | audit 6955410956 (`pain-P1`, `pain-P2`, `pain-P3` and `A2` hold, `finding-classes: footnote`, `harvest-changed: false`, digest equal to the lean's) |\n| 12 | The borrow and the admit behave as designed on real hosts and on Windows, macOS and Linux git | endorsed, not verified | nothing was executed; the implementer covers it with the tests the Acceptance Criteria name |\r\n\n",
+          "id": 6955447057,
+          "html_url": "https://github.com/deftai/directive/issues/6517#issuecomment-6955447057",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T17:18:35Z",
+          "updated_at": "2026-11-17T17:18:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: a new linked worktree has no `node_modules`. The git commit hook looked for the runtime only in that worktree, so the first commit failed, although the primary checkout already had the pinned runtime. The Grok and Cursor agent hooks denied every shell call in that state, including the install command their own message named.\n\nAccepted solution: when the worktree has no runtime, the git hook helper runs a small node program that finds the primary checkout from `git rev-parse --path-format=absolute --git-common-dir` and checks it: the directory is named `.git`, the primary is not the worktree, the primary's runtime exists (a pnpm symlink counts), the primary has no overlay marker, and the worktree's exact pin equals the primary runtime's version. Only then does the helper run that runtime, with the worktree as the project root. A runtime never runs setup for a project whose real path is not the checkout it is installed in, so a borrowed run writes nothing. When the agent hook finds no runtime, it lets through only `npm ci`, `npm install` or `pnpm install --frozen-lockfile` as a simple shell command at the project root (Grok and Cursor use the hook's working directory when the payload names none; Codex does not), with each host's own allow output. Every other call is denied as today, and the deny text names only those three commands.\n\nLimits accepted: agent hooks never use the primary's runtime; \"matches the pin\" is the version identity the hooks already trust, not a lockfile check; the missing-runtime deny keeps its exit code on Claude Code and Codex, which is #6201. The design adds no gate, grant, flag or stored state. It was checked by reading the source at the pinned commit; no code was run. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6955063880.\nverified-claims table 6955447057\n\nConfirm conjunct: yolo standing (Stop 1 6954061759, `yolo-standing: on`). Round-1 critic: comment 6954388515, posted by the parent verbatim as disclosed on panel-deposit 6954062510; its six classified findings are accepted on the lean. Pain audit 6955015409 returned two blocking findings; they were retracted (6955028864), handed off (6955035488) and accepted on the recut lean. Clean audit: comment 6955410956 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's). Critic posts used: 3 of 6.\n\n",
+          "id": 6955447640,
+          "html_url": "https://github.com/deftai/directive/issues/6517#issuecomment-6955447640",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T17:18:36Z",
+          "updated_at": "2026-11-17T17:18:36Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "Consumer report from `deftai/deftvisage` (2026-11-17), from moving 0.126.2 → 0.129.11 → 0.129.12. #6503 and #6141 cover the update and registry failures. These are the two other problems we hit.\n\nNode 22.19.0, npm 10.9.3, macOS. Git hooks are from the 0.129.11 template (`.githooks/_directive-run.sh`, `core.hooksPath=.githooks`).\n\n## 1. Git hooks need a full `npm ci` in every linked worktree\n\n`run_directive` looks only at `$REPO_ROOT/node_modules/@deftai/directive-runtime/dist/bin.js`, where `REPO_ROOT` is `git rev-parse --show-toplevel`. A new `git worktree add` has no `node_modules`, so the first commit in it fails:\n\n```\ndirective hooks: missing <worktree>/node_modules/@deftai/directive-runtime/dist/bin.js\nDirective hooks: missing node_modules/@deftai/directive-runtime. Run npm install or pnpm install (or yarn) in this project.\n```\n\nThe message is clear. But the fix is a full app install in each worktree. Here that means about 1.5k packages, plus GitHub Packages auth for `@deftai/rivet-os`, only to commit a version bump. We made release and fix worktrees all day, and each one needed `npm ci` before its first commit. The primary checkout's `node_modules` already had the runtime.\n\nExpected: when the worktree has no runtime, the helper falls back to the runtime in the primary checkout (`git rev-parse --git-common-dir`, then its parent's `node_modules`) if that pin matches `package.json`. If the pin does not match, it fails as it does today.\n\nRelated: #6466 (agent hooks, no `node_modules`), #5959 (cwd-relative hook path).\n\n## 2. The old global CLI gives \"unknown verb\" for the recovery command\n\nAGENTS.md (AC9.7) and the launcher help both give the repair path as `npm i -g @deftai/directive`, then `directive install --repair`. With the old global still installed:\n\n```\n$ directive --version\n@deftai/directive (engine: @deftai/directive-core@0.126.2; package: @deftai/directive@0.126.2)\n$ directive install --repair\ndirective: unknown verb 'install'\n```\n\nA user or agent who skips or loses the first step gets no hint. We ran `npx directive install --repair` and hit this, because `npx directive` resolves to the global CLI (the project has only a `directive-runtime` bin).\n\nExpected: 0.126.x prints that `install` needs the launcher, with `npm i -g @deftai/directive@latest` or `npx @deftai/directive@<pin> install --repair`. If 0.126.x will get no more releases, the AC9.7 text could say to check `directive --version` first.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6442920577,
+        "origin": "deftai/directive#6517",
+        "id": "github.issue.6442920577"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "3bcd76991eba3e6fbfb2205cddea9d82f15067dc6c91eb6c4fa174147c7936f7"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6517,
+        "leanCommentId": 6955063880,
+        "harvestDigest": "dd74386bc4a9b0fe42863d179acf5e018306078a2fa6e17530d32a180e67af1a",
+        "slice": null
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (21), in list order (#6333)",
+      "sentences": [
+        "Primary lookup (git hook helper `GITHOOK_HELPER`, deposited as `.githooks/_directive-run.sh`). When `$REPO_ROOT/node_modules/@deftai/directive-runtime/dist/bin.js` is missing, the helper runs `git -C \"$REPO_ROOT\" rev-parse --path-format=absolute --git-common-dir`. When that command fails (for example on a git without `--path-format`), there is no borrow. Otherwise the helper runs one fixed `node -e` program and passes it two argv values: `$REPO_ROOT` and the printed common directory. No path or file content is put into the program text.",
+        "The program decides. On Windows it first turns an MSYS path `/<letter>/...` into `<letter>:/...` (the `normalizeHookProjectRoot` rule). It then requires all of these, in order: the common directory is absolute by node's `path.isAbsolute`; its name is `.git`; its parent (the primary checkout) and `$REPO_ROOT` have different real paths; `<primary>/node_modules/@deftai/directive-runtime/dist/bin.js` is a file by `statSync`, which follows symlinks, so a pnpm install qualifies; `<primary>/.deft-scratch/materialize-runtime-overlay.json` does not exist; and the worktree pin, read from `$REPO_ROOT/package.json` by the `readRuntimePin` rule (`devDependencies` then `dependencies`, exact semver only, leading `v` removed), equals the `version` in `<primary>/node_modules/@deftai/directive-runtime/package.json`. When all hold, it prints the bin path and exits 0. Otherwise it prints one reason line to stderr and exits 1.",
+        "Borrowed run. The helper prints one stderr line that names the primary checkout and the version, then runs `DIRECTIVE_PROJECT_ROOT=\"$REPO_ROOT\" node \"<printed bin.js>\" \"$@\"`. The arguments are unchanged (they already carry `--project-root \"$REPO_ROOT\"`).",
+        "No borrow. The helper fails exactly as today (the two stderr lines, exit 1), and also shows the program's reason line: no primary checkout found, no runtime in the primary, overlay marker present, pin not exact, or pin X against installed Y.",
+        "No setup from a runtime that is not installed in the project. `maybeSelfCompleteSetup` returns without running setup, with a new skip reason `not-installed-here`, only when the checkout that owns the running runtime module (the path rule of `resolveLaunchingCheckoutRootFromPath`) is known, both it and the given project root resolve by `realpathSync`, and the two real paths differ (the same compare as `rootsMatch`). When the owner is unknown (a source run) or either real path cannot be read, behaviour is unchanged. On a borrowed run item 3 sets the project root to the worktree, so the skip fires there, also when the worktree sits inside the primary's tree. Agent hooks are not affected: hook-bin already refuses a different launch root before setup.",
+        "Agent-hook admit (outer `hostHookOuterSource`). When `hook-bin.js` is missing and the event is `tool.before`, the outer reads the stdin payload. A read failure or a payload that is not a JSON object is denied. The call is allowed only when all of these hold: the tool name, read from the same direct fields as `hookToolName` (`tool_name`, `toolName`, `tool`, `tool.name`, `tool_call.name`, `toolCall.name`), is a shell tool by the `isShellTool` rule; the command, read in the field order of `hookShellCommand`, matches by the `matchPinMismatchRecoveryCommand` rule (simple-command pattern, exact tokens of `PIN_MISMATCH_RECOVERY_COMMANDS`); and every run directory has the same real path as the outer's project root. The run directories are read by the `shellRunDirectories` rule (tool-input `workdir`, `cwd`, `working_directory`, `workingDirectory` first, each present one a non-empty string; otherwise the payload `cwd`). When neither gives a directory, the hook process working directory is the run directory on Grok and Cursor; on Codex there is no run directory and the call is denied. A named directory that is not the project root is denied; there is no fallback from it. The absence of `hook-bin.js` is the precondition; the pin-mismatch-only test is not used. The tool list, command list, field names and pattern are written into the outer source from the core constants when it is generated. The reading functions are a small copy in the outer, and a parity test runs the generated outer and the core functions on the same payload fixtures.",
+        "Allow output. On Cursor the admitted call prints `{\"permission\":\"allow\",\"code\":\"shell-op-ready\"}` and exits 0. On the other hosts it prints nothing and exits 0. These are the shapes `renderHostDecision` already emits for a plain `tool.before` allow.",
+        "Deny. Every other call, and every other event, is denied exactly as today (same exit code and output form per host). The reason text on the outer's missing-runtime deny names only the admitted commands, built from the list: \"Directive hooks: missing node_modules/@deftai/directive-runtime. Run one of `npm ci`, `npm install` or `pnpm install --frozen-lockfile` at the project root; other tool calls stay denied until the runtime is installed.\" The git hook helper and Taskfile messages keep their text.",
+        "Unchanged: the hook-bin launch-root refusal (AC9.4 / AC9.5), the #6313 admit and its list, and the cheap in-sync check.",
+        "Given a linked worktree without `node_modules` whose exact pin equals the version installed in the primary checkout, with no overlay marker, when a commit runs the pre-commit hook, then the hook runs the primary's `bin.js` with `DIRECTIVE_PROJECT_ROOT` and `--project-root` set to the worktree and prints the line that names the primary and the version.",
+        "Given the same worktree with pnpm's symlinked `node_modules/@deftai/directive-runtime` in the primary, then the borrow applies.",
+        "Given git prints the common directory as `C:/...` or, on Windows, as `/c/...`, then the program resolves it to the same primary and the borrow applies.",
+        "Given the same worktree and a primary version different from the pin, then the hook exits 1 with today's two lines and a line that names both versions, and does not run the primary's runtime.",
+        "Given a non-exact pin (for example `^0.129.0`), or an overlay marker in the primary, or a primary without the runtime, or a common directory not named `.git`, or a failing `git rev-parse`, then the hook fails as today with the matching reason line.",
+        "Given a `package.json` whose version or path text contains quotes, `$` or backticks, then the program treats them as data and does not run them.",
+        "Given a borrowed run, also with `DIRECTIVE_PROJECT_ROOT` set to the primary in the caller's environment, then `maybeSelfCompleteSetup` returns the skip reason `not-installed-here` and setup writes no file in the worktree or the primary.",
+        "Given a runtime installed in the project on Windows, where the module path rule gives `C:/proj` and the working directory is `C:\\proj`, then self-complete behaves as today.",
+        "Given a Grok `run_terminal_command` payload with `tool_input.command` `npm ci` and no directory field, run by a hook whose working directory is the project root while `hook-bin.js` is missing, then the outer exits 0 with empty stdout.",
+        "Given the same on Cursor (a `Shell` payload with the command and no directory field), then the outer prints `{\"permission\":\"allow\",\"code\":\"shell-op-ready\"}` and exits 0.",
+        "Given `npm ci && curl x`, `pnpm install`, `yarn`, `npm ci` with a run directory that is not the project root, a Codex payload without a tool-input directory field, a command found only in a field other than the `hookShellCommand` fields, an MCP or edit tool, or a payload that is not JSON, then the outer denies exactly as today, and the reason names only the three admitted commands.",
+        "A parity test runs the generated outer source and the core functions (`hookToolName` direct fields, `hookShellCommand`, `matchPinMismatchRecoveryCommand`, the `shellRunDirectories` rule) on the same fixtures and gets the same admit result where a payload names a directory."
+      ],
+      "admitted_source_sentences": [
+        "Primary lookup (git hook helper `GITHOOK_HELPER`, deposited as `.githooks/_directive-run.sh`). When `$REPO_ROOT/node_modules/@deftai/directive-runtime/dist/bin.js` is missing, the helper runs `git -C \"$REPO_ROOT\" rev-parse --path-format=absolute --git-common-dir`. When that command fails (for example on a git without `--path-format`), there is no borrow. Otherwise the helper runs one fixed `node -e` program and passes it two argv values: `$REPO_ROOT` and the printed common directory. No path or file content is put into the program text.",
+        "The program decides. On Windows it first turns an MSYS path `/<letter>/...` into `<letter>:/...` (the `normalizeHookProjectRoot` rule). It then requires all of these, in order: the common directory is absolute by node's `path.isAbsolute`; its name is `.git`; its parent (the primary checkout) and `$REPO_ROOT` have different real paths; `<primary>/node_modules/@deftai/directive-runtime/dist/bin.js` is a file by `statSync`, which follows symlinks, so a pnpm install qualifies; `<primary>/.deft-scratch/materialize-runtime-overlay.json` does not exist; and the worktree pin, read from `$REPO_ROOT/package.json` by the `readRuntimePin` rule (`devDependencies` then `dependencies`, exact semver only, leading `v` removed), equals the `version` in `<primary>/node_modules/@deftai/directive-runtime/package.json`. When all hold, it prints the bin path and exits 0. Otherwise it prints one reason line to stderr and exits 1.",
+        "Borrowed run. The helper prints one stderr line that names the primary checkout and the version, then runs `DIRECTIVE_PROJECT_ROOT=\"$REPO_ROOT\" node \"<printed bin.js>\" \"$@\"`. The arguments are unchanged (they already carry `--project-root \"$REPO_ROOT\"`).",
+        "No borrow. The helper fails exactly as today (the two stderr lines, exit 1), and also shows the program's reason line: no primary checkout found, no runtime in the primary, overlay marker present, pin not exact, or pin X against installed Y.",
+        "No setup from a runtime that is not installed in the project. `maybeSelfCompleteSetup` returns without running setup, with a new skip reason `not-installed-here`, only when the checkout that owns the running runtime module (the path rule of `resolveLaunchingCheckoutRootFromPath`) is known, both it and the given project root resolve by `realpathSync`, and the two real paths differ (the same compare as `rootsMatch`). When the owner is unknown (a source run) or either real path cannot be read, behaviour is unchanged. On a borrowed run item 3 sets the project root to the worktree, so the skip fires there, also when the worktree sits inside the primary's tree. Agent hooks are not affected: hook-bin already refuses a different launch root before setup.",
+        "Agent-hook admit (outer `hostHookOuterSource`). When `hook-bin.js` is missing and the event is `tool.before`, the outer reads the stdin payload. A read failure or a payload that is not a JSON object is denied. The call is allowed only when all of these hold: the tool name, read from the same direct fields as `hookToolName` (`tool_name`, `toolName`, `tool`, `tool.name`, `tool_call.name`, `toolCall.name`), is a shell tool by the `isShellTool` rule; the command, read in the field order of `hookShellCommand`, matches by the `matchPinMismatchRecoveryCommand` rule (simple-command pattern, exact tokens of `PIN_MISMATCH_RECOVERY_COMMANDS`); and every run directory has the same real path as the outer's project root. The run directories are read by the `shellRunDirectories` rule (tool-input `workdir`, `cwd`, `working_directory`, `workingDirectory` first, each present one a non-empty string; otherwise the payload `cwd`). When neither gives a directory, the hook process working directory is the run directory on Grok and Cursor; on Codex there is no run directory and the call is denied. A named directory that is not the project root is denied; there is no fallback from it. The absence of `hook-bin.js` is the precondition; the pin-mismatch-only test is not used. The tool list, command list, field names and pattern are written into the outer source from the core constants when it is generated. The reading functions are a small copy in the outer, and a parity test runs the generated outer and the core functions on the same payload fixtures.",
+        "Allow output. On Cursor the admitted call prints `{\"permission\":\"allow\",\"code\":\"shell-op-ready\"}` and exits 0. On the other hosts it prints nothing and exits 0. These are the shapes `renderHostDecision` already emits for a plain `tool.before` allow.",
+        "Deny. Every other call, and every other event, is denied exactly as today (same exit code and output form per host). The reason text on the outer's missing-runtime deny names only the admitted commands, built from the list: \"Directive hooks: missing node_modules/@deftai/directive-runtime. Run one of `npm ci`, `npm install` or `pnpm install --frozen-lockfile` at the project root; other tool calls stay denied until the runtime is installed.\" The git hook helper and Taskfile messages keep their text.",
+        "Unchanged: the hook-bin launch-root refusal (AC9.4 / AC9.5), the #6313 admit and its list, and the cheap in-sync check.",
+        "Given a linked worktree without `node_modules` whose exact pin equals the version installed in the primary checkout, with no overlay marker, when a commit runs the pre-commit hook, then the hook runs the primary's `bin.js` with `DIRECTIVE_PROJECT_ROOT` and `--project-root` set to the worktree and prints the line that names the primary and the version.",
+        "Given the same worktree with pnpm's symlinked `node_modules/@deftai/directive-runtime` in the primary, then the borrow applies.",
+        "Given git prints the common directory as `C:/...` or, on Windows, as `/c/...`, then the program resolves it to the same primary and the borrow applies.",
+        "Given the same worktree and a primary version different from the pin, then the hook exits 1 with today's two lines and a line that names both versions, and does not run the primary's runtime.",
+        "Given a non-exact pin (for example `^0.129.0`), or an overlay marker in the primary, or a primary without the runtime, or a common directory not named `.git`, or a failing `git rev-parse`, then the hook fails as today with the matching reason line.",
+        "Given a `package.json` whose version or path text contains quotes, `$` or backticks, then the program treats them as data and does not run them.",
+        "Given a borrowed run, also with `DIRECTIVE_PROJECT_ROOT` set to the primary in the caller's environment, then `maybeSelfCompleteSetup` returns the skip reason `not-installed-here` and setup writes no file in the worktree or the primary.",
+        "Given a runtime installed in the project on Windows, where the module path rule gives `C:/proj` and the working directory is `C:\\proj`, then self-complete behaves as today.",
+        "Given a Grok `run_terminal_command` payload with `tool_input.command` `npm ci` and no directory field, run by a hook whose working directory is the project root while `hook-bin.js` is missing, then the outer exits 0 with empty stdout.",
+        "Given the same on Cursor (a `Shell` payload with the command and no directory field), then the outer prints `{\"permission\":\"allow\",\"code\":\"shell-op-ready\"}` and exits 0.",
+        "Given `npm ci && curl x`, `pnpm install`, `yarn`, `npm ci` with a run directory that is not the project root, a Codex payload without a tool-input directory field, a command found only in a field other than the `hookShellCommand` fields, an MCP or edit tool, or a payload that is not JSON, then the outer denies exactly as today, and the reason names only the three admitted commands.",
+        "A parity test runs the generated outer source and the core functions (`hookToolName` direct fields, `hookShellCommand`, `matchPinMismatchRecoveryCommand`, the `shellRunDirectories` rule) on the same fixtures and gets the same admit result where a payload names a directory."
+      ],
+      "admitted_source_digest": "970e486cbd107acba03254d3e67172aec451393ca3208eac12ba6ffcd9a2a12d",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Primary lookup (git hook helper `GITHOOK_HELPER`, deposited as `.githooks/_directive-run.sh`). When `$REPO_ROOT/node_modules/@deftai/directive-runtime/dist/bin.js` is missing, the helper runs `git -C \"$REPO_ROOT\" rev-parse --path-format=absolute --git-common-dir`. When that command fails (for example on a git without `--path-format`), there is no borrow. Otherwise the helper runs one fixed `node -e` program and passes it two argv values: `$REPO_ROOT` and the printed common directory. No path or file content is put into the program text.",
+          "artifact_path": ".githooks/_directive-run.sh",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The program decides. On Windows it first turns an MSYS path `/<letter>/...` into `<letter>:/...` (the `normalizeHookProjectRoot` rule). It then requires all of these, in order: the common directory is absolute by node's `path.isAbsolute`; its name is `.git`; its parent (the primary checkout) and `$REPO_ROOT` have different real paths; `<primary>/node_modules/@deftai/directive-runtime/dist/bin.js` is a file by `statSync`, which follows symlinks, so a pnpm install qualifies; `<primary>/.deft-scratch/materialize-runtime-overlay.json` does not exist; and the worktree pin, read from `$REPO_ROOT/package.json` by the `readRuntimePin` rule (`devDependencies` then `dependencies`, exact semver only, leading `v` removed), equals the `version` in `<primary>/node_modules/@deftai/directive-runtime/package.json`. When all hold, it prints the bin path and exits 0. Otherwise it prints one reason line to stderr and exits 1.",
+          "artifact_path": ".githooks/_directive-run.sh",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Borrowed run. The helper prints one stderr line that names the primary checkout and the version, then runs `DIRECTIVE_PROJECT_ROOT=\"$REPO_ROOT\" node \"<printed bin.js>\" \"$@\"`. The arguments are unchanged (they already carry `--project-root \"$REPO_ROOT\"`).",
+          "artifact_path": ".githooks/_directive-run.sh",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "No borrow. The helper fails exactly as today (the two stderr lines, exit 1), and also shows the program's reason line: no primary checkout found, no runtime in the primary, overlay marker present, pin not exact, or pin X against installed Y.",
+          "artifact_path": ".githooks/_directive-run.sh",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "No setup from a runtime that is not installed in the project. `maybeSelfCompleteSetup` returns without running setup, with a new skip reason `not-installed-here`, only when the checkout that owns the running runtime module (the path rule of `resolveLaunchingCheckoutRootFromPath`) is known, both it and the given project root resolve by `realpathSync`, and the two real paths differ (the same compare as `rootsMatch`). When the owner is unknown (a source run) or either real path cannot be read, behaviour is unchanged. On a borrowed run item 3 sets the project root to the worktree, so the skip fires there, also when the worktree sits inside the primary's tree. Agent hooks are not affected: hook-bin already refuses a different launch root before setup.",
+          "artifact_path": "packages/runtime/src/self-complete.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Agent-hook admit (outer `hostHookOuterSource`). When `hook-bin.js` is missing and the event is `tool.before`, the outer reads the stdin payload. A read failure or a payload that is not a JSON object is denied. The call is allowed only when all of these hold: the tool name, read from the same direct fields as `hookToolName` (`tool_name`, `toolName`, `tool`, `tool.name`, `tool_call.name`, `toolCall.name`), is a shell tool by the `isShellTool` rule; the command, read in the field order of `hookShellCommand`, matches by the `matchPinMismatchRecoveryCommand` rule (simple-command pattern, exact tokens of `PIN_MISMATCH_RECOVERY_COMMANDS`); and every run directory has the same real path as the outer's project root. The run directories are read by the `shellRunDirectories` rule (tool-input `workdir`, `cwd`, `working_directory`, `workingDirectory` first, each present one a non-empty string; otherwise the payload `cwd`). When neither gives a directory, the hook process working directory is the run directory on Grok and Cursor; on Codex there is no run directory and the call is denied. A named directory that is not the project root is denied; there is no fallback from it. The absence of `hook-bin.js` is the precondition; the pin-mismatch-only test is not used. The tool list, command list, field names and pattern are written into the outer source from the core constants when it is generated. The reading functions are a small copy in the outer, and a parity test runs the generated outer and the core functions on the same payload fixtures.",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Allow output. On Cursor the admitted call prints `{\"permission\":\"allow\",\"code\":\"shell-op-ready\"}` and exits 0. On the other hosts it prints nothing and exits 0. These are the shapes `renderHostDecision` already emits for a plain `tool.before` allow.",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Deny. Every other call, and every other event, is denied exactly as today (same exit code and output form per host). The reason text on the outer's missing-runtime deny names only the admitted commands, built from the list: \"Directive hooks: missing node_modules/@deftai/directive-runtime. Run one of `npm ci`, `npm install` or `pnpm install --frozen-lockfile` at the project root; other tool calls stay denied until the runtime is installed.\" The git hook helper and Taskfile messages keep their text.",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Unchanged: the hook-bin launch-root refusal (AC9.4 / AC9.5), the #6313 admit and its list, and the cheap in-sync check.",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given a linked worktree without `node_modules` whose exact pin equals the version installed in the primary checkout, with no overlay marker, when a commit runs the pre-commit hook, then the hook runs the primary's `bin.js` with `DIRECTIVE_PROJECT_ROOT` and `--project-root` set to the worktree and prints the line that names the primary and the version.",
+          "artifact_path": "packages/core/src/content-contracts/standards/deft_run_resolver.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given the same worktree with pnpm's symlinked `node_modules/@deftai/directive-runtime` in the primary, then the borrow applies.",
+          "artifact_path": "packages/core/src/content-contracts/standards/deft_run_resolver.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given git prints the common directory as `C:/...` or, on Windows, as `/c/...`, then the program resolves it to the same primary and the borrow applies.",
+          "artifact_path": "packages/core/src/content-contracts/standards/deft_run_resolver.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given the same worktree and a primary version different from the pin, then the hook exits 1 with today's two lines and a line that names both versions, and does not run the primary's runtime.",
+          "artifact_path": "packages/core/src/content-contracts/standards/deft_run_resolver.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given a non-exact pin (for example `^0.129.0`), or an overlay marker in the primary, or a primary without the runtime, or a common directory not named `.git`, or a failing `git rev-parse`, then the hook fails as today with the matching reason line.",
+          "artifact_path": "packages/core/src/content-contracts/standards/deft_run_resolver.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given a `package.json` whose version or path text contains quotes, `$` or backticks, then the program treats them as data and does not run them.",
+          "artifact_path": "packages/core/src/content-contracts/standards/deft_run_resolver.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Given a borrowed run, also with `DIRECTIVE_PROJECT_ROOT` set to the primary in the caller's environment, then `maybeSelfCompleteSetup` returns the skip reason `not-installed-here` and setup writes no file in the worktree or the primary.",
+          "artifact_path": "packages/runtime/src/self-complete.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Given a runtime installed in the project on Windows, where the module path rule gives `C:/proj` and the working directory is `C:\\proj`, then self-complete behaves as today.",
+          "artifact_path": "packages/runtime/src/self-complete.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Given a Grok `run_terminal_command` payload with `tool_input.command` `npm ci` and no directory field, run by a hook whose working directory is the project root while `hook-bin.js` is missing, then the outer exits 0 with empty stdout.",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Given the same on Cursor (a `Shell` payload with the command and no directory field), then the outer prints `{\"permission\":\"allow\",\"code\":\"shell-op-ready\"}` and exits 0.",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Given `npm ci && curl x`, `pnpm install`, `yarn`, `npm ci` with a run directory that is not the project root, a Codex payload without a tool-input directory field, a command found only in a field other than the `hookShellCommand` fields, an MCP or edit tool, or a payload that is not JSON, then the outer denies exactly as today, and the reason names only the three admitted commands.",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "A parity test runs the generated outer source and the core functions (`hookToolName` direct fields, `hookShellCommand`, `matchPinMismatchRecoveryCommand`, the `shellRunDirectories` rule) on the same fixtures and gets the same admit result where a payload names a directory.",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": []
+    },
+    "id": "github.issue.6442920577",
+    "updated": "2026-11-17T17:53:40Z"
+  }
+}
