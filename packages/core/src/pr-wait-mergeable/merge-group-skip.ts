@@ -7,6 +7,12 @@
  * already ran on the PR head and body at the PR's last CI run, which is the
  * same assurance a direct merge of an up-to-date PR has. Every other check in
  * `check:merge` still runs on the group commit.
+ *
+ * `verify:changelog-unreleased` joins them (#6296 item 6): it judges one PR's
+ * own change set against the merge base, and on a group commit that change set
+ * also holds every PR queued ahead. What is given up: on a merge-queue commit
+ * nothing re-checks the changelog; the entry requirement and the release rule
+ * were judged on the PR at its last CI run.
  */
 
 /** GitHub Actions event name for merge-queue group runs. */
@@ -17,6 +23,7 @@ export const MERGE_GROUP_SKIPPED_CHECKS = [
   "verify:closing-keywords",
   "verify:scope-provenance",
   "verify:intent-constraint",
+  "verify:changelog-unreleased",
 ] as const;
 
 export type MergeGroupSkippedCheck = (typeof MERGE_GROUP_SKIPPED_CHECKS)[number];

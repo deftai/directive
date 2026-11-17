@@ -28,6 +28,7 @@ describe("pipeline write path", () => {
     version: "0.21.0",
     repo: "deftai/directive",
     baseBranch: "master",
+    breakGlass: true,
     projectRoot,
     dryRun: false,
     skipTag: true,

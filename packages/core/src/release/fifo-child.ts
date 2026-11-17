@@ -26,6 +26,7 @@ const config: ReleaseConfig = {
   allowVbriefDrift: true,
   allowCoverageDebtIssue: null,
   allowSkipCiIssue: 716,
+  breakGlass: true,
 };
 
 const seams: ReleaseSeams = {

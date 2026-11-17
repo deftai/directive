@@ -46,6 +46,7 @@ function baseConfig(projectRoot: string): ReleaseConfig {
     version: "0.98.0",
     repo: "deftai/directive",
     baseBranch: "master",
+    breakGlass: true,
     projectRoot,
     dryRun: false,
     skipTag: true,

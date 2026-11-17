@@ -133,6 +133,53 @@ describe("test_release_workflow.py", () => {
   });
 });
 
+describe("release through a PR docs (#6296 items 9 and 10)", () => {
+  const surfaces: readonly (readonly [string, string])[] = [
+    ["docs/RELEASING.md", releasingDocText],
+    ["skills/deft-directive-release/SKILL.md", releaseSkillText],
+  ];
+
+  it.each(
+    surfaces,
+  )("%s states the release PR path, the finish step and the release line", (_name, text) => {
+    expect(text).toContain("## Release through a PR (#6296)");
+    expect(text).toMatch(/release\/v(?:X\.Y\.Z|<version>)/);
+    expect(text).toMatch(/task release -- --finish (?:X\.Y\.Z|<version>)/);
+    expect(text).toContain("- [release-line] v");
+    expect(text).toContain("task pr:wait-mergeable-and-merge -- <N> --wait");
+  });
+
+  it.each(
+    surfaces,
+  )("%s states the merge-queue skip, changes that land ahead and recovery by state", (_name, text) => {
+    expect(text).toMatch(/on a merge-queue commit nothing re-checks the changelog/);
+    expect(text).toMatch(/[Cc]hanges that land ahead/);
+    expect(text).toMatch(/PR open: close the PR and delete the release branch/);
+    expect(text).toMatch(/Merged and not tagged: run the finish step/);
+    expect(text).toMatch(/#6485/);
+    expect(text).toMatch(/`task release:rollback`, (?:which is )?unchanged/);
+    expect(text).toMatch(/ruleset bypass/);
+  });
+
+  it.each(surfaces)("%s keeps the policy switch out of the normal path", (_name, text) => {
+    const normal = text.slice(
+      text.indexOf("## Release through a PR (#6296)"),
+      text.indexOf("## Break-glass") >= 0
+        ? text.indexOf("## Break-glass")
+        : text.indexOf("## Branch-Protection Policy Guard"),
+    );
+    expect(normal.length).toBeGreaterThan(0);
+    expect(normal).not.toContain("policy:allow-direct-commits");
+    expect(normal).not.toContain("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1");
+    expect(text).toContain("--break-glass");
+  });
+
+  it("does not offer a revert PR through the queue as the abandon path (#6485)", () => {
+    expect(releasingDocText).not.toMatch(/to abandon, revert the release commit with a PR/);
+    expect(releaseSkillText).not.toMatch(/to abandon, revert the release commit with a PR/);
+  });
+});
+
 describe("#1987 freeze-gate graceful skip", () => {
   it("freeze-gate job declares the frozen_skip output from the gate step", () => {
     expect(workflowText).toContain("frozen_skip: $" + "{{ steps.gate.outputs.frozen_skip }}");
