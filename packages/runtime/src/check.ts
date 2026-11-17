@@ -2,7 +2,11 @@
 /**
  * check.ts -- CLI wrapper for the context-aware `task check` orchestrator (#1854, #1713).
  *
- * Usage: deft-ts check [--framework-root <path>] [--project-root <path>] [--no-cache]
+ * Usage: deft-ts check [--framework-root <path>] [--project-root <path>] [--no-cache] [--no-suite]
+ *
+ * `--no-suite` (#6469) runs the context's merge-gate list at full strength
+ * without the test suite: every gate runs, every failure is reported, the base
+ * is fetched as CI fetches it, and the gates get CI's inputs.
  *
  * Omitted --project-root defaults to cwd. Omitted --framework-root walks
  * explicit / DEFT_ROOT / source checkout / .deft/core / legacy deft/ /
@@ -23,6 +27,8 @@ export interface ParsedArgs {
   frameworkRoot?: string;
   projectRoot: string;
   noCache?: boolean;
+  /** #6469: CI's merge-gate list at full strength, lint and build but no tests. */
+  noSuite?: boolean;
   error?: string;
 }
 
@@ -112,11 +118,14 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
   let projectRoot = process.cwd();
   let explicitFrameworkRoot: string | undefined;
   let noCache = false;
+  let noSuite = false;
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i] ?? "";
     if (arg === "--no-cache") {
       noCache = true;
+    } else if (arg === "--no-suite") {
+      noSuite = true;
     } else if (arg === "--project-root") {
       const taken = takeRootOptionValue(argv, i, "--project-root");
       if (taken.error !== undefined) {
@@ -155,6 +164,9 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
   if (noCache) {
     parsed.noCache = true;
   }
+  if (noSuite) {
+    parsed.noSuite = true;
+  }
   const frameworkRoot = resolveCheckFrameworkRoot(projectRoot, explicitFrameworkRoot);
   if (frameworkRoot !== null) {
     parsed.frameworkRoot = frameworkRoot;
@@ -178,7 +190,10 @@ export function run(argv: readonly string[]): number {
   // #1617: live WSL ownership gate before first protected check write/orchestration.
   const blocked = refuseIfWslOwnershipBlocked(args.projectRoot);
   if (blocked !== null) return blocked;
-  return dispatchTaskCheck(args.frameworkRoot, args.projectRoot, { noCache: args.noCache });
+  return dispatchTaskCheck(args.frameworkRoot, args.projectRoot, {
+    noCache: args.noCache,
+    ...(args.noSuite === true ? { noSuite: true } : {}),
+  });
 }
 
 /* v8 ignore start -- entry guard */

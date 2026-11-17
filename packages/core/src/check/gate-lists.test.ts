@@ -3,6 +3,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  type CheckGateSpec,
   CONSUMER_CHECK_GATES,
   checkGateId,
   checkGateSpawnArgs,
@@ -10,6 +11,8 @@ import {
   gatesForCheckTarget,
   isFastBeforeSlowOrder,
   isSuiteCheckGate,
+  NO_SUITE_TS_LANE_GATE,
+  noSuiteGateList,
   ORPHAN_ACTIVE_MERGE_GATE,
   SUITE_CHECK_GATE_IDS,
 } from "./gate-lists.js";
@@ -286,5 +289,212 @@ describe("gate-lists fast-before-slow (#3188)", () => {
   it("exposes ordered gates via gatesForCheckTarget", () => {
     expect(isFastBeforeSlowOrder(gatesForCheckTarget("check:framework-source"))).toBe(true);
     expect(isFastBeforeSlowOrder(gatesForCheckTarget("check:consumer"))).toBe(true);
+  });
+});
+
+// --- #6469: CI's --enforce arguments, the no-suite list, Taskfile parity ---
+
+interface GateRow {
+  readonly task: string;
+  readonly args: readonly string[];
+}
+
+function rowKey(row: GateRow): string {
+  return [row.task, ...row.args].join(" ");
+}
+
+function cliArgsOf(line: string): string[] {
+  const m = /CLI_ARGS:\s*["']?([^"']*)["']?\s*$/.exec(line.trim());
+  return m?.[1] === undefined ? [] : m[1].split(/\s+/).filter((a) => a.length > 0);
+}
+
+/** Top-level task block (2-space key) as lines, or null. */
+function taskBlock(taskfile: string, name: string): string[] | null {
+  const lines = taskfile.split(/\r?\n/);
+  const start = lines.indexOf(`  ${name}:`);
+  if (start === -1) return null;
+  const out: string[] = [];
+  for (let i = start + 1; i < lines.length; i++) {
+    const line = lines[i] ?? "";
+    if (/^ {2}\S/.test(line) || /^\S/.test(line)) break;
+    out.push(line);
+  }
+  return out;
+}
+
+/** `deps:` rows of a task block: bare names and `task:` + `CLI_ARGS`. */
+function depsRows(block: readonly string[]): GateRow[] {
+  const rows: GateRow[] = [];
+  let inDeps = false;
+  for (const line of block) {
+    if (/^ {4}deps:\s*$/.test(line)) {
+      inDeps = true;
+      continue;
+    }
+    if (/^ {4}\S/.test(line)) inDeps = false;
+    if (!inDeps || /^\s*#/.test(line)) continue;
+    const bare = /^ {6}- ([\w:.-]+)\s*$/.exec(line);
+    if (bare?.[1] !== undefined) {
+      rows.push({ task: bare[1], args: [] });
+      continue;
+    }
+    const call = /^ {6}- task: ([\w:.-]+)\s*$/.exec(line);
+    if (call?.[1] !== undefined) {
+      rows.push({ task: call[1], args: [] });
+      continue;
+    }
+    const last = rows[rows.length - 1];
+    if (line.includes("CLI_ARGS:") && last !== undefined) {
+      rows[rows.length - 1] = { task: last.task, args: cliArgsOf(line) };
+    }
+  }
+  return rows;
+}
+
+/** Resolve an `internal: true` shim through its one `task:` call and `CLI_ARGS`. */
+function resolveShim(taskfile: string, row: GateRow): GateRow {
+  const block = taskBlock(taskfile, row.task);
+  if (block === null || !block.some((line) => /^ {4}internal:\s*true\s*$/.test(line))) {
+    return row;
+  }
+  const callIdx = block.findIndex((line) => /^ {6}- task: /.test(line));
+  const call = /- task: ([\w:.-]+)/.exec(block[callIdx] ?? "");
+  if (call?.[1] === undefined) return row;
+  const argsLine = block.slice(callIdx + 1).find((line) => line.includes("CLI_ARGS:"));
+  return { task: call[1], args: argsLine === undefined ? [] : cliArgsOf(argsLine) };
+}
+
+/** Taskfile `check:framework-source` deps, shims resolved, as `task args` keys. */
+function taskfileFrameworkRows(taskfile: string): string[] {
+  const block = taskBlock(taskfile, "check:framework-source") ?? [];
+  return depsRows(block).map((row) => rowKey(resolveShim(taskfile, row)));
+}
+
+/** Engine list rows without the product-first AC gate. */
+function engineFrameworkRows(gates: readonly CheckGateSpec[]): string[] {
+  return gates
+    .filter((gate) => checkGateId(gate) !== "verify:ac")
+    .map((gate) =>
+      rowKey({ task: checkGateId(gate), args: typeof gate === "string" ? [] : (gate.args ?? []) }),
+    );
+}
+
+/**
+ * The two recorded differences (#6469 item 7): `--json` on the engine's
+ * presentation-coverage row, and the Taskfile planning-narratives conjunct
+ * that the engine runs in process. No other difference is allowed.
+ */
+const PARITY_ENGINE_ONLY_ARGS: Readonly<Record<string, readonly string[]>> = {
+  "verify:presentation-coverage": ["--json"],
+};
+const PARITY_TASKFILE_ONLY_ROWS: readonly string[] = [
+  "verify:persisted-planning-narratives --check-conjunct",
+];
+
+function parityDiff(
+  taskfileRows: readonly string[],
+  engineRows: readonly string[],
+): { taskfileOnly: string[]; engineOnly: string[] } {
+  const normalizedEngine = engineRows.map((key) => {
+    const [task = "", ...args] = key.split(" ");
+    const dropped = PARITY_ENGINE_ONLY_ARGS[task] ?? [];
+    return rowKey({ task, args: args.filter((a) => !dropped.includes(a)) });
+  });
+  const tf = new Set(taskfileRows.filter((key) => !PARITY_TASKFILE_ONLY_ROWS.includes(key)));
+  const en = new Set(normalizedEngine);
+  return {
+    taskfileOnly: [...tf].filter((key) => !en.has(key)).sort(),
+    engineOnly: [...en].filter((key) => !tf.has(key)).sort(),
+  };
+}
+
+function readRepoTaskfile(): string {
+  const here = fileURLToPath(new URL(".", import.meta.url));
+  return readFileSync(join(resolve(here, "../../../../"), "Taskfile.yml"), "utf8");
+}
+
+describe("gate-lists CI --enforce arguments (#6469)", () => {
+  it("spawns verify:contained-writes -- --enforce, as CI's shim does", () => {
+    const spec = FRAMEWORK_CHECK_GATES.find(
+      (gate) => checkGateId(gate) === "verify:contained-writes",
+    );
+    expect(spec).toEqual({ task: "verify:contained-writes", args: ["--enforce"] });
+    expect(checkGateSpawnArgs(spec as CheckGateSpec, "/r/Taskfile.yml")).toEqual([
+      "verify:contained-writes",
+      "--taskfile",
+      "/r/Taskfile.yml",
+      "--",
+      "--enforce",
+    ]);
+    const shim = resolveShim(readRepoTaskfile(), {
+      task: "verify-contained-writes-enforce",
+      args: [],
+    });
+    expect(shim).toEqual({ task: "verify:contained-writes", args: ["--enforce"] });
+  });
+
+  it("spawns codebase:validate-structure -- --enforce on the full and the no-suite list", () => {
+    for (const list of [FRAMEWORK_CHECK_GATES, noSuiteGateList(FRAMEWORK_CHECK_GATES)]) {
+      const spec = list.find((gate) => checkGateId(gate) === "codebase:validate-structure");
+      expect(spec).toEqual({ task: "codebase:validate-structure", args: ["--enforce"] });
+    }
+  });
+});
+
+describe("noSuiteGateList (#6469)", () => {
+  it("drops the product-first AC gate and runs ts:check-lane --no-test, order unchanged", () => {
+    const list = noSuiteGateList(FRAMEWORK_CHECK_GATES);
+    const ids = list.map(checkGateId);
+    expect(ids).not.toContain("verify:ac");
+    expect(list[list.length - 1]).toEqual(NO_SUITE_TS_LANE_GATE);
+    expect(NO_SUITE_TS_LANE_GATE).toEqual({ task: "ts:check-lane", args: ["--no-test"] });
+    expect(ids).toEqual(FRAMEWORK_CHECK_GATES.map(checkGateId).filter((id) => id !== "verify:ac"));
+  });
+
+  it("drops verify:consumer-test-lane from the consumer list", () => {
+    const ids = noSuiteGateList(CONSUMER_CHECK_GATES).map(checkGateId);
+    expect(ids).not.toContain("verify:ac");
+    expect(ids).not.toContain("verify:consumer-test-lane");
+    expect(ids.length).toBe(CONSUMER_CHECK_GATES.length - 2);
+  });
+});
+
+describe("Taskfile check:framework-source parity (#6469)", () => {
+  it("equals FRAMEWORK_CHECK_GATES without the product-first AC gate, two recorded differences", () => {
+    const taskfileRows = taskfileFrameworkRows(readRepoTaskfile());
+    expect(taskfileRows.length).toBeGreaterThan(40);
+    expect(taskfileRows).toContain("verify:wip-cap --allow-over-cap");
+    expect(taskfileRows).toContain("verify:eval-health-relocation --base-ref origin/master");
+    expect(taskfileRows).toContain("verify:persisted-planning-narratives --check-conjunct");
+    expect(parityDiff(taskfileRows, engineFrameworkRows(FRAMEWORK_CHECK_GATES))).toEqual({
+      taskfileOnly: [],
+      engineOnly: [],
+    });
+  });
+
+  it("fails when a dep is added to one side only", () => {
+    const taskfile = readRepoTaskfile().replace(
+      /( {6}- verify:stubs\r?\n)/,
+      "$1      - verify:extra-gate\n",
+    );
+    expect(
+      parityDiff(taskfileFrameworkRows(taskfile), engineFrameworkRows(FRAMEWORK_CHECK_GATES)),
+    ).toEqual({ taskfileOnly: ["verify:extra-gate"], engineOnly: [] });
+    const engine = [...FRAMEWORK_CHECK_GATES, "verify:engine-only"];
+    expect(
+      parityDiff(taskfileFrameworkRows(readRepoTaskfile()), engineFrameworkRows(engine)),
+    ).toEqual({ taskfileOnly: [], engineOnly: ["verify:engine-only"] });
+  });
+
+  it("fails when an exit-changing argument is on one side only", () => {
+    const engine = FRAMEWORK_CHECK_GATES.map((gate) =>
+      checkGateId(gate) === "codebase:validate-structure" ? "codebase:validate-structure" : gate,
+    );
+    expect(
+      parityDiff(taskfileFrameworkRows(readRepoTaskfile()), engineFrameworkRows(engine)),
+    ).toEqual({
+      taskfileOnly: ["codebase:validate-structure --enforce"],
+      engineOnly: ["codebase:validate-structure"],
+    });
   });
 });

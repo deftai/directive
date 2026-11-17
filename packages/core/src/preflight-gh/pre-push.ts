@@ -25,7 +25,32 @@ import { policyColonInvocation } from "../policy/policy-invocation.js";
 import { readPushBindingDisposition } from "../pre-pr-controller/controller.js";
 import { getDefaultPrePrStore } from "../pre-pr-controller/store.js";
 import { PRE_PR_PUSH_STAGE_MARKER, sha256Hex } from "../pre-pr-controller/types.js";
+import { formatDeclaredRefusal } from "../refusal-declarations/print.js";
+import type { RefusalDeclaration } from "../refusal-declarations/table.js";
 import { DEFAULT_BRANCHES, ENV_BYPASS } from "./classifier.js";
+
+/** Declared refusal row for the bound pre-PR push gate (#6281 / #5977 seed row). */
+export const PRE_PR_PUSH_GATE_REFUSAL_ID = "pre-pr-push-gate";
+
+/** The declared refusal line for a push with no bound pre-PR pass (#6281). */
+export function prePrPushGateRefusalLine(detail: string, head: string): string {
+  return prePrPushGateRefusal(detail, head)[1];
+}
+
+/** Exit code and line: 1 in `enforce` mode, 0 (push proceeds, line printed) in `warn` mode. */
+export function prePrPushGateRefusal(
+  detail: string,
+  head: string,
+  rows?: readonly RefusalDeclaration[],
+): [number, string] {
+  const declared = formatDeclaredRefusal({
+    id: PRE_PR_PUSH_GATE_REFUSAL_ID,
+    detail,
+    ...(head.length > 0 ? { values: { head } } : {}),
+    ...(rows !== undefined ? { rows } : {}),
+  });
+  return [declared.proceed ? 0 : 1, declared.line];
+}
 
 export interface PrePushRef {
   readonly localRef: string;
@@ -307,10 +332,7 @@ export function evaluateEnrolledBoundPrePrPush(
       return h.ok ? h.sha : "";
     })();
   if (resolvedHead.length === 0) {
-    return [
-      1,
-      "❌ deft bound pre-PR push gate: cannot resolve local OID.\n  Recovery: deft pre-pr:run then retry push.",
-    ];
+    return prePrPushGateRefusal("cannot resolve the local OID being pushed", "");
   }
 
   const outgoing: string[] = [];
@@ -354,13 +376,10 @@ export function evaluateEnrolledBoundPrePrPush(
     .sort((a, b) => (a.publishedAt ?? "").localeCompare(b.publishedAt ?? ""));
   const record = records.at(-1);
   if (record === undefined || record.pushBinding == null) {
-    return [
-      1,
-      [
-        "❌ deft bound pre-PR push gate: no completed pre-PR pass bound to this HEAD with pushBinding.",
-        "  Recovery: deft pre-pr:run then retry push (#5804).",
-      ].join("\n"),
-    ];
+    return prePrPushGateRefusal(
+      "no completed pre-PR pass bound to this HEAD with pushBinding",
+      resolvedHead,
+    );
   }
 
   const reviewed = new Set(
@@ -489,10 +508,7 @@ export function evaluateEnrolledBoundPrePrPush(
   }
 
   if (record.pushBinding.pushStageMarker !== PRE_PR_PUSH_STAGE_MARKER) {
-    return [
-      1,
-      "❌ deft bound pre-PR push gate: pushBinding missing push-stage marker.\n  Recovery: deft pre-pr:run then retry push (#5804).",
-    ];
+    return prePrPushGateRefusal("pushBinding missing push-stage marker", resolvedHead);
   }
 
   return [
@@ -533,13 +549,7 @@ export function evaluatePrePush(
       ];
     }
     if (refs.length === 0) {
-      return [
-        1,
-        [
-          "❌ deft bound pre-PR push gate: no parseable refs in stdin.",
-          "  Recovery: deft pre-pr:run then retry push (#5804).",
-        ].join("\n"),
-      ];
+      return prePrPushGateRefusal("no parseable refs in pre-push stdin", "");
     }
   }
 

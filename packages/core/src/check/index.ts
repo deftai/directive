@@ -77,6 +77,8 @@ export {
   gatesForCheckTarget,
   isFastBeforeSlowOrder,
   isSuiteCheckGate,
+  NO_SUITE_TS_LANE_GATE,
+  noSuiteGateList,
   PRODUCT_FIRST_AC_GATE,
   SUITE_CHECK_GATE_IDS,
 } from "./gate-lists.js";
@@ -87,6 +89,23 @@ export {
   type NamedCauseMessage,
   remedyForGate,
 } from "./named-cause.js";
+export {
+  clearNoSuiteEnv,
+  NO_SUITE_CLEARED_ENV_KEYS,
+  NO_SUITE_MASTER_REFSPEC,
+  type NoSuiteEventWriter,
+  type NoSuiteGhGetFn,
+  type NoSuiteGhGetResult,
+  type NoSuiteGitFn,
+  type NoSuiteGitResult,
+  type NoSuitePrep,
+  type NoSuitePrepInput,
+  type NoSuitePullRequest,
+  openPullsAtHead,
+  type PrepareNoSuiteRunFn,
+  prepareNoSuiteRun,
+  repoSlugFromRemoteUrl,
+} from "./no-suite.js";
 export type {
   CachedCheckCompletion,
   CheckOrchestratorOptions,

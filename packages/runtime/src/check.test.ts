@@ -49,6 +49,25 @@ describe("check CLI", () => {
     );
   });
 
+  it("parses --no-suite and passes it to the orchestrator (#6469)", () => {
+    expect(parseArgs(["--framework-root", "/fw", "--project-root", "/proj", "--no-suite"])).toEqual(
+      {
+        frameworkRoot: resolve("/fw"),
+        projectRoot: "/proj",
+        noSuite: true,
+      },
+    );
+    const project = freshProject();
+    const deposit = join(project, ".deft", "core");
+    mkdirSync(deposit, { recursive: true });
+    vi.stubEnv("DEFT_ROOT", "");
+    expect(run(["--project-root", project, "--no-suite"])).toBe(0);
+    expect(vi.mocked(dispatchTaskCheck)).toHaveBeenCalledWith(deposit, project, {
+      noCache: undefined,
+      noSuite: true,
+    });
+  });
+
   it("rejects unknown flags", () => {
     expect(parseArgs(["--wat"]).error).toMatch(/unrecognized argument/);
     const chunks: string[] = [];

@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6296",
-    "updated": "2026-11-17T05:52:05Z"
+    "updated": "2026-11-17T18:26:41Z"
   },
   "plan": {
     "title": "feat(release): a maintainer cut needs only the release grant: no policy flip, no direct push, no hotfix label afterwards",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Today a maintainer release needs a policy switch, a commit and a direct push to master before the cut, the same again after it, and a `hotfix` label on the next PR, because the cut empties `[Unreleased]` and master's merge gate turns red. This story sends the cut through the merge queue: `task release` works on a fresh `release/v<version>` branch and opens a release PR, and a second step `task release -- --finish <version>` tags the merged commit by its SHA and pushes only the tag after its checks and the release grant. The release writes one release line back under `[Unreleased]`, so master stays green, and the changelog check uses that line to judge a release change set by a narrow release rule (release files only, matching version heading, the line alone, no note lost). `verify:changelog-unreleased` skips merge-queue runs like the other PR-context checks. The policy switch, the direct pushes, the override variables and the hotfix label leave the normal path; the old atomic push stays behind one break-glass flag, and recovery of a merged but untagged release stays break-glass until #6485.",
       "UserStory": "As a maintainer who cuts a Directive release, I want the cut to land through the merge queue as an ordinary PR and the tag to follow by one finish command, so that the release grant is my only human act and master's merge gate stays green after the release.",
@@ -20,322 +20,602 @@
     "items": [
       {
         "title": "Release branch. `task release` runs on a branch named `release/v<version>` made from the fetched tip of the base branch. Step 2 accepts that branch and refuses every other branch, the base branch included, unless the break-glass flag of item 10 is passed. Steps 3 to 9 are unchanged except for item 4. When a branch of that name already exists locally or on the remote, the cut refuses and names the recovery of item 7; it never continues on a branch from an earlier attempt.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given packages/core/src/release/pipeline.ts, when `task release <version>` runs, then Step 2 accepts only `release/v<version>` at the fetched base tip, refuses every other branch including the base branch unless `--break-glass` is passed, and refuses a branch of that name that exists on the remote or was left by an earlier attempt, naming the recovery."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Release PR. In place of Steps 10 and 11 the cut pushes the release branch and opens the release PR, then stops and prints the command of item 3. The generated PR body carries the documentation-impact declaration in the form `verify:docs-impact` accepts, the version, and no closing keyword; release notes are not copied into the body. The PR merges through the merge queue with `pr:wait-mergeable-and-merge` like every PR.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given packages/core/src/release/pipeline.ts (helpers in release-pr.ts), when the cut reaches the former Steps 10 and 11, then it pushes the release branch, opens the release PR with a generated body that carries the documentation-impact block and the version and no closing keyword or release notes, then stops and prints the finish command."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Finish step. `task release -- --finish <version>` resolves the merged release PR and its merge commit M. It refuses unless all of these hold: M is on the fetched base branch; M has one parent; the diff from that parent to M changes only `CHANGELOG.md`, `ROADMAP.md` and deleted files under `changelog.d/`; `CHANGELOG.md` at M holds the `## [<version>]` heading and the release line of that version; at M that release line is the only entry under `[Unreleased]` and `changelog.d/` holds no fragment; and the named merge gate read that Step 5 preflight already uses reports green for M. It then runs the closed-verb gate (the release grant), creates the tag on M by its SHA, pushes only the tag, and runs Steps 12 and 13 with the release notes read from `CHANGELOG.md` at M. The grant authorizes the version; it is not evidence about the commit.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given packages/core/src/release/main.ts (finish logic in finish.ts), when `--finish <version>` runs, then it resolves the merged release PR and its merge commit M, refuses unless every Bound item 3 condition holds, and only then runs the closed-verb gate, tags M by its SHA, pushes only the tag and runs Steps 12 and 13 with the notes read from `CHANGELOG.md` at M."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Release line. When the release promotes `[Unreleased]`, it writes one entry line under the fresh `[Unreleased]` section. The line has one fixed form, held in one named constant: a `- ` entry that carries a fixed tag and `v<version>`. The release line of the previous release is not copied into the promoted version section; the fresh section holds exactly one release line.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given packages/core/src/release/changelog.ts, when the release promotes `[Unreleased]`, then the fresh section holds exactly one release line built from the one named constant with `v<version>`, and the previous release line is not copied into the promoted version section."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Release rule. In merge-base mode, a change set whose `CHANGELOG.md` change adds a release line is a release attempt. A release attempt passes only when all of these hold: (a) every changed path is `CHANGELOG.md`, `ROADMAP.md` or a deleted fragment under `changelog.d/`; (b) the same change adds a `## [<version>]` heading whose version is the version in the added release line; (c) in the tree under check, the added release line is the only entry under `[Unreleased]` and `changelog.d/` holds no fragment; (d) every non-blank line of `CHANGELOG.md` at the merge base that lies above the link footer, other than a release line of an earlier version, occurs in `CHANGELOG.md` at HEAD at least as many times as at the merge base; (e) every non-blank line of every deleted fragment after its `section:` line occurs in the new version section at HEAD at least as many times as in the deleted fragments together. For (d) and (e) a line is compared after CRLF is read as LF and trailing whitespace is removed; no entry parser is used. A passing release attempt needs no other new entry. A failing release attempt fails the check; it is never judged by the ordinary rules. A change set that removes or changes a release line without adding one fails. Every other change set is judged by today's rules, and the release line already in the file does not count as its entry.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.ts (rule in changelog/release-line.ts), when a merge-base change set adds a release line, then the release rule passes only when conditions (a) to (e) hold, with lines compared after CRLF to LF and trailing-whitespace trim; a failing release attempt never falls back to the ordinary rules, and an ordinary change set that removes or changes a release line fails."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Where the check runs. `verify:changelog-unreleased` joins the PR-context checks that skip themselves on a `merge_group` run and print the existing skip notice. What is given up is stated in the docs: on a merge-queue commit nothing re-checks the changelog; the entry requirement and the release rule were judged on the PR at its last CI run.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given packages/runtime/src/changelog-check.ts, when `GITHUB_EVENT_NAME` is `merge_group`, then `verify:changelog-unreleased` prints the existing merge_group skip notice and exits 0, and `verify:changelog-unreleased` is listed in `MERGE_GROUP_SKIPPED_CHECKS`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Changes that land ahead. Case A: a PR that adds a fragment or an `[Unreleased]` entry merges to the base branch before the release PR's check runs. Condition (c) of item 5 fails on the release PR. Recovery: close the release PR, delete the release branch, and run the cut again; it makes a fresh release branch from the new tip. Case B: such a PR is still in the merge queue ahead of the release PR and lands first. Item 6 means no check sees it; the finish step refuses by item 3 and names the leftover entries or fragments. Undoing that untagged release is not part of this story: it uses the break-glass path of item 10 until #6485 ships, and the docs say so.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given packages/core/src/release/main.ts (finish logic in finish.ts), when a fragment or another `[Unreleased]` entry is present at the merge commit (case B), then the finish step refuses before the tag and names the leftover entries or fragments; case A fails condition (c) on the release PR and its recovery is a fresh cut."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Master after a release. The empty-section rule of `verify:changelog-unreleased` is not changed. The release line is the entry that keeps `[Unreleased]` non-empty at the release commit.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.ts, when HEAD is the merge base and `[Unreleased]` holds only the release line, then the unchanged empty-section rule passes because the release line is an entry."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Docs. `docs/RELEASING.md` and the release skill state the release PR path, the finish step, the release line, items 6 and 7, and recovery by state. PR open: close the PR and delete the release branch, or run the cut again. Merged and not tagged: run the finish step; to abandon, revert the release commit with a PR through the queue. Tagged: `task release:rollback`, which is unchanged, still pushes the base branch directly and needs an operator with ruleset bypass. The Branch-Protection Policy Guard steps and the policy switch and restore block leave the normal path.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given docs/RELEASING.md and the release skill, then they state the release PR path, the finish step, the release line, items 6 and 7 and recovery by state; a merged, untagged release is finished with the finish step when eligible and abandoned by the break-glass path until #6485 (item 7; comment 6935470235), and the policy switch and restore block leave the normal path."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Break-glass. The existing run on the base branch with the atomic push stays behind one explicit flag, documented under the break-glass heading only. It writes the release line too.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given packages/core/src/release/flags.ts, when `--break-glass` is passed, then the cut runs on the base branch with today's atomic push and still writes the release line; the flag is documented under the break-glass heading only."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a minted release grant, when a maintainer runs the cut and the finish step, then `plan.policy.allowDirectCommitsToMaster` is never changed and no push updates the base branch outside the merge queue.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given packages/core/src/release/pipeline.test.ts, when the cut and the finish step run with a minted grant, then no seam writes `plan.policy.allowDirectCommitsToMaster` and no push targets the base branch; only the release branch and the tag are pushed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `task release` on the base branch without the break-glass flag, then Step 2 refuses and names the release branch.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given packages/core/src/release/pipeline-branches.test.ts, when `task release` runs on the base branch without `--break-glass`, then Step 2 fails and its message names `release/v<version>`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a completed cut, then a release PR is open whose body passes `verify:docs-impact` and carries no closing keyword.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given packages/core/src/release/pipeline.test.ts, when the cut completes, then the generated PR body passes the `verify:docs-impact` evaluator and the closing-keyword scan finds no closing keyword."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a completed cut, then `CHANGELOG.md` on the release branch has exactly one release line under `[Unreleased]`, with the cut version, and the promoted version section holds no release line.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given packages/core/src/release/changelog.test.ts, when a cut promotes a changelog that already holds the previous release line, then the fresh `[Unreleased]` holds exactly one release line with the cut version and the promoted version section holds none."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the release PR made by the cut with deleted fragments, when the changelog check runs in merge-base mode, then it passes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.test.ts, when the release change set made by the cut deletes fragments, then the release rule passes in merge-base mode."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the release PR made by the cut with no fragment and inline entries, when the changelog check runs, then it passes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.test.ts, when the release change set made by the cut has no fragment and inline `[Unreleased]` entries, then the release rule passes."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the release PR and a fragment that another PR merged to the base branch after the cut, when the changelog check runs on the PR, then it fails and names that fragment.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.test.ts, when a fragment that another PR merged to the base branch after the cut is in the tree under check of the release PR, then the changelog check fails and names that fragment."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a change set that adds a release line and a matching version heading and leaves another entry under `[Unreleased]`, when the changelog check runs, then it fails.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.test.ts, when a change set adds a release line and a matching version heading and leaves another entry under `[Unreleased]`, then the release rule fails."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a release attempt that keeps the first line of an inline `[Unreleased]` entry and drops a continuation line that follows a blank line, when the changelog check runs, then it fails.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.19",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.test.ts, when a release attempt keeps the first line of an inline `[Unreleased]` entry and drops a continuation line that follows a blank line, then the release rule fails."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a release attempt that changes a line of an older version section, when the changelog check runs, then it fails.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.20",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.test.ts, when a release attempt changes a line of an older version section, then the release rule fails."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a change set that removes a version heading and its release line and adds no release line, when the changelog check runs, then it fails.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.21",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.test.ts, when a change set removes a version heading and its release line and adds no release line, then the check fails."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a release branch `release/v<version>` left by an earlier attempt, when `task release` runs for that version, then it refuses and names the recovery.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.22",
         "narrative": {
           "Acceptance": "Given packages/core/src/release/pipeline-branches.test.ts, when `release/v<version>` exists on the remote or locally from an earlier attempt, then the cut refuses before any write and names the recovery."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a change set that adds a release line and a matching version heading and removes an inline `[Unreleased]` entry that is in neither section afterwards, when the changelog check runs, then it fails.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.23",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.test.ts, when a change set adds a release line and a matching version heading and removes an inline `[Unreleased]` entry that is in neither section afterwards, then the release rule fails."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a release made by the cut from a fragment with trailing spaces, a fragment with CRLF line endings and a fragment with an entry of several lines, when the changelog check runs, then it passes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.24",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.test.ts, when the cut releases a fragment with trailing spaces, a fragment with CRLF line endings and a fragment with an entry of several lines, then the release rule passes."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a release attempt whose version section lacks the continuation lines of a deleted fragment's entry, when the changelog check runs, then it fails.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.25",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.test.ts, when a release attempt's version section lacks the continuation lines of a deleted fragment's entry, then the release rule fails."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a merge commit of a release PR at which `changelog.d/` holds a fragment, when the finish step runs, then it refuses before the tag is made and names the fragment.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.26",
         "narrative": {
           "Acceptance": "Given packages/core/src/release/pipeline.test.ts, when `changelog.d/` holds a fragment at the release PR's merge commit, then the finish step refuses before the tag seam runs and names the fragment."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a change set that adds a release line and also changes a source file, when the changelog check runs, then it fails, also when the change set adds another `[Unreleased]` entry or a valid new fragment.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.27",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.test.ts, when a change set adds a release line and also changes a source file, then the release rule fails, also when the change set adds another `[Unreleased]` entry or a valid new fragment."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a change set that adds a release line and a matching version heading with no entries and deletes a merge-base fragment, when the changelog check runs, then it fails.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.28",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.test.ts, when a change set adds a release line and a matching version heading with no entries and deletes a merge-base fragment, then the release rule fails."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a change set that adds a release line whose version has no matching new version heading, when the changelog check runs, then it fails.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.29",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.test.ts, when a change set adds a release line whose version has no matching new version heading, then the release rule fails."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an ordinary change set that deletes a fragment present at the merge base and adds no release line, when the changelog check runs, then it fails as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.30",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.test.ts, when an ordinary change set deletes a fragment present at the merge base and adds no release line, then the changelog check fails as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an ordinary change set that removes the release line, when the changelog check runs, then it fails.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.31",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.test.ts, when an ordinary change set removes the release line, then the check fails."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an ordinary product change set with no new entry and a release line already in `CHANGELOG.md`, when the changelog check runs, then it fails as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.32",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.test.ts, when an ordinary product change set adds no new entry and `CHANGELOG.md` already holds a release line, then the changelog check fails as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a `merge_group` run, when `verify:changelog-unreleased` runs, then it prints the skip notice and exits 0.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.33",
         "narrative": {
           "Acceptance": "Given packages/runtime/src/task-surface.test.ts, when `GITHUB_EVENT_NAME=merge_group` and `--against-merge-base` are set, then the check prints the skip notice and exits 0."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given master's tip is a release commit, when `verify:changelog-unreleased` runs there, then it passes and master's merge gate is green.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.34",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.test.ts, when HEAD is a release commit and the merge base, with only the release line under `[Unreleased]`, then the changelog check passes."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the pin-bump PR after a release, then it merges with no `hotfix` label.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.35",
         "narrative": {
           "Acceptance": "Given packages/core/src/task-surface/index.test.ts, when the pin-bump change set after a release adds its own entry while the release line stays in place, then the changelog check passes, so master's merge gate is green and the PR needs no `hotfix` label."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a merged release PR, when `task release -- --finish <version>` runs with a valid grant, then the tag points at the merge commit and only the tag is pushed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.36",
         "narrative": {
           "Acceptance": "Given packages/core/src/release/pipeline.test.ts, when `--finish <version>` runs on a merged release PR with a valid grant, then the tag seam receives the merge commit SHA and the push seam pushes only `refs/tags/v<version>`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a merge commit whose diff from its parent changes a path outside the release files, when the finish step runs, then it refuses before the tag is made.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.37",
         "narrative": {
           "Acceptance": "Given packages/core/src/release/pipeline.test.ts, when the merge commit's diff from its parent changes a path outside the release files, then the finish step refuses before the tag seam runs."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a merge commit on which the named merge gate is not green, when the finish step runs, then it refuses before the tag is made.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.38",
         "narrative": {
           "Acceptance": "Given packages/core/src/release/pipeline.test.ts, when the named merge gate read reports the merge commit not green, then the finish step refuses before the tag seam runs."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given no valid release grant, when the finish step runs, then it refuses before the tag is made.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.39",
         "narrative": {
           "Acceptance": "Given packages/core/src/release/pipeline.test.ts, when no valid release grant exists, then the finish step refuses at the closed-verb gate before the tag seam runs."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`docs/RELEASING.md` and the release skill state the release PR path, the finish step, the release line, what the merge-queue skip gives up, the rule for changes that land ahead, the three recovery states and that rollback is break-glass, and no longer state the policy switch as a normal step.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.40",
         "narrative": {
           "Acceptance": "Given packages/core/src/content-contracts/standards/release_workflow.test.ts, then docs/RELEASING.md and the release skill name the release PR path, the finish step, the release line, what the merge-queue skip gives up, changes that land ahead, the three recovery states and rollback as break-glass, and no longer present the policy switch as a normal step."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "28c387adb799983eb166f145dd4c2a6d8d552980",
+          "recorded_at": "2026-11-17T18:26:41Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -1676,6 +1956,33 @@
         "leanCommentId": 6935384385,
         "harvestDigest": "403e4efa04ca8d715ecd68c9c088a1df3244383062e211ebe4bf9b1f382e7071",
         "slice": null
+      },
+      "productPullRequest": 6538,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "f92a2475f2a45d2a915262e570ee5e3806c56361",
+        "prNumber": 6538,
+        "prBase": "master",
+        "mergeCommit": "28c387adb799983eb166f145dd4c2a6d8d552980",
+        "deliveryBranch": "master",
+        "deliveryCommit": "28c387adb799983eb166f145dd4c2a6d8d552980",
+        "verifiedAt": "2026-11-17T18:26:41Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T18:26:41Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T18:26:41Z"
       }
     },
     "acceptance": {
@@ -2053,6 +2360,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6375855496",
-    "updated": "2026-11-17T05:52:05Z"
+    "updated": "2026-11-17T18:26:41Z"
   }
 }

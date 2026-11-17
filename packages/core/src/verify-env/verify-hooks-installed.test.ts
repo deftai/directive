@@ -336,3 +336,55 @@ deft verify:branch --project-root "$REPO_ROOT"
     expect(body).not.toContain("no Python");
   });
 });
+
+describe("declared refusal hooks-installed (#6281 / #5977)", () => {
+  it("every refusal names the gate id and a remedy that keeps the pin, never deft update", () => {
+    const root = makeRepo();
+    const unset = evaluate(root, { gitConfigReader: () => ({ hooksPath: null, error: null }) });
+    const missingDir = evaluate(root, {
+      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
+    });
+    const hooks = join(root, ".githooks");
+    mkdirSync(hooks, { recursive: true });
+    const missingHooks = evaluate(root, {
+      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
+    });
+    writeFileSync(join(hooks, "pre-commit"), LEGACY_PYTHON_PRE_COMMIT, "utf8");
+    writeFileSync(join(hooks, "pre-push"), DEFT_PRE_PUSH, "utf8");
+    const nonExec = evaluate(root, {
+      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
+      platform: "linux",
+      hookExecutable: () => false,
+    });
+    const content = evaluate(root, {
+      gitConfigReader: () => ({ hooksPath: ".githooks", error: null }),
+      platform: "win32",
+    });
+    for (const result of [unset, missingDir, missingHooks, nonExec, content]) {
+      expect(result.code).toBe(1);
+      expect(result.message).toContain("deft gate hooks-installed ");
+      expect(result.message).toContain("Remedy: `directive install --repair --yes`.");
+      expect(result.message).not.toContain("deft update");
+    }
+    expect(content.message.split("\n").length).toBeGreaterThan(1);
+  });
+
+  it("in warn mode the check passes and still prints the gate id and remedy", () => {
+    const root = makeRepo();
+    const result = evaluate(root, {
+      gitConfigReader: () => ({ hooksPath: null, error: null }),
+      refusalRows: [
+        {
+          id: "hooks-installed",
+          gate: "verify:hooks-installed (#1463)",
+          mode: "warn",
+          remedy: ["directive install --repair --yes"],
+          exception: null,
+        },
+      ],
+    });
+    expect(result.code).toBe(0);
+    expect(result.message).toContain("can refuse from a later release");
+    expect(result.message).toContain("`directive install --repair --yes`");
+  });
+});

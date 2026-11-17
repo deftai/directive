@@ -1,22 +1,31 @@
 import { describe, expect, it } from "vitest";
 import { mergeFragmentsIntoChangelogText } from "../changelog/effective-unreleased.js";
+import type { RefusalCensus } from "../refusal-declarations/census.js";
 import { evaluateReleaseConsumerReadiness, issuesFromInventory } from "./run-consumer-readiness.js";
+
+// Injected so these tests do not read git tags (#6281 census).
+const disclosureOptions = {
+  census: { baseline: "v0.0.0", baselineRead: true, rows: [] } satisfies RefusalCensus,
+};
 
 describe("evaluateReleaseConsumerReadiness (#3900)", () => {
   it("blocks on an open privileged hard-stop not in Closes and still returns non-blocking disclosure", () => {
     const result = evaluateReleaseConsumerReadiness({
       changelogText: "## [Unreleased]\n\n### Added\n- fail-closed verifier.\n",
       issues: [{ number: 3899, title: "chore: remediation", labels: ["blocks-release-tag"] }],
+      disclosureOptions,
     });
     expect(result.hardStops.code).toBe(1);
     expect(result.disclosure.blocking).toBe(false);
     expect(result.disclosure.text).toContain("does not block the tag");
+    expect(result.disclosure.text).toContain("Declared refusals: baseline v0.0.0.");
   });
 
   it("is clear when there are no hard-stops", () => {
     const result = evaluateReleaseConsumerReadiness({
       changelogText: "## [Unreleased]\n\n### Added\n",
       issues: [{ number: 5, title: "feat: x", labels: [] }],
+      disclosureOptions,
     });
     expect(result.hardStops.code).toBe(0);
     expect(result.disclosure.blocking).toBe(false);
@@ -46,9 +55,14 @@ describe("consumer readiness on the effective [Unreleased] view (#6314)", () => 
     ]);
     const issues = [{ number: 3899, title: "chore: remediation", labels: ["blocks-release-tag"] }];
     expect(
-      evaluateReleaseConsumerReadiness({ changelogText: changelog, issues }).hardStops.code,
+      evaluateReleaseConsumerReadiness({ changelogText: changelog, issues, disclosureOptions })
+        .hardStops.code,
     ).toBe(1);
-    const result = evaluateReleaseConsumerReadiness({ changelogText: effective, issues });
+    const result = evaluateReleaseConsumerReadiness({
+      changelogText: effective,
+      issues,
+      disclosureOptions,
+    });
     expect(result.hardStops.code).toBe(0);
     expect(result.disclosure.newRefusalHints.map((h) => h.excerpt)).toEqual([
       "- New gate refuses to tag",

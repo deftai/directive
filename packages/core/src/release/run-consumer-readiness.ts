@@ -7,12 +7,17 @@ import {
   issueFromInventoryRow,
   parseClosesSet,
 } from "./consumer-hard-stops.js";
-import { formatConsumerReadinessDisclosure } from "./consumer-readiness-disclosure.js";
+import {
+  type ConsumerReadinessDisclosureOptions,
+  formatConsumerReadinessDisclosure,
+} from "./consumer-readiness-disclosure.js";
 
 export interface ConsumerReadinessInput {
   /** Effective changelog text (`effectiveChangelogText`, #6314). */
   readonly changelogText: string;
   readonly issues: readonly HardStopIssue[];
+  /** Check 5 census inputs (#6281); default is the working directory's previous release tag. */
+  readonly disclosureOptions?: ConsumerReadinessDisclosureOptions;
 }
 
 export function evaluateReleaseConsumerReadiness(input: ConsumerReadinessInput): {
@@ -24,7 +29,7 @@ export function evaluateReleaseConsumerReadiness(input: ConsumerReadinessInput):
       issues: input.issues,
       closesSet: parseClosesSet(input.changelogText),
     }),
-    disclosure: formatConsumerReadinessDisclosure(input.changelogText),
+    disclosure: formatConsumerReadinessDisclosure(input.changelogText, input.disclosureOptions),
   };
 }
 

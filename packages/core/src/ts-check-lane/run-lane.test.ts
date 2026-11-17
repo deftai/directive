@@ -24,6 +24,7 @@ import {
   isStep5HostCoverage,
   isStep5HostNoCoverage,
   LANE_COMMANDS,
+  laneCommandsFor,
   resolveHostLaneTestCommand,
   resolvePnpm,
   runTsLane,
@@ -157,6 +158,50 @@ describe("runTsLane", () => {
       ],
     ]);
     expect(runner.calls.every((c) => c.cwd === "/repo")).toBe(true);
+  });
+
+  it("--no-test runs lint and build in order and no test command (#6469)", () => {
+    const runner = new Runner([0, 0]);
+    const rc = runTsLane("/repo", {
+      pnpm: "/usr/bin/pnpm",
+      runner: runner.run,
+      out: () => undefined,
+      reporterExists: () => true,
+      noTest: true,
+    });
+    expect(rc).toBe(0);
+    expect(runner.calls.map((c) => c.argv)).toEqual([
+      ["/usr/bin/pnpm", "run", "lint"],
+      ["/usr/bin/pnpm", "run", "build"],
+    ]);
+    expect(laneCommandsFor(true)).toEqual([
+      ["run", "lint"],
+      ["run", "build"],
+    ]);
+    expect(laneCommandsFor(false)).toBe(LANE_COMMANDS);
+  });
+
+  it("--no-test fails on a lint or a build failure (#6469)", () => {
+    const lintRed = new Runner([1]);
+    expect(
+      runTsLane("/repo", {
+        pnpm: "/usr/bin/pnpm",
+        runner: lintRed.run,
+        out: () => undefined,
+        noTest: true,
+      }),
+    ).toBe(1);
+    expect(lintRed.calls.map((c) => c.argv)).toEqual([["/usr/bin/pnpm", "run", "lint"]]);
+    const buildRed = new Runner([0, 2]);
+    expect(
+      runTsLane("/repo", {
+        pnpm: "/usr/bin/pnpm",
+        runner: buildRed.run,
+        out: () => undefined,
+        noTest: true,
+      }),
+    ).toBe(2);
+    expect(buildRed.calls).toHaveLength(2);
   });
 
   it("stamps DEFT_TS_LANE_COVERAGE_DEBT for test when release Step-5 env is set (#2618)", () => {

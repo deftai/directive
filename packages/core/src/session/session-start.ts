@@ -342,6 +342,9 @@ export function isSessionStartAlwaysOnLine(line: string): boolean {
     return line.includes("session bind deferred") || line.includes("set DEFT_SESSION_ID=");
   }
 
+  // #6185: a runtime linked in from another checkout must stay visible on the quiet path.
+  if (line.startsWith("[deft doctor] foreign-runtime-link:")) return true;
+
   // Bound P3 actionable zero-exit exceptions: keep repair detail on quiet path.
   if (
     line.startsWith("[deft orientation] preflight: degraded") ||

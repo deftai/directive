@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6185",
-    "updated": "2026-11-17T16:06:51Z"
+    "updated": "2026-11-17T20:06:39Z"
   },
   "plan": {
     "title": "One Directive launch root per host session: a worker's session:ready rebinds it and locks the parent and siblings out of their worktrees",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "When a checkout's Directive runtime is linked in from a different checkout through a directory junction, the hook takes its launch root from the runtime's real path, lands in the other checkout, and refuses every hooked call as a host-root mismatch whose recovery cannot help. Nothing warns before that first refusal. This story keeps the root check exactly as strict, names the linked-in case `foreign-runtime-link` with a recovery that clears it, and adds a direct runtime-ownership check to doctor and session start so the link is caught before work begins. The earlier theory in the issue title (a worker's session:ready moving a shared session root) did not survive the design arc; the bound contract is successor lean 6811136862 (accepted synthesis 6811234519).",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6185",
@@ -20,42 +20,77 @@
     "items": [
       {
         "title": "`packages/runtime/src/hook-dispatch.ts` `run()`: on a root mismatch, cut `process.argv[1]` with `resolveLaunchingCheckoutRootFromPath`. When that link-side root equals payloadRoot and the real-path launchRoot does not, deny with reason `foreign-runtime-link`, naming both roots. The link-side root selects wording only; it is never an admission input. Every other mismatch keeps today's deny.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given a root mismatch where the cut of `process.argv[1]` equals payloadRoot and the real-path launchRoot does not, then the hook denies with reason `foreign-runtime-link` naming both roots; given any other mismatch, then the deny is today's text; in both cases the decision is a deny."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a33cffa4171a6e557e08536e36d2adeb3d80393d",
+          "recorded_at": "2026-11-17T20:06:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`foreign-runtime-link` recovery (`install-health/constants.ts`): from a terminal outside the locked session, remove the link at `<payloadRoot>/node_modules` or `<payloadRoot>/node_modules/@deftai/directive-runtime` and install the runtime in `<payloadRoot>`. Stated outcome: this clears the foreign-runtime root mismatch; existing install and policy gates still apply.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given a `foreign-runtime-link` deny, then the recovery says to use a terminal outside the locked session, to remove the link at `<payloadRoot>/node_modules` or `<payloadRoot>/node_modules/@deftai/directive-runtime`, to install the runtime in `<payloadRoot>`, and that this clears the foreign-runtime root mismatch while existing install and policy gates still apply."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a33cffa4171a6e557e08536e36d2adeb3d80393d",
+          "recorded_at": "2026-11-17T20:06:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Doctor and `session:start`: a direct check of the known path `<checkout>/node_modules/@deftai/directive-runtime`. Resolve its real path, cut it with `resolveLaunchingCheckoutRootFromPath` (pnpm normalisation included), and fail when the result is not the current checkout. Not a discovery walk.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given `<checkout>/node_modules/@deftai/directive-runtime` whose real path, cut with `resolveLaunchingCheckoutRootFromPath`, names a different checkout, then doctor fails and session start reports the failure; given a runtime owned by the current checkout (pnpm `.pnpm` included), then the check passes; the check reads only that one path."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a33cffa4171a6e557e08536e36d2adeb3d80393d",
+          "recorded_at": "2026-11-17T20:06:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Fixtures: junctioned runtime directory; junctioned whole `node_modules`; nested reverse link (`P` runtime linked to `P/.deft-scratch/worktrees/W/node_modules/@deftai/directive-runtime`) all give `foreign-runtime-link` and fail item 3; pnpm `.pnpm` link inside the checkout passes; a genuine mismatch keeps today's text. One fixture runs the real deposited launcher.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given fixtures for a junctioned runtime directory, a junctioned whole `node_modules` and a nested reverse link, then each gives `foreign-runtime-link` at the hook and fails the doctor check; given a pnpm `.pnpm` link inside the checkout, then the check passes; given a genuine mismatch, then the deny keeps today's text; one fixture runs the real deposited launcher."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a33cffa4171a6e557e08536e36d2adeb3d80393d",
+          "recorded_at": "2026-11-17T20:06:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "SEC-WT `rootsMatch` is unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given the change, then `rootsMatch` in `packages/runtime/src/hook-dispatch.ts` is byte-identical to master and every existing root-mismatch admit/deny test still passes unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a33cffa4171a6e557e08536e36d2adeb3d80393d",
+          "recorded_at": "2026-11-17T20:06:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -155,6 +190,8 @@
           "packages/core/src/doctor/runtime-link-owner.test.ts",
           "packages/core/src/session/orientation-compression.ts",
           "packages/core/src/session/orientation-runtime-link.test.ts",
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/session/session-start-runtime-link.test.ts",
           "changelog.d/6185-foreign-runtime-link.md"
         ],
         "file_scope_confidence": "medium",
@@ -192,10 +229,12 @@
           "packages/core/src/doctor/runtime-link-owner.test.ts",
           "packages/core/src/session/orientation-compression.ts",
           "packages/core/src/session/orientation-runtime-link.test.ts",
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/session/session-start-runtime-link.test.ts",
           "changelog.d/6185-foreign-runtime-link.md"
         ],
         "module_boundary": "packages/core/src/install-health (runtime ownership cut + recovery text), packages/runtime/src/hook-dispatch.ts (root-mismatch refusal wording), packages/core/src/doctor and session orientation (early detection)",
-        "cohesion_exemption": "packages/core/src/doctor/main.ts already exceeds the review trigger. This story only wires one call to the new install-health check into the existing always-cheap and full doctor paths, next to the dangling-link probe; the check itself lives in the new runtime-link.ts. Splitting doctor/main.ts is out of scope."
+        "cohesion_exemption": "packages/core/src/doctor/main.ts already exceeds the review trigger. This story only wires one call to the new install-health check into the existing always-cheap and full doctor paths, next to the dangling-link probe; the check itself lives in the new runtime-link.ts. Splitting doctor/main.ts is out of scope. packages/core/src/session/session-start.ts (about 3300 lines) is widened in for one keep-list prefix in its quiet-output filter so the runtime-link failure line stays visible in default session:start output (Greptile P1 on the product PR); splitting that file is out of scope."
       },
       "issueCommentThread": [
         {
@@ -1118,9 +1157,39 @@
         "leanCommentId": 6811136862,
         "harvestDigest": "499592047d28f960cad4cb4dbb2de6d44d458ec49624195d941eed02d4e0b3e0",
         "slice": null
+      },
+      "productPullRequest": 6563,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "daba55fb947dc69b4b8f87e99193a34bebfbf9fd",
+        "prNumber": 6563,
+        "prBase": "master",
+        "mergeCommit": "a33cffa4171a6e557e08536e36d2adeb3d80393d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a33cffa4171a6e557e08536e36d2adeb3d80393d",
+        "verifiedAt": "2026-11-17T20:06:39Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6570
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T20:06:39Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T20:06:39Z"
       }
     },
     "id": "github.issue.6319091691",
-    "updated": "2026-11-17T16:06:51Z"
+    "updated": "2026-11-17T20:06:39Z"
   }
 }
