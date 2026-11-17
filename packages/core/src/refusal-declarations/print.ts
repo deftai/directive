@@ -36,6 +36,15 @@ export function fillRemedyCommand(
   );
 }
 
+/** Trim and end with exactly one period (string ops; no backtracking regex). */
+export function endWithPeriod(text: string): string {
+  let out = text.trim();
+  if (out.endsWith(".")) {
+    out = out.slice(0, -1).trimEnd();
+  }
+  return `${out}.`;
+}
+
 /** "`a`, then `b`" */
 export function formatRemedyCommands(commands: readonly string[]): string {
   return commands.map((c) => `\`${c}\``).join(", then ");
@@ -54,7 +63,7 @@ export function formatDeclaredRefusal(input: {
 }): DeclaredRefusalLine {
   const rows = input.rows ?? loadRefusalDeclarations();
   const row = findRefusalDeclaration(input.id, rows);
-  const detail = input.detail.trim().replace(/\s*\.?$/, ".");
+  const detail = endWithPeriod(input.detail);
   if (row === null) {
     return {
       declared: false,

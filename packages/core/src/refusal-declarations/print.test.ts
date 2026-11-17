@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  endWithPeriod,
   fillRemedyCommand,
   formatDeclaredRefusal,
   formatRemedyCommands,
@@ -98,6 +99,15 @@ describe("declared refusal print helper (#6281 item 2)", () => {
     const out = formatDeclaredRefusal({ id: "hooks-installed", detail: "d" });
     expect(out.declared).toBe(true);
     expect(out.remedy).toEqual(["directive install --repair --yes"]);
+  });
+
+  it("ends the detail with exactly one period, in linear time", () => {
+    expect(endWithPeriod("  found it  ")).toBe("found it.");
+    expect(endWithPeriod("found it .")).toBe("found it.");
+    expect(endWithPeriod("found it.")).toBe("found it.");
+    expect(endWithPeriod("")).toBe(".");
+    const long = `x${" ".repeat(100_000)}y`;
+    expect(endWithPeriod(long)).toBe(`${long}.`);
   });
 
   it("fills known placeholders and leaves unknown ones", () => {
