@@ -46,11 +46,23 @@ A clause with no bound artifact is `unverifiable` and non-adjudicable. On
 pre-product `verify:ac` / `task check`, that walk is **not** fail-closed solely
 because it has no oracle yet (`#3826`). `scope:complete` is a different reader.
 
-The pass **lead** carries the counts on the first line:
+The pass **lead** carries the counts on the first line. When no clause verified
+and no acceptance command ran green, it does not say "passed" (`#6374`):
 
 ```
-verify:ac passed (#3284) (0 verified, N unverifiable) [rung=derived]
+verify:ac: no acceptance evidence yet (#3284) (0 verified, N unverifiable) [rung=derived]
 ```
+
+With at least one verified clause, or a green acceptance command, the lead is
+`verify:ac passed (#3284) (…)` as before. Either way exit 0 means no clause
+failed, not that the requested work exists. `ok`, the exit code and the
+resolution label are the same for both leads; rapid `check` (`#4866`) and
+`scope:complete` (`#4870`) read both.
+
+A `verified` row whose file is unchanged since the commit before a committed
+brief entered its non-terminal folder carries the context note "file unchanged
+since the commit before this brief entered this folder". The note changes no
+outcome; whether such evidence should count is `#6408`.
 
 A later lean that wants zero-verified to fail closed MUST reverse `#3826` and
 name the reader (`standalone` / `check` / `complete`).

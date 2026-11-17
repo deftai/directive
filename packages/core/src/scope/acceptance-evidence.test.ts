@@ -1207,6 +1207,32 @@ describe("scope:complete acceptance parity with verify:ac (#3497)", () => {
     expect(acceptanceWalkReportsZeroVerified(walk.message)).toBe(true);
   });
 
+  it("still refuses when the zero-verified lead reads no acceptance evidence yet (#6374)", () => {
+    const walk = evaluateScopeCompleteAcceptanceWalk(
+      {
+        id: "6374-zero-verified",
+        title: "zero verified, new lead, no executable oracle",
+        acceptance: {
+          commands: [],
+          none_stated: true,
+          source_rung: "derived",
+          ambiguity_attestation: "none_found",
+          clauses: unverifiableClauses,
+        },
+        metadata: {
+          swarm: { file_scope: ["packages/core/src"] },
+        },
+        items: [],
+      },
+      { ...walkOptions, runner: greenRunner },
+    );
+    expect(walk.message).toContain("verify:ac: no acceptance evidence yet (#3284) (0 verified");
+    expect(walk.message).not.toContain("verify:ac passed (#3284)");
+    expect(walk.ok).toBe(false);
+    expect(walk.predicate).not.toBe("executable-pass");
+    expect(walk.message).toContain(SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE.trim());
+  });
+
   it("completes end to end through scope:complete with a green stated command (#3497)", () => {
     root = makeRepo();
     const file = writeActive(

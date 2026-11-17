@@ -1,0 +1,2 @@
+section: Changed
+- `verify:ac` no longer says "passed" when nothing was verified: with zero verified clauses and no green acceptance command the first line reads "verify:ac: no acceptance evidence yet (#3284)". The exit code is unchanged, rapid `check` and `scope:complete` refuse as before, a verified row whose file is unchanged since the brief entered its folder gets a context note, and the help text and pre-PR skill say exit 0 means no clause failed. Refs #6374.

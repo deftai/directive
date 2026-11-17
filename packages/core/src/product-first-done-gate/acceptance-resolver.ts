@@ -415,7 +415,21 @@ export function formatPassLeadClauseCounts(
   return `${verified} verified, ${unverifiable} unverifiable`;
 }
 
-const PASS_LINE = /^verify:ac passed \(#3284\)/;
+/** Green lead when at least one clause verified or an acceptance command ran green. */
+export const VERIFY_AC_PASSED_LEAD = "verify:ac passed (#3284)";
+
+/**
+ * Green lead when the walk verified zero clauses and no acceptance command ran
+ * green (#6374). Exit 0 means no clause failed, not that the work exists.
+ */
+export const VERIFY_AC_NO_EVIDENCE_LEAD = "verify:ac: no acceptance evidence yet (#3284)";
+
+const PASS_LINE = /^verify:ac(?: passed|: no acceptance evidence yet) \(#3284\)/;
+
+/** True when the run ledger holds at least one green acceptance run (#3497 shape). */
+export function hasGreenAcceptanceRun(runs: readonly { readonly ok: boolean }[]): boolean {
+  return runs.length > 0 && runs.every((run) => run.ok);
+}
 
 /**
  * Put clause-walk counts on the first line of a green verify:ac message (#4380).
@@ -423,6 +437,10 @@ const PASS_LINE = /^verify:ac passed \(#3284\)/;
  * Does not change `ok` / `code`. A rapid check that must not exit 0 when
  * this lead reports zero verified is #4866 in the check orchestrator, not
  * a reversal of #3826 here.
+ *
+ * #6374: with zero verified clauses and no green acceptance run, the lead says
+ * "no acceptance evidence yet" in place of "passed". Counts, provenance and
+ * rung are the same; `ok`, the exit code and the resolution label never change.
  */
 export function relabelVerifyAcPassLead(input: {
   readonly ok: boolean;
@@ -430,6 +448,7 @@ export function relabelVerifyAcPassLead(input: {
   readonly sourceRung: string;
   readonly clauseOutcomes?: readonly { readonly outcome: string }[];
   readonly servedFrom?: string;
+  readonly runs?: readonly { readonly ok: boolean }[];
 }): string {
   if (!input.ok) {
     return input.message;
@@ -442,8 +461,13 @@ export function relabelVerifyAcPassLead(input: {
     input.servedFrom === "bank" || input.servedFrom === "cache"
       ? ` served_from=${input.servedFrom}`
       : "";
+  const verified = outcomes.some((row) => row.outcome === "verified");
+  const head =
+    !verified && !hasGreenAcceptanceRun(input.runs ?? [])
+      ? VERIFY_AC_NO_EVIDENCE_LEAD
+      : VERIFY_AC_PASSED_LEAD;
   const lead =
-    `verify:ac passed (#3284)${provenance} (${formatPassLeadClauseCounts(outcomes)}) ` +
+    `${head}${provenance} (${formatPassLeadClauseCounts(outcomes)}) ` +
     `[rung=${input.sourceRung}]`;
   const restLines = input.message.split("\n").filter((line) => !PASS_LINE.test(line));
   while (restLines[0] === "") {

@@ -836,6 +836,18 @@ describe("dispatchCachedTaskCheck rapid zero-verified walk (#4866)", () => {
     expect(logs).not.toMatch(/verify:ac failed/i);
   });
 
+  it("exits 1 as before when the zero-verified lead reads no acceptance evidence yet (#6374)", () => {
+    const { code, started, logs, acGate } = runMode(
+      "rapid",
+      "verify:ac clause walk (#3323): 0 verified, 5 unverifiable, 0 failed\n" +
+        "verify:ac: no acceptance evidence yet (#3284) (0 verified, 5 unverifiable) [rung=derived]\n",
+    );
+    expect(code).toBe(1);
+    expect(started).toEqual(["verify:ac"]);
+    expect(acGate?.exit_code).toBe(0);
+    expect(logs).toContain(RAPID_ZERO_VERIFIED_CHECK_NOTICE);
+  });
+
   it("still exits 0 in rapid mode when the walk reports a verified clause", () => {
     const { code, started, logs } = runMode(
       "rapid",
