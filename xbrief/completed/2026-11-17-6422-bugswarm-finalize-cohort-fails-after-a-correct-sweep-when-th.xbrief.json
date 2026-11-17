@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6422",
-    "updated": "2026-11-17T01:21:27Z"
+    "updated": "2026-11-17T05:25:26Z"
   },
   "plan": {
     "title": "bug(swarm): finalize-cohort fails after a correct sweep when the story was not launched by swarm:launch",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "`swarm:finalize-cohort` moves the finished story briefs and then closes out the launch. For a story that was started in the session or by hand there is no launch record, so with a live session lease the close-out reports a failure although the move is correct, and the message does not say the move is on disk. Close-out also removes the registrations of every cohort the parent session launched and cannot close one story of a cohort. This story makes close-out work by story under one lock shared with `swarm:launch`, keeps the lease until every story of the session's records is closed, treats a story that no record lists as nothing to close out, makes a launch roll back only what it created, and makes a failure after the move say what is on disk.",
       "UserStory": "As a worker or orchestrator closing out a story, I want `swarm:finalize-cohort` to close out only the stories it completed and to exit 0 when no launch record lists them, so that a correct sweep never reads as a failure and closing one story never removes another story's registration or lease.",
@@ -21,258 +21,482 @@
     "items": [
       {
         "title": "Closed set. The closed set of a run is the stories that the sweep moved to a terminal folder in this run, or found already in `completed/` or `cancelled/`. A story that the sweep skipped for any other reason is not in the closed set. Close-out acts on the closed set only.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given packages/core/src/swarm/complete-cohort.ts and a sweep, when close-out runs, then the closed set holds only the stories the sweep moved to completed/ or cancelled/ in this run or found already there, and a story the sweep skipped for any other reason is left out of every close-out step."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "One lock. Close-out holds one lock for all of items 3 to 8. `swarm:launch` holds the same lock from before its occupancy claim or heartbeat until the launch can no longer retract its record or release the lease: through the record write, the optional `--output` write and every rollback path. Close-out does not hold the lock during the sweep.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given packages/core/src/swarm/launch.ts and packages/core/src/swarm/launch-closeout-lock.ts, when close-out runs items 3 to 8 or swarm:launch runs from before its occupancy claim through its record write, --output write and rollback, then both hold the same lock, and close-out does not hold it during the sweep."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Record read. Close-out reads every launch-occupancy record of the project root with a reader that keeps the `closed_story_ids` field and does not retract a record. When any record file cannot be read or parsed, close-out stops with a failure that names the file; it removes nothing and releases nothing.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given launch-occupancy records under the project root, when close-out reads them, then it keeps closed_story_ids and retracts no record, and when one record file cannot be read or parsed it fails with a message that names the file, removes no assignment and releases no lease."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Grouping. Each story of the closed set belongs to the launch-occupancy record that lists it, or to no record. When the closed set has stories of more than one record, close-out stops with a failure that names the stories of each record; it removes nothing and releases nothing.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given a closed set whose stories are listed by more than one launch-occupancy record, when close-out runs, then it fails with a message that names the stories of each record, and it removes nothing and releases nothing."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Stories in no record. For a story of the closed set that no record lists, close-out removes nothing and releases nothing. When a worker assignment record with that `story_id` exists, it prints one line that names the story and that record's `dispatch_id` and says the record was left in place. A run whose closed set has only such stories exits 0.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given a closed-set story that no launch-occupancy record lists, when close-out runs, then it removes nothing and releases nothing, it emits one line naming the story and the dispatch_id of any worker assignment record for that story_id and says the record was left in place, and a run with only such stories exits 0."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Stories in one record. For the stories of the closed set that one record lists, when the record's session is the live lease holder, the ambient-session check of today runs and refuses as today. Then close-out removes the assignment records whose `dispatch_id` is the record's session and whose `story_id` is in the closed set, and adds those stories to `closed_story_ids` in the record. The record's `story_ids` and cohort key are not changed. A record without the field reads as an empty list. All of this item applies only when the record's session is the live lease holder. When it is not, and the record was not already fully closed before this run, the result is today's and close-out removes no assignment and marks no story: with another session as the live holder the run refuses; with no live lease the run does not fail. Stories that become terminal in this run do not make such a record fully closed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given closed-set stories that one record lists and that record's session as the live lease holder, when close-out runs, then the ambient-session check refuses as today, otherwise only the assignment records with that dispatch_id and a closed story_id are removed and those stories are added to closed_story_ids with story_ids and cohort key unchanged; when the record's session is not the live holder and the record was not fully closed before this run, then no assignment is removed and no story is marked, the run refuses with another live holder and does not fail with no live lease."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Lease last. When every story of every launch-occupancy record of that session is in its `closed_story_ids` and that session is the live lease holder, close-out releases the launcher occupancy lease and then removes those records. When the release fails, the records stay and the run fails.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given every story of every launch-occupancy record of a session in closed_story_ids and that session as the live lease holder, when close-out runs, then it releases the launcher lease and then removes those records, and when the release fails the records stay and the run exits 1."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Finish after release. A launch-occupancy record whose stories were all in `closed_story_ids` before this run and whose session is not the live lease holder is removed, and no lease is released for it. This is how a run that released the lease and then stopped is finished by running the command again, also after another session took the lease.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given a launch-occupancy record whose stories were all in closed_story_ids before this run and whose session is not the live lease holder, when close-out runs, then the record is removed and no lease is released, also when another session holds the lease."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Other readers. `resolveLaunchOccupancySessionId` and the record parser keep `closed_story_ids` when they read and write a record. The record write in `swarm:launch` keeps its roster guard unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given a launch-occupancy record with closed_story_ids, when resolveLaunchOccupancySessionId or the record parser in packages/core/src/swarm/launch.ts reads and writes it, then the field is kept, and the swarm:launch record write still refuses a changed story list as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Launch rollback. When `swarm:launch` writes a worker assignment record for a destination that already has one, an identical record is kept as it is and a different one is refused before anything is overwritten (the #6334 no-re-pointing rule). A launch rolls back only the assignment records, the launch-occupancy record and the lease that this attempt created; the assignment writer's own failure cleanup keeps a record that existed before the attempt.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given a destination that already has a worker assignment record, when swarm:launch writes one for it, then an identical record is kept as it is and a different one is refused before anything is overwritten; when the launch fails, then it rolls back only the assignment records, launch-occupancy record and lease that this attempt created, and the writer's own failure cleanup keeps a record that existed before the attempt."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Failure text. When close-out fails after the sweep moved a file, the text output and the `--json` output say that the lifecycle move is on disk and must be committed, and list the source path and the destination path of each brief moved in this run. The exit code is 1.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given a close-out step that fails after the sweep moved a brief, when the run ends, then it exits 1 and both the text output and the --json output say the lifecycle move is on disk and must be committed and list the source path and destination path of each brief moved in this run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a story that was not launched by `swarm:launch`, a live session occupancy lease and no launch-occupancy record, when `swarm:finalize-cohort` completes the sweep, then it exits 0, reports no missing close-out record and the lease is still held.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given a story not launched by swarm:launch, a live session occupancy lease and no launch-occupancy record, when swarm:finalize-cohort completes the sweep, then it exits 0, shows no missing close-out record message and the lease is still held."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given two linked worktrees, a terminal copy of story S in the first with no launch record there, and a worker assignment record for S written by a launch in the second, when finalize runs in the first, then that assignment record remains, one line names it and the exit code is 0.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given two linked worktrees, a terminal copy of story S in the first with no launch record there and a worker assignment record for S written by a launch in the second, when close-out runs in the first, then that assignment record remains, one output line names it and the exit code is 0."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a launch-occupancy record file that cannot be parsed, when close-out runs, then it fails, names the file, removes no assignment and releases no lease.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given a launch-occupancy record file that cannot be parsed, when close-out runs, then it exits 1 with a message naming the file, every assignment record remains and the lease is still held."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a cohort of two stories, when finalize closes one story, then only that story's assignment record is removed, the record lists it in `closed_story_ids` and the launcher lease is still held.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given a launched cohort of two stories, when close-out closes one story, then only that story's assignment record is removed, the record lists it in closed_story_ids and the launcher lease is still held."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the last open story of a cohort, when finalize closes it, then the launcher lease is released and the record is removed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given the last open story of a launched cohort, when close-out closes it, then the launcher lease is released and the launch-occupancy record is removed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given two launch cohorts of one parent session, when one cohort is closed out, then the other cohort's assignment records remain and the lease is still held.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "Given two launch cohorts of one parent session, when one cohort is closed out, then the other cohort's assignment records remain and the lease is still held."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the last open story and a lease release that fails, when the run ends, then it exits 1 and the record remains; when the same command runs again and the release succeeds, then the lease is released and the record is removed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "Given the last open story and a lease release that fails, when the run ends, then it exits 1 and the record remains; when the same close-out runs again and the release succeeds, then the lease is released and the record is removed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a run that released the lease and stopped before it removed the record, when the same command runs again, then the record is removed, no lease is released and the exit code is 0.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.19",
         "narrative": {
           "Acceptance": "Given a run that released the lease and stopped before it removed the fully closed record, when the same close-out runs again, then the record is removed, no lease is released and the exit code is 0."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that same stopped run and another session that has since taken the lease, when the same command runs again, then the record is removed and the other session's lease is still held.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.20",
         "narrative": {
           "Acceptance": "Given that same stopped run and another session that has since taken the lease, when the same close-out runs again, then the record is removed and the other session's lease is still held."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a session with two fully closed records, a release that succeeded and a removal that stopped after the first record, when the same command runs again, then the second record is removed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.21",
         "narrative": {
           "Acceptance": "Given a session with two fully closed records, a release that succeeded and a removal that stopped after the first record, when the same close-out runs again, then the second record is removed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a launch that has claimed the lease and written its assignment records but not yet its launch-occupancy record, when a close-out of the session's last closed cohort runs at the same time, then the close-out waits for the lock, finds the new record and does not release the lease.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.22",
         "narrative": {
           "Acceptance": "Given a launch that has claimed the lease and written its assignment records but not yet its launch-occupancy record, when a close-out of the session's last closed cohort runs at the same time, then the close-out waits for the lock, finds the new record and the lease is still held."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given launch A that wrote its launch-occupancy record and then fails its `--output` write, and launch B of the same session that started after A's record write, then B's lease claim waits for A's rollback, and after both end B's record, assignments and lease are in place.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.23",
         "narrative": {
           "Acceptance": "Given launch A that wrote its launch-occupancy record and then fails its --output write, and launch B of the same session that started after A's record write, when both run, then B's lease claim waits for A's rollback, and after both end B's record, assignment records and lease are in place."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a successful launch A whose worker is active, when the same session repeats that launch as B and B fails its `--output` write, then A's assignment record, launch-occupancy record and lease are all still in place.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.24",
         "narrative": {
           "Acceptance": "Given a successful launch A whose worker is active, when the same session repeats that launch as B and B fails its --output write, then A's assignment record, launch-occupancy record and lease are all still in place."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a record that lists stories A and B with only A in `closed_story_ids`, another session as the live lease holder and B terminal, when close-out runs for B, then it refuses, removes no assignment and does not add B to `closed_story_ids`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.25",
         "narrative": {
           "Acceptance": "Given a record that lists stories A and B with only A in closed_story_ids, another session as the live lease holder and B terminal, when close-out runs for B, then it refuses, every assignment record remains and B is not added to closed_story_ids."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a cohort whose other story was cancelled and swept as terminal, when the last completed story is closed, then the lease is released.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.26",
         "narrative": {
           "Acceptance": "Given a cohort whose other story was cancelled and swept as terminal, when the last completed story is closed, then the launcher lease is released."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a requested story that the sweep skipped because it is in neither an active nor a terminal folder, when close-out runs, then that story's assignment record and its place in the record are unchanged and the lease is still held.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.27",
         "narrative": {
           "Acceptance": "Given a requested story that the sweep skipped because it is in neither an active nor a terminal folder, when close-out runs, then that story's assignment record and its place in the record are unchanged and the lease is still held."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a closed set with stories of two launch-occupancy records, when close-out runs, then it fails, names the stories of each record, and removes and releases nothing.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.28",
         "narrative": {
           "Acceptance": "Given a closed set with stories of two launch-occupancy records, when close-out runs, then it exits 1 with a message naming the stories of each record, and every assignment record, record file and lease is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a story launched by `swarm:launch` whose record has an open story and names a session that is not the live lease holder, when close-out runs, then it refuses as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.29",
         "narrative": {
           "Acceptance": "Given a story launched by swarm:launch whose record has an open story and names a session that is not the live lease holder, when close-out runs, then it refuses as today and the live lease is still held."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given two close-outs of different stories of one cohort that run at the same time, then both stories end in `closed_story_ids`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.30",
         "narrative": {
           "Acceptance": "Given two close-outs of different stories of one cohort that run at the same time, when both end, then both stories are in closed_story_ids."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a record with `closed_story_ids`, when `resolveLaunchOccupancySessionId` reads and rewrites it, then the field is kept.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.31",
         "narrative": {
           "Acceptance": "Given a record with closed_story_ids, when resolveLaunchOccupancySessionId reads and rewrites it, then the field is kept."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a close-out step that fails after the sweep moved files, then the text output and the JSON output say that the move is on disk and list the source and destination path of each moved brief.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.32",
         "narrative": {
           "Acceptance": "Given a close-out step that fails after the sweep moved files, when the run ends, then the text output and the JSON output say the move is on disk and list the source and destination path of each moved brief."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+          "recorded_at": "2026-11-17T05:25:26Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -1234,9 +1458,36 @@
         "leanCommentId": 6933919930,
         "harvestDigest": "5f1cf9ddff0113361bf3005aae03f0edb857aa6e2445c0ad2457a18712f141dc",
         "slice": null
+      },
+      "productPullRequest": 6500,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "e03715da19c94b0137d257cc111f1fe5d3f3c5ef",
+        "prNumber": 6500,
+        "prBase": "master",
+        "mergeCommit": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9894c8c2b47b432741d16d13162e03c9778ed05b",
+        "verifiedAt": "2026-11-17T05:25:26Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MjBlMDZhNjAtOTQzNS00NjNmLTg3M2EtMmMxYjkyMTYwNjA3",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T05:25:26Z",
+      "completedSessionId": "host:claude:v1:MjBlMDZhNjAtOTQzNS00NjNmLTg3M2EtMmMxYjkyMTYwNjA3",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T05:25:26Z"
       }
     },
     "id": "github.issue.6426915131",
-    "updated": "2026-11-17T01:21:27Z"
+    "updated": "2026-11-17T05:25:26Z"
   }
 }
