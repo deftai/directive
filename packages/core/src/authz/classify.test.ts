@@ -2632,3 +2632,132 @@ describe("Approach1 existence-probe proven readers (#5970)", () => {
     expect(matchProtectedStoreShellDest(`cp /tmp/x ${killSwitch}`)).toMatch(/directive-disable/);
   });
 });
+
+describe("kill-switch read is not a plant (#6188)", () => {
+  const kill = ".deft-directive-disable";
+  const opt = ".no-deft-directive";
+
+  function expectRead(command: string): void {
+    expect(hasKillSwitchShellWrite(command), command).toBe(false);
+    expect(inactiveShellTargetsProtectedStore(command), command).toBe(false);
+    expect(hasProtectedDestOfWriteUnknown(command), command).toBe(false);
+    expect(harvestDestsOfWriteForRealpath(command), command).not.toContain(kill);
+    expect(harvestDestsOfWriteForRealpath(command), command).not.toContain(opt);
+    expect(classifyShellAuthzOps(command), command).toEqual([]);
+    expect(
+      classifyHookAuthzOps({
+        toolName: "Bash",
+        shellCommand: command,
+        isDirectWrite: false,
+      }),
+      command,
+    ).toEqual([]);
+  }
+
+  function expectPlant(command: string): void {
+    expect(hasKillSwitchShellWrite(command), command).toBe(true);
+    expect(classifyShellAuthzOps(command), command).toContain("settings");
+  }
+
+  it("allows same-segment reads, stderr redirects, and literal print mentions", () => {
+    for (const command of [
+      `ls -la ${kill}`,
+      `ls -la ${kill} 2>/dev/null`,
+      `ls 2>/dev/null ${kill}`,
+      `test -e ${kill}`,
+      `test -e ${kill} 2>/dev/null`,
+      `stat ${kill}`,
+      `stat ${opt} 2>/dev/null`,
+      `cat ${kill}`,
+      `cat ${kill} 2>/dev/null`,
+      `Test-Path ${kill} 2>$null`,
+      `Get-Item ${opt} 2>$null`,
+      `touch /tmp/ordinary-file; ls ${kill}`,
+      `touch /tmp/ordinary-file && ls -la ${opt}`,
+      `printf '%s' 'example > ${kill}'`,
+      `node -e "console.log('${kill}')"`,
+      `node -e "console . log ( '${opt}' )"`,
+      `node -e "console.log('${kill}')" 2>/dev/null`,
+      `python -c "print('${kill}')"`,
+      `python -c "print('${opt}');"`,
+      `python3.11 -c "print('${kill}')"`,
+      `node18 -e "console.log('${kill}')"`,
+      `deno -e "console.log('${opt}')"`,
+      `pypy -c "print('${kill}')"`,
+      `/usr/bin/python3 -c "print('${kill}')"`,
+      `cat <<'EOF'\necho > ${kill}\nEOF`,
+      `ls '${kill}`,
+      `node -e "console.log\t('${kill}')"`,
+      `node -e "console.log\n('${kill}')"`,
+      `node -e "console.log\r('${opt}')"`,
+      `ls ${kill} >`,
+      `ls ${opt} >;`,
+      `ls ${kill} foo&bar`,
+    ]) {
+      expectRead(command);
+    }
+  });
+
+  it("still plants same-segment writes and non-literal interpreter mentions", () => {
+    for (const command of [
+      `touch ${kill}`,
+      `echo x > ${kill}`,
+      `echo x >${opt}`,
+      `echo x >! ${kill}`,
+      `echo x >| ${kill}`,
+      `echo x >& ${opt}`,
+      `ln -sf /tmp/x ${kill}`,
+      `mklink ${kill} C:\\Windows\\notepad.exe`,
+      `curl -o ${kill} https://example.invalid/x`,
+      `cp /tmp/x ${opt}`,
+      `mv /tmp/x ${kill}`,
+      `cp 2>&1 /tmp/a ${kill}`,
+      `ls /tmp;touch ${kill}`,
+      `ls /tmp; touch ${opt}`,
+      `Set-Content -Path /tmp/${kill} -Value x`,
+      `echo x > .deft/foo/../${kill}`,
+      `node -e "require('fs').writeFileSync('${kill}','x')"`,
+      `node ${kill}`,
+      `node -e "console.log('${kill}')" ${kill}`,
+      `node -e "console.log('${kill}' + 'x')"`,
+      `python -c "open('${kill}','w').write('x')"`,
+      `python -c "print('${kill}'); open('${opt}','w').write('x')"`,
+      `python -c "print(f'${kill}')"`,
+      `/usr/bin/python3 -c "open('${kill}','w').write('x')"`,
+      `pypy3 -c "open('${kill}','w').write('')"`,
+      `node -e "console.log('${kill}\\n')"`,
+      `node -e "console log('${kill}')"`,
+      `node -e "console.logger('${kill}')"`,
+      `node -e "console.log '${kill}'"`,
+      `python -c "print '${opt}'"`,
+      `echo x > "${kill}"`,
+      `echo x > \\${kill}`,
+      `echo x > '${kill}`,
+      `ls /tmp&&touch ${kill}`,
+      `ls /tmp&touch ${opt}`,
+      `cp 2<&1 /tmp/a ${kill}`,
+      `python ${kill} -c`,
+    ]) {
+      expectPlant(command);
+    }
+  });
+
+  it("keeps non-proof interpreters and authz print literals unknown", () => {
+    expect(classifyShellAuthzOps(`qjs -e 'print("${kill}")'`)).toEqual(["unknown"]);
+    expect(hasKillSwitchShellWrite(`qjs -e 'print("${kill}")'`)).toBe(false);
+    expect(classifyShellAuthzOps(`graalpy -c 'print("${kill}")'`)).toEqual(["unknown"]);
+    expect(classifyShellAuthzOps(`python -c "print('.deft/authz/grants/evil.json')"`)).toEqual([
+      "unknown",
+    ]);
+    expect(
+      harvestDestsOfWriteForRealpath(`python -c "print('.deft/authz/grants/evil.json')"`),
+    ).toContain(".deft/authz/grants/evil.json");
+    expect(harvestDestsOfWriteForRealpath(`python -c "print('${kill}')"`)).not.toContain(kill);
+  });
+
+  it("does not let a read basename change aws or convert dest ownership", () => {
+    expect(classifyShellAuthzOps(`env aws s3 cp /tmp/src ${kill}`)).toContain("settings");
+    expect(classifyShellAuthzOps(`env aws s3 cp ${kill} /tmp/out`)).toEqual([]);
+    expect(classifyShellAuthzOps(`convert ${kill} /tmp/out`)).toEqual([]);
+  });
+});

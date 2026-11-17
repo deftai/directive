@@ -2666,14 +2666,312 @@ function interpreterPayloadIsProvenReadOnly(payload: string): boolean {
 }
 
 /**
+ * #6188: literal-only `console.log("…")` / `print("…")` is a mention, not a plant.
+ * One plain quoted argument, optional trailing semicolon, nothing else.
+ * No templates, escapes, f-strings, concatenation, or extra statements.
+ */
+function skipAsciiSpace(text: string, index: number): number {
+  let i = index;
+  while (i < text.length) {
+    const c = text[i] as string;
+    if (c === " " || c === "\t" || c === "\n" || c === "\r") {
+      i++;
+      continue;
+    }
+    break;
+  }
+  return i;
+}
+
+function matchLiteralAt(text: string, index: number, literal: string): number {
+  if (text.slice(index, index + literal.length) !== literal) return -1;
+  return index + literal.length;
+}
+
+function isCallBoundary(char: string | undefined): boolean {
+  return (
+    char === undefined ||
+    char === "(" ||
+    char === " " ||
+    char === "\t" ||
+    char === "\n" ||
+    char === "\r"
+  );
+}
+
+/** Plain `'…'` / `"…"` with no backslash. End index after the closer, or -1. */
+function matchPlainQuotedString(text: string, index: number): number {
+  const quote = text[index];
+  if (quote !== "'" && quote !== '"') return -1;
+  for (let i = index + 1; i < text.length; i++) {
+    const c = text[i] as string;
+    if (c === "\\") return -1;
+    if (c === quote) return i + 1;
+  }
+  return -1;
+}
+
+function isBoundedCallWithStringArg(text: string, kind: "node" | "python"): boolean {
+  let i = skipAsciiSpace(text, 0);
+  if (kind === "node") {
+    const afterConsole = matchLiteralAt(text, i, "console");
+    if (afterConsole < 0) return false;
+    i = skipAsciiSpace(text, afterConsole);
+    const afterDot = matchLiteralAt(text, i, ".");
+    if (afterDot < 0) return false;
+    i = skipAsciiSpace(text, afterDot);
+    const afterLog = matchLiteralAt(text, i, "log");
+    if (afterLog < 0 || !isCallBoundary(text[afterLog])) return false;
+    i = afterLog;
+  } else {
+    const afterPrint = matchLiteralAt(text, i, "print");
+    if (afterPrint < 0 || !isCallBoundary(text[afterPrint])) return false;
+    i = afterPrint;
+  }
+  i = skipAsciiSpace(text, i);
+  const afterParen = matchLiteralAt(text, i, "(");
+  if (afterParen < 0) return false;
+  i = skipAsciiSpace(text, afterParen);
+  const afterString = matchPlainQuotedString(text, i);
+  if (afterString < 0) return false;
+  i = skipAsciiSpace(text, afterString);
+  const afterClose = matchLiteralAt(text, i, ")");
+  if (afterClose < 0) return false;
+  i = skipAsciiSpace(text, afterClose);
+  if (text[i] === ";") {
+    i = skipAsciiSpace(text, i + 1);
+  }
+  return i === text.length;
+}
+
+/** Node `console.log` and Python `print` only. qjs, ipython, and graalpy stay unknown. */
+function printProofFamily(bare: string): "node" | "python" | null {
+  const name = bare.toLowerCase();
+  if (
+    name === "node" ||
+    name === "nodejs" ||
+    name === "tsx" ||
+    name === "ts-node" ||
+    name === "tsnode" ||
+    name === "bun" ||
+    name === "deno" ||
+    /^node\d+$/.test(name)
+  ) {
+    return "node";
+  }
+  if (
+    name === "python" ||
+    name === "python2" ||
+    name === "python3" ||
+    name === "pypy" ||
+    name === "pypy3" ||
+    name.startsWith("python2.") ||
+    name.startsWith("python3.") ||
+    name.startsWith("pypy3.") ||
+    /^python\d+(\.\d+)*$/.test(name) ||
+    /^pypy\d+(\.\d+)*$/.test(name)
+  ) {
+    return "python";
+  }
+  return null;
+}
+
+function isBoundedPrintMentionProof(family: "node" | "python" | null, payload: string): boolean {
+  if (family === "node") return isBoundedCallWithStringArg(payload, "node");
+  if (family === "python") return isBoundedCallWithStringArg(payload, "python");
+  return false;
+}
+
+function textMentionsKillSwitch(text: string): boolean {
+  const lower = text.toLowerCase().replace(/\\/g, "/");
+  const stripped = lower.replace(/['"]/g, "");
+  for (const name of KILL_SWITCH_BASENAMES) {
+    if (lower.includes(name) || stripped.includes(name)) return true;
+  }
+  return false;
+}
+
+function operandIsKillSwitch(operand: string): boolean {
+  const literal = zipShellWordLiteral(operand) ?? operand;
+  return isKillSwitchPlantPath(pathishToken(literal));
+}
+
+/**
+ * One redirect operand starting at `start` (already past `>|` / `>!` / `>&`).
+ * Stops at unquoted whitespace or a real list separator. `>|` is noclobber,
+ * so this walk must not use the segment splitter that treats `|` as a pipe.
+ */
+function readRedirectOperand(text: string, start: number): { word: string; end: number } | null {
+  let quote: "'" | '"' | null = null;
+  let word = "";
+  let i = start;
+  if (i >= text.length) return null;
+  const first = text[i] as string;
+  if (first === ";" || first === "|" || first === "&" || first === "\n" || first === "\r") {
+    return null;
+  }
+  for (; i < text.length; i++) {
+    const char = text[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < text.length) {
+      word += char;
+      word += text[i + 1] as string;
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === char) quote = null;
+      word += char;
+      continue;
+    }
+    if (
+      quote === null &&
+      (char === " " ||
+        char === "\t" ||
+        char === "\n" ||
+        char === "\r" ||
+        char === ";" ||
+        char === "|" ||
+        char === "&")
+    ) {
+      break;
+    }
+    word += char;
+  }
+  return { word, end: i };
+}
+
+/**
+ * Quote-aware redirect operand is the kill-switch basename (#6188).
+ * The operand is only the attached or next word, not every later argument.
+ * `>|` stays a noclobber dest (the `|` is not a pipe).
+ */
+function quoteAwareRedirectPlantsKillSwitch(command: string): boolean {
+  const text = shellWithoutHereDocBodies(command);
+  let quote: "'" | '"' | null = null;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i] as string;
+    if (char === "\\" && quote !== "'" && i + 1 < text.length) {
+      i++;
+      continue;
+    }
+    if (char === "'" || char === '"') {
+      if (quote === null) quote = char;
+      else if (quote === char) quote = null;
+      continue;
+    }
+    if (quote !== null || char !== ">") continue;
+    let j = i + 1;
+    while (
+      j < text.length &&
+      (text[j] === ">" || text[j] === "<" || text[j] === "&" || text[j] === "|" || text[j] === "!")
+    ) {
+      j++;
+    }
+    while (j < text.length && (text[j] === " " || text[j] === "\t")) j++;
+    const operand = readRedirectOperand(text, j);
+    if (operand !== null && operandIsKillSwitch(operand.word)) return true;
+    if (operand !== null) i = operand.end - 1;
+  }
+  return false;
+}
+
+/**
+ * `2>&1` is fd duplication, not a list separator. Glued `ordinary;` still ends
+ * the write-bin scan (shellTokens does not split on `;`).
+ */
+function killWriteScanStops(token: string): boolean {
+  if (isShellConnectorToken(token) || isShellSegmentBreak(token)) return true;
+  const idx = firstUnquotedShellOpIndex(token);
+  if (idx < 0) return false;
+  const ch = token[idx] as string;
+  if (ch === "&") {
+    const prev = idx > 0 ? (token[idx - 1] as string) : "";
+    if (prev === ">" || prev === "<") return false;
+  }
+  return true;
+}
+
+/** Trailing bin glued on a connector (`ok;touch`). Empty when the token only ends the segment. */
+function gluedBinAfterConnector(token: string): string | null {
+  let idx = firstUnquotedShellOpIndex(token);
+  if (idx < 0) return null;
+  const ch = token[idx] as string;
+  if ((ch === "&" || ch === "|") && token[idx + 1] === ch) idx += 1;
+  else if (ch === "&") {
+    const prev = idx > 0 ? (token[idx - 1] as string) : "";
+    if (prev === ">" || prev === "<") return null;
+  }
+  const tail = token.slice(idx + 1);
+  return tail.length > 0 ? tail : null;
+}
+
+/**
+ * Same-segment interpreter payload. A bounded print/console.log proof is the
+ * only kill-switch mention that is not a plant. A later positional basename
+ * still plants (`node` of the flag file).
+ */
+function segmentInterpreterPlantsKillSwitch(words: readonly string[], binIndex: number): boolean {
+  const family = printProofFamily(writeBinName(words[binIndex] as string));
+  const payloadIndexes = new Set<number>();
+  let i = binIndex + 1;
+  while (i < words.length) {
+    const raw = words[i] as string;
+    if (killWriteScanStops(raw)) break;
+    const flag = normalizeToken(raw);
+    const next = words[i + 1];
+    if (
+      (INTERPRETER_CODE_FLAGS.has(flag) || flag === "eval") &&
+      next !== undefined &&
+      !next.startsWith("-") &&
+      !killWriteScanStops(next)
+    ) {
+      const payload = unwrapQuotedPayload(next);
+      if (textMentionsKillSwitch(payload) && !isBoundedPrintMentionProof(family, payload)) {
+        return true;
+      }
+      payloadIndexes.add(i + 1);
+      i += 2;
+      continue;
+    }
+    i++;
+  }
+  for (let j = binIndex + 1; j < words.length; j++) {
+    const raw = words[j] as string;
+    if (killWriteScanStops(raw)) break;
+    if (payloadIndexes.has(j)) continue;
+    if (normalizeToken(raw).startsWith("-")) continue;
+    if (isKillSwitchPlantPath(pathishToken(raw))) return true;
+  }
+  return false;
+}
+
+function quoteAwareInterpreterPlantsKillSwitch(command: string): boolean {
+  const text = shellWithoutHereDocBodies(command);
+  for (const segment of zipShellSegments(text)) {
+    const words = zipShellWords(segment);
+    if (words === null) continue;
+    for (let i = 0; i < words.length; i++) {
+      const raw = words[i] as string;
+      if (killWriteScanStops(raw) || !isProgrammaticWriteBinToken(raw)) continue;
+      if (segmentInterpreterPlantsKillSwitch(words, i)) return true;
+    }
+  }
+  return false;
+}
+
+/**
  * #3764 / #3728: path literals in interpreter payloads are dest-of-write
  * without a write-API / language parse. Reads and `print` of protected paths
  * in those payloads classify unknown. Emacs eval forms also reconstruct Lisp
  * `concat` literals because the individual strings need not be protected.
+ * #6188: a bounded console.log/print proof drops kill-switch basename literals
+ * only. `.deft/authz` and `.deft/approved-scope` literals still classify unknown.
  */
 function harvestInterpreterPayloadDests(words: readonly string[], execIndex: number): string[] {
   const dests: string[] = [];
   const name = argv0BareName(words, execIndex);
+  const family = printProofFamily(name ?? "");
   for (let i = execIndex + 1; i < words.length; i++) {
     const rawFlag = words[i] as string;
     const flag = normalizeToken(rawFlag);
@@ -2681,13 +2979,20 @@ function harvestInterpreterPayloadDests(words: readonly string[], execIndex: num
     if (!INTERPRETER_CODE_FLAGS.has(flag) && flag !== "eval") continue;
     const payload = words[i + 1];
     if (payload === undefined) continue;
-    dests.push(...quotedStringLiterals(payload));
+    const proof = isBoundedPrintMentionProof(family, unwrapQuotedPayload(payload));
+    for (const literal of quotedStringLiterals(payload)) {
+      if (proof && isKillSwitchPlantPath(pathishToken(literal))) continue;
+      dests.push(literal);
+    }
     const emacsEvalFlag =
       (name === "emacs" || name === "emacsclient") &&
       (flag === "--eval" || flag === "-eval" || flag === "-e");
     if (emacsEvalFlag) dests.push(...concatenatedQuotedStringLiterals(payload));
     if (!interpreterPayloadIsProvenReadOnly(payload)) {
-      dests.push(...unquotedPayloadPathTokens(payload));
+      for (const literal of unquotedPayloadPathTokens(payload)) {
+        if (proof && isKillSwitchPlantPath(pathishToken(literal))) continue;
+        dests.push(literal);
+      }
     }
   }
   return dests;
@@ -3659,12 +3964,42 @@ function pathishMentionsKillSwitch(pathish: string): boolean {
  * Shell write targeting `.deft-directive-disable` / `.no-deft-directive` (#3186 / #3039 / #3213 / #6136).
  * Always-on grant-gated plant deny (not UAT-only). Includes symlink plant bins
  * (`ln`/`link`/`mklink`) and quote-split-resistant basename checks.
+ * #6188: plant only when the basename is a same-segment write destination
+ * (redirect operand, dest flag, or dest positional). A stderr redirect or a
+ * later read of the basename is not a plant. Literal console.log/print is not.
  */
 export function hasKillSwitchShellWrite(command: string, tokens?: readonly string[]): boolean {
   const cmd = command.trim();
   if (cmd.length === 0) return false;
   const resolvedTokens = tokens ?? shellTokens(cmd);
   return hasKillSwitchShellWriteInner(cmd, resolvedTokens);
+}
+
+function killSwitchWriteBinToken(token: string): boolean {
+  const binTok = normalizeToken(token);
+  const bare = writeBinName(token);
+  if (isProgrammaticWriteBinToken(token)) return false;
+  return killWriteBinsHas(binTok) || killWriteBinsHas(bare);
+}
+
+function killWriteBinsHas(name: string): boolean {
+  return (
+    INDIRECT_WRITE_BINS.has(name) ||
+    SYMLINK_PLANT_BINS.has(name) ||
+    ARCHIVE_ALT_WRITE_BINS.has(name) ||
+    name === "touch" ||
+    name === "new-item" ||
+    name === "ni"
+  );
+}
+
+function tokenPlantsKillSwitch(token: string): boolean {
+  const p = pathishToken(token);
+  if (pathishMentionsKillSwitch(p)) return true;
+  for (const prefix of SOCAT_WRITE_ADDR_PREFIXES) {
+    if (p.startsWith(prefix) && pathishMentionsKillSwitch(p.slice(prefix.length))) return true;
+  }
+  return false;
 }
 
 function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]): boolean {
@@ -3688,78 +4023,42 @@ function hasKillSwitchShellWriteInner(command: string, tokens: readonly string[]
   }
   if (!mentionsKill) return false;
 
-  // Redirect dest region after each `>` operator, including noclobber forms (#4199).
-  for (const hay of [lower, stripped]) {
-    for (let i = 0; i < hay.length; i++) {
-      if (hay[i] !== ">") continue;
-      const dest = redirectDestSlice(hay, i);
-      for (const name of KILL_SWITCH_BASENAMES) {
-        if (dest.includes(name)) return true;
-      }
-    }
-  }
+  // Same-segment redirect operand, including noclobber `>!` / `>|` / `>&` (#6188 / #4199).
+  // A later read argument after `2>/dev/null` is not the operand.
+  if (quoteAwareRedirectPlantsKillSwitch(command)) return true;
 
   // Downloader/decoder destinations: curl -o .deft-directive-disable, scp, … (#3206 / #3213).
   for (const dest of downloaderDecoderDestinations(tokens)) {
     if (pathishMentionsKillSwitch(dest)) return true;
   }
 
+  // Interpreter one-liners: write mentions plant; literal console.log/print does not (#6188).
+  if (quoteAwareInterpreterPlantsKillSwitch(command)) return true;
+
   // Write/destructive + symlink plant + archive/alt-write bins with a kill-switch path
-  // argument (#3213 ln/link/mklink; #3245 tar/axel/rclone/socat residual).
-  // echo/printf/type are stdout-only without a redirect; redirect dests are handled
-  // above so bare `echo .deft-directive-disable` stays non-plant (#6136 Greptile P2).
-  const killWriteBins = new Set([
-    ...INDIRECT_WRITE_BINS,
-    ...SYMLINK_PLANT_BINS,
-    ...ARCHIVE_ALT_WRITE_BINS,
-    "touch",
-    "new-item",
-    "ni",
-  ]);
+  // argument in the SAME segment (#3213 ln/link/mklink; #3245 tar/axel/rclone/socat residual).
+  // echo/printf/type are stdout-only without a redirect. Interpreters are handled above
+  // so a spaced console.log payload is not a positional dest. No command-wide basename
+  // fallback: `touch ordinary; ls <basename>` and `ls <basename> 2>/dev/null` stay reads.
   for (let ti = 0; ti < tokens.length; ti++) {
-    const binTok = normalizeToken(tokens[ti] as string);
-    const bare = writeBinName(tokens[ti] as string);
-    if (!killWriteBins.has(binTok) && !killWriteBins.has(bare)) continue;
+    const raw = tokens[ti] as string;
+    let binToken = raw;
+    if (killWriteScanStops(raw)) {
+      const glued = gluedBinAfterConnector(raw);
+      if (glued === null || !killSwitchWriteBinToken(glued)) continue;
+      binToken = glued;
+    } else if (!killSwitchWriteBinToken(raw)) {
+      continue;
+    }
+    const bare = writeBinName(binToken);
     // Last-positional dest bins (and their subcommands): dest harvest owns dest vs source.
     if (LAST_POSITIONAL_DEST_BINS.has(bare) || segmentStartedByLastPositionalDest(tokens, ti)) {
       continue;
     }
     for (let tj = ti + 1; tj < tokens.length; tj++) {
-      const p = pathishToken(tokens[tj] as string);
-      if (pathishMentionsKillSwitch(p)) return true;
-      // socat OPEN:.deft-directive-disable — path after address prefix (#3245).
-      for (const prefix of SOCAT_WRITE_ADDR_PREFIXES) {
-        if (p.startsWith(prefix) && pathishMentionsKillSwitch(p.slice(prefix.length))) {
-          return true;
-        }
-      }
-    }
-  }
-  // Bare `touch .deft-directive-disable` / `ln -sf x .deft-directive-disable` — path later.
-  // Skip tokens in a last-positional dest segment (dest harvest owns dest vs source).
-  // Other segments still scan so `aws … ; touch .deft-directive-disable` is settings.
-  for (let ti = 0; ti < tokens.length; ti++) {
-    if (
-      LAST_POSITIONAL_DEST_BINS.has(writeBinName(tokens[ti] as string)) ||
-      segmentStartedByLastPositionalDest(tokens, ti)
-    ) {
-      continue;
-    }
-    const p = pathishToken(tokens[ti] as string);
-    for (const name of KILL_SWITCH_BASENAMES) {
-      // Exact basename or ends with /basename
-      if (p === name || p.endsWith(`/${name}`)) {
-        // Require some write shape (redirect already handled; touch/ni/echo/ln/…)
-        if (
-          hasWriteShape(command, tokens) ||
-          lower.includes("touch") ||
-          lower.includes("new-item") ||
-          SYMLINK_PLANT_BINS.has(writeBinName(tokens[0] as string)) ||
-          tokens.some((tok) => SYMLINK_PLANT_BINS.has(writeBinName(tok)))
-        ) {
-          return true;
-        }
-      }
+      const later = tokens[tj] as string;
+      if (killWriteScanStops(later)) break;
+      if (tokenPlantsKillSwitch(later)) return true;
     }
   }
   return false;
@@ -4871,10 +5170,12 @@ function redirectDestIsProtectedSettings(command: string): boolean {
   for (const hay of [lower, stripped]) {
     for (let i = 0; i < hay.length; i++) {
       if (hay[i] !== ">") continue;
-      if (pathishIsProtectedMutationDest(redirectDestSlice(hay, i))) return true;
+      // Settings-store redirects stay on the slice. Kill-switch uses the
+      // quote-aware operand so `ls 2>/dev/null <basename>` is not a dest (#6188).
+      if (pathishIsSettingsStoreDir(redirectDestSlice(hay, i))) return true;
     }
   }
-  return false;
+  return quoteAwareRedirectPlantsKillSwitch(command);
 }
 
 const EMPTY_OPS_LAST_DEST_BINS = new Set(["makeself", "puppet", "yq", "dasel", "nomad"]);

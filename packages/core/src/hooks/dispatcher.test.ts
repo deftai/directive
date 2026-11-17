@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { classifyHookAuthzOps } from "../authz/classify.js";
 import { writeKillAttestation } from "../orchestration/subagent-kill-attestation.js";
 import { DEFAULT_RUNTIME_AUTHORITY_POLICY } from "../policy/runtime-authority.js";
 import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
@@ -8328,6 +8329,156 @@ describe("always-on kill-switch plant deny (#6136)", () => {
       expect(decision.message).toMatch(/inventoried authz|approved-scope/i);
     },
   );
+
+  function activeUatSeams(): HookPolicySeams {
+    return readySeams({
+      verifyRitual: () => ({ ...READY_RITUAL, boundSessionId: "owner" }),
+      loadAuthzState: () => ({
+        schemaVersion: 1,
+        uat: {
+          active: true,
+          campaignId: "uat-6188",
+          startedAt: "2026-11-17T00:00:00.000Z",
+          startedBy: {
+            kind: "operator-cli",
+            actor: "operator",
+            mintedAt: "2026-11-17T00:00:00.000Z",
+            mintedVia: "cli",
+            eventRef: null,
+          },
+          suspendedAt: null,
+          note: null,
+        },
+        activeGrantIds: [],
+      }),
+      loadAuthzGrants: () => [],
+      authzAudit: false,
+      loadStoryWriteFence: () => ({ fileScope: ["**"], denyPaths: [] }),
+    });
+  }
+
+  function shellDecision(root: string, command: string, seams: HookPolicySeams) {
+    return decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: { command },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      seams,
+    );
+  }
+
+  it("allows a read-only kill-switch check under inactive and active UAT (#6188)", () => {
+    const allows = [
+      `ls -la ${kill} 2>/dev/null`,
+      `test -e ${kill}`,
+      `stat ${kill} 2>/dev/null`,
+      `cat ${kill}`,
+      `Test-Path ${kill} 2>$null`,
+      `Get-Item ${kill} 2>$null`,
+      `ls 2>/dev/null ${kill}`,
+      `touch /tmp/ordinary-file; ls ${kill}`,
+      `printf '%s' 'example > ${kill}'`,
+      `node -e "console.log('${kill}')"`,
+      `python -c "print('${kill}')"`,
+    ];
+    for (const seams of [inactiveAuthzSeams(), activeUatSeams()]) {
+      for (const command of allows) {
+        const root = ownerRoot();
+        const decision = shellDecision(root, command, seams);
+        expect(decision.verdict, command).toBe("allow");
+        expect(decision.message ?? "", command).not.toMatch(/permanent opt-out plant/i);
+        expect(
+          classifyHookAuthzOps({
+            toolName: "run_terminal_command",
+            shellCommand: command,
+            isDirectWrite: false,
+            projectRoot: root,
+          }),
+          command,
+        ).toEqual([]);
+      }
+    }
+  });
+
+  it("allows the existence check whether the flag file is absent or present (#6188)", () => {
+    for (const present of [false, true]) {
+      for (const seams of [inactiveAuthzSeams(), activeUatSeams()]) {
+        const root = ownerRoot();
+        if (present) writeFileSync(join(root, kill), "");
+        const command = `cd ${root} && ls -la ${kill} 2>/dev/null`;
+        const decision = shellDecision(root, command, seams);
+        expect(decision.verdict, `present=${present}`).toBe("allow");
+        expect(decision.message ?? "", `present=${present}`).not.toMatch(
+          /permanent opt-out plant/i,
+        );
+        expect(
+          classifyHookAuthzOps({
+            toolName: "run_terminal_command",
+            shellCommand: command,
+            isDirectWrite: false,
+            projectRoot: root,
+          }),
+        ).toEqual([]);
+      }
+    }
+  });
+
+  it("still denies plants of the kill-switch file (#6188)", () => {
+    const denies = [
+      `touch ${kill}`,
+      `echo x > ${kill}`,
+      `ln -sf /tmp/x ${kill}`,
+      `curl -o ${kill} https://example.invalid/x`,
+      `cp /tmp/x ${kill}`,
+      `mv /tmp/x ${kill}`,
+      `echo x >${kill}`,
+      `ls /tmp; touch ${kill}`,
+      `node -e "require('fs').writeFileSync('${kill}','x')"`,
+      `python -c "open('${kill}','w').write('x')"`,
+      `python -c "print('${kill}'); open('${kill}','w').write('x')"`,
+    ];
+    for (const seams of [inactiveAuthzSeams(), activeUatSeams()]) {
+      for (const command of denies) {
+        const root = ownerRoot();
+        const decision = shellDecision(root, command, seams);
+        expect(decision.verdict, command).toBe("deny");
+        expect(decision.message, command).toMatch(
+          /kill-switch|opt-out|human-origin|settings grant|inventoried authz|protected dest-of-write/i,
+        );
+      }
+    }
+    for (const toolName of ["Write", "Edit"]) {
+      const root = ownerRoot();
+      const decision = decideHook(
+        {
+          host: "grok",
+          event: "tool.before",
+          projectRoot: root,
+          payload: {
+            tool_name: toolName,
+            tool_input: {
+              file_path: join(root, kill),
+              contents: "x",
+              old_string: "",
+              new_string: "x",
+            },
+          },
+          environ: { DEFT_SESSION_ID: "owner" },
+        },
+        inactiveAuthzSeams(),
+      );
+      expect(decision.verdict, toolName).toBe("deny");
+      expect(decision.message, toolName).toMatch(
+        /kill-switch|opt-out|human-origin|settings grant/i,
+      );
+    }
+  });
 });
 
 describe("process_only implement-conflict suppressor (#4781)", () => {
