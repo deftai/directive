@@ -254,3 +254,69 @@ describe("resolveCommitTarget (#6278)", () => {
     expect(COMMIT_TARGET_ACCEPTED_FORMS).toContain("cd <absolute path> && git commit");
   });
 });
+
+describe("heredoc bodies are data to every commit detector (#6187)", () => {
+  // The issue repro: a note whose body names a compound commit with a file
+  // message and trailing prose, which used to read as an index-mutating commit.
+  const body = "- the hook refuses `cd <wt> && git commit -F <file>`; a standalone commit works";
+  const quotedNote = `cat >> /tmp/notes.md <<'NOTE'\n${body}\nNOTE`;
+  const unquotedNote = `cat >> /tmp/notes.md <<NOTE\n${body}\nNOTE`;
+  const tabNote = `cat >> /tmp/notes.md <<-NOTE\n\t${body}\n\tNOTE`;
+
+  it("does not read a heredoc note that names a commit as a commit", () => {
+    for (const note of [quotedNote, unquotedNote, tabNote]) {
+      expect(commandHasGitCommitSubcommand(note)).toBe(false);
+      expect(commandHasGitCommitIndexMutatingForm(note)).toBe(false);
+      expect(resolveCommitTarget(note, posix)).toBeNull();
+    }
+  });
+
+  it("keeps a real compound commit with a file message", () => {
+    const command = "cd /c/wt && git commit -F /c/msg.txt";
+    expect(commandHasGitCommitSubcommand(command)).toBe(true);
+    expect(commandHasGitCommitIndexMutatingForm(command)).toBe(false);
+    expect(resolveCommitTarget(command, posix)).toEqual({
+      kind: "named",
+      path: "/c/wt",
+      shape: "cd",
+    });
+  });
+
+  it("still flags -am and trailing pathspecs, also after a heredoc that closes", () => {
+    expect(commandHasGitCommitIndexMutatingForm("git commit -am msg")).toBe(true);
+    expect(commandHasGitCommitIndexMutatingForm("git commit -m msg -- src/a.ts")).toBe(true);
+    const after = `${quotedNote}\ngit commit -am msg`;
+    expect(commandHasGitCommitSubcommand(after)).toBe(true);
+    expect(commandHasGitCommitIndexMutatingForm(after)).toBe(true);
+  });
+
+  it("keeps commands on the heredoc opener line and resolves a commit after the body", () => {
+    const opener = `cat > /tmp/m.txt <<'EOF' && git commit -F /tmp/m.txt\n${body}\nEOF`;
+    expect(commandHasGitCommitSubcommand(opener)).toBe(true);
+    expect(commandHasGitCommitIndexMutatingForm(opener)).toBe(false);
+    const cdAfter = `cat > /tmp/m.txt <<'EOF'\n${body}\nEOF\ncd /c/wt && git commit -F /tmp/m.txt`;
+    expect(resolveCommitTarget(cdAfter, posix)).toEqual({
+      kind: "named",
+      path: "/c/wt",
+      shape: "cd",
+    });
+  });
+
+  it("strips a heredoc whose opener is line-continued (shared authz chain)", () => {
+    const continued = `cat >> /tmp/notes.md \\\n  <<'NOTE'\n${body}\nNOTE`;
+    expect(commandHasGitCommitSubcommand(continued)).toBe(false);
+    expect(commandHasGitCommitIndexMutatingForm(continued)).toBe(false);
+    expect(commandHasGitCommitSubcommand("git commit \\\n  -m msg")).toBe(true);
+  });
+
+  it("leaves text after an unclosed heredoc opener dropped, as authz does", () => {
+    const unclosed = `cat >> /tmp/notes.md <<'NOTE'\n${body}\ngit commit -am msg`;
+    expect(commandHasGitCommitSubcommand(unclosed)).toBe(false);
+    expect(commandHasGitCommitIndexMutatingForm(unclosed)).toBe(false);
+  });
+
+  it("keeps here-strings and arithmetic shifts as ordinary text", () => {
+    expect(commandHasGitCommitSubcommand("cat <<< note && git commit -m x")).toBe(true);
+    expect(commandHasGitCommitSubcommand("echo $((1 << 2)) && git commit -m x")).toBe(true);
+  });
+});

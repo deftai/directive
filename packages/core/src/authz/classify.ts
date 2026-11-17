@@ -1998,6 +1998,17 @@ function zipShellWithoutHereDocBodies(command: string): string {
   return kept.join("\n");
 }
 
+/**
+ * Shell text the shell runs as commands: backslash-newline continuations
+ * removed, then recognized heredoc bodies removed (quoted and unquoted
+ * delimiters; commands before and after are kept; an unclosed heredoc drops
+ * the rest of the text). The one preprocess shared by the zip / protected-dest
+ * classifiers and the #5656 commit-shape detectors (#6187).
+ */
+export function shellWithoutHereDocBodies(command: string): string {
+  return zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(command));
+}
+
 function zipLiteralHasDirSegment(pathish: string, dir: string): boolean {
   const canonical = canonicalizePathish(pathish);
   if (canonical === dir || canonical.startsWith(`${dir}/`)) return true;
@@ -2221,7 +2232,7 @@ function zipExecutableIndex(words: readonly string[]): number | null {
  * remain fail-open instead of turning this bounded producer into a zip parser.
  */
 function hasProtectedZipArchiveDestination(command: string): boolean {
-  const boundedCommand = zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(command));
+  const boundedCommand = shellWithoutHereDocBodies(command);
   const wordSegments = zipShellSegments(boundedCommand).map((segment) => zipShellWords(segment));
   const closingBraceAfter = new Array<boolean>(wordSegments.length).fill(false);
   const closingParenAfter = new Array<boolean>(wordSegments.length).fill(false);
@@ -3014,7 +3025,7 @@ type ZipStyleSegment = {
 };
 
 function zipStyleCommandSegments(command: string): ZipStyleSegment[] {
-  const boundedCommand = zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(command));
+  const boundedCommand = shellWithoutHereDocBodies(command);
   const wordSegments = zipShellSegments(boundedCommand).map((segment) => zipShellWords(segment));
   const closingBraceAfter = new Array<boolean>(wordSegments.length).fill(false);
   const closingParenAfter = new Array<boolean>(wordSegments.length).fill(false);
