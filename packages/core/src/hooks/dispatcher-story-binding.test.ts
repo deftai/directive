@@ -95,6 +95,9 @@ function brief(planId: string, issue: number, fileScope: readonly string[]): str
 
 const BRIEF_A = "xbrief/active/a-story.xbrief.json";
 const BRIEF_B = "xbrief/active/b-story.xbrief.json";
+// Exact paths: a glob no longer admits new files (#6221); undeclared extras spend a small budget.
+const SCOPE_A = ["packages/a/shared.ts", "packages/a/new.ts"];
+const SCOPE_B = ["packages/b/y.ts", "packages/b/in.ts"];
 
 interface Fixture {
   readonly primary: string;
@@ -114,8 +117,8 @@ function fixture(): Fixture {
   git(primary, ["init", "-q", "-b", "master"]);
   git(primary, ["config", "user.email", "t@t.local"]);
   git(primary, ["config", "user.name", "T"]);
-  put(primary, BRIEF_A, brief("plan-a", 101, ["packages/a/**"]));
-  put(primary, BRIEF_B, brief("plan-b", 102, ["packages/b/**"]));
+  put(primary, BRIEF_A, brief("plan-a", 101, SCOPE_A));
+  put(primary, BRIEF_B, brief("plan-b", 102, SCOPE_B));
   put(primary, "packages/a/shared.ts", "base\n");
   put(primary, "packages/b/y.ts", "base\n");
   put(primary, ".gitignore", ".deft-scratch/\n.deft/\n");
@@ -175,8 +178,8 @@ describe("resolveWorktreeStoryBinding read order (#6379 item 4)", () => {
   function project(): string {
     const root = mkdtempSync(join(tmpdir(), "hook-6379-resolver-"));
     temps.push(root);
-    put(root, BRIEF_A, brief("plan-a", 101, ["packages/a/**"]));
-    put(root, BRIEF_B, brief("plan-b", 102, ["packages/b/**"]));
+    put(root, BRIEF_A, brief("plan-a", 101, SCOPE_A));
+    put(root, BRIEF_B, brief("plan-b", 102, SCOPE_B));
     return root;
   }
   const noAssignment = () => ({ ok: true as const, assignment: null, commonDir: "/common" });
@@ -306,7 +309,7 @@ describe("story-binding record selects the story at the commit hook (#6379)", {
   it("refuses a path that only the worktree copy's edited file_scope covers", () => {
     const f = fixture();
     begin(f, "plan-a", f.wtA);
-    put(f.wtA, BRIEF_A, brief("plan-a", 101, ["packages/a/**", "packages/b/**"]));
+    put(f.wtA, BRIEF_A, brief("plan-a", 101, [...SCOPE_A, ...SCOPE_B]));
     git(f.wtA, ["add", "--", BRIEF_A]);
     stage(f.wtA, "packages/b/y.ts", "widened\n");
     const out = commit(f, f.wtA);

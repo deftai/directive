@@ -97,8 +97,14 @@ const BRIEF_A = "xbrief/active/a-story.xbrief.json";
 const BRIEF_B = "xbrief/active/b-story.xbrief.json";
 const DONE_A = "xbrief/completed/a-story.xbrief.json";
 const DONE_B = "xbrief/completed/b-story.xbrief.json";
-const SCOPE_A = ["packages/a/**"];
-const SCOPE_B = ["packages/b/**"];
+// Exact paths: a glob no longer admits new files (#6221); undeclared extras spend a small budget.
+const SCOPE_A = [
+  "packages/a/shared.ts",
+  "packages/a/fix.ts",
+  "packages/a/more.ts",
+  "packages/a/late.ts",
+];
+const SCOPE_B = ["packages/b/y.ts"];
 
 interface Fixture {
   readonly primary: string;
