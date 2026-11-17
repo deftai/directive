@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6467",
-    "updated": "2026-11-17T06:36:06Z"
+    "updated": "2026-11-17T15:52:07Z"
   },
   "plan": {
     "title": "bug(merge): a PR that conflicts with its base is reported as absent-required, not as a conflict",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "When a PR conflicts with its base branch, GitHub does not run its pull_request CI, so pr:wait-mergeable-and-merge waits, finds the required checks absent and reports absent-required, which workers read as a CI problem. This story adds one REST read of pulls/<N> after the monitor ends with absent-required or cap-reached; when GitHub reports mergeable_state dirty the verb reports the outcome base-conflict with exit 1 and an error that names the base branch and the merge-or-rebase fix. Every other case keeps today's outcome and text, and no gate, flag, exit code or stored state is added.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6467",
@@ -20,130 +20,242 @@
     "items": [
       {
         "title": "Trigger. In `waitMergeableAndMerge`, after `classifyMonitorOutcome`, when the outcome is `absent-required` or `cap-reached`, the verb makes one REST read of `pulls/<N>`. This applies in direct mode and in merge-queue mode, because the monitor runs before the enqueue. No other outcome makes the read. A clean monitor run makes no extra call. The outcomes the verb returns before the monitor (preflight refusals, `semantic-green-blocked` and its named outcomes, `new-p0-p1`) are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.ts, when the monitor outcome is absent-required or cap-reached, then waitMergeableAndMerge makes one REST read of pulls/<N> before any enqueue, and makes no read for any other outcome or for a return before the monitor."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d64673aaa424db7e00c002928c9e914ab7984320",
+          "recorded_at": "2026-11-17T15:52:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Reader. One new reader in `packages/core/src/pr-wait-mergeable/` takes `mergeable_state` and `base.ref` from that one response. It is injectable through one new option on `WaitMergeableOptions`. Under the existing test-harness convention (`skipHumanMergeGate` or `VITEST`, no injected function) the read is skipped, as for `watchFn` and `mergeQueueDetectFn`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.ts, when the reader runs, then it takes mergeable_state and base.ref from one pulls/<N> response, and the cascade reaches it through one injectable WaitMergeableOptions option that is skipped under the test-harness convention when not injected."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d64673aaa424db7e00c002928c9e914ab7984320",
+          "recorded_at": "2026-11-17T15:52:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Conflict outcome. When `mergeable_state` is `dirty`, the verb reports the outcome `base-conflict` with exit 1 (`EXIT_TIMEOUT_OR_ESCALATION`); its error text says that PR #N conflicts with its base branch and names that branch from `base.ref` (or says \"its base branch\" when `base.ref` is missing), says that required checks do not run on a conflicted PR only when the replaced outcome is `absent-required`, names the fix (merge or rebase the base branch into the PR branch, resolve the conflicts, push, then run `task pr:wait-mergeable-and-merge` again), and names the replaced monitor outcome; the monitor payload stays in `monitor_result`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.ts, when the read gives mergeable_state dirty, then the outcome is base-conflict with exit 1 and the error names the base branch (or its base branch), the missing-checks sentence only for absent-required, the merge-or-rebase fix and the replaced monitor outcome; monitor_result keeps the monitor payload."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d64673aaa424db7e00c002928c9e914ab7984320",
+          "recorded_at": "2026-11-17T15:52:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Fallback. When the read fails, cannot be parsed, or gives any state other than `dirty` (including `unknown`, null, `blocked`, `behind` and `unstable`, whatever `mergeable` says), the verb reports today's outcome, exit code and error text unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.ts, when the read fails, cannot be parsed, or gives any state other than dirty, then the outcome, exit code and error text are those of today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d64673aaa424db7e00c002928c9e914ab7984320",
+          "recorded_at": "2026-11-17T15:52:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Unchanged. No new exit code, flag, gate, refusal or stored state. The printed result label for exit 1 stays `TIMEOUT-OR-ESCALATION`; `outcome` and `error` carry the conflict. The merge-queue `--resume` / `--wait` path is not changed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.ts, when the change lands, then it adds no exit code, flag, gate, refusal or stored state, the exit-1 label stays TIMEOUT-OR-ESCALATION, and the merge-queue --resume / --wait path is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d64673aaa424db7e00c002928c9e914ab7984320",
+          "recorded_at": "2026-11-17T15:52:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Docs. The #6467 line under \"Known issues\" in `content/docs/github-merge-queue-setup.md` says that on 0.129.11 a conflicted PR shows `absent-required`, and that from the release with #6467 the verb reports `base-conflict` and names the fix. The line keeps `#6467` and `absent-required`, which the `merge_queue_playbook_6366` lock test requires.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given content/docs/github-merge-queue-setup.md, when Known issues is read, then the #6467 line says 0.129.11 shows absent-required and the release with #6467 reports base-conflict with the fix, and it still contains #6467 and absent-required."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d64673aaa424db7e00c002928c9e914ab7984320",
+          "recorded_at": "2026-11-17T15:52:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a monitor result `absent-required` and a read with `mergeable_state` `dirty` and `base.ref` `master`, when the verb runs, then the outcome is `base-conflict`, the exit code is 1, and the error names the conflict with `master`, says required checks do not run on a conflicted PR, and names the merge-or-rebase fix.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.test.ts, a test named for clause.7 injects the monitor result and the pulls/<N> read the clause states, runs the verb, and asserts the stated outcome, exit code, error text and read count."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d64673aaa424db7e00c002928c9e914ab7984320",
+          "recorded_at": "2026-11-17T15:52:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a monitor result `cap-reached` and a read with `mergeable_state` `dirty`, when the verb runs, then the outcome is `base-conflict`, the exit code is 1, and the error names the conflict and the fix and does not say that required checks do not run.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.test.ts, a test named for clause.8 injects the monitor result and the pulls/<N> read the clause states, runs the verb, and asserts the stated outcome, exit code, error text and read count."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d64673aaa424db7e00c002928c9e914ab7984320",
+          "recorded_at": "2026-11-17T15:52:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a monitor result `absent-required` and a read with `mergeable_state` `blocked`, when the verb runs, then the outcome is `absent-required` and the error text is the same as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.test.ts, a test named for clause.9 injects the monitor result and the pulls/<N> read the clause states, runs the verb, and asserts the stated outcome, exit code, error text and read count."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d64673aaa424db7e00c002928c9e914ab7984320",
+          "recorded_at": "2026-11-17T15:52:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a monitor result `absent-required` and a read that fails, or gives `unknown` or null, when the verb runs, then the outcome is `absent-required` and the error text is the same as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.test.ts, a test named for clause.10 injects the monitor result and the pulls/<N> read the clause states, runs the verb, and asserts the stated outcome, exit code, error text and read count."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d64673aaa424db7e00c002928c9e914ab7984320",
+          "recorded_at": "2026-11-17T15:52:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a read with `mergeable_state` `dirty` and no `base.ref`, when the verb reports `base-conflict`, then the error says \"its base branch\" and still names the fix.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.test.ts, a test named for clause.11 injects the monitor result and the pulls/<N> read the clause states, runs the verb, and asserts the stated outcome, exit code, error text and read count."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d64673aaa424db7e00c002928c9e914ab7984320",
+          "recorded_at": "2026-11-17T15:52:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a clean monitor result, when the verb runs, then the conflict read is not made.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.test.ts, a test named for clause.12 injects the monitor result and the pulls/<N> read the clause states, runs the verb, and asserts the stated outcome, exit code, error text and read count."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d64673aaa424db7e00c002928c9e914ab7984320",
+          "recorded_at": "2026-11-17T15:52:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a SHA-matched `new-p0-p1` probe before the monitor, when the verb runs, then the outcome is `new-p0-p1` and the conflict read is not made.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.test.ts, a test named for clause.13 injects the monitor result and the pulls/<N> read the clause states, runs the verb, and asserts the stated outcome, exit code, error text and read count."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d64673aaa424db7e00c002928c9e914ab7984320",
+          "recorded_at": "2026-11-17T15:52:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given merge-queue mode, a monitor result `absent-required` and a `dirty` read, when the verb runs, then the outcome is `base-conflict` and the PR is not enqueued.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.test.ts, a test named for clause.14 injects the monitor result and the pulls/<N> read the clause states, runs the verb, and asserts the stated outcome, exit code, error text and read count."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d64673aaa424db7e00c002928c9e914ab7984320",
+          "recorded_at": "2026-11-17T15:52:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `--json` and a `base-conflict` result, then standard output is one JSON document with `outcome` `base-conflict` and the error text.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-wait-mergeable/base-conflict.test.ts, a test named for clause.15 injects the monitor result and the pulls/<N> read the clause states, runs the verb, and asserts the stated outcome, exit code, error text and read count."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d64673aaa424db7e00c002928c9e914ab7984320",
+          "recorded_at": "2026-11-17T15:52:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`content/docs/github-merge-queue-setup.md` Known issues names `base-conflict` for #6467 and still contains `#6467` and `absent-required`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given content/docs/github-merge-queue-setup.md, when the merge_queue_playbook_6366 lock test runs, then it passes and the Known issues section names base-conflict for #6467."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d64673aaa424db7e00c002928c9e914ab7984320",
+          "recorded_at": "2026-11-17T15:52:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -544,7 +656,32 @@
         "harvestDigest": "91f01470a0f4d843b4ae3242bba9daa8f1a371d3468f74b656aaae1b309697b7",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 6522,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "b028780202c300bbbf9d7d54955bd0052752b714",
+        "prNumber": 6522,
+        "prBase": "master",
+        "mergeCommit": "d64673aaa424db7e00c002928c9e914ab7984320",
+        "deliveryBranch": "master",
+        "deliveryCommit": "82833357ab2f215886afc315b0e855fdf3c10258",
+        "verifiedAt": "2026-11-17T15:52:07Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T15:52:07Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T15:52:07Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -706,6 +843,6 @@
       "confessions": []
     },
     "id": "github.issue.6432923326",
-    "updated": "2026-11-17T06:36:06Z"
+    "updated": "2026-11-17T15:52:07Z"
   }
 }
