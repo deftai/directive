@@ -222,6 +222,8 @@ describe("finish step (#6296 item 3)", () => {
     execFileSync("git", ["init", "-q", "--bare", "-b", "master", origin]);
     execFileSync("git", ["init", "-q", "-b", "master"], { cwd: work });
     g(work, ["config", "core.autocrlf", "false"]);
+    g(work, ["config", "user.email", "ci@test"]);
+    g(work, ["config", "user.name", "ci"]);
     writeFileSync(join(work, "CHANGELOG.md"), PRE);
     writeFileSync(join(work, "ROADMAP.md"), "# Roadmap\n");
     g(work, ["add", "-A"]);
