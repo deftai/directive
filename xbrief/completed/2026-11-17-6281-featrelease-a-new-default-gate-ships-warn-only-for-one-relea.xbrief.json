@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6281",
-    "updated": "2026-11-17T14:56:02Z"
+    "updated": "2026-11-17T20:02:34Z"
   },
   "plan": {
     "title": "feat(release): a new default gate ships warn-only for one release, and every refusal names a runnable remedy",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "A new default gate can ship in a patch release and refuse work on the next hook refresh with no notice, and refusals often print a remedy that cannot be run as written, so agents read docs and runtime source to learn what a gate wants. This story adds one declaration table whose rows default to warn, one print helper that names the gate id and a runnable remedy, an advisory census of new or changed rows in release Check 5 that never stops a cut, and one test that runs each row's printed remedy from the refused state. The three dead remedies from the consumer report are the first rows, and main.md, docs/RELEASING.md and a new walkthrough page state the rule; the contract is lean 6908087379, accepted by synthesis 6908138687.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6281",
@@ -21,210 +21,392 @@
     "items": [
       {
         "title": "One declaration table. A new consumer-visible refusal is declared in one table in `packages/core`, with an `id`, a `mode` (`warn` or `enforce`), a `remedy` (the commands to run, in order, with every argument they need) and an optional `exception` reason. A row with no `mode` is `warn`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given the refusal declaration table, when it loads, then each row has an id, a mode of warn or enforce, a remedy of commands with their arguments and an optional exception, and a row with no mode is warn."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "One print helper. A declared refusal prints through one helper. The line names the gate id and the remedy. In `warn` mode the work proceeds and the line says that the gate can refuse from a later release. In `enforce` mode the same line is the refusal.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given a declared refusal, when its condition fires, then one line from the shared print helper names the gate id and the remedy; in warn mode the work proceeds and in enforce mode that line is the refusal."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The flip is a later one-line change. A refusal starts to refuse when its row changes to `enforce` in a later release, with its own CHANGELOG entry. A row that ships as `enforce` with no `warn` release carries an `exception` reason, and the CHANGELOG entry states that reason.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given a row that ships in enforce mode with no warn release, when the table is checked, then the row carries an exception reason, and turning a warn row to enforce is a one-line change in a later release."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Advisory census. Check 5 keeps `blocking: false`. It also prints every table row that is new or changed against a baseline, which is the table at the previous release tag as selected by the pipeline. It prints the baseline it used. Each row has one of three states: warned at the baseline, absent at a baseline that was read, or unknown when the baseline cannot be read. Unknown is printed as unknown and is never reported as a missing warn release. The row's `exception` reason is printed. Its closing sentence asks for a warn-first release or a named exception. Table rows are not cut off at 20 lines. No state stops the cut.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given a release census run, when Check 5 prints, then it lists every new or changed table row against the previous release table with state warned, absent or unknown, the baseline used and any exception reason, asks for a warn-first release or a named exception, and returns blocking false."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Remedies run as written. One parameterized test walks the table. For each row it starts from the refusal state, runs the printed remedy exactly as printed, and retries the refused operation. A row with no such case fails the test.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given the remedy test, when it runs, then for each table row it starts from the refusal state, runs the printed remedy exactly as printed and retries the refused operation, and a row with no case fails the test."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Seed rows. The refusals that #5977 names are the first rows, in `enforce` mode: the bound pre-PR push gate, the `setup` refusal for missing hook files, and the `verify:hooks-installed` refusal that prints `deft update`. Each prints a remedy that passes item 5.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given the table, when it loads, then the bound pre-PR push gate, the setup missing-hook-files refusal and the verify:hooks-installed refusal are rows in enforce mode whose printed remedies pass the remedy test."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Rule text. `main.md` Thin Fail-Closed Design and `docs/RELEASING.md` state the rule: narrow or remove a gate before adding one; a new default refusal ships in `warn` mode for at least one release; an exception is named with its reason.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given main.md Thin Fail-Closed Design and docs/RELEASING.md, when read, then they state narrow or remove a gate before adding one, a new default refusal ships in warn mode for at least one release, and an exception is named with its reason."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "One walkthrough page in `content/docs/`. It gives the full command sequence for one push, one completion and one plan update, and names each gate that can refuse on the way with its remedy.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given content/docs/gate-walkthrough.md, when read, then it shows the full command sequence for one push, one completion and one plan update and names each gate that can refuse on the way with its remedy."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Accepted limit. The warn period is counted per release, not per consumer, and no per-consumer warn state is kept. A consumer who upgrades past the warn-only release meets the refusal first; that refusal names the gate id and the remedy through the helper of item 2. The rule text of item 7 states this limit.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given docs/RELEASING.md, when read, then it states that the warn period counts per release with no per-consumer warn state, and that a consumer who upgrades past the warn release meets the refusal first with the gate id and remedy named."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a declared refusal in `warn` mode, when its condition fires, then the work proceeds and one line names the gate id, the remedy and that the gate can refuse from a later release.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given a declared refusal in `warn` mode, when its condition fires, then the work proceeds and one line names the gate id, the remedy and that the gate can refuse from a later release."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a declared refusal in `enforce` mode, when its condition fires, then the refusal line names the gate id and the same remedy.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given a declared refusal in `enforce` mode, when its condition fires, then the refusal line names the gate id and the same remedy."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a table row with no declared mode, when the table loads, then the mode of that row is `warn`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given a table row with no declared mode, when the table loads, then the mode of that row is `warn`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a row that is absent from a baseline that was read, with mode `enforce` and no `exception`, when the release census runs, then Check 5 lists the row as having no warn release and the cut proceeds.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given a row that is absent from a baseline that was read, with mode `enforce` and no `exception`, when the release census runs, then Check 5 lists the row as having no warn release and the cut proceeds."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a row that was `warn` at the baseline and is `enforce` now, when the release census runs, then Check 5 lists the row as warned in the previous release.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given a row that was `warn` at the baseline and is `enforce` now, when the release census runs, then Check 5 lists the row as warned in the previous release."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a baseline that cannot be read, when the release census runs, then Check 5 lists each current row with the state unknown and the cut proceeds.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given a baseline that cannot be read, when the release census runs, then Check 5 lists each current row with the state unknown and the cut proceeds."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a release census run, when Check 5 prints table rows, then it prints the baseline it compared against.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given a release census run, when Check 5 prints table rows, then it prints the baseline it compared against."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given more than 20 changed rows, when the release census runs, then every changed row is printed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "Given more than 20 changed rows, when the release census runs, then every changed row is printed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given any `[Unreleased]` content, when the release pipeline runs Check 5, then the disclosure returns `blocking: false`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "Given any `[Unreleased]` content, when the release pipeline runs Check 5, then the disclosure returns `blocking: false`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a table row with no refusal-state case, when the test suite runs, then the remedy test fails and names the row.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.19",
         "narrative": {
           "Acceptance": "Given a table row with no refusal-state case, when the test suite runs, then the remedy test fails and names the row."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the bound pre-PR push gate refusal, when the printed remedy is run exactly as printed and the push is retried, then that gate does not refuse the push.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.20",
         "narrative": {
           "Acceptance": "Given the bound pre-PR push gate refusal, when the printed remedy is run exactly as printed and the push is retried, then that gate does not refuse the push."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the `setup` refusal for missing hook files on a fresh install, when the printed remedy is run exactly as printed and `setup` is retried, then `setup` succeeds.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.21",
         "narrative": {
           "Acceptance": "Given the `setup` refusal for missing hook files on a fresh install, when the printed remedy is run exactly as printed and `setup` is retried, then `setup` succeeds."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an installed pin that is newer than the published latest version, when the `verify:hooks-installed` refusal prints its remedy and that remedy is run exactly as printed, then the remedy does not fail as a downgrade.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.22",
         "narrative": {
           "Acceptance": "Given an installed pin that is newer than the published latest version, when the `verify:hooks-installed` refusal prints its remedy and that remedy is run exactly as printed, then the remedy does not fail as a downgrade."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`main.md` and `docs/RELEASING.md` state the warn-first rule, the named-exception rule and the prefer-narrowing rule.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.23",
         "narrative": {
           "Acceptance": "`main.md` and `docs/RELEASING.md` state the warn-first rule, the named-exception rule and the prefer-narrowing rule."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`docs/RELEASING.md` states that a consumer who upgrades past the warn-only release meets the refusal first, with the gate id and the remedy named.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.24",
         "narrative": {
           "Acceptance": "`docs/RELEASING.md` states that a consumer who upgrades past the warn-only release meets the refusal first, with the gate id and the remedy named."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a declared refusal in `enforce` mode on an install that never ran its `warn` release, when its condition fires, then the refusal line names the gate id and the remedy.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.25",
         "narrative": {
           "Acceptance": "Given a declared refusal in `enforce` mode on an install that never ran its `warn` release, when its condition fires, then the refusal line names the gate id and the remedy."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`content/docs/` carries one walkthrough page with the command sequence for one push, one completion and one plan update.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.26",
         "narrative": {
           "Acceptance": "`content/docs/` carries one walkthrough page with the command sequence for one push, one completion and one plan update."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "737c3342bcee263802e168b32fd24da8630d275a",
+          "recorded_at": "2026-11-17T20:02:34Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -925,7 +1107,34 @@
         "harvestDigest": "a5a417734fd02e96e70ca6fb3a3efd7f25c245d2986262cbf4bc75655ccd4f75",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 6565,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "3aa7f9963fa413ed0973b64b289e24fc1169e54f",
+        "prNumber": 6565,
+        "prBase": "master",
+        "mergeCommit": "737c3342bcee263802e168b32fd24da8630d275a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a33cffa4171a6e557e08536e36d2adeb3d80393d",
+        "verifiedAt": "2026-11-17T20:02:34Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:YjMyN2M3NTMtODhiNS00ZGJmLWFiZTUtMWM2MmVkMWY5ZDQ5",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T20:02:34Z",
+      "completedSessionId": "host:claude:v1:YjMyN2M3NTMtODhiNS00ZGJmLWFiZTUtMWM2MmVkMWY5ZDQ5",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T20:02:34Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -1177,6 +1386,6 @@
       "confessions": []
     },
     "id": "github.issue.6374107568",
-    "updated": "2026-11-17T14:56:02Z"
+    "updated": "2026-11-17T20:02:34Z"
   }
 }

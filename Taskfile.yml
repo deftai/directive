@@ -691,17 +691,19 @@ tasks:
       # `git config core.hooksPath .githooks` is itself idempotent, but we
       # detect the no-op so the task prints a friendly message rather than
       # silently re-asserting on every invocation.
+      # The hook files are the ones a fresh install deposits (_directive-run.sh,
+      # not the retired _deft-run.sh). The refusal line is the declared refusal
+      # `setup-hook-files` (#6281); remedy-runs.test.ts checks it byte for byte.
       - |
         missing=0
-        for f in pre-commit pre-push _deft-run.sh; do
+        for f in pre-commit pre-push _directive-run.sh; do
           if [ ! -f ".githooks/$f" ]; then
             missing=1
             break
           fi
         done
         if [ "$missing" = 1 ]; then
-          echo "❌ deft setup refused: project-root .githooks/ is missing hook files (#2530)."
-          echo "  Recovery: run \`deft update\` (or \`deft init\` on a greenfield tree) to deposit hooks first."
+          echo '❌ deft gate setup-hook-files (setup: project-root .githooks/ hook files (#2530)) refused: project-root .githooks/ is missing hook files. Remedy: `directive install --repair --yes`.'
           exit 1
         fi
         configured=$(git config --get core.hooksPath || true)

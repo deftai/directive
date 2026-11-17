@@ -224,6 +224,8 @@ export interface DoctorSeams {
       readonly packageManager?: string;
     },
   ) => CheckResult;
+  /** Override the runtime-owner (foreign-runtime-link) check for tests (#6185). */
+  readonly checkRuntimeLinkOwner?: (projectRoot: string) => CheckResult;
   /** Read-only agent-host hook registration probe (#2438). */
   readonly evaluateAgentHooks?: (projectRoot: string) => AgentHookHealthResult;
   /** Per-host SessionStart registration probe for kill-switch agent notice (#4884). */
