@@ -106,10 +106,14 @@ describe("evaluateReleaseRule (#6296 item 5)", () => {
   });
 
   it("fails more than one added release line", () => {
-    const head = HEAD.replace("- [release-line] v0.2.0", "- [release-line] v0.2.0\n- [release-line] v0.2.1");
+    const head = HEAD.replace(
+      "- [release-line] v0.2.0",
+      "- [release-line] v0.2.0\n- [release-line] v0.2.1",
+    );
     const verdict = evaluateReleaseRule(input({ headChangelog: head }));
     expect(verdict.kind === "release" && !verdict.ok).toBe(true);
-    if (verdict.kind === "release") expect(verdict.problems.join("\n")).toContain("2 release lines");
+    if (verdict.kind === "release")
+      expect(verdict.problems.join("\n")).toContain("2 release lines");
   });
 
   it("fails a heading that already existed at the merge base", () => {
@@ -118,7 +122,7 @@ describe("evaluateReleaseRule (#6296 item 5)", () => {
     expect(verdict.kind === "release" && verdict.problems.join(" ")).toContain("no new ## [0.2.0]");
   });
 
-  it("names unreadable deleted fragments and truncates long line lists", () => {
+  it("names unreadable deleted fragments and every lost line", () => {
     const many = Array.from({ length: 7 }, (_, i) => `- lost ${String(i)}`).join("\n");
     const verdict = evaluateReleaseRule(
       input({
@@ -131,7 +135,8 @@ describe("evaluateReleaseRule (#6296 item 5)", () => {
     if (verdict.kind !== "release") return;
     const text = verdict.problems.join("\n");
     expect(text).toContain("could not read deleted fragment(s)");
-    expect(text).toContain("and 2 more");
+    expect(text).toContain('"- lost 0"');
+    expect(text).toContain('"- lost 6"');
     expect(text).toContain("changelog.d/1-a.md, changelog.d/9-z.md");
   });
 });

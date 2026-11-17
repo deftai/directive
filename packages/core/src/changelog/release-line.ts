@@ -28,8 +28,6 @@ const UNRELEASED_HEADING_RE = /^##\s+\[Unreleased\]\s*$/;
 const NEXT_SECTION_RE = /^## \[/;
 const LINK_FOOTER_RE = /^(?:\[Unreleased\]:|\[\d+\.\d+\.\d+[^\]]*\]:)/;
 const SECTION_LINE_RE = /^section:/;
-/** Lines of a problem list shown per condition before "and N more". */
-const SHOWN_LINES = 5;
 
 /** The release line for `version` (no leading `v` in `version`). */
 export function releaseLine(version: string): string {
@@ -138,9 +136,8 @@ function missingLines(need: Map<string, number>, have: Map<string, number>): str
 }
 
 function listLines(found: readonly string[]): string {
-  const shown = found.slice(0, SHOWN_LINES).map((line) => JSON.stringify(line));
-  const more = found.length > SHOWN_LINES ? `, and ${String(found.length - SHOWN_LINES)} more` : "";
-  return `${shown.join(", ")}${more}`;
+  // Every line is named, so the operator sees each note that would be lost.
+  return found.map((line) => JSON.stringify(line)).join(", ");
 }
 
 /** Fragment body lines after the `section:` line (the comparison input of (e)). */

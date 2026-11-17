@@ -294,7 +294,10 @@ describe("Step 2 release branch guard (#6296 item 1)", () => {
   function run(branch: string, answers: Git = {}): { code: number; out: string } {
     const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     try {
-      const code = runPipeline({ ...baseConfig(), breakGlass: false }, branchSeams(branch, answers));
+      const code = runPipeline(
+        { ...baseConfig(), breakGlass: false },
+        branchSeams(branch, answers),
+      );
       return { code, out: spy.mock.calls.map((c) => String(c[0])).join("") };
     } finally {
       spy.mockRestore();

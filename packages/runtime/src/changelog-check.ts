@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { mergeGroupSkip } from "@deftai/directive-core/pr-wait-mergeable";
 // Deep dist import (#1993) so vitest resolves it to core's TS source.
 import { runChangelogCheck } from "@deftai/directive-core/dist/task-surface/index.js";
+import { mergeGroupSkip } from "@deftai/directive-core/pr-wait-mergeable";
 
 function parseChangelogCheckArgs(argv: readonly string[]): {
   projectRoot: string;

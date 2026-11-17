@@ -51,11 +51,9 @@ import { spawnText } from "./spawn.js";
 import type { ReleaseConfig, ReleaseSeams } from "./types.js";
 import { isPrereleaseTag } from "./version.js";
 
-/** Steps of the finish run (Steps 12 and 13 keep their release numbers). */
-export const FINISH_STEPS = 7;
-
+/** One finish-run line (Steps 12 and 13 keep their release `[n/13]` numbers). */
 function emitFinish(step: number, label: string, status: string): void {
-  process.stderr.write(`[finish ${String(step)}/${String(FINISH_STEPS)}] ${label}... ${status}\n`);
+  process.stderr.write(`[finish ${String(step)}] ${label}... ${status}\n`);
 }
 
 /** Emit in the release pipeline's `[n/13]` form (Steps 12 and 13). */

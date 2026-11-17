@@ -946,7 +946,8 @@ describe("verify:changelog-unreleased release rule (#6296)", () => {
         extra === "entry" ? t.replace(releaseLine(V), `${releaseLine(V)}\n- extra (#5)`) : t,
       );
       put(project, "src/app.ts", "export const x = 1;\n");
-      if (extra === "fragment") put(project, "changelog.d/50-new.md", "section: Added\n- new (#50)\n");
+      if (extra === "fragment")
+        put(project, "changelog.d/50-new.md", "section: Added\n- new (#50)\n");
       commitAll(project, "release plus source");
       const result = check(project);
       expect(result.code).toBe(1);
