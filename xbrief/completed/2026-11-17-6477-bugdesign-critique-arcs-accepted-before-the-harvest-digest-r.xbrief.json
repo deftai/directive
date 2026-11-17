@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6477",
-    "updated": "2026-11-17T04:53:45Z"
+    "updated": "2026-11-17T06:06:45Z"
   },
   "plan": {
     "title": "bug(design-critique): arcs accepted before the harvest-digest rule cannot be ingested; grandfather unedited leans",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Since 0.129.11 (#6333) a clean pain-audit counts for a lean with an Acceptance Criteria list or a Slices section only when it carries a harvest-digest line equal to the lean's current harvest, so every arc accepted before that rule fails issue:ingest and verify:ac with unresolved-pain-audit. This story grandfathers a digestless audit when the lean comment's updated_at is strictly before the audit comment's created_at, both read from the same GitHub REST comment rows as the hashed bodies. An edited lean, a digest-bearing audit, a missing or malformed timestamp, and a plain lean with no acceptance criteria or slices stay on today's rule; there is no release-date cutoff, no new gate, no new fetch and no consumer step.",
       "UserStory": "As a maintainer or consumer with design arcs accepted before the harvest-digest rule, I want issue:ingest and verify:ac to count their clean digestless audits when the lean was not edited after the audit, so that those arcs can be built without a hand re-audit that would open a later arc.",
@@ -19,82 +19,152 @@
     "items": [
       {
         "title": "A digestless pain-audit counts for a lean that has an Acceptance Criteria list or a Slices section only when both timestamps come from the same REST comment row as the hashed body, both match YYYY-MM-DDTHH:MM:SS with optional fraction and a trailing Z, and the lean updated_at is strictly before the audit created_at.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given packages/core/src/design-critique/pain-audit-follow-through-gate.ts, when auditCountsForLean judges a digestless audit of a lean with an Acceptance Criteria list or Slices section, then it counts only when both instants come from the REST rows of the hashed bodies, both match YYYY-MM-DDTHH:MM:SS[.fraction]Z, and the lean updated_at is strictly before the audit created_at."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "35f1453aacc7b5a7e61ecefaa33b2d627535fcc8",
+          "recorded_at": "2026-11-17T06:06:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Missing, empty, null, non-string, equal, later, and any other timestamp shape do not count, and the check reads neither the comment body, nor the issue updated_at, nor a scanned body joined to a different row.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given packages/core/src/design-critique/pain-audit-follow-through-gate.ts, when either instant is missing, empty, null, non-string, malformed, equal or later, then the digestless audit does not count, and the check reads no timestamp from a comment body, the issue updated_at or another row."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "35f1453aacc7b5a7e61ecefaa33b2d627535fcc8",
+          "recorded_at": "2026-11-17T06:06:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "issue:ingest, the design-critique chip, and verify:ac each copy created_at and updated_at from that same REST row into the follow-through input.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given packages/core/src/design-critique/completed-arc-record.ts, packages/core/src/intake/issue-ingest.ts and packages/core/src/intake/spec-path-source.ts, when each builds the follow-through thread from REST comment rows, then each thread comment carries created_at and updated_at copied from the same row as its body."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "35f1453aacc7b5a7e61ecefaa33b2d627535fcc8",
+          "recorded_at": "2026-11-17T06:06:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A digestless audit of a lean with neither an Acceptance Criteria list nor a Slices section still counts with no timestamp check, and a present harvest-digest line that is not a sha256 digest still does not count.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given packages/core/src/design-critique/pain-audit-follow-through-gate.ts, when a digestless audit targets a lean with neither an Acceptance Criteria list nor a Slices section, then it counts with no timestamp check, and when an audit carries a harvest-digest line that is not a sha256 digest, then it does not count."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "35f1453aacc7b5a7e61ecefaa33b2d627535fcc8",
+          "recorded_at": "2026-11-17T06:06:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The grandfather does not consult the release instant of the digest rule.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given packages/core/src/design-critique/pain-audit-follow-through-gate.ts, when the grandfather arm runs, then it compares only the two comment instants and reads no release date, version or clock."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "35f1453aacc7b5a7e61ecefaa33b2d627535fcc8",
+          "recorded_at": "2026-11-17T06:06:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an accepted arc whose clean pain-audit has no harvest-digest line and whose lean updated_at is strictly before that audit created_at, both timestamps being UTC instants from the same REST rows, when issue:ingest runs, then the audit counts and ingest proceeds.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given packages/core/src/intake/issue-ingest.test.ts, when issue:ingest runs on an accepted arc whose clean digestless audit was created after the lean's updated_at, then the test shows the audit counts and ingest writes the brief."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "35f1453aacc7b5a7e61ecefaa33b2d627535fcc8",
+          "recorded_at": "2026-11-17T06:06:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the same arc whose lean updated_at is equal to or later than that audit created_at, when issue:ingest runs, then it refuses as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given packages/core/src/intake/issue-ingest.test.ts, when issue:ingest runs on the same arc with the lean updated_at equal to or later than the audit created_at, then the test shows it refuses with unresolved-pain-audit as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "35f1453aacc7b5a7e61ecefaa33b2d627535fcc8",
+          "recorded_at": "2026-11-17T06:06:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an audit that carries a harvest-digest line, then it is judged exactly as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given packages/core/src/design-critique/pain-audit-follow-through-gate.test.ts, when an audit carries a matching, non-matching or malformed harvest-digest line, then the test shows the same count result as on origin/master whatever the timestamps say."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "35f1453aacc7b5a7e61ecefaa33b2d627535fcc8",
+          "recorded_at": "2026-11-17T06:06:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a missing or unreadable lean or audit timestamp on a lean that has acceptance criteria or slices, then the digestless audit does not count.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given packages/core/src/design-critique/pain-audit-follow-through-gate.test.ts, when the lean or audit timestamp is missing or unreadable on a lean with acceptance criteria or slices, then the test shows the digestless audit does not count."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "35f1453aacc7b5a7e61ecefaa33b2d627535fcc8",
+          "recorded_at": "2026-11-17T06:06:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "verify:ac on an unlanded Spec-path brief applies the same timestamp rule as issue:ingest.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given packages/core/src/intake/spec-path-source.test.ts, when verify:ac resolves an unlanded Spec-path brief whose clean audit is digestless, then the test shows the same count result as issue:ingest for the strictly-before, equal, later and unreadable timestamp cases."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "35f1453aacc7b5a7e61ecefaa33b2d627535fcc8",
+          "recorded_at": "2026-11-17T06:06:45Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -325,6 +395,33 @@
         "leanCommentId": 6936775674,
         "harvestDigest": "0437228d78125cc064877045c91d7e177bc0c7f784e4297449fb39aa21f075ef",
         "slice": null
+      },
+      "productPullRequest": 6505,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "45b725d33640fdeb1da7cdef67f6ac27bce9cdf1",
+        "prNumber": 6505,
+        "prBase": "master",
+        "mergeCommit": "35f1453aacc7b5a7e61ecefaa33b2d627535fcc8",
+        "deliveryBranch": "master",
+        "deliveryCommit": "cc6013e6db9f5d0dcd256ee12a0eb5cfe39e441d",
+        "verifiedAt": "2026-11-17T06:06:45Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:NGQxMmYwODQtMDcxOS00Y2IwLTgxZjItNWQyZjcwZTNkNTUz",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T06:06:45Z",
+      "completedSessionId": "host:claude:v1:NGQxMmYwODQtMDcxOS00Y2IwLTgxZjItNWQyZjcwZTNkNTUz",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T06:06:45Z"
       }
     },
     "acceptance": {
@@ -432,6 +529,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6433653426",
-    "updated": "2026-11-17T04:53:45Z"
+    "updated": "2026-11-17T06:06:45Z"
   }
 }
