@@ -9,7 +9,10 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { writeState } from "../doctor/doctor-state.js";
 import type { CheckResult } from "../doctor/types.js";
-import { runDoctorOrientationSection } from "./orientation-compression.js";
+import {
+  formatOrientationCompactLines,
+  runDoctorOrientationSection,
+} from "./orientation-compression.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -66,6 +69,23 @@ describe("orientation doctor section runtime-link check (#6185)", () => {
     });
     expect(section.ok).toBe(true);
     expect(section.lines.join("\n")).not.toContain("foreign-runtime-link");
+  });
+
+  it("keeps the failure line in compact formatting", () => {
+    const root = tempRoot();
+    writeState(root, {
+      exitCode: 0,
+      findingCount: 0,
+      errorCount: 0,
+      now: new Date("2026-01-01T12:00:00Z"),
+    });
+    const section = runDoctorOrientationSection(root, {
+      now: new Date("2026-01-01T12:30:00Z"),
+      seams: { checkRuntimeLinkOwner: () => FAIL },
+    });
+    const compact = formatOrientationCompactLines([section]);
+    expect(compact[0]).toBe("doctor=dirty");
+    expect(compact.join("\n")).toContain("[deft doctor] foreign-runtime-link: fail");
   });
 
   it("adds the failure line when doctor runs", () => {

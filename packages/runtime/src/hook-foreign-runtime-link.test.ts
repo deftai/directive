@@ -98,7 +98,7 @@ describe("foreign-runtime-link refusal (#6185)", () => {
     expect(result.message).toContain(`payloadRoot=${w} `);
     expect(result.message).toContain(`launchRoot=${owner})`);
     expect(result.message).toContain("terminal outside this locked agent session");
-    expect(result.message).toContain(`${w}/node_modules`);
+    expect(result.message.replace(/\\/g, "/")).toContain(`${w.replace(/\\/g, "/")}/node_modules`);
     expect(result.message).toContain("clears the foreign-runtime root mismatch");
     expect(result.message).not.toContain("<payloadRoot>");
     expect(result.message).not.toContain(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE);

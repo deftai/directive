@@ -176,6 +176,7 @@ export function formatOrientationCompactLines(
       for (const line of s.lines) {
         if (
           (line.startsWith("[deft preflight]") && /\bMISSING\b/.test(line)) ||
+          line.startsWith("[deft doctor] foreign-runtime-link:") ||
           line.startsWith("❌ deft cache-fresh:") ||
           line.startsWith("⚠ deft cache-fresh:")
         ) {
