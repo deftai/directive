@@ -13,7 +13,12 @@ import {
 import { dirname } from "node:path";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 
-const threadLocked = { held: false };
+/**
+ * Lock paths this thread holds. The same path refuses reentry; a different
+ * lock may nest inside a held one (#6422: the launch/close-out lock wraps the
+ * occupancy and worker-auth locks).
+ */
+const threadHeldPaths = new Set<string>();
 const sleepCell = new Int32Array(new SharedArrayBuffer(4));
 
 /** 10× occupancy heartbeat TTL. Off-Linux PID reuse / stalled holder reclaim. */
@@ -180,10 +185,9 @@ export function withAppendLock<T>(
   }
   mkdirSync(dirname(lockPath), { recursive: true });
 
-  if (threadLocked.held) {
+  if (threadHeldPaths.has(lockPath)) {
     throw new Error("append lock is not reentrant");
   }
-  threadLocked.held = true;
   let fd: number | undefined;
   let held: HeldLock | undefined;
   try {
@@ -195,6 +199,7 @@ export function withAppendLock<T>(
         const acquiredAt = now();
         writeSync(fd, Buffer.from(`${process.pid}\n${token}\n${acquiredAt}\n`));
         held = { lockPath, pid: process.pid, token, acquiredAt };
+        threadHeldPaths.add(lockPath);
         return fn(held);
       } catch (err: unknown) {
         const code = (err as NodeJS.ErrnoException).code;
@@ -225,8 +230,8 @@ export function withAppendLock<T>(
       } catch {
         /* not ours anymore */
       }
+      threadHeldPaths.delete(lockPath);
     }
-    threadLocked.held = false;
   }
 }
 

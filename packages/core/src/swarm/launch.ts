@@ -36,6 +36,7 @@ import { DEFT_ALLOW_JUDGMENT_GATE_ENFORCE } from "../policy/capacity.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { evaluate as preflightEvaluate } from "../preflight/evaluate.js";
 import { applyWorktreeOccupancy, liveOccupant, releaseOccupancy } from "../session/occupancy.js";
+import type { LockDeps } from "../slice/lock.js";
 import { issueNumbersFromPlan, scopeMetadataRank } from "../triage/queue/scope-walk.js";
 import { selectionOrderingKey } from "../triage/queue/selection.js";
 import {
@@ -47,6 +48,7 @@ import {
   GATE_ENFORCE,
   LEAF_CODING_WORKER_ROLE,
 } from "./constants.js";
+import { withLaunchCloseoutLock } from "./launch-closeout-lock.js";
 import {
   evaluateLeftoverBeforeActivation,
   type LeftoverLandEvidence,
@@ -1117,6 +1119,11 @@ export interface LaunchOccupancyRecord {
   readonly occupancy_session_id: string;
   readonly story_ids: readonly string[];
   readonly cohort_key: string;
+  /**
+   * Stories close-out has closed (#6422). `story_ids` keeps the original
+   * roster; a record without the field reads as an empty list.
+   */
+  readonly closed_story_ids?: readonly string[];
 }
 
 export interface LaunchOccupancyQuery {
@@ -1173,12 +1180,42 @@ function parseLaunchOccupancyRecord(payload: unknown): LaunchOccupancyRecord | n
   const storyIds = Array.isArray(obj.story_ids)
     ? obj.story_ids.filter((id): id is string => typeof id === "string" && id.trim().length > 0)
     : [];
+  const closedStoryIds = Array.isArray(obj.closed_story_ids)
+    ? normalizedStoryIds(obj.closed_story_ids.filter((id): id is string => typeof id === "string"))
+    : [];
   return {
     allocation_plan_id: allocationPlanId,
     occupancy_session_id: sessionId,
     story_ids: storyIds,
     cohort_key: cohortKey,
+    closed_story_ids: closedStoryIds,
   };
+}
+
+/** Closed stories of a record; a record without the field reads as empty (#6422). */
+export function launchOccupancyClosedStoryIds(record: LaunchOccupancyRecord): string[] {
+  return [...new Set(normalizedStoryIds(record.closed_story_ids ?? []))];
+}
+
+/** True when every story of the record's roster is in `closed_story_ids` (#6422). */
+export function launchOccupancyRecordFullyClosed(record: LaunchOccupancyRecord): boolean {
+  const closed = new Set(launchOccupancyClosedStoryIds(record));
+  return normalizedStoryIds(record.story_ids).every((id) => closed.has(id));
+}
+
+/** Serialized record; `closed_story_ids` is written only when non-empty. */
+function launchOccupancyRecordPayload(record: LaunchOccupancyRecord): string {
+  const closed = launchOccupancyClosedStoryIds(record);
+  const body: Record<string, unknown> = {
+    allocation_plan_id: record.allocation_plan_id,
+    occupancy_session_id: record.occupancy_session_id,
+    story_ids: record.story_ids,
+    cohort_key: record.cohort_key,
+  };
+  if (closed.length > 0) {
+    body.closed_story_ids = closed;
+  }
+  return `${JSON.stringify(body, null, 2)}\n`;
 }
 
 function storySetEquals(left: readonly string[], right: ReadonlySet<string>): boolean {
@@ -1239,7 +1276,7 @@ export function persistLaunchOccupancyRecord(
   const absDir = join(resolve(projectRoot), ...SWARM_LAUNCH_OCCUPANCY_DIR);
   mkdirSync(absDir, { recursive: true });
   const existing = readLaunchOccupancyFile(projectRoot, record.cohort_key);
-  const payload = `${JSON.stringify(record, null, 2)}\n`;
+  const payload = launchOccupancyRecordPayload(record);
   if (existing === null) {
     containedWrite({
       root: projectRoot,
@@ -1268,13 +1305,87 @@ export function persistLaunchOccupancyRecord(
   if (!leaseMatches || !rosterMatches) {
     refuseLaunchOccupancyIdentitySwap();
   }
+  // Keep the stories close-out already closed (#6422 item 9).
+  const merged: LaunchOccupancyRecord = {
+    ...record,
+    closed_story_ids: [
+      ...launchOccupancyClosedStoryIds(existing),
+      ...launchOccupancyClosedStoryIds(record),
+    ],
+  };
   containedWrite({
     root: projectRoot,
     target: join(...relpath),
-    data: payload,
+    data: launchOccupancyRecordPayload(merged),
     mode: "replace",
   });
   return "replaced";
+}
+
+/** One launch-occupancy record file read by close-out (#6422 item 3). */
+export interface LaunchOccupancyRecordFile {
+  /** Record file name inside `.deft/swarm-launch-occupancy/`. */
+  readonly file: string;
+  readonly record: LaunchOccupancyRecord;
+}
+
+export type ReadLaunchOccupancyRecordsResult =
+  | { readonly ok: true; readonly records: readonly LaunchOccupancyRecordFile[] }
+  | { readonly ok: false; readonly file: string; readonly detail: string };
+
+/**
+ * Read every launch-occupancy record of the project root for close-out
+ * (#6422 item 3). It keeps `closed_story_ids`, never retracts a record, and
+ * fails on the first file it cannot read or parse.
+ */
+export function readLaunchOccupancyRecordsStrict(
+  projectRoot: string,
+): ReadLaunchOccupancyRecordsResult {
+  const dir = join(resolve(projectRoot), ...SWARM_LAUNCH_OCCUPANCY_DIR);
+  if (!existsSync(dir)) return { ok: true, records: [] };
+  const records: LaunchOccupancyRecordFile[] = [];
+  for (const name of readdirSync(dir).sort()) {
+    if (!name.endsWith(".json")) continue;
+    const file = join(dir, name);
+    let parsed: LaunchOccupancyRecord | null;
+    try {
+      parsed = parseLaunchOccupancyRecord(JSON.parse(readFileSync(file, { encoding: "utf8" })));
+    } catch (exc: unknown) {
+      return { ok: false, file, detail: exc instanceof Error ? exc.message : String(exc) };
+    }
+    if (parsed === null) {
+      return { ok: false, file, detail: "not a launch-occupancy record" };
+    }
+    records.push({ file: name, record: parsed });
+  }
+  return { ok: true, records };
+}
+
+/** Rewrite a record file with these closed stories added (#6422 item 6). */
+export function markLaunchOccupancyStoriesClosed(
+  projectRoot: string,
+  entry: LaunchOccupancyRecordFile,
+  storyIds: readonly string[],
+): LaunchOccupancyRecord {
+  const next: LaunchOccupancyRecord = {
+    ...entry.record,
+    closed_story_ids: [...launchOccupancyClosedStoryIds(entry.record), ...storyIds],
+  };
+  containedWrite({
+    root: projectRoot,
+    target: join(...SWARM_LAUNCH_OCCUPANCY_DIR, entry.file),
+    data: launchOccupancyRecordPayload(next),
+    mode: "replace",
+  });
+  return next;
+}
+
+/** Remove one record file (#6422 items 7 and 8). */
+export function removeLaunchOccupancyRecordFile(projectRoot: string, file: string): boolean {
+  return containedRemove({
+    root: projectRoot,
+    target: join(...SWARM_LAUNCH_OCCUPANCY_DIR, file),
+  }).removed;
 }
 
 export function retractLaunchOccupancyRecord(
@@ -1577,6 +1688,8 @@ export interface LaunchArgs {
   requireOriginActiveBrief?: boolean;
   /** Test seam for origin-active probe git. */
   runGit?: typeof runText;
+  /** Test seam: wait/clock deps of the launch/close-out lock (#6422). */
+  closeoutLockDeps?: LockDeps;
 }
 
 function resolveAssignedWorkerAuth(args: LaunchArgs):
@@ -1881,313 +1994,331 @@ export function swarmLaunch(args: LaunchArgs): {
     }
   }
 
-  const occupancy = applyWorktreeOccupancy(projectRoot, {
-    sessionId: args.sessionId ?? undefined,
-    env: args.environ ?? process.env,
-    intent: "swarm",
-  });
-  if (occupancy.code !== 0) {
-    return {
-      exitCode: EXIT_GATE_FAILED,
-      stdout: "",
-      stderr: `${occupancy.message}\n`,
-    };
-  }
-  // Heartbeat on an existing owner is not a new claim -- only release a lease
-  // this process just minted (#3649 paired failure clause).
-  const newlyClaimed = occupancy.action === "claimed";
-  let persistedCohortKey: string | null = null;
-  const writtenDests: Array<{ worktreePath: string }> = [];
-  const failAfterClaim = (
-    exitCode: number,
-    stderr: string,
-  ): { exitCode: number; stdout: string; stderr: string } => {
-    const removeAssignment = args.removeWorkerAuthAssignmentFn ?? removeWorkerAuthAssignment;
-    for (const dest of writtenDests.splice(0)) {
+  // #6422 item 2: hold the launch/close-out lock from before the occupancy
+  // claim or heartbeat until this launch can no longer retract its record or
+  // release the lease: the record write, the --output write and every rollback.
+  const locked = withLaunchCloseoutLock(
+    projectRoot,
+    (): ReturnType<typeof swarmLaunch> => {
+      const occupancy = applyWorktreeOccupancy(projectRoot, {
+        sessionId: args.sessionId ?? undefined,
+        env: args.environ ?? process.env,
+        intent: "swarm",
+      });
+      if (occupancy.code !== 0) {
+        return {
+          exitCode: EXIT_GATE_FAILED,
+          stdout: "",
+          stderr: `${occupancy.message}\n`,
+        };
+      }
+      // Heartbeat on an existing owner is not a new claim -- only release a lease
+      // this process just minted (#3649 paired failure clause).
+      const newlyClaimed = occupancy.action === "claimed";
+      let persistedCohortKey: string | null = null;
+      const writtenDests: Array<{ worktreePath: string }> = [];
+      const failAfterClaim = (
+        exitCode: number,
+        stderr: string,
+      ): { exitCode: number; stdout: string; stderr: string } => {
+        const removeAssignment = args.removeWorkerAuthAssignmentFn ?? removeWorkerAuthAssignment;
+        for (const dest of writtenDests.splice(0)) {
+          try {
+            const removed = removeAssignment({
+              projectRoot,
+              worktreePath: dest.worktreePath,
+              dispatchId: occupancy.sessionId,
+            });
+            if (!removed.ok) {
+              stderr = `${stderr}\nWorker auth assignment rollback failed: ${removed.detail}\n`;
+            }
+          } catch (exc: unknown) {
+            stderr = `${stderr}\nWorker auth assignment rollback failed: ${String(exc)}\n`;
+          }
+        }
+        if (persistedCohortKey !== null) {
+          try {
+            retractLaunchOccupancyRecord(projectRoot, { cohortKey: persistedCohortKey });
+          } catch (exc: unknown) {
+            stderr = `${stderr}\nLaunch occupancy retract failed after this launch error: ${String(exc)}\n`;
+          }
+        }
+        if (newlyClaimed) {
+          const recovery =
+            "Occupancy release failed after this launch error; the lease may still be live. " +
+            "The occupant may release (occupancy:release / session:end). Isolate in another " +
+            "worktree rather than taking a live lease.";
+          try {
+            const release = args.releaseOccupancyFn ?? releaseOccupancy;
+            const decision = release(projectRoot, {
+              sessionId: occupancy.sessionId,
+              env: args.environ ?? process.env,
+            });
+            if (decision.code !== 0) {
+              stderr = `${stderr}\n${recovery} ${decision.message}\n`;
+            }
+          } catch (exc: unknown) {
+            // Do not replace the original structured launch error; tell the operator
+            // the lease may still deny later sessions (#3649 Greptile P1).
+            stderr = `${stderr}\n${recovery} ${String(exc)}\n`;
+          }
+        }
+        return { exitCode, stdout: "", stderr };
+      };
+
+      let worktreeRecordMap = new Map<string, WorktreeRecord>();
+      if (args.worktreeMap !== undefined && args.worktreeMap !== null) {
+        try {
+          const payload = JSON.parse(readFileSync(args.worktreeMap, "utf8")) as unknown;
+          if (!Array.isArray(payload)) {
+            return failAfterClaim(
+              EXIT_CONFIG_ERROR,
+              `Error: --worktree-map ${args.worktreeMap} must contain a JSON array of records.\n`,
+            );
+          }
+          const requestedBase = args.baseBranch ?? DEFAULT_BASE_BRANCH;
+          // #6361: a one-PR dest is built from the pushed ref; no brief/record bytes are copied.
+          const base = onePrWorktreeBase ?? requestedBase;
+          const mapping = (payload as Record<string, unknown>[]).map((row) =>
+            onePrWorktreeBase !== null &&
+            row !== null &&
+            typeof row === "object" &&
+            typeof row.base_branch === "string" &&
+            row.base_branch.trim() === requestedBase
+              ? { ...row, base_branch: onePrWorktreeBase }
+              : row,
+          );
+          const createMissing = !(args.noCreateWorktrees ?? false);
+          const opts = { repoRoot: projectRoot };
+          let records: WorktreeRecord[];
+          if (args.worktreeResolver !== undefined) {
+            records = args.worktreeResolver(mapping, base, createMissing, opts);
+          } else {
+            const resolved = resolveWorktreeMap(mapping, base, createMissing, opts);
+            if (!resolved.ok) {
+              return failAfterClaim(
+                EXIT_CONFIG_ERROR,
+                `Error: worktree map resolution failed: ${resolved.message}\n`,
+              );
+            }
+            records = resolved.records;
+          }
+          worktreeRecordMap = new Map(records.map((r) => [r.story_id, r]));
+        } catch (exc: unknown) {
+          return failAfterClaim(
+            EXIT_CONFIG_ERROR,
+            `Error: worktree map resolution failed: ${String(exc)}\n`,
+          );
+        }
+      }
+
+      let runtimeMode: string;
       try {
-        const removed = removeAssignment({
+        const probe = args.runtimeAuthProbe ?? defaultRuntimeAuthProbe;
+        const probed = probe();
+        runtimeMode = probed[0];
+        void probed[1];
+      } catch (exc: unknown) {
+        return failAfterClaim(EXIT_CONFIG_ERROR, `Error: ${String(exc)}\n`);
+      }
+
+      let resolvedModel: string | null = null;
+      let modelSource: string | null = null;
+      let routingProvider: string | null = null;
+      if (routingFile !== null) {
+        routingProvider = routingProviderEarly;
+        const route = resolveModelRoute(routingFile, routingProvider, LEAF_CODING_WORKER_ROLE);
+        // A malformed decision object must fail loud here: the legacy backend gate
+        // was already bypassed above (routingFile !== null), so silently continuing
+        // would emit an exit-0 manifest with no model and no error to follow. Match
+        // verify:routing, which treats the same state as a config error (#1739).
+        if (route.source === "invalid") {
+          return failAfterClaim(
+            EXIT_CONFIG_ERROR,
+            `Error: routing gate misconfigured: ${route.error ?? "invalid routing decision"}\n`,
+          );
+        }
+        if (route.decided) {
+          resolvedModel = route.model;
+          modelSource = route.source;
+        } else if (routingGated && args.skipRouting !== true) {
+          // Belt-and-braces with the verifyRouting call above (#3703).
+          return failAfterClaim(
+            EXIT_GATE_FAILED,
+            `Error: routing gate: provider '${routingProvider}' has undecided role(s): ${LEAF_CODING_WORKER_ROLE}.\n`,
+          );
+        }
+      }
+
+      const dispatchProviderValue =
+        routingFile !== null
+          ? routingProvider
+          : backend !== null
+            ? dispatchProviderFor(backend.backend_id)
+            : null;
+      const workerRoleValue =
+        routingFile !== null || backend !== null ? LEAF_CODING_WORKER_ROLE : null;
+
+      const expectedGithubLogin =
+        assigned.mode === GITHUB_AUTH_MODE_INJECTED_TOKEN ? assigned.principal.login : null;
+      const dests = ordered.map((story) => {
+        const record = worktreeRecordMap.get(story.story_id);
+        const worktreePath =
+          record !== undefined && typeof record.worktree_path === "string"
+            ? record.worktree_path
+            : defaultWorktree(projectRoot, story.story_id);
+        return { story, worktreePath };
+      });
+      const deliveryByStory = new Map<string, string | null>();
+      for (const dest of dests) {
+        deliveryByStory.set(
+          dest.story.story_id,
+          assigned.mode === GITHUB_AUTH_MODE_INJECTED_TOKEN ? mintCredentialDeliveryId() : null,
+        );
+      }
+      const spawnEnvByStory = new Map<string, WorkerInjectedSpawnEnv>();
+      // Assigned injected-token fail-closes at PREP per dest. spawnEnv is in-process
+      // only; C2 carries the non-secret credential_delivery_id (#1351 / #3663).
+      if (assigned.mode === GITHUB_AUTH_MODE_INJECTED_TOKEN) {
+        for (const dest of dests) {
+          const deliveryId = deliveryByStory.get(dest.story.story_id);
+          if (deliveryId === null || deliveryId === undefined || deliveryId.length === 0) {
+            return failAfterClaim(
+              EXIT_CONFIG_ERROR,
+              "Error: injected-token dest is missing credential_delivery_id.\n",
+            );
+          }
+          const injection = prepareWorkerCredentialInjection({
+            environ: launchEnviron,
+            githubAuthMode: assigned.mode,
+            runtimeMode,
+            dispatchPath: "grok-build",
+            runGh: args.runGh,
+            expectedPrincipal: assigned.principal,
+            credentialDeliveryId: deliveryId,
+            cwd: projectRoot,
+          });
+          if (!injection.ok) {
+            return failAfterClaim(EXIT_GATE_FAILED, `${injection.detail}\n${injection.remedy}\n`);
+          }
+          if (injection.injected) {
+            spawnEnvByStory.set(dest.story.story_id, injection.spawnEnv);
+          }
+        }
+      }
+
+      const persistAssignment = args.writeWorkerAuthAssignmentFn ?? writeWorkerAuthAssignment;
+      for (const dest of dests) {
+        const written = persistAssignment({
           projectRoot,
           worktreePath: dest.worktreePath,
           dispatchId: occupancy.sessionId,
+          storyId: dest.story.story_id,
+          githubAuthMode: assigned.mode,
+          expectedPrincipal: assigned.principal,
+          credentialDeliveryId: deliveryByStory.get(dest.story.story_id) ?? null,
         });
-        if (!removed.ok) {
-          stderr = `${stderr}\nWorker auth assignment rollback failed: ${removed.detail}\n`;
+        if (!written.ok) {
+          return failAfterClaim(EXIT_CONFIG_ERROR, `Error: ${written.detail}\n`);
         }
-      } catch (exc: unknown) {
-        stderr = `${stderr}\nWorker auth assignment rollback failed: ${String(exc)}\n`;
-      }
-    }
-    if (persistedCohortKey !== null) {
-      try {
-        retractLaunchOccupancyRecord(projectRoot, { cohortKey: persistedCohortKey });
-      } catch (exc: unknown) {
-        stderr = `${stderr}\nLaunch occupancy retract failed after this launch error: ${String(exc)}\n`;
-      }
-    }
-    if (newlyClaimed) {
-      const recovery =
-        "Occupancy release failed after this launch error; the lease may still be live. " +
-        "The occupant may release (occupancy:release / session:end). Isolate in another " +
-        "worktree rather than taking a live lease.";
-      try {
-        const release = args.releaseOccupancyFn ?? releaseOccupancy;
-        const decision = release(projectRoot, {
-          sessionId: occupancy.sessionId,
-          env: args.environ ?? process.env,
-        });
-        if (decision.code !== 0) {
-          stderr = `${stderr}\n${recovery} ${decision.message}\n`;
+        // Roll back only what this attempt created; an identical record kept from
+        // an earlier launch stays with that launch (#6422 item 10).
+        if (written.created !== false) {
+          writtenDests.push({ worktreePath: dest.worktreePath });
         }
-      } catch (exc: unknown) {
-        // Do not replace the original structured launch error; tell the operator
-        // the lease may still deny later sessions (#3649 Greptile P1).
-        stderr = `${stderr}\n${recovery} ${String(exc)}\n`;
       }
-    }
-    return { exitCode, stdout: "", stderr };
-  };
 
-  let worktreeRecordMap = new Map<string, WorktreeRecord>();
-  if (args.worktreeMap !== undefined && args.worktreeMap !== null) {
-    try {
-      const payload = JSON.parse(readFileSync(args.worktreeMap, "utf8")) as unknown;
-      if (!Array.isArray(payload)) {
+      let manifest: Record<string, unknown>[];
+      try {
+        manifest = buildManifest(ordered, {
+          projectRoot,
+          group: args.group ?? null,
+          worktreeRecords: worktreeRecordMap,
+          dispatchKind,
+          allocationPlanId,
+          batchingRationale,
+          operatorApprovalEvidence: operatorApproval,
+          gateClearances,
+          subagentBackend: backend?.backend_id ?? null,
+          dispatchProvider: dispatchProviderValue,
+          workerRole: workerRoleValue,
+          resolvedModel,
+          modelSource,
+          runtimeMode,
+          githubAuthMode: assigned.mode,
+          expectedGithubLogin,
+          occupancySessionId: occupancy.sessionId,
+          credentialDeliveryByStory: deliveryByStory,
+        });
+      } catch (exc: unknown) {
+        return failAfterClaim(EXIT_CONFIG_ERROR, `Error: ${String(exc)}\n`);
+      }
+
+      const rendered = `${JSON.stringify(manifest, null, 2)}\n`;
+      const storyIds = ordered.map((story) => story.story_id);
+      const cohortKey = occupancyCohortKey(allocationPlanId, storyIds);
+
+      try {
+        mkdirSync(dirname(swarmLaunchManifestPath(projectRoot)), { recursive: true });
+        containedWrite({
+          root: projectRoot,
+          target: join(...SWARM_LAUNCH_MANIFEST_RELPATH),
+          data: rendered,
+          mode: "replace",
+        });
+        const persistKind = persistLaunchOccupancyRecord(projectRoot, {
+          allocation_plan_id: allocationPlanId,
+          occupancy_session_id: occupancy.sessionId,
+          story_ids: storyIds,
+          cohort_key: cohortKey,
+        });
+        if (persistKind === "created") {
+          persistedCohortKey = cohortKey;
+        }
+      } catch (exc: unknown) {
         return failAfterClaim(
           EXIT_CONFIG_ERROR,
-          `Error: --worktree-map ${args.worktreeMap} must contain a JSON array of records.\n`,
+          `Error: could not persist launch occupancy_session_id: ${String(exc)}\n`,
         );
       }
-      const requestedBase = args.baseBranch ?? DEFAULT_BASE_BRANCH;
-      // #6361: a one-PR dest is built from the pushed ref; no brief/record bytes are copied.
-      const base = onePrWorktreeBase ?? requestedBase;
-      const mapping = (payload as Record<string, unknown>[]).map((row) =>
-        onePrWorktreeBase !== null &&
-        row !== null &&
-        typeof row === "object" &&
-        typeof row.base_branch === "string" &&
-        row.base_branch.trim() === requestedBase
-          ? { ...row, base_branch: onePrWorktreeBase }
-          : row,
-      );
-      const createMissing = !(args.noCreateWorktrees ?? false);
-      const opts = { repoRoot: projectRoot };
-      let records: WorktreeRecord[];
-      if (args.worktreeResolver !== undefined) {
-        records = args.worktreeResolver(mapping, base, createMissing, opts);
-      } else {
-        const resolved = resolveWorktreeMap(mapping, base, createMissing, opts);
-        if (!resolved.ok) {
+
+      if (args.output !== undefined && args.output !== null) {
+        try {
+          // #2980 wave D: product write sink routes through containedWrite.
+          const abs = resolve(args.output);
+          const dir = dirname(abs);
+          mkdirSync(dir, { recursive: true });
+          containedWrite({
+            root: dir,
+            target: basename(abs),
+            data: rendered,
+            mode: "replace",
+          });
+        } catch (exc: unknown) {
           return failAfterClaim(
             EXIT_CONFIG_ERROR,
-            `Error: worktree map resolution failed: ${resolved.message}\n`,
+            `Error: could not write --output ${args.output}: ${String(exc)}\n`,
           );
         }
-        records = resolved.records;
       }
-      worktreeRecordMap = new Map(records.map((r) => [r.story_id, r]));
-    } catch (exc: unknown) {
-      return failAfterClaim(
-        EXIT_CONFIG_ERROR,
-        `Error: worktree map resolution failed: ${String(exc)}\n`,
-      );
-    }
+
+      void args.noAudit;
+      const advisoryNote =
+        judgmentPosture.advisory.trim().length > 0 ? `${judgmentPosture.advisory.trim()}\n` : "";
+      // Prefer-A: surface judgment advisory on stderr (stdout stays JSON manifest).
+      return {
+        exitCode: EXIT_OK,
+        stdout: rendered,
+        stderr: `${advisoryNote}${skipRoutingNote}`,
+        spawnEnvByStory,
+      };
+    },
+    args.closeoutLockDeps ?? {},
+  );
+  if (!locked.ok) {
+    return { exitCode: EXIT_GATE_FAILED, stdout: "", stderr: `Error: ${locked.detail}\n` };
   }
-
-  let runtimeMode: string;
-  try {
-    const probe = args.runtimeAuthProbe ?? defaultRuntimeAuthProbe;
-    const probed = probe();
-    runtimeMode = probed[0];
-    void probed[1];
-  } catch (exc: unknown) {
-    return failAfterClaim(EXIT_CONFIG_ERROR, `Error: ${String(exc)}\n`);
-  }
-
-  let resolvedModel: string | null = null;
-  let modelSource: string | null = null;
-  let routingProvider: string | null = null;
-  if (routingFile !== null) {
-    routingProvider = routingProviderEarly;
-    const route = resolveModelRoute(routingFile, routingProvider, LEAF_CODING_WORKER_ROLE);
-    // A malformed decision object must fail loud here: the legacy backend gate
-    // was already bypassed above (routingFile !== null), so silently continuing
-    // would emit an exit-0 manifest with no model and no error to follow. Match
-    // verify:routing, which treats the same state as a config error (#1739).
-    if (route.source === "invalid") {
-      return failAfterClaim(
-        EXIT_CONFIG_ERROR,
-        `Error: routing gate misconfigured: ${route.error ?? "invalid routing decision"}\n`,
-      );
-    }
-    if (route.decided) {
-      resolvedModel = route.model;
-      modelSource = route.source;
-    } else if (routingGated && args.skipRouting !== true) {
-      // Belt-and-braces with the verifyRouting call above (#3703).
-      return failAfterClaim(
-        EXIT_GATE_FAILED,
-        `Error: routing gate: provider '${routingProvider}' has undecided role(s): ${LEAF_CODING_WORKER_ROLE}.\n`,
-      );
-    }
-  }
-
-  const dispatchProviderValue =
-    routingFile !== null
-      ? routingProvider
-      : backend !== null
-        ? dispatchProviderFor(backend.backend_id)
-        : null;
-  const workerRoleValue = routingFile !== null || backend !== null ? LEAF_CODING_WORKER_ROLE : null;
-
-  const expectedGithubLogin =
-    assigned.mode === GITHUB_AUTH_MODE_INJECTED_TOKEN ? assigned.principal.login : null;
-  const dests = ordered.map((story) => {
-    const record = worktreeRecordMap.get(story.story_id);
-    const worktreePath =
-      record !== undefined && typeof record.worktree_path === "string"
-        ? record.worktree_path
-        : defaultWorktree(projectRoot, story.story_id);
-    return { story, worktreePath };
-  });
-  const deliveryByStory = new Map<string, string | null>();
-  for (const dest of dests) {
-    deliveryByStory.set(
-      dest.story.story_id,
-      assigned.mode === GITHUB_AUTH_MODE_INJECTED_TOKEN ? mintCredentialDeliveryId() : null,
-    );
-  }
-  const spawnEnvByStory = new Map<string, WorkerInjectedSpawnEnv>();
-  // Assigned injected-token fail-closes at PREP per dest. spawnEnv is in-process
-  // only; C2 carries the non-secret credential_delivery_id (#1351 / #3663).
-  if (assigned.mode === GITHUB_AUTH_MODE_INJECTED_TOKEN) {
-    for (const dest of dests) {
-      const deliveryId = deliveryByStory.get(dest.story.story_id);
-      if (deliveryId === null || deliveryId === undefined || deliveryId.length === 0) {
-        return failAfterClaim(
-          EXIT_CONFIG_ERROR,
-          "Error: injected-token dest is missing credential_delivery_id.\n",
-        );
-      }
-      const injection = prepareWorkerCredentialInjection({
-        environ: launchEnviron,
-        githubAuthMode: assigned.mode,
-        runtimeMode,
-        dispatchPath: "grok-build",
-        runGh: args.runGh,
-        expectedPrincipal: assigned.principal,
-        credentialDeliveryId: deliveryId,
-        cwd: projectRoot,
-      });
-      if (!injection.ok) {
-        return failAfterClaim(EXIT_GATE_FAILED, `${injection.detail}\n${injection.remedy}\n`);
-      }
-      if (injection.injected) {
-        spawnEnvByStory.set(dest.story.story_id, injection.spawnEnv);
-      }
-    }
-  }
-
-  const persistAssignment = args.writeWorkerAuthAssignmentFn ?? writeWorkerAuthAssignment;
-  for (const dest of dests) {
-    const written = persistAssignment({
-      projectRoot,
-      worktreePath: dest.worktreePath,
-      dispatchId: occupancy.sessionId,
-      storyId: dest.story.story_id,
-      githubAuthMode: assigned.mode,
-      expectedPrincipal: assigned.principal,
-      credentialDeliveryId: deliveryByStory.get(dest.story.story_id) ?? null,
-    });
-    if (!written.ok) {
-      return failAfterClaim(EXIT_CONFIG_ERROR, `Error: ${written.detail}\n`);
-    }
-    writtenDests.push({ worktreePath: dest.worktreePath });
-  }
-
-  let manifest: Record<string, unknown>[];
-  try {
-    manifest = buildManifest(ordered, {
-      projectRoot,
-      group: args.group ?? null,
-      worktreeRecords: worktreeRecordMap,
-      dispatchKind,
-      allocationPlanId,
-      batchingRationale,
-      operatorApprovalEvidence: operatorApproval,
-      gateClearances,
-      subagentBackend: backend?.backend_id ?? null,
-      dispatchProvider: dispatchProviderValue,
-      workerRole: workerRoleValue,
-      resolvedModel,
-      modelSource,
-      runtimeMode,
-      githubAuthMode: assigned.mode,
-      expectedGithubLogin,
-      occupancySessionId: occupancy.sessionId,
-      credentialDeliveryByStory: deliveryByStory,
-    });
-  } catch (exc: unknown) {
-    return failAfterClaim(EXIT_CONFIG_ERROR, `Error: ${String(exc)}\n`);
-  }
-
-  const rendered = `${JSON.stringify(manifest, null, 2)}\n`;
-  const storyIds = ordered.map((story) => story.story_id);
-  const cohortKey = occupancyCohortKey(allocationPlanId, storyIds);
-
-  try {
-    mkdirSync(dirname(swarmLaunchManifestPath(projectRoot)), { recursive: true });
-    containedWrite({
-      root: projectRoot,
-      target: join(...SWARM_LAUNCH_MANIFEST_RELPATH),
-      data: rendered,
-      mode: "replace",
-    });
-    const persistKind = persistLaunchOccupancyRecord(projectRoot, {
-      allocation_plan_id: allocationPlanId,
-      occupancy_session_id: occupancy.sessionId,
-      story_ids: storyIds,
-      cohort_key: cohortKey,
-    });
-    if (persistKind === "created") {
-      persistedCohortKey = cohortKey;
-    }
-  } catch (exc: unknown) {
-    return failAfterClaim(
-      EXIT_CONFIG_ERROR,
-      `Error: could not persist launch occupancy_session_id: ${String(exc)}\n`,
-    );
-  }
-
-  if (args.output !== undefined && args.output !== null) {
-    try {
-      // #2980 wave D: product write sink routes through containedWrite.
-      const abs = resolve(args.output);
-      const dir = dirname(abs);
-      mkdirSync(dir, { recursive: true });
-      containedWrite({
-        root: dir,
-        target: basename(abs),
-        data: rendered,
-        mode: "replace",
-      });
-    } catch (exc: unknown) {
-      return failAfterClaim(
-        EXIT_CONFIG_ERROR,
-        `Error: could not write --output ${args.output}: ${String(exc)}\n`,
-      );
-    }
-  }
-
-  void args.noAudit;
-  const advisoryNote =
-    judgmentPosture.advisory.trim().length > 0 ? `${judgmentPosture.advisory.trim()}\n` : "";
-  // Prefer-A: surface judgment advisory on stderr (stdout stays JSON manifest).
-  return {
-    exitCode: EXIT_OK,
-    stdout: rendered,
-    stderr: `${advisoryNote}${skipRoutingNote}`,
-    spawnEnvByStory,
-  };
+  return locked.value;
 }
 
 export function assertDestWorkerInstallationPermissions(requested: unknown): void {

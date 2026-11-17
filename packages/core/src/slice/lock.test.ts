@@ -32,4 +32,17 @@ describe("withAppendLock", () => {
       ),
     ).toThrow();
   });
+
+  it("lets a different lock nest and frees the path after an error (#6422)", () => {
+    const seen = withAppendLock("/tmp/deft-slice-lock-outer-6422.jsonl", () =>
+      withAppendLock("/tmp/deft-slice-lock-inner-6422.jsonl", () => "nested"),
+    );
+    expect(seen).toBe("nested");
+    expect(() =>
+      withAppendLock("/tmp/deft-slice-lock-outer-6422.jsonl", () => {
+        throw new Error("body failed");
+      }),
+    ).toThrow("body failed");
+    expect(withAppendLock("/tmp/deft-slice-lock-outer-6422.jsonl", () => "again")).toBe("again");
+  });
 });

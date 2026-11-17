@@ -97,7 +97,17 @@ export type WorkerAuthAssignmentError = {
 };
 
 export type WriteWorkerAuthAssignmentResult =
-  | { readonly ok: true; readonly assignment: WorkerAuthAssignment; readonly commonDir: string }
+  | {
+      readonly ok: true;
+      readonly assignment: WorkerAuthAssignment;
+      readonly commonDir: string;
+      /**
+       * False when an identical record already existed and was kept (#6422
+       * item 10); a launch rolls back only records it created. Absent means
+       * created.
+       */
+      readonly created?: boolean;
+    }
   | WorkerAuthAssignmentError;
 
 export type ReadWorkerAuthAssignmentResult =
@@ -640,6 +650,26 @@ export function writeWorkerAuthAssignment(
     );
   }
   return withLock(commonDir, () => {
+    // #6422 item 10 (the #6334 no-re-pointing rule): keep an identical record,
+    // refuse a different one before anything is overwritten. The persist and
+    // cleanup below then only ever touch a record this attempt created.
+    if (recordsAgree(commonDir, assignment, recordName)) {
+      return { ok: true, assignment, commonDir, created: false };
+    }
+    const existingAbs = join(commonDir, recordPathRel(recordName));
+    if (existsSync(existingAbs)) {
+      const existing = parseAssignment(readJsonFile(existingAbs));
+      const holder =
+        existing === null
+          ? "an unreadable record"
+          : `dispatch ${existing.dispatch_id} story ${existing.story_id}`;
+      return fail(
+        FAILURE_DUPLICATE_ASSIGNMENT,
+        `worker auth assignment for ${assignment.worktree_path} already exists (${holder}) and differs; ` +
+          "refusing to re-point it (#6334). Remove that registration through its own close-out first.",
+        { dispatchId: assignment.dispatch_id, expectedLogin: assignment.expected_principal.login },
+      );
+    }
     const persistErr = persistIndexAndRecord(commonDir, assignment, recordName);
     if (persistErr !== null) {
       return persistErr;
@@ -654,7 +684,7 @@ export function writeWorkerAuthAssignment(
         },
       );
     }
-    return { ok: true, assignment, commonDir };
+    return { ok: true, assignment, commonDir, created: true };
   });
 }
 
@@ -813,6 +843,78 @@ export function cleanupWorkerAuthAssignmentsForDispatch(
   if (dispatchId.length === 0) {
     return fail(FAILURE_MALFORMED_ASSIGNMENT, "worker auth cleanup requires dispatch_id");
   }
+  return cleanupMatching(input, (parsed) => parsed.dispatch_id === dispatchId);
+}
+
+export interface CleanupWorkerAuthAssignmentsForStoriesInput
+  extends CleanupWorkerAuthAssignmentsInput {
+  readonly storyIds: readonly string[];
+}
+
+/**
+ * Per-story close-out cleanup (#6422 item 6): remove only the records whose
+ * dispatch_id is the launch record's session AND whose story_id is closed.
+ */
+export function cleanupWorkerAuthAssignmentsForStories(
+  input: CleanupWorkerAuthAssignmentsForStoriesInput,
+): CleanupWorkerAuthAssignmentsResult {
+  const dispatchId = input.dispatchId.trim();
+  if (dispatchId.length === 0) {
+    return fail(FAILURE_MALFORMED_ASSIGNMENT, "worker auth cleanup requires dispatch_id");
+  }
+  const stories = new Set(input.storyIds.map((id) => id.trim()).filter((id) => id.length > 0));
+  if (stories.size === 0) {
+    const commonDir = resolveCommonDirForProject(
+      input.projectRoot,
+      null,
+      input.runGit ?? defaultGitRunner,
+    );
+    return { ok: true, removed: 0, commonDir: commonDir ?? input.projectRoot };
+  }
+  return cleanupMatching(
+    input,
+    (parsed) => parsed.dispatch_id === dispatchId && stories.has(parsed.story_id),
+  );
+}
+
+export interface FindWorkerAuthAssignmentsForStoriesInput {
+  readonly projectRoot: string;
+  readonly storyIds: readonly string[];
+  readonly runGit?: GitRunner;
+}
+
+/**
+ * Read-only lookup of worker assignment records by story_id across the Git
+ * common directory (#6422 item 5). Close-out reports these and leaves them.
+ */
+export function findWorkerAuthAssignmentsForStories(
+  input: FindWorkerAuthAssignmentsForStoriesInput,
+): WorkerAuthAssignment[] {
+  const stories = new Set(input.storyIds.map((id) => id.trim()).filter((id) => id.length > 0));
+  if (stories.size === 0) return [];
+  const commonDir = resolveCommonDirForProject(
+    input.projectRoot,
+    null,
+    input.runGit ?? defaultGitRunner,
+  );
+  if (commonDir === null) return [];
+  const storeDir = join(commonDir, WORKER_AUTH_STORE_DIR);
+  if (!existsSync(storeDir)) return [];
+  const found: WorkerAuthAssignment[] = [];
+  for (const name of readdirSync(storeDir).sort()) {
+    if (!/^[0-9a-f]{64}\.json$/i.test(name)) continue;
+    const parsed = parseAssignment(readJsonFile(join(storeDir, name)));
+    if (parsed !== null && stories.has(parsed.story_id)) {
+      found.push(parsed);
+    }
+  }
+  return found;
+}
+
+function cleanupMatching(
+  input: CleanupWorkerAuthAssignmentsInput,
+  matches: (parsed: WorkerAuthAssignment) => boolean,
+): CleanupWorkerAuthAssignmentsResult {
   const runGit = input.runGit ?? defaultGitRunner;
   const commonDir = resolveCommonDirForProject(input.projectRoot, null, runGit);
   if (commonDir === null) {
@@ -834,7 +936,7 @@ export function cleanupWorkerAuthAssignmentsForDispatch(
       const raw = readJsonFile(join(commonDir, recordPathRel(entry.record_name)));
       const parsed = parseAssignment(raw);
       seenRecords.add(entry.record_name);
-      if (parsed !== null && parsed.dispatch_id === dispatchId) {
+      if (parsed !== null && matches(parsed)) {
         containedRemove({ root: commonDir, target: recordPathRel(entry.record_name) });
         removed += 1;
       } else {
@@ -848,7 +950,7 @@ export function cleanupWorkerAuthAssignmentsForDispatch(
           continue;
         }
         const parsed = parseAssignment(readJsonFile(join(storeDir, name)));
-        if (parsed !== null && parsed.dispatch_id === dispatchId) {
+        if (parsed !== null && matches(parsed)) {
           containedRemove({ root: commonDir, target: recordPathRel(name) });
           removed += 1;
         }
