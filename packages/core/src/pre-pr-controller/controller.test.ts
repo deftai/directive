@@ -13,7 +13,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { revokeGrant } from "../authz/actions.js";
 import {
   admitGateOverrideForAttempt,
@@ -80,7 +80,20 @@ vi.mock("node:fs", async (importOriginal) => {
   };
 });
 const realFs = await vi.importActual<typeof import("node:fs")>("node:fs");
+
+// Freeze the clock for every test (#6484). The controller stamps phases in
+// whole seconds and refuses a required phase stamped before the previous one.
+// The fill helpers record the command phases before the read/write reports, so
+// on a real clock a second boundary between the two steps fails the run. With
+// one frozen instant every stamp is equal; tests that need distinct stamps pass
+// an explicit `now`. Only Date is faked; timers and the event loop stay real.
+beforeEach(() => {
+  const frozenAt = Date.now();
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(frozenAt);
+});
 afterEach(() => {
+  vi.useRealTimers();
   vi.mocked(lstatSync).mockImplementation(realFs.lstatSync);
   vi.mocked(openSync).mockImplementation(realFs.openSync);
   vi.mocked(readFileSync).mockImplementation(realFs.readFileSync);
