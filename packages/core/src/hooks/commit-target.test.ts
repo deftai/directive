@@ -4,6 +4,7 @@ import {
   COMMIT_TARGET_ACCEPTED_FORMS,
   commandHasGitCommitIndexMutatingForm,
   commandHasGitCommitSubcommand,
+  findGitCommitIndexMutatingWord,
   resolveCommitTarget,
   splitShellArgvPreservingQuotes,
   tokenizeShellCommand,
@@ -215,7 +216,7 @@ describe("resolveCommitTarget (#6278)", () => {
     ["{ cd /a && true; } && git commit -m x", /not joined to the commit/],
     ["{ { cd /a; }; } && git commit -m x", /not joined to the commit/],
     ["true || { cd /a && git commit -m x; }", /`\|\|` before the `cd`/],
-    ["cd /a | cat && git commit -m x", /exactly one path/],
+    ["cd /a | cat && git commit -m x", /not joined to the commit/],
     ["cd && git commit -m x", /exactly one path/],
     ["cd -P /a && git commit -m x", /exactly one path/],
     ["git -C", null],
@@ -382,5 +383,149 @@ describe("quoted heredoc bodies are data to every commit detector (#6187)", () =
   it("keeps here-strings and arithmetic shifts as ordinary text", () => {
     expect(commandHasGitCommitSubcommand("cat <<< note && git commit -m x")).toBe(true);
     expect(commandHasGitCommitSubcommand("echo $((1 << 2)) && git commit -m x")).toBe(true);
+  });
+});
+
+describe("pipes, redirections and short clusters in a commit (#6471)", () => {
+  it("splits a lone pipe and |& as a separator that is not &&", () => {
+    expect(tokenizeShellCommand("a | b |& c || d").map((s) => s.next)).toEqual([
+      "|",
+      "|",
+      "||",
+      null,
+    ]);
+    expect(words("echo >|f b")).toEqual([["echo", ">|f", "b"]]);
+  });
+
+  it("marks only unquoted unescaped redirections", () => {
+    const flags = (command: string): (string | undefined)[] =>
+      (tokenizeShellCommand(command)[0]?.words ?? []).map((w) => w.redirect);
+    expect(flags("x 2>&1 > f >|g &>h <(p) *>q \\>r '>s' 2'>'t '2'>u")).toEqual([
+      undefined,
+      "attached",
+      "operator",
+      undefined,
+      "attached",
+      "attached",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ]);
+  });
+
+  it.each([
+    "git -C /wt commit -m msg 2>&1 | tail -3",
+    "cd /wt && git commit -F /tmp/m.txt 2>&1 | tail -3",
+    "git commit -qm msg",
+    "git commit -m msg >/dev/null",
+    "git commit -m msg > /dev/null 2>&1",
+    "git commit -m msg 2>&1",
+    "git commit -m msg &> out.log",
+    "git commit -m msg < /dev/null",
+    "git commit -m msg >| out",
+    "git commit -F - <<'EOF'\nmessage body\nEOF",
+    "git commit -sm msg",
+    "git commit -m msg -- 2>&1",
+    "git commit -m msg |& tee log",
+    "git commit -m msg 2>&1 || echo failed",
+  ])("does not read %j as index-changing", (command) => {
+    expect(commandHasGitCommitIndexMutatingForm(command)).toBe(false);
+    expect(findGitCommitIndexMutatingWord(command)).toBeNull();
+  });
+
+  it.each([
+    ["git commit -a -m msg", "-a"],
+    ["git commit -am msg", "-am"],
+    ["git commit -qam msg", "-qam"],
+    ["git commit -m msg src/a.ts", "src/a.ts"],
+    ["git commit -m msg -- src/a.ts", "src/a.ts"],
+    ["git commit -m msg -- 2>&1 src/a.ts", "src/a.ts"],
+    ["git commit -m msg 2>&1 src/a.ts", "src/a.ts"],
+    ["git commit -m msg > out src/a.ts", "src/a.ts"],
+    ["git commit -tm src/a.ts", "src/a.ts"],
+    ["git commit -um src/a.ts", "src/a.ts"],
+    ["git commit -Sm src/a.ts", "src/a.ts"],
+    ["git commit -m msg \\>src/a.ts", ">src/a.ts"],
+    ["git commit -m msg *>src/a.ts", "*>src/a.ts"],
+    ["git commit -m msg *> src/a.ts", "*>"],
+    ["git commit -m msg '<(printf src/a.ts)'", "<(printf src/a.ts)"],
+    ["git commit -m msg <(printf src/a.ts)", "<(printf"],
+    ["git commit -m msg '|'", "|"],
+    ["git commit -m msg >'>' -a", "-a"],
+    ["git commit -m msg 2>\\> src/a.ts", "src/a.ts"],
+    ["git commit -m msg '>x'", ">x"],
+    ["git commit --all -m msg", "--all"],
+    ["git commit --include -m msg", "--include"],
+    ["git commit -i -m msg", "-i"],
+    ["git commit -m msg 2>&1 | tail -3 && git commit -am x", "-am"],
+  ])("reads %j as index-changing at %j", (command, word) => {
+    expect(findGitCommitIndexMutatingWord(command)).toBe(word);
+    expect(commandHasGitCommitIndexMutatingForm(command)).toBe(true);
+  });
+
+  it("reads git's short-cluster rules", () => {
+    // `m` takes the rest of the cluster, so the `a` after it is message text.
+    expect(findGitCommitIndexMutatingWord("git commit -mam")).toBeNull();
+    // A trailing value letter takes the next word.
+    expect(findGitCommitIndexMutatingWord("git commit -sm a")).toBeNull();
+    expect(findGitCommitIndexMutatingWord("git commit -s -S -m msg")).toBeNull();
+    expect(findGitCommitIndexMutatingWord("git commit -Sa")).toBeNull();
+    expect(findGitCommitIndexMutatingWord("git commit -sam msg")).toBe("-sam");
+    expect(findGitCommitIndexMutatingWord("git commit -")).toBeNull();
+    expect(findGitCommitIndexMutatingWord("git status -a")).toBeNull();
+  });
+
+  it("resolves a target through a pipe on the commit's right", () => {
+    expect(resolveCommitTarget("git -C /wt commit -m x 2>&1 | tail -3", posix)).toMatchObject({
+      kind: "named",
+      path: "/wt",
+    });
+    expect(
+      resolveCommitTarget("cd /wt && git commit -F /tmp/m.txt 2>&1 | tail -3", posix),
+    ).toMatchObject({ kind: "named", path: "/wt", shape: "cd" });
+    expect(resolveCommitTarget("cd /wt 2>/dev/null && git commit -m x", posix)).toMatchObject({
+      kind: "named",
+      path: "/wt",
+    });
+  });
+
+  it.each([
+    ["true | cd /x && git commit -m msg", /pipe before the `cd`/],
+    ["true |& cd /x && git commit -m msg", /pipe before the `cd`/],
+    ["true || cd /x && git commit -m msg", /`\|\|` before the `cd`/],
+    ["cd /x | git commit -m msg", /not joined/],
+    ["cd /x && true | git commit -m msg", /not joined/],
+  ])("keeps %j unresolvable", (command, reason) => {
+    const target = resolveCommitTarget(command, posix);
+    expect(target).toMatchObject({ kind: "unresolvable" });
+    if (target?.kind === "unresolvable") expect(target.reason).toMatch(reason);
+  });
+
+  it("reads each heredoc chunk as one ordered list with a non-&& boundary", () => {
+    // `cd` in one chunk, commit after the delimiter: the shell commits in the
+    // cd's directory only through a join the chunk end does not give.
+    expect(
+      resolveCommitTarget("cd /wt <<EOF\nnote $(x)\nEOF\ngit commit -m msg", posix),
+    ).toMatchObject({ kind: "unresolvable" });
+    // The commit rides the same line as the heredoc opener, so the join holds.
+    expect(resolveCommitTarget("cd /wt <<EOF && git commit -m msg\nnote $(x)\nEOF", posix)).toEqual(
+      { kind: "named", path: "/wt", shape: "cd" },
+    );
+    // A dangling `||` or `|` carried across the chunk boundary stays an `||` / pipe.
+    for (const open of ["||", "|"]) {
+      const command = `true <<EOF ${open}\nnote $(x)\nEOF\ncd /x && git commit -m msg`;
+      expect(resolveCommitTarget(command, posix)).toMatchObject({ kind: "unresolvable" });
+    }
+    // A dangling `&&` before the heredoc does not tie the `cd` to a later commit.
+    expect(
+      resolveCommitTarget("cd /wt && <<EOF\nnote $(x)\nEOF\ngit commit -m msg", posix),
+    ).toMatchObject({ kind: "unresolvable" });
+  });
+
+  it("refuses a commit after an unquoted body with an open quote", () => {
+    expect(findGitCommitIndexMutatingWord("cat <<EOF\n'\nEOF\ngit commit -a")).toBe("-a");
   });
 });
