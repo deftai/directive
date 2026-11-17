@@ -8,10 +8,9 @@
 ## Active
 
 - **#6187** -- Commit-shape check (#5656) refuses Bash calls whose heredoc text merely mentions a commit command -- `[running]`
-- **#6366** -- docs(scm): merge queue setup playbook, and point agents to it where they merge -- `[running]`
-- **#6422** -- bug(swarm): finalize-cohort fails after a correct sweep when the story was not launched by swarm:launch -- `[running]`
-- **#6423** -- bug(merge): pr:wait-mergeable-and-merge --resume returns QUEUE-PENDING at once instead of waiting for the queue -- `[running]`
 - **#6468** -- bug(scope): a story brief that names several issues cannot pass both closing-keywords and the completion identity join -- `[running]`
+- **#6477** -- bug(design-critique): arcs accepted before the harvest-digest rule cannot be ingested; grandfather unedited leans -- `[running]`
+- **#6480** -- bug(hooks): in-PR completion (#6277) moves the brief out of active/, so the #6379 binding refuses the product commit -- `[running]`
 
 ## Proposed
 
@@ -46,8 +45,12 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1965 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1969 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#6422** -- bug(swarm): finalize-cohort fails after a correct sweep when the story was not launched by swarm:launch -- `[completed]`
+- **#6484** -- test(flaky): pre-pr-controller coverage_headroom mode-skip test fails intermittently and reddens master's gate -- `[completed]`
+- **#6366** -- docs(scm): merge queue setup playbook, and point agents to it where they merge -- `[completed]`
+- **#6423** -- bug(merge): pr:wait-mergeable-and-merge --resume returns QUEUE-PENDING at once instead of waiting for the queue -- `[completed]`
 - **#6337** -- fix(install,hooks): no consumer deposits in this repo; render in worktrees; recovery on Codex -- `[completed]`
 - **#6421** -- bug(swarm): a killed finalize-cohort run leaves a worktree and branch that block the next run -- `[completed]`
 - **#6378** -- bug(scope-provenance): verify:scope-provenance runs past 5 minutes with no output in a fresh worktree -- `[completed]`
@@ -69,8 +72,4 @@ _Showing 25 of 1965 completed scopes (newest first). Full history: lifecycle `co
 - **#6272** -- feat(scope): show which clauses need strict-axis evidence at activation, not after the merge -- `[completed]`
 - **#6271** -- bug(init,security): the consumer .gitignore baseline misses the private pre-PR store and the plan-sequence lock files -- `[completed]`
 - **#6270** -- bug(scope): strict acceptance axes match on identifiers, so a deploy-dev job or deploy.yml makes a clause need deploy evidence -- `[completed]`
-- **#6269** -- bug(verify-ac): a clause that removes a quoted phrase fails when the phrase is removed -- `[completed]`
-- **#6273** -- feat(scope): one-PR path for a single maintainer: a new or widened brief lands with its code without a second human reviewer -- `[completed]`
-- **#6354** -- feat(scope): one-PR mint level without a human merge (drop the requireHumanMerge precondition) -- `[completed]`
-- **#6349** -- fix(scope-provenance): one-PR gate crashes with ENOBUFS when PROJECT-DEFINITION exceeds 1 MiB -- `[completed]`
 

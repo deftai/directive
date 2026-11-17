@@ -10,9 +10,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-- chore(dogfood): pin Directive to 0.129.12.
 
 ### Fixed
+
+### Removed
+
+## [0.129.13] - 2026-11-17
+
+> pre-rule design arcs ingest again, pr:wait-mergeable-and-merge --wait waits in the merge queue, finalize close-out by story, one story line per brief, and a steadier master gate.
+
+### Added
+
+- Merge queue setup playbook (`content/docs/github-merge-queue-setup.md`), with known issues and ways to save queue rounds. `scm/github.md` and the review-cycle merge step link it, and `pr:wait-mergeable-and-merge` prints one advisory line naming it on a strict branch with no queue. AGENTS.md and the swarm skill now say to run `swarm:pre-dispatch` (begin) before any implementation worker (#6366, #6379).
+- `pr:wait-mergeable-and-merge --wait`: in merge-queue mode, after enqueue or with `--resume`, the verb reads the queue every 60 seconds until the PR merges or leaves the queue, three reads in a row fail, or `--cap-minutes` passes, and reports the stop reason. Without `--wait` nothing changes (#6423).
+
+### Changed
+- chore(dogfood): pin Directive to 0.129.12.
+- Minted the intent-constraint record for the #6423 merge-queue wait (60 s between reads, 3 failed reads in a row). Refs #6423.
+
+### Fixed
+
+- Authz: a quoted heredoc body line that ends in a backslash no longer hides the commands after the heredoc from the zip / protected-destination check. The heredoc lexer is now shared with the commit-shape check (#6187).
+- **Swarm close-out works by story**: `swarm:finalize-cohort` and `swarm:complete-cohort` exit 0 after a correct sweep when no launch record lists the story, and keep the session lease. Close-out removes only the closed stories' worker registrations, marks them in the launch record's `closed_story_ids`, and releases the launcher lease once every story of the session's records is closed; it refuses a run that mixes two launch records. `swarm:launch` shares one lock with close-out and rolls back only what that attempt created, and a failure after the sweep moved briefs says the move is on disk and lists each moved brief (#6422)
+- `pr:check-closing-keywords` and `--write-story-line` now ask a story brief that names several issues for one story line, for the issue completion anchors on, so its product PR completes with no operator grant. Refs #6468.
+- **Arcs accepted before the harvest-digest rule ingest again**: a clean pain-audit with no `harvest-digest:` line now counts for a lean with acceptance criteria or slices when the lean comment's `updated_at` is strictly before the audit's `created_at`, both from the same GitHub comment rows. `issue:ingest`, the design-critique chip and `verify:ac` share the test. An edited lean or a missing or malformed timestamp is refused as before (#6477)
+- **Flaky pre-PR controller tests**: `controller.test.ts` now freezes `Date` for each test, so a second boundary between the command-phase and reviewer-report fills no longer trips the phase-order check and turns master's merge gate red (#6484)
 
 ### Removed
 
@@ -8115,7 +8137,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.129.12...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.129.13...HEAD
+[0.129.13]: https://github.com/deftai/directive/compare/v0.129.12...v0.129.13
 [0.129.12]: https://github.com/deftai/directive/compare/v0.129.11...v0.129.12
 [0.129.11]: https://github.com/deftai/directive/compare/v0.129.10...v0.129.11
 [0.129.10]: https://github.com/deftai/directive/compare/v0.129.9...v0.129.10

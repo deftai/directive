@@ -1,2 +1,0 @@
-section: Fixed
-- **Arcs accepted before the harvest-digest rule ingest again**: a clean pain-audit with no `harvest-digest:` line now counts for a lean with acceptance criteria or slices when the lean comment's `updated_at` is strictly before the audit's `created_at`, both from the same GitHub comment rows. `issue:ingest`, the design-critique chip and `verify:ac` share the test. An edited lean or a missing or malformed timestamp is refused as before (#6477)
