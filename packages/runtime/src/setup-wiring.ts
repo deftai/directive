@@ -7,6 +7,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isFrameworkSourceCheckoutAt } from "@deftai/directive-core/dist/doctor/paths.js";
 import {
   containedChmod,
   containedRemove,
@@ -273,7 +274,11 @@ export function ensureAgentsManagedSection(projectRoot: string): TrackResult & {
     }
   }
 
-  const templatePath = resolveRuntimeAgentsEntryTemplatePath();
+  // A framework source checkout plans against its own template (#6507): pass no
+  // runtime template seam, so the plan reads content/templates/agents-entry.md.
+  const templatePath = isFrameworkSourceCheckoutAt(projectRoot)
+    ? null
+    : resolveRuntimeAgentsEntryTemplatePath();
   const templateText = templatePath !== null ? readText(templatePath) : null;
   let frameworkRoot: string | undefined;
   if (templatePath !== null) {

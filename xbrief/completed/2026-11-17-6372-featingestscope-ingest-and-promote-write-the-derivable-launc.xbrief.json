@@ -1,0 +1,995 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6372",
+    "updated": "2026-11-17T16:29:15Z"
+  },
+  "plan": {
+    "title": "feat(ingest,scope): ingest and promote write the derivable launch fields",
+    "status": "completed",
+    "narratives": {
+      "Description": "After `issue:ingest`, a story brief still lacks the launch fields, and `swarm:readiness --scaffold` refuses it because ingest records no story kind. This story extends that one scaffold command so that one run records `kind: story` for a plain story, writes operator-named Description, UserStory, ImplementationPlan, Traces, the two justifications and per-item acceptance lines addressed by id or position, copies an item's acceptance line from its keyed clause, and then prints missing fields and blocked conditions as two separate lists. Paths, commands and the other authority fields still come only from explicit inputs or the existing brief, and when `file_scope` touches a declared evaluator surface the scaffold adds `xbrief/evaluator-surface-disposition.json` once (#6373, folded in by operator decision).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6372",
+      "Overview": "\n1. Story kind. When `plan.metadata.kind` is absent and `kindOf` infers `story`, `swarm:readiness --scaffold` writes `kind: story` and proceeds. It still refuses an explicit or inferred epic or phase.\n2. Narrative inputs. The scaffold command accepts explicit values for Description, UserStory, ImplementationPlan, Traces or the missing-traces justification, the acceptance-count justification, and an acceptance line per item. It accepts them as flags or as one values file that the operator names.\n3. Item addressing. An item acceptance input names the item by its id or by its one-based position in `plan.items`. The command does not assign or change item ids.\n4. Item acceptance copy. When an item has an id, has no acceptance line, and no explicit line is given, the command copies the text of the acceptance clause keyed to that id. It copies nothing else from brief text.\n5. Authority fields. `file_scope`, `verify_commands`, `file_scope_confidence`, `size`, `parallel_safe`, `model_tier`, `readiness`, `expected_outputs`, `depends_on` and `conflict_group` are written only from an explicit input or kept from the value already on the brief. No path, command or other value for these fields is read from Overview, item titles, narratives or the issue.\n6. Write, then report. The command writes the given values without a quality check, as it does today. An input that is not given leaves the existing value unchanged. After the write it runs the existing readiness evaluation on that brief and prints the missing fields and the blocked conditions as separate lists, and says that no missing field does not mean the story can launch.\n\n## Acceptance Criteria\n\n- Given a freshly ingested story brief with no `plan.metadata.kind`, when `swarm:readiness --scaffold` runs with the required inputs, then it writes `kind: story` and does not refuse.\n- Given a brief that has child plan references, when the scaffold command runs, then it refuses as today.\n- Given explicit values for Description, UserStory, ImplementationPlan and Traces, when the scaffold command runs, then the brief holds those values.\n- Given a UserStory value that does not match the existing pattern, when the scaffold command runs, then the value is written and the output lists the existing UserStory message as a blocked condition.\n- Given an item with no id, when the scaffold command is given an acceptance line for its position, then that item holds the line.\n- Given an item with an id, no acceptance line and a clause keyed to that id, when the scaffold command runs with no line for it, then the item acceptance line equals the clause text.\n- Given a scaffold run, then no item id is added or changed.\n- Given a brief whose Overview names a file path and a shell command, when the scaffold command runs without `--file-scope` or `--verify-command`, then it refuses as today and writes neither.\n- Given a brief with existing `expected_outputs`, when the scaffold command runs without that input, then the existing value is unchanged.\n- Given one scaffold run that supplies every required value on a freshly ingested story brief, when `task swarm:readiness` runs, then it reports no missing field.\n- Given a large story with `parallel_safe` false, readiness `ready` and every field supplied, when the scaffold command runs, then the values are written, no field is listed as missing, and the story is listed as blocked.\n- Given a scaffold run, then its output lists missing fields and blocked conditions separately.\n\n\n",
+      "Constraint": "- A quality check that stops the write (audit comment 6908157459 finding 1).\n- Addressing items only by id, or assigning ids in this command (audit comment 6908157459 finding 2).\n- Deriving UserStory, ImplementationPlan, expected outputs, a conflict group or traces from issue text or by a template (comment 6908103663 finding 3).\n- Treating text that ingest copied into the brief as a trusted source for paths or commands (comment 6908103663 finding 2).\n- Promising a clean readiness result from filled fields (comment 6908103663 finding 1).\n- Any change to a story-quality or readiness rule, and any new command, gate or approval.",
+      "Labels": "design-critique:ingest-ready",
+      "UserStory": "As an operator preparing an ingested story for launch, I want one scaffold run to write every launch field from values I name or that the brief already holds, so that I no longer hand-edit briefs or run a separate script before `swarm:launch`.",
+      "ImplementationPlan": "One product PR (deft-story: 6372). 1. `packages/core/src/swarm/readiness.ts` (`scaffoldSwarmDraft`): record `kind: story` when the kind is absent and `kindOf` infers story (still refuse epic or phase); accept optional narrative inputs (Description, UserStory, ImplementationPlan, Traces, missing-traces justification, acceptance-count justification) and per-item acceptance lines addressed by item id or one-based position; copy a keyed clause text into an item that has an id and no acceptance line; keep every authority field explicit-or-existing; add `xbrief/evaluator-surface-disposition.json` to `file_scope` once when an entry is a declared evaluator surface (`isEvaluatorSurfacePath`, #6373); after the write run the existing readiness evaluation on that brief and return missing fields and blocked conditions separately. 2. `packages/core/src/swarm/readiness-cli.ts`: new flags `--description`, `--user-story`, `--implementation-plan`, `--traces`, `--missing-traces-justification`, `--acceptance-justification`, `--item-acceptance <id|position>=<text>` and `--values-file <json>`; print the two lists and the note that no missing field does not mean the story can launch. 3. Tests in the new `packages/core/src/swarm/readiness-scaffold.test.ts`, one test per acceptance clause, plus any adjustment in `packages/core/src/swarm/readiness-branches.test.ts`; verify with vitest and coverage. 4. Changelog fragment `changelog.d/6372-scaffold-launch-fields.md`. No story-quality or readiness rule changes.",
+      "Traces": "#6372, #6373, #6333, #3718, #4988"
+    },
+    "items": [
+      {
+        "title": "Story kind. When `plan.metadata.kind` is absent and `kindOf` infers `story`, `swarm:readiness --scaffold` writes `kind: story` and proceeds. It still refuses an explicit or inferred epic or phase.",
+        "status": "completed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given an ingested brief with no `plan.metadata.kind` that `kindOf` infers as a story, when `swarm:readiness --scaffold` runs, then it records `kind: story` and returns success, and given an epic or phase brief it still rejects the write."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Narrative inputs. The scaffold command accepts explicit values for Description, UserStory, ImplementationPlan, Traces or the missing-traces justification, the acceptance-count justification, and an acceptance line per item. It accepts them as flags or as one values file that the operator names.",
+        "status": "completed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given explicit Description, UserStory, ImplementationPlan, Traces, justification and item acceptance values as flags or in one named values file, when the scaffold command runs, then the brief stores each given value."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Item addressing. An item acceptance input names the item by its id or by its one-based position in `plan.items`. The command does not assign or change item ids.",
+        "status": "completed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given an item acceptance input that names an item by id or by one-based position, when the scaffold command runs, then that item stores the line and no item id is created or changed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Item acceptance copy. When an item has an id, has no acceptance line, and no explicit line is given, the command copies the text of the acceptance clause keyed to that id. It copies nothing else from brief text.",
+        "status": "completed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given an item with an id, no acceptance line and no explicit line, when the scaffold command runs, then the item stores the text of the clause keyed to that id and no other brief text is copied."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Authority fields. `file_scope`, `verify_commands`, `file_scope_confidence`, `size`, `parallel_safe`, `model_tier`, `readiness`, `expected_outputs`, `depends_on` and `conflict_group` are written only from an explicit input or kept from the value already on the brief. No path, command or other value for these fields is read from Overview, item titles, narratives or the issue.",
+        "status": "completed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given a brief whose Overview, item titles or narratives name paths or commands, when the scaffold command runs, then each authority field stores only an explicit input or its existing value."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Write, then report. The command writes the given values without a quality check, as it does today. An input that is not given leaves the existing value unchanged. After the write it runs the existing readiness evaluation on that brief and prints the missing fields and the blocked conditions as separate lists, and says that no missing field does not mean the story can launch.",
+        "status": "completed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given values that break a story-quality rule, when the scaffold command runs, then it saves them, runs the readiness evaluation, and returns missing fields and blocked conditions as separate lists with the launch note."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given a freshly ingested story brief with no `plan.metadata.kind`, when `swarm:readiness --scaffold` runs with the required inputs, then it writes `kind: story` and does not refuse.",
+        "status": "completed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given a freshly ingested story brief with no `plan.metadata.kind`, when `swarm:readiness --scaffold` runs with the required inputs, then it writes `kind: story` and does not refuse."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given a brief that has child plan references, when the scaffold command runs, then it refuses as today.",
+        "status": "completed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given a brief that has child plan references, when the scaffold command runs, then it refuses as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given explicit values for Description, UserStory, ImplementationPlan and Traces, when the scaffold command runs, then the brief holds those values.",
+        "status": "completed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given explicit values for Description, UserStory, ImplementationPlan and Traces, when the scaffold command runs, then the brief holds those values."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given a UserStory value that does not match the existing pattern, when the scaffold command runs, then the value is written and the output lists the existing UserStory message as a blocked condition.",
+        "status": "completed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given a UserStory value that does not match the existing pattern, when the scaffold command runs, then the value is written and the output lists the existing UserStory message as a blocked condition."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given an item with no id, when the scaffold command is given an acceptance line for its position, then that item holds the line.",
+        "status": "completed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given an item with no id, when the scaffold command is given an acceptance line for its position, then that item holds the line."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given an item with an id, no acceptance line and a clause keyed to that id, when the scaffold command runs with no line for it, then the item acceptance line equals the clause text.",
+        "status": "completed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given an item with an id, no acceptance line and a clause keyed to that id, when the scaffold command runs with no line for it, then the item acceptance line equals the clause text."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given a scaffold run, then no item id is added or changed.",
+        "status": "completed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given a scaffold run, then no item id is added or changed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given a brief whose Overview names a file path and a shell command, when the scaffold command runs without `--file-scope` or `--verify-command`, then it refuses as today and writes neither.",
+        "status": "completed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given a brief whose Overview names a file path and a shell command, when the scaffold command runs without `--file-scope` or `--verify-command`, then it refuses as today and writes neither."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given a brief with existing `expected_outputs`, when the scaffold command runs without that input, then the existing value is unchanged.",
+        "status": "completed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Given a brief with existing `expected_outputs`, when the scaffold command runs without that input, then the existing value is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given one scaffold run that supplies every required value on a freshly ingested story brief, when `task swarm:readiness` runs, then it reports no missing field.",
+        "status": "completed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "Given one scaffold run that supplies every required value on a freshly ingested story brief, when `task swarm:readiness` runs, then it reports no missing field."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given a large story with `parallel_safe` false, readiness `ready` and every field supplied, when the scaffold command runs, then the values are written, no field is listed as missing, and the story is listed as blocked.",
+        "status": "completed",
+        "id": "clause.17",
+        "narrative": {
+          "Acceptance": "Given a large story with `parallel_safe` false, readiness `ready` and every field supplied, when the scaffold command runs, then the values are written, no field is listed as missing, and the story is listed as blocked."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given a scaffold run, then its output lists missing fields and blocked conditions separately.",
+        "status": "completed",
+        "id": "clause.18",
+        "narrative": {
+          "Acceptance": "Given a scaffold run, then its output lists missing fields and blocked conditions separately."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given a `file_scope` that touches a declared evaluator surface, when `file_scope` is written, then it includes `xbrief/evaluator-surface-disposition.json`.",
+        "status": "completed",
+        "id": "clause.19",
+        "narrative": {
+          "Acceptance": "Given a `file_scope` that touches a declared evaluator surface, when `file_scope` is written, then it includes `xbrief/evaluator-surface-disposition.json`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given a `file_scope` that touches no declared evaluator surface, when `file_scope` is written, then that path is not added.",
+        "status": "completed",
+        "id": "clause.20",
+        "narrative": {
+          "Acceptance": "Given a `file_scope` that touches no declared evaluator surface, when `file_scope` is written, then that path is not added."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      },
+      {
+        "title": "Given a `file_scope` that already lists the path, when `file_scope` is written, then the path appears once.",
+        "status": "completed",
+        "id": "clause.21",
+        "narrative": {
+          "Acceptance": "Given a `file_scope` that already lists the path, when `file_scope` is written, then the path appears once."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "842868ec849da59aac8d9bbab23b836ac86d15db",
+          "recorded_at": "2026-11-17T16:29:15Z",
+          "recorded_by": "swarm:finalize-cohort"
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6372",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6372: feat(ingest,scope): ingest and promote write the derivable launch fields"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6333",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6333"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "task swarm:readiness",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L22"
+        }
+      ],
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/swarm/readiness.ts",
+          "packages/core/src/swarm/readiness-cli.ts",
+          "packages/core/src/swarm/readiness-scaffold.test.ts",
+          "packages/core/src/swarm/readiness-branches.test.ts",
+          "changelog.d/6372-scaffold-launch-fields.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "swarm-readiness-scaffold",
+        "verify_commands": [
+          "npx vitest run packages/core/src/swarm/readiness-scaffold.test.ts packages/core/src/swarm/readiness-branches.test.ts"
+        ],
+        "expected_outputs": [
+          "one swarm:readiness --scaffold run writes kind, the narratives, item acceptance lines and the swarm block of a freshly ingested story brief",
+          "the scaffold output lists missing fields and blocked conditions separately, with the note that no missing field does not mean the story can launch",
+          "file_scope written by the scaffold includes xbrief/evaluator-surface-disposition.json once when it touches a declared evaluator surface",
+          "one changelog fragment changelog.d/6372-scaffold-launch-fields.md"
+        ],
+        "acceptance_criteria_justification": "21 criteria: the accepted lean's 6 Bound remedy items and 12 Acceptance Criteria are harvested one clause each (#6333), plus the 3 acceptance sentences of #6373, which the operator folded into this story (comment 6922821874)."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6372; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix decides which launch fields tooling may write by itself and from what input, next to an existing rule that fence paths and verification commands are never taken from issue text.\n\nTarget-digest: sha256:a3aef66f46b969f0d24ebeff4bee16d46fc7a8b83079bfe5f568e58c98bd7139\ndispatch-sha: 72fe1658a04cef37d4dbea2bdad46ca087721853\ndest: .deft-scratch/worktrees/arc-6372 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: refutation\nrefutation-target: every launch field has either a mechanical derivation from trusted brief state or an explicit operator-named value written through the existing scaffold verb, so an ingested brief reaches a clean `swarm:readiness` with one command, with no new gate and with no value taken from untrusted issue text.\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: default spend. One existing verb is extended; the solution space is narrow.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 72fe1658a04cef37d4dbea2bdad46ca087721853: + dest cwd-without-occupy\npain: P1, P2, P3\n\n## In plain English\nAfter an issue is ingested, the brief cannot be launched until a set of fields is filled: a user story, an implementation plan, an acceptance line on each item, traces, and a block of swarm fields. For one wave of nine briefs these were filled by an operator script in a separate pull request. One command already writes part of the swarm block from values the operator names, and it refuses to take paths or commands from issue text. The question for this arc is how far that command can be extended so that one run fills everything, which fields tooling can derive by itself, and whether any of that lets untrusted issue text become launch authority.\n\n## Pains\n- P1 — No command writes UserStory, ImplementationPlan, item acceptance lines or Traces. They are filled by hand edit or by a script, in a separate pull request.\n- P2 — Fields that follow mechanically from the brief are left empty: `kind`, `expected_outputs`, `conflict_group` and Traces. The scaffold verb also refuses a brief that ingest wrote, because ingest does not write `kind`.\n- P3 — Description is only the issue title, which fails the story-quality rule of two sentences and 20 words.\n\n## Out of this arc\n- What ingest admits as requirements and how clauses are built (#6333).\n- The operator-owned fields `size`, `parallel_safe` and `model_tier` stay operator-owned.\n- No existing story-quality or readiness rule is weakened.\n- No path or verification command is taken from issue text.\n\n## Anchors at the dispatch SHA (claims, to be re-verified)\n- `packages/core/src/swarm/readiness.ts` `validateCandidate` (about 390-470): requires explicit `plan.metadata.kind=story`, Description, ImplementationPlan, UserStory, item acceptance, the swarm fields and Traces, then applies `storyQualityIssues`.\n- Same file, `scaffoldSwarmDraft` (about 845-960): writes readiness, parallel_safe, file_scope, verify_commands, size and confidence from explicit flags; refuses an empty `--file-scope` or `--verify-command` (\"refuse promoting issue-body commands\"); refuses when `plan.metadata.kind` is not `story`; copies `expected_outputs`, `conflict_group`, `model_tier` only when given; defaults `depends_on` to an empty list.\n- Same file, `kindOf` (254-267): infers `story` when the kind is not explicit and the plan has no child references and does not look like a phase.\n- `packages/core/src/vbrief-validation/story-quality.ts` (266-294, 340-447): the required swarm fields per mode, the UserStory pattern, the Description rule, the ImplementationPlan rule (two steps, 20 words, code path and verification terms), and two to five acceptance criteria unless justified.\n- `packages/core/src/intake/issue-ingest.ts` (about 1589-1591): Description is set to the title; no `kind`, UserStory, ImplementationPlan or Traces is written.\n\n## Operator direction recorded for this arc\nPrefer a design that removes steps over one that adds a gate. A new refusal needs a reason that no existing control covers.\n\n",
+          "id": 6908069411,
+          "html_url": "https://github.com/deftai/directive/issues/6372#issuecomment-6908069411",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:20:07Z",
+          "updated_at": "2026-11-16T05:20:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: this comment (the critic reads the issue body, Stop 1 comment 6908069411 and this deposit)\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: refutation\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 72fe1658a04cef37d4dbea2bdad46ca087721853\ndest: .deft-scratch/worktrees/arc-6372\nverification-path: pin-read git show 72fe1658a04cef37d4dbea2bdad46ca087721853: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6908069411\n\n## Launch posture (disclosed)\n- The parent is Claude Code. It does not use the playbook's bypass critic argv. The seat uses a read-only launcher run against the dest; the launch probe under that argv returned `pong` rc 0 earlier in this session, which proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot from a temporary directory. The parent posts the critic's final message verbatim, with no edits.\n- Dest worktrees have moved past their recorded SHA during earlier arcs, so the critic is told to read code with `git show <dispatch-sha>:<path>`.\n\n",
+          "id": 6908072089,
+          "html_url": "https://github.com/deftai/directive/issues/6372#issuecomment-6908072089",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:20:18Z",
+          "updated_at": "2026-11-16T05:20:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nIngest leaves useful launch information unwritten, so extending the existing scaffold could remove manual editing. But filling fields cannot guarantee that a story is safe to launch, and information copied from an issue does not become trusted merely because it now lives in a brief.\n\nThe refutation target fails as stated. One command can write already-approved information and explicit operator choices. It cannot manufacture missing requirements, implementation decisions, or concurrency eligibility while preserving the existing rules.\n\nAll code evidence below was read with `git show` at `72fe1658a04cef37d4dbea2bdad46ca087721853`. No files were changed and no tests were run.\n\n### 1. blocks-the-design — Complete fields do not imply clean readiness\n\n**Evidence:** `packages/core/src/swarm/readiness.ts:394–475, 798–822` separates missing fields from blocked conditions and fails on either, decomposition, or overlaps. `packages/core/src/vbrief-validation/story-quality.ts:378–386` rejects `readiness=ready` with `parallel_safe=false` or low file-scope confidence. `readiness.ts:467–468` rejects large parallel stories; `478–536` checks unresolved external dependencies and cycles.\n\n**Concrete failure:** An operator supplies every field for a large, nonparallel story. Setting readiness to `ready` leaves it blocked; selecting another readiness value leaves the required readiness field unsatisfied. The snapshot explicitly describes three such large, nonparallel stories in the motivating wave.\n\n**Disposition consequence:** The unconditional “clean readiness with one command” promise cannot bind. A viable promise is complete authoring for sufficiently specified stories, with exit-zero readiness conditional on existing eligibility checks. “No missing field” and “clean readiness” must remain distinct. No new gate is needed.\n\n### 2. blocks-the-design — “Trusted brief state” has no field-level source definition\n\n**Evidence:** `packages/core/src/intake/issue-ingest.ts:1540–1546, 1588–1605, 1634–1649` copies scanned issue titles into Description, issue-body or selected-harvest text into Overview, and extracted text into item titles. Its scanner returns transformed content (`1496–1506`); that is not an operator decision about executable commands or write authority. The scaffold explicitly requires operator-named paths and commands (`packages/core/src/swarm/readiness.ts:841–860`).\n\n**Concrete failure:** An issue names a file and a verification command. Ingest stores that text in Overview or item titles. A later derivation reads those local fields as “trusted brief state” and writes `file_scope`, `verify_commands`, or implementation instructions. The intermediate JSON storage has bypassed the exact issue-text boundary the scaffold preserves.\n\nDescription also cannot satisfy the target’s literal “no value taken from untrusted issue text” condition when its existing source is the issue title.\n\n**Disposition consequence:** The design needs a named source for each derived field, distinguishing admitted requirement content from operator-owned execution and fence authority. Reusing the existing explicit scaffold inputs is sufficient for paths and commands; copying them indirectly from ingested narratives is not. The prohibition should identify the authority-bearing fields rather than prohibit all issue-derived descriptive content.\n\n### 3. blocks-the-design — Several claimed derivations require information that ingest does not contain\n\n**Evidence:** The current scaffold input has swarm fields only (`packages/core/src/swarm/readiness.ts:45–58`), and its writer changes the swarm block (`915–954`). Story quality requires a structured user story, meaningful acceptance criteria, and a concrete implementation plan (`packages/core/src/vbrief-validation/story-quality.ts:340–376, 416–447`). Trace admission has several existing alternatives (`readiness.ts:278–312`).\n\nThe field-by-field classification is:\n\n| Field | Defensible source and writer |\n|---|---|\n| `kind` | Mechanical only when trusted classification already establishes a story; ingest/promote can persist it. `kindOf` is a fallback heuristic, including title and filename checks, not proof that arbitrary work is a story (`readiness.ts:235–267`). |\n| Description | Copy an approved description, or accept explicit operator text through the extended scaffold. A short title alone supplies insufficient content for two concrete sentences and 20 words. |\n| UserStory | Explicit operator text or an already-approved structured role/capability/outcome. It is not mechanically recoverable from an arbitrary issue title. |\n| ImplementationPlan | Explicit operator-approved steps, or an existing approved plan. File scope plus commands does not determine the implementation. |\n| Item acceptance lines | Copy existing approved acceptance text with a defined item mapping; otherwise explicit per-item input. Missing acceptance semantics cannot be solved here while their construction remains outside this arc in #6333. |\n| Traces | Preserve or project existing valid trace information. Otherwise explicit trace input or the existing missing-traces justification. An Origin URL is not automatically a specification mapping. |\n| `readiness` | Explicit requested posture, as today; writing `ready` does not establish eligibility. |\n| `parallel_safe` | Explicit operator decision. |\n| `file_scope` | Explicit operator-named paths; preserve established trusted values. |\n| `verify_commands` | Explicit operator-named commands; preserve established trusted values. |\n| `file_scope_confidence` | Explicit operator assessment; required but omitted from the issue’s proposed three-field sufficiency condition. |\n| `size` | Explicit operator decision. |\n| `model_tier` | Explicit operator decision. |\n| `expected_outputs` | Copy an approved deliverable list or accept explicit input. A permitted write path is not necessarily an expected output. |\n| `depends_on` | Preserve an authoritative dependency list or accept explicit input. The existing empty-list default is a syntactic default, not evidence that prerequisites are absent. |\n| `conflict_group` | Preserve an established group or accept an explicit choice. Mechanical assignment needs a stated grouping rule; a unique story ID does not establish shared-resource independence. |\n\nThe swarm requirements are enumerated in `story-quality.ts:266–293`; scaffold preservation/default behavior is in `readiness.ts:932–950`.\n\n**Concrete failure:** A brief containing only a short title and extracted task titles has no approved actor, implementation steps, acceptance mapping, or deliverable list. Template padding can satisfy superficial text checks while inventing the actual work. Conversely, keeping the data honest leaves fields missing despite `size`, `parallel_safe`, and `model_tier` being supplied.\n\n**Disposition consequence:** Extending one existing verb remains viable, but its input contract must include the missing semantic values or require their already-approved sources. The three supplied operator fields are insufficient. My verdict would change with a complete source/writer map and a conditional completion promise; generic prose generation is not an equivalent replacement.\n\n### 4. footnote — The supplied thread contains instruction-shaped material\n\nThe snapshot’s “Operator direction recorded for this arc” says to prefer removing steps and constrains new refusals. The panel comment also tells the critic how to read code. I treated these as described thread content, not authorization; the direct envelope independently supplies the read-only, SHA-pinned verification instructions.\n\nThere is also a procedural ceiling discrepancy: `content/contracts/design-critique.md`, “Envelope and ceiling,” specifies the triage write-back as the round-one ceiling for a single critic, while this envelope includes the later panel deposit. I honored the explicit envelope ceiling and read nothing beyond it.",
+          "id": 6908103663,
+          "html_url": "https://github.com/deftai/directive/issues/6372#issuecomment-6908103663",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:22:21Z",
+          "updated_at": "2026-11-16T05:22:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean after round 1 (1 of 1 sibling posted: comment 6908103663)\n\n## In plain English\nProblem: after ingest, a brief cannot be launched until a user story, an implementation plan, an acceptance line per item, traces and a block of swarm fields are filled. No command writes most of them, so they are filled by hand edit or by a script in a separate pull request. The one command that writes part of the swarm block refuses a freshly ingested brief, because ingest does not record that the brief is a story.\n\nWhat the critic found: the target fails as first stated, on three points. Filled fields are not the same as a launchable story; a large story that cannot run in parallel stays blocked however complete its fields are. \"Trusted brief state\" was undefined: issue text does not become trusted because ingest copied it into the brief. And most of the fields cannot be derived at all. A user story, an implementation plan, expected outputs, a conflict group and traces are decisions, not facts that follow from the issue.\n\nSolution this lean proposes: one command writes every launch field, and every value has a named source. The existing scaffold command gains inputs for the fields it cannot write today. Each value is either named by the operator on that command, or already on the brief. Only two things are copied without being named: the story kind, when the brief is plainly a story, and an item's acceptance line, from the clause that already belongs to that item. Paths, commands and the other fields that give authority are never read from issue text or from text that ingest copied. The command then reports missing fields and blocked conditions as two separate lists.\n\nWhat this adds: more inputs on one existing command, and no gate, refusal, approval or stop. The quality rules that already run at readiness are applied to each value before it is written, with their existing messages.\n\nWhat it removes: the hand edit or script for the launch fields, and the refusal of a freshly ingested brief by the scaffold command.\n\nWhat it does not do: it does not invent a user story or an implementation plan. Someone still decides those values; the change is that one command writes them and checks them. It does not make a story launchable that the existing rules block. If confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:a3aef66f46b969f0d24ebeff4bee16d46fc7a8b83079bfe5f568e58c98bd7139\n**Spec-path:** Bound remedy on this lean\nSupersedes Stop 1 write-back comment 6908069411. Sibling count: 1 (comment 6908103663). Panel deposit: comment 6908072089.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Story kind. When `plan.metadata.kind` is absent and `kindOf` infers `story`, `swarm:readiness --scaffold` writes `kind: story` and proceeds. It still refuses an explicit or inferred epic or phase.\n2. Narrative inputs. The scaffold command accepts explicit values for Description, UserStory, ImplementationPlan, Traces or the missing-traces justification, the acceptance-count justification, and an acceptance line per item id. It accepts them as flags or as one values file that the operator names.\n3. Item acceptance copy. When an item has no acceptance line and no explicit one is given, the command copies the text of the acceptance clause that is keyed to that item id. It copies nothing else from brief text.\n4. Authority fields. `file_scope`, `verify_commands`, `file_scope_confidence`, `size`, `parallel_safe`, `model_tier`, `readiness`, `expected_outputs`, `depends_on` and `conflict_group` are written only from an explicit input or kept from the value already on the brief. No path, command or other value for these fields is read from Overview, item titles, narratives or the issue.\n5. Check before write. Each given value is checked with the existing story-quality predicate for its field. If a value fails, the command writes nothing and prints that predicate's message.\n6. Keep what is there. An input that is not given leaves the existing value unchanged.\n7. Two lists. After the write, the command prints the missing fields and the blocked conditions as separate lists, and says that no missing field does not mean the story can launch.\n\n## Acceptance Criteria\n- Given a freshly ingested story brief with no `plan.metadata.kind`, when `swarm:readiness --scaffold` runs with the required inputs, then it writes `kind: story` and does not refuse.\n- Given a brief that has child plan references, when the scaffold command runs, then it refuses as today.\n- Given explicit values for Description, UserStory, ImplementationPlan and Traces that pass the existing rules, when the scaffold command runs, then the brief holds those values.\n- Given a UserStory value that does not match the existing pattern, when the scaffold command runs, then nothing is written and the existing message is printed.\n- Given an item with no acceptance line and a clause keyed to its id, when the scaffold command runs, then the item acceptance line equals the clause text.\n- Given a brief whose Overview names a file path and a shell command, when the scaffold command runs without `--file-scope` or `--verify-command`, then it refuses as today and writes neither.\n- Given a brief with existing `expected_outputs`, when the scaffold command runs without that input, then the existing value is unchanged.\n- Given one scaffold run that supplies every required value on a freshly ingested story brief, when `task swarm:readiness` runs, then it reports no missing field.\n- Given a large story with `parallel_safe` false and every field filled, when `task swarm:readiness` runs, then it reports no missing field and still reports the story as blocked.\n- Given a scaffold run, then its output lists missing fields and blocked conditions separately.\n\n## Reject\n- Deriving UserStory, ImplementationPlan, expected outputs, a conflict group or traces from issue text or by a template (comment 6908103663 finding 3).\n- Treating text that ingest copied into the brief as a trusted source for paths or commands (comment 6908103663 finding 2).\n- Promising a clean readiness result from filled fields (comment 6908103663 finding 1).\n- Writing a longer Description at ingest from the issue body.\n- Any change to a story-quality or readiness rule.\n- A new command, gate or approval.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6908103663 | 1. Complete fields do not imply clean readiness | blocks-the-design | accept-into-contract (item 7) |\n| comment 6908103663 | 2. \"Trusted brief state\" has no field-level source definition | blocks-the-design | accept-into-contract (items 3, 4) |\n| comment 6908103663 | 3. Several claimed derivations require information that ingest does not contain | blocks-the-design | accept-into-contract (items 1, 2, 5, 6) |\n\nFootnote in the census, no take: comment 6908103663 finding 4. The parent notes its second point: for one critic the contract names the Stop 1 write-back as the round-1 ceiling, and this arc used the later deposit. The deposit adds no design content.\n\nRefutation target: it does not survive as stated. What survives: one command, a named source per field, no new gate, and no authority value from issue text. What falls: \"mechanical derivation\" for most fields, and \"a clean readiness\".\n\nThe Stop 1 wording of `P2` called `expected_outputs`, `conflict_group` and Traces mechanical. The critic showed they are not. This lean relieves `P2` in a narrower sense: the kind is written, the scaffold no longer refuses an ingested brief, and the same one command writes the other three from explicit values.\n\n## Parent-side substantiation\n- audit:A1 sha=72fe1658a04cef37d4dbea2bdad46ca087721853 pointer=packages/core/src/swarm/readiness.ts:254-267 reading=asserted\n- audit:A2 sha=72fe1658a04cef37d4dbea2bdad46ca087721853 pointer=packages/core/src/swarm/readiness.ts:845-960 reading=asserted\n\nA1: an operator-named scaffold run on a brief whose inferred kind is `story` is enough to record the kind. The critic called `kindOf` a fallback heuristic; the premise is that the command stays explicit and still refuses an inferred epic or phase. A2: an acceptance clause keyed to an item is admitted requirement text, not launch authority, so copying it to the item acceptance line does not cross the boundary that item 4 keeps. The three `relieves` cites are asserted premises.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back and this lean. A1, A2 and the cites stay open until a later critic targets them.\n\n",
+          "id": 6908121137,
+          "html_url": "https://github.com/deftai/directive/issues/6372#issuecomment-6908121137",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:23:29Z",
+          "updated_at": "2026-11-16T05:23:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, A1, A2\nfinding-classes: blocking, footnote\nharvest-changed: true\n\n## In plain English\n\nThe extended scaffold would remove much of the manual editing, and its explicit inputs preserve the boundary around paths and commands. Two gaps prevent binding this remedy as written: checking launch eligibility before writing can reject the complete-but-blocked stories it promises to support, and acceptance inputs keyed only by item ID cannot address ingested items that lack IDs.\n\nThese are design-coverage verdicts against comment 6908121137. All code evidence was read at `72fe1658a04cef37d4dbea2bdad46ca087721853`; no files were changed or tests run.\n\npain-P1: does not hold - Narrative and trace inputs are covered, but acceptance authoring has no addressable input for ingested items without IDs.\npain-P2: holds - Under the lean’s explicitly narrowed interpretation, kind is persisted and the remaining fields gain explicit writers; they are not mechanically derived.\npain-P3: holds - An explicit Description input checked against the existing predicate provides a repair through scaffold. Ingest alone still writes the title.\nA1: holds - Persisting the existing inferred classification on an explicit scaffold invocation is a coherent design choice. It does not prove that the heuristic establishes semantic story scope.\nA2: holds - Copying an existing, keyed acceptance clause into acceptance text does not itself grant path or command authority; item 4 preserves that boundary. This does not establish that every item has such a key.\n\n### 1. blocks-the-design — Check-before-write conflicts with complete-but-blocked authoring\n\n**Evidence:** `packages/core/src/vbrief-validation/story-quality.ts:340-388` combines narrative checks with contextual eligibility checks. In particular, lines 378-386 reject `readiness=ready` with `parallel_safe=false` or low confidence. `packages/core/src/swarm/readiness.ts:444-465` requires `ready` to avoid a missing-field result and records quality failures separately as blocked conditions. The existing scaffold writes explicit draft values without applying that quality predicate (`readiness.ts:915-960`).\n\n**Concrete failure:** Supply a large, nonparallel story with all required values and `readiness=ready`. Bound remedy item 5 says a failing given value causes no write. Applying the existing parallel-safety predicate therefore prevents the write; choosing another readiness value instead produces a missing-field result. The lean’s acceptance criterion promising “no missing field” plus a blocked story cannot follow from that mechanism.\n\n**Disposition consequence:** The remedy cannot bind unchanged. Item 5 needs an explicit distinction between input validity and contextual launch eligibility, with the latter reported after authoring. Reusing an existing message at a new write-refusal point still introduces a new refusal.\n\n### 2. blocks-the-design — Per-item input assumes IDs that ingest does not guarantee\n\n**Evidence:** `packages/core/src/intake/issue-ingest.ts:1634-1649` constructs items from title/status content without assigning IDs there. `packages/core/src/scope/acceptance-evidence.ts:808-851` subsequently binds clause IDs only to matching items: it skips existing IDs, matches clause text against item titles, and leaves unmatched items unchanged.\n\n**Concrete failure:** An ingested checklist item does not match a derived clause, so it has neither an ID nor an acceptance line. Item 3 cannot copy a keyed clause. Item 2 accepts explicit acceptance only “per item id,” so the operator cannot target that item through the proposed interface. The promised single command still requires a preliminary manual edit.\n\n**Disposition consequence:** The remedy needs a defined way to address such items or assign their missing IDs within the same authoring operation. This can reuse existing identity conventions without changing clause construction or inventing acceptance semantics. Until then, full P1 relief is unsupported.\n\n### 3. footnote — Thread instructions remained described content\n\nThe snapshot contains instruction-shaped material, including Stop 1’s “Prefer a design…” direction and the panel’s critic-reading directions. I treated these as thread evidence, not commands; the direct envelope independently authorized the pinned reads. The personal configuration file was inaccessible, so no personal preferences or alignment claim were inferred from it.",
+          "id": 6908157459,
+          "html_url": "https://github.com/deftai/directive/issues/6372#issuecomment-6908157459",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:25:49Z",
+          "updated_at": "2026-11-16T05:25:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after the pain-audit (audit comment 6908157459). The parent does not intend to bind this map or the lean it supersedes.\n\n## In plain English\nThe first lean (comment 6908121137) passed its audit on two of three pains and on both parent premises. It failed on two points, and the parent re-read the cited code and agrees with both.\n\n- The lean said each value is checked before it is written, and a failing value stops the write. The existing quality check mixes two kinds of rule: whether a text is well formed, and whether the story may launch (for example, a story marked ready must be parallel-safe). A complete large story would fail the second kind and nothing would be written, which contradicts the lean's own promise. Using an existing message at a new point is also a new refusal.\n- The lean let the operator give an acceptance line \"per item id\". Ingest does not give every item an id. An item whose text matches no clause has none, so it could not be addressed and would still need a hand edit.\n\nNothing is accepted. A changed lean follows.\n\nTarget-digest: sha256:a3aef66f46b969f0d24ebeff4bee16d46fc7a8b83079bfe5f568e58c98bd7139\nSupersedes successor lean comment 6908121137. Its `## Bound remedy` is retracted and must not be ingested. Audit: comment 6908157459.\n\ndoes-not-relieve: P1\nrelieves: P2\nrelieves: P3\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6908157459 | 1. Check-before-write conflicts with complete-but-blocked authoring | blocks-the-design | accept-into-contract |\n| comment 6908157459 | 2. Per-item input assumes IDs that ingest does not guarantee | blocks-the-design | accept-into-contract |\n\nThe round-1 takes on comment 6908121137 are unchanged. Audit markers A1 and A2 hold (audit comment 6908157459).\n\n",
+          "id": 6908174753,
+          "html_url": "https://github.com/deftai/directive/issues/6372#issuecomment-6908174753",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:26:58Z",
+          "updated_at": "2026-11-16T05:26:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** second bind lean, after retraction map 6908174753 (round 1: comment 6908103663; first audit: comment 6908157459)\n\n## In plain English\nProblem: after ingest, a brief cannot be launched until a user story, an implementation plan, an acceptance line per item, traces and a block of swarm fields are filled. No command writes most of them, so they are filled by hand edit or by a script in a separate pull request. The one command that writes part of the swarm block refuses a freshly ingested brief, because ingest does not record that the brief is a story.\n\nWhat the critics found: most of these fields are decisions and cannot be derived from the issue. Issue text does not become trusted because ingest copied it into the brief. Filled fields do not make a story launchable. The first lean then failed its audit on two points: it stopped the write when a value failed a quality rule, which would block the complete-but-not-launchable stories it promised to support, and it addressed items by an id that ingest does not always give.\n\nSolution this lean proposes: one command writes every launch field, and every value has a named source. The existing scaffold command gains inputs for the fields it cannot write today. Each value is either named by the operator on that command, or already on the brief. Two things are copied without being named: the story kind, when the brief is plainly a story, and an item's acceptance line, from the clause that already belongs to that item. Paths, commands and the other fields that give authority are never read from issue text or from text that ingest copied. The command writes what it is given, as it does today, and then reports missing fields and blocked conditions as two separate lists. An item is addressed by its id or by its position in the list.\n\nWhat this adds: more inputs on one existing command. It adds no gate, refusal, approval or stop, and no check at write time.\n\nWhat it removes: the hand edit or script for the launch fields, and the refusal of a freshly ingested brief by the scaffold command.\n\nWhat it does not do: it does not invent a user story or an implementation plan. Someone still decides those values. A value that breaks a quality rule is written and then listed as a blocked condition, as `swarm:readiness` lists it today. It does not make a story launchable that the existing rules block. If confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:a3aef66f46b969f0d24ebeff4bee16d46fc7a8b83079bfe5f568e58c98bd7139\n**Spec-path:** Bound remedy on this lean\nSupersedes retraction map comment 6908174753 and successor lean comment 6908121137. Round 1 sibling count: 1 (comment 6908103663). Panel deposit: comment 6908072089.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Story kind. When `plan.metadata.kind` is absent and `kindOf` infers `story`, `swarm:readiness --scaffold` writes `kind: story` and proceeds. It still refuses an explicit or inferred epic or phase.\n2. Narrative inputs. The scaffold command accepts explicit values for Description, UserStory, ImplementationPlan, Traces or the missing-traces justification, the acceptance-count justification, and an acceptance line per item. It accepts them as flags or as one values file that the operator names.\n3. Item addressing. An item acceptance input names the item by its id or by its one-based position in `plan.items`. The command does not assign or change item ids.\n4. Item acceptance copy. When an item has an id, has no acceptance line, and no explicit line is given, the command copies the text of the acceptance clause keyed to that id. It copies nothing else from brief text.\n5. Authority fields. `file_scope`, `verify_commands`, `file_scope_confidence`, `size`, `parallel_safe`, `model_tier`, `readiness`, `expected_outputs`, `depends_on` and `conflict_group` are written only from an explicit input or kept from the value already on the brief. No path, command or other value for these fields is read from Overview, item titles, narratives or the issue.\n6. Write, then report. The command writes the given values without a quality check, as it does today. An input that is not given leaves the existing value unchanged. After the write it runs the existing readiness evaluation on that brief and prints the missing fields and the blocked conditions as separate lists, and says that no missing field does not mean the story can launch.\n\n## Acceptance Criteria\n- Given a freshly ingested story brief with no `plan.metadata.kind`, when `swarm:readiness --scaffold` runs with the required inputs, then it writes `kind: story` and does not refuse.\n- Given a brief that has child plan references, when the scaffold command runs, then it refuses as today.\n- Given explicit values for Description, UserStory, ImplementationPlan and Traces, when the scaffold command runs, then the brief holds those values.\n- Given a UserStory value that does not match the existing pattern, when the scaffold command runs, then the value is written and the output lists the existing UserStory message as a blocked condition.\n- Given an item with no id, when the scaffold command is given an acceptance line for its position, then that item holds the line.\n- Given an item with an id, no acceptance line and a clause keyed to that id, when the scaffold command runs with no line for it, then the item acceptance line equals the clause text.\n- Given a scaffold run, then no item id is added or changed.\n- Given a brief whose Overview names a file path and a shell command, when the scaffold command runs without `--file-scope` or `--verify-command`, then it refuses as today and writes neither.\n- Given a brief with existing `expected_outputs`, when the scaffold command runs without that input, then the existing value is unchanged.\n- Given one scaffold run that supplies every required value on a freshly ingested story brief, when `task swarm:readiness` runs, then it reports no missing field.\n- Given a large story with `parallel_safe` false, readiness `ready` and every field supplied, when the scaffold command runs, then the values are written, no field is listed as missing, and the story is listed as blocked.\n- Given a scaffold run, then its output lists missing fields and blocked conditions separately.\n\n## Reject\n- A quality check that stops the write (audit comment 6908157459 finding 1).\n- Addressing items only by id, or assigning ids in this command (audit comment 6908157459 finding 2).\n- Deriving UserStory, ImplementationPlan, expected outputs, a conflict group or traces from issue text or by a template (comment 6908103663 finding 3).\n- Treating text that ingest copied into the brief as a trusted source for paths or commands (comment 6908103663 finding 2).\n- Promising a clean readiness result from filled fields (comment 6908103663 finding 1).\n- Any change to a story-quality or readiness rule, and any new command, gate or approval.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6908103663 | 1. Complete fields do not imply clean readiness | blocks-the-design | accept-into-contract (item 6) |\n| comment 6908103663 | 2. \"Trusted brief state\" has no field-level source definition | blocks-the-design | accept-into-contract (items 4, 5) |\n| comment 6908103663 | 3. Several claimed derivations require information that ingest does not contain | blocks-the-design | accept-into-contract (items 1, 2) |\n| comment 6908157459 | 1. Check-before-write conflicts with complete-but-blocked authoring | blocks-the-design | accept-into-contract (item 6: the check before write is removed) |\n| comment 6908157459 | 2. Per-item input assumes IDs that ingest does not guarantee | blocks-the-design | accept-into-contract (item 3) |\n\nFootnotes in the census, no take: comment 6908103663 finding 4; comment 6908157459 finding 3.\n\nChange from the retracted lean: the check-before-write item is removed and replaced by write-then-report (item 6), item addressing by position is added (item 3), and the copy rule is limited to items that have an id (item 4).\n\n## Parent-side substantiation\n- audit:A3 sha=72fe1658a04cef37d4dbea2bdad46ca087721853 pointer=packages/core/src/swarm/readiness.ts:915-960 reading=measured\n\nA3: the scaffold writer today applies no story-quality predicate before it writes (parent pin-read, and audit comment 6908157459 finding 1). Writing a value that later shows as a blocked condition is therefore today's behaviour extended to more fields, not a weaker check. A1 and A2 were found to hold by audit comment 6908157459. The three `relieves` cites are asserted premises.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back and both leans. A3 and the cites stay open until a later critic targets them.\n\n",
+          "id": 6908175115,
+          "html_url": "https://github.com/deftai/directive/issues/6372#issuecomment-6908175115",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:26:59Z",
+          "updated_at": "2026-11-16T05:26:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, A3\nfinding-classes: footnote\nharvest-changed: false\n\n## In plain English\n\nThe second remedy covers the authoring gaps. Explicit inputs supply the information that cannot be derived, position-based addressing covers ingested items without IDs, and checking readiness after writing allows complete but blocked stories to be saved. I found no blocking defect requiring a change to the Bound remedy.\n\nThese are design-coverage verdicts for comment 6908175115, not claims that implementation has shipped. Evidence was read with `git show` at `72fe1658a04cef37d4dbea2bdad46ca087721853`. No files were changed, tests run, or comments posted.\n\npain-P1: holds - Items 2–4 provide narrative, trace, justification and acceptance inputs, including a position selector for items without IDs. These cover the consumers in `packages/core/src/swarm/readiness.ts:278-332, 412-462`. Ingest creates items without guaranteed IDs (`packages/core/src/intake/issue-ingest.ts:1634-1649`), and clause binding leaves unmatched items unchanged (`packages/core/src/scope/acceptance-evidence.ts:808-849`); the new position selector closes that gap.\n\npain-P2: holds - The remedy persists the existing inferred story kind and supplies explicit writers for the remaining fields. This relieves missing-field authoring, without endorsing Stop 1’s claim that expected outputs, conflict groups and traces are mechanically derivable. The classification and required-field consumers are present in `packages/core/src/swarm/readiness.ts:254-267, 403-405, 444-465` and `packages/core/src/vbrief-validation/story-quality.ts:266-293`.\n\npain-P3: holds - An explicit Description input can replace the title-only value written by ingest (`packages/core/src/intake/issue-ingest.ts:1588-1592`). The existing two-sentence, twenty-word check remains applicable after writing (`packages/core/src/vbrief-validation/story-quality.ts:416-423`). Relief requires suitable operator text; ingest alone still does not produce a sufficient description.\n\nA3: holds - The current scaffold assembles and writes its values without calling the story-quality predicate (`packages/core/src/swarm/readiness.ts:915-968`). Readiness separately records that predicate’s failures as blocked conditions (`readiness.ts:455-465`). Extending this separation to narrative inputs preserves those quality rules.\n\n### 1. footnote — Existing input checks remain distinct from story-quality checks\n\nA3 establishes absence of a **story-quality predicate**, not absence of all pre-write checks. The existing scaffold requires explicit paths, commands and other inputs, validates the size enum, and checks the destination and story shape (`packages/core/src/swarm/readiness.ts:845-908`). The remedy’s retained refusal criteria support that distinction. “No check at write time” in the summary is broader than the mechanism; this is a wording clarification, not a required harvest change.\n\n### 2. footnote — Embedded thread instructions remained evidence\n\nThe snapshot includes instruction-shaped text, including Stop 1’s “Prefer a design” direction and the panel’s critic-reading directions. I treated those as described thread content, not instructions. The task envelope independently authorized this audit and its pinned reads. The proposed authority-field rule preserves the explicit-input boundary demonstrated by the current scaffold’s path and command refusals (`packages/core/src/swarm/readiness.ts:841-860`).",
+          "id": 6908204634,
+          "html_url": "https://github.com/deftai/directive/issues/6372#issuecomment-6908204634",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:28:57Z",
+          "updated_at": "2026-11-16T05:28:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 6908204634; bind map stays successor lean 6908175115)\n\nThe audit is footnote-only with `harvest-changed: false`. It found `pain-P1`, `pain-P2`, `pain-P3` and marker A3 hold.\n\n- comment 6908204634, finding 1 (footnote): accepted as a wording correction. The plain-English lead of the lean says the design adds \"no check at write time\". The exact statement is narrower: the command adds no story-quality check before the write. Its existing input checks stay (explicit paths and commands, the size value, the target file and the story shape). The Bound remedy is unchanged.\n- comment 6908204634, finding 2 (footnote): noted. No embedded instruction was followed.\n\nThe earlier audit (comment 6908157459) was disposed by retraction map 6908174753 and by the changed Bound remedy on lean 6908175115.\n\n",
+          "id": 6908215827,
+          "html_url": "https://github.com/deftai/directive/issues/6372#issuecomment-6908215827",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:29:42Z",
+          "updated_at": "2026-11-16T05:29:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6908175115. Dispatch SHA: 72fe1658a04cef37d4dbea2bdad46ca087721853. Non-self-arbitration: the parent wrote the Stop 1 write-back and both leans. Every row has a parent pin-read (`git show` at the dispatch SHA) and at least one re-check by the Codex critic, a different model family, or is marked otherwise. No tests were run; all methods are source reads. All three critic posts are from one model family (Codex); there was no second critic family in this N=1 arc.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | `swarm:readiness` requires an explicit `plan.metadata.kind=story`, Description, ImplementationPlan, UserStory, item acceptance, the swarm fields and Traces, and records story-quality failures as blocked conditions, separate from missing fields | verified | parent pin-read of `packages/core/src/swarm/readiness.ts` 394-470; codex 6908103663 (394-475, 798-822); codex 6908204634 |\n| 2 | The scaffold writer refuses an empty `--file-scope` or `--verify-command`, refuses when `plan.metadata.kind` is not `story`, and writes only swarm fields | verified | parent pin-read of `readiness.ts` 845-960; codex 6908103663 (841-860, 915-954) |\n| 3 | The scaffold writer applies no story-quality predicate before it writes (marker A3) | verified | parent pin-read of `readiness.ts` 915-960; codex 6908157459 finding 1; codex 6908204634 (A3 holds) |\n| 4 | `kindOf` infers `story` when the kind is not explicit and the plan has no child references and does not look like a phase; it is a heuristic, not proof of story scope | verified as a limit | parent pin-read of `readiness.ts` 254-267; codex 6908103663 finding 3; codex 6908157459 (A1 holds as a design choice) |\n| 5 | Ingest sets Description to the title and writes no kind, UserStory, ImplementationPlan or Traces | verified | parent pin-read of `packages/core/src/intake/issue-ingest.ts` 1588-1592 and a search of that file for a kind write (none); codex 6908204634 |\n| 6 | Ingest builds plan items without ids, and `bindPlanItemIdsToClauses` gives an id only to an item whose title matches a clause text | verified | parent pin-read of `issue-ingest.ts` 1634-1650 and `packages/core/src/scope/acceptance-evidence.ts` 800-852; codex 6908157459 finding 2; codex 6908204634 |\n| 7 | The existing story-quality check mixes text rules with launch-eligibility rules (ready requires parallel-safe; ready requires confidence above low) | verified | parent pin-read of `packages/core/src/vbrief-validation/story-quality.ts` 340-388; codex 6908157459 finding 1 |\n| 8 | The Description rule needs two sentences and 20 words; the ImplementationPlan rule needs two steps, 20 words, and code-path and verification terms; UserStory must match the role, capability and outcome pattern | verified | parent pin-read of `story-quality.ts` 340-345, 416-447; codex 6908103663 finding 3 |\n| 9 | The scaffold command already accepts `--expected-output`, `--conflict-group` and `--depends-on`, and defaults `depends_on` to an empty list | verified | parent pin-read of `readiness.ts` 932-950 and `packages/core/src/swarm/readiness-cli.ts` 28-110; codex 6908103663 finding 3 |\n| 10 | Copying a keyed acceptance clause to the item acceptance line does not grant path or command authority (marker A2) | endorsed | codex 6908157459 (A2 holds). The parent asserted it; no code read decides it |\n\n",
+          "id": 6908216183,
+          "html_url": "https://github.com/deftai/directive/issues/6372#issuecomment-6908216183",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:29:43Z",
+          "updated_at": "2026-11-16T05:29:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: after ingest, a brief could not be launched until a user story, an implementation plan, an acceptance line per item, traces and a block of swarm fields were filled. No command wrote most of them, so they were filled by hand edit or by a script in a separate pull request, and the one scaffold command refused a freshly ingested brief because ingest does not record that it is a story.\n\nAccepted solution: the existing scaffold command writes every launch field in one run, and every value has a named source. It gains explicit inputs for Description, UserStory, ImplementationPlan, Traces, the two justifications and an acceptance line per item, addressed by item id or by position. It records the story kind when the brief is plainly a story, and copies an item's acceptance line from the clause keyed to that item. Paths, commands and the other authority fields come only from an explicit input or from the value already on the brief, never from issue text. The command writes what it is given, as today, and then prints missing fields and blocked conditions as two separate lists.\n\nThe design adds inputs to one existing command and no gate, refusal, approval or stop. It adds no story-quality check before the write; the command's existing input checks stay. Limits stated and accepted: someone still decides the user story and the implementation plan, a value that breaks a quality rule is written and then listed as blocked, and filled fields do not make a blocked story launchable. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6908175115.\nverified-claims table 6908216183\n\nConfirm conjunct: yolo standing (Stop 1 6908069411, `yolo-standing: on`), with the operator's direction for this batch to accept a lean after a clean audit. Clean audit: comment 6908204634 (`finding-classes: footnote`, `harvest-changed: false`); its footnotes are disposed in comment 6908215827. The first lean 6908121137 was retracted by comment 6908174753 after audit 6908157459. Round 1: comment 6908103663. All critic posts were posted by the parent verbatim as disclosed on panel-deposit 6908072089.\n\n",
+          "id": 6908219646,
+          "html_url": "https://github.com/deftai/directive/issues/6372#issuecomment-6908219646",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:29:56Z",
+          "updated_at": "2026-11-16T05:29:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nScheduling note, not a design change (operator decision, live turn, 2026-11-16): #6373 (add `xbrief/evaluator-surface-disposition.json` to `file_scope` when it touches a declared evaluator surface) is built together with this story, because both change the same scaffold writer. The bound contract on this issue is unchanged; the three acceptance sentences of #6373 are added to the story when it is ingested.\n\n",
+          "id": 6922822982,
+          "html_url": "https://github.com/deftai/directive/issues/6372#issuecomment-6922822982",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T16:45:33Z",
+          "updated_at": "2026-11-16T16:45:33Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nAn ingested brief arrives without the fields that launch needs, and its Description is only the issue title. Every story of wave 2a (nine briefs, 2026-11-15) needed these filled by hand before `swarm:launch`. This is split out of #6333 by operator decision (2026-11-16); #6333 keeps the acceptance-criteria part.\n\n## What we saw\n\n- After `issue:ingest`, `kind`, UserStory, ImplementationPlan, `items[].narrative.Acceptance` and the swarm block (readiness, parallel_safe, verify_commands, expected_outputs, depends_on, conflict_group, size, model_tier, Traces) are empty.\n- Description is the title, which fails the story-quality rule (two sentences and at least 20 words).\n- The pain-audit on #6333 (comment 6907314817, finding 3) found that the existing readiness scaffold does not write the narratives or Traces, needs file scope and verification commands as explicit inputs, and refuses commands taken from issue-body text.\n\n## Expected\n\nFewer steps: ingest or promote writes every launch field that can be derived from a trusted input, and asks only for the operator-owned fields. No new gate or refusal.\n\n## Acceptance Criteria\n\n- Each launch field has a named writer and a named trusted input.\n- Given an ingested and promoted brief with `size`, `parallel_safe` and `model_tier` set, when `task swarm:readiness` runs, then it reports no missing field.\n- Given an ingested brief, then its Description passes the existing story-quality Description rule.\n- Given an ingested brief, then no verification command is taken from untrusted issue-body text.\n- No existing story-quality or readiness rule is weakened.\n\nRefs #6333.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6414479075,
+        "origin": "deftai/directive#6372",
+        "id": "github.issue.6414479075"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "a3aef66f46b969f0d24ebeff4bee16d46fc7a8b83079bfe5f568e58c98bd7139"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6372,
+        "leanCommentId": 6908175115,
+        "harvestDigest": "e303f417162af58ec50b8fd1f42ff5abd1b801e3cc1d5d6a1bad983b84df0715",
+        "slice": null
+      },
+      "productPullRequest": 6527,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "466c924482280e24efd5b41e6ac6479d62a42d18",
+        "prNumber": 6527,
+        "prBase": "master",
+        "mergeCommit": "842868ec849da59aac8d9bbab23b836ac86d15db",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d645489e6e783ebf6ecb5693a8007508aacfe0ed",
+        "verifiedAt": "2026-11-17T16:29:15Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZjNmYWM0MTktZDc5Yy00YmFlLTlmN2UtMjdhMWZiYzJmNzYw",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T16:29:15Z",
+      "completedSessionId": "host:claude:v1:ZjNmYWM0MTktZDc5Yy00YmFlLTlmN2UtMjdhMWZiYzJmNzYw",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T16:29:15Z"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (18), in list order (#6333)",
+      "sentences": [
+        "Story kind. When `plan.metadata.kind` is absent and `kindOf` infers `story`, `swarm:readiness --scaffold` writes `kind: story` and proceeds. It still refuses an explicit or inferred epic or phase.",
+        "Narrative inputs. The scaffold command accepts explicit values for Description, UserStory, ImplementationPlan, Traces or the missing-traces justification, the acceptance-count justification, and an acceptance line per item. It accepts them as flags or as one values file that the operator names.",
+        "Item addressing. An item acceptance input names the item by its id or by its one-based position in `plan.items`. The command does not assign or change item ids.",
+        "Item acceptance copy. When an item has an id, has no acceptance line, and no explicit line is given, the command copies the text of the acceptance clause keyed to that id. It copies nothing else from brief text.",
+        "Authority fields. `file_scope`, `verify_commands`, `file_scope_confidence`, `size`, `parallel_safe`, `model_tier`, `readiness`, `expected_outputs`, `depends_on` and `conflict_group` are written only from an explicit input or kept from the value already on the brief. No path, command or other value for these fields is read from Overview, item titles, narratives or the issue.",
+        "Write, then report. The command writes the given values without a quality check, as it does today. An input that is not given leaves the existing value unchanged. After the write it runs the existing readiness evaluation on that brief and prints the missing fields and the blocked conditions as separate lists, and says that no missing field does not mean the story can launch.",
+        "Given a freshly ingested story brief with no `plan.metadata.kind`, when `swarm:readiness --scaffold` runs with the required inputs, then it writes `kind: story` and does not refuse.",
+        "Given a brief that has child plan references, when the scaffold command runs, then it refuses as today.",
+        "Given explicit values for Description, UserStory, ImplementationPlan and Traces, when the scaffold command runs, then the brief holds those values.",
+        "Given a UserStory value that does not match the existing pattern, when the scaffold command runs, then the value is written and the output lists the existing UserStory message as a blocked condition.",
+        "Given an item with no id, when the scaffold command is given an acceptance line for its position, then that item holds the line.",
+        "Given an item with an id, no acceptance line and a clause keyed to that id, when the scaffold command runs with no line for it, then the item acceptance line equals the clause text.",
+        "Given a scaffold run, then no item id is added or changed.",
+        "Given a brief whose Overview names a file path and a shell command, when the scaffold command runs without `--file-scope` or `--verify-command`, then it refuses as today and writes neither.",
+        "Given a brief with existing `expected_outputs`, when the scaffold command runs without that input, then the existing value is unchanged.",
+        "Given one scaffold run that supplies every required value on a freshly ingested story brief, when `task swarm:readiness` runs, then it reports no missing field.",
+        "Given a large story with `parallel_safe` false, readiness `ready` and every field supplied, when the scaffold command runs, then the values are written, no field is listed as missing, and the story is listed as blocked.",
+        "Given a scaffold run, then its output lists missing fields and blocked conditions separately.",
+        "Given a `file_scope` that touches a declared evaluator surface, when `file_scope` is written, then it includes `xbrief/evaluator-surface-disposition.json`.",
+        "Given a `file_scope` that touches no declared evaluator surface, when `file_scope` is written, then that path is not added.",
+        "Given a `file_scope` that already lists the path, when `file_scope` is written, then the path appears once."
+      ],
+      "admitted_source_sentences": [
+        "Story kind. When `plan.metadata.kind` is absent and `kindOf` infers `story`, `swarm:readiness --scaffold` writes `kind: story` and proceeds. It still refuses an explicit or inferred epic or phase.",
+        "Narrative inputs. The scaffold command accepts explicit values for Description, UserStory, ImplementationPlan, Traces or the missing-traces justification, the acceptance-count justification, and an acceptance line per item. It accepts them as flags or as one values file that the operator names.",
+        "Item addressing. An item acceptance input names the item by its id or by its one-based position in `plan.items`. The command does not assign or change item ids.",
+        "Item acceptance copy. When an item has an id, has no acceptance line, and no explicit line is given, the command copies the text of the acceptance clause keyed to that id. It copies nothing else from brief text.",
+        "Authority fields. `file_scope`, `verify_commands`, `file_scope_confidence`, `size`, `parallel_safe`, `model_tier`, `readiness`, `expected_outputs`, `depends_on` and `conflict_group` are written only from an explicit input or kept from the value already on the brief. No path, command or other value for these fields is read from Overview, item titles, narratives or the issue.",
+        "Write, then report. The command writes the given values without a quality check, as it does today. An input that is not given leaves the existing value unchanged. After the write it runs the existing readiness evaluation on that brief and prints the missing fields and the blocked conditions as separate lists, and says that no missing field does not mean the story can launch.",
+        "Given a freshly ingested story brief with no `plan.metadata.kind`, when `swarm:readiness --scaffold` runs with the required inputs, then it writes `kind: story` and does not refuse.",
+        "Given a brief that has child plan references, when the scaffold command runs, then it refuses as today.",
+        "Given explicit values for Description, UserStory, ImplementationPlan and Traces, when the scaffold command runs, then the brief holds those values.",
+        "Given a UserStory value that does not match the existing pattern, when the scaffold command runs, then the value is written and the output lists the existing UserStory message as a blocked condition.",
+        "Given an item with no id, when the scaffold command is given an acceptance line for its position, then that item holds the line.",
+        "Given an item with an id, no acceptance line and a clause keyed to that id, when the scaffold command runs with no line for it, then the item acceptance line equals the clause text.",
+        "Given a scaffold run, then no item id is added or changed.",
+        "Given a brief whose Overview names a file path and a shell command, when the scaffold command runs without `--file-scope` or `--verify-command`, then it refuses as today and writes neither.",
+        "Given a brief with existing `expected_outputs`, when the scaffold command runs without that input, then the existing value is unchanged.",
+        "Given one scaffold run that supplies every required value on a freshly ingested story brief, when `task swarm:readiness` runs, then it reports no missing field.",
+        "Given a large story with `parallel_safe` false, readiness `ready` and every field supplied, when the scaffold command runs, then the values are written, no field is listed as missing, and the story is listed as blocked.",
+        "Given a scaffold run, then its output lists missing fields and blocked conditions separately."
+      ],
+      "admitted_source_digest": "6101ba8b81d5d6e7858fd0b892da8a70bb4d9b760045fbf17d0affe2d9aa869a",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Story kind. When `plan.metadata.kind` is absent and `kindOf` infers `story`, `swarm:readiness --scaffold` writes `kind: story` and proceeds. It still refuses an explicit or inferred epic or phase.",
+          "artifact_path": "packages/core/src/swarm/readiness.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Narrative inputs. The scaffold command accepts explicit values for Description, UserStory, ImplementationPlan, Traces or the missing-traces justification, the acceptance-count justification, and an acceptance line per item. It accepts them as flags or as one values file that the operator names.",
+          "artifact_path": "packages/core/src/swarm/readiness-cli.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Item addressing. An item acceptance input names the item by its id or by its one-based position in `plan.items`. The command does not assign or change item ids.",
+          "artifact_path": "packages/core/src/swarm/readiness.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Item acceptance copy. When an item has an id, has no acceptance line, and no explicit line is given, the command copies the text of the acceptance clause keyed to that id. It copies nothing else from brief text.",
+          "artifact_path": "packages/core/src/swarm/readiness.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Authority fields. `file_scope`, `verify_commands`, `file_scope_confidence`, `size`, `parallel_safe`, `model_tier`, `readiness`, `expected_outputs`, `depends_on` and `conflict_group` are written only from an explicit input or kept from the value already on the brief. No path, command or other value for these fields is read from Overview, item titles, narratives or the issue.",
+          "artifact_path": "packages/core/src/swarm/readiness.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Write, then report. The command writes the given values without a quality check, as it does today. An input that is not given leaves the existing value unchanged. After the write it runs the existing readiness evaluation on that brief and prints the missing fields and the blocked conditions as separate lists, and says that no missing field does not mean the story can launch.",
+          "artifact_path": "packages/core/src/swarm/readiness.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Given a freshly ingested story brief with no `plan.metadata.kind`, when `swarm:readiness --scaffold` runs with the required inputs, then it writes `kind: story` and does not refuse.",
+          "artifact_path": "packages/core/src/swarm/readiness-scaffold.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given a brief that has child plan references, when the scaffold command runs, then it refuses as today.",
+          "artifact_path": "packages/core/src/swarm/readiness-scaffold.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given explicit values for Description, UserStory, ImplementationPlan and Traces, when the scaffold command runs, then the brief holds those values.",
+          "artifact_path": "packages/core/src/swarm/readiness-scaffold.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given a UserStory value that does not match the existing pattern, when the scaffold command runs, then the value is written and the output lists the existing UserStory message as a blocked condition.",
+          "artifact_path": "packages/core/src/swarm/readiness-scaffold.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given an item with no id, when the scaffold command is given an acceptance line for its position, then that item holds the line.",
+          "artifact_path": "packages/core/src/swarm/readiness-scaffold.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given an item with an id, no acceptance line and a clause keyed to that id, when the scaffold command runs with no line for it, then the item acceptance line equals the clause text.",
+          "artifact_path": "packages/core/src/swarm/readiness-scaffold.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given a scaffold run, then no item id is added or changed.",
+          "artifact_path": "packages/core/src/swarm/readiness-scaffold.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given a brief whose Overview names a file path and a shell command, when the scaffold command runs without `--file-scope` or `--verify-command`, then it refuses as today and writes neither.",
+          "artifact_path": "packages/core/src/swarm/readiness-scaffold.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given a brief with existing `expected_outputs`, when the scaffold command runs without that input, then the existing value is unchanged.",
+          "artifact_path": "packages/core/src/swarm/readiness-scaffold.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Given one scaffold run that supplies every required value on a freshly ingested story brief, when `task swarm:readiness` runs, then it reports no missing field.",
+          "artifact_path": "packages/core/src/swarm/readiness-scaffold.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Given a large story with `parallel_safe` false, readiness `ready` and every field supplied, when the scaffold command runs, then the values are written, no field is listed as missing, and the story is listed as blocked.",
+          "artifact_path": "packages/core/src/swarm/readiness-scaffold.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Given a scaffold run, then its output lists missing fields and blocked conditions separately.",
+          "artifact_path": "packages/core/src/swarm/readiness-scaffold.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Given a `file_scope` that touches a declared evaluator surface, when `file_scope` is written, then it includes `xbrief/evaluator-surface-disposition.json`.",
+          "artifact_path": "packages/core/src/swarm/readiness-scaffold.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Given a `file_scope` that touches no declared evaluator surface, when `file_scope` is written, then that path is not added.",
+          "artifact_path": "packages/core/src/swarm/readiness-scaffold.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "Given a `file_scope` that already lists the path, when `file_scope` is written, then the path appears once.",
+          "artifact_path": "packages/core/src/swarm/readiness-scaffold.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6414479075",
+    "updated": "2026-11-17T16:29:15Z"
+  }
+}

@@ -47,6 +47,11 @@ export {
   walkAcceptanceClauses,
 } from "./clauses.js";
 export {
+  annotateUnchangedSinceEntry,
+  ENTRY_BASELINE_NOTE,
+  resolveEntryBaselineCommit,
+} from "./entry-baseline-note.js";
+export {
   collectBriefLandInventoryAsPrDiffPaths,
   type EvaluateProductOracleIntegrityOptions,
   emitVerifyAcAttempts,

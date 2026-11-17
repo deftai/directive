@@ -13,6 +13,15 @@ import {
 import { EXIT_NEW_P0_P1, VERDICT_NEW_P0_P1 } from "../pr-watch/constants.js";
 import { watch } from "../pr-watch/watch.js";
 import { reconcileUmbrellas, renderUmbrellasReport } from "../vbrief-reconcile/umbrellas.js";
+import {
+  type BaseConflictRead,
+  type BaseConflictReadFn,
+  formatBaseConflictError,
+  isBaseConflict,
+  isBaseConflictTrigger,
+  OUTCOME_BASE_CONFLICT,
+  readBaseConflictState,
+} from "./base-conflict.js";
 import { classifyMonitorOutcome, parseMonitorPayload } from "./classify.js";
 import {
   EXIT_CONFIG_ERROR,
@@ -158,6 +167,38 @@ export interface WaitMergeableOptions {
   readonly queueWaitSleepFn?: QueueWaitSleepFn;
   /** Clock seam (epoch ms) for the `--wait` deadline (#6423); defaults to Date.now. */
   readonly queueWaitClockMsFn?: () => number;
+  /**
+   * Base-conflict read after an `absent-required` / `cap-reached` monitor (#6467).
+   * Live default reads `pulls/<N>` REST. Skipped when omitted under the
+   * test-harness convention, like watchFn and mergeQueueDetectFn.
+   */
+  readonly baseConflictReadFn?: BaseConflictReadFn;
+}
+
+/**
+ * #6467: after an `absent-required` or `cap-reached` monitor outcome, read the
+ * PR once; return the read only when GitHub reports `dirty`. A failed or thrown
+ * read, or any other state, returns null so today's outcome stands.
+ */
+function readBaseConflictAfterMonitor(
+  prNumber: number,
+  repo: string,
+  outcome: string,
+  options: WaitMergeableOptions,
+): BaseConflictRead | null {
+  if (!isBaseConflictTrigger(outcome)) return null;
+  const skip =
+    options.baseConflictReadFn === undefined &&
+    (options.skipHumanMergeGate === true || process.env.VITEST === "true");
+  if (skip) return null;
+  const readFn = options.baseConflictReadFn ?? readBaseConflictState;
+  let read: BaseConflictRead;
+  try {
+    read = readFn(prNumber, repo);
+  } catch {
+    return null;
+  }
+  return isBaseConflict(read) ? read : null;
 }
 
 /** Blocking sleep used between `--wait` queue reads (#6423). */
@@ -611,6 +652,20 @@ export function waitMergeableAndMerge(
   const [outcome, monitorExit] = classifyMonitorOutcome(monRc, monitorPayload);
 
   if (outcome !== "clean") {
+    // #6467: a PR that conflicts with its base runs no pull_request CI, so its
+    // required checks never appear. One pulls/<N> read names the conflict.
+    const conflict = readBaseConflictAfterMonitor(prNumber, repo, outcome, options);
+    if (conflict !== null) {
+      return makeResult({
+        prNumber,
+        repo,
+        outcome: OUTCOME_BASE_CONFLICT,
+        exitCode: EXIT_TIMEOUT_OR_ESCALATION,
+        monitorResult: monitorPayload,
+        protectedCheck: protectedCheckPayload,
+        error: formatBaseConflictError(prNumber, conflict.baseRef, outcome),
+      });
+    }
     const errorPayload =
       monitorExit === EXIT_MERGED
         ? null

@@ -8,6 +8,7 @@ import {
   HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE,
   INSTALLATION_RECOVERY_GUIDANCE,
 } from "@deftai/directive-core/dist/install-health/constants.js";
+import { renderPinMismatchRecoveryGuidance } from "@deftai/directive-core/dist/install-health/pin-mismatch-guidance.js";
 import { admitPinMismatchRecovery } from "@deftai/directive-core/dist/install-health/recovery-admit.js";
 import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-health/types.js";
 import {
@@ -454,7 +455,13 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
       if (rendered.length > 0) writeOut(`${rendered}\n`);
       return 0;
     }
-    const guidance = cheap.recoveryGuidance ?? INSTALLATION_RECOVERY_GUIDANCE;
+    // #6375: pin ≠ installed as the only fault gets root-specific text on lines
+    // of its own (checked root, outside terminal, install by lockfile kind,
+    // retry). The admit above is unchanged; the overlay keeps its guidance.
+    const recovery =
+      cheap.pinMismatchOnly === true
+        ? `Recovery:\n${renderPinMismatchRecoveryGuidance(projectRoot)}`
+        : `Recovery: ${cheap.recoveryGuidance ?? INSTALLATION_RECOVERY_GUIDANCE}`;
     const identityLine = cheap.identityMatch
       ? `Directive hook refuse: materialize-runtime overlay is present; identity cannot pass until the overlay is retired after exact restore ` +
         `(pin=${cheap.pinVersion ?? "?"} installed=${cheap.installedVersion ?? "?"}). `
@@ -464,7 +471,7 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
       args.host,
       args.event,
       projectRoot,
-      `${identityLine}Recovery: ${guidance}`,
+      `${identityLine}${recovery}`,
     );
     const rendered = renderHostDecision(args.host, decision);
     if (rendered.length > 0) writeOut(`${rendered}\n`);

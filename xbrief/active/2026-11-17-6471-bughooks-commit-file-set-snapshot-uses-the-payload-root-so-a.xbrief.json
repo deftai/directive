@@ -1,0 +1,740 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6471",
+    "updated": "2026-11-17T15:46:21Z"
+  },
+  "plan": {
+    "title": "bug(hooks): commit file-set snapshot uses the payload root, so a bound worktree still refuses a subagent's commit",
+    "status": "running",
+    "narratives": {
+      "Description": "The #5656 commit-shape check read every word after the git commit options that does not start with - as a file name, so a message-only commit that ends in 2>&1 | tail -N was refused as if it changed the file set after the pre-tool index snapshot; the issue blamed the index root, but that refusal is printed before any index read and the read already uses the named worktree. This story teaches the check that a pipe ends the commit, that a redirection and its target are not arguments, and that short-option clusters follow git, keeps the #6187 heredoc chunking with chunk boundaries that are not &&, and makes the refusal name the word that tripped it. Real -a, --all, --include and file-name commits stay refused, and the story binding and index root are not changed.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6471",
+      "Overview": "\n1. Operators. In `tokenizeShellCommand`, `&&`, `||` and `|&` are recognized before a lone `|`, and a `|` right after `>` is part of that redirect (`>|`). An unquoted lone `|` or `|&` ends the segment as a separator that is not `&&`, so the words after it are not commit arguments and a `cd` joined to the commit by a pipe stays unresolvable.\n2. Redirections. Escape processing comes first, and `<` and `>` join the unquoted escapable set, so `\\>path` is one literal word. A word that starts with `<(` or `>(` is an argument. An unquoted, unescaped redirection is optional digits or one `&`, then `<` or `>`; it is not an argument, and neither is its target: the attached rest of the word, or the next word when the operator stands alone. Any other prefix, such as `*`, makes the word an argument. Words after a redirection are still read.\n3. Short-option clusters follow git. Letters are read in order. `a` or `i` marks the commit as index-changing while it is still an option letter. The first of `m`, `F`, `c`, `C` or `t` takes the rest of the cluster as its value, or the next word when it is the last letter. `u` and `S` take the rest of the cluster and never the next word.\n4. Heredoc. `resolveCommitTarget`, `commandHasGitCommitIndexMutatingForm` and `commandHasGitCommitSubcommand` read the chunks of `shellCommandChunksWithoutQuotedHereDocBodies`. Each chunk is tokenized on its own, with no join before `tokenizeShellCommand`. The segments of all chunks then form one list in chunk order, and the last segment of each chunk ends with a separator that is not `&&`, so `resolveOneCommit` sees every earlier `cd` and a `cd` in an earlier chunk makes the target unresolvable. This story carries that wiring unless #6481 has merged it in that shape. An unquoted body stays visible.\n5. Message. The #5656 index-snapshot refusal names the first word that made the commit index-changing.\n6. Unchanged. `-a`, `--all`, `-i`, `--include`, `-am` and any real trailing file name, also after `--` or after a redirection, are refused. A quoted operator, a lone `&` and a `#` word are ordinary words and are refused as today. The staged index is read on the target root as today. `resolveWorktreeStoryBinding` and `evaluateProspectiveScopeCover` are not changed.\n\n## Acceptance Criteria\n\n- Given a bound linked worktree with a staged index, when a background subagent runs `git -C <wt> commit -m msg 2>&1 | tail -3` or `cd <wt> && git commit -F <file> 2>&1 | tail -3`, then the commit-shape check does not refuse and the staged index is read on that worktree.\n- Given `git commit -qm msg`, or `git commit -F - <<'EOF'` with a message body, then the commit is not index-changing.\n- Given `-a`, `-am msg`, `-qam msg`, or a trailing file name after the message, after `--`, or after a redirection (`2>&1 src/a.ts`), then the commit is refused.\n- Given `-tm src/a.ts`, `-um src/a.ts` or `-Sm src/a.ts`, then the commit is refused.\n- Given `\\>src/a.ts`, `*>src/a.ts`, `*> src/a.ts`, `<(printf src/a.ts)`, `'|'` or `'>x'` after the message, then the commit is refused.\n- Given `true || cd /x && git commit -m msg` or `cd /x | git commit -m msg`, then the target is unresolvable as today.\n- Given `cd <wt> <<EOF`, an unquoted body, the `EOF` line, and `git commit -m msg` on the next line, then the target is unresolvable as today.\n- Given `cd <wt> <<EOF && git commit -m msg` with an unquoted body after that line, then the target is `<wt>`.\n- Given a quoted-delimiter heredoc whose body holds the line `git commit -a`, or a quoted string argument that holds it, then the command is not read as a commit.\n- Given an unquoted-delimiter heredoc whose body holds the line `git commit -a`, then the commit is refused as today.\n- Given an unquoted heredoc body with an open quote followed, after the delimiter, by `git commit -a`, then the commit is refused.\n- The index-snapshot refusal names the word that tripped it.\n\n\n",
+      "Constraint": "- Reading the index from another root (the issue's guess): the refusal is printed before any index read, and that read already uses the named worktree (comment 6940423436, Road not taken).\n- Parsing a lone `&`, `#` comments, PowerShell `*>` or nested shells: not in the logged forms; this is not a general shell interpreter (comment 6940423436, finding 5; comment 6940667523, finding 1).\n- Waiting for #6481 before carrying the heredoc wiring (comment 6940423436, finding 4).\n- Joining a chunk that starts with `&&` to the `cd` of an earlier chunk (comment 6940667523, finding 2 disposition): a line that starts with `&&` after a heredoc delimiter is a shell syntax error, so that commit never runs. See `A1`.",
+      "Labels": "bug, design-critique:ingest-ready",
+      "UserStory": "As a story worker committing in a bound linked worktree, I want a message-only git commit with a trailing 2>&1 | tail to be admitted while a real -a or file-name commit is still refused, so that I can commit without rewriting the command and can see which word a refusal is about.",
+      "ImplementationPlan": "1. packages/core/src/hooks/commit-target.ts tokenizeShellCommand: recognize &&, || and |& before a lone |; a | right after > stays in the redirect word; an unquoted lone | or |& ends the segment with a separator that is not &&. Add < and > to the unquoted escapable set and mark a word as a redirection when its unescaped, unquoted start is optional digits or one & then < or >, except <( and >(.\n2. packages/core/src/hooks/commit-target.ts commitArgsMutateIndex: skip redirection words and, when the operator stands alone, the next word; read short clusters in git order (a/i mark; m, F, c, C, t take rest or next word; u, S take only the rest); return the first tripping word, and export a helper that gives that word for the command.\n3. packages/core/src/hooks/commit-target.ts commandSegments: keep the #6481 per-chunk tokenize and make each chunk's last segment end with a non-&& boundary.\n4. packages/core/src/hooks/dispatcher.ts: the #5656 refusal sentence names the tripping word from that helper.\n5. Tests in packages/core/src/hooks/commit-target.test.ts and packages/core/src/hooks/dispatcher-commit-heredoc.test.ts for every Acceptance Criterion, and changelog.d/6471-commit-shape-pipes-and-redirects.md.",
+      "Traces": "#6471"
+    },
+    "items": [
+      {
+        "title": "Operators. In `tokenizeShellCommand`, `&&`, `||` and `|&` are recognized before a lone `|`, and a `|` right after `>` is part of that redirect (`>|`). An unquoted lone `|` or `|&` ends the segment as a separator that is not `&&`, so the words after it are not commit arguments and a `cd` joined to the commit by a pipe stays unresolvable.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/commit-target.ts, when tokenizeShellCommand meets an unquoted lone | or |&, then it ends the segment with a separator that is not &&, keeps && / || / |& as single operators and keeps >| inside the redirect word."
+        }
+      },
+      {
+        "title": "Redirections. Escape processing comes first, and `<` and `>` join the unquoted escapable set, so `\\>path` is one literal word. A word that starts with `<(` or `>(` is an argument. An unquoted, unescaped redirection is optional digits or one `&`, then `<` or `>`; it is not an argument, and neither is its target: the attached rest of the word, or the next word when the operator stands alone. Any other prefix, such as `*`, makes the word an argument. Words after a redirection are still read.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/commit-target.ts, when a commit word is an unquoted, unescaped redirection (optional digits or one &, then < or >), then commitArgsMutateIndex skips it and its attached or next-word target, while \\>path, *>path and <( / >( words stay arguments."
+        }
+      },
+      {
+        "title": "Short-option clusters follow git. Letters are read in order. `a` or `i` marks the commit as index-changing while it is still an option letter. The first of `m`, `F`, `c`, `C` or `t` takes the rest of the cluster as its value, or the next word when it is the last letter. `u` and `S` take the rest of the cluster and never the next word.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/commit-target.ts, when commitArgsMutateIndex reads a short-option cluster, then it reads letters in order: a or i marks index-changing, the first of m, F, c, C or t takes the rest or the next word, and u or S take only the rest."
+        }
+      },
+      {
+        "title": "Heredoc. `resolveCommitTarget`, `commandHasGitCommitIndexMutatingForm` and `commandHasGitCommitSubcommand` read the chunks of `shellCommandChunksWithoutQuotedHereDocBodies`. Each chunk is tokenized on its own, with no join before `tokenizeShellCommand`. The segments of all chunks then form one list in chunk order, and the last segment of each chunk ends with a separator that is not `&&`, so `resolveOneCommit` sees every earlier `cd` and a `cd` in an earlier chunk makes the target unresolvable. This story carries that wiring unless #6481 has merged it in that shape. An unquoted body stays visible.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/commit-target.ts, when resolveCommitTarget and the two commit detectors read a command, then they tokenize each chunk of shellCommandChunksWithoutQuotedHereDocBodies on its own and read the segments of all chunks as one ordered list whose chunk boundaries are not &&."
+        }
+      },
+      {
+        "title": "Message. The #5656 index-snapshot refusal names the first word that made the commit index-changing.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/dispatcher.ts, when decideProspectiveGitCommitScopeCover refuses an index-changing commit (#5656), then the refusal text names the first word that made the commit index-changing, taken from packages/core/src/hooks/commit-target.ts."
+        }
+      },
+      {
+        "title": "Unchanged. `-a`, `--all`, `-i`, `--include`, `-am` and any real trailing file name, also after `--` or after a redirection, are refused. A quoted operator, a lone `&` and a `#` word are ordinary words and are refused as today. The staged index is read on the target root as today. `resolveWorktreeStoryBinding` and `evaluateProspectiveScopeCover` are not changed.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/commit-target.ts, when a commit carries -a, --all, -i, --include, -am, a real trailing file name (also after -- or a redirection), a quoted operator, a lone & or a # word, then it is still index-changing, and the binding and index root code is not changed."
+        }
+      },
+      {
+        "title": "Given a bound linked worktree with a staged index, when a background subagent runs `git -C <wt> commit -m msg 2>&1 | tail -3` or `cd <wt> && git commit -F <file> 2>&1 | tail -3`, then the commit-shape check does not refuse and the staged index is read on that worktree.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/dispatcher-commit-heredoc.test.ts, when the hook sees git -C <wt> commit -m msg 2>&1 | tail -3 or cd <wt> && git commit -F <file> 2>&1 | tail -3 for a bound linked worktree, then it does not give the #5656 refusal and lists the staged index on <wt>."
+        }
+      },
+      {
+        "title": "Given `git commit -qm msg`, or `git commit -F - <<'EOF'` with a message body, then the commit is not index-changing.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when git commit -qm msg or git commit -F - with a quoted heredoc message is checked, then commandHasGitCommitIndexMutatingForm returns false."
+        }
+      },
+      {
+        "title": "Given `-a`, `-am msg`, `-qam msg`, or a trailing file name after the message, after `--`, or after a redirection (`2>&1 src/a.ts`), then the commit is refused.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when -a, -am msg, -qam msg, or a file name after the message, after -- or after 2>&1 is checked, then commandHasGitCommitIndexMutatingForm returns true."
+        }
+      },
+      {
+        "title": "Given `-tm src/a.ts`, `-um src/a.ts` or `-Sm src/a.ts`, then the commit is refused.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when -tm src/a.ts, -um src/a.ts or -Sm src/a.ts is checked, then commandHasGitCommitIndexMutatingForm returns true."
+        }
+      },
+      {
+        "title": "Given `\\>src/a.ts`, `*>src/a.ts`, `*> src/a.ts`, `<(printf src/a.ts)`, `'|'` or `'>x'` after the message, then the commit is refused.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when \\>src/a.ts, *>src/a.ts, *> src/a.ts, <(printf src/a.ts), '|' or '>x' follows the message, then commandHasGitCommitIndexMutatingForm returns true."
+        }
+      },
+      {
+        "title": "Given `true || cd /x && git commit -m msg` or `cd /x | git commit -m msg`, then the target is unresolvable as today.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when true || cd /x && git commit -m msg or cd /x | git commit -m msg is resolved, then resolveCommitTarget returns unresolvable."
+        }
+      },
+      {
+        "title": "Given `cd <wt> <<EOF`, an unquoted body, the `EOF` line, and `git commit -m msg` on the next line, then the target is unresolvable as today.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when cd <wt> <<EOF, an unquoted body, EOF and git commit -m msg on the next line is resolved, then resolveCommitTarget returns unresolvable."
+        }
+      },
+      {
+        "title": "Given `cd <wt> <<EOF && git commit -m msg` with an unquoted body after that line, then the target is `<wt>`.",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when cd <wt> <<EOF && git commit -m msg with an unquoted body is resolved, then resolveCommitTarget names <wt>."
+        }
+      },
+      {
+        "title": "Given a quoted-delimiter heredoc whose body holds the line `git commit -a`, or a quoted string argument that holds it, then the command is not read as a commit.",
+        "status": "proposed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when a quoted-delimiter heredoc body or a quoted string argument holds git commit -a, then commandHasGitCommitSubcommand returns false."
+        }
+      },
+      {
+        "title": "Given an unquoted-delimiter heredoc whose body holds the line `git commit -a`, then the commit is refused as today.",
+        "status": "proposed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when an unquoted-delimiter heredoc body holds the line git commit -a, then commandHasGitCommitIndexMutatingForm returns true."
+        }
+      },
+      {
+        "title": "Given an unquoted heredoc body with an open quote followed, after the delimiter, by `git commit -a`, then the commit is refused.",
+        "status": "proposed",
+        "id": "clause.17",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when an unquoted heredoc body holds an open quote and git commit -a follows the delimiter, then commandHasGitCommitIndexMutatingForm returns true."
+        }
+      },
+      {
+        "title": "The index-snapshot refusal names the word that tripped it.",
+        "status": "proposed",
+        "id": "clause.18",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/hooks/dispatcher-commit-heredoc.test.ts, when the hook refuses git commit -m msg src/a.ts | tail -3 under #5656, then the refusal names src/a.ts as the word that tripped it."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6471",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6471: bug(hooks): commit file-set snapshot uses the payload root, so a bound worktree still refuses a subagent's commit"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (18), in list order (#6333)",
+      "sentences": [
+        "Operators. In `tokenizeShellCommand`, `&&`, `||` and `|&` are recognized before a lone `|`, and a `|` right after `>` is part of that redirect (`>|`). An unquoted lone `|` or `|&` ends the segment as a separator that is not `&&`, so the words after it are not commit arguments and a `cd` joined to the commit by a pipe stays unresolvable.",
+        "Redirections. Escape processing comes first, and `<` and `>` join the unquoted escapable set, so `\\>path` is one literal word. A word that starts with `<(` or `>(` is an argument. An unquoted, unescaped redirection is optional digits or one `&`, then `<` or `>`; it is not an argument, and neither is its target: the attached rest of the word, or the next word when the operator stands alone. Any other prefix, such as `*`, makes the word an argument. Words after a redirection are still read.",
+        "Short-option clusters follow git. Letters are read in order. `a` or `i` marks the commit as index-changing while it is still an option letter. The first of `m`, `F`, `c`, `C` or `t` takes the rest of the cluster as its value, or the next word when it is the last letter. `u` and `S` take the rest of the cluster and never the next word.",
+        "Heredoc. `resolveCommitTarget`, `commandHasGitCommitIndexMutatingForm` and `commandHasGitCommitSubcommand` read the chunks of `shellCommandChunksWithoutQuotedHereDocBodies`. Each chunk is tokenized on its own, with no join before `tokenizeShellCommand`. The segments of all chunks then form one list in chunk order, and the last segment of each chunk ends with a separator that is not `&&`, so `resolveOneCommit` sees every earlier `cd` and a `cd` in an earlier chunk makes the target unresolvable. This story carries that wiring unless #6481 has merged it in that shape. An unquoted body stays visible.",
+        "Message. The #5656 index-snapshot refusal names the first word that made the commit index-changing.",
+        "Unchanged. `-a`, `--all`, `-i`, `--include`, `-am` and any real trailing file name, also after `--` or after a redirection, are refused. A quoted operator, a lone `&` and a `#` word are ordinary words and are refused as today. The staged index is read on the target root as today. `resolveWorktreeStoryBinding` and `evaluateProspectiveScopeCover` are not changed.",
+        "Given a bound linked worktree with a staged index, when a background subagent runs `git -C <wt> commit -m msg 2>&1 | tail -3` or `cd <wt> && git commit -F <file> 2>&1 | tail -3`, then the commit-shape check does not refuse and the staged index is read on that worktree.",
+        "Given `git commit -qm msg`, or `git commit -F - <<'EOF'` with a message body, then the commit is not index-changing.",
+        "Given `-a`, `-am msg`, `-qam msg`, or a trailing file name after the message, after `--`, or after a redirection (`2>&1 src/a.ts`), then the commit is refused.",
+        "Given `-tm src/a.ts`, `-um src/a.ts` or `-Sm src/a.ts`, then the commit is refused.",
+        "Given `\\>src/a.ts`, `*>src/a.ts`, `*> src/a.ts`, `<(printf src/a.ts)`, `'|'` or `'>x'` after the message, then the commit is refused.",
+        "Given `true || cd /x && git commit -m msg` or `cd /x | git commit -m msg`, then the target is unresolvable as today.",
+        "Given `cd <wt> <<EOF`, an unquoted body, the `EOF` line, and `git commit -m msg` on the next line, then the target is unresolvable as today.",
+        "Given `cd <wt> <<EOF && git commit -m msg` with an unquoted body after that line, then the target is `<wt>`.",
+        "Given a quoted-delimiter heredoc whose body holds the line `git commit -a`, or a quoted string argument that holds it, then the command is not read as a commit.",
+        "Given an unquoted-delimiter heredoc whose body holds the line `git commit -a`, then the commit is refused as today.",
+        "Given an unquoted heredoc body with an open quote followed, after the delimiter, by `git commit -a`, then the commit is refused.",
+        "The index-snapshot refusal names the word that tripped it."
+      ],
+      "admitted_source_sentences": [
+        "Operators. In `tokenizeShellCommand`, `&&`, `||` and `|&` are recognized before a lone `|`, and a `|` right after `>` is part of that redirect (`>|`). An unquoted lone `|` or `|&` ends the segment as a separator that is not `&&`, so the words after it are not commit arguments and a `cd` joined to the commit by a pipe stays unresolvable.",
+        "Redirections. Escape processing comes first, and `<` and `>` join the unquoted escapable set, so `\\>path` is one literal word. A word that starts with `<(` or `>(` is an argument. An unquoted, unescaped redirection is optional digits or one `&`, then `<` or `>`; it is not an argument, and neither is its target: the attached rest of the word, or the next word when the operator stands alone. Any other prefix, such as `*`, makes the word an argument. Words after a redirection are still read.",
+        "Short-option clusters follow git. Letters are read in order. `a` or `i` marks the commit as index-changing while it is still an option letter. The first of `m`, `F`, `c`, `C` or `t` takes the rest of the cluster as its value, or the next word when it is the last letter. `u` and `S` take the rest of the cluster and never the next word.",
+        "Heredoc. `resolveCommitTarget`, `commandHasGitCommitIndexMutatingForm` and `commandHasGitCommitSubcommand` read the chunks of `shellCommandChunksWithoutQuotedHereDocBodies`. Each chunk is tokenized on its own, with no join before `tokenizeShellCommand`. The segments of all chunks then form one list in chunk order, and the last segment of each chunk ends with a separator that is not `&&`, so `resolveOneCommit` sees every earlier `cd` and a `cd` in an earlier chunk makes the target unresolvable. This story carries that wiring unless #6481 has merged it in that shape. An unquoted body stays visible.",
+        "Message. The #5656 index-snapshot refusal names the first word that made the commit index-changing.",
+        "Unchanged. `-a`, `--all`, `-i`, `--include`, `-am` and any real trailing file name, also after `--` or after a redirection, are refused. A quoted operator, a lone `&` and a `#` word are ordinary words and are refused as today. The staged index is read on the target root as today. `resolveWorktreeStoryBinding` and `evaluateProspectiveScopeCover` are not changed.",
+        "Given a bound linked worktree with a staged index, when a background subagent runs `git -C <wt> commit -m msg 2>&1 | tail -3` or `cd <wt> && git commit -F <file> 2>&1 | tail -3`, then the commit-shape check does not refuse and the staged index is read on that worktree.",
+        "Given `git commit -qm msg`, or `git commit -F - <<'EOF'` with a message body, then the commit is not index-changing.",
+        "Given `-a`, `-am msg`, `-qam msg`, or a trailing file name after the message, after `--`, or after a redirection (`2>&1 src/a.ts`), then the commit is refused.",
+        "Given `-tm src/a.ts`, `-um src/a.ts` or `-Sm src/a.ts`, then the commit is refused.",
+        "Given `\\>src/a.ts`, `*>src/a.ts`, `*> src/a.ts`, `<(printf src/a.ts)`, `'|'` or `'>x'` after the message, then the commit is refused.",
+        "Given `true || cd /x && git commit -m msg` or `cd /x | git commit -m msg`, then the target is unresolvable as today.",
+        "Given `cd <wt> <<EOF`, an unquoted body, the `EOF` line, and `git commit -m msg` on the next line, then the target is unresolvable as today.",
+        "Given `cd <wt> <<EOF && git commit -m msg` with an unquoted body after that line, then the target is `<wt>`.",
+        "Given a quoted-delimiter heredoc whose body holds the line `git commit -a`, or a quoted string argument that holds it, then the command is not read as a commit.",
+        "Given an unquoted-delimiter heredoc whose body holds the line `git commit -a`, then the commit is refused as today.",
+        "Given an unquoted heredoc body with an open quote followed, after the delimiter, by `git commit -a`, then the commit is refused.",
+        "The index-snapshot refusal names the word that tripped it."
+      ],
+      "admitted_source_digest": "b9489e40c58a42210336d9dcd19ece39175242b6957f21dd150a81269d5227ac",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Operators. In `tokenizeShellCommand`, `&&`, `||` and `|&` are recognized before a lone `|`, and a `|` right after `>` is part of that redirect (`>|`). An unquoted lone `|` or `|&` ends the segment as a separator that is not `&&`, so the words after it are not commit arguments and a `cd` joined to the commit by a pipe stays unresolvable.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Redirections. Escape processing comes first, and `<` and `>` join the unquoted escapable set, so `\\>path` is one literal word. A word that starts with `<(` or `>(` is an argument. An unquoted, unescaped redirection is optional digits or one `&`, then `<` or `>`; it is not an argument, and neither is its target: the attached rest of the word, or the next word when the operator stands alone. Any other prefix, such as `*`, makes the word an argument. Words after a redirection are still read.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Short-option clusters follow git. Letters are read in order. `a` or `i` marks the commit as index-changing while it is still an option letter. The first of `m`, `F`, `c`, `C` or `t` takes the rest of the cluster as its value, or the next word when it is the last letter. `u` and `S` take the rest of the cluster and never the next word.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Heredoc. `resolveCommitTarget`, `commandHasGitCommitIndexMutatingForm` and `commandHasGitCommitSubcommand` read the chunks of `shellCommandChunksWithoutQuotedHereDocBodies`. Each chunk is tokenized on its own, with no join before `tokenizeShellCommand`. The segments of all chunks then form one list in chunk order, and the last segment of each chunk ends with a separator that is not `&&`, so `resolveOneCommit` sees every earlier `cd` and a `cd` in an earlier chunk makes the target unresolvable. This story carries that wiring unless #6481 has merged it in that shape. An unquoted body stays visible.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Message. The #5656 index-snapshot refusal names the first word that made the commit index-changing.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Unchanged. `-a`, `--all`, `-i`, `--include`, `-am` and any real trailing file name, also after `--` or after a redirection, are refused. A quoted operator, a lone `&` and a `#` word are ordinary words and are refused as today. The staged index is read on the target root as today. `resolveWorktreeStoryBinding` and `evaluateProspectiveScopeCover` are not changed.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Given a bound linked worktree with a staged index, when a background subagent runs `git -C <wt> commit -m msg 2>&1 | tail -3` or `cd <wt> && git commit -F <file> 2>&1 | tail -3`, then the commit-shape check does not refuse and the staged index is read on that worktree.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-commit-heredoc.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given `git commit -qm msg`, or `git commit -F - <<'EOF'` with a message body, then the commit is not index-changing.",
+          "artifact_path": "packages/core/src/hooks/commit-target.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given `-a`, `-am msg`, `-qam msg`, or a trailing file name after the message, after `--`, or after a redirection (`2>&1 src/a.ts`), then the commit is refused.",
+          "artifact_path": "packages/core/src/hooks/commit-target.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given `-tm src/a.ts`, `-um src/a.ts` or `-Sm src/a.ts`, then the commit is refused.",
+          "artifact_path": "packages/core/src/hooks/commit-target.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given `\\>src/a.ts`, `*>src/a.ts`, `*> src/a.ts`, `<(printf src/a.ts)`, `'|'` or `'>x'` after the message, then the commit is refused.",
+          "artifact_path": "packages/core/src/hooks/commit-target.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given `true || cd /x && git commit -m msg` or `cd /x | git commit -m msg`, then the target is unresolvable as today.",
+          "artifact_path": "packages/core/src/hooks/commit-target.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given `cd <wt> <<EOF`, an unquoted body, the `EOF` line, and `git commit -m msg` on the next line, then the target is unresolvable as today.",
+          "artifact_path": "packages/core/src/hooks/commit-target.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given `cd <wt> <<EOF && git commit -m msg` with an unquoted body after that line, then the target is `<wt>`.",
+          "artifact_path": "packages/core/src/hooks/commit-target.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given a quoted-delimiter heredoc whose body holds the line `git commit -a`, or a quoted string argument that holds it, then the command is not read as a commit.",
+          "artifact_path": "packages/core/src/hooks/commit-target.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Given an unquoted-delimiter heredoc whose body holds the line `git commit -a`, then the commit is refused as today.",
+          "artifact_path": "packages/core/src/hooks/commit-target.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Given an unquoted heredoc body with an open quote followed, after the delimiter, by `git commit -a`, then the commit is refused.",
+          "artifact_path": "packages/core/src/hooks/commit-target.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "The index-snapshot refusal names the word that tripped it.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-commit-heredoc.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/commit-target.ts",
+          "packages/core/src/hooks/dispatcher.ts"
+        ],
+        "module_boundary": "packages/core/src/hooks",
+        "cohesion_exemption": "dispatcher.ts changes by one refusal sentence (Bound item 5) that reads the tripping word from commit-target.ts; the parsing change lives in commit-target.ts, so no split of dispatcher.ts is in scope."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6471; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes which shell command texts the #5656 commit-shape check reads as an index-changing commit, and that check is the control that stops a commit from adding files the scope gate never saw.\n\nTarget-digest: sha256:4a18cb2c7564810f3b1efe80705527ad16d4961e2bcd2a6d9fc50d156653caf4\ndispatch-sha: 696b4f7cc8e41d3692cf393a820213b1784d82b1\ndest: .deft-scratch/worktrees/arc-6471 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one argument scanner in one file, with the cause measured from session logs; one critic of a different model family.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 696b4f7cc8e41d3692cf393a820213b1784d82b1: + dest cwd-without-occupy\npain: P1, P2, P3\n\n## In plain English\nA worker in a bound worktree cannot commit: the hook refuses with the message that the commit \"changes the file set after the pre-tool index snapshot\". The issue guessed that the hook reads the wrong checkout's index. The session logs show a simpler cause. Every refused commit ended with `2>&1 | tail -N`. The hook reads every word after `git commit` that does not start with `-` as a file name, so it reads `2>&1`, `|` and `tail` as file names and refuses. In one worktree the same commit with the same message file was refused with the `| tail` suffix and admitted ten seconds later without it. The same check also reads text inside a heredoc as commands, so a note that only mentions a commit is refused. The recommended fix teaches the argument scan that a pipe ends the command and that a redirection is not a file name, and reuses the heredoc fix that #6187 already has in review. The open questions for the critic are whether that is the whole cause, and whether the change lets a real `-a` or file-name commit through.\n\n## Pains\n- P1 — Given a linked worktree bound to its story with a staged index, when a background subagent commits there with only a message, then the index snapshot is taken from that worktree and the commit is admitted.\n- P2 — Given the same commit that adds a real trailing pathspec or the all-files flag, then it is still refused.\n- P3 — Given a shell command that only quotes commit flags inside a heredoc or string, then the commit-shape check does not treat it as a commit.\n\nThe pains are the issue's three Acceptance Criteria, word for word.\n\n## Constraints (not pains)\n- #6187 operator ruling (comment 6936602489 on #6187): only bodies of a quoted-delimiter heredoc (`<<'EOF'`, `<<\"EOF\"`, `<<\\EOF`) are data; an unquoted body stays visible to the commit check, because the shell expands it.\n- #6278 target forms stay: `git -C <absolute path> commit …` or one `cd <absolute path> &&` before the commit; anything else is unresolvable.\n- #6480 (accepted lean 6938620473, in build) changes `resolveWorktreeStoryBinding` and `evaluateProspectiveScopeCover`. This design does not touch either.\n- The remedy adds no gate and no grant.\n\n## Out of scope\n- The issue's third Evidence bullet (a write into the worktree's gitignored `.deft-scratch/` refused by the fence) is not an Acceptance Criterion, so it is not a pain of this arc. Related open issue: #5934.\n\n## Anchors at the dispatch SHA\n- `packages/core/src/hooks/dispatcher.ts` 5220-5228: the \"pre-tool index snapshot (#5656)\" refusal comes only from `commandHasGitCommitIndexMutatingForm(command)`, a check of the command text. It runs before any index is read.\n- `packages/core/src/hooks/dispatcher.ts` 5230-5265: the staged index is read on the target root, which is the named worktree for `git -C <abs>` and `cd <abs> &&` (#6278), not the payload root.\n- `packages/core/src/hooks/commit-target.ts` 240-270 `commitArgsMutateIndex`: after the options, any word that does not start with `-` returns true (line 267). 276-280: the exported check.\n- `packages/core/src/hooks/commit-target.ts` 38-113 `tokenizeShellCommand`: segments end only at `&&`, `||`, `;` and newline (88-100). A single `|`, `2>&1`, `>file` and `<<EOF` stay words of the commit segment. Heredoc body lines become segments of their own.\n- `packages/core/src/authz/classify.ts` 2056-2066 `shellCommandChunksWithoutQuotedHereDocBodies` (landed by #6499 for #6187): removes quoted-delimiter heredoc bodies. `commit-target.ts` does not call it at this SHA; open PR #6481 (#6187) wires it into the three commit detectors.\n- Parent read of local host session logs, 2026-11-16 (not public): all five refused #6366 forms, the `-m`, `$'…'`, `--dry-run -m` forms, with `git -C <wt>` and with `cd <wt> &&`, ended with `2>&1 | tail -N`. In the #6376 worktree, `git -C <wt> commit -F <file> 2>&1 | tail -3` was refused and `git -C <wt> commit -F <file>` was admitted ten seconds later; both ran from a background subagent whose session root is the primary checkout. The issue-filing call used `cat > <file> <<'EOF'`.\n\n## Recommended mechanism (the thing to critique)\n- C1. Pipe. An unquoted `|` (and `|&`) ends the command, like `;`. Words after it belong to the next command, not to the commit.\n- C2. Redirection. An unquoted redirection word (optional digits, `&` or `*`, then `<` or `>`: `2>&1`, `>out`, `>>log`, `&>x`, `<<EOF`, `<<<text`) is not an argument. When the operator has no attached target, the next word is its target and is not an argument either. `<(` and `>(` are process substitutions and stay arguments. A redirection can stand anywhere, so a later `-a` or file name still counts.\n- C3. Heredoc. The three commit detectors read the command through `shellCommandChunksWithoutQuotedHereDocBodies`, as PR #6481 does. This story builds on #6481, or carries that same change when #6481 has not merged.\n- C4. Short-option clusters follow git: letters are read in order; `a` or `i` marks the commit as index-changing; the first of `m`, `F`, `c`, `C` takes the rest of the cluster, or the next word when it is the last letter, as its value. So `-qm msg` is message-only and `-am msg` is still refused.\n- C5. Unchanged: `-a`, `--all`, `-i`, `--include`, `-am` and any real trailing file name, also after `--`, are refused as today. A quoted `'|'` or `'>x'` is a word, not an operator. The staged index is still read on the target root. The story binding is not touched.\n- C6. The #5656 refusal names the first word that made the commit index-changing, so a reader sees `| tail` named and does not suspect the index root.\n\nQuestions for the critic:\n1. Is the cause complete: is there any other path at the dispatch SHA that gives the #5656 index-snapshot refusal for a message-only commit in a bound worktree, so that P1 needs more than C1 and C2?\n2. Do C1, C2 or C4 let a real index-changing commit through (P2), for example through a word that looks like a redirection but is a file name, `>|`, process substitution, or a quoted operator?\n3. Should this story carry the #6481 change (C3) or wait for it, and is C6 worth its cost?\n\n",
+          "id": 6940244023,
+          "html_url": "https://github.com/deftai/directive/issues/6471#issuecomment-6940244023",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:06:20Z",
+          "updated_at": "2026-11-17T06:06:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6940244488\nseat: grok launcher: grok (--cwd dest --prompt-file --permission-mode auto --disable-web-search --no-subagents --output-format plain)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 696b4f7cc8e41d3692cf393a820213b1784d82b1\ndest: .deft-scratch/worktrees/arc-6471\nverification-path: pin-read git show 696b4f7cc8e41d3692cf393a820213b1784d82b1: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6940244023\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Grok, a different model family, run with the dest-rooted Grok launcher above. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Grok seat is told not to use GitHub or the network. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim; Grok plain output can print progress narration before the `model:` line, and the parent strips only that narration.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 6940244488,
+          "html_url": "https://github.com/deftai/directive/issues/6471#issuecomment-6940244488",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:06:21Z",
+          "updated_at": "2026-11-17T06:06:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nA bound-worktree commit is refused before any index is read. The refusal comes from one command-text check: after the commit's options, every word that does not start with `-` is treated as a file name. `2>&1`, a pipe, and `tail` are such words, so a message-only commit written with a log suffix looks like it changes the file set. The same commit with that suffix removed does not trip the check. The staged index that runs afterward is already taken in the checkout named by `git -C` or by `cd … &&`, which is the worktree when the command names it.\n\nThe pipe rule, the redirect rule, and the heredoc-chunk reuse are the right mechanism. The short-option rule, as written, is not: it lets a real pathspec commit through.\n\nQuestion 1. That snapshot sentence has one producer, and it runs before the index read. For the logged `2>&1 | tail` forms, the pipe and the redirect are the whole cause. The pain does not need a second index root.\n\nQuestion 2. A quoted `'|'` or `'>x'`, a process substitution kept as an argument, and a real `>|` redirect match the shell and still refuse a path the shell actually passes to git. Two wordings open a hole: a short cluster whose first argument-taking letter is not `m`, `F`, `c`, or `C`, and an escaped `\\>path` if `<` and `>` are recognized before escape processing. Splitting `||` into two pipes sends the scope check at a different checkout than the one the shell commits in.\n\nQuestion 3. This story carries the heredoc wiring. The helper is already in the tree and neither commit detector calls it, so waiting leaves the heredoc pain open. Naming the word that tripped the check is worth the change to the existing denial sentence.\n\nPin: line cites are the dest checkout whose gitdir HEAD is `696b4f7cc8e41d3692cf393a820213b1784d82b1` (one reflog entry from that checkout). The host hook denied `git show` because this process-only dest has no runtime pin.\n\n## Findings\n\n### 1. `blocks-the-design` — A message letter later in a short cluster swallows a pathspec\n\nEvidence: `packages/core/src/hooks/commit-target.ts` 224–238 and 240–269. A cluster is consumed as a value only when it starts with `m`, `F`, `c`, or `C` (255–260). Otherwise a letter `a` or `i` anywhere in the cluster refuses (262), and any other dash-word is skipped (263–265), so the next word hits 267 and is refused. `-t`, `-u`, and `-S` are absent from `COMMIT_VALUE_OPTIONS`. Today `git commit -tm src/a.ts` is refused at 267.\n\nFailure mode: C4 reads letters in order and lets the first of `m`, `F`, `c`, `C` take the rest of the cluster or the next word. On `-tm src/a.ts` that reads `m` as the message and admits the commit. Git's own short-option rule gives the rest of the cluster to the first short that takes an argument, so `-t` takes `m` as the template file and `src/a.ts` is a pathspec. The same split happens for an attached optional argument: `-um src/a.ts` and `-Sm src/a.ts` are pathspec commits, and C4 reads them as message-only. This is a regression. The current scanner refuses all three. P2 stops holding for a trailing pathspec hidden behind a message letter.\n\nDisposition: C4 cannot bind as written. The cluster rule that can bind is git's: the first argument-taking short consumes the rest of the cluster. `t` takes a required argument, with `m`, `F`, `c`, and `C`. `u` and `S` take an attached optional argument and do not take the next word. `a` or `i` marks the commit only while that letter is still an option, which keeps `-am` refused and keeps `-qm msg` message-only.\n\n### 2. `sharpens-framing` — A lone pipe stays distinct from `||`, `|&`, and `>|`\n\nEvidence: `packages/core/src/hooks/commit-target.ts` 96–99 ends a segment only when `&` or `|` is doubled, so `||` is one separator. 368–373 treats `segments[cdIndex - 1].next === \"||\"` as unresolvable, because `true || cd /x && git commit` skips the `cd` and commits in the inherited cwd. The snapshot refusal itself is `packages/core/src/hooks/dispatcher.ts` 5220–5228, before the target root is chosen at 5232–5246.\n\nFailure mode: C1 says an unquoted `|` ends the command, and names `|&`, without saying what happens to a second `|`. A character scan that splits every `|` turns `||` into two pipes. The `cd` skip then stops firing, and `true || cd /wrong && git commit -m msg` is judged at `/wrong` while the shell commits in the inherited checkout. The scope check and the commit land on different indexes. A `|` glued into `>|file` is a clobber redirect, not a second command; splitting it on the `|` drops the redirect target out of the commit, which is harmless only when that target was never a pathspec.\n\nDisposition: C1 can bind with the match order stated. `&&` and `||` stay the doubled operators they are now, recognized before a lone `|`. `|&` is one operator, recognized before a lone `|`. A `|` immediately after `>` is part of the redirect, not a pipe. A lone `|` is a separator other than `&&`, so a `cd` joined to the commit by a pipe stays unresolvable.\n\n### 3. `sharpens-framing` — A redirect is an unescaped operator, and `<(` stays a pathspec\n\nEvidence: `packages/core/src/hooks/commit-target.ts` 29 lists the unquoted backslash escapes and does not include `<` or `>`. 82–87 leave a backslash in the word when the next character is outside that set, so `\\>src/a.ts` is one word. 267 then refuses it. A process substitution is also one non-dash word when it has no spaces, and 267 refuses it. Both are pathspecs the shell passes through: the backslash makes `>` literal, and `<(` becomes a `/dev/fd` argument.\n\nFailure mode: C2 drops an unquoted redirection word, and the next word when the target is not attached. A scan that treats the first `<` or `>` as a redirect, before escape processing and before the `<(` / `>(` exception, drops `\\>src/a.ts` and drops `<(printf '%s' src/a.ts)`. The shell still passes those to git as pathspecs. P2 fails for a path the command really commits. A quoted `'>x'` stays a word under C5 and is still refused; that case holds.\n\nDisposition: C2 can bind with recognition stated this way. Escape processing happens first, and `<` and `>` join the unquoted escapable set so `\\>path` remains one word and still counts as a pathspec. A word that starts with `<(` or `>(` is an argument. Only then is an unquoted, unescaped redirect removed, including an attached target, or the next word when the target is separate. A later `-a` or file name still counts.\n\n### 4. `sharpens-framing` — Heredoc chunks are read one by one, and this story wires that\n\nEvidence: `packages/core/src/authz/classify.ts` 2056–2066 returns chunks and says they are read one by one. Quoted-delimiter bodies are removed; each unquoted body is its own chunk. `packages/core/src/hooks/commit-target.ts` has no call to that helper (the file ends at 419). Production admission calls `resolveCommitTarget` and `commandHasGitCommitIndexMutatingForm` on the raw command at `packages/core/src/hooks/dispatcher.ts` 5208–5220. `commandHasGitCommitSubcommand` is the third detector and is test-only at this SHA. `tokenizeShellCommand` 88–90 ends a segment on newline and does not clear quote state.\n\nFailure mode: Joining the chunks with newlines and then tokenizing puts an unquoted body back in the same string. An open quote in that body survives the newline and can swallow a later `git commit -a`, so the all-files form is admitted. Skipping the wiring leaves a quoted heredoc body as its own segments, and a note that only mentions a commit is still refused.\n\nDisposition: C3 can bind as a call, on each chunk, from all three detectors, with no join before `tokenizeShellCommand`. The production pair is the two calls in `decideProspectiveGitCommitScopeCover`; the test-only detector stays on the same chunks. This story carries that wiring. The helper is already present, and waiting on the open heredoc PR leaves this pain open. An unquoted body stays visible, which is the existing ruling.\n\n### 5. `footnote` — Naming the tripping word, and the shell words this design leaves\n\nThe denial text at `packages/core/src/hooks/dispatcher.ts` 5225–5227 names `-a`, `--all`, `-am`, `--include`, and pathspecs. A refusal caused by `|` or `2>&1` reads as an index-root failure. C6 puts the first tripping word into that same sentence. The cost is the boolean check gaining that word. That is worth doing, and it adds no gate.\n\nA lone `&` and a `#` comment are still ordinary words at `commit-target.ts` 267, so `git commit -m msg &` and `git commit -m msg # note` stay on this refusal. The logged forms end in `2>&1 | tail`. These two are the same scanner class and are outside the pains.\n\n### 6. `footnote` — A pathspec file on `git commit` is an existing admit\n\n`packages/core/src/hooks/dest-form.ts` 674–688 treats `--pathspec-from-file` and `--pathspec-file-nul` as an unresolvable target for `checkout` and `restore`. `commitArgsMutateIndex` skips an unknown long option as one dash-word (263–265), so `git commit --pathspec-from-file=paths.txt -m msg` is message-only today. C1, C2, and C4 do not widen that. P2's trailing pathspec and all-files flag are a different shape. The existing checkout/restore treatment is the mechanism already in the tree if a later pain wants commit covered.\n\n## Road not taken\n\nRetargeting the snapshot at the worktree is the issue body's account. It loses because this refusal is printed at `dispatcher.ts` 5220–5228, and the index read that follows already uses the named checkout (5232–5246). What would flip that is a second producer of the same sentence after an index diff against the payload root. There isn't one.\n\nA full shell parser would also clear a lone `&` and a `#` comment. `commit-target.ts` 8–10 already says this is not a general shell interpreter. What would flip that is a logged message-only refusal whose extra word is one of those. The logged suffix is the pipe and the redirect.\n\nWhat would flip finding 1 is git treating `-tm` as a template flag plus a message flag. Git gives the rest of that cluster to `-t`.\n\n",
+          "id": 6940423436,
+          "html_url": "https://github.com/deftai/directive/issues/6471#issuecomment-6940423436",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:16:44Z",
+          "updated_at": "2026-11-17T06:16:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 6940244023 (round 1: 1 of 1 critic posted, comment 6940423436)\n\n## In plain English\nProblem: a worker in a bound worktree is refused when it commits with only a message. The refusal says the commit \"changes the file set after the pre-tool index snapshot\". The issue guessed the hook reads the wrong checkout's index. It does not: that refusal comes from one check of the command text, which runs before any index is read, and the index read after it already uses the worktree the command names. The check reads every word after the commit options that does not start with `-` as a file name, so `2>&1`, `|` and `tail` in `… 2>&1 | tail -3` look like file names. The same check reads the lines of a heredoc as commands, so a note that only mentions a commit is refused.\n\nWhat the critic found: the pipe rule, the redirect rule and the heredoc reuse are the right fix, and the cause is complete. One part had to change: the first short-option rule let `-tm src/a.ts` through, because git gives the rest of that cluster to `-t`, so `src/a.ts` is a real file name. Three parts were made exact: how `||`, `|&` and `>|` differ from a lone pipe; that `\\>path` and `<(…)` stay file names; and that each heredoc chunk is read on its own and this story carries that wiring.\n\nSolution this lean proposes: the commit check stops at a pipe, skips redirections and their targets, reads short-option clusters as git does, and reads the command through the existing heredoc chunker, one chunk at a time. The refusal names the word that tripped it. A real `-a`, `--all`, `--include` or file name is still refused, wherever it stands.\n\nWhat this adds: no gate, no grant, no new state. One file of parsing rules and one sentence of message text. The story binding and the index root are not touched, so it does not overlap the #6480 binding change.\n\nWhat it does not do: it does not parse a lone `&`, a `#` comment, or a command fed to a shell through `bash -c`, a pipe or an unquoted heredoc; those stay as they are. An unquoted heredoc body stays visible to the check, per the #6187 operator ruling.\n\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:4a18cb2c7564810f3b1efe80705527ad16d4961e2bcd2a6d9fc50d156653caf4\n**Spec-path:** Bound remedy on this lean\nSupersedes: Stop 1 write-back, comment 6940244023. Sibling count: 1 (comment 6940423436). Panel deposit: comment 6940244488.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Operators. In `tokenizeShellCommand`, `&&`, `||` and `|&` are recognized before a lone `|`, and a `|` right after `>` is part of that redirect (`>|`). An unquoted lone `|` or `|&` ends the segment as a separator that is not `&&`, so the words after it are not commit arguments and a `cd` joined to the commit by a pipe stays unresolvable.\n2. Redirections. Escape processing comes first, and `<` and `>` join the unquoted escapable set, so `\\>path` is one literal word. A word that starts with `<(` or `>(` is an argument. An unquoted, unescaped redirection (optional digits, `&` or `*`, then `<` or `>`) is not an argument, and neither is its target: the attached rest of the word, or the next word when the operator stands alone. Words after a redirection are still read.\n3. Short-option clusters follow git. Letters are read in order. `a` or `i` marks the commit as index-changing while it is still an option letter. The first of `m`, `F`, `c`, `C` or `t` takes the rest of the cluster as its value, or the next word when it is the last letter. `u` and `S` take the rest of the cluster and never the next word.\n4. Heredoc. `resolveCommitTarget`, `commandHasGitCommitIndexMutatingForm` and `commandHasGitCommitSubcommand` tokenize each chunk of `shellCommandChunksWithoutQuotedHereDocBodies` on its own, with no join before `tokenizeShellCommand`. This story carries that wiring unless #6481 has merged it in that shape. An unquoted body stays visible.\n5. Message. The #5656 index-snapshot refusal names the first word that made the commit index-changing.\n6. Unchanged. `-a`, `--all`, `-i`, `--include`, `-am` and any real trailing file name, also after `--` or after a redirection, are refused. A quoted operator, a lone `&` and a `#` word are ordinary words and are refused as today. The staged index is read on the target root as today. `resolveWorktreeStoryBinding` and `evaluateProspectiveScopeCover` are not changed.\n\n## Acceptance Criteria\n- Given a bound linked worktree with a staged index, when a background subagent runs `git -C <wt> commit -m msg 2>&1 | tail -3` or `cd <wt> && git commit -F <file> 2>&1 | tail -3`, then the commit-shape check does not refuse and the staged index is read on that worktree.\n- Given `git commit -qm msg`, or `git commit -F - <<'EOF'` with a message body, then the commit is not index-changing.\n- Given `-a`, `-am msg`, `-qam msg`, or a trailing file name after the message, after `--`, or after a redirection (`2>&1 src/a.ts`), then the commit is refused.\n- Given `-tm src/a.ts`, `-um src/a.ts` or `-Sm src/a.ts`, then the commit is refused.\n- Given `\\>src/a.ts`, `<(printf src/a.ts)`, `'|'` or `'>x'` after the message, then the commit is refused.\n- Given `true || cd /x && git commit -m msg` or `cd /x | git commit -m msg`, then the target is unresolvable as today.\n- Given a quoted-delimiter heredoc whose body holds the line `git commit -a`, or a quoted string argument that holds it, then the command is not read as a commit.\n- Given an unquoted-delimiter heredoc whose body holds the line `git commit -a`, then the commit is refused as today.\n- Given an unquoted heredoc body with an open quote followed, after the delimiter, by `git commit -a`, then the commit is refused.\n- The index-snapshot refusal names the word that tripped it.\n\n## Reject\n- Reading the index from another root (the issue's guess): the refusal is printed before any index read, and that read already uses the named worktree (comment 6940423436, Road not taken).\n- Parsing a lone `&`, `#` comments or nested shells: not in the logged forms; this is not a general shell interpreter (comment 6940423436, finding 5).\n- Waiting for #6481 before carrying the heredoc wiring (comment 6940423436, finding 4).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6940423436 | 1. A message letter later in a short cluster swallows a pathspec | blocks-the-design | accept-into-contract (item 3) |\n| comment 6940423436 | 2. A lone pipe stays distinct from `\\|\\|`, `\\|&`, and `>\\|` | sharpens-framing | accept-into-contract (item 1) |\n| comment 6940423436 | 3. A redirect is an unescaped operator, and `<(` stays a pathspec | sharpens-framing | accept-into-contract (item 2) |\n| comment 6940423436 | 4. Heredoc chunks are read one by one, and this story wires that | sharpens-framing | accept-into-contract (item 4) |\n\nFootnotes in the census, no take: comment 6940423436 findings 5 and 6. Finding 5's support for the message change is item 5.\n\nRelay disclosure: comment 6940423436 is the Grok critic's final message posted verbatim by the parent; only progress narration before its `model:` line was stripped. The critic reports that the host hook refused `git show` in the process-only dest, so it read the dest's checked-out files and checked that the dest HEAD is the dispatch SHA. The parent's own reads used `git show 696b4f7cc8e41d3692cf393a820213b1784d82b1:<path>`.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The session-log evidence in Stop 1 is a parent read the critic could not re-read; the critic reached the same cause from the code. The `relieves` cites stay open until a later critic targets them.\n\n",
+          "id": 6940441474,
+          "html_url": "https://github.com/deftai/directive/issues/6471#issuecomment-6940441474",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:17:47Z",
+          "updated_at": "2026-11-17T06:17:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: blocking\nharvest-changed: true\nharvest-digest: sha256:a2909f26994f723a4fc8f8c497e633a02224e038b07cc3c697305feca203e301\n\n## In plain English\n\nThe one-line message-only forms are fixed, and the short-option clusters in the acceptance list still match git. Two rules in the bound remedy still let a real commit past the control.\n\nA star glued to a redirection is specified as part of the redirection. The shell splits that star off and passes it to git as a pathspec, so the file-set check skips it. An unquoted heredoc is flushed into its own chunk, and the `cd` before it never reaches `resolveOneCommit`. The commit chunk is judged at the payload root while the shell commits in the worktree when `&&` joins them.\n\nA quoted heredoc body and a quoted string are not read as commits. The pipe, `||`, `|&`, and `>|` rules do not admit the acceptance-criteria pathspecs or `-a` / `-i`.\n\nThe host hook denied `git show` because this process-only dest has no runtime pin. Line cites are the checked-out files. The worktree HEAD file is `696b4f7cc8e41d3692cf393a820213b1784d82b1`.\n\npain-P1: does not hold - one-line `git -C` and `cd &&` are admitted on the worktree, but an unquoted heredoc puts that `cd` in an earlier chunk and the commit chunk resolves as hook-root\npain-P2: does not hold - `-a`, `-am`, `-qam`, `-tm`, `-um`, `-Sm`, and a trailing path after the message, `--`, or `2>&1` stay refused, but a `*` immediately before `>` is classified as a redirect and the shell passes that `*` to git as a pathspec\npain-P3: holds - a quoted heredoc body is removed by the chunker and a quoted string stays one non-command word\n\n## Findings\n\n### 1. `blocks-the-design` — A star before `>` is a pathspec the redirect rule drops\n\nEvidence: `packages/core/src/hooks/commit-target.ts` 240–268. A non-dash word returns true at 267, so `*>src/a.ts` is refused today. `packages/core/src/authz/classify.ts` 2137–2154 splits a word at the first unquoted `<` or `>` and keeps a positional prefix when that prefix is neither empty, `&`, nor all digits. A star is such a prefix. Item 2 names the redirect as optional digits, `` `&` `` or `` `*` ``, then `<` or `>`.\n\nFailure mode: the acceptance list forces `2>&1` to match, so the `&` or `*` is written as optional. `git commit -m msg *>src/a.ts` and `git commit -m msg *> src/a.ts` then match and are removed, target included. Bash splits on `>`: git receives the glob `*` (every match, or a literal `*` when nothing matches) and the `>` only redirects stdout. That is a trailing pathspec. P2 fails. The same parenthetical read with `&` or `*` required leaves `2>&1` and `>out` as ordinary words, and the logged message-only commit stays refused.\n\nDisposition: item 2 cannot bind with that prefix. The smallest change is the rule already in `classify.ts` 2151–2152. The prefix is optional file-descriptor digits or one leading `&`, then `<` or `>`. A `*` is not a prefix and stays an argument. `2>&1` is digits plus `>&` with `1` attached, and words after it are still read. `*>src/a.ts` stays refused.\n\n### 2. `blocks-the-design` — A `cd` in an earlier chunk resolves the commit at the payload root\n\nEvidence: `packages/core/src/authz/classify.ts` 2032–2035 flushes kept text and pushes an unquoted heredoc body as its own chunk before later lines are read. 2064–2065 returns those chunks. `packages/core/src/hooks/commit-target.ts` 109–112 drops empty segments, so a chunk whose text is `&& git commit -m msg` loses the `&&`. 366 and 376–379: with no `cd` in the segment array, `resolveOneCommit` returns hook-root; a `cd` counts only when every operator from it to the commit is `&&`. `packages/core/src/hooks/dispatcher.ts` 5209–5228 runs that target before the index read, and 5232–5254 lists the staged index on hook-root when the target is not named. The same file’s test at `commit-target.test.ts` 161–164 shows `cd /r/wt && git commit -m x` is the named worktree today.\n\nFailure mode: item 4 tokenizes each chunk alone. For `cd /abs/wt <<EOF` / `note` / `EOF` / `&& git commit -m msg` the chunks are the `cd` line, the body, and `&& git commit -m msg`. The commit chunk has no `cd`, so the target is hook-root. The shell runs that `&&` list in `/abs/wt` after `cd` succeeds. The staged-file check sees the payload root. A message-only commit of the worktree index is admitted against the wrong snapshot. The same command with a newline and no `&&` is unresolvable today (the `cd` is not joined by `&&`) and becomes that same hook-root admit. `cd /wt && cat <<EOF` … `EOF` / `&& git commit -m msg` is the accepted one-`cd` form with the heredoc on the middle command, and it takes the same path.\n\nDisposition: item 4 cannot bind as a per-chunk tokenize of `resolveCommitTarget`. The smallest change keeps body chunks as separate scans, with no join into the command string. `resolveOneCommit` still sees a `cd` from an earlier command chunk. A chunk that begins with `&&` is joined by `&&`, and that operator is kept. When every operator from the one absolute `cd` to the commit is `&&`, the target is that path and the index is read there. Any other boundary stays unresolvable. The commit chunk is not hook-root because the unquoted heredoc flushed the `cd`.\n\n## Road not taken\n\nMarking every cross-chunk `cd` unresolvable would stop the wrong-root admit and would still refuse the `&&` form the shell runs in the worktree. What flips that is P1: a message-only commit joined by `&&` is admitted on that worktree’s index.\n\nReading the star as a quantifier on `&` would match `2>&1` and would add no prefix. What flips that is the backticks, which mark a literal the same way they mark `&`, and `classify.ts` 2151–2152 already keeps a star prefix as a positional word.\n\n",
+          "id": 6940667523,
+          "html_url": "https://github.com/deftai/directive/issues/6471#issuecomment-6940667523",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:31:08Z",
+          "updated_at": "2026-11-17T06:31:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain audit 6940667523 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 6940441474\n\n## In plain English\nThe audit held the heredoc and quoted-string case as relieved. It refused the other two cases on two points, and the parent agrees with both after reading the code and testing the shell. First, the redirect rule allowed a `*` before `>`. Bash has no `*>` operator: it passes the `*` to git as a file-name glob, so a commit that adds files would be read as message-only. Second, reading each heredoc chunk as a separate command list hides a `cd` in an earlier chunk. A `cd /wt <<EOF` with an unquoted body, then the commit on a new line after the delimiter, is refused today as an unresolvable target; under the retracted rule the commit chunk had no `cd`, so it was judged at the payload root while the shell commits in `/wt`.\n\nThe Bound remedy on 6940441474 is withdrawn and will not be ingested.\n\nTarget-digest: sha256:4a18cb2c7564810f3b1efe80705527ad16d4961e2bcd2a6d9fc50d156653caf4\n\ndoes-not-relieve: P1\ndoes-not-relieve: P2\nrelieves: P3\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6940667523 | 1. A star before `>` is a pathspec the redirect rule drops | blocks-the-design | accept-into-contract (the redirect prefix is optional digits or one `&`; a `*` stays an argument) |\n| comment 6940667523 | 2. A `cd` in an earlier chunk resolves the commit at the payload root | blocks-the-design | accept-into-contract (the segments of all chunks form one ordered list, and a chunk boundary is a separator that is not `&&`) |\n\nAudit verdicts recorded: `pain-P1` does not hold; `pain-P2` does not hold; `pain-P3` holds.\n\n",
+          "id": 6940680664,
+          "html_url": "https://github.com/deftai/directive/issues/6471#issuecomment-6940680664",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:31:53Z",
+          "updated_at": "2026-11-17T06:31:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after the retraction map 6940680664 (does-not-relieve `P1` and `P2` on a Recut map)\nopen-question: With a redirect prefix of only digits or one `&`, and the segments of all heredoc chunks read as one ordered list in which a chunk boundary is not `&&`, can a message-only commit in a bound worktree still be refused, or a commit that adds files still be admitted or judged at the wrong checkout?\n\n## In plain English\nTwo changes are needed, both in the command-text check. A redirect starts with optional digits or one `&`, then `<` or `>`; a `*` before `>` stays a file name, as bash passes it. The heredoc chunks are tokenized one at a time, but their segments are then read as one list in order, and the end of a chunk counts as a separator that is not `&&`. So a `cd` before an unquoted heredoc and a commit on a later line stay unresolvable, as today, and a `cd /wt <<EOF && git commit -m msg` on one line still names `/wt`. The critic's other form, a line that starts with `&&` after the delimiter, is a shell syntax error, so nothing commits; the parent records that as a premise for the next critic. The rest of the retracted lean stands as audited. The parent posts one recut and a fresh critic audits it. Critic posts used so far: 2 of 6. The parent continues only while each audit returns fewer blocking findings than the one before; this audit returned two.\n\n",
+          "id": 6940681034,
+          "html_url": "https://github.com/deftai/directive/issues/6471#issuecomment-6940681034",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:31:55Z",
+          "updated_at": "2026-11-17T06:31:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** recut bind lean under Stop 1 6940244023, after pain audit 6940667523 (round 1: 1 of 1 critic posted, comment 6940423436)\n\n## In plain English\nProblem: a worker in a bound worktree is refused when it commits with only a message. The refusal says the commit \"changes the file set after the pre-tool index snapshot\". The issue guessed the hook reads the wrong checkout's index. It does not: that refusal comes from one check of the command text, which runs before any index is read, and the index read after it already uses the worktree the command names. The check reads every word after the commit options that does not start with `-` as a file name, so `2>&1`, `|` and `tail` in `… 2>&1 | tail -3` look like file names. The same check reads the lines of a heredoc as commands, so a note that only mentions a commit is refused.\n\nWhat the critics found: the round-1 critic confirmed the cause and the shape of the fix, and corrected the short-option rule, the pipe and redirect details, and the heredoc wiring. The audit of the previous lean held the heredoc case and found two holes. Bash passes a `*` before `>` to git as a file-name glob, so a redirect must not start with `*`. And reading each heredoc chunk as its own command list hid a `cd` in an earlier chunk, so a commit after an unquoted heredoc could be judged at the payload root while the shell commits in the worktree.\n\nSolution this lean proposes: the commit check stops at a pipe, skips redirections (optional digits or one `&`, then `<` or `>`) and their targets, reads short-option clusters as git does, and reads the command through the existing heredoc chunker. Each chunk is tokenized on its own, and the segments of all chunks are then read as one list in order, with the end of a chunk counted as a separator that is not `&&`. The refusal names the word that tripped it. A real `-a`, `--all`, `--include` or file name is still refused, wherever it stands, and a `cd` that the shell may not run before the commit still makes the target unresolvable.\n\nWhat this adds: no gate, no grant, no new state. One file of parsing rules and one sentence of message text. The story binding and the index root are not touched, so it does not overlap the #6480 binding change.\n\nWhat it does not do: it does not parse a lone `&`, a `#` comment, PowerShell `*>`, or a command fed to a shell through `bash -c`, a pipe or an unquoted heredoc; those stay as they are. An unquoted heredoc body stays visible to the check, per the #6187 operator ruling.\n\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:4a18cb2c7564810f3b1efe80705527ad16d4961e2bcd2a6d9fc50d156653caf4\n**Spec-path:** Bound remedy on this lean\n**Recut:** supersedes retraction map 6940680664 and successor lean 6940441474. Stop 1 write-back: comment 6940244023. Handoff: comment 6940681034. Sibling count: 1 (comment 6940423436). Panel deposit: comment 6940244488.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Operators. In `tokenizeShellCommand`, `&&`, `||` and `|&` are recognized before a lone `|`, and a `|` right after `>` is part of that redirect (`>|`). An unquoted lone `|` or `|&` ends the segment as a separator that is not `&&`, so the words after it are not commit arguments and a `cd` joined to the commit by a pipe stays unresolvable.\n2. Redirections. Escape processing comes first, and `<` and `>` join the unquoted escapable set, so `\\>path` is one literal word. A word that starts with `<(` or `>(` is an argument. An unquoted, unescaped redirection is optional digits or one `&`, then `<` or `>`; it is not an argument, and neither is its target: the attached rest of the word, or the next word when the operator stands alone. Any other prefix, such as `*`, makes the word an argument. Words after a redirection are still read.\n3. Short-option clusters follow git. Letters are read in order. `a` or `i` marks the commit as index-changing while it is still an option letter. The first of `m`, `F`, `c`, `C` or `t` takes the rest of the cluster as its value, or the next word when it is the last letter. `u` and `S` take the rest of the cluster and never the next word.\n4. Heredoc. `resolveCommitTarget`, `commandHasGitCommitIndexMutatingForm` and `commandHasGitCommitSubcommand` read the chunks of `shellCommandChunksWithoutQuotedHereDocBodies`. Each chunk is tokenized on its own, with no join before `tokenizeShellCommand`. The segments of all chunks then form one list in chunk order, and the last segment of each chunk ends with a separator that is not `&&`, so `resolveOneCommit` sees every earlier `cd` and a `cd` in an earlier chunk makes the target unresolvable. This story carries that wiring unless #6481 has merged it in that shape. An unquoted body stays visible.\n5. Message. The #5656 index-snapshot refusal names the first word that made the commit index-changing.\n6. Unchanged. `-a`, `--all`, `-i`, `--include`, `-am` and any real trailing file name, also after `--` or after a redirection, are refused. A quoted operator, a lone `&` and a `#` word are ordinary words and are refused as today. The staged index is read on the target root as today. `resolveWorktreeStoryBinding` and `evaluateProspectiveScopeCover` are not changed.\n\n## Acceptance Criteria\n- Given a bound linked worktree with a staged index, when a background subagent runs `git -C <wt> commit -m msg 2>&1 | tail -3` or `cd <wt> && git commit -F <file> 2>&1 | tail -3`, then the commit-shape check does not refuse and the staged index is read on that worktree.\n- Given `git commit -qm msg`, or `git commit -F - <<'EOF'` with a message body, then the commit is not index-changing.\n- Given `-a`, `-am msg`, `-qam msg`, or a trailing file name after the message, after `--`, or after a redirection (`2>&1 src/a.ts`), then the commit is refused.\n- Given `-tm src/a.ts`, `-um src/a.ts` or `-Sm src/a.ts`, then the commit is refused.\n- Given `\\>src/a.ts`, `*>src/a.ts`, `*> src/a.ts`, `<(printf src/a.ts)`, `'|'` or `'>x'` after the message, then the commit is refused.\n- Given `true || cd /x && git commit -m msg` or `cd /x | git commit -m msg`, then the target is unresolvable as today.\n- Given `cd <wt> <<EOF`, an unquoted body, the `EOF` line, and `git commit -m msg` on the next line, then the target is unresolvable as today.\n- Given `cd <wt> <<EOF && git commit -m msg` with an unquoted body after that line, then the target is `<wt>`.\n- Given a quoted-delimiter heredoc whose body holds the line `git commit -a`, or a quoted string argument that holds it, then the command is not read as a commit.\n- Given an unquoted-delimiter heredoc whose body holds the line `git commit -a`, then the commit is refused as today.\n- Given an unquoted heredoc body with an open quote followed, after the delimiter, by `git commit -a`, then the commit is refused.\n- The index-snapshot refusal names the word that tripped it.\n\n## Reject\n- Reading the index from another root (the issue's guess): the refusal is printed before any index read, and that read already uses the named worktree (comment 6940423436, Road not taken).\n- Parsing a lone `&`, `#` comments, PowerShell `*>` or nested shells: not in the logged forms; this is not a general shell interpreter (comment 6940423436, finding 5; comment 6940667523, finding 1).\n- Waiting for #6481 before carrying the heredoc wiring (comment 6940423436, finding 4).\n- Joining a chunk that starts with `&&` to the `cd` of an earlier chunk (comment 6940667523, finding 2 disposition): a line that starts with `&&` after a heredoc delimiter is a shell syntax error, so that commit never runs. See `A1`.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6940423436 | 1. A message letter later in a short cluster swallows a pathspec | blocks-the-design | accept-into-contract (item 3) |\n| comment 6940423436 | 2. A lone pipe stays distinct from `\\|\\|`, `\\|&`, and `>\\|` | sharpens-framing | accept-into-contract (item 1) |\n| comment 6940423436 | 3. A redirect is an unescaped operator, and `<(` stays a pathspec | sharpens-framing | accept-into-contract (item 2) |\n| comment 6940423436 | 4. Heredoc chunks are read one by one, and this story wires that | sharpens-framing | accept-into-contract (item 4) |\n| comment 6940667523 | 1. A star before `>` is a pathspec the redirect rule drops | blocks-the-design | accept-into-contract (item 2) |\n| comment 6940667523 | 2. A `cd` in an earlier chunk resolves the commit at the payload root | blocks-the-design | accept-into-contract (item 4; the failure mode is closed by the ordered list, see `A1` for the remedy shape) |\n\nFootnotes in the census, no take: comment 6940423436 findings 5 and 6. Finding 5's support for the message change is item 5.\n\naudit:A1 sha=696b4f7cc8e41d3692cf393a820213b1784d82b1 pointer=comment:6940667523 reading=measured\n\nPremise `A1`: in bash, a line that starts with `&&` right after a heredoc's closing delimiter is a syntax error, and the command after that `&&` does not run, so item 4 need not join such a chunk to an earlier `cd`. Measured by the parent: GNU bash in Git for Windows, a script `true <<EOF` / `note` / `EOF` / `&& echo ran` exits 2 with \"syntax error near unexpected token\" and prints nothing from `echo`.\n\nRelay disclosure: comments 6940423436 and 6940667523 are the Grok critic's final messages posted verbatim by the parent; only progress narration before each `model:` line was stripped. Both critics report that the host hook refused `git show` in the process-only dest, so they read the dest's checked-out files and checked that the dest HEAD is the dispatch SHA. The parent's own reads used `git show 696b4f7cc8e41d3692cf393a820213b1784d82b1:<path>`.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The session-log evidence in Stop 1 is a parent read the critics could not re-read; the round-1 critic reached the same cause from the code. The `relieves` cites and `A1` stay open until a later critic targets them.\n\n",
+          "id": 6940699128,
+          "html_url": "https://github.com/deftai/directive/issues/6471#issuecomment-6940699128",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:33:00Z",
+          "updated_at": "2026-11-17T06:33:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, A1\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:5098500e819e99f41e628e129f70f86660b49b9ccfa90eca9565dd183a0e84b1\n\n## In plain English\n\nThe recut holds. A message-only commit in a bound worktree is admitted on that worktree: a pipe ends the commit's arguments, and `2>&1` is a redirection, so those words are file names no longer. A real `-a`, a short cluster that still leaves a path, and a star before `>` stay refused. A quoted heredoc body and a quoted string are not commits. A `cd` in an earlier heredoc chunk stays unresolvable. On the same line, `cd <wt> <<EOF && git commit` stays one chunk, and `resolveOneCommit` names `<wt>`. A line that starts with `&&` after the closing delimiter is a bash syntax error, so that command does not run.\n\nThe host hook denied `git show` and the bash probe. The worktree HEAD file is `696b4f7cc8e41d3692cf393a820213b1784d82b1`. Line cites are the checked-out files. The bash point is the list grammar: the newline that opens a heredoc body ends that command, and `&&` cannot open the next line.\n\npain-P1: holds - `git -C` and `cd &&` message-only forms, including `2>&1 | tail`, drop the redirect and the pipe and resolve on the named worktree; `cd <wt> <<EOF && git commit` is one chunk so `resolveOneCommit` (commit-target.ts 364-380) names `<wt>`, and a commit on the line after the delimiter has a non-`&&` chunk boundary and is unresolvable\npain-P2: holds - `-a`, `--all`, `-am`, `-qam`, `-tm`, `-um`, `-Sm`, and a trailing path after the message, `--`, or a redirect stay index-changing; a `*` before `>` stays an argument\npain-P3: holds - a quoted heredoc body is removed by `shellCommandChunksWithoutQuotedHereDocBodies` (classify.ts 2056-2065) and a quoted string stays one non-command word\nA1: holds - in bash the newline that starts a heredoc body ends that command, so a following line that starts with `&&` is a syntax error and the command after it does not run\n\n",
+          "id": 6940848089,
+          "html_url": "https://github.com/deftai/directive/issues/6471#issuecomment-6940848089",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:41:45Z",
+          "updated_at": "2026-11-17T06:41:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6940699128. Dispatch SHA: 696b4f7cc8e41d3692cf393a820213b1784d82b1. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and the lean. Each row has a parent pin-read (`git show <sha>:<path>`) or a parent shell probe, and a re-check by a Grok critic, a different model family, or is marked otherwise. The three critic posts are from one family (Grok), so agreement between them is not counted as extra confirmation. The critics read the dest's checked-out files at the dispatch SHA because the host hook refused `git show` there.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | The \"pre-tool index snapshot (#5656)\" refusal comes only from `commandHasGitCommitIndexMutatingForm`, a check of the command text that runs before any index is read | verified | parent pin-read of `packages/core/src/hooks/dispatcher.ts` 5220-5228; critic 6940423436 (question 1, Road not taken) |\n| 2 | The staged index is read on the named target root for `git -C <abs>` and `cd <abs> &&` | verified | parent pin-read of `dispatcher.ts` 5230-5265; critic 6940423436; audit 6940848089 (`pain-P1`) |\n| 3 | After the options, any word that does not start with `-` is read as a pathspec, and segments end only at `&&`, `\\|\\|`, `;` and newline | verified | parent pin-read of `packages/core/src/hooks/commit-target.ts` 88-100 and 240-270; critic 6940423436 findings 2 and 3 |\n| 4 | The logged refusals all ended in `2>&1 \\| tail -N`, and in one worktree the same `-F` commit was admitted ten seconds later without that suffix | parent read only | parent read of local host session logs (not public); no critic could re-read them. Claim 3 explains the result from the code |\n| 5 | Git gives the rest of a short cluster to the first option that takes an argument, so `-tm`, `-um` and `-Sm` followed by a path are pathspec commits | verified by the critic only | critic 6940423436 finding 1; audit 6940848089 (`pain-P2`); the parent read the scanner, not git's parser |\n| 6 | Bash passes a `*` before `>` to the command as a glob, so `*>path` is a pathspec commit | verified | parent shell probe in Git Bash (`echo x *>out` wrote the matched names into `out`); audit 6940667523 finding 1 |\n| 7 | With the segments of all chunks in one ordered list and a chunk boundary that is not `&&`, a `cd` in an earlier chunk keeps the target unresolvable, and `cd <wt> <<EOF && git commit` names `<wt>` | verified | parent pin-read of `commit-target.ts` 342-387 and `packages/core/src/authz/classify.ts` 1997-2045; audit 6940848089 (`pain-P1`) |\n| 8 | Premise `A1`: a line that starts with `&&` after a heredoc closing delimiter is a bash syntax error, and the command after it does not run | verified | parent shell probe (exit 2, \"syntax error near unexpected token\", no output from the command); audit 6940848089 (`A1: holds`, from the list grammar) |\n| 9 | The quoted-heredoc chunker exists at the dispatch SHA and no commit detector calls it; open PR #6481 wires it | verified | parent pin-read of `classify.ts` 2056-2066 and `commit-target.ts`; parent read of the PR #6481 file list; critic 6940423436 finding 4 |\n| 10 | The Bound remedy relieves pains `P1`, `P2` and `P3` | verified as design coverage | audit 6940848089 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's) |\n| 11 | The new rules behave as designed in the live hook | endorsed, not verified | nothing was executed; the implementer covers it with the tests the Acceptance Criteria name |\n\n",
+          "id": 6940870366,
+          "html_url": "https://github.com/deftai/directive/issues/6471#issuecomment-6940870366",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:43:06Z",
+          "updated_at": "2026-11-17T06:43:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: a worker in a bound worktree was refused when it committed with only a message, with the message that the commit \"changes the file set after the pre-tool index snapshot\". The issue guessed the hook read the wrong checkout's index. It does not. That refusal comes from one check of the command text, which runs before any index is read, and the index read after it already uses the worktree the command names. The check read every word after the commit options that does not start with `-` as a file name, so `2>&1`, `|` and `tail` in `… 2>&1 | tail -3` looked like file names. The same check read the lines of a heredoc as commands, so a note that only mentions a commit was refused.\n\nAccepted solution: the commit check stops at a pipe; skips a redirection (optional digits or one `&`, then `<` or `>`) and its target; reads short-option clusters as git does, so `-qm msg` is message-only while `-am`, `-tm path`, `-um path` and `-Sm path` are still refused; and reads the command through the existing quoted-heredoc chunker. Each chunk is tokenized on its own and the segments of all chunks are read as one list, with the end of a chunk counted as a separator that is not `&&`, so a `cd` in an earlier chunk keeps the target unresolvable. A real `-a`, `--all`, `--include` or file name is still refused wherever it stands, including `\\>path`, `*>path` and `<(…)`. The refusal names the word that tripped it.\n\nLimits accepted: a lone `&`, a `#` comment, PowerShell `*>` and commands fed to a shell through `bash -c`, a pipe or an unquoted heredoc are not parsed and stay as they are. An unquoted heredoc body stays visible to the check, per the #6187 operator ruling. The design adds no gate, grant or stored state, and does not change the story binding or the index root, so it does not overlap the #6480 binding change; it does touch the same file as open PR #6481, whose heredoc wiring it carries. The design was checked by reading the source at the pinned commit and two small shell probes; no Directive code was run. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6940699128.\nverified-claims table 6940870366\n\nConfirm conjunct: yolo standing (Stop 1 6940244023, `yolo-standing: on`). Round-1 critic: comment 6940423436. Pain audit 6940667523 returned two blocking findings; the parent posted retraction map 6940680664 and Handoff 6940681034, and both findings are accepted on the recut lean. Clean audit: comment 6940848089 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's; it also targets `A1`). All critic bodies were posted by the parent verbatim, as disclosed on panel-deposit 6940244488. Critic posts used: 3 of 6.\n\n",
+          "id": 6940870785,
+          "html_url": "https://github.com/deftai/directive/issues/6471#issuecomment-6940870785",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T06:43:07Z",
+          "updated_at": "2026-11-17T06:43:07Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nAfter #6379, a worktree bound by `swarm:pre-dispatch` begin lets a worker commit with no `DEFT_ACTIVE_SCOPE`, but only when the worker's host session has that worktree as its own root. A background subagent running inside a parent session rooted at the primary checkout is still refused on every commit form, with the #5656 message that the commit \"changes the file set after the pre-tool index snapshot\".\n\nReported by a worker, not re-read in source: the pre-tool index snapshot appears to come from the payload root (the primary checkout, nothing staged), while the commit aimed at the worktree commits that worktree's index (one staged file), so the file set looks changed. Hook messages in the same run name `payloadRoot=C:\\Repos\\deft\\directive`.\n\nThe same check also refuses a shell command whose text only quotes commit flags inside a heredoc body (seen in the parent session while filing this issue).\n\n## Evidence (2026-11-16, runtime 0.129.11)\n\n- #6337, run as its own host session with the worktree as its folder and bound with pre-dispatch begin: the commit was admitted (2cd4571b3, PR #6470).\n- #6366, run as a background subagent of a parent rooted at the primary checkout and bound the same way (attempt att-1387afff34d3caa4): five commit forms were refused, including a dry-run with only a message, both with the worktree named on the command and after changing into it, with only the brief staged.\n- The same worker's write into the worktree's gitignored `.deft-scratch/` was refused because the fence base is origin/master, where the new brief is not active yet.\n\n## Acceptance Criteria\n\n- Given a linked worktree bound to its story with a staged index, when a background subagent commits there with only a message, then the index snapshot is taken from that worktree and the commit is admitted.\n- Given the same commit that adds a real trailing pathspec or the all-files flag, then it is still refused.\n- Given a shell command that only quotes commit flags inside a heredoc or string, then the commit-shape check does not treat it as a commit.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6432989217,
+        "origin": "deftai/directive#6471",
+        "id": "github.issue.6432989217"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "4a18cb2c7564810f3b1efe80705527ad16d4961e2bcd2a6d9fc50d156653caf4"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6471,
+        "leanCommentId": 6940699128,
+        "harvestDigest": "5098500e819e99f41e628e129f70f86660b49b9ccfa90eca9565dd183a0e84b1",
+        "slice": null
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/hooks/commit-target.ts",
+          "packages/core/src/hooks/commit-target.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher-commit-heredoc.test.ts",
+          "changelog.d/6471-commit-shape-pipes-and-redirects.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "commit-shape-check",
+        "Traces": [
+          "#6471"
+        ],
+        "acceptance_criteria_justification": "Eighteen clauses: the six Bound remedy items and the twelve Acceptance Criteria of the accepted lean (comment 6940699128, synthesis 6940870785), one clause each as the harvest admitted them. parallel_safe is true: commit-target.ts is also in the file_scope of the active #6187 brief and dispatcher.ts in the active #6480 brief, but both product PRs have merged (#6481, #6516) and only their completion moves remain, which do not touch these files; no running product work edits them.",
+        "verify_commands": [
+          "npx vitest run packages/core/src/hooks/commit-target.test.ts packages/core/src/hooks/dispatcher-commit-heredoc.test.ts packages/core/src/hooks/dispatcher.test.ts"
+        ],
+        "expected_outputs": [
+          "a message-only git commit followed by 2>&1 | tail -N, with git -C <wt> or cd <wt> &&, is not refused by the #5656 commit-shape check and its staged index is read on <wt>",
+          "-a, --all, --include, -am, -tm/-um/-Sm with a path, a trailing file name (also after -- or a redirection), \\>path, *>path and <(...) stay refused",
+          "quoted heredoc bodies and quoted strings are not commits; a cd in an earlier heredoc chunk keeps the target unresolvable",
+          "the #5656 refusal names the word that tripped it",
+          "one changelog fragment changelog.d/6471-commit-shape-pipes-and-redirects.md"
+        ]
+      }
+    },
+    "id": "github.issue.6432989217",
+    "updated": "2026-11-17T15:46:21Z"
+  }
+}

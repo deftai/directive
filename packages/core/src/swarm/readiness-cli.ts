@@ -1,12 +1,102 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   expandReadinessPaths,
   readinessReport,
+  SCAFFOLD_LAUNCH_NOTE,
+  type ScaffoldItemAcceptanceInput,
+  type ScaffoldNarrativeInput,
   SWARM_BLOCK_REMEDIATION_HINT,
   scaffoldSwarmDraft,
 } from "./readiness.js";
+
+type MutableNarratives = {
+  -readonly [K in keyof ScaffoldNarrativeInput]: ScaffoldNarrativeInput[K];
+};
+
+/** Values-file keys (#6372 item 2): narrative inputs and item acceptance lines only. */
+const VALUES_FILE_NARRATIVE_KEYS = {
+  Description: "description",
+  UserStory: "userStory",
+  ImplementationPlan: "implementationPlan",
+  Traces: "traces",
+  MissingTracesJustification: "missingTracesJustification",
+  AcceptanceJustification: "acceptanceJustification",
+} as const satisfies Record<string, keyof ScaffoldNarrativeInput>;
+
+/**
+ * Read an operator-named values file (#6372). Only narrative inputs and an
+ * `ItemAcceptance` map (item id or one-based position -> line) are accepted;
+ * paths and commands are never taken from it.
+ */
+export function readScaffoldValuesFile(path: string):
+  | {
+      ok: true;
+      narratives: MutableNarratives;
+      itemAcceptance: ScaffoldItemAcceptanceInput[];
+    }
+  | { ok: false; error: string } {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
+  } catch (err) {
+    return {
+      ok: false,
+      error: `argument --values-file: cannot read JSON at ${path}: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    return { ok: false, error: "argument --values-file: expected a JSON object" };
+  }
+  const narratives: MutableNarratives = {};
+  const itemAcceptance: ScaffoldItemAcceptanceInput[] = [];
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (key === "ItemAcceptance") {
+      if (typeof value !== "object" || value === null || Array.isArray(value)) {
+        return {
+          ok: false,
+          error: "argument --values-file: ItemAcceptance must map an item id or position to a line",
+        };
+      }
+      for (const [selector, text] of Object.entries(value as Record<string, unknown>)) {
+        if (typeof text !== "string") {
+          return {
+            ok: false,
+            error: `argument --values-file: ItemAcceptance ${JSON.stringify(selector)} must be a string`,
+          };
+        }
+        itemAcceptance.push({ selector, text });
+      }
+      continue;
+    }
+    const inputKey = (VALUES_FILE_NARRATIVE_KEYS as Record<string, keyof ScaffoldNarrativeInput>)[
+      key
+    ];
+    if (inputKey === undefined) {
+      return {
+        ok: false,
+        error: `argument --values-file: unknown key ${JSON.stringify(key)} (allowed: ${[...Object.keys(VALUES_FILE_NARRATIVE_KEYS), "ItemAcceptance"].join(", ")})`,
+      };
+    }
+    if (typeof value !== "string") {
+      return { ok: false, error: `argument --values-file: ${key} must be a string` };
+    }
+    narratives[inputKey] = value;
+  }
+  return { ok: true, narratives, itemAcceptance };
+}
+
+/** Flag name -> narrative input key (#6372 item 2). */
+const NARRATIVE_FLAGS: Record<string, keyof ScaffoldNarrativeInput> = {
+  "--description": "description",
+  "--user-story": "userStory",
+  "--implementation-plan": "implementationPlan",
+  "--traces": "traces",
+  "--missing-traces-justification": "missingTracesJustification",
+  "--acceptance-justification": "acceptanceJustification",
+};
 
 function takeValue(
   argv: string[],
@@ -41,13 +131,47 @@ export function readinessMain(argv: string[] = process.argv.slice(2)): number {
   let size: string | undefined;
   let fileScopeConfidence: string | undefined;
   let modelTier: string | undefined;
-  let readiness = "ready";
+  let readiness: string | undefined;
   let parallelSafe: boolean | null = null;
   let parseError: string | null = null;
+  const flagNarratives: MutableNarratives = {};
+  const flagItemAcceptance: ScaffoldItemAcceptanceInput[] = [];
+  let valuesFile: string | null = null;
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === "--project-root") {
+    const narrativeKey = arg === undefined ? undefined : NARRATIVE_FLAGS[arg];
+    if (narrativeKey !== undefined && arg !== undefined) {
+      const taken = takeValue(argv, i, arg);
+      if (taken.error) {
+        parseError ??= taken.error;
+        continue;
+      }
+      if (taken.value !== null) flagNarratives[narrativeKey] = taken.value;
+      i = taken.next;
+    } else if (arg === "--item-acceptance") {
+      const taken = takeValue(argv, i, arg);
+      if (taken.error) {
+        parseError ??= taken.error;
+        continue;
+      }
+      const value = taken.value ?? "";
+      const eq = value.indexOf("=");
+      if (eq <= 0) {
+        parseError ??= "argument --item-acceptance: expected <item-id|position>=<line>";
+      } else {
+        flagItemAcceptance.push({ selector: value.slice(0, eq), text: value.slice(eq + 1) });
+      }
+      i = taken.next;
+    } else if (arg === "--values-file") {
+      const taken = takeValue(argv, i, arg);
+      if (taken.error) {
+        parseError ??= taken.error;
+        continue;
+      }
+      valuesFile = taken.value;
+      i = taken.next;
+    } else if (arg === "--project-root") {
       const taken = takeValue(argv, i, arg);
       if (taken.error) {
         parseError ??= taken.error;
@@ -136,7 +260,7 @@ export function readinessMain(argv: string[] = process.argv.slice(2)): number {
         parseError ??= taken.error;
         continue;
       }
-      readiness = taken.value ?? readiness;
+      readiness = taken.value ?? undefined;
       i = taken.next;
     } else if (arg === "--parallel-safe") {
       const taken = takeValue(argv, i, arg);
@@ -176,6 +300,22 @@ export function readinessMain(argv: string[] = process.argv.slice(2)): number {
       process.stderr.write("scaffold requires explicit --size and --file-scope-confidence\n");
       return 2;
     }
+    // Values file first; explicit flags override it (#6372 item 2).
+    let narratives: MutableNarratives = {};
+    let itemAcceptance: ScaffoldItemAcceptanceInput[] = [];
+    if (valuesFile !== null) {
+      const loaded = readScaffoldValuesFile(
+        isAbsolute(valuesFile) ? valuesFile : resolve(projectRoot, valuesFile),
+      );
+      if (!loaded.ok) {
+        process.stderr.write(`${loaded.error}\n`);
+        return 2;
+      }
+      narratives = loaded.narratives;
+      itemAcceptance = loaded.itemAcceptance;
+    }
+    narratives = { ...narratives, ...flagNarratives };
+    itemAcceptance = [...itemAcceptance, ...flagItemAcceptance];
     const result = scaffoldSwarmDraft({
       projectRoot,
       vbriefPath: scaffoldPath,
@@ -189,14 +329,25 @@ export function readinessMain(argv: string[] = process.argv.slice(2)): number {
       modelTier,
       readiness,
       parallelSafe,
+      narratives,
+      itemAcceptance,
     });
     if (!result.ok) {
       process.stderr.write(`${result.error}\n${SWARM_BLOCK_REMEDIATION_HINT}\n`);
       return 1;
     }
-    process.stdout.write(
-      `OK scaffold wrote plan.metadata.swarm keys [${result.writtenKeys.join(", ")}] to ${result.path}\n`,
-    );
+    const lines = [
+      `OK scaffold wrote plan.metadata.swarm keys [${result.writtenKeys.join(", ")}] to ${result.path}`,
+    ];
+    if (result.writtenFields.length > 0) {
+      lines.push(`OK scaffold also wrote [${result.writtenFields.join(", ")}]`);
+    }
+    lines.push("", "Missing fields:");
+    lines.push(...(result.missing.length > 0 ? result.missing.map((m) => `- ${m}`) : ["- none"]));
+    lines.push("", "Blocked conditions:");
+    lines.push(...(result.blocked.length > 0 ? result.blocked.map((b) => `- ${b}`) : ["- none"]));
+    lines.push("", SCAFFOLD_LAUNCH_NOTE);
+    process.stdout.write(`${lines.join("\n")}\n`);
     return 0;
   }
 
