@@ -1,0 +1,665 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6423",
+    "updated": "2026-11-17T01:22:02Z"
+  },
+  "plan": {
+    "title": "bug(merge): pr:wait-mergeable-and-merge --resume returns QUEUE-PENDING at once instead of waiting for the queue",
+    "status": "running",
+    "narratives": {
+      "Description": "On a branch with a GitHub merge queue, `pr:wait-mergeable-and-merge` enqueues the PR, reads its queue state once and exits 3 while the PR is still queued; `--resume` also reads once. Workers loop the resume command or poll GitHub by hand until the queue merges or removes the PR. This story adds one opt-in `--wait` option that repeats today's queue read every 60 seconds under one deadline (`--cap-minutes`) and ends on the first non-pending result, after three failed reads in a row, or at the cap, with a stop reason in the JSON and text output. Without `--wait` nothing changes.",
+      "UserStory": "As a worker agent that merges through the merge queue, I want one command that waits until the queue merges or removes my PR, so that I do not loop the resume command or poll GitHub by hand.",
+      "ImplementationPlan": "One product PR (deft-story: 6423). 1. `packages/core/src/pr-wait-mergeable/constants.ts`: `MERGE_QUEUE_WAIT_POLL_SECONDS = 60` and `MERGE_QUEUE_WAIT_MAX_FAILED_READS = 3`, each with a reason comment; the operator mints the intent-constraint record for both values (see `x-directive/intentConstraint`) before the product PR. 2. `cascade.ts`: split one queue attempt out of `reportMergeQueueState` (one-read output unchanged); add the wait loop (one deadline, retry and reset rules, the latest attempt decides at the deadline) with injectable sleep and clock seams; use it from `resumeMergeQueueRead` and from the read after enqueue when `wait` is set; add `wait_stop_reason` to the queue payload of wait results only. 3. `main.ts`: parse `--wait`, pass it through, print one `wait stop:` line in text output. 4. Tests: `cascade.test.ts` for the loop criteria; `main.test.ts` for parsing, the unchanged one-read output and one JSON document; a doc contract test for `content/scm/github.md`. 5. Docs: `content/scm/github.md` Merge queue mode and the swarm `core-phase-5-6.md` cascade text; `content/docs/github-merge-queue-setup.md` Known-issues line only if #6366 has landed that file. 6. One `changelog.d/` fragment.",
+      "Traces": "#6423, #6295, #6366",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6423",
+      "Overview": "\n1. Flag. `pr:wait-mergeable-and-merge` accepts `--wait`. It applies to the read after enqueue on the first call in merge-queue mode, and to `--resume`. Without `--wait`, behaviour, output and exit codes are unchanged. Outside merge-queue mode the flag has no effect.\n2. Loop. With `--wait`, the verb makes today's queue read. When the read gives `queued` or `awaiting-admission`, the verb sleeps and reads again. The first read that gives any other result ends the wait with today's exit code and text for that result: `merged` 0 with post-merge reconciliation run once, `head-changed` 1, `removed` 1 with GitHub's reason, `inactive` 1.\n3. One deadline. The deadline is the start of the wait plus `--cap-minutes` (existing flag and default). It bounds pending sleeps and failed-read retries alike. No sleep ends after the deadline, and no read starts after it.\n4. Failed reads. A read that the GraphQL floor refuses, or that fails, is tried again after the interval. A read that succeeds resets the count of failed reads. Three failed reads in a row end the wait with exit 2, the read error and the resume command.\n5. At the deadline the latest attempt decides. When the latest attempt was a successful read with a pending result, the verb exits 3 with today's pending result and resume command. When the latest attempt failed, the verb exits 2 with that error and the resume command. An earlier pending read is never reported as the current state.\n6. Stop reason. A result produced under `--wait` carries one structured field in the `--json` output, with the values `result`, `cap` and `read-unavailable`, and one matching line in the text output. A result produced without `--wait` does not carry the field.\n7. Interval. The time between reads is one named constant of 60 seconds. Each poll is today's read (one `rate_limit` probe and one GraphQL query). No new GitHub call type is added.\n8. Docs. `content/scm/github.md` \"Merge queue mode (#6295)\" and the swarm phase text that names the resume command state the `--wait` form, the three stop reasons, and that the wait ends early when queue reads are unavailable and does not wait through a rate limit. The printed resume command stays the one-read form.\n\n## Acceptance Criteria\n\n- Given a PR in the merge queue and `--resume --wait`, when a later read gives `merged` with the expected head, then the verb exits 0 and post-merge reconciliation has run once.\n- Given a PR in the merge queue and `--resume --wait`, when a later read gives `removed`, then the verb exits 1 and the output names the reason GitHub gave.\n- Given `--resume --wait` and a later read with a different head, then the verb exits 1 with `head-changed` and no reconciliation runs.\n- Given `--resume --wait` and a PR that stays queued, when the cap passes after a successful pending read, then the verb exits 3, prints the resume command and reports the stop reason `cap`.\n- Given `--resume --wait`, a successful pending read and then a failed read as the last attempt before the cap, then the verb exits 2 with the read error and the resume command, and does not report the pending result.\n- Given `--resume --wait` and three failed reads in a row before the cap, then the verb exits 2 with the stop reason `read-unavailable`.\n- Given `--resume --wait`, two failed reads and then a successful pending read, then the count of failed reads starts again from zero.\n- Given the first call in merge-queue mode with `--wait`, when the read after enqueue gives `queued`, then the verb waits as in the cases above.\n- Given `--resume` without `--wait` and a queued PR, then the verb reads once, exits 3 and its output is the same as today, with no stop-reason field.\n- Given `--wait` and `--json`, then standard output is one JSON document that carries the stop reason.\n- `content/scm/github.md` states the `--wait` form, the stop reasons and the early end on unavailable reads.\n\n\n",
+      "Constraint": "- Waiting as the default on the first call or on `--resume` (comment 6932748336, answer 1).\n- A new exit code for \"cap passed\" (comment 6932748336, finding 3).\n- Reading the rate-limit reset time and sleeping until it (comment 6932748336, finding 2: a stronger alternative that changes the reader; not in this story).\n- A REST poll of `pulls/<N>` in place of the queue read: it cannot see a removal from the queue.",
+      "Labels": "bug, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Flag. `pr:wait-mergeable-and-merge` accepts `--wait`. It applies to the read after enqueue on the first call in merge-queue mode, and to `--resume`. Without `--wait`, behaviour, output and exit codes are unchanged. Outside merge-queue mode the flag has no effect.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/main.ts, when `--wait` is passed with or without `--resume`, then the parser accepts it and passes it to the queue read; without `--wait` the run takes today's path, and on a branch with no merge queue the flag changes nothing."
+        }
+      },
+      {
+        "title": "Loop. With `--wait`, the verb makes today's queue read. When the read gives `queued` or `awaiting-admission`, the verb sleeps and reads again. The first read that gives any other result ends the wait with today's exit code and text for that result: `merged` 0 with post-merge reconciliation run once, `head-changed` 1, `removed` 1 with GitHub's reason, `inactive` 1.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.ts, when a read under `--wait` gives `queued` or `awaiting-admission`, then the verb sleeps one interval and reads again, and the first other result ends the wait with today's exit code and text: `merged` 0 with reconciliation run once, `head-changed` 1, `removed` 1 with GitHub's reason, `inactive` 1."
+        }
+      },
+      {
+        "title": "One deadline. The deadline is the start of the wait plus `--cap-minutes` (existing flag and default). It bounds pending sleeps and failed-read retries alike. No sleep ends after the deadline, and no read starts after it.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given the wait loop in packages/core/src/pr-wait-mergeable/cascade.ts, then one deadline (start of the wait plus `--cap-minutes`) bounds pending sleeps and failed-read retries alike: no sleep ends after the deadline and no read starts after it."
+        }
+      },
+      {
+        "title": "Failed reads. A read that the GraphQL floor refuses, or that fails, is tried again after the interval. A read that succeeds resets the count of failed reads. Three failed reads in a row end the wait with exit 2, the read error and the resume command.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given the wait loop in packages/core/src/pr-wait-mergeable/cascade.ts, when a read is refused by the GraphQL floor or fails, then it is tried again after the interval, a successful read resets the failed-read count, and three failed reads in a row end the wait with exit 2, the read error and the resume command."
+        }
+      },
+      {
+        "title": "At the deadline the latest attempt decides. When the latest attempt was a successful read with a pending result, the verb exits 3 with today's pending result and resume command. When the latest attempt failed, the verb exits 2 with that error and the resume command. An earlier pending read is never reported as the current state.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given the wait loop in packages/core/src/pr-wait-mergeable/cascade.ts, when the deadline passes, then a latest successful pending read gives exit 3 with that result and the resume command, a latest failed read gives exit 2 with that error and the resume command, and an earlier pending read is never reported."
+        }
+      },
+      {
+        "title": "Stop reason. A result produced under `--wait` carries one structured field in the `--json` output, with the values `result`, `cap` and `read-unavailable`, and one matching line in the text output. A result produced without `--wait` does not carry the field.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/main.ts and cascade.ts, then every result under `--wait` carries `merge_queue.wait_stop_reason` (`result`, `cap` or `read-unavailable`) in `--json` output and one `wait stop:` line in text output, and a result without `--wait` carries neither."
+        }
+      },
+      {
+        "title": "Interval. The time between reads is one named constant of 60 seconds. Each poll is today's read (one `rate_limit` probe and one GraphQL query). No new GitHub call type is added.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/constants.ts, then the time between reads is one named constant of 60 seconds, and each poll is today's `readQueueState` read (one `rate_limit` probe and one GraphQL query) with no new GitHub call type."
+        }
+      },
+      {
+        "title": "Docs. `content/scm/github.md` \"Merge queue mode (#6295)\" and the swarm phase text that names the resume command state the `--wait` form, the three stop reasons, and that the wait ends early when queue reads are unavailable and does not wait through a rate limit. The printed resume command stays the one-read form.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given content/skills/deft-directive-swarm/references/core-phase-5-6.md and content/scm/github.md, then both name the `--wait` form, the three stop reasons, the early end when queue reads are unavailable and that the wait does not wait through a rate limit, and the printed resume command stays the one-read form."
+        }
+      },
+      {
+        "title": "Given a PR in the merge queue and `--resume --wait`, when a later read gives `merged` with the expected head, then the verb exits 0 and post-merge reconciliation has run once.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.test.ts, when a queued read is followed by a `merged` read with the expected head under `--resume --wait`, then the result is exit 0 and the reconciliation seam ran once."
+        }
+      },
+      {
+        "title": "Given a PR in the merge queue and `--resume --wait`, when a later read gives `removed`, then the verb exits 1 and the output names the reason GitHub gave.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.test.ts, when a queued read is followed by a `removed` read under `--resume --wait`, then the result is exit 1 and the output names the removal reason GitHub gave."
+        }
+      },
+      {
+        "title": "Given `--resume --wait` and a later read with a different head, then the verb exits 1 with `head-changed` and no reconciliation runs.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.test.ts, when a queued read is followed by a read with a different head under `--resume --wait`, then the result is exit 1 with `head-changed` and the reconciliation seam did not run."
+        }
+      },
+      {
+        "title": "Given `--resume --wait` and a PR that stays queued, when the cap passes after a successful pending read, then the verb exits 3, prints the resume command and reports the stop reason `cap`.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.test.ts, when every read stays queued until the deadline under `--resume --wait`, then the result is exit 3, carries the resume command and has the stop reason `cap`."
+        }
+      },
+      {
+        "title": "Given `--resume --wait`, a successful pending read and then a failed read as the last attempt before the cap, then the verb exits 2 with the read error and the resume command, and does not report the pending result.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.test.ts, when a pending read is followed by a failed read as the last attempt before the deadline, then the result is exit 2 with the read error and the resume command, and its outcome is not the pending result."
+        }
+      },
+      {
+        "title": "Given `--resume --wait` and three failed reads in a row before the cap, then the verb exits 2 with the stop reason `read-unavailable`.",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.test.ts, when three reads in a row fail before the deadline under `--resume --wait`, then the result is exit 2 with the stop reason `read-unavailable`."
+        }
+      },
+      {
+        "title": "Given `--resume --wait`, two failed reads and then a successful pending read, then the count of failed reads starts again from zero.",
+        "status": "proposed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.test.ts, when two failed reads are followed by a successful pending read, then the failed-read count starts again from zero, so two more failed reads do not end the wait."
+        }
+      },
+      {
+        "title": "Given the first call in merge-queue mode with `--wait`, when the read after enqueue gives `queued`, then the verb waits as in the cases above.",
+        "status": "proposed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/cascade.test.ts, when the first call in merge-queue mode passes `--wait` and the read after enqueue gives `queued`, then the verb keeps reading as in the resume cases until a non-pending result."
+        }
+      },
+      {
+        "title": "Given `--resume` without `--wait` and a queued PR, then the verb reads once, exits 3 and its output is the same as today, with no stop-reason field.",
+        "status": "proposed",
+        "id": "clause.17",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/main.test.ts, when `--resume` runs without `--wait` on a queued PR, then the verb reads once, exits 3, and its text and JSON output are the same as today with no stop-reason field."
+        }
+      },
+      {
+        "title": "Given `--wait` and `--json`, then standard output is one JSON document that carries the stop reason.",
+        "status": "proposed",
+        "id": "clause.18",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pr-wait-mergeable/main.test.ts, when `--wait` and `--json` are both passed, then standard output parses as one JSON document whose `merge_queue.wait_stop_reason` is set."
+        }
+      },
+      {
+        "title": "`content/scm/github.md` states the `--wait` form, the stop reasons and the early end on unavailable reads.",
+        "status": "proposed",
+        "id": "clause.19",
+        "narrative": {
+          "Acceptance": "Given content/scm/github.md \"Merge queue mode (#6295)\", then it states the `--wait` form, the stop reasons `result`, `cap` and `read-unavailable`, and that the wait ends early when queue reads are unavailable."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6423",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6423: bug(merge): pr:wait-mergeable-and-merge --resume returns QUEUE-PENDING at once instead of waiting for the queue"
+      }
+    ],
+    "x-directive/intentConstraint": {
+      "constraints": [
+        {
+          "value": "60",
+          "unit": "seconds",
+          "rejectionScope": "operation"
+        },
+        {
+          "value": "3",
+          "unit": "consecutive failed queue reads",
+          "rejectionScope": "operation"
+        }
+      ]
+    },
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "--resume --wait",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L15"
+        }
+      ],
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/pr-wait-mergeable/constants.ts",
+          "packages/core/src/pr-wait-mergeable/cascade.ts",
+          "packages/core/src/pr-wait-mergeable/main.ts",
+          "packages/core/src/pr-wait-mergeable/cascade.test.ts",
+          "packages/core/src/pr-wait-mergeable/main.test.ts",
+          "packages/core/src/content-contracts/standards/merge_queue_wait_6423.test.ts",
+          "content/scm/github.md",
+          "content/skills/deft-directive-swarm/references/core-phase-5-6.md",
+          "content/docs/github-merge-queue-setup.md",
+          "changelog.d/6423-merge-queue-wait.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "pr-wait-mergeable-merge-queue",
+        "Traces": [
+          "#6423",
+          "#6295",
+          "#6366"
+        ],
+        "acceptance_criteria_justification": "Nineteen clauses: the eight Bound remedy items and the eleven Acceptance Criteria of the accepted lean (comment 6932799965), one clause each as the harvest admitted them. parallel_safe is true: of the running stories only #6366 shares files (content/scm/github.md and packages/core/src/pr-wait-mergeable/cascade.ts), in different sections, and its product PR #6478 is already open, so this story's product PR merges on top of it.",
+        "verify_commands": [
+          "npx vitest run packages/core/src/pr-wait-mergeable/cascade.test.ts packages/core/src/pr-wait-mergeable/main.test.ts packages/core/src/content-contracts/standards/merge_queue_wait_6423.test.ts"
+        ],
+        "expected_outputs": [
+          "pr:wait-mergeable-and-merge accepts --wait on the first call in merge-queue mode and with --resume, and repeats the queue read every 60 seconds until a non-pending result, three failed reads in a row, or the --cap-minutes deadline",
+          "wait results carry merge_queue.wait_stop_reason (result, cap or read-unavailable) in --json output and one wait stop line in text output; without --wait the output and exit codes are unchanged",
+          "content/scm/github.md and the swarm core-phase-5-6.md cascade text name the --wait form, the stop reasons and the early end on unavailable reads",
+          "one changelog fragment changelog.d/6423-merge-queue-wait.md"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6423; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix adds a blocking wait mode to the merge verb in merge-queue mode, and that changes how long the verb runs, how many GitHub reads it makes and what its exit codes mean to the workers and skills that call it.\n\nTarget-digest: sha256:05509953f75b9deb21c3bd3f69df5109811feda8080e428ba17ea1ef22c23e73\ndispatch-sha: 7aef28cb547ef3a4da3927f7237fccfab38cccba\ndest: .deft-scratch/worktrees/arc-6423 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one small candidate mechanism on one verb; the one critic seat is a different model family from the parent.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 7aef28cb547ef3a4da3927f7237fccfab38cccba: + dest cwd-without-occupy\npain: P1\n\n## In plain English\nOn a branch with a GitHub merge queue, the merge command puts the PR in the queue, reads the PR once and returns. While the PR is still in the queue it returns \"not merged yet\" (exit 3) and prints a resume command. The resume command also reads once and returns. A queue run takes minutes, so a worker runs the resume command again and again, or polls GitHub by hand, until the PR merges. The recommended fix is one option that makes the command wait until the queue merges the PR, removes it, or a time cap passes. The open question for the critic is whether that wait is safe and complete as written below.\n\n## Pains\n- P1 — In merge-queue mode a worker has no single command that waits until the queue merges or removes the PR. `pr:wait-mergeable-and-merge` and its `--resume` form read once and exit 3 while the PR is queued, so the worker loops the resume command or polls `pulls/<N>` by hand.\n\n## Constraints (not pains)\n- The one-read form keeps its exit codes and output (issue Acceptance Criterion 3).\n- A PR that the queue removes ends the wait with a non-zero exit and the reason GitHub gave (Acceptance Criterion 2).\n- #6295 rule kept: never report `merged` without a head check first.\n\n## Anchors at the dispatch SHA\n- `packages/core/src/pr-wait-mergeable/main.ts` 262-268: `--resume` calls `resumeMergeQueueRead`; no wait.\n- `packages/core/src/pr-wait-mergeable/cascade.ts` 168-175: `queued` and `awaiting-admission` map to `EXIT_QUEUE_PENDING`; 206-245 `reportMergeQueueState` reads once; 653 the enqueue path calls the same one read.\n- `packages/core/src/pr-wait-mergeable/merge-queue.ts` 262-309: each read is one REST `rate_limit` probe plus one GraphQL query, refused under 500 GraphQL points (`rate-limited`); 334-377 `classifyQueueRead` gives one of six results.\n- `packages/core/src/pr-wait-mergeable/main.ts` 250-260 and the `finally` block: the wait heartbeat refresher runs for the whole run of the verb.\n- `content/scm/github.md` \"Merge queue mode (#6295)\": \"After enqueue the verb reads the PR once\" and \"it repeats the read only\".\n- `packages/core/src/pr-wait-mergeable/main.test.ts` 353-385: the resume test asserts no monitor call.\n\n## Recommended mechanism (the thing to critique)\n- W1. One new flag, `--wait`, on `pr:wait-mergeable-and-merge`. It is valid on the first call in queue mode and with `--resume`. Without the flag nothing changes.\n- W2. With `--wait`, when a read gives `queued` or `awaiting-admission`, the verb sleeps a fixed interval and reads again. It stops at the first read that gives another result, or when the cap passes. The cap is the existing `--cap-minutes` value (default 60), counted from the start of the wait.\n- W3. A result other than pending keeps today's exit code and text: `merged` 0 with reconciliation run once, `head-changed` 1, `removed` 1 with GitHub's reason, `inactive` 1.\n- W4. When the cap passes and the last read is still pending, the verb exits 3 with today's resume command and one added line that says the cap passed.\n- W5. A read that is refused by the GraphQL floor or fails is tried again at the next interval. Three failed reads in a row end the wait with exit 2 and the resume command, as one failed read does today.\n- W6. The poll interval is one named constant (60 seconds). Each poll is today's read; no new GitHub call type is added.\n- W7. The printed resume command stays the one-read form. `content/scm/github.md` and the swarm phase text name `--wait` as the form a worker uses.\n\nQuestions for the critic:\n1. Should the wait be the default on the first call in queue mode, with the one-read form behind a flag, or the reverse as in W1?\n2. Is W5 the right rule for a failed read during a wait?\n3. Is exit 3 right at the cap (W4), or does a caller need a different code to tell \"cap passed\" from \"one read, still queued\"?\n\n",
+          "id": 6932680717,
+          "html_url": "https://github.com/deftai/directive/issues/6423#issuecomment-6932680717",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T23:35:41Z",
+          "updated_at": "2026-11-16T23:35:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 6932681085\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 7aef28cb547ef3a4da3927f7237fccfab38cccba\ndest: .deft-scratch/worktrees/arc-6423\nverification-path: pin-read git show 7aef28cb547ef3a4da3927f7237fccfab38cccba: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6932680717\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-fable-5-2). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 6932681085,
+          "html_url": "https://github.com/deftai/directive/issues/6423#issuecomment-6932681085",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T23:35:42Z",
+          "updated_at": "2026-11-16T23:35:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nWorkers currently have to repeat the resume command while GitHub processes a queued PR. An optional blocking wait is a good, small remedy. The existing reader already checks the head before reporting a merge, distinguishes queue outcomes, and preserves a resume command.\n\nMy verdict is that the mechanism needs one correction before acceptance: it does not define what happens when the time cap expires during failed reads.\n\nAnswers to Stop 1:\n\n1. Keep waiting opt-in. Making it the default would unexpectedly turn existing short calls into long-running processes. Default waiting would be reasonable only with an explicit compatibility change.\n2. Three consecutive failed reads is a reasonable bounded retry policy, provided the deadline also bounds retries and an unavailable read never becomes a confirmed pending result. It will not reliably bridge rate-limit exhaustion.\n3. Exit 3 is appropriate when the latest read successfully observed a pending PR. A separate exit code is unnecessary; a structured timeout indicator would distinguish the two forms.\n\n### 1. blocks-the-design — Deadline expiry during read failures has no defined result\n\n**Evidence:** At dispatch SHA `7aef28cb547ef3a4da3927f7237fccfab38cccba`, `packages/core/src/pr-wait-mergeable/cascade.ts:210–225` distinguishes unavailable reads from classified queue states and returns exit 2 for unavailable reads. `merge-queue.ts:281–308` shows both rate-limit refusal and read failure can produce that unavailable state.\n\n**Failure mode:** A successful pending read is followed by one failed read just before the cap. W2 ends the wait at the cap, W4 only covers a pending last read, and W5 only specifies termination after three failures. Returning the older pending result hides the failed observation; waiting for three failures exceeds the cap. The same gap occurs when the first read fails and the cap is shorter than the retry interval.\n\n**Disposition consequence:** W2/W4/W5 need a single deadline rule before binding: the deadline bounds pending sleeps and error retries; at expiry, an unavailable latest attempt returns exit 2 with the error and resume command, while a successful pending latest attempt returns exit 3. Successful reads reset the consecutive-failure count.\n\n### 2. sharpens-framing — Three retries tolerate brief failures, not rate-limit exhaustion\n\n**Evidence:** `packages/core/src/pr-wait-mergeable/merge-queue.ts:262–268` extracts only the remaining GraphQL points, not reset time. Lines 281–288 refuse a queue read below 500 points and explicitly recommend resuming after reset.\n\n**Failure mode:** With the shared bucket below the floor for ten more minutes, attempts at approximately zero, one, and two minutes all refuse. A nominal 60-minute wait exits after about two minutes and still requires a worker to resume it. Concurrent workers can encounter this together.\n\n**Disposition consequence:** W5 can remain as the thin first implementation, but its promise should explicitly include early termination when observation is unavailable. It does not guarantee waiting through rate-limit exhaustion. Reset-aware waiting is a stronger alternative, but would require extending the reader beyond W6’s unchanged-read proposal.\n\n### 3. sharpens-framing — Timeout needs a machine-readable distinction, not another exit code\n\n**Evidence:** `packages/core/src/pr-wait-mergeable/main.ts:299–319` has separate JSON and text output paths. `merge-queue.ts:392–409` emits queue state and the resume command but no wait-stop reason. `constants.ts:5–9` defines exit 3 as pending, which remains accurate after a successful pending observation at the cap.\n\n**Failure mode:** W4’s “one added line” either applies only to text output, leaves JSON callers parsing prose, or risks contaminating JSON stdout if emitted independently.\n\n**Disposition consequence:** Keep exit 3 and the existing queue outcome. For wait-mode results, add a structured timeout indicator or stop reason and render its equivalent in text. Preserve one-read output unchanged.\n\n### 4. footnote — Verification and envelope limits\n\nThe critique used pinned `git show` reads and the supplied snapshot only; no tests, writes, installs, or posts were performed. The existing resume test at `main.test.ts:353–385` prohibits calling the monitor; its “resume must not wait” string does not independently prohibit a new queue-read loop.\n\nThe contract’s “Envelope and ceiling” section specifies the triage write-back as the single-seat round-1 ceiling, whereas this envelope names the subsequent panel deposit. I honored the explicit envelope ceiling; the additional comment contains launch metadata, not a competing critique. USER.md was inaccessible under the sandbox, so no personal-preference alignment is attested.",
+          "id": 6932748336,
+          "html_url": "https://github.com/deftai/directive/issues/6423#issuecomment-6932748336",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T23:38:57Z",
+          "updated_at": "2026-11-16T23:38:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 6932680717 (round 1: 1 of 1 critic posted, comment 6932748336)\n\n## In plain English\nProblem: on a branch with a merge queue, the merge command puts the PR in the queue, reads the PR once and returns \"not merged yet\" while the queue works. The resume command also reads once. A queue run takes minutes, so a worker runs the resume command again and again, or polls GitHub by hand, until the PR merges.\n\nWhat the critic found: an opt-in wait is the right small fix, and it should stay opt-in. One gap had to be closed: the first draft did not say what the command returns when the time cap passes while GitHub reads are failing. Two points were made sharper: three retries cover a short failure but not a rate limit that lasts for minutes, and a caller that reads JSON needs a field, not a sentence, to see that the cap passed.\n\nSolution this lean proposes: one new option, `--wait`. With it, the command reads the queue state every 60 seconds until the PR is merged, removed, changed, or no longer queued, or until the time cap passes. One deadline covers both the waiting and the retries of failed reads. At the deadline the last attempt decides: if it saw the PR still queued, the command returns \"not merged yet\" as today; if it could not read, the command returns the read error. It never shows an older \"queued\" result as the present state. Each wait result carries a stop reason as a field. Without the option the command behaves exactly as today.\n\nWhat this adds: one flag, one named interval, one output field. No new gate, refusal, approval or stored state.\n\nWhat it does not do:\n- It does not wait through a GitHub rate limit. When three reads in a row fail, the wait ends early with the read error and the resume command, and the docs say so.\n- It does not make waiting the default.\n- It does not change the printed resume command, which stays the one-read form.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:05509953f75b9deb21c3bd3f69df5109811feda8080e428ba17ea1ef22c23e73\n**Spec-path:** Bound remedy on this lean\nSupersedes: Stop 1 write-back, comment 6932680717. Sibling count: 1 (comment 6932748336). Panel deposit: comment 6932681085.\n\nrelieves: P1\n\n## Bound remedy\n1. Flag. `pr:wait-mergeable-and-merge` accepts `--wait`. It applies to the read after enqueue on the first call in merge-queue mode, and to `--resume`. Without `--wait`, behaviour, output and exit codes are unchanged. Outside merge-queue mode the flag has no effect.\n2. Loop. With `--wait`, the verb makes today's queue read. When the read gives `queued` or `awaiting-admission`, the verb sleeps and reads again. The first read that gives any other result ends the wait with today's exit code and text for that result: `merged` 0 with post-merge reconciliation run once, `head-changed` 1, `removed` 1 with GitHub's reason, `inactive` 1.\n3. One deadline. The deadline is the start of the wait plus `--cap-minutes` (existing flag and default). It bounds pending sleeps and failed-read retries alike. No sleep ends after the deadline, and no read starts after it.\n4. Failed reads. A read that the GraphQL floor refuses, or that fails, is tried again after the interval. A read that succeeds resets the count of failed reads. Three failed reads in a row end the wait with exit 2, the read error and the resume command.\n5. At the deadline the latest attempt decides. When the latest attempt was a successful read with a pending result, the verb exits 3 with today's pending result and resume command. When the latest attempt failed, the verb exits 2 with that error and the resume command. An earlier pending read is never reported as the current state.\n6. Stop reason. A result produced under `--wait` carries one structured field in the `--json` output, with the values `result`, `cap` and `read-unavailable`, and one matching line in the text output. A result produced without `--wait` does not carry the field.\n7. Interval. The time between reads is one named constant of 60 seconds. Each poll is today's read (one `rate_limit` probe and one GraphQL query). No new GitHub call type is added.\n8. Docs. `content/scm/github.md` \"Merge queue mode (#6295)\" and the swarm phase text that names the resume command state the `--wait` form, the three stop reasons, and that the wait ends early when queue reads are unavailable and does not wait through a rate limit. The printed resume command stays the one-read form.\n\n## Acceptance Criteria\n- Given a PR in the merge queue and `--resume --wait`, when a later read gives `merged` with the expected head, then the verb exits 0 and post-merge reconciliation has run once.\n- Given a PR in the merge queue and `--resume --wait`, when a later read gives `removed`, then the verb exits 1 and the output names the reason GitHub gave.\n- Given `--resume --wait` and a later read with a different head, then the verb exits 1 with `head-changed` and no reconciliation runs.\n- Given `--resume --wait` and a PR that stays queued, when the cap passes after a successful pending read, then the verb exits 3, prints the resume command and reports the stop reason `cap`.\n- Given `--resume --wait`, a successful pending read and then a failed read as the last attempt before the cap, then the verb exits 2 with the read error and the resume command, and does not report the pending result.\n- Given `--resume --wait` and three failed reads in a row before the cap, then the verb exits 2 with the stop reason `read-unavailable`.\n- Given `--resume --wait`, two failed reads and then a successful pending read, then the count of failed reads starts again from zero.\n- Given the first call in merge-queue mode with `--wait`, when the read after enqueue gives `queued`, then the verb waits as in the cases above.\n- Given `--resume` without `--wait` and a queued PR, then the verb reads once, exits 3 and its output is the same as today, with no stop-reason field.\n- Given `--wait` and `--json`, then standard output is one JSON document that carries the stop reason.\n- `content/scm/github.md` states the `--wait` form, the stop reasons and the early end on unavailable reads.\n\n## Reject\n- Waiting as the default on the first call or on `--resume` (comment 6932748336, answer 1).\n- A new exit code for \"cap passed\" (comment 6932748336, finding 3).\n- Reading the rate-limit reset time and sleeping until it (comment 6932748336, finding 2: a stronger alternative that changes the reader; not in this story).\n- A REST poll of `pulls/<N>` in place of the queue read: it cannot see a removal from the queue.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6932748336 | 1. Deadline expiry during read failures has no defined result | blocks-the-design | accept-into-contract (items 3, 4 and 5) |\n| comment 6932748336 | 2. Three retries tolerate brief failures, not rate-limit exhaustion | sharpens-framing | accept-into-contract (item 4 kept as the thin first form; item 8 states the limit; reset-aware waiting rejected for this story) |\n| comment 6932748336 | 3. Timeout needs a machine-readable distinction, not another exit code | sharpens-framing | accept-into-contract (item 6) |\n\nFootnote in the census, no take: comment 6932748336 finding 4.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The `relieves` cite stays open until a later critic targets it. This lean introduces no premise beyond the accepted findings, so it records no audit marker.\n\n",
+          "id": 6932799965,
+          "html_url": "https://github.com/deftai/directive/issues/6423#issuecomment-6932799965",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T23:41:38Z",
+          "updated_at": "2026-11-16T23:41:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:39a1a79b1ce26298170a0110fc4979ad3849278a3520c90657bb86a730765388\n\n## In plain English\n\nThe proposed remedy relieves the stated pain. Workers gain one command that keeps watching a queued PR instead of repeatedly running resume themselves. It preserves the head check, reports removal reasons, and stops at the cap or when reads remain unavailable. The accepted rate-limit limitation is explicit.\n\npain-P1: holds - Bound remedy items 1–5 provide the missing wait on both the initial enqueue and resume paths. The Acceptance Criteria cover later merge, removal, head change, pending timeout and failed reads.\n\nI re-read the code at dispatch SHA `7aef28cb547ef3a4da3927f7237fccfab38cccba`:\n\n- `packages/core/src/pr-wait-mergeable/cascade.ts:206–270` confirms that reporting and resume currently perform one read; line 653 connects the enqueue path to that same reporter.\n- `packages/core/src/pr-wait-mergeable/merge-queue.ts:334–376` confirms that the existing classifier checks the expected head before reporting a merge and distinguishes pending, removed and inactive outcomes.\n- `packages/core/src/pr-wait-mergeable/cascade.ts:225–246` confirms that reconciliation follows only a classified merge and removal output includes GitHub’s reason.\n- `packages/core/src/pr-wait-mergeable/main.ts:299–319` confirms separate JSON and text rendering paths suitable for the proposed stop-reason field.\n\nNo new findings. This is a design-coverage verdict based on pinned source reads, not verification of an implemented wait. No files were changed, tests run or comments posted.",
+          "id": 6932843273,
+          "html_url": "https://github.com/deftai/directive/issues/6423#issuecomment-6932843273",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T23:44:01Z",
+          "updated_at": "2026-11-16T23:44:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6932799965. Dispatch SHA: 7aef28cb547ef3a4da3927f7237fccfab38cccba. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and the lean. Each row has a parent pin-read (`git show <sha>:<path>`) and a re-check by a Codex critic, a different model family, or is marked otherwise. No tests were run; every method is a source read at the pin. Both critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | `--resume` makes one queue read and returns; the read after enqueue on the first call uses the same one-read reporter | verified | parent pin-read of `packages/core/src/pr-wait-mergeable/main.ts` 262-268 and `cascade.ts` 206-270, 653; audit 6932843273 (`cascade.ts` 206-270, 653) |\n| 2 | `queued` and `awaiting-admission` map to exit 3; `merged` to 0; `head-changed`, `removed` and `inactive` to 1 | verified | parent pin-read of `cascade.ts` 168-175 and `constants.ts` 1-9; critic 6932748336 finding 3 |\n| 3 | Each read is one REST `rate_limit` probe plus one GraphQL query; under 500 GraphQL points the read is refused; a refused or failed read gives exit 2 with the resume command | verified | parent pin-read of `merge-queue.ts` 262-309 and `cascade.ts` 210-225; critic 6932748336 finding 1 |\n| 4 | The classifier checks the expected head before it reports a merge, and separates pending, removed and inactive | verified | parent pin-read of `merge-queue.ts` 334-377; audit 6932843273 (334-376) |\n| 5 | Reconciliation runs only on a classified `merged`; a `removed` result prints GitHub's reason | verified | parent pin-read of `cascade.ts` 225-246; audit 6932843273 |\n| 6 | The reader returns the remaining GraphQL points only, not the reset time | verified | parent pin-read of `merge-queue.ts` 262-270; critic 6932748336 finding 2 |\n| 7 | JSON and text output are separate paths, and the queue payload has no stop-reason field today | verified by the critics; partly by the parent | critic 6932748336 finding 3 and audit 6932843273 read `main.ts` 299-319 and `merge-queue.ts` 392-409; the parent read `main.ts` 299-319 |\n| 8 | The wait heartbeat refresher runs for the whole run of the verb, so a longer run keeps its heartbeat | parent read only | parent pin-read of `main.ts` 250-260 and the `finally` block; no critic re-checked it. It is not part of the Bound remedy |\n| 9 | The Bound remedy relieves pain P1 | verified as design coverage | audit 6932843273 (`pain-P1: holds`, `finding-classes: none`, `harvest-changed: false`, digest equal to the lean's) |\n| 10 | The wait behaves as designed against live GitHub (queue timing, rate limits) | endorsed, not verified | nothing was executed; the implementer covers it with the tests the Acceptance Criteria name |\n\n",
+          "id": 6932864691,
+          "html_url": "https://github.com/deftai/directive/issues/6423#issuecomment-6932864691",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T23:45:07Z",
+          "updated_at": "2026-11-16T23:45:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: on a branch with a merge queue, the merge command puts the PR in the queue, reads the PR once and returns \"not merged yet\" while the queue works. The resume command also reads once. A queue run takes minutes, so a worker ran the resume command again and again, or polled GitHub by hand, until the PR merged.\n\nAccepted solution: one new option, `--wait`, on the first call in merge-queue mode and on `--resume`. With it, the command reads the queue state every 60 seconds until the PR is merged, removed from the queue, changed, or no longer queued, or until the existing time cap passes. One deadline covers both the waiting and the retries of failed reads. At the deadline the last attempt decides: a successful read that still shows the PR queued returns \"not merged yet\" (exit 3) as today; a failed read returns the read error (exit 2). Three failed reads in a row end the wait early with the read error. Each wait result carries a stop reason as a field in the JSON output and as a line in the text output. Without the option the command behaves exactly as today.\n\nLimits accepted: the wait does not continue through a GitHub rate limit that lasts for minutes; it ends early and prints the resume command, and the docs say so. Waiting is not the default. The design adds one flag, one named interval and one output field, and no new gate, refusal or stored state. The design was checked by reading the source at the pinned commit; no code was run. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6932799965.\nverified-claims table 6932864691\n\nConfirm conjunct: yolo standing (Stop 1 6932680717, `yolo-standing: on`). Round-1 critic: comment 6932748336, posted by the parent verbatim as disclosed on panel-deposit 6932681085; all three classified findings are accepted on the lean. Clean audit: comment 6932843273 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's). Critic posts used: 2 of 6.\n\n",
+          "id": 6932865007,
+          "html_url": "https://github.com/deftai/directive/issues/6423#issuecomment-6932865007",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T23:45:08Z",
+          "updated_at": "2026-11-16T23:45:08Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\n`pr:wait-mergeable-and-merge --resume` reads the merge-queue state once and returns. While the PR is still queued it exits 3 (QUEUE-PENDING) at once and prints the resume command again.\n\nOn origin/master (e32e58147): `packages/core/src/pr-wait-mergeable/main.ts` 262-268 calls `resumeMergeQueueRead` (`cascade.ts` 251) for `--resume`, and `cascade.ts` 171-172 maps `queued` and `awaiting-admission` to `EXIT_QUEUE_PENDING` (`constants.ts` 9). The test in `main.test.ts` 353-385 asserts that resume does not wait (\"resume must not wait\"). There is no flag that waits until the queue merges or ejects the PR.\n\nSo a worker calls `--resume` in a loop, or polls `repos/<owner>/<repo>/pulls/<N>` for `merged` by hand.\n\n## Evidence\n\n- 2026-11-16, PR #6365: QUEUE-PENDING twice, MERGED on the third resume.\n- 2026-11-16, PR #6367: about 3 resumes over about 10 minutes.\n- 2026-11-16, #6272 PRs #6369 and #6371: about 5 resumes each.\n- 2026-11-16, #6398 completion #6403: resume returned exit 3 at once; the worker polled `merged` by hand.\n\nMerge-queue mode came from #6295 / #6322. PR #6414 lists this as not covered by #6336.\n\n## Acceptance Criteria\n\n- Given a PR in the merge queue, when the operator runs `pr:wait-mergeable-and-merge --resume` with a wait option, then the command blocks until the PR is merged, removed from the queue, or a time cap is hit.\n- Given a PR that the queue removes, when the wait ends, then the command exits non-zero and names the reason the queue gave.\n- Given the existing one-read form, when it is still used, then it keeps its current exit codes.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6426915574,
+        "origin": "deftai/directive#6423",
+        "id": "github.issue.6426915574"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "05509953f75b9deb21c3bd3f69df5109811feda8080e428ba17ea1ef22c23e73"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6423,
+        "leanCommentId": 6932799965,
+        "harvestDigest": "39a1a79b1ce26298170a0110fc4979ad3849278a3520c90657bb86a730765388",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (19), in list order (#6333)",
+      "sentences": [
+        "Flag. `pr:wait-mergeable-and-merge` accepts `--wait`. It applies to the read after enqueue on the first call in merge-queue mode, and to `--resume`. Without `--wait`, behaviour, output and exit codes are unchanged. Outside merge-queue mode the flag has no effect.",
+        "Loop. With `--wait`, the verb makes today's queue read. When the read gives `queued` or `awaiting-admission`, the verb sleeps and reads again. The first read that gives any other result ends the wait with today's exit code and text for that result: `merged` 0 with post-merge reconciliation run once, `head-changed` 1, `removed` 1 with GitHub's reason, `inactive` 1.",
+        "One deadline. The deadline is the start of the wait plus `--cap-minutes` (existing flag and default). It bounds pending sleeps and failed-read retries alike. No sleep ends after the deadline, and no read starts after it.",
+        "Failed reads. A read that the GraphQL floor refuses, or that fails, is tried again after the interval. A read that succeeds resets the count of failed reads. Three failed reads in a row end the wait with exit 2, the read error and the resume command.",
+        "At the deadline the latest attempt decides. When the latest attempt was a successful read with a pending result, the verb exits 3 with today's pending result and resume command. When the latest attempt failed, the verb exits 2 with that error and the resume command. An earlier pending read is never reported as the current state.",
+        "Stop reason. A result produced under `--wait` carries one structured field in the `--json` output, with the values `result`, `cap` and `read-unavailable`, and one matching line in the text output. A result produced without `--wait` does not carry the field.",
+        "Interval. The time between reads is one named constant of 60 seconds. Each poll is today's read (one `rate_limit` probe and one GraphQL query). No new GitHub call type is added.",
+        "Docs. `content/scm/github.md` \"Merge queue mode (#6295)\" and the swarm phase text that names the resume command state the `--wait` form, the three stop reasons, and that the wait ends early when queue reads are unavailable and does not wait through a rate limit. The printed resume command stays the one-read form.",
+        "Given a PR in the merge queue and `--resume --wait`, when a later read gives `merged` with the expected head, then the verb exits 0 and post-merge reconciliation has run once.",
+        "Given a PR in the merge queue and `--resume --wait`, when a later read gives `removed`, then the verb exits 1 and the output names the reason GitHub gave.",
+        "Given `--resume --wait` and a later read with a different head, then the verb exits 1 with `head-changed` and no reconciliation runs.",
+        "Given `--resume --wait` and a PR that stays queued, when the cap passes after a successful pending read, then the verb exits 3, prints the resume command and reports the stop reason `cap`.",
+        "Given `--resume --wait`, a successful pending read and then a failed read as the last attempt before the cap, then the verb exits 2 with the read error and the resume command, and does not report the pending result.",
+        "Given `--resume --wait` and three failed reads in a row before the cap, then the verb exits 2 with the stop reason `read-unavailable`.",
+        "Given `--resume --wait`, two failed reads and then a successful pending read, then the count of failed reads starts again from zero.",
+        "Given the first call in merge-queue mode with `--wait`, when the read after enqueue gives `queued`, then the verb waits as in the cases above.",
+        "Given `--resume` without `--wait` and a queued PR, then the verb reads once, exits 3 and its output is the same as today, with no stop-reason field.",
+        "Given `--wait` and `--json`, then standard output is one JSON document that carries the stop reason.",
+        "`content/scm/github.md` states the `--wait` form, the stop reasons and the early end on unavailable reads."
+      ],
+      "admitted_source_sentences": [
+        "Flag. `pr:wait-mergeable-and-merge` accepts `--wait`. It applies to the read after enqueue on the first call in merge-queue mode, and to `--resume`. Without `--wait`, behaviour, output and exit codes are unchanged. Outside merge-queue mode the flag has no effect.",
+        "Loop. With `--wait`, the verb makes today's queue read. When the read gives `queued` or `awaiting-admission`, the verb sleeps and reads again. The first read that gives any other result ends the wait with today's exit code and text for that result: `merged` 0 with post-merge reconciliation run once, `head-changed` 1, `removed` 1 with GitHub's reason, `inactive` 1.",
+        "One deadline. The deadline is the start of the wait plus `--cap-minutes` (existing flag and default). It bounds pending sleeps and failed-read retries alike. No sleep ends after the deadline, and no read starts after it.",
+        "Failed reads. A read that the GraphQL floor refuses, or that fails, is tried again after the interval. A read that succeeds resets the count of failed reads. Three failed reads in a row end the wait with exit 2, the read error and the resume command.",
+        "At the deadline the latest attempt decides. When the latest attempt was a successful read with a pending result, the verb exits 3 with today's pending result and resume command. When the latest attempt failed, the verb exits 2 with that error and the resume command. An earlier pending read is never reported as the current state.",
+        "Stop reason. A result produced under `--wait` carries one structured field in the `--json` output, with the values `result`, `cap` and `read-unavailable`, and one matching line in the text output. A result produced without `--wait` does not carry the field.",
+        "Interval. The time between reads is one named constant of 60 seconds. Each poll is today's read (one `rate_limit` probe and one GraphQL query). No new GitHub call type is added.",
+        "Docs. `content/scm/github.md` \"Merge queue mode (#6295)\" and the swarm phase text that names the resume command state the `--wait` form, the three stop reasons, and that the wait ends early when queue reads are unavailable and does not wait through a rate limit. The printed resume command stays the one-read form.",
+        "Given a PR in the merge queue and `--resume --wait`, when a later read gives `merged` with the expected head, then the verb exits 0 and post-merge reconciliation has run once.",
+        "Given a PR in the merge queue and `--resume --wait`, when a later read gives `removed`, then the verb exits 1 and the output names the reason GitHub gave.",
+        "Given `--resume --wait` and a later read with a different head, then the verb exits 1 with `head-changed` and no reconciliation runs.",
+        "Given `--resume --wait` and a PR that stays queued, when the cap passes after a successful pending read, then the verb exits 3, prints the resume command and reports the stop reason `cap`.",
+        "Given `--resume --wait`, a successful pending read and then a failed read as the last attempt before the cap, then the verb exits 2 with the read error and the resume command, and does not report the pending result.",
+        "Given `--resume --wait` and three failed reads in a row before the cap, then the verb exits 2 with the stop reason `read-unavailable`.",
+        "Given `--resume --wait`, two failed reads and then a successful pending read, then the count of failed reads starts again from zero.",
+        "Given the first call in merge-queue mode with `--wait`, when the read after enqueue gives `queued`, then the verb waits as in the cases above.",
+        "Given `--resume` without `--wait` and a queued PR, then the verb reads once, exits 3 and its output is the same as today, with no stop-reason field.",
+        "Given `--wait` and `--json`, then standard output is one JSON document that carries the stop reason.",
+        "`content/scm/github.md` states the `--wait` form, the stop reasons and the early end on unavailable reads."
+      ],
+      "admitted_source_digest": "914a83b0f9c2b6dfedc44dccdb574d14aa6c1f9a7905dcbcd9207be5adf353e0",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Flag. `pr:wait-mergeable-and-merge` accepts `--wait`. It applies to the read after enqueue on the first call in merge-queue mode, and to `--resume`. Without `--wait`, behaviour, output and exit codes are unchanged. Outside merge-queue mode the flag has no effect.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Loop. With `--wait`, the verb makes today's queue read. When the read gives `queued` or `awaiting-admission`, the verb sleeps and reads again. The first read that gives any other result ends the wait with today's exit code and text for that result: `merged` 0 with post-merge reconciliation run once, `head-changed` 1, `removed` 1 with GitHub's reason, `inactive` 1.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/cascade.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "One deadline. The deadline is the start of the wait plus `--cap-minutes` (existing flag and default). It bounds pending sleeps and failed-read retries alike. No sleep ends after the deadline, and no read starts after it.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/cascade.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Failed reads. A read that the GraphQL floor refuses, or that fails, is tried again after the interval. A read that succeeds resets the count of failed reads. Three failed reads in a row end the wait with exit 2, the read error and the resume command.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/cascade.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "At the deadline the latest attempt decides. When the latest attempt was a successful read with a pending result, the verb exits 3 with today's pending result and resume command. When the latest attempt failed, the verb exits 2 with that error and the resume command. An earlier pending read is never reported as the current state.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/cascade.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Stop reason. A result produced under `--wait` carries one structured field in the `--json` output, with the values `result`, `cap` and `read-unavailable`, and one matching line in the text output. A result produced without `--wait` does not carry the field.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/main.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Interval. The time between reads is one named constant of 60 seconds. Each poll is today's read (one `rate_limit` probe and one GraphQL query). No new GitHub call type is added.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/constants.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Docs. `content/scm/github.md` \"Merge queue mode (#6295)\" and the swarm phase text that names the resume command state the `--wait` form, the three stop reasons, and that the wait ends early when queue reads are unavailable and does not wait through a rate limit. The printed resume command stays the one-read form.",
+          "artifact_path": "content/scm/github.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given a PR in the merge queue and `--resume --wait`, when a later read gives `merged` with the expected head, then the verb exits 0 and post-merge reconciliation has run once.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/cascade.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given a PR in the merge queue and `--resume --wait`, when a later read gives `removed`, then the verb exits 1 and the output names the reason GitHub gave.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/cascade.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given `--resume --wait` and a later read with a different head, then the verb exits 1 with `head-changed` and no reconciliation runs.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/cascade.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given `--resume --wait` and a PR that stays queued, when the cap passes after a successful pending read, then the verb exits 3, prints the resume command and reports the stop reason `cap`.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/cascade.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given `--resume --wait`, a successful pending read and then a failed read as the last attempt before the cap, then the verb exits 2 with the read error and the resume command, and does not report the pending result.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/cascade.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given `--resume --wait` and three failed reads in a row before the cap, then the verb exits 2 with the stop reason `read-unavailable`.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/cascade.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given `--resume --wait`, two failed reads and then a successful pending read, then the count of failed reads starts again from zero.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/cascade.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Given the first call in merge-queue mode with `--wait`, when the read after enqueue gives `queued`, then the verb waits as in the cases above.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/cascade.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Given `--resume` without `--wait` and a queued PR, then the verb reads once, exits 3 and its output is the same as today, with no stop-reason field.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Given `--wait` and `--json`, then standard output is one JSON document that carries the stop reason.",
+          "artifact_path": "packages/core/src/pr-wait-mergeable/main.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "`content/scm/github.md` states the `--wait` form, the stop reasons and the early end on unavailable reads.",
+          "artifact_path": "content/scm/github.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6426915574",
+    "updated": "2026-11-17T01:22:02Z"
+  }
+}
