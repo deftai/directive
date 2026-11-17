@@ -213,6 +213,8 @@ export interface RunWaitMergeableOptions {
   readonly queueReadFn?: Parameters<typeof waitMergeableAndMerge>[2]["queueReadFn"];
   readonly nowFn?: Parameters<typeof waitMergeableAndMerge>[2]["nowFn"];
   readonly umbrellaReconcileFn?: Parameters<typeof waitMergeableAndMerge>[2]["umbrellaReconcileFn"];
+  /** Base-conflict read seam (#6467); live default reads `pulls/<N>`. */
+  readonly baseConflictReadFn?: Parameters<typeof waitMergeableAndMerge>[2]["baseConflictReadFn"];
   /** `--wait` sleep and clock seams (#6423); live defaults otherwise. */
   readonly queueWaitSleepFn?: QueueWaitSleepFn;
   readonly queueWaitClockMsFn?: () => number;
@@ -310,6 +312,7 @@ export function runWaitMergeable(
           wait: args.wait,
           queueWaitSleepFn: options.queueWaitSleepFn,
           queueWaitClockMsFn: options.queueWaitClockMsFn,
+          baseConflictReadFn: options.baseConflictReadFn,
         });
 
     const summaryLabel = summaryLabelForExit(result.exitCode);
