@@ -4,6 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { atomicWriteText } from "../cache/io.js";
 import { contentRoot } from "../content-root.js";
+import { isFrameworkSourceCheckoutAt } from "../doctor/paths.js";
 import { readCorePackageVersion } from "../engine-version.js";
 import { readLiveGeneration } from "../freshness/generation.js";
 import { timedGitRunner } from "../session/git.js";
@@ -67,6 +68,26 @@ function readAgentsTemplate(seams: AgentsMdSeams = {}): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * In a checkout of the framework source repository, a refresh that names no
+ * template reads the checkout's own `content/templates/agents-entry.md` and uses
+ * the checkout as framework root. Otherwise the module walk would find the
+ * pinned runtime's older copy and roll the tracked section back (#6507).
+ * Explicit seams and `DEFT_ROOT` keep winning; consumers are unchanged.
+ */
+function sourceCheckoutSeams(projectRoot: string, seams: AgentsMdSeams): AgentsMdSeams {
+  if (seams.frameworkRoot || seams.readTemplate) return seams;
+  if (process.env.DEFT_ROOT?.trim()) return seams;
+  if (!isFrameworkSourceCheckoutAt(projectRoot)) return seams;
+  const root = resolve(projectRoot);
+  const templatePath = join(root, "content", "templates", "agents-entry.md");
+  return {
+    ...seams,
+    frameworkRoot: root,
+    readTemplate: () => defaultReadAgents(templatePath),
+  };
 }
 
 function isStampableManagedSha(value: string): boolean {
@@ -334,8 +355,9 @@ function wrapLegacyInMarkers(existing: string, rendered: string): string {
 /** Compute AGENTS.md managed-section freshness plan (mirrors scripts/_agents_md.py). */
 export function agentsRefreshPlan(
   projectRoot: string,
-  seams: AgentsMdSeams = {},
+  callerSeams: AgentsMdSeams = {},
 ): Record<string, unknown> {
+  const seams = sourceCheckoutSeams(projectRoot, callerSeams);
   const readTemplate = seams.readTemplate ?? (() => readAgentsTemplate(seams));
   const nowIso = seams.nowIso ?? nowUtcIso;
   const newSession = seams.newSession ?? newSessionId;

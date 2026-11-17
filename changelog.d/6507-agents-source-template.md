@@ -1,0 +1,2 @@
+section: Fixed
+- **The framework source repository keeps its own AGENTS.md managed section**: in a checkout of the framework source, `agents:refresh`, session start and the self-complete setup that hook calls run now read the checkout's own `content/templates/agents-entry.md` instead of the pinned runtime's older copy, so a fresh worktree is no longer rewritten and an older section is no longer reported as current. Consumer projects, explicit template seams and `DEFT_ROOT` are unchanged. The fix acts in this repository once a release that carries it is pinned (#6507)
