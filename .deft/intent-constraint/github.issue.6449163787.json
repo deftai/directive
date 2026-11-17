@@ -1,0 +1,20 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.6449163787",
+  "xbriefRelPath": "xbrief/active/2026-11-17-6535-rfchooks-enforce-on-the-merge-path-where-it-runs-the-full-ga.xbrief.json",
+  "approvedAt": "2026-11-17T20:20:50Z",
+  "constraints": [
+    {
+      "value": "10",
+      "unit": "seconds",
+      "rejectionScope": "operation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-11-17T20:20:50Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "9b083b8449871aaf937f285607930ec4ab3a4f19556d218ad039e130416839e2"
+}
