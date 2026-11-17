@@ -413,10 +413,11 @@ tasks:
     desc: "Run the context-appropriate pre-commit gate: full framework self-check in this repo, consumer-safe gate from vendored installs (#1519)."
     dir: '{{.USER_WORKING_DIR}}'
     # #5805: no engine:_ts-build — pin-exclusive ordinary invoke.
+    # #6469: CLI_ARGS pass through, so `task check -- --no-suite` is `deft check --no-suite`.
     cmds:
       - task: engine:invoke
         vars:
-          ENGINE_CMD: 'check --framework-root "{{.TASKFILE_DIR}}" --project-root "{{.USER_WORKING_DIR}}"'
+          ENGINE_CMD: 'check --framework-root "{{.TASKFILE_DIR}}" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
 
   test:coverage:
     desc: "On-demand tests with coverage (alias for ts:test). Merge path is coverage-free (#6041); release Step 5 and this task are the host coverage runs."

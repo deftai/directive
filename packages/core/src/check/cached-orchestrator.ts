@@ -24,6 +24,7 @@ import {
   isHygieneGate,
   isProductAcGate,
   isSoftEmptyAcText,
+  type ProductFirstCheckModeResolution,
   resolveProductFirstCheckMode,
 } from "../product-first-done-gate/index.js";
 import { RunSummaryEmitter } from "../run-summary/emit.js";
@@ -66,6 +67,7 @@ import {
   evaluateCitedSkipScan,
   gatesForCheckTarget,
   isSuiteCheckGate,
+  noSuiteGateList,
 } from "./gate-lists.js";
 import { formatDegradedSkipReport, formatNamedCauseFailure, remedyForGate } from "./named-cause.js";
 import {
@@ -229,12 +231,22 @@ export function dispatchCachedTaskCheck(
   const taskBin = options.taskBin ?? "task";
   const target = resolveCheckTarget(resolvedFramework, resolvedProject);
   const cwd = target === "check:framework-source" ? resolvedFramework : resolvedProject;
-  const modeResolution = resolveProductFirstCheckMode({
-    environ: options.env ?? process.env,
-    projectRoot: resolvedProject,
-  });
+  // #6469: a no-suite run ignores every mode signal (ceremony dial,
+  // DEFT_CHECK_MODE, DEFT_CHECK_AC_ONLY, DEFT_HYGIENE_ADVISORY, hard budget):
+  // full mode, every gate fail-closed, every gate run.
+  const noSuite = options.noSuite === true;
+  const modeResolution: ProductFirstCheckModeResolution = noSuite
+    ? { mode: "full", sources: [], hygieneAdvisory: false, acOnly: false, acMandatory: true }
+    : resolveProductFirstCheckMode({
+        environ: options.env ?? process.env,
+        projectRoot: resolvedProject,
+      });
   const baseGates = gatesForCheckTarget(target);
-  const gates = applyProductFirstGateMode(baseGates, modeResolution.mode, checkGateId);
+  const gates = noSuite
+    ? noSuiteGateList(baseGates)
+    : applyProductFirstGateMode(baseGates, modeResolution.mode, checkGateId);
+  // #6469: failed gates of a no-suite run, in run order with their exit codes.
+  const noSuiteFailures: { readonly gateId: string; readonly exitCode: number }[] = [];
   const codeVersion = readCorePackageVersion();
   const sessionId = options.sessionId;
   const gateOutcomes: CheckGateOutcome[] = [];
@@ -264,6 +276,14 @@ export function dispatchCachedTaskCheck(
     } catch {
       // fail-open
     }
+  };
+
+  // #6469: a no-suite run records a failed gate and runs the next one.
+  const recordNoSuiteFailure = (gateId: string, exitCode: number): void => {
+    noSuiteFailures.push({ gateId, exitCode });
+    process.stderr.write(
+      `check --no-suite: gate ${gateId} failed (exit ${exitCode}); running the remaining gates (#6469)\n`,
+    );
   };
 
   const finish = (exitCode: number, degradedFlag: boolean): number => {
@@ -687,6 +707,10 @@ export function dispatchCachedTaskCheck(
         exit_code: 2,
         cause: coverageReport.error,
       });
+      if (noSuite) {
+        recordNoSuiteFailure(gateId, 2);
+        continue;
+      }
       return finish(2, true);
     }
     if (coverageReport?.armed) {
@@ -708,6 +732,10 @@ export function dispatchCachedTaskCheck(
           cause,
           coverage: coverageReport.coverage,
         });
+        if (noSuite) {
+          recordNoSuiteFailure(gateId, code);
+          continue;
+        }
         return finish(code, prior.status === "skipped");
       }
     }
@@ -803,6 +831,10 @@ export function dispatchCachedTaskCheck(
         remedy: named.remedy,
         from_cache: result.fromCache,
       });
+      if (noSuite) {
+        recordNoSuiteFailure(gateId, result.exitCode);
+        continue;
+      }
       // Mark remaining as skipped for the summary (not run).
       let sawCurrent = false;
       for (const later of gates) {
@@ -888,6 +920,17 @@ export function dispatchCachedTaskCheck(
       from_cache: result.fromCache,
       ...(coverageReport === undefined ? {} : { coverage: coverageReport.coverage }),
     });
+  }
+
+  // #6469: every gate ran; exit with the first failed gate's code.
+  const firstNoSuiteFailure = noSuiteFailures[0];
+  if (firstNoSuiteFailure !== undefined) {
+    const ids = noSuiteFailures.map((failure) => failure.gateId).join(", ");
+    process.stderr.write(
+      `check --no-suite: ${noSuiteFailures.length} gate(s) failed: ${ids}; ` +
+        `exit ${firstNoSuiteFailure.exitCode} is the first failed gate's (#6469)\n`,
+    );
+    return finish(firstNoSuiteFailure.exitCode, degraded);
   }
 
   // Partial degraded (some gates skipped for pnpm, others ran): never report a

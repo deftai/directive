@@ -1,10 +1,11 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 6336,
+  "issue": 6469,
   "surfaces": [
-    "packages/core/src/intent-constraint/**",
+    "Taskfile.yml",
+    "packages/core/src/check/gate-lists.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Renew disclosure for #6336 Bound item 6: verify:intent-constraint now lists every unapproved fact on each failure path with path, line, kind and value (it listed at most eight, and the missing-mint paths listed none). extract.ts records each fact's source line; the line is display only and not part of the fact's identity, so which facts are new or covered does not change and verdicts do not change. Disclosure only; not #3164 authorization. Refs #6336."
+  "note": "Disclosure for #6469 Bound items 1, 6 and 7: the Taskfile `check` task passes its CLI arguments to the engine (`task check -- --no-suite`), and FRAMEWORK_CHECK_GATES gains the two `--enforce` arguments CI's merge gate already passes (`verify:contained-writes --enforce`, `codebase:validate-structure --enforce`), plus the no-suite list helper. The Taskfile `check:framework-source` deps are unchanged, so CI's merge gate does not change; local full `deft check` now matches it on those two gates. Disclosure only; not #3164 authorization. Refs #6469."
 }

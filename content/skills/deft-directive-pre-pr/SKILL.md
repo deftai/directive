@@ -78,11 +78,12 @@ GitHub `mergeable_state` is **textual only**. Post-open behavioral/policy gates 
 > **Invariant:** every change MUST pass the full gate at least once before merge. Ordinary pre-PR is the scoped Read-Write-Lint-Diff-Loop plus `verify:ac` — not the whole-repo merge chokepoint. CI `task check:merge` (and conflict-resolve / behind-rebase locally) hold the full gate (#6040).
 
 - ! **Iteration lane (Phases 2–3 loop):** run only these scoped commands — the touched test files; `vitest related --run <changed source paths>` without `--coverage`; `biome check <changed-paths>`; `verify:orphan-active --changed-only`; and the existing `--base-ref` verify gates (`verify:class-checks`, `verify:evaluator-surface`, `verify:eval-health-relocation`, `verify:eval-triggers-relocation`). `deft pre-pr:run --observe-command --phase lint_iteration` runs `verify:class-checks` and `verify:evaluator-surface` on the candidate tree (working tree against the merge base, plus untracked files) and records both results; the phase passes only when both exit 0, also under the authorized mode skip (#6336). Whole-project `tsc -b` stays in CI (TypeScript lane), not in pre-PR. Phase 3 sits inside this loop.
-- ! **Full gate (CI / exception only):** ordinary pre-PR does **not** run or require post-loop `deft check` / `task check`. Prefer `deft check` (else tree-correct `task deft:check` / `task check`) only for conflict-resolve / behind-rebase candidate validation, and rely on CI `task check:merge` otherwise (#6040 / #4379). Do not add a fourth probe (#2893).
+- ! **Full gate (CI / exception only):** ordinary pre-PR does **not** run or require a post-loop full `deft check` / `task check` (the full gate runs the test suite). Prefer `deft check` (else tree-correct `task deft:check` / `task check`) only for conflict-resolve / behind-rebase candidate validation, and rely on CI `task check:merge` otherwise (#6040 / #4379). Do not add a fourth probe (#2893).
+- ! **Merge-gate run without the suite (#6469):** once, after the loop's zero-change exit and before push, run `deft check --no-suite` (or `task check -- --no-suite`). It runs CI's merge-gate list at full strength with lint and build and without the test suite, reports every failed gate, fetches the base as CI does, and gives the gates CI's inputs. A red is a finding: fix it and restart the loop, as for any fix. When the run says there is no PR and a red needs the PR, open the PR and run it once more before waiting on CI.
 - ! **Escape-rate safety (#1703 Tier-1):** before recommending fleet-wide fast-lane tightening, cite `#1703` Tier-1 telemetry (`helped/crud-metrics.jsonl`) and `task eval:health` — do NOT invent a separate escape-rate surface.
 - ~ **In-engine incrementality (#1713):** content-hash cache + runner-delegated affected selection are sibling work (#1713).
-- ⊗ Prompt ordinary pre-PR for a post-loop full `task check` / `deft check` or a coverage run (#6040).
-- ⊗ Run full `task check` inside every pre-PR Phase 3 iteration — Phase 3 is the scoped loop only.
+- ⊗ Prompt ordinary pre-PR for a post-loop full `task check` / `deft check` (with the test suite) or a coverage run (#6040).
+- ⊗ Run full `task check` or `deft check --no-suite` inside every pre-PR Phase 3 iteration — Phase 3 is the scoped loop only.
 
 ## When to Use
 
@@ -278,7 +279,8 @@ Shared retrieval tokens match article-review pre-filing (#1178): closed-PR walk 
 
 After exiting:
 - ! Run `task verify:ac -- <active-xbrief>` (or `deft verify:ac`) when acceptance commands are stated; fail closed on exit 1 (#6040).
-- ! Do **not** prompt a post-loop full `task check` / `deft check` or a coverage run for ordinary pre-PR. Conflict-resolve / behind-rebase keep the local full-gate exception in Three-axis (#4888).
+- ! Run `deft check --no-suite` once before push (#6469): CI's merge-gate list without the test suite. A red restarts the loop. When it says there is no PR and a red needs the PR, open the PR, then run it once more before waiting on CI.
+- ! Do **not** prompt a post-loop full `task check` / `deft check` (with the test suite) or a coverage run for ordinary pre-PR. Conflict-resolve / behind-rebase keep the local full-gate exception in Three-axis (#4888).
 - ~ The branch is now ready for push and PR creation; CI `task check:merge` holds the whole-repo gate.
 
 

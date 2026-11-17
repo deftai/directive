@@ -3,7 +3,10 @@
  * ts-check-lane.ts -- CLI for the Node-toolchain-aware TS lane (#1530, #1790).
  *
  * Usage:
- *   deft-ts ts-check-lane --project-root <path>
+ *   deft-ts ts-check-lane --project-root <path> [--no-test]
+ *
+ * `--no-test` (#6469) runs the lane's lint and build commands and not its test
+ * command (`deft check --no-suite`).
  *
  * Thin shim -- delegates to @deftai/directive-core/ts-check-lane.
  */
@@ -12,6 +15,7 @@ import { resolvePnpm, runTsLane } from "@deftai/directive-core/ts-check-lane";
 
 interface ParsedArgs {
   projectRoot?: string;
+  noTest?: boolean;
   error?: string;
 }
 
@@ -30,6 +34,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
       if (value === "")
         return { ...parsed, error: "argument --project-root: expected one argument" };
       parsed.projectRoot = value;
+    } else if (arg === "--no-test") {
+      parsed.noTest = true;
     } else {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     }
@@ -44,7 +50,7 @@ export function run(argv: string[]): number {
     return 2;
   }
   const projectRoot = args.projectRoot ?? ".";
-  return runTsLane(projectRoot, { pnpm: resolvePnpm() });
+  return runTsLane(projectRoot, { pnpm: resolvePnpm(), noTest: args.noTest === true });
 }
 
 /* v8 ignore start -- entry guard */

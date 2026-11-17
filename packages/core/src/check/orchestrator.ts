@@ -44,6 +44,7 @@ import {
   FRAMEWORK_CHECK_GATES,
 } from "./gate-lists.js";
 import { listCompositionGatesMissingSpecificRemedies } from "./named-cause.js";
+import { prepareNoSuiteRun } from "./no-suite.js";
 import {
   CHECK_EMPTY_PLANNING_NARRATIVES_GATE_ID,
   checkRejectsEmptyPlanningNarratives,
@@ -81,8 +82,42 @@ export function dispatchTaskCheck(
 ): number {
   const resolvedFramework = resolve(frameworkRoot);
   const resolvedProject = resolve(projectRoot);
+
+  // #6469: fetch, PR lookup and CI's gate env come before any gate; a failed
+  // fetch runs no gate. The run always takes the per-gate runner, uncached,
+  // with the prepared env.
+  if (seams.noSuite === true) {
+    const prep = (seams.prepareNoSuite ?? prepareNoSuiteRun)({
+      projectRoot: resolvedProject,
+      env: seams.env ?? process.env,
+    });
+    if (!prep.ok) {
+      process.stderr.write(`${prep.message}\n`);
+      return prep.exitCode;
+    }
+    for (const line of prep.header) {
+      process.stderr.write(`${line}\n`);
+    }
+    try {
+      return dispatchCheckTarget(resolvedFramework, resolvedProject, {
+        ...seams,
+        env: prep.env,
+        noCache: true,
+      });
+    } finally {
+      prep.cleanup();
+    }
+  }
+  return dispatchCheckTarget(resolvedFramework, resolvedProject, seams);
+}
+
+function dispatchCheckTarget(
+  resolvedFramework: string,
+  resolvedProject: string,
+  seams: CheckOrchestratorSeams,
+): number {
   const target = resolveCheckTarget(resolvedFramework, resolvedProject);
-  const useTaskCache = seams.useTaskCache !== false && !seams.noCache;
+  const useTaskCache = seams.noSuite === true || (seams.useTaskCache !== false && !seams.noCache);
 
   // #6071 PRODUCTION: evaluateCitedSkipScan is called here on every
   // framework-source `task check` entry (cached + uncached). Cached runner
