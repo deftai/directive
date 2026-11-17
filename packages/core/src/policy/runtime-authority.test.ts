@@ -114,6 +114,40 @@ describe("runtimeAuthority policy (#1394)", () => {
     expect(result.code).toBe("runtime-policy-deny-scope");
   });
 
+  it("labels only the story file_scope verdict as storyScopeOnly (#6535)", () => {
+    const base = resolveRuntimeAuthorityPolicy({
+      enabled: true,
+      denyPaths: ["secrets/**"],
+      allowPaths: ["src/**", "docs/**"],
+      scopes: { edits: true, push: false, merge: false },
+    });
+    const policy = { ...base, storyAllowPaths: ["src/**"] };
+    const story = evaluateRuntimeAuthorityDirectWrite({ policy, relPathPosix: "docs/a.md" });
+    expect(story).toMatchObject({
+      allowed: false,
+      code: "runtime-policy-deny-path",
+      storyScopeOnly: true,
+    });
+    expect(story.reason).toContain("story file_scope");
+    // Project denyPaths, project allowPaths, an edits-scope-off policy and an allow stay unlabeled.
+    const deny = evaluateRuntimeAuthorityDirectWrite({ policy, relPathPosix: "secrets/k.env" });
+    expect(deny.allowed).toBe(false);
+    expect(deny.storyScopeOnly).toBeUndefined();
+    const outsideAllow = evaluateRuntimeAuthorityDirectWrite({ policy, relPathPosix: "lib/x.ts" });
+    expect(outsideAllow.allowed).toBe(false);
+    expect(outsideAllow.storyScopeOnly).toBeUndefined();
+    const editsOff = evaluateRuntimeAuthorityDirectWrite({
+      policy: { ...policy, scopes: { edits: false, push: false, merge: false } },
+      relPathPosix: "docs/a.md",
+    });
+    expect(editsOff.storyScopeOnly).toBeUndefined();
+    expect(evaluateRuntimeAuthorityDirectWrite({ policy, relPathPosix: "src/a.ts" })).toEqual({
+      allowed: true,
+      reason: null,
+      code: null,
+    });
+  });
+
   it("validates scopes shape", () => {
     expect(validateRuntimeAuthority({ scopes: "bad" })).toContain(
       "plan.policy.runtimeAuthority.scopes must be an object",

@@ -266,6 +266,12 @@ export interface RuntimeAuthorityDirectWriteResult {
   readonly allowed: boolean;
   readonly reason: string | null;
   readonly code: "runtime-policy-deny-scope" | "runtime-policy-deny-path" | null;
+  /**
+   * True only for the selected story's `file_scope` verdict (`deny-story-scope`),
+   * which no project denyPaths / allowPaths refusal precedes. Lets a caller treat
+   * that one verdict as advisory (#6535); code and reason do not change.
+   */
+  readonly storyScopeOnly?: true;
 }
 
 /**
@@ -313,6 +319,7 @@ export function evaluateRuntimeAuthorityDirectWrite(
   if (pathVerdict === "deny-story-scope") {
     return {
       allowed: false,
+      storyScopeOnly: true,
       code: "runtime-policy-deny-path",
       reason:
         `Directive denied this direct write: path ${relPathPosix} is outside ` +

@@ -95,6 +95,30 @@ export function checkRunMatchesRequiredContext(
 
 /** UTF-8-safe gh capture via execFile (no shell) — mirrors _safe_subprocess.run_text (#1366). */
 export function defaultRunGh(cmd: readonly string[]): RunGhResult {
+  return runGhWithTimeout(cmd, GH_TIMEOUT_S * 1000, true);
+}
+
+/**
+ * gh runner that shares one time budget across calls (#6535). Each call gets the
+ * time left; once the budget is spent a call returns a failed result without
+ * running gh. No ghx fallback retry, so a single call cannot outlive the budget.
+ */
+export function makeBudgetedRunGh(budgetMs: number, now: () => number = Date.now): RunGhFn {
+  const deadline = now() + budgetMs;
+  return (cmd) => {
+    const left = deadline - now();
+    if (left <= 0) {
+      return { returncode: -1, stdout: "", stderr: "gh read budget exhausted" };
+    }
+    return runGhWithTimeout(cmd, Math.ceil(left), false);
+  };
+}
+
+function runGhWithTimeout(
+  cmd: readonly string[],
+  timeoutMs: number,
+  allowFallbackRetry: boolean,
+): RunGhResult {
   if (cmd.length === 0 || cmd[0] !== "gh") {
     return { returncode: -1, stdout: "", stderr: "expected gh as first argv element" };
   }
@@ -102,7 +126,7 @@ export function defaultRunGh(cmd: readonly string[]): RunGhResult {
   const binary = resolveBinaryForArgv(args[0] ?? "", args.slice(1));
   const execOpts = {
     encoding: "utf8" as const,
-    timeout: GH_TIMEOUT_S * 1000,
+    timeout: timeoutMs,
     stdio: ["ignore", "pipe", "pipe"] as ["ignore", "pipe", "pipe"],
     maxBuffer: SUBPROCESS_MAX_BUFFER,
     // Plain output for JSON.parse on first run and ghx fallback retry (#6023).
@@ -121,20 +145,24 @@ export function defaultRunGh(cmd: readonly string[]): RunGhResult {
       code?: string;
       message?: string;
     };
-    const retry = ghxSpawnFallbackBinary(
-      classifyScmArgv(args[0] ?? "", args.slice(1)),
-      binary,
-      defaultWhich,
-      {
-        status: typeof first.status === "number" ? first.status : null,
-        error:
-          first.code === "ENOENT" || first.code === "ETIMEDOUT" || typeof first.status !== "number"
-            ? { code: first.code, message: first.message }
-            : undefined,
-        stdout: typeof first.stdout === "string" ? first.stdout : "",
-        stderr: typeof first.stderr === "string" ? first.stderr : "",
-      },
-    );
+    const retry = allowFallbackRetry
+      ? ghxSpawnFallbackBinary(
+          classifyScmArgv(args[0] ?? "", args.slice(1)),
+          binary,
+          defaultWhich,
+          {
+            status: typeof first.status === "number" ? first.status : null,
+            error:
+              first.code === "ENOENT" ||
+              first.code === "ETIMEDOUT" ||
+              typeof first.status !== "number"
+                ? { code: first.code, message: first.message }
+                : undefined,
+            stdout: typeof first.stdout === "string" ? first.stdout : "",
+            stderr: typeof first.stderr === "string" ? first.stderr : "",
+          },
+        )
+      : null;
     if (retry !== null) {
       try {
         const stdout = runOnce(retry);
