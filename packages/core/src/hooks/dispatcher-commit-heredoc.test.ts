@@ -70,10 +70,10 @@ describe("commit-shape check ignores heredoc bodies end to end (#6187)", () => {
     expect(decision.message).toMatch(/docs\/out\.md/);
   });
 
-  it("refuses a commit named inside an executable unquoted heredoc body", () => {
-    const command = "cat <<EOF\n$(\ngit commit -am msg\n)\nEOF";
+  it("still refuses a commit run by a substitution in an unquoted heredoc body", () => {
+    const command = 'cat <<EOF\n$(\ngit com""mit -am msg\n)\nEOF';
     const decision = decideBash(command, ["src/a.ts"]);
     expect(decision).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
-    expect(decision.message).toMatch(/unquoted heredoc body/);
+    expect(decision.message).toMatch(/-a\/--all\/-am/);
   });
 });

@@ -4,7 +4,6 @@ import {
   COMMIT_TARGET_ACCEPTED_FORMS,
   commandHasGitCommitIndexMutatingForm,
   commandHasGitCommitSubcommand,
-  HEREDOC_UNCHECKED_COMMIT_REASON,
   resolveCommitTarget,
   splitShellArgvPreservingQuotes,
   tokenizeShellCommand,
@@ -256,22 +255,48 @@ describe("resolveCommitTarget (#6278)", () => {
   });
 });
 
-describe("heredoc bodies are data to every commit detector (#6187)", () => {
+describe("quoted heredoc bodies are data to every commit detector (#6187)", () => {
   // The issue repro: a note whose body names a compound commit with a file
   // message and trailing prose, which used to read as an index-mutating commit.
   const body = "- the hook refuses `cd <wt> && git commit -F <file>`; a standalone commit works";
-  // An unquoted body runs backticks and $( ), so its plain-text form has neither.
-  const plainBody = "- the hook refuses cd <wt> && git commit -F <file>; a standalone commit works";
   const quotedNote = `cat >> /tmp/notes.md <<'NOTE'\n${body}\nNOTE`;
-  const unquotedNote = `cat >> /tmp/notes.md <<NOTE\n${plainBody}\nNOTE`;
   const tabNote = `cat >> /tmp/notes.md <<-'NOTE'\n\t${body}\n\tNOTE`;
 
-  it("does not read a heredoc note that names a commit as a commit", () => {
-    for (const note of [quotedNote, unquotedNote, tabNote]) {
+  it("does not read a quoted-delimiter note that names a commit as a commit", () => {
+    for (const note of [
+      quotedNote,
+      tabNote,
+      `cat >> /tmp/notes.md <<"NOTE"\n${body}\nNOTE`,
+      `cat >> /tmp/notes.md <<\\NOTE\n${body}\nNOTE`,
+      `cat >> /tmp/notes.md <<N'OTE'\n${body}\nNOTE`,
+    ]) {
       expect(commandHasGitCommitSubcommand(note)).toBe(false);
       expect(commandHasGitCommitIndexMutatingForm(note)).toBe(false);
       expect(resolveCommitTarget(note, posix)).toBeNull();
     }
+  });
+
+  it("reads an unquoted heredoc and the text after it as written (operator ruling)", () => {
+    const plain = "cat >> /tmp/notes.md <<NOTE\ngit commit -am msg\nNOTE";
+    expect(commandHasGitCommitSubcommand(plain)).toBe(true);
+    expect(commandHasGitCommitIndexMutatingForm(plain)).toBe(true);
+    for (const nested of [
+      "cat <<EOF\n$(\ngit commit -am msg\n)\nEOF",
+      'cat <<EOF\n$(\ngit com""mit -am msg\n)\nEOF',
+    ]) {
+      expect(commandHasGitCommitSubcommand(nested)).toBe(true);
+      expect(commandHasGitCommitIndexMutatingForm(nested)).toBe(true);
+      expect(resolveCommitTarget(nested, posix)).toEqual({ kind: "hook-root" });
+    }
+    // A quoted heredoc after an unquoted one is no longer stripped.
+    const later = "cat <<A\nx\nA\ncat <<'B'\ngit commit -am msg\nB";
+    expect(commandHasGitCommitIndexMutatingForm(later)).toBe(true);
+  });
+
+  it("strips a quoted body before an unquoted heredoc and reads the rest as written", () => {
+    const mixed = `${quotedNote}\ncat <<EOF\n$(\ngit commit -am msg\n)\nEOF`;
+    expect(commandHasGitCommitIndexMutatingForm(mixed)).toBe(true);
+    expect(commandHasGitCommitIndexMutatingForm(`${quotedNote}\ncat <<EOF\nok\nEOF`)).toBe(false);
   });
 
   it("keeps a real compound commit with a file message", () => {
@@ -312,45 +337,18 @@ describe("heredoc bodies are data to every commit detector (#6187)", () => {
     expect(commandHasGitCommitSubcommand("git commit \\\n  -m msg")).toBe(true);
   });
 
-  it("treats a commit named in an executable unquoted heredoc body as unchecked", () => {
-    const nested = "cat <<EOF\n$(\ngit commit -am msg\n)\nEOF";
-    expect(commandHasGitCommitSubcommand(nested)).toBe(true);
-    expect(commandHasGitCommitIndexMutatingForm(nested)).toBe(true);
-    expect(resolveCommitTarget(nested, posix)).toEqual({
-      kind: "unresolvable",
-      reason: HEREDOC_UNCHECKED_COMMIT_REASON,
-    });
-    const backticks = `cat >> /tmp/notes.md <<NOTE\n${body}\nNOTE`;
-    expect(resolveCommitTarget(backticks, posix)).toMatchObject({ kind: "unresolvable" });
-    // A quoted delimiter turns substitution off, so the same body is data.
+  it("treats a substitution in a quoted body as data", () => {
     const quoted = "cat <<'EOF'\n$(\ngit commit -am msg\n)\nEOF";
     expect(commandHasGitCommitSubcommand(quoted)).toBe(false);
     expect(resolveCommitTarget(quoted, posix)).toBeNull();
-  });
-
-  it("does not read body quotes into the commands after an executable body", () => {
-    const command = "cat <<EOF\n$(printf x)\n'\nEOF\ngit commit -am msg";
-    expect(commandHasGitCommitSubcommand(command)).toBe(true);
-    expect(commandHasGitCommitIndexMutatingForm(command)).toBe(true);
-    expect(resolveCommitTarget(command, posix)).toEqual({ kind: "hook-root" });
-    // A substitution with no commit named in the body leaves the body as data.
-    expect(commandHasGitCommitSubcommand("cat <<EOF\n$(date)\nnotes\nEOF")).toBe(false);
   });
 
   it("closes a quoted heredoc whose last body line ends in a backslash", () => {
     const command = "cat <<'EOF'\nline \\\nEOF\ngit commit -am msg";
     expect(commandHasGitCommitSubcommand(command)).toBe(true);
     expect(commandHasGitCommitIndexMutatingForm(command)).toBe(true);
-  });
-
-  it("folds continuations in an unquoted body before matching the delimiter", () => {
-    const folded = "cat <<EOF\nE\\\nOF\ngit commit -am msg";
-    expect(commandHasGitCommitSubcommand(folded)).toBe(true);
-    expect(commandHasGitCommitIndexMutatingForm(folded)).toBe(true);
-    // An escaped backslash does not continue the line.
-    expect(commandHasGitCommitSubcommand("cat <<EOF\nE\\\\\nEOF\ngit commit -m x")).toBe(true);
-    // A quoted delimiter keeps the body as written, so E\ + OF is not the delimiter
-    // and the commit line is still body text of the unclosed heredoc.
+    // A quoted body is read as written, so E\ + OF is not the delimiter and the
+    // commit line is still body text of the unclosed heredoc.
     expect(commandHasGitCommitSubcommand("cat <<'EOF'\nE\\\nOF\ngit commit -am msg")).toBe(false);
   });
 
