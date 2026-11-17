@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6468",
-    "updated": "2026-11-17T02:26:14Z"
+    "updated": "2026-11-17T06:09:52Z"
   },
   "plan": {
     "title": "bug(scope): a story brief that names several issues cannot pass both closing-keywords and the completion identity join",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "A story brief can name several issues. Before merge the closing-keywords check asks the product PR for a story line for every issue the brief names, and the writer writes a full deft-story mark for each; after merge the completion identity join needs one sole mark, so a multi-issue story needs an operator delivery-identity-attest grant. This story makes the check and the writer ask for one line per running brief, for the issue the completion join anchors on (resolvePlanGithubIssueRef), and adds one refusal inside the story-line check when the plan-id adopter's owner list for that issue names a different brief, or is empty while the brief owns another of its own references. The completion join and the plan-id adopter are unchanged.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6468",
@@ -20,178 +20,332 @@
     "items": [
       {
         "title": "Story issue of a brief. The story issue of a brief is the one issue the completion identity join anchors on (`resolvePlanGithubIssueRef`). The closing-keywords check and the story-line writer read it through that same function.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/story-issue.ts, when the story issue of a brief is read for the check or the writer, then it is the issue resolvePlanGithubIssueRef returns for that plan, the same issue the completion identity join anchors on."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Identity agreement. For a running brief that would require a line under item 3, the check takes the owner list the plan-id adopter uses for the story issue: every brief in `xbrief/active`, whatever its status, for which `briefOwnsIssue` is true for the repository-scoped issue (`adoptPlanIdFromOwnedIssue` builds this list). The check fails for that brief in two cases only. Case A: the list holds a brief other than this one; the message names the story issue and each such brief. Case B: the list is empty and `briefOwnsIssue` is true for this brief and another issue among its own references; the message names both issues and the repair: make the owned issue the first GitHub issue reference of the brief. In every other case the story issue is usable: the list holds only this brief, or the list is empty and this brief owns none of its references by that predicate. No line satisfies the requirement in case A or case B.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/story-issue.ts, when a running brief would require a line, then the check reads the adopter's owner list for its story issue (listActiveBriefEntries filtered by briefOwnsIssue) and fails only in case A (another brief listed, message names the story issue and each brief) or case B (empty list, brief owns another of its references, message names both issues and the repair)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "One required line per running brief. In `evaluateStoryLineRequirement`, a running brief that names this PR as `metadata.productPullRequest` requires one line, for its story issue. A body reference (Refs, Tracking, Related) to an issue N requires a line for the story issue of the running brief that N belongs to: N itself when N is the story issue of a running brief; otherwise the story issue of the one running brief that names N as a reference. When more than one running brief names N and none has N as its story issue, the requirement for N is as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/main.ts, when evaluateStoryLineRequirement runs for a running brief that names the PR as metadata.productPullRequest, or for a body reference to one of a running brief's issues, then it requires one line, for that brief's story issue; with several briefs naming N and none anchored on it, the requirement for N is as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Either line kind satisfies the requirement, as today: `deft-story: <story issue>` or `deft-story-part: <story issue>`. The conflict rule for both lines on one number and the lands-with-product rule are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/main.ts, when the body carries deft-story: <story issue> or deft-story-part: <story issue>, then the requirement is met; a body with both lines for one number and a part line on a lands-with-product PR still fail as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Writer. `--write-story-line` for a brief writes one line, for the story issue of that brief, and no line for the other issues the brief names. For a brief whose story issue is not valid under item 2 it writes nothing and prints the message of item 2.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/main.ts, when --write-story-line runs for a brief, then it writes one line, for the brief's story issue, and none for its other issues; for a brief in case A or case B it writes nothing and prints the case message."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Message. The missing-line message names the story issue and the brief, and says that the other issues the brief names need no line.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/main.ts, when a required line is missing, then the message names the story issue and the brief and says the other issues the brief names need no line."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Unchanged. The completion identity join (`verifyStoryPrMergeIdentity`, `proveSoleMarkBasis`, the competitor scan) and the plan-id adopter are not changed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/story-issue.test.ts, when the completion identity join and the plan-id adopter run on the one-line body, then they behave as on origin/master; the diff does not touch delivery-evidence.ts or plan-id-adopter.ts."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a running brief that names three issues, owns the first of them and names this PR as its product PR, when `pr:check-closing-keywords` runs on a body with the one line `deft-story: <story issue>`, then it passes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/story-issue.test.ts, a test named for clause.8 sets up the stated briefs and body in a temp project, runs the named check, writer, plan-id adopter or completion identity join, and asserts the stated result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that merged PR and body, when the completion identity join runs for the brief, then it admits the PR on the mark basis with no operator grant.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/story-issue.test.ts, a test named for clause.9 sets up the stated briefs and body in a temp project, runs the named check, writer, plan-id adopter or completion identity join, and asserts the stated result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that body and several running briefs, when the plan-id adopter runs, then it resolves that brief.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/story-issue.test.ts, a test named for clause.10 sets up the stated briefs and body in a temp project, runs the named check, writer, plan-id adopter or completion identity join, and asserts the stated result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a running brief that names three issues and owns the first, when the story-line writer runs for it, then the body gains exactly one story line, for the story issue.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/story-issue.test.ts, a test named for clause.11 sets up the stated briefs and body in a temp project, runs the named check, writer, plan-id adopter or completion identity join, and asserts the stated result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a running brief that owns its first issue reference and a second brief in `xbrief/active` that is not running and owns the same issue, when `pr:check-closing-keywords` runs for the first brief's product PR, then it fails and the message carries the lookup's reason.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/story-issue.test.ts, a test named for clause.12 sets up the stated briefs and body in a temp project, runs the named check, writer, plan-id adopter or completion identity join, and asserts the stated result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a running brief whose ingest note names its first issue reference by number only, with no repository, and that names two further issues, when `pr:check-closing-keywords` runs on a body with the one line for the first issue, then it passes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/story-issue.test.ts, a test named for clause.13 sets up the stated briefs and body in a temp project, runs the named check, writer, plan-id adopter or completion identity join, and asserts the stated result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a running single-reference brief with no ingest origin and no plan-id binding, when `pr:check-closing-keywords` and the story-line writer run, then each result is the same as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/story-issue.test.ts, a test named for clause.14 sets up the stated briefs and body in a temp project, runs the named check, writer, plan-id adopter or completion identity join, and asserts the stated result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given running brief A with no ingest origin and no plan-id binding whose first issue reference is owned by running brief B, when `pr:check-closing-keywords` runs for A's product PR with the one line for that issue, then it fails and the message names B.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/story-issue.test.ts, a test named for clause.15 sets up the stated briefs and body in a temp project, runs the named check, writer, plan-id adopter or completion identity join, and asserts the stated result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a running brief with no ingest origin and no plan-id binding that names three issues, none owned by any brief, when `pr:check-closing-keywords` runs on a body with the one line for its story issue, then it passes, and the completion identity join admits the merged PR on the mark basis.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/story-issue.test.ts, a test named for clause.16 sets up the stated briefs and body in a temp project, runs the named check, writer, plan-id adopter or completion identity join, and asserts the stated result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a running brief whose first issue reference is not the issue it owns and that no brief owns, when `pr:check-closing-keywords` runs for its product PR, then it fails and the message names both issues and the repair.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/story-issue.test.ts, a test named for clause.17 sets up the stated briefs and body in a temp project, runs the named check, writer, plan-id adopter or completion identity join, and asserts the stated result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a running brief whose first issue reference is owned by another running brief, when `pr:check-closing-keywords` runs for its product PR, then it fails with that message.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/story-issue.test.ts, a test named for clause.18 sets up the stated briefs and body in a temp project, runs the named check, writer, plan-id adopter or completion identity join, and asserts the stated result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given either of those two briefs, when the story-line writer runs, then it writes no line and prints that message.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.19",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/story-issue.test.ts, a test named for clause.19 sets up the stated briefs and body in a temp project, runs the named check, writer, plan-id adopter or completion identity join, and asserts the stated result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a body that names a further issue of a running brief with `Refs` and carries no story line, when `pr:check-closing-keywords` runs, then it fails and the message names the story issue of that brief.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.20",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/story-issue.test.ts, a test named for clause.20 sets up the stated briefs and body in a temp project, runs the named check, writer, plan-id adopter or completion identity join, and asserts the stated result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a body with `deft-story:` marks for the story issues of two different running briefs, when the completion identity join runs, then its mark basis refuses as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.21",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/story-issue.test.ts, a test named for clause.21 sets up the stated briefs and body in a temp project, runs the named check, writer, plan-id adopter or completion identity join, and asserts the stated result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a single-issue brief made by `issue:ingest`, when each check runs, then the result is the same as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.22",
         "narrative": {
           "Acceptance": "Given packages/core/src/pr-closing-keywords/story-issue.test.ts, a test named for clause.22 sets up the stated briefs and body in a temp project, runs the named check, writer, plan-id adopter or completion identity join, and asserts the stated result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+          "recorded_at": "2026-11-17T06:03:56Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -1292,9 +1446,36 @@
           "the completion identity join and the plan-id adopter are unchanged and admit the one-line body",
           "one changelog fragment changelog.d/6468-one-story-line.md"
         ]
+      },
+      "productPullRequest": 6492,
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "6157a244abfb28da0ffa687be68e695f8566e7f4",
+        "prNumber": 6492,
+        "prBase": "master",
+        "mergeCommit": "696b4f7cc8e41d3692cf393a820213b1784d82b1",
+        "deliveryBranch": "master",
+        "deliveryCommit": "70dc7751e47817f01a44b021ba2ae9bab94412f9",
+        "verifiedAt": "2026-11-17T06:09:52Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MzFkNWUzMGQtMWRlZC00ZDM1LTkxMDUtZjJmMDJkMDk1Nzk4",
+        "identityBasis": "merge-time-mark"
+      },
+      "completedAt": "2026-11-17T06:09:52Z",
+      "completedSessionId": "host:claude:v1:MzFkNWUzMGQtMWRlZC00ZDM1LTkxMDUtZjJmMDJkMDk1Nzk4",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T06:09:52Z"
       }
     },
     "id": "github.issue.6432923889",
-    "updated": "2026-11-17T02:26:14Z"
+    "updated": "2026-11-17T06:09:52Z"
   }
 }
