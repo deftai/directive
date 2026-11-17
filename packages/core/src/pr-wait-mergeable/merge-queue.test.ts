@@ -707,7 +707,9 @@ describe("merge queue advisory on the direct path (#6366)", () => {
   });
 
   it("the advisory line names the playbook path", () => {
-    expect(mergeQueueAdvisoryLine("main")).toContain("content/docs/github-merge-queue-setup.md");
+    expect(mergeQueueAdvisoryLine("main")).toContain(
+      "https://github.com/deftai/directive/blob/master/content/docs/github-merge-queue-setup.md",
+    );
     expect(mergeQueueAdvisoryLine("main")).toContain("main requires up-to-date checks");
   });
 });

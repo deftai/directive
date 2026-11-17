@@ -209,11 +209,17 @@ export function detectMergeQueue(
 /** Merge queue setup playbook, named by the direct-path advisory (#6366). */
 export const MERGE_QUEUE_PLAYBOOK_PATH = "content/docs/github-merge-queue-setup.md";
 
+/**
+ * Stable link to the playbook. An installed copy flattens `content/`, so the
+ * repository path alone does not resolve outside the source checkout.
+ */
+export const MERGE_QUEUE_PLAYBOOK_URL = `https://github.com/deftai/directive/blob/master/${MERGE_QUEUE_PLAYBOOK_PATH}`;
+
 /** The one advisory line for a strict branch with no merge queue (#6366). */
 export function mergeQueueAdvisoryLine(branch: string): string {
   return (
     `pr_wait_mergeable: advisory: ${branch} requires up-to-date checks and has no merge queue, ` +
-    `so each merge puts open PRs behind. To set up a queue, see ${MERGE_QUEUE_PLAYBOOK_PATH}.`
+    `so each merge puts open PRs behind. To set up a queue, see ${MERGE_QUEUE_PLAYBOOK_URL}.`
   );
 }
 

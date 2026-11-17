@@ -45,7 +45,7 @@ describe("merge_queue_playbook_6366", () => {
   it("playbook_saving_rounds_names_the_four_savers", () => {
     const saving = section(playbook, "## Saving rounds in the queue");
     expect(saving).toContain("changelog.d/");
-    expect(saving).toContain("scope:complete --in-pr");
+    expect(saving).toContain("task scope:complete -- <active-path> --in-pr");
     expect(saving).toContain("#6277");
     expect(saving).toContain("@slizard label");
     expect(saving).toContain("#6377");

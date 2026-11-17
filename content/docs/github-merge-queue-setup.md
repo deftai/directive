@@ -48,7 +48,7 @@ The commands use `gh` and PowerShell 7. Replace `<owner>/<repo>`, the branch and
 3. A ruleset with the merge queue rule:
    ```powershell
    @{ name = 'Merge queue on <branch>'; target = 'branch'; enforcement = 'active'
-      conditions = @{ ref_name = @{ include = @('~DEFAULT_BRANCH'); exclude = @() } }
+      conditions = @{ ref_name = @{ include = @('refs/heads/<branch>'); exclude = @() } }
       bypass_actors = @(@{ actor_id = 5; actor_type = 'RepositoryRole'; bypass_mode = 'always' })
       rules = @(@{ type = 'merge_queue'; parameters = @{
         merge_method = 'SQUASH'; grouping_strategy = 'ALLGREEN'
@@ -57,6 +57,7 @@ The commands use `gh` and PowerShell 7. Replace `<owner>/<repo>`, the branch and
      ConvertTo-Json -Depth 6 -Compress |
      gh api -X POST repos/<owner>/<repo>/rulesets --input -
    ```
+   - ! The ruleset must target the same branch as step 2. For the default branch, `~DEFAULT_BRANCH` also works.
    - `actor_id = 5` is the repository admin role. ! Keep an admin bypass if anything pushes to the branch directly: Directive's `task release` pushes the release commit and tag to the delivery branch.
    - `max_entries_to_build` sets how many group commits CI runs at once. Each costs a full required-check run; 3 is a reasonable start.
    - `ALLGREEN` means every entry in a group must pass.
@@ -101,10 +102,10 @@ Open on 0.129.11:
 Each push after review costs one more review and one more CI run. For agents on 0.129.11 or later:
 
 - ~ Add changelog lines as `changelog.d/` fragments, not `CHANGELOG.md` edits. Fragments do not conflict, so one merge does not put the other PRs behind.
-- ~ Run `scope:complete --in-pr` in the story's last product PR, so completion needs no separate lifecycle PR (#6277).
+- ~ Run `task scope:complete -- <active-path> --in-pr` in the story's last product PR, so completion needs no separate lifecycle PR (#6277). List the story's spec-drift row file `xbrief/.audit/spec-drift/<scopeId>.json` in `file_scope` before activation, or `verify:scope-provenance` refuses the PR.
 - ~ Record a disproved SLizard finding in one `@slizard label` comment (`<fingerprint> fp head <sha> ...`), not with a new push. A free-text reply does not stop it from coming back (#6377).
 - ~ Run `swarm:pre-dispatch -- --scope-id <story> --target-id <worktree>` (begin) before you start a worker. It binds the worktree to its story, so the worker's commits are admitted (#6379).
 
 ## Reference setup
 
-`deftai/directive` `master`, set 2026-11-16: auto-merge on; required checks `TypeScript (build + lint + test)` and `Merge gate (task check)`, strict off; org ruleset requires `Greptile Review`; ruleset "Merge queue on master" as in step 3.
+`deftai/directive` `master`, set 2026-11-16: auto-merge on; required checks `TypeScript (build + lint + test)` and `Merge gate (task check)`, strict off; org ruleset requires `Greptile Review`; ruleset "Merge queue on master" as in step 3, targeting `~DEFAULT_BRANCH`.
