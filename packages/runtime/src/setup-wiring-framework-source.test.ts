@@ -14,7 +14,7 @@ import {
   stripManagedSectionAttrs,
 } from "@deftai/directive-core/dist/platform/agents-md.js";
 import { DEFT_REPO_POSITIVE_MARKERS } from "@deftai/directive-core/doctor";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { runSetup } from "./setup.js";
 import {
   ensureAgentsManagedSection,
@@ -123,6 +123,16 @@ function managedOf(root: string): string {
 }
 
 describe("setup AGENTS.md managed section in a framework source checkout (#6507)", () => {
+  // An inherited DEFT_ROOT would override the fixture template on purpose; clear it.
+  const savedDeftRoot = process.env.DEFT_ROOT;
+  beforeEach(() => {
+    delete process.env.DEFT_ROOT;
+  });
+  afterEach(() => {
+    if (savedDeftRoot === undefined) delete process.env.DEFT_ROOT;
+    else process.env.DEFT_ROOT = savedDeftRoot;
+  });
+
   it("leaves a section that matches the checkout template alone while the runtime template differs", () => {
     const root = temp("deft-6507-setup-source-");
     write(root, "main.md", "# main\n");
