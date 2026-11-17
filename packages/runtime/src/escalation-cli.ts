@@ -12,8 +12,10 @@ import {
   ESCALATION_TYPES,
   type EscalationType,
   fileEscalation,
+  formatOperatorStopBody,
   isEscalationType,
   listEscalationsFiltered,
+  notifyOperatorIfEnabled,
   resolveEscalation,
 } from "@deftai/directive-core/escalation";
 
@@ -23,6 +25,7 @@ interface Parsed {
   type: string | null;
   title: string | null;
   body: string | null;
+  commands: string[];
   agentId: string;
   contextRefs: string[];
   slaHours: number | null;
@@ -46,6 +49,7 @@ function parseArgv(argv: string[]): Parsed {
     type: null,
     title: null,
     body: null,
+    commands: [],
     agentId: "agent",
     contextRefs: [],
     slaHours: null,
@@ -95,6 +99,11 @@ function parseArgv(argv: string[]): Parsed {
     }
     if (a === "--body") {
       base.body = args[++i] ?? null;
+      continue;
+    }
+    if (a === "--command") {
+      const command = args[++i];
+      if (command !== undefined && command.trim().length > 0) base.commands.push(command);
       continue;
     }
     if (a === "--agent" || a === "--agent-id" || a === "--agentId") {
@@ -174,7 +183,8 @@ function helpText(): string {
   return [
     "Usage:",
     "  deft escalation:file -- --type <type> --title <text> [--body <text>] [--agent <id>]",
-    "      [--context refs…] [--sla-hours N] [--dangerous] [--format json]",
+    "      [--command <cmd>]… [--context refs…] [--sla-hours N] [--dangerous] [--format json]",
+    "      (--command, repeatable: the exact step the operator must run; #6275)",
     "  deft escalation:list [--open] [--type <type>] [--format json]",
     "  deft escalation:resolve -- <id> --decision approved|denied|answered|dismissed",
     "      [--note <text>] [--answer <text>] [--actor <name>]",
@@ -188,7 +198,12 @@ function helpText(): string {
   ].join("\n");
 }
 
-export function main(argv: string[] = process.argv.slice(2)): number {
+export interface EscalationCliDeps {
+  /** Notify the operator after a filing (default: notify when operatorNotify is on). */
+  readonly notify?: (projectRoot: string) => void;
+}
+
+export function main(argv: string[] = process.argv.slice(2), deps: EscalationCliDeps = {}): number {
   const args = parseArgv(argv);
   if (args.error === "help") {
     process.stdout.write(`${helpText()}\n`);
@@ -215,13 +230,17 @@ export function main(argv: string[] = process.argv.slice(2)): number {
           projectRoot: args.projectRoot,
           type: args.type,
           title: args.title,
-          body: args.body ?? undefined,
+          body:
+            args.commands.length > 0
+              ? formatOperatorStopBody(args.projectRoot, args.commands, args.body)
+              : (args.body ?? undefined),
           agentId: args.agentId,
           contextRefs: args.contextRefs,
           slaHours: args.slaHours ?? undefined,
           dangerous: args.dangerous,
           id: args.id ?? undefined,
         });
+        (deps.notify ?? ((root: string) => notifyOperatorIfEnabled(root)))(args.projectRoot);
         if (args.format === "json") {
           process.stdout.write(`${JSON.stringify(event, null, 2)}\n`);
         } else {

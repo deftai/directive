@@ -1,0 +1,2 @@
+section: Added
+- Escalation: when `plan.policy.operatorNotify` is `os` (default `off`; USER.md Personal wins), an `authz-grant-*` hook deny or an agent-shell mint refusal records an operator-only stop with the exact command and worktree, and one desktop notification lists every waiting step (mints one per line, other commands as one script). `deft escalation:file` takes a repeated `--command` for other operator steps. The notifier only tells; it changes no gate and writes nothing while off (#6275).

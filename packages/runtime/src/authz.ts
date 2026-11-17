@@ -77,6 +77,8 @@ import {
 } from "@deftai/directive-core/policy";
 import {
   type HumanPresenceMintSeams,
+  type MintOperatorStopContext,
+  mintArgsAfterVerb,
   refuseMintWhileUatActive,
   refuseNonInteractiveMint,
   resolveHumanPresenceMintSeams,
@@ -460,6 +462,11 @@ export function main(
       const uatBlocked = refuseMintWhileUatActive(`authz:${args.cmd}`, args.projectRoot);
       if (uatBlocked !== null) return uatBlocked;
     }
+    const operatorStop: MintOperatorStopContext = {
+      projectRoot: resolve(args.projectRoot),
+      args: mintArgsAfterVerb(argv, args.cmd),
+      record: resolved.recordOperatorStop,
+    };
     return refuseNonInteractiveMint({
       verb: `authz:${args.cmd}`,
       confirm: args.confirm,
@@ -467,6 +474,7 @@ export function main(
       environ: resolved.environ,
       hasControllingTerminal: resolved.hasControllingTerminal,
       readInteractiveConfirm: resolved.readInteractiveConfirm,
+      operatorStop,
     });
   };
 
