@@ -5,6 +5,10 @@ import { briefOwnsIssue, issueOriginFromRepoSlug } from "../intake/residual-iden
 import { hasArtifactSuffix } from "../layout/resolve.js";
 import { matchAny } from "../orchestration/pathspec.js";
 import {
+  evaluateSmallChangeLaneGate,
+  type SmallChangeLaneGateResult,
+} from "../policy/small-change-lane.js";
+import {
   hasPositiveGoverningStoryAllow,
   isStoryWriteFenceUnreadable,
   loadStoryWriteFenceFromMergeBase,
@@ -997,6 +1001,15 @@ export interface ResolveWorktreeStoryBindingOptions {
   readonly discoverMovedBriefs?: (worktreeRoot: string) => readonly InRangeLandsWithProductMove[];
   /** Injectable branch change-set reader for the refusal repair text (tests, #6480). */
   readonly listChangedPaths?: (worktreeRoot: string) => readonly string[] | null;
+  /**
+   * Injectable small-change lane recheck for a moved brief (tests, #6480);
+   * defaults to `evaluateSmallChangeLaneGate` on the completed brief.
+   */
+  readonly checkSmallChangeLane?: (
+    plan: Record<string, unknown>,
+    worktreeRoot: string,
+    completedPath: string,
+  ) => SmallChangeLaneGateResult;
 }
 
 function refuseBinding(failureKind: string, detail: string, repair: string): WorktreeStoryBinding {
@@ -1121,12 +1134,40 @@ function resolveMovedStoryBinding(
       `clear ${ACTIVE_SCOPE_PIN_ENV} for this worker (the ${source} names its story)`,
     );
   }
+  // The eligibility check is skipped for the moved brief, but its small-change
+  // lane bound still holds: review fixes after the move are rechecked against
+  // the completed brief and the current worktree diff (#6204 / #6480).
+  const completedPath = join(worktreeRoot, ...move.completedRel.split("/"));
+  const lane = (options.checkSmallChangeLane ?? defaultSmallChangeLane)(
+    move.plan,
+    worktreeRoot,
+    completedPath,
+  );
+  if (!lane.ok) {
+    return {
+      kind: "refuse",
+      failureKind: WORKTREE_STORY_INELIGIBLE,
+      message: `Worktree story binding refused (${WORKTREE_STORY_INELIGIBLE}): assigned story ${fencedId} (moved to ${moved}) is outside its small-change lane: ${lane.message} (#6480).`,
+    };
+  }
   return {
     kind: "bound",
     path: join(worktreeRoot, ...move.activeRel.split("/")),
     storyId,
     landsWithProductMove: move,
   };
+}
+
+function defaultSmallChangeLane(
+  plan: Record<string, unknown>,
+  worktreeRoot: string,
+  completedPath: string,
+): SmallChangeLaneGateResult {
+  return evaluateSmallChangeLaneGate(plan, {
+    projectRoot: worktreeRoot,
+    gate: "xbrief:preflight",
+    briefPath: completedPath,
+  });
 }
 
 function defaultEligible(briefPath: string): { ok: boolean; message: string } {

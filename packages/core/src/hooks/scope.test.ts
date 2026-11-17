@@ -1164,6 +1164,26 @@ describe("worktree story binding after an in-PR completion move (#6480)", () => 
     });
     for (const result of [env, spawned]) expect(refusal(result)).not.toContain("scope:activate");
   });
+
+  it("keeps the small-change lane bound on the completed brief after the move", () => {
+    const project = root();
+    const hit = move(ACTIVE_M, COMPLETED_M, "story-m");
+    const seen: string[] = [];
+    const crossed = bind(project, "story-m", [hit], {
+      checkSmallChangeLane: (_plan, worktreeRoot, completedPath) => {
+        seen.push(worktreeRoot, completedPath);
+        return { applies: true, ok: false, message: "bound crossed after admit", verdict: null };
+      },
+    }).result;
+    expect(crossed).toMatchObject({ kind: "refuse", failureKind: WORKTREE_STORY_INELIGIBLE });
+    expect(refusal(crossed)).toContain("bound crossed after admit");
+    expect(refusal(crossed)).not.toContain("scope:activate");
+    expect(seen).toEqual([project, join(project, ...COMPLETED_M.split("/"))]);
+    const inLane = bind(project, "story-m", [hit], {
+      checkSmallChangeLane: () => ({ applies: true, ok: true, message: "", verdict: null }),
+    }).result;
+    expect(inLane).toMatchObject({ kind: "bound", storyId: "story-m" });
+  });
 });
 
 describe("lands-with-product story selection (#6277 Bound 6)", () => {

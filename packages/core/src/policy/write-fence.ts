@@ -573,6 +573,12 @@ function mintRejected(reason: string): StoryWriteFenceView {
  * whose tree still has `relPath` (#6480). While a move of that path is not yet
  * committed this is HEAD. Commits behind the merge base are never candidates.
  * Null when no such commit has the path or git cannot answer.
+ *
+ * The path's own history gives the answer in a fixed number of git calls: no
+ * in-range commit touches it, or the last one adds or edits it → HEAD; the
+ * last one deletes it → that commit's first parent. The candidate is used only
+ * after git confirms it has the path and descends from the merge base;
+ * otherwise each in-range commit is probed, newest first.
  */
 export function newestInRangeCommitWithPath(
   projectRoot: string,
@@ -583,6 +589,36 @@ export function newestInRangeCommitWithPath(
   const base = mergeBaseSha.trim();
   const path = relPath.replace(/\\/g, "/").replace(/^\.\//, "");
   if (base.length === 0 || path.length === 0) return null;
+  const ok = (args: readonly string[]): boolean => {
+    try {
+      return runGit(projectRoot, args).code === 0;
+    } catch {
+      return false;
+    }
+  };
+  const out = (args: readonly string[]): string | null => {
+    try {
+      const result = runGit(projectRoot, args);
+      return result.code === 0 ? result.stdout.trim() : null;
+    } catch {
+      return null;
+    }
+  };
+  const lastTouch = out(["log", "-1", "--topo-order", "--format=%H", `${base}..HEAD`, "--", path]);
+  if (lastTouch !== null) {
+    const candidate =
+      lastTouch.length === 0 || ok(["cat-file", "-e", `${lastTouch}:${path}`])
+        ? out(["rev-parse", "--verify", "-q", "HEAD"])
+        : out(["rev-parse", "--verify", "-q", `${lastTouch}^`]);
+    if (
+      candidate !== null &&
+      candidate.length > 0 &&
+      ok(["cat-file", "-e", `${candidate}:${path}`]) &&
+      ok(["merge-base", "--is-ancestor", base, candidate])
+    ) {
+      return candidate;
+    }
+  }
   let listed: { readonly code: number; readonly stdout: string };
   try {
     listed = runGit(projectRoot, ["rev-list", "--topo-order", `${base}..HEAD`]);

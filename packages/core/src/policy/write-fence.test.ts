@@ -689,9 +689,10 @@ describe("newestInRangeCommitWithPath (#6480)", () => {
     expect(newestInRangeCommitWithPath("/nowhere", "abc", "a.json", catFileThrows)).toBeNull();
   });
 
-  it("checks HEAD-side commits newest first, then the merge base, and nothing behind it", () => {
+  it("falls back to probing HEAD-side commits newest first, then the merge base", () => {
     const probed: string[] = [];
     const runGit: GitRunner = (_cwd, args) => {
+      if (args[0] === "log") return { code: 1, stdout: "", stderr: "no history" };
       if (args[0] === "rev-list") return { code: 0, stdout: "c2\nc1\n", stderr: "" };
       probed.push(String(args[2]));
       return { code: String(args[2]).startsWith("base:") ? 0 : 1, stdout: "", stderr: "" };
@@ -709,5 +710,54 @@ describe("newestInRangeCommitWithPath (#6480)", () => {
         ? { code: 0, stdout: "", stderr: "" }
         : { code: 128, stdout: "", stderr: "" };
     expect(newestInRangeCommitWithPath("/r", "base", "a.json", none)).toBeNull();
+  });
+
+  /** Fake history: `touch` is the last in-range commit touching the path. */
+  function history(opts: {
+    readonly touch: string;
+    readonly has: readonly string[];
+    readonly descends?: boolean;
+  }): { runGit: GitRunner; calls: string[][] } {
+    const calls: string[][] = [];
+    const runGit: GitRunner = (_cwd, args) => {
+      calls.push([...args]);
+      const [cmd] = args;
+      if (cmd === "log") return { code: 0, stdout: `${opts.touch}\n`, stderr: "" };
+      if (cmd === "rev-parse") {
+        const ref = String(args[3]);
+        return {
+          code: 0,
+          stdout: ref === "HEAD" ? "head\n" : `${ref.replace("^", "-parent")}\n`,
+          stderr: "",
+        };
+      }
+      if (cmd === "cat-file") {
+        const commit = String(args[2]).split(":")[0] ?? "";
+        return { code: opts.has.includes(commit) ? 0 : 1, stdout: "", stderr: "" };
+      }
+      if (cmd === "merge-base")
+        return { code: opts.descends === false ? 1 : 0, stdout: "", stderr: "" };
+      return { code: 1, stdout: "", stderr: "" };
+    };
+    return { runGit, calls };
+  }
+
+  it("answers from the path's own history in a fixed number of calls", () => {
+    const untouched = history({ touch: "", has: ["head"] });
+    expect(newestInRangeCommitWithPath("/r", "base", "a.json", untouched.runGit)).toBe("head");
+    expect(untouched.calls.some((c) => c[0] === "rev-list")).toBe(false);
+    const edited = history({ touch: "c3", has: ["c3", "head"] });
+    expect(newestInRangeCommitWithPath("/r", "base", "a.json", edited.runGit)).toBe("head");
+    const deleted = history({ touch: "c3", has: ["c3-parent"] });
+    expect(newestInRangeCommitWithPath("/r", "base", "a.json", deleted.runGit)).toBe("c3-parent");
+    expect(deleted.calls.length).toBeLessThanOrEqual(5);
+  });
+
+  it("does not trust a fast-path candidate outside the range or without the path", () => {
+    const behind = history({ touch: "", has: ["head"], descends: false });
+    expect(newestInRangeCommitWithPath("/r", "base", "a.json", behind.runGit)).toBeNull();
+    expect(behind.calls.some((c) => c[0] === "rev-list")).toBe(true);
+    const missing = history({ touch: "", has: [] });
+    expect(newestInRangeCommitWithPath("/r", "base", "a.json", missing.runGit)).toBeNull();
   });
 });
