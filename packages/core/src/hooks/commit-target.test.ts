@@ -454,6 +454,8 @@ describe("pipes, redirections and short clusters in a commit (#6471)", () => {
     ["git commit -m msg '<(printf src/a.ts)'", "<(printf src/a.ts)"],
     ["git commit -m msg <(printf src/a.ts)", "<(printf"],
     ["git commit -m msg '|'", "|"],
+    ["git commit -m msg >'>' -a", "-a"],
+    ["git commit -m msg 2>\\> src/a.ts", "src/a.ts"],
     ["git commit -m msg '>x'", ">x"],
     ["git commit --all -m msg", "--all"],
     ["git commit --include -m msg", "--include"],

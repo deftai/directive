@@ -71,7 +71,11 @@ export function tokenizeShellCommand(command: string): ShellSegment[] {
       // An operator alone (`>`, `2>>`, `&>`, `<<<`) takes the next word as its
       // target; anything attached after it (`2>&1`, `>out`) carries its own.
       const redirection = redirect
-        ? ({ redirect: /^(?:\d*|&)[<>|&]+$/.test(cur) ? "operator" : "attached" } as const)
+        ? ({
+            // Decided from the raw text: a quote or escape after the operator
+            // (`>'>'`) makes a target, so the next word stays an argument.
+            redirect: !literalPrefix && /^(?:\d*|&)[<>|&]+$/.test(cur) ? "operator" : "attached",
+          } as const)
         : {};
       words.push({ ...word, ...redirection });
     }
