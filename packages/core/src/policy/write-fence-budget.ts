@@ -156,6 +156,17 @@ function resolveAuthority(
       reason: `merge-base mint at ${rel} is invalid for ${planId}; fail closed (#6221 / #5192)`,
     };
   }
+  // A basename-keyed mint counts only for this brief or its same-name lifecycle move.
+  if (!hasPlanId) {
+    const mintLeaf = String(parsed.xbriefRelPath ?? "")
+      .replace(/\\/g, "/")
+      .split("/")
+      .pop();
+    const briefLeaf = (fence.briefRel ?? "").split("/").pop();
+    if (mintLeaf !== briefLeaf) {
+      return { kind: "ok", authority: "concrete", allowlist: brief };
+    }
+  }
   return {
     kind: "ok",
     authority: "mint",

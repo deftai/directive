@@ -238,6 +238,40 @@ describe("resolveStoryWriteAllow (#6221)", () => {
     if (d.kind === "refuse") expect(d.reason).toContain("extra-paths-over-budget");
   });
 
+  it("honors a basename-keyed mint only for the same-named brief (no plan.id)", () => {
+    const mint = (xbriefRelPath: string) =>
+      `${JSON.stringify(
+        buildApprovedScopeRecord({
+          xbriefRelPath,
+          payload: {
+            plan: { id: "story", metadata: { swarm: { file_scope: ["packages/core/src/**"] } } },
+          },
+          humanApproval: { kind: "operator", actor: "scott", mintedAt: "2026-08-01T00:00:00Z" },
+        }),
+      )}\n`;
+    const run = (xbriefRelPath: string) => {
+      const { root, sha } = repo({
+        ...BASE,
+        ".deft/approved-scope/story.json": mint(xbriefRelPath),
+      });
+      return resolveStoryWriteAllow({
+        projectRoot: root,
+        fence: {
+          fileScope: ["packages/core/src/a.ts", "packages/core/src/sub/**"],
+          denyPaths: [],
+          mergeBaseSha: sha,
+          briefRel: "xbrief/active/story.xbrief.json",
+        },
+        targets: ["packages/core/src/sub/k.ts"],
+      });
+    };
+    const own = run("xbrief/active/story.xbrief.json");
+    expect(own).toMatchObject({ kind: "scope", assessment: null });
+    const other = run("xbrief/active/other.xbrief.json");
+    expect(other.kind).toBe("scope");
+    if (other.kind === "scope") expect(other.assessment).not.toBeNull();
+  });
+
   it("uses the merge-base mint with globs, intersected with the brief", () => {
     const record = buildApprovedScopeRecord({
       xbriefRelPath: "xbrief/active/story.xbrief.json",
