@@ -27,15 +27,22 @@ export interface RefusalDeclaration {
   /** Commands to run, in order, each with every argument it needs. */
   readonly remedy: readonly string[];
   readonly exception: string | null;
+  /**
+   * Set only when the remedy cannot run exactly as printed yet: why, and the
+   * issue that owns the runnable form. The line says so; the remedy test
+   * checks the reason instead of running the commands.
+   */
+  readonly deferred: string | null;
 }
 
-/** A row as written in the table: `mode` and `exception` may be omitted. */
+/** A row as written in the table: `mode`, `exception` and `deferred` may be omitted. */
 export interface RawRefusalDeclaration {
   readonly id: string;
   readonly gate: string;
   readonly mode?: RefusalMode;
   readonly remedy: readonly string[];
   readonly exception?: string;
+  readonly deferred?: string;
 }
 
 export const DECLARATION_TABLE_BEGIN = "refusal-declarations:begin";
@@ -46,6 +53,20 @@ export const DECLARATION_TABLE_PATH = "packages/core/src/refusal-declarations/ta
 
 // biome-ignore format: the rows are parsed as strict JSON from past releases.
 export const REFUSAL_DECLARATION_ROWS: readonly RawRefusalDeclaration[] = /* refusal-declarations:begin */ [
+  {
+    "id": "pre-pr-push-gate",
+    "gate": "bound pre-PR push gate (#5804)",
+    "mode": "enforce",
+    "remedy": [
+      "deft pre-pr:run --repo <owner/name> --base-sha <merge-base-sha> --head-sha {head} --tree-hash <head-tree-sha> --body-file <pr-body-file> --approved-revision <brief-revision-sha>",
+      "deft pre-pr:run --observe-command --phase <phase> --command <command> --exit-code <n>",
+      "deft pre-pr:run --observe-semantic --phase <phase> --reviewed-file <path> --supplied-contents-hash <hex>",
+      "deft pre-pr:run --complete",
+      "git push"
+    ],
+    "exception": "existing refusal that refused before this table existed; seed row from #5977",
+    "deferred": "fill the angle-bracket values and observe every phase in deft-directive-pre-pr skill order; the semantic phases need your own review, so no printed form can stand in for it; a one-command pre-PR is #5933 (operator ruling on #6281, 2026-11-17)"
+  },
   {
     "id": "setup-hook-files",
     "gate": "setup: project-root .githooks/ hook files (#2530)",
@@ -93,7 +114,8 @@ export function normalizeDeclarations(rows: readonly unknown[]): {
       gate.length === 0 ||
       remedy.length === 0 ||
       !isMode(mode) ||
-      (row.exception !== undefined && typeof row.exception !== "string")
+      (row.exception !== undefined && typeof row.exception !== "string") ||
+      (row.deferred !== undefined && typeof row.deferred !== "string")
     ) {
       invalid.push(id.length > 0 ? id : `row ${index + 1}`);
       return;
@@ -102,7 +124,11 @@ export function normalizeDeclarations(rows: readonly unknown[]): {
       typeof row.exception === "string" && row.exception.trim().length > 0
         ? row.exception.trim()
         : null;
-    out.push({ id, gate, mode, remedy, exception });
+    const deferred =
+      typeof row.deferred === "string" && row.deferred.trim().length > 0
+        ? row.deferred.trim()
+        : null;
+    out.push({ id, gate, mode, remedy, exception, deferred });
   });
   return { rows: out, invalid };
 }

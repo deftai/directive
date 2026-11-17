@@ -44,7 +44,7 @@ A **declared refusal** is a row in the refusal declaration table (`packages/core
    git push -u origin <branch>
    ```
 
-   - **Bound pre-PR push gate (#5804).** A push of product or test changes is refused unless a completed pre-PR pass is bound to the pushed HEAD and covers the outgoing paths. Remedy: complete the `deft pre-pr:run` phases for this HEAD (see `deft-directive-pre-pr` skill), then push again.
+   - **Bound pre-PR push gate (#5804), declared row `pre-pr-push-gate`.** A push of product or test changes is refused unless a completed pre-PR pass is bound to the pushed HEAD and covers the outgoing paths. Remedy: start a `deft pre-pr:run` controller run for this HEAD (the line fills `--head-sha`), observe every phase in `deft-directive-pre-pr` skill order (`--observe-command` and `--observe-semantic`), run `deft pre-pr:run --complete`, then `git push`. This remedy is not runnable exactly as printed: you fill the angle-bracket values and do the review the semantic phases record. A one-command pre-PR is #5933.
 
 5. Open the pull request.
 
@@ -94,7 +94,7 @@ deft verify:plan-sequence --target-kind story --target <id>
 
 ## Setup and hooks
 
-These two refusals are declared refusals (rows `setup-hook-files` and `hooks-installed`):
+These two refusals are declared refusals (rows `setup-hook-files` and `hooks-installed`), and their remedies run as printed:
 
 - **`setup-hook-files`.** `task setup` (consumer: `task deft:setup`) refuses when `.githooks/` lacks `pre-commit`, `pre-push` or `_directive-run.sh`. Remedy: `directive install --repair --yes`.
 - **`hooks-installed`.** `verify:hooks-installed` refuses when the hooks are not wired or not functional. Remedy: `directive install --repair --yes`. Repair keeps the pinned version, so it is never a downgrade to an older npm latest.

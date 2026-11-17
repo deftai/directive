@@ -67,6 +67,25 @@ describe("declared refusal print helper (#6281 item 2)", () => {
     expect(parsePrintedRemedy(first.line)).toEqual(["deft fix --repo {repo}", "deft retry"]);
   });
 
+  it("a deferred row says its remedy is not runnable as printed, after the commands", () => {
+    const rows = loadRefusalDeclarations([
+      {
+        id: "deferred-gate",
+        gate: "g",
+        mode: "enforce",
+        remedy: ["a `b`"],
+        exception: "e",
+        deferred: "needs review; one-command form is #99",
+      },
+    ]);
+    const out = formatDeclaredRefusal({ id: "deferred-gate", detail: "d", rows });
+    expect(out.line).toMatch(
+      /Remedy: `a `b``\. Not runnable exactly as printed: needs review; one-command form is #99\.$/,
+    );
+    const plain = formatDeclaredRefusal({ id: "warn-gate", detail: "d", rows: ROWS });
+    expect(plain.line).not.toContain("Not runnable");
+  });
+
   it("an id outside the table still prints one refusal line", () => {
     const out = formatDeclaredRefusal({ id: "nope", detail: "d", rows: ROWS });
     expect(out.declared).toBe(false);

@@ -39,7 +39,19 @@ describe("refusal declaration table (#6281 item 1)", () => {
       mode: "enforce",
       remedy: ["a --x 1", "b"],
       exception: "security fix",
+      deferred: null,
     });
+  });
+
+  it("keeps a deferred reason and drops a blank one", () => {
+    const rows = loadRefusalDeclarations([
+      { id: "d", gate: "g", remedy: ["x"], deferred: " needs review; #1 " },
+      { id: "e", gate: "g", remedy: ["x"], deferred: "  " },
+    ]);
+    expect(rows.map((r) => r.deferred)).toEqual(["needs review; #1", null]);
+    expect(
+      normalizeDeclarations([{ id: "f", gate: "g", remedy: ["x"], deferred: 1 }]).invalid,
+    ).toEqual(["f"]);
   });
 
   it("drops malformed rows and names them, never throws", () => {

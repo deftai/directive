@@ -67,10 +67,12 @@ export function formatDeclaredRefusal(input: {
   }
   const remedy = row.remedy.map((c) => fillRemedyCommand(c, input.values));
   const commands = formatRemedyCommands(remedy);
+  const deferred =
+    row.deferred === null ? "" : ` Not runnable exactly as printed: ${row.deferred}.`;
   const line =
     row.mode === "warn"
-      ? `⚠ deft gate ${row.id} (${row.gate}) warns only in this release; it can refuse from a later release: ${detail} Remedy: ${commands}.`
-      : `❌ deft gate ${row.id} (${row.gate}) refused: ${detail} Remedy: ${commands}.`;
+      ? `⚠ deft gate ${row.id} (${row.gate}) warns only in this release; it can refuse from a later release: ${detail} Remedy: ${commands}.${deferred}`
+      : `❌ deft gate ${row.id} (${row.gate}) refused: ${detail} Remedy: ${commands}.${deferred}`;
   return {
     declared: true,
     id: row.id,
@@ -89,7 +91,8 @@ export function parsePrintedRemedy(line: string): readonly string[] {
   }
   const out: string[] = [];
   const re = /`([^`]+)`/g;
-  const tail = line.slice(at);
+  const note = line.indexOf(" Not runnable exactly as printed: ", at);
+  const tail = note < 0 ? line.slice(at) : line.slice(at, note);
   let match: RegExpExecArray | null = re.exec(tail);
   while (match !== null) {
     out.push(match[1] ?? "");

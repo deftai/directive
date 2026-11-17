@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { runInstall } from "../../../cli/src/bookends.js";
 import { readProjectInstallState } from "../../../cli/src/pin.js";
 import { ensureGitHooks } from "../../../runtime/src/setup-wiring.js";
+import { evaluatePrePush, prePrPushGateRefusalLine } from "../preflight-gh/pre-push.js";
 import { evaluate as evaluateHooksInstalled } from "../verify-env/verify-hooks-installed.js";
 import { formatDeclaredRefusal, parsePrintedRemedy } from "./print.js";
 import { loadRefusalDeclarations, rowsWithoutRemedyCase } from "./table.js";
@@ -140,11 +141,25 @@ function runSetupCheck(root: string): string | null {
 interface RemedyCase {
   /** Put the project in the refused state and return the printed refusal line. */
   readonly refuse: (root: string) => string;
-  /** Retry the refused operation; true when it no longer refuses. */
-  readonly retry: (root: string) => boolean;
+  /**
+   * Retry the refused operation; true when it no longer refuses. Null only for
+   * a row whose table entry is `deferred`: its line must say it is not
+   * runnable as printed and name the owning issue.
+   */
+  readonly retry: ((root: string) => boolean) | null;
 }
 
 const CASES: Readonly<Record<string, RemedyCase>> = {
+  // AC 20 deferred to #5933 by operator ruling on #6281 (2026-11-17): the
+  // controller run needs review evidence, so no printed form can stand in.
+  "pre-pr-push-gate": {
+    refuse: (root) => {
+      const [code, message] = evaluatePrePush([], { projectRoot: root, enrolledBoundPrePr: true });
+      expect(code).toBe(1);
+      return message;
+    },
+    retry: null,
+  },
   "setup-hook-files": {
     refuse: (root) => {
       const line = runSetupCheck(root);
@@ -176,12 +191,33 @@ describe("declared refusal remedies run as printed (#6281 item 5)", () => {
     expect(printed).toContain(`deft gate ${id} `);
     const commands = parsePrintedRemedy(printed);
     expect(commands).toEqual(row.remedy);
+    if (remedyCase.retry === null) {
+      expect(row.deferred, `row ${id} has no runnable-as-printed case`).not.toBeNull();
+      expect(printed).toContain(`Not runnable exactly as printed: ${row.deferred}.`);
+      expect(row.deferred).toMatch(/#\d+/);
+      return;
+    }
+    expect(row.deferred).toBeNull();
     for (const command of commands) {
       const ran = runPrinted(root, command);
       expect(ran.stderr).not.toMatch(/downgrade/i);
       expect(ran.code, `${command}: ${ran.stderr}`).toBe(0);
     }
     expect(remedyCase.retry(root)).toBe(true);
+  });
+
+  it("the bound pre-PR push gate names the head it knows and the controller sequence", () => {
+    const line = prePrPushGateRefusalLine("no completed pre-PR pass bound to this HEAD", "abc123");
+    expect(line).toContain("deft gate pre-pr-push-gate (bound pre-PR push gate (#5804)) refused:");
+    const commands = parsePrintedRemedy(line);
+    expect(commands[0]).toContain("--head-sha abc123 ");
+    expect(commands.slice(1)).toEqual([
+      "deft pre-pr:run --observe-command --phase <phase> --command <command> --exit-code <n>",
+      "deft pre-pr:run --observe-semantic --phase <phase> --reviewed-file <path> --supplied-contents-hash <hex>",
+      "deft pre-pr:run --complete",
+      "git push",
+    ]);
+    expect(line).toContain("#5933");
   });
 
   it("a row with no refusal-state case is named", () => {

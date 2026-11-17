@@ -49,7 +49,7 @@ describe("warn-first refusal rule (#6281)", () => {
     expect(section(page, "## One push")).toContain("git push");
     expect(section(page, "## One completion")).toContain("deft verify:completed-tracked --issue");
     expect(section(page, "## One plan update")).toContain("deft plan-sequence:insert");
-    for (const id of ["setup-hook-files", "hooks-installed"]) {
+    for (const id of ["pre-pr-push-gate", "setup-hook-files", "hooks-installed"]) {
       expect(page).toContain(`\`${id}\``);
     }
     expect(page).toContain("directive install --repair --yes");
