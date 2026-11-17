@@ -15,11 +15,12 @@ describe("merge_group skip (#6295 item 2)", () => {
     expect(isMergeGroupEvent({})).toBe(false);
   });
 
-  it("names exactly the three PR-context checks", () => {
+  it("names exactly the PR-context checks (#6295 three, #6296 changelog)", () => {
     expect([...MERGE_GROUP_SKIPPED_CHECKS]).toEqual([
       "verify:closing-keywords",
       "verify:scope-provenance",
       "verify:intent-constraint",
+      "verify:changelog-unreleased",
     ]);
   });
 

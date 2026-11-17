@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6374",
-    "updated": "2026-11-17T14:54:05Z"
+    "updated": "2026-11-17T17:39:07Z"
   },
   "plan": {
     "title": "bug(verify): verify:ac is green before any work exists",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "A green `verify:ac` with zero verified clauses still leads with \"verify:ac passed (#3284)\", so a fresh brief reads as done before any work exists. This story changes only that first line to \"verify:ac: no acceptance evidence yet (#3284)\" when no clause verified and no acceptance command ran green, keeps `ok`, the exit code and the resolution label, and keeps the two zero-verified refusals (rapid check #4866, scope:complete #4870) exactly as they are by teaching their one detector the new line. It also adds a context-only note on verified rows whose file is unchanged since the commit before a committed brief entered its folder, and says in the verify:ac help text and the pre-PR skill that exit 0 means no clause failed.",
       "UserStory": "As a worker or reviewer reading `verify:ac`, I want the first line to say there is no acceptance evidence yet when nothing was verified, so that I do not read a brief with no evidence as done.",
@@ -20,130 +20,242 @@
     "items": [
       {
         "title": "Zero-verified lead. When the result is green, no acceptance command ran green, and the walk verified zero clauses, the first line reads \"verify:ac: no acceptance evidence yet (#3284)\" with the same counts, in place of \"verify:ac passed (#3284)\". This applies on every branch and to every brief. In every other case the first line is as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given a green result with zero verified clauses and no green acceptance command, when verify:ac renders its message, then the first line reads \"verify:ac: no acceptance evidence yet (#3284)\" with the same counts and rung, and in every other case the first line is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "aceac590f62f1f1ac58c2bb5ac2648ddb03cdab7",
+          "recorded_at": "2026-11-17T17:39:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "`ok`, the exit code and the resolution label never change.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given a zero-verified green result before and after the change, when verify:ac runs, then ok, the exit code and the resolution label are the same."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "aceac590f62f1f1ac58c2bb5ac2648ddb03cdab7",
+          "recorded_at": "2026-11-17T17:39:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Existing refusals are preserved, not widened. The one detector `acceptanceWalkReportsZeroVerified` recognises the item 1 line as well as the old line, in quiet output too. Rapid `check` (#4866) and `scope:complete` (#4870) give the same result as today for every input.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given the new first line, with or without the clause-walk summary line, when acceptanceWalkReportsZeroVerified reads it, then it returns true, and rapid check and scope:complete give the same result as for the old line."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "aceac590f62f1f1ac58c2bb5ac2648ddb03cdab7",
+          "recorded_at": "2026-11-17T17:39:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Context note, with no bearing on any result. For a brief in a non-terminal lifecycle folder that is committed at its current path, a `verified` row whose bound file is identical in the working tree to its content at the parent of the commit that added the brief at that path prints \"file unchanged since the commit before this brief entered this folder\" in its detail. A brief that is not committed at its current path, a brief in a terminal folder and a checkout outside git get no note and no extra line.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given a committed brief in a non-terminal lifecycle folder and a verified row whose bound file is byte-identical to its content at the parent of the commit that added the brief at that path, when verify:ac runs, then that row's detail shows the context note; an uncommitted brief, a terminal-folder brief and a checkout outside git show no note."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "aceac590f62f1f1ac58c2bb5ac2648ddb03cdab7",
+          "recorded_at": "2026-11-17T17:39:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Wording of the contract. The `verify:ac` help text and the pre-PR skill say that exit 0 means no clause failed, not that the requested work exists.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given the verify:ac task description and the pre-PR skill, when a reader looks up what exit 0 means, then the text says exit 0 means no clause failed, not that the requested work exists."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "aceac590f62f1f1ac58c2bb5ac2648ddb03cdab7",
+          "recorded_at": "2026-11-17T17:39:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a brief with zero verified clauses and no green acceptance command, when `task verify:ac` runs on a fresh branch with no commit, then the first line reads \"no acceptance evidence yet\".",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given a brief with zero verified clauses and no green acceptance command on a fresh branch with no commit, when verify:ac runs, then the first line reads \"no acceptance evidence yet\"."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "aceac590f62f1f1ac58c2bb5ac2648ddb03cdab7",
+          "recorded_at": "2026-11-17T17:39:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the same brief on the delivery branch, when `task verify:ac` runs, then the first line reads \"no acceptance evidence yet\".",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given the same brief on the delivery branch, when verify:ac runs, then the first line reads \"no acceptance evidence yet\"."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "aceac590f62f1f1ac58c2bb5ac2648ddb03cdab7",
+          "recorded_at": "2026-11-17T17:39:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given either run, then the exit code is the same as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given either run, when verify:ac exits, then the exit code is the same as before the change."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "aceac590f62f1f1ac58c2bb5ac2648ddb03cdab7",
+          "recorded_at": "2026-11-17T17:39:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a result with zero verified clauses under the new first line, when rapid `task check` reads it, then rapid `check` exits 1 as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given verify:ac output whose first line is the new zero-verified line, when rapid check reads it, then rapid check exits 1 and emits the #4866 notice."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "aceac590f62f1f1ac58c2bb5ac2648ddb03cdab7",
+          "recorded_at": "2026-11-17T17:39:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that result with no executable pass, when `scope:complete` reads it, then `scope:complete` refuses as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given a walk message with the new zero-verified line and predicate other than executable-pass, when scope:complete reads it, then scope:complete refuses with the #4870 notice."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "aceac590f62f1f1ac58c2bb5ac2648ddb03cdab7",
+          "recorded_at": "2026-11-17T17:39:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that result in quiet output, then the zero-verified detector still matches.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given only the new first line with no clause-walk summary line, when the zero-verified detector reads it, then it returns true."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "aceac590f62f1f1ac58c2bb5ac2648ddb03cdab7",
+          "recorded_at": "2026-11-17T17:39:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a brief with at least one verified clause, when `task verify:ac` runs, then the first line is the same as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given a green result with at least one verified clause, when verify:ac renders its message, then the first line is \"verify:ac passed (#3284)\" with the counts as before."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "aceac590f62f1f1ac58c2bb5ac2648ddb03cdab7",
+          "recorded_at": "2026-11-17T17:39:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a brief whose acceptance command ran green, when `task verify:ac` runs, then the first line says \"passed\" as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given a green result whose acceptance command ran green and zero verified clauses, when verify:ac renders its message, then the first line still says \"passed\"."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "aceac590f62f1f1ac58c2bb5ac2648ddb03cdab7",
+          "recorded_at": "2026-11-17T17:39:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an active brief that is committed at its path and a verified clause on a file unchanged since the commit before the brief entered `active/`, when `task verify:ac` runs, then that row carries the context note.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given an active brief committed at its path and a verified clause on a file unchanged since the parent of that commit, when verify:ac runs, then that row's detail shows the context note."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "aceac590f62f1f1ac58c2bb5ac2648ddb03cdab7",
+          "recorded_at": "2026-11-17T17:39:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an active brief that is not committed at its path, when `task verify:ac` runs, then no row carries the note.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given an active brief that is not committed at its path, when verify:ac runs, then no row shows the context note."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "aceac590f62f1f1ac58c2bb5ac2648ddb03cdab7",
+          "recorded_at": "2026-11-17T17:39:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given any run, then the note does not change the first line or the exit code.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given a run with and without the context note, when verify:ac renders its result, then the first line and the exit code are the same."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "aceac590f62f1f1ac58c2bb5ac2648ddb03cdab7",
+          "recorded_at": "2026-11-17T17:39:07Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -894,6 +1006,33 @@
         "leanCommentId": 6922085862,
         "harvestDigest": "3700c2e780cb55a042c8c74cfc515dbafcd42f8dc0b8a622fcb8df5352b1b7cb",
         "slice": null
+      },
+      "productPullRequest": 6539,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "9ac03cc028cd51d390df4066076da6a01a4998aa",
+        "prNumber": 6539,
+        "prBase": "master",
+        "mergeCommit": "aceac590f62f1f1ac58c2bb5ac2648ddb03cdab7",
+        "deliveryBranch": "master",
+        "deliveryCommit": "b916a10985f7052b798b4c125e67dc8e7c7661b4",
+        "verifiedAt": "2026-11-17T17:39:07Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MWFjNTUwY2QtNWFlNi00MDYyLTliODMtMDk4MzU5OTdjYjg2",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T17:39:07Z",
+      "completedSessionId": "host:claude:v1:MWFjNTUwY2QtNWFlNi00MDYyLTliODMtMDk4MzU5OTdjYjg2",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T17:39:07Z"
       }
     },
     "acceptance": {
@@ -1055,6 +1194,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6414479571",
-    "updated": "2026-11-17T14:54:05Z"
+    "updated": "2026-11-17T17:39:07Z"
   }
 }

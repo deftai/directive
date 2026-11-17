@@ -320,6 +320,7 @@
           "packages/core/src/check/index.ts",
           "packages/core/src/check/gate-lists.ts",
           "packages/core/src/check/gate-lists.test.ts",
+          "packages/core/src/check/named-cause.ts",
           "packages/core/src/ts-check-lane/run-lane.ts",
           "packages/core/src/ts-check-lane/run-lane.test.ts",
           "packages/runtime/src/ts-check-lane.ts",

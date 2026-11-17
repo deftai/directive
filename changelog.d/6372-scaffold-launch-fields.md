@@ -1,2 +1,0 @@
-section: Added
-- `swarm:readiness --scaffold` writes every launch field of an ingested story in one run: it records `kind: story` for a plain story, takes named Description, UserStory, ImplementationPlan, Traces, the two justifications and item acceptance lines (by item id or position, as flags or one `--values-file`), copies keyed clause text into items, and prints missing fields and blocked conditions as separate lists. A `file_scope` that touches a declared evaluator surface gains `xbrief/evaluator-surface-disposition.json` once (#6373). Refs #6372.

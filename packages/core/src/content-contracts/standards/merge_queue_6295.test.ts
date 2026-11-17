@@ -59,6 +59,8 @@ describe("merge_group PR-context skips (#6295 item 2)", () => {
     ],
     ["packages/runtime/src/verify-scope-provenance.ts", "verify:scope-provenance"],
     ["packages/runtime/src/verify-intent-constraint.ts", "verify:intent-constraint"],
+    // #6296 item 6: the merge-base changelog check joins the PR-context checks.
+    ["packages/runtime/src/changelog-check.ts", "verify:changelog-unreleased"],
   ])("%s skips itself on merge_group", (path, check) => {
     const src = readText(path);
     expect(src).toContain(`mergeGroupSkip("${check}", env)`);

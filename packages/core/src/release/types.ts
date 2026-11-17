@@ -23,6 +23,12 @@ export interface ReleaseConfig {
   readonly allowSkipCiIssue: number | null;
   /** Distinct override for unpaid skip-ci citations (#5239). Optional; default null. */
   readonly allowUnpaidSkipCiIssue?: number | null;
+  /**
+   * #6296 item 10 -- break-glass: run on the base branch and push the release
+   * commit and tag atomically (today's path). Default false: the cut runs on
+   * `release/v<version>` and opens a release PR.
+   */
+  readonly breakGlass?: boolean;
 }
 
 export interface ReleaseFlags {
@@ -43,6 +49,10 @@ export interface ReleaseFlags {
   readonly allowCoverageDebtIssue: number | null;
   readonly allowSkipCiIssue: number | null;
   readonly allowUnpaidSkipCiIssue: number | null;
+  /** #6296 item 10 -- `--break-glass`. */
+  readonly breakGlass: boolean;
+  /** #6296 item 3 -- `--finish <version>`; null when absent. */
+  readonly finish: string | null;
   readonly unknown: readonly string[];
 }
 
@@ -164,6 +174,15 @@ export interface ReleaseSeams {
    * Tests inject `{}` so a host env bypass cannot leak into fail-closed cases.
    */
   readonly closedVerbEnv?: EnvMap;
+  /**
+   * #6296 -- resolve the merged release PR for the finish step. When omitted,
+   * production reads the REST pulls list for `release/v<version>`.
+   */
+  readonly findMergedReleasePr?: (
+    repo: string,
+    baseBranch: string,
+    version: string,
+  ) => import("./finish.js").MergedReleasePrResult;
   /**
    * #3753 — override the active-CLI probe used by the local-vs-released report.
    * When omitted, production calls `checkActiveCliAgainstTarget`.

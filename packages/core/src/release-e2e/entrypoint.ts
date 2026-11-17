@@ -296,7 +296,17 @@ export function dispatchTaskRelease(
 ): [boolean, string] {
   // Rehearsal --skip-ci is permitted via DEFT_RELEASE_E2E (set in activateProcessState /
   // worker), not a fake production --allow-skip-ci citation (#2652 Greptile).
-  const argv = [version, "--repo", repo, "--skip-ci", "--skip-build", "--allow-vbrief-drift"];
+  // The throwaway rehearsal repo has no merge queue; it rehearses the
+  // break-glass run on its base branch with the atomic push (#6296 item 10).
+  const argv = [
+    version,
+    "--repo",
+    repo,
+    "--skip-ci",
+    "--skip-build",
+    "--allow-vbrief-drift",
+    "--break-glass",
+  ];
   if (seams.releaseEntrypoint) {
     const code = seams.releaseEntrypoint(argv);
     if (code !== 0) {

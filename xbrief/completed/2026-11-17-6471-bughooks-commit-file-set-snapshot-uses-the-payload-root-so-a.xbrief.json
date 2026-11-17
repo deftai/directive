@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6471",
-    "updated": "2026-11-17T15:46:21Z"
+    "updated": "2026-11-17T18:32:23Z"
   },
   "plan": {
     "title": "bug(hooks): commit file-set snapshot uses the payload root, so a bound worktree still refuses a subagent's commit",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The #5656 commit-shape check read every word after the git commit options that does not start with - as a file name, so a message-only commit that ends in 2>&1 | tail -N was refused as if it changed the file set after the pre-tool index snapshot; the issue blamed the index root, but that refusal is printed before any index read and the read already uses the named worktree. This story teaches the check that a pipe ends the commit, that a redirection and its target are not arguments, and that short-option clusters follow git, keeps the #6187 heredoc chunking with chunk boundaries that are not &&, and makes the refusal name the word that tripped it. Real -a, --all, --include and file-name commits stay refused, and the story binding and index root are not changed.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6471",
@@ -20,146 +20,272 @@
     "items": [
       {
         "title": "Operators. In `tokenizeShellCommand`, `&&`, `||` and `|&` are recognized before a lone `|`, and a `|` right after `>` is part of that redirect (`>|`). An unquoted lone `|` or `|&` ends the segment as a separator that is not `&&`, so the words after it are not commit arguments and a `cd` joined to the commit by a pipe stays unresolvable.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/commit-target.ts, when tokenizeShellCommand meets an unquoted lone | or |&, then it ends the segment with a separator that is not &&, keeps && / || / |& as single operators and keeps >| inside the redirect word."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0de8b54e891535c56949ef33c104e5ec805182f3",
+          "recorded_at": "2026-11-17T18:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Redirections. Escape processing comes first, and `<` and `>` join the unquoted escapable set, so `\\>path` is one literal word. A word that starts with `<(` or `>(` is an argument. An unquoted, unescaped redirection is optional digits or one `&`, then `<` or `>`; it is not an argument, and neither is its target: the attached rest of the word, or the next word when the operator stands alone. Any other prefix, such as `*`, makes the word an argument. Words after a redirection are still read.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/commit-target.ts, when a commit word is an unquoted, unescaped redirection (optional digits or one &, then < or >), then commitArgsMutateIndex skips it and its attached or next-word target, while \\>path, *>path and <( / >( words stay arguments."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0de8b54e891535c56949ef33c104e5ec805182f3",
+          "recorded_at": "2026-11-17T18:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Short-option clusters follow git. Letters are read in order. `a` or `i` marks the commit as index-changing while it is still an option letter. The first of `m`, `F`, `c`, `C` or `t` takes the rest of the cluster as its value, or the next word when it is the last letter. `u` and `S` take the rest of the cluster and never the next word.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/commit-target.ts, when commitArgsMutateIndex reads a short-option cluster, then it reads letters in order: a or i marks index-changing, the first of m, F, c, C or t takes the rest or the next word, and u or S take only the rest."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0de8b54e891535c56949ef33c104e5ec805182f3",
+          "recorded_at": "2026-11-17T18:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Heredoc. `resolveCommitTarget`, `commandHasGitCommitIndexMutatingForm` and `commandHasGitCommitSubcommand` read the chunks of `shellCommandChunksWithoutQuotedHereDocBodies`. Each chunk is tokenized on its own, with no join before `tokenizeShellCommand`. The segments of all chunks then form one list in chunk order, and the last segment of each chunk ends with a separator that is not `&&`, so `resolveOneCommit` sees every earlier `cd` and a `cd` in an earlier chunk makes the target unresolvable. This story carries that wiring unless #6481 has merged it in that shape. An unquoted body stays visible.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/commit-target.ts, when resolveCommitTarget and the two commit detectors read a command, then they tokenize each chunk of shellCommandChunksWithoutQuotedHereDocBodies on its own and read the segments of all chunks as one ordered list whose chunk boundaries are not &&."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0de8b54e891535c56949ef33c104e5ec805182f3",
+          "recorded_at": "2026-11-17T18:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Message. The #5656 index-snapshot refusal names the first word that made the commit index-changing.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher.ts, when decideProspectiveGitCommitScopeCover refuses an index-changing commit (#5656), then the refusal text names the first word that made the commit index-changing, taken from packages/core/src/hooks/commit-target.ts."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0de8b54e891535c56949ef33c104e5ec805182f3",
+          "recorded_at": "2026-11-17T18:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Unchanged. `-a`, `--all`, `-i`, `--include`, `-am` and any real trailing file name, also after `--` or after a redirection, are refused. A quoted operator, a lone `&` and a `#` word are ordinary words and are refused as today. The staged index is read on the target root as today. `resolveWorktreeStoryBinding` and `evaluateProspectiveScopeCover` are not changed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/commit-target.ts, when a commit carries -a, --all, -i, --include, -am, a real trailing file name (also after -- or a redirection), a quoted operator, a lone & or a # word, then it is still index-changing, and the binding and index root code is not changed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0de8b54e891535c56949ef33c104e5ec805182f3",
+          "recorded_at": "2026-11-17T18:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a bound linked worktree with a staged index, when a background subagent runs `git -C <wt> commit -m msg 2>&1 | tail -3` or `cd <wt> && git commit -F <file> 2>&1 | tail -3`, then the commit-shape check does not refuse and the staged index is read on that worktree.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher-commit-heredoc.test.ts, when the hook sees git -C <wt> commit -m msg 2>&1 | tail -3 or cd <wt> && git commit -F <file> 2>&1 | tail -3 for a bound linked worktree, then it does not give the #5656 refusal and lists the staged index on <wt>."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0de8b54e891535c56949ef33c104e5ec805182f3",
+          "recorded_at": "2026-11-17T18:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `git commit -qm msg`, or `git commit -F - <<'EOF'` with a message body, then the commit is not index-changing.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when git commit -qm msg or git commit -F - with a quoted heredoc message is checked, then commandHasGitCommitIndexMutatingForm returns false."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0de8b54e891535c56949ef33c104e5ec805182f3",
+          "recorded_at": "2026-11-17T18:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `-a`, `-am msg`, `-qam msg`, or a trailing file name after the message, after `--`, or after a redirection (`2>&1 src/a.ts`), then the commit is refused.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when -a, -am msg, -qam msg, or a file name after the message, after -- or after 2>&1 is checked, then commandHasGitCommitIndexMutatingForm returns true."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0de8b54e891535c56949ef33c104e5ec805182f3",
+          "recorded_at": "2026-11-17T18:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `-tm src/a.ts`, `-um src/a.ts` or `-Sm src/a.ts`, then the commit is refused.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when -tm src/a.ts, -um src/a.ts or -Sm src/a.ts is checked, then commandHasGitCommitIndexMutatingForm returns true."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0de8b54e891535c56949ef33c104e5ec805182f3",
+          "recorded_at": "2026-11-17T18:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `\\>src/a.ts`, `*>src/a.ts`, `*> src/a.ts`, `<(printf src/a.ts)`, `'|'` or `'>x'` after the message, then the commit is refused.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when \\>src/a.ts, *>src/a.ts, *> src/a.ts, <(printf src/a.ts), '|' or '>x' follows the message, then commandHasGitCommitIndexMutatingForm returns true."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0de8b54e891535c56949ef33c104e5ec805182f3",
+          "recorded_at": "2026-11-17T18:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `true || cd /x && git commit -m msg` or `cd /x | git commit -m msg`, then the target is unresolvable as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when true || cd /x && git commit -m msg or cd /x | git commit -m msg is resolved, then resolveCommitTarget returns unresolvable."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0de8b54e891535c56949ef33c104e5ec805182f3",
+          "recorded_at": "2026-11-17T18:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `cd <wt> <<EOF`, an unquoted body, the `EOF` line, and `git commit -m msg` on the next line, then the target is unresolvable as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when cd <wt> <<EOF, an unquoted body, EOF and git commit -m msg on the next line is resolved, then resolveCommitTarget returns unresolvable."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0de8b54e891535c56949ef33c104e5ec805182f3",
+          "recorded_at": "2026-11-17T18:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given `cd <wt> <<EOF && git commit -m msg` with an unquoted body after that line, then the target is `<wt>`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when cd <wt> <<EOF && git commit -m msg with an unquoted body is resolved, then resolveCommitTarget names <wt>."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0de8b54e891535c56949ef33c104e5ec805182f3",
+          "recorded_at": "2026-11-17T18:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a quoted-delimiter heredoc whose body holds the line `git commit -a`, or a quoted string argument that holds it, then the command is not read as a commit.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when a quoted-delimiter heredoc body or a quoted string argument holds git commit -a, then commandHasGitCommitSubcommand returns false."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0de8b54e891535c56949ef33c104e5ec805182f3",
+          "recorded_at": "2026-11-17T18:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an unquoted-delimiter heredoc whose body holds the line `git commit -a`, then the commit is refused as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when an unquoted-delimiter heredoc body holds the line git commit -a, then commandHasGitCommitIndexMutatingForm returns true."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0de8b54e891535c56949ef33c104e5ec805182f3",
+          "recorded_at": "2026-11-17T18:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an unquoted heredoc body with an open quote followed, after the delimiter, by `git commit -a`, then the commit is refused.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/commit-target.test.ts, when an unquoted heredoc body holds an open quote and git commit -a follows the delimiter, then commandHasGitCommitIndexMutatingForm returns true."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0de8b54e891535c56949ef33c104e5ec805182f3",
+          "recorded_at": "2026-11-17T18:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The index-snapshot refusal names the word that tripped it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher-commit-heredoc.test.ts, when the hook refuses git commit -m msg src/a.ts | tail -3 under #5656, then the refusal names src/a.ts as the word that tripped it."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0de8b54e891535c56949ef33c104e5ec805182f3",
+          "recorded_at": "2026-11-17T18:32:23Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -732,9 +858,36 @@
           "the #5656 refusal names the word that tripped it",
           "one changelog fragment changelog.d/6471-commit-shape-pipes-and-redirects.md"
         ]
+      },
+      "productPullRequest": 6553,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "dd979106537288075b5bab6227f51c13b915e4da",
+        "prNumber": 6553,
+        "prBase": "master",
+        "mergeCommit": "0de8b54e891535c56949ef33c104e5ec805182f3",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0de8b54e891535c56949ef33c104e5ec805182f3",
+        "verifiedAt": "2026-11-17T18:32:23Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T18:32:23Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T18:32:23Z"
       }
     },
     "id": "github.issue.6432989217",
-    "updated": "2026-11-17T15:46:21Z"
+    "updated": "2026-11-17T18:32:23Z"
   }
 }

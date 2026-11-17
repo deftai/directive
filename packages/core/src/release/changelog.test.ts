@@ -1,5 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { promoteChangelog, sectionForVersion, splitBodyAndLinks } from "./changelog.js";
+import { releaseLine, releaseLinesIn, unreleasedEntryLines } from "../changelog/release-line.js";
+import {
+  freshUnreleasedBlock,
+  promoteChangelog,
+  sectionForVersion,
+  splitBodyAndLinks,
+} from "./changelog.js";
+
+describe("release line on promotion (#6296 item 4)", () => {
+  const WITH_PREVIOUS =
+    "# Changelog\n\n## [Unreleased]\n\n- [release-line] v0.20.0\n\n### Added\n- new (#1)\n\n" +
+    "## [0.20.0] - 2026-04-01\n\n- old\n\n" +
+    "[Unreleased]: https://github.com/deftai/directive/compare/v0.20.0...HEAD\n" +
+    "[0.20.0]: https://github.com/deftai/directive/releases/tag/v0.20.0\n";
+
+  it("writes exactly one release line for the cut version and none into the promoted section", () => {
+    const out = promoteChangelog(WITH_PREVIOUS, "0.21.0", "deftai/directive", "2026-04-28");
+    expect(unreleasedEntryLines(out)).toEqual([releaseLine("0.21.0")]);
+    expect(releaseLinesIn(out)).toEqual([releaseLine("0.21.0")]);
+    expect(sectionForVersion(out, "0.21.0")).not.toContain("[release-line]");
+    expect(sectionForVersion(out, "0.21.0")).toContain("- new (#1)");
+  });
+
+  it("puts the release line first in the fresh block", () => {
+    expect(freshUnreleasedBlock("1.0.0")).toBe(
+      "## [Unreleased]\n\n- [release-line] v1.0.0\n\n### Added\n\n### Changed\n\n### Fixed\n\n### Removed\n",
+    );
+  });
+});
 
 const SAMPLE_CHANGELOG = ` Changelog
 

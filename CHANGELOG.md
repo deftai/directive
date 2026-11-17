@@ -10,9 +10,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-- chore(dogfood): pin Directive to 0.129.13.
+- chore(dogfood): pin Directive to 0.129.14.
 
 ### Fixed
+
+### Removed
+
+## [0.129.14] - 2026-11-17
+
+> heredoc text no longer trips the commit check, in-PR completion keeps the worktree binding, merge-queue base conflicts are named, AGENTS.md comes from the repo template in this repo, ingest writes launch fields, verify:ac is not green before work, and pin-mismatch recovery text.
+
+### Added
+
+- `swarm:readiness --scaffold` writes every launch field of an ingested story in one run: it records `kind: story` for a plain story, takes named Description, UserStory, ImplementationPlan, Traces, the two justifications and item acceptance lines (by item id or position, as flags or one `--values-file`), copies keyed clause text into items, and prints missing fields and blocked conditions as separate lists. A `file_scope` that touches a declared evaluator surface gains `xbrief/evaluator-surface-disposition.json` once (#6373). Refs #6372.
+
+### Changed
+- chore(dogfood): pin Directive to 0.129.13.
+- `verify:ac` no longer says "passed" when nothing was verified: with zero verified clauses and no green acceptance command the first line reads "verify:ac: no acceptance evidence yet (#3284)". The exit code is unchanged, rapid `check` and `scope:complete` refuse as before, a verified row whose file is unchanged since the brief entered its folder gets a context note, and the help text and pre-PR skill say exit 0 means no clause failed. Refs #6374.
+
+### Fixed
+
+- Hooks: the #5656 commit-shape check no longer treats the body of a quoted-delimiter heredoc (`<<'EOF'`, `<<"EOF"`, `<<\EOF`) as commands, so a Bash call that writes a note naming a commit command is not refused. Unquoted heredocs, which the shell expands, stay visible, and a quote in one can no longer hide the commands after it; real commits and the -a/pathspec refusal are unchanged. A quoted heredoc body line that ends in a backslash no longer hides the commands after the heredoc, in this check and in the authz zip / protected-destination check (#6187, #5656).
+- Hooks: when a pinned runtime mismatch is the only fault, the refusal now shows the checked project root on its own line, says to open a terminal outside the blocked session there, and names the plain install for the lockfile at that root (`pnpm install` or `npm install`, or no command when there is none), with a retry note. A host that does not report where a command runs (Codex) can now follow it. What the hook admits is unchanged (#6375).
+- `pr:wait-mergeable-and-merge`: a PR that conflicts with its base is now reported as `base-conflict` (exit 1), with the base branch and the merge-or-rebase fix, instead of `absent-required` or `cap-reached`. The verb reads `pulls/<N>` once after those two monitor outcomes; any other merge state keeps today's report (#6467).
+- **In-PR completion no longer locks the bound worktree**: after `scope:complete --in-pr` moves the story brief to `completed/`, the worktree story binding admits the assigned story when its id matches one lands-with-product move against the newest commit at or after the merge base that still has the brief under `active/`. Commits, edits and review fixes keep the same fence (the merge-base brief, or the one-PR mint gate on that commit) and the commit path keeps the implement intent ceiling. A completion already on the merge base, a missing brief and another story's move are refused as before, and a story completed in the change set is no longer told to re-activate its brief (#6480)
+- **The framework source repository keeps its own AGENTS.md managed section**: in a checkout of the framework source, `agents:refresh`, session start and the self-complete setup that hook calls run now read the checkout's own `content/templates/agents-entry.md` instead of the pinned runtime's older copy, so a fresh worktree is no longer rewritten and an older section is no longer reported as current. Consumer projects, explicit template seams and `DEFT_ROOT` are unchanged. The fix acts in this repository once a release that carries it is pinned (#6507)
 
 ### Removed
 
@@ -8138,7 +8160,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.129.13...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.129.14...HEAD
+[0.129.14]: https://github.com/deftai/directive/compare/v0.129.13...v0.129.14
 [0.129.13]: https://github.com/deftai/directive/compare/v0.129.12...v0.129.13
 [0.129.12]: https://github.com/deftai/directive/compare/v0.129.11...v0.129.12
 [0.129.11]: https://github.com/deftai/directive/compare/v0.129.10...v0.129.11

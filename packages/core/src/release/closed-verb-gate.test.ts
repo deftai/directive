@@ -55,6 +55,7 @@ function v105Config(projectRoot: string, overrides: Partial<ReleaseConfig> = {})
     version: V105,
     repo: "deftai/directive",
     baseBranch: "master",
+    breakGlass: true,
     projectRoot,
     dryRun: false,
     skipTag: false,
