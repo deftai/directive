@@ -22,6 +22,13 @@ describe("ts-check-lane parseArgs", () => {
     expect(parseArgs(["--project-root="]).error).toContain("expected one argument");
   });
 
+  it("parses --no-test (#6469)", () => {
+    expect(parseArgs(["--project-root", "/repo", "--no-test"])).toEqual({
+      projectRoot: "/repo",
+      noTest: true,
+    });
+  });
+
   it("errors on an unrecognized argument", () => {
     expect(parseArgs(["--bogus"]).error).toContain("unrecognized argument");
   });
