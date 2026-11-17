@@ -70,6 +70,14 @@ describe("pickMergedReleasePr", () => {
     });
   });
 
+  it("reads one object per line from every paginated page", () => {
+    const lines = [
+      JSON.stringify({ number: 5, merged_at: "2026-03-01T00:00:00Z", merge_commit_sha: "e" }),
+      JSON.stringify({ number: 6, merged_at: null, merge_commit_sha: "f" }),
+    ].join("\n");
+    expect(pickMergedReleasePr(`${lines}\n`, V)).toEqual({ ok: true, number: 5, mergeCommit: "e" });
+  });
+
   it("explains an empty list, a bad payload and a non-array", () => {
     expect(pickMergedReleasePr("[]", V)).toMatchObject({ ok: false });
     expect(pickMergedReleasePr("{", V)).toMatchObject({ ok: false });

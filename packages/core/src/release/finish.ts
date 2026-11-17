@@ -92,6 +92,9 @@ export function findMergedReleasePr(
     ghPath,
     [
       "api",
+      "--paginate",
+      "--jq",
+      ".[]",
       `repos/${repo}/pulls?state=closed&base=${encodeURIComponent(baseBranch)}&head=${encodeURIComponent(head)}&per_page=100`,
     ],
     { cwd: projectRoot, timeoutMs: 30_000, env: plainGhEnv() },
@@ -102,11 +105,20 @@ export function findMergedReleasePr(
   return pickMergedReleasePr(result.stdout, version);
 }
 
-/** Pick the latest merged PR from a REST pulls list (pure). */
+/**
+ * Pick the latest merged PR from a REST pulls list (pure). Accepts a JSON
+ * array or one JSON object per line (`gh api --paginate --jq '.[]'`, every page).
+ */
 export function pickMergedReleasePr(json: string, version: string): MergedReleasePrResult {
   let rows: unknown;
   try {
-    rows = JSON.parse(json);
+    const text = json.trim();
+    rows = text.startsWith("[")
+      ? JSON.parse(text)
+      : text
+          .split(/\r?\n/)
+          .filter((line) => line.trim().length > 0)
+          .map((line) => JSON.parse(line) as unknown);
   } catch (err) {
     return { ok: false, reason: `could not parse the pulls list: ${String(err)}` };
   }

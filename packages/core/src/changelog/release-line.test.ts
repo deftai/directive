@@ -116,6 +116,18 @@ describe("evaluateReleaseRule (#6296 item 5)", () => {
       expect(verdict.problems.join("\n")).toContain("2 release lines");
   });
 
+  it("fails a release line placed in the version section instead of [Unreleased]", () => {
+    const head = HEAD.replace("- [release-line] v0.2.0\n\n", "").replace(
+      "- frag (#2)\n",
+      "- frag (#2)\n- [release-line] v0.2.0\n",
+    );
+    const verdict = evaluateReleaseRule(input({ headChangelog: head }));
+    expect(verdict.kind).toBe("release");
+    if (verdict.kind !== "release") return;
+    expect(verdict.ok).toBe(false);
+    expect(verdict.problems.join("\n")).toContain("exactly once");
+  });
+
   it("fails a heading that already existed at the merge base", () => {
     const base = BASE.replace("## [0.1.0]", "## [0.2.0] - 2026-01-02\n\n## [0.1.0]");
     const verdict = evaluateReleaseRule(input({ baseChangelog: base }));

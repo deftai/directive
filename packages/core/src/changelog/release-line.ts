@@ -261,8 +261,14 @@ export function evaluateReleaseRule(input: ReleaseRuleInput): ReleaseRuleVerdict
     }
   }
 
-  // (c) the release line alone; no fragment left.
-  const others = unreleasedEntryLines(input.headChangelog).filter((entry) => entry !== line);
+  // (c) the release line alone under [Unreleased]; no fragment left.
+  const unreleased = unreleasedEntryLines(input.headChangelog);
+  if (unreleased.filter((entry) => entry === line).length !== 1) {
+    problems.push(
+      `[Unreleased] must hold the release line ${JSON.stringify(line)} exactly once after a release`,
+    );
+  }
+  const others = unreleased.filter((entry) => entry !== line);
   if (others.length > 0) {
     problems.push(
       `[Unreleased] must hold only the release line after a release; it also holds ${listLines(others)}`,

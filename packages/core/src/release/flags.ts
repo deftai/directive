@@ -148,6 +148,8 @@ export function parseReleaseFlags(args: readonly string[]): ReleaseFlags {
     }
     version = finish;
     if (breakGlass) unknown.push("--break-glass (not valid with --finish)");
+    // The finish step exists to push the tag; refuse rather than ignore --skip-tag.
+    if (skipTag) unknown.push("--skip-tag (not valid with --finish; use --dry-run)");
   }
 
   return {
