@@ -1,0 +1,20 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.6373752701",
+  "xbriefRelPath": "xbrief/active/2026-11-17-6275-featescalation-notify-the-operator-when-a-worker-stops-on-an.xbrief.json",
+  "approvedAt": "2026-11-17T19:27:52Z",
+  "constraints": [
+    {
+      "value": "15000",
+      "unit": "milliseconds",
+      "rejectionScope": "invocation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-11-17T19:27:52Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "1d3d021e2fb652366b20b785f566471982f9c7f9204f915600eef810a060c16e"
+}
