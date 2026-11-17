@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6188",
-    "updated": "2026-11-17T17:33:21Z"
+    "updated": "2026-11-17T23:04:48Z"
   },
   "plan": {
     "title": "Kill-switch plant guard (#6136) refuses a read-only existence check of the kill-switch file",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The always-on kill-switch plant guard treats a read-only existence check as a plant when the command also redirects stderr. This story narrows plant detection to a write destination in the same shell segment, allows a bounded print or console.log mention, and keeps real plants denied.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6188",
@@ -19,26 +19,49 @@
     "items": [
       {
         "title": "Same-segment dest ownership for plant - plant only when the kill-switch basename is the quote-aware redirect operand, dest-flag operand, or dest positional of a write bin within the same shell segment (break at isShellConnectorToken); do not let unrelated redirect or hasWriteShape any-gt or any INDIRECT_WRITE_BINS token elsewhere promote a co-occurring read-path basename; stop killWriteBins forward scans at connectors — relieves: P1 — relieves: P3",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given a shell command that names the kill-switch basename, when the basename is not the write destination of that same segment, then the plant check returns false, and when it is the redirect or write-bin destination in that segment, then the plant check returns true."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1616bcc1d88555906bddae04437aa465bac01ea9",
+          "recorded_at": "2026-11-17T22:28:27Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Bounded print/console.log mention proof + full second-route reconcile - add a finite recognizer for literal-only Node console.log(...) / Python print(...) payloads with no extra statements, substitutions, evaluated args, or write expressions; that proof (together with ordinary proven-read/existence-probe segments) is the sole kill-switch mention allow across hasKillSwitchShellWriteInner, harvestInterpreterPayloadDests quoted literals, hasProtectedUnprovenReadOnlyDestOfWrite, redirectDestIsProtectedSettings, hasWriteShapedProtectedSettingsDest, inactiveShellTargetsProtectedStore, and harvestDestsOfWriteForRealpath; do not claim interpreterPayloadIsProvenReadOnly alone covers print; writeFileSync / open-w / ni / mixed print-plus-write stay denied; preserve authz/approved-scope; no general embedded-language parser — relieves: P2 — relieves: P1",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given a literal-only Node console.log or Python print of the kill-switch name, when the secondary protected-store routes run, then the mention is allowed, and when the payload writes the file, then those routes still deny."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1616bcc1d88555906bddae04437aa465bac01ea9",
+          "recorded_at": "2026-11-17T22:28:27Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Public hook/dispatcher fixture matrix - UAT inactive and active; assert ops []; real projectRoot; allow verbatim AGENTS.md #3039 compound (flag absent and present; deny != present); allow ls/test/Test-Path/Get-Item basename with stderr-redirect; allow redirect-before-read basename; allow touch ordinary then ls basename; allow quoted prose only-mention; allow node -e console.log(name) and python -c print(name); deny touch; echo redirect-to-basename; ln; curl -o; cp/mv onto; redirect dest IS basename; Write/Edit; ls ordinary then touch basename; node -e writeFileSync(basename); python open-w; mixed print-plus-write; omit unproven readers from allow row — relieves: P1 — relieves: P2 — relieves: P3",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given the public hook dispatcher with UAT inactive and active, when the command is a read-only existence check of the kill-switch file, then the hook allows it, and when the command plants the file, then the hook denies it."
+        },
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "UAT here names the hook mode the fixture matrix runs in (UAT inactive and active), not user acceptance testing. The clause is covered by the public hook fixture matrix tests merged in #6580 (packages/core/src/hooks/dispatcher.test.ts, merge 1616bcc1d).",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "Scott"
+          },
+          "recorded_at": "2026-11-17T23:04:15Z"
         }
       }
     ],
@@ -827,9 +850,34 @@
         "leanCommentId": 6808102716,
         "harvestDigest": "fa35241f8159c6aa026f0e1668f853867c26e8683e1e96b4f40a82e1e3c064de",
         "slice": null
+      },
+      "productPullRequest": 6580,
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "cb336e016a18bcfa1bf16a8e433b0bde26819727",
+        "prNumber": 6580,
+        "prBase": "master",
+        "mergeCommit": "1616bcc1d88555906bddae04437aa465bac01ea9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+        "verifiedAt": "2026-11-17T23:04:48Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark"
+      },
+      "completedAt": "2026-11-17T23:04:48Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T23:04:48Z"
       }
     },
     "id": "github.issue.6319841145",
-    "updated": "2026-11-17T17:33:21Z"
+    "updated": "2026-11-17T23:04:48Z"
   }
 }
