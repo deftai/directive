@@ -204,3 +204,105 @@ describe("entry baseline context note (#6374)", () => {
     ).toBe(input);
   });
 });
+
+describe("entry baseline note with a fake git runner (#6374)", () => {
+  const ADD = "a".repeat(40);
+  const PARENT = "b".repeat(40);
+  const BLOB = "c".repeat(40);
+  const ACTIVE = `xbrief/active/${BRIEF_NAME}`;
+
+  type Reply = { code: number; stdout: string };
+  /** Answers by subcommand; anything not listed exits 0 with the given default. */
+  function fakeGit(replies: Record<string, Reply | ((args: readonly string[]) => Reply)>) {
+    return (_root: string, args: readonly string[]) => {
+      const key = args[0] ?? "";
+      const r = replies[key];
+      const reply = typeof r === "function" ? r(args) : (r ?? { code: 0, stdout: "" });
+      return { ...reply, stderr: "" };
+    };
+  }
+
+  const happy = {
+    "cat-file": { code: 0, stdout: "" },
+    log: { code: 0, stdout: `${ADD}\n` },
+    "rev-parse": (args: readonly string[]) =>
+      String(args[3]).endsWith("^") ? { code: 0, stdout: PARENT } : { code: 0, stdout: BLOB },
+    "hash-object": { code: 0, stdout: BLOB },
+  };
+
+  it("resolves the parent of the add commit", () => {
+    expect(resolveEntryBaselineCommit(process.cwd(), ACTIVE, fakeGit(happy))).toBe(PARENT);
+  });
+
+  it("returns null for a path outside the project or an unknown layout", () => {
+    expect(resolveEntryBaselineCommit(process.cwd(), "../elsewhere.json", fakeGit(happy))).toBe(
+      null,
+    );
+    expect(
+      resolveEntryBaselineCommit(process.cwd(), "notes/active/brief.json", fakeGit(happy)),
+    ).toBeNull();
+  });
+
+  it("returns null when git log fails, prints no sha, or the add commit is a root commit", () => {
+    const cwd = process.cwd();
+    expect(
+      resolveEntryBaselineCommit(
+        cwd,
+        ACTIVE,
+        fakeGit({ ...happy, log: { code: 128, stdout: "" } }),
+      ),
+    ).toBeNull();
+    expect(
+      resolveEntryBaselineCommit(cwd, ACTIVE, fakeGit({ ...happy, log: { code: 0, stdout: "x" } })),
+    ).toBeNull();
+    expect(
+      resolveEntryBaselineCommit(
+        cwd,
+        ACTIVE,
+        fakeGit({ ...happy, "rev-parse": { code: 1, stdout: "" } }),
+      ),
+    ).toBeNull();
+  });
+
+  it("adds the note only when the blob ids match", () => {
+    const noted = annotateUnchangedSinceEntry(report([verifiedRow()]), {
+      projectRoot: process.cwd(),
+      xbriefPath: ACTIVE,
+      git: fakeGit(happy),
+    });
+    expect(noted.verified[0]?.detail).toContain(ENTRY_BASELINE_NOTE);
+    expect(noted.clauses).toHaveLength(1);
+  });
+
+  it("gives no note when the file is missing at the parent or cannot be hashed", () => {
+    const missingBefore = fakeGit({
+      ...happy,
+      "rev-parse": (args) =>
+        String(args[3]).endsWith("^") ? { code: 0, stdout: PARENT } : { code: 1, stdout: "" },
+    });
+    const noHash = fakeGit({ ...happy, "hash-object": { code: 128, stdout: "" } });
+    for (const git of [missingBefore, noHash]) {
+      const out = annotateUnchangedSinceEntry(report([verifiedRow()]), {
+        projectRoot: process.cwd(),
+        xbriefPath: ACTIVE,
+        git,
+      });
+      expect(out.clauses[0]?.detail).toBe("expected token(s) present");
+    }
+  });
+
+  it("skips verified rows with no path or a path outside the project", () => {
+    const rows: ClauseWalkResult[] = [
+      { ...verifiedRow(), artifact_path: null },
+      { ...verifiedRow(), id: 2, artifact_path: "../outside.ts" },
+    ];
+    const input = report(rows);
+    expect(
+      annotateUnchangedSinceEntry(input, {
+        projectRoot: process.cwd(),
+        xbriefPath: ACTIVE,
+        git: fakeGit(happy),
+      }),
+    ).toBe(input);
+  });
+});

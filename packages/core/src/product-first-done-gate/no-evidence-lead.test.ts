@@ -113,6 +113,20 @@ describe("verify:ac no-evidence lead (#6374)", () => {
     expect([fresh.ok, delivered.ok]).toEqual([true, true]);
   });
 
+  it("prints no lead in quiet mode and keeps the same verdict", () => {
+    const loud = evaluateVerifyAcFromPlan(noOraclePlan("6374-loud"), {
+      ...baseOptions,
+      projectRoot: process.cwd(),
+    });
+    const quiet = evaluateVerifyAcFromPlan(noOraclePlan("6374-quiet"), {
+      ...baseOptions,
+      projectRoot: process.cwd(),
+      quiet: true,
+    });
+    expect(quiet.message).not.toContain(VERIFY_AC_PASSED_LEAD);
+    expect([quiet.ok, quiet.code, quiet.resolution]).toEqual([loud.ok, loud.code, loud.resolution]);
+  });
+
   it("still says passed when an acceptance command ran green", () => {
     const plan = noOraclePlan("6374-green-command");
     plan.acceptance = {
