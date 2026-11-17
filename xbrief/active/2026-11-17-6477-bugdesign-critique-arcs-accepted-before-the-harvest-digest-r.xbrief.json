@@ -1,0 +1,437 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6477",
+    "updated": "2026-11-17T04:53:45Z"
+  },
+  "plan": {
+    "title": "bug(design-critique): arcs accepted before the harvest-digest rule cannot be ingested; grandfather unedited leans",
+    "status": "running",
+    "narratives": {
+      "Description": "Since 0.129.11 (#6333) a clean pain-audit counts for a lean with an Acceptance Criteria list or a Slices section only when it carries a harvest-digest line equal to the lean's current harvest, so every arc accepted before that rule fails issue:ingest and verify:ac with unresolved-pain-audit. This story grandfathers a digestless audit when the lean comment's updated_at is strictly before the audit comment's created_at, both read from the same GitHub REST comment rows as the hashed bodies. An edited lean, a digest-bearing audit, a missing or malformed timestamp, and a plain lean with no acceptance criteria or slices stay on today's rule; there is no release-date cutoff, no new gate, no new fetch and no consumer step.",
+      "UserStory": "As a maintainer or consumer with design arcs accepted before the harvest-digest rule, I want issue:ingest and verify:ac to count their clean digestless audits when the lean was not edited after the audit, so that those arcs can be built without a hand re-audit that would open a later arc.",
+      "ImplementationPlan": "1. packages/core/src/design-critique/pain-audit-follow-through-gate.ts: ThreadCommentLike gains optional created_at and updated_at; auditCountsForLean takes the audit and lean comments and adds one true-arm: no harvest-digest carrier, lean has Acceptance Criteria or Slices, both instants are strings matching YYYY-MM-DDTHH:MM:SS[.fraction]Z, and lean updated_at is strictly before audit created_at. The plain-lean arm and the bad-digest non-count are unchanged; no release cutoff.\n2. packages/core/src/design-critique/completed-arc-record.ts: ThreadComment gains the two optional fields and threadCommentsFromIssueComments copies them from the same REST row (feeds the design-critique chip and stale-ready).\n3. packages/core/src/intake/issue-ingest.ts threadCommentsFromIssue and packages/core/src/intake/spec-path-source.ts fetchSpecPathSourceComments copy created_at and updated_at from the same row as the body.\n4. Tests: gate unit tests for every timestamp shape (pain-audit-follow-through-gate.test.ts), mapper tests (completed-arc-record.test.ts, design-critique-chip.test.ts), ingest end-to-end (issue-ingest.test.ts) and verify:ac Spec-path parity (spec-path-source.test.ts).\n5. changelog.d/6477-grandfather-digestless-audits.md.",
+      "Traces": "#6477",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6477",
+      "Overview": "\n\n- A digestless pain-audit counts for a lean that has an Acceptance Criteria list or a Slices section only when both timestamps come from the same REST comment row as the hashed body, both match YYYY-MM-DDTHH:MM:SS with optional fraction and a trailing Z, and the lean updated_at is strictly before the audit created_at.\n- Missing, empty, null, non-string, equal, later, and any other timestamp shape do not count, and the check reads neither the comment body, nor the issue updated_at, nor a scanned body joined to a different row.\n- issue:ingest, the design-critique chip, and verify:ac each copy created_at and updated_at from that same REST row into the follow-through input.\n- A digestless audit of a lean with neither an Acceptance Criteria list nor a Slices section still counts with no timestamp check, and a present harvest-digest line that is not a sha256 digest still does not count.\n- The grandfather does not consult the release instant of the digest rule.\n\n## Acceptance Criteria\n\n\n- Given an accepted arc whose clean pain-audit has no harvest-digest line and whose lean updated_at is strictly before that audit created_at, both timestamps being UTC instants from the same REST rows, when issue:ingest runs, then the audit counts and ingest proceeds.\n- Given the same arc whose lean updated_at is equal to or later than that audit created_at, when issue:ingest runs, then it refuses as today.\n- Given an audit that carries a harvest-digest line, then it is judged exactly as today.\n- Given a missing or unreadable lean or audit timestamp on a lean that has acceptance criteria or slices, then the digestless audit does not count.\n- verify:ac on an unlanded Spec-path brief applies the same timestamp rule as issue:ingest.\n\n\n",
+      "Labels": "bug, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "A digestless pain-audit counts for a lean that has an Acceptance Criteria list or a Slices section only when both timestamps come from the same REST comment row as the hashed body, both match YYYY-MM-DDTHH:MM:SS with optional fraction and a trailing Z, and the lean updated_at is strictly before the audit created_at.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/design-critique/pain-audit-follow-through-gate.ts, when auditCountsForLean judges a digestless audit of a lean with an Acceptance Criteria list or Slices section, then it counts only when both instants come from the REST rows of the hashed bodies, both match YYYY-MM-DDTHH:MM:SS[.fraction]Z, and the lean updated_at is strictly before the audit created_at."
+        }
+      },
+      {
+        "title": "Missing, empty, null, non-string, equal, later, and any other timestamp shape do not count, and the check reads neither the comment body, nor the issue updated_at, nor a scanned body joined to a different row.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/design-critique/pain-audit-follow-through-gate.ts, when either instant is missing, empty, null, non-string, malformed, equal or later, then the digestless audit does not count, and the check reads no timestamp from a comment body, the issue updated_at or another row."
+        }
+      },
+      {
+        "title": "issue:ingest, the design-critique chip, and verify:ac each copy created_at and updated_at from that same REST row into the follow-through input.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/design-critique/completed-arc-record.ts, packages/core/src/intake/issue-ingest.ts and packages/core/src/intake/spec-path-source.ts, when each builds the follow-through thread from REST comment rows, then each thread comment carries created_at and updated_at copied from the same row as its body."
+        }
+      },
+      {
+        "title": "A digestless audit of a lean with neither an Acceptance Criteria list nor a Slices section still counts with no timestamp check, and a present harvest-digest line that is not a sha256 digest still does not count.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/design-critique/pain-audit-follow-through-gate.ts, when a digestless audit targets a lean with neither an Acceptance Criteria list nor a Slices section, then it counts with no timestamp check, and when an audit carries a harvest-digest line that is not a sha256 digest, then it does not count."
+        }
+      },
+      {
+        "title": "The grandfather does not consult the release instant of the digest rule.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/design-critique/pain-audit-follow-through-gate.ts, when the grandfather arm runs, then it compares only the two comment instants and reads no release date, version or clock."
+        }
+      },
+      {
+        "title": "Given an accepted arc whose clean pain-audit has no harvest-digest line and whose lean updated_at is strictly before that audit created_at, both timestamps being UTC instants from the same REST rows, when issue:ingest runs, then the audit counts and ingest proceeds.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/intake/issue-ingest.test.ts, when issue:ingest runs on an accepted arc whose clean digestless audit was created after the lean's updated_at, then the test shows the audit counts and ingest writes the brief."
+        }
+      },
+      {
+        "title": "Given the same arc whose lean updated_at is equal to or later than that audit created_at, when issue:ingest runs, then it refuses as today.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/intake/issue-ingest.test.ts, when issue:ingest runs on the same arc with the lean updated_at equal to or later than the audit created_at, then the test shows it refuses with unresolved-pain-audit as today."
+        }
+      },
+      {
+        "title": "Given an audit that carries a harvest-digest line, then it is judged exactly as today.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/design-critique/pain-audit-follow-through-gate.test.ts, when an audit carries a matching, non-matching or malformed harvest-digest line, then the test shows the same count result as on origin/master whatever the timestamps say."
+        }
+      },
+      {
+        "title": "Given a missing or unreadable lean or audit timestamp on a lean that has acceptance criteria or slices, then the digestless audit does not count.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/design-critique/pain-audit-follow-through-gate.test.ts, when the lean or audit timestamp is missing or unreadable on a lean with acceptance criteria or slices, then the test shows the digestless audit does not count."
+        }
+      },
+      {
+        "title": "verify:ac on an unlanded Spec-path brief applies the same timestamp rule as issue:ingest.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/intake/spec-path-source.test.ts, when verify:ac resolves an unlanded Spec-path brief whose clean audit is digestless, then the test shows the same count result as issue:ingest for the strictly-before, equal, later and unreadable timestamp cases."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6477",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6477: bug(design-critique): arcs accepted before the harvest-digest rule cannot be ingested; grandfather unedited leans"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "ac on an unlanded Spec-path brief applies the same timestamp rule as issue:ingest",
+          "reason": "first token \"ac\" is not in the literal-AC allowlist (accepted: bun, deft, directive, node, npm, npx, pnpm, py, python, python3, task, vitest, yarn)",
+          "sourceSpan": "labeled@L18"
+        }
+      ],
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/design-critique/pain-audit-follow-through-gate.ts",
+          "packages/core/src/design-critique/pain-audit-follow-through-gate.test.ts",
+          "packages/core/src/design-critique/completed-arc-record.ts",
+          "packages/core/src/design-critique/completed-arc-record.test.ts",
+          "packages/core/src/intake/issue-ingest.ts",
+          "packages/core/src/intake/issue-ingest.test.ts",
+          "packages/core/src/intake/spec-path-source.ts",
+          "packages/core/src/intake/spec-path-source.test.ts",
+          "packages/core/src/scm/design-critique-chip.test.ts",
+          "changelog.d/6477-grandfather-digestless-audits.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "design-critique-pain-audit-count",
+        "Traces": [
+          "#6477"
+        ],
+        "acceptance_criteria_justification": "Ten clauses: the five Bound remedy items and the five Acceptance Criteria of the accepted lean (comment 6936775674, synthesis 6937096446), one clause each as the harvest admitted them. parallel_safe is true: no running story's file_scope touches packages/core/src/design-critique/, packages/core/src/intake/ or the chip test.",
+        "verify_commands": [
+          "npx vitest run packages/core/src/design-critique/pain-audit-follow-through-gate.test.ts packages/core/src/design-critique/completed-arc-record.test.ts packages/core/src/intake/issue-ingest.test.ts packages/core/src/intake/spec-path-source.test.ts packages/core/src/scm/design-critique-chip.test.ts"
+        ],
+        "expected_outputs": [
+          "a clean digestless pain-audit counts for a lean with acceptance criteria or slices when the lean updated_at is strictly before the audit created_at, both from the same REST rows",
+          "an equal, later, missing or malformed timestamp leaves the digestless audit uncounted, and digest-bearing audits are judged as on origin/master",
+          "issue:ingest, the design-critique chip and verify:ac pass created_at and updated_at from the REST row into the follow-through input",
+          "one changelog fragment changelog.d/6477-grandfather-digestless-audits.md"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because a released harvest-digest rule now refuses accepted arcs whose clean audits have no digest line, and the issue names one grandfather a critic should try to knock down.\n\nmechanism-shaped: true\ncharter: refutation\nrefutation-target: A digestless clean pain-audit counts for its lean when the lean comment's updated_at is not later than the audit comment's created_at, because an unedited lean has an unchanged harvest.\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\npain: P1, P2\nverification-path: pin-read git show a21a1802d22c79768e8e88491fe2ad45cd9c156f:; dest cwd-without-occupy\n\nP1 is issue:ingest refusing an accepted arc whose clean pain-audit has no harvest-digest line, so that arc cannot be built.\nP2 is verify:ac applying that same refusal to an unlanded Spec-path brief.\n\nThe candidate under refutation is the line above. Digest-bearing audits stay on today's rule. A lean edited after the audit does not count. A missing or unreadable timestamp fails closed. This change loosens one check. It adds no gate and no new step for anyone consuming the framework.\n\nOpen points from the issue, for the critic to settle:\n- Whether the audit must also predate the release that shipped #6333.\n- Which timestamp shapes fail closed: missing field, unparseable value, equal timestamps, and a lean updated_at later than the audit.\n\nRe-verify these anchors at dispatch SHA a21a1802d22c79768e8e88491fe2ad45cd9c156f before relying on them. `auditCountsForLean` in `packages/core/src/design-critique/pain-audit-follow-through-gate.ts` counts a digestless audit only when the lean has no Acceptance Criteria list and no Slices section. `evaluateAccumulatedPainAuditFollowThrough` then refuses with unresolved-pain-audit when no targeting audit counts. `ThreadComment` and `ThreadCommentLike` carry id and body. The ingest `IssueComment` already has `created_at` and `updated_at`, and `persistableIssueComment` keeps both. `threadCommentsFromIssue` drops them before the gate.\n\nThis arc does not add a pain-audit comment on an already-accepted issue. That comment would open a later arc there. The grandfather has to count the audit that is already on the thread.\n\n",
+          "id": 6936108952,
+          "html_url": "https://github.com/deftai/directive/issues/6477#issuecomment-6936108952",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T02:27:11Z",
+          "updated_at": "2026-11-17T02:27:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7-build-fast\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRound-1 refutation of Stop 1 comment 6936108952. The premise holds: an unedited lean has an unchanged harvest, because the harvest is a pure function of that comment's body. The target can bind after the statement changes in F1–F3. Do not add a release cutoff (F4).\n\nPin: `a21a1802d22c79768e8e88491fe2ad45cd9c156f`. This worktree's host hook denied `git show` (missing runtime pin). The cited gate text matches the raw blob at that SHA. The arc-6477 checkout HEAD file, and its only reflog entry, are that SHA. Stop 1 body is REST comment 6936108952. Comments after that id were not read.\n\n### F1 — strict-before, same REST row\nsharpens-framing\nEvidence: `auditCountsForLean` (`packages/core/src/design-critique/pain-audit-follow-through-gate.ts` 306–315) counts a null `harvest-digest` carrier only when the lean has no Acceptance Criteria list and no Slices. A matching digest counts. A present but invalid carrier does not. `hashHarvestIdentity` (246–268) hashes only that body: bound-remedy titles and positions, acceptance-criteria titles and positions, slices lines. `ThreadCommentLike` (86–89) and `ThreadComment` (`completed-arc-record.ts` 48–51) carry id and body, so the gate cannot see timestamps. `IssueComment` (`issue-ingest.ts` 179–188) already has optional `created_at` and `updated_at`. `persistableIssueComment` copies those strings (1453–1457) and runs the quarantine scan on the body only (1442), so the persisted body is not the raw REST body. GitHub comment `updated_at` moves when the comment is edited and does not move for a reaction. The clock is whole seconds. \"Not later\" is `<=`.\nFailure mode: a lean edit and an audit in the same UTC second compare equal, so the audit counts against a body it may not have observed. A body line that spells those field names, or a join of `plan.metadata` timestamps onto a different body, admits a changed harvest. `Date.parse` of a naive or date-only string can order the pair the wrong way. Treating a missing `updated_at` as `created_at` reads \"unreadable\" as \"never edited.\"\nDisposition: for this exception only, both instants must come from the same REST comment row as the body that is hashed, both must match `YYYY-MM-DDTHH:MM:SS[.fraction]Z`, and the lean's `updated_at` must be strictly before the audit's `created_at`. Missing, empty, null, non-string, equal, later, and any other shape do not count. Do not parse those names out of the body. Do not use the issue's `updated_at`. Do not overlay the persisted scanned thread onto a live body.\nRoad not taken: GraphQL `userContentEdits` / `lastEditedAt`. REST issue comments do not carry that field, and this pass adds no new fetch. It would flip if REST `updated_at` moved with no body change. A reaction does not; a body edit does.\n\n### F2 — keep the pair on every gate input\nsharpens-framing\nEvidence: `threadCommentsFromIssue` (`issue-ingest.ts` 2190–2201) drops both fields after `enrichIssueWithComments` attaches the live REST array (2064–2077; `fetchIssue` 2114–2129 always refetches comments). `threadCommentsFromIssueComments` (`completed-arc-record.ts` 1666–1675) drops them again. The chip (`design-critique-chip.ts` 196–197) and stale-ready (`design-critique-stale-ready.ts` 142–143) feed the gate through that second mapper. `fetchSpecPathSourceComments` (`spec-path-source.ts` 340–343) keeps `{id, body}` from the REST row, and `fetchSpecPathLiveIdentities` (353–362) is the `verify:ac` resolver. The gate itself is `evaluateAccumulatedPainAuditFollowThrough`, called from `evaluateCompletedArcRecord` (1135), which refuses with `unresolved-pain-audit` when no targeting audit counts (498–519).\nFailure mode: fixing only the mapper Stop 1 names lets `issue:ingest` count the grandfather while `verify:ac`, and the chip and stale-ready fetches, still have no timestamps. F1 then fail-closes those paths, so the second pain stays refused and a chip proof of the same thread still reports unresolved-pain-audit.\nDisposition: copy `created_at` and `updated_at` from the same REST row in all three builders. One predicate then serves ingest, the chip, and `verify:ac`.\n\n### F3 — one extra true-arm, not a new wrapper\nsharpens-framing\nEvidence: the null-carrier arm already returns true when the lean has neither list (`auditCountsForLean` 311–312). `hashHarvestIdentity` keeps `hashBoundRemedyBytes` for that lean so earlier arcs do not move (241–244). A bad digest line is `{ok:false}` (`extractOperativeHarvestDigest` 291–297) and does not count (314). Stop 1 says this change loosens one check, and digest-bearing audits stay on today's rule.\nFailure mode: wrapping every digestless result in the timestamp check refuses a plain lean whose comments have no timestamps, and refuses a plain lean edited after a digestless audit. Both count today. Treating `{ok:false}` as absent lets a non-hash `harvest-digest` line grandfather an Acceptance Criteria lean.\nDisposition: add one arm. Null carrier and the lean has an Acceptance Criteria list or Slices, then the F1 test. Leave `return !leanHasAcceptanceOrSlices` with no timestamp. Leave `{ok:false}` and a non-matching digest as non-counts.\n\n### F4 — no release-instant cutoff\nfootnote\nEvidence: `[0.129.11] - 2026-11-16` shipped the digest rule (`CHANGELOG.md` 19). The count rule's stated purpose is staleness, the recorded digest equals the current harvest (`auditCountsForLean` 301–304), not the calendar date of the audit.\nFailure mode: a cutoff at that release instant false-refuses a consumer who accepted an arc on a pre-0.129.11 pin after 2026-11-16. That is the population the issue says must be grandfathered with no action. The digest is not an authenticator. A reader of the lean can paste the sha256.\nDisposition: do not add it. The F1 comparison is the whole staleness proof. Road not taken: cutoff at the 0.129.11 publish instant. It would flip if the goal were a positive digest act on every new audit rather than staleness. That is a different rule, and a global clock cannot separate \"old pin, after the release\" from \"new pin, omitted digest\" without stored state this pass does not add.\n\n",
+          "id": 6936694296,
+          "html_url": "https://github.com/deftai/directive/issues/6477#issuecomment-6936694296",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T03:00:01Z",
+          "updated_at": "2026-11-17T03:00:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAccepted arcs from before the harvest-digest line cannot be ingested, because a clean audit with no digest line no longer counts once the lean carries acceptance criteria or slices. The grandfather counts that audit when the lean comment's update time is strictly before the audit was created, using the timestamps on those same GitHub comment rows, and ingest and verify:ac share that test. An edited lean, a digest-bearing audit, a bad timestamp, and a plain lean with no acceptance criteria stay on today's rule. There is no release-date cutoff.\n\n**Lean:** accept F1, F2, F3, and F4 into the contract. Empty disagreement set. Supersedes 6936108952. Critic 6936694296. Seat was Grok after the Codex CLI hook deny. This parent wrote Stop 1.\n\nF1 accept-into-contract\nF2 accept-into-contract\nF3 accept-into-contract\nF4 accept-into-contract\n\nrelieves: P1\nrelieves: P2\n\nSpec-path: packages/core/src/design-critique/pain-audit-follow-through-gate.ts\n\nTarget-digest: sha256:b80d25d2756ab61d0f861b0616dc2ca5044ce0680122fcd7f8ee5d4fed7c5e11\n\n## Bound remedy\n\n- A digestless pain-audit counts for a lean that has an Acceptance Criteria list or a Slices section only when both timestamps come from the same REST comment row as the hashed body, both match YYYY-MM-DDTHH:MM:SS with optional fraction and a trailing Z, and the lean updated_at is strictly before the audit created_at.\n- Missing, empty, null, non-string, equal, later, and any other timestamp shape do not count, and the check reads neither the comment body, nor the issue updated_at, nor a scanned body joined to a different row.\n- issue:ingest, the design-critique chip, and verify:ac each copy created_at and updated_at from that same REST row into the follow-through input.\n- A digestless audit of a lean with neither an Acceptance Criteria list nor a Slices section still counts with no timestamp check, and a present harvest-digest line that is not a sha256 digest still does not count.\n- The grandfather does not consult the release instant of the digest rule.\n\n## Acceptance Criteria\n\n- Given an accepted arc whose clean pain-audit has no harvest-digest line and whose lean updated_at is strictly before that audit created_at, both timestamps being UTC instants from the same REST rows, when issue:ingest runs, then the audit counts and ingest proceeds.\n- Given the same arc whose lean updated_at is equal to or later than that audit created_at, when issue:ingest runs, then it refuses as today.\n- Given an audit that carries a harvest-digest line, then it is judged exactly as today.\n- Given a missing or unreadable lean or audit timestamp on a lean that has acceptance criteria or slices, then the digestless audit does not count.\n- verify:ac on an unlanded Spec-path brief applies the same timestamp rule as issue:ingest.\n\n## What this adds\n\nOne comparison of two timestamps GitHub already returns on the comment, inside the count that already exists. No new gate, no release clock, no extra fetch, and no step for a consumer.\n\n",
+          "id": 6936775674,
+          "html_url": "https://github.com/deftai/directive/issues/6477#issuecomment-6936775674",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T03:04:43Z",
+          "updated_at": "2026-11-17T03:04:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nharvest-digest: sha256:0437228d78125cc064877045c91d7e177bc0c7f784e4297449fb39aa21f075ef\nfinding-classes: none\nharvest-changed: false\n\n## Verdict\n\nNo finding. Successor lean 6936775674 relieves Stop 1 P1 and P2. The Bound remedy count and its fail-closed timestamp association can stand as written.\n\n## What was checked\n\n`git show a21a1802d22c79768e8e88491fe2ad45cd9c156f:` was denied here (host hook: missing `node_modules/@deftai/directive-runtime`). The pin checkout HEAD file, and its only reflog entry, are that SHA. The gate text below is from that checkout. Comments after 6936775674 were not read. Stop 1 is 6936108952. Round 1 is 6936694296.\n\nAt that SHA, `auditCountsForLean` counts a digestless audit only when the lean has no Acceptance Criteria list and no Slices section. A present non-sha256 `harvest-digest` line does not count. `evaluateAccumulatedPainAuditFollowThrough` then refuses `unresolved-pain-audit` when no targeting audit counts. `issue:ingest` reaches that gate through `enrichIssueWithComments` and `threadCommentsFromIssue`, which keep `id` and `body` and drop `created_at` and `updated_at`, then `assertCompletedArcAllowsIngest`. Slice ingest uses the same drop after `fetchIssue`, which already attached the REST rows. Unlanded `verify:ac` reaches the same gate through `fetchSpecPathSourceComments` (`id` and `body` only) and `resolveSpecPathLiveIdentities`. `IssueComment` already has both timestamp fields, and the live REST row carries them.\n\nLimb 1 is the extra true-arm: a digestless audit, a lean that has acceptance criteria or slices, both instants from the REST row whose body is hashed, both UTC with a trailing `Z`, and the lean `updated_at` strictly before the audit `created_at`. Limb 2 is the fail-closed set, including equal and later, and it does not read the comment body, the issue `updated_at`, or a scanned body joined to another row. Limb 3 copies the two fields onto the ingest, chip, and verify:ac inputs, which are those three drops. The chip mapper is also what stale-ready calls; that is not a fourth pain. Limb 4 leaves today's digestless plain-lean arm and the bad-digest non-count alone. Limb 5 adds no release cutoff. Digest-bearing audits stay on today's equality check.\n\nThe three arcs named in the issue fit that arm. Each lean `updated_at` is strictly before the clean audit `created_at`, and none of those audits has a `harvest-digest` line: #6372 lean 6908175115 at 2026-11-16T05:26:59Z and audit 6908204634 at 05:28:57Z (`finding-classes: footnote`); #6374 lean 6922085862 at 16:18:28Z and audit 6922135477 at 16:20:25Z (`finding-classes: none`); #6375 lean 6922277372 at 16:26:01Z and audit 6922326135 at 16:27:56Z (`finding-classes: footnote`). All three have `harvest-changed: false`.\n\nInjection lens: the new trust is forge metadata, not comment text. The Bound already refuses a timestamp parsed out of the body or taken from a different row. That is the control. Nothing in the mechanism or the fail-closed association needs a different Bound remedy.\n\n",
+          "id": 6937043326,
+          "html_url": "https://github.com/deftai/directive/issues/6477#issuecomment-6937043326",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T03:18:39Z",
+          "updated_at": "2026-11-17T03:18:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nA clean audit from before the harvest-digest line counts when the lean comment was last updated strictly before that audit was created, using the timestamps on those same comment rows. Ingest and verify:ac share that test. An edited lean, a digest-bearing audit, a bad timestamp, and a plain lean with no acceptance criteria stay on today's rule.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6936775674.\n\n",
+          "id": 6937096446,
+          "html_url": "https://github.com/deftai/directive/issues/6477#issuecomment-6937096446",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-17T03:21:33Z",
+          "updated_at": "2026-11-17T03:21:33Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\n#6333 (released in 0.129.11) made a pain-audit count for a lean that has an Acceptance Criteria list or Slices only when the audit carries an operative `harvest-digest:` line equal to the lean's current harvest digest (`packages/core/src/design-critique/pain-audit-follow-through-gate.ts`). Audits posted before that rule have no such line. So every arc accepted before the rule can no longer be ingested: `issue:ingest` refuses with \"unresolved-pain-audit … a digestless audit does not count\", and `verify:ac` fails the same check for an unlanded Spec-path brief.\n\nThis hits this repository today and will hit every consumer that upgrades with accepted, not-yet-built arcs. The only current remedy is a hand re-audit per issue.\n\n## Evidence (2026-11-16, runtime 0.129.11)\n\nThree accepted arcs refused at ingest, each with a clean audit and an unedited lean:\n- #6372: lean 6908175115 (created and last updated 05:26:59Z), clean audit 6908204634 (05:28:57Z), no digest line.\n- #6374: lean 6922085862, clean audit 6922135477, no digest line.\n- #6375: lean 6922277372, no digest line.\n#6187 (an older arc whose audit form passed) was admitted.\n\n## Candidate (operator decision 2026-11-16: file and queue a hotfix)\n\nGrandfather digestless audits with GitHub's own timestamps: a clean pain-audit without a `harvest-digest:` line counts when the bound lean comment has not been edited since the audit was posted (lean `updated_at` is not later than the audit's `created_at`). If the lean was edited after the audit, it does not count, as today. Audits that carry a digest line are judged as today. The rule's purpose (an audit must cover the lean's current harvest) holds, because an unedited lean has an unchanged harvest. No new step, flag or stored state; consumers need to do nothing.\n\nOpen points for a short design pass: whether to also require the audit to predate the release that shipped #6333; how a missing or unreadable `updated_at` fails (it should fail closed, as today).\n\n## Acceptance Criteria\n\n- Given an accepted arc whose clean pain-audit has no harvest-digest line and whose lean comment was not edited after that audit, when `issue:ingest` runs, then the audit counts and ingest proceeds.\n- Given the same arc whose lean comment was edited after the audit, when `issue:ingest` runs, then it refuses as today.\n- Given an audit that carries a harvest-digest line, then it is judged exactly as today.\n- Given an unreadable lean or audit timestamp, then the digestless audit does not count.\n- `verify:ac` on an unlanded Spec-path brief applies the same rule.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6433653426,
+        "origin": "deftai/directive#6477",
+        "id": "github.issue.6433653426"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "b80d25d2756ab61d0f861b0616dc2ca5044ce0680122fcd7f8ee5d4fed7c5e11"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6477,
+        "leanCommentId": 6936775674,
+        "harvestDigest": "0437228d78125cc064877045c91d7e177bc0c7f784e4297449fb39aa21f075ef",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (10), in list order (#6333)",
+      "sentences": [
+        "A digestless pain-audit counts for a lean that has an Acceptance Criteria list or a Slices section only when both timestamps come from the same REST comment row as the hashed body, both match YYYY-MM-DDTHH:MM:SS with optional fraction and a trailing Z, and the lean updated_at is strictly before the audit created_at.",
+        "Missing, empty, null, non-string, equal, later, and any other timestamp shape do not count, and the check reads neither the comment body, nor the issue updated_at, nor a scanned body joined to a different row.",
+        "issue:ingest, the design-critique chip, and verify:ac each copy created_at and updated_at from that same REST row into the follow-through input.",
+        "A digestless audit of a lean with neither an Acceptance Criteria list nor a Slices section still counts with no timestamp check, and a present harvest-digest line that is not a sha256 digest still does not count.",
+        "The grandfather does not consult the release instant of the digest rule.",
+        "Given an accepted arc whose clean pain-audit has no harvest-digest line and whose lean updated_at is strictly before that audit created_at, both timestamps being UTC instants from the same REST rows, when issue:ingest runs, then the audit counts and ingest proceeds.",
+        "Given the same arc whose lean updated_at is equal to or later than that audit created_at, when issue:ingest runs, then it refuses as today.",
+        "Given an audit that carries a harvest-digest line, then it is judged exactly as today.",
+        "Given a missing or unreadable lean or audit timestamp on a lean that has acceptance criteria or slices, then the digestless audit does not count.",
+        "verify:ac on an unlanded Spec-path brief applies the same timestamp rule as issue:ingest."
+      ],
+      "admitted_source_sentences": [
+        "A digestless pain-audit counts for a lean that has an Acceptance Criteria list or a Slices section only when both timestamps come from the same REST comment row as the hashed body, both match YYYY-MM-DDTHH:MM:SS with optional fraction and a trailing Z, and the lean updated_at is strictly before the audit created_at.",
+        "Missing, empty, null, non-string, equal, later, and any other timestamp shape do not count, and the check reads neither the comment body, nor the issue updated_at, nor a scanned body joined to a different row.",
+        "issue:ingest, the design-critique chip, and verify:ac each copy created_at and updated_at from that same REST row into the follow-through input.",
+        "A digestless audit of a lean with neither an Acceptance Criteria list nor a Slices section still counts with no timestamp check, and a present harvest-digest line that is not a sha256 digest still does not count.",
+        "The grandfather does not consult the release instant of the digest rule.",
+        "Given an accepted arc whose clean pain-audit has no harvest-digest line and whose lean updated_at is strictly before that audit created_at, both timestamps being UTC instants from the same REST rows, when issue:ingest runs, then the audit counts and ingest proceeds.",
+        "Given the same arc whose lean updated_at is equal to or later than that audit created_at, when issue:ingest runs, then it refuses as today.",
+        "Given an audit that carries a harvest-digest line, then it is judged exactly as today.",
+        "Given a missing or unreadable lean or audit timestamp on a lean that has acceptance criteria or slices, then the digestless audit does not count.",
+        "verify:ac on an unlanded Spec-path brief applies the same timestamp rule as issue:ingest."
+      ],
+      "admitted_source_digest": "f6c7795654de2d25f832329a529962dce407809ab010435527e2e2c4d8458284",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "A digestless pain-audit counts for a lean that has an Acceptance Criteria list or a Slices section only when both timestamps come from the same REST comment row as the hashed body, both match YYYY-MM-DDTHH:MM:SS with optional fraction and a trailing Z, and the lean updated_at is strictly before the audit created_at.",
+          "artifact_path": "packages/core/src/design-critique/pain-audit-follow-through-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Missing, empty, null, non-string, equal, later, and any other timestamp shape do not count, and the check reads neither the comment body, nor the issue updated_at, nor a scanned body joined to a different row.",
+          "artifact_path": "packages/core/src/design-critique/pain-audit-follow-through-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "issue:ingest, the design-critique chip, and verify:ac each copy created_at and updated_at from that same REST row into the follow-through input.",
+          "artifact_path": "packages/core/src/design-critique/completed-arc-record.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "A digestless audit of a lean with neither an Acceptance Criteria list nor a Slices section still counts with no timestamp check, and a present harvest-digest line that is not a sha256 digest still does not count.",
+          "artifact_path": "packages/core/src/design-critique/pain-audit-follow-through-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "The grandfather does not consult the release instant of the digest rule.",
+          "artifact_path": "packages/core/src/design-critique/pain-audit-follow-through-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Given an accepted arc whose clean pain-audit has no harvest-digest line and whose lean updated_at is strictly before that audit created_at, both timestamps being UTC instants from the same REST rows, when issue:ingest runs, then the audit counts and ingest proceeds.",
+          "artifact_path": "packages/core/src/intake/issue-ingest.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Given the same arc whose lean updated_at is equal to or later than that audit created_at, when issue:ingest runs, then it refuses as today.",
+          "artifact_path": "packages/core/src/intake/issue-ingest.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given an audit that carries a harvest-digest line, then it is judged exactly as today.",
+          "artifact_path": "packages/core/src/design-critique/pain-audit-follow-through-gate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given a missing or unreadable lean or audit timestamp on a lean that has acceptance criteria or slices, then the digestless audit does not count.",
+          "artifact_path": "packages/core/src/design-critique/pain-audit-follow-through-gate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "verify:ac on an unlanded Spec-path brief applies the same timestamp rule as issue:ingest.",
+          "artifact_path": "packages/core/src/intake/spec-path-source.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6433653426",
+    "updated": "2026-11-17T04:53:45Z"
+  }
+}
