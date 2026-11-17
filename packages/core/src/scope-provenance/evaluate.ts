@@ -433,19 +433,15 @@ function resolveChangeKinds(input: {
   const kinds = new Map<string, ExtraPathChangeKind>();
   if (candidates.length === 0) return () => null;
   const onBase = new Set<string>();
-  try {
-    // One listing of the base tree, filtered here: no argv-length limit on a
-    // large change set.
-    const listed = git(["ls-tree", "-r", "--name-only", input.baseRef], input.root, input.runner);
-    if (listed.status !== 0) return () => null;
-    const wanted = new Set(candidates);
-    for (const line of listed.stdout.split("\n")) {
-      const n = normalizeRepoRelPath(unquoteGitPath(line.trim()));
-      if (wanted.has(n)) onBase.add(n);
-    }
-  } catch (err) {
-    if (err instanceof GitCallTimeoutError) throw err;
-    return () => null;
+  // One listing of the base tree, filtered here: no argv-length limit on a
+  // large change set. A git error or timeout propagates like every other base
+  // read here; a non-zero status leaves the kinds unknown (refused closed).
+  const listed = git(["ls-tree", "-r", "--name-only", input.baseRef], input.root, input.runner);
+  if (listed.status !== 0) return () => null;
+  const wanted = new Set(candidates);
+  for (const line of listed.stdout.split("\n")) {
+    const n = normalizeRepoRelPath(unquoteGitPath(line.trim()));
+    if (wanted.has(n)) onBase.add(n);
   }
   for (const rel of candidates) {
     const present = onBase.has(rel);
