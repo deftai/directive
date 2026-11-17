@@ -45,13 +45,14 @@ describe("launch/close-out lock (#6422)", () => {
     expect(result.detail).toContain("run the command again");
   });
 
-  it("propagates an error thrown by the body", () => {
+  it("returns an error raised by the body as a failure and frees the lock", () => {
     const root = project();
-    expect(() =>
-      withLaunchCloseoutLock(root, () => {
-        throw new Error("body broke");
-      }),
-    ).toThrow("body broke");
+    const result = withLaunchCloseoutLock(root, () => {
+      throw new Error("body broke");
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.detail).toContain("unexpected error under its lock: body broke");
     expect(existsSync(launchCloseoutLockPath(root))).toBe(false);
   });
 });

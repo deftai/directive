@@ -17,9 +17,10 @@ export type LaunchCloseoutLockResult<T> =
   | { readonly ok: false; readonly detail: string };
 
 /**
- * Run `fn` under the launch/close-out lock. A lock that cannot be acquired is
- * a returned failure (the caller retries later); an error thrown by `fn`
- * itself propagates unchanged.
+ * Run `fn` under the launch/close-out lock. Both a lock that cannot be
+ * acquired (the caller runs the command again) and an error raised inside
+ * `fn` come back as a returned failure, so a close-out that already moved
+ * briefs can still report the move on disk (#6422 item 11).
  */
 export function withLaunchCloseoutLock<T>(
   projectRoot: string,
@@ -39,10 +40,13 @@ export function withLaunchCloseoutLock<T>(
     );
     return { ok: true, value };
   } catch (err: unknown) {
-    if (entered) {
-      throw err;
-    }
     const message = err instanceof Error ? err.message : String(err);
+    if (entered) {
+      return {
+        ok: false,
+        detail: `swarm launch/close-out stopped with an unexpected error under its lock: ${message}`,
+      };
+    }
     return {
       ok: false,
       detail:
