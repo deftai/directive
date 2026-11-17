@@ -1,0 +1,1181 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6281",
+    "updated": "2026-11-17T14:56:02Z"
+  },
+  "plan": {
+    "title": "feat(release): a new default gate ships warn-only for one release, and every refusal names a runnable remedy",
+    "status": "running",
+    "narratives": {
+      "Description": "A new default gate can ship in a patch release and refuse work on the next hook refresh with no notice, and refusals often print a remedy that cannot be run as written, so agents read docs and runtime source to learn what a gate wants. This story adds one declaration table whose rows default to warn, one print helper that names the gate id and a runnable remedy, an advisory census of new or changed rows in release Check 5 that never stops a cut, and one test that runs each row's printed remedy from the refused state. The three dead remedies from the consumer report are the first rows, and main.md, docs/RELEASING.md and a new walkthrough page state the rule; the contract is lean 6908087379, accepted by synthesis 6908138687.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6281",
+      "Overview": "\n1. One declaration table. A new consumer-visible refusal is declared in one table in `packages/core`, with an `id`, a `mode` (`warn` or `enforce`), a `remedy` (the commands to run, in order, with every argument they need) and an optional `exception` reason. A row with no `mode` is `warn`.\n2. One print helper. A declared refusal prints through one helper. The line names the gate id and the remedy. In `warn` mode the work proceeds and the line says that the gate can refuse from a later release. In `enforce` mode the same line is the refusal.\n3. The flip is a later one-line change. A refusal starts to refuse when its row changes to `enforce` in a later release, with its own CHANGELOG entry. A row that ships as `enforce` with no `warn` release carries an `exception` reason, and the CHANGELOG entry states that reason.\n4. Advisory census. Check 5 keeps `blocking: false`. It also prints every table row that is new or changed against a baseline, which is the table at the previous release tag as selected by the pipeline. It prints the baseline it used. Each row has one of three states: warned at the baseline, absent at a baseline that was read, or unknown when the baseline cannot be read. Unknown is printed as unknown and is never reported as a missing warn release. The row's `exception` reason is printed. Its closing sentence asks for a warn-first release or a named exception. Table rows are not cut off at 20 lines. No state stops the cut.\n5. Remedies run as written. One parameterized test walks the table. For each row it starts from the refusal state, runs the printed remedy exactly as printed, and retries the refused operation. A row with no such case fails the test.\n6. Seed rows. The refusals that #5977 names are the first rows, in `enforce` mode: the bound pre-PR push gate, the `setup` refusal for missing hook files, and the `verify:hooks-installed` refusal that prints `deft update`. Each prints a remedy that passes item 5.\n7. Rule text. `main.md` Thin Fail-Closed Design and `docs/RELEASING.md` state the rule: narrow or remove a gate before adding one; a new default refusal ships in `warn` mode for at least one release; an exception is named with its reason.\n8. One walkthrough page in `content/docs/`. It gives the full command sequence for one push, one completion and one plan update, and names each gate that can refuse on the way with its remedy.\n9. Accepted limit. The warn period is counted per release, not per consumer, and no per-consumer warn state is kept. A consumer who upgrades past the warn-only release meets the refusal first; that refusal names the gate id and the remedy through the helper of item 2. The rule text of item 7 states this limit.\n\n## Acceptance Criteria\n\n- Given a declared refusal in `warn` mode, when its condition fires, then the work proceeds and one line names the gate id, the remedy and that the gate can refuse from a later release.\n- Given a declared refusal in `enforce` mode, when its condition fires, then the refusal line names the gate id and the same remedy.\n- Given a table row with no declared mode, when the table loads, then the mode of that row is `warn`.\n- Given a row that is absent from a baseline that was read, with mode `enforce` and no `exception`, when the release census runs, then Check 5 lists the row as having no warn release and the cut proceeds.\n- Given a row that was `warn` at the baseline and is `enforce` now, when the release census runs, then Check 5 lists the row as warned in the previous release.\n- Given a baseline that cannot be read, when the release census runs, then Check 5 lists each current row with the state unknown and the cut proceeds.\n- Given a release census run, when Check 5 prints table rows, then it prints the baseline it compared against.\n- Given more than 20 changed rows, when the release census runs, then every changed row is printed.\n- Given any `[Unreleased]` content, when the release pipeline runs Check 5, then the disclosure returns `blocking: false`.\n- Given a table row with no refusal-state case, when the test suite runs, then the remedy test fails and names the row.\n- Given the bound pre-PR push gate refusal, when the printed remedy is run exactly as printed and the push is retried, then that gate does not refuse the push.\n- Given the `setup` refusal for missing hook files on a fresh install, when the printed remedy is run exactly as printed and `setup` is retried, then `setup` succeeds.\n- Given an installed pin that is newer than the published latest version, when the `verify:hooks-installed` refusal prints its remedy and that remedy is run exactly as printed, then the remedy does not fail as a downgrade.\n- `main.md` and `docs/RELEASING.md` state the warn-first rule, the named-exception rule and the prefer-narrowing rule.\n- `docs/RELEASING.md` states that a consumer who upgrades past the warn-only release meets the refusal first, with the gate id and the remedy named.\n- Given a declared refusal in `enforce` mode on an install that never ran its `warn` release, when its condition fires, then the refusal line names the gate id and the remedy.\n- `content/docs/` carries one walkthrough page with the command sequence for one push, one completion and one plan update.\n\n\n",
+      "Constraint": "- A census that stops the release (withdrawn by the operator in comment 6858622969).\n- A written release rule with no hang-point in code (comment 6907284856 findings 1, 2 and 5).\n- Reusing the `advise|shadow|enforce` ladder of the spec guard or the per-gate `warn|enforce` fields as a shared mechanism (comment 6907284856 finding 2).\n- A remedy test that checks only that a command is registered, or one representative command (comment 6907281458 finding 3).\n- Moving every existing refusal into the table in this story. That coverage is #6139.\n- Consumer-local activation state, so that the warn period counts from each consumer's own first sight.\n- A per-consumer policy flag to choose the mode of a declared refusal.\n- A census that throws, or reports a missing warn release, when the previous release cannot be read (comment 6907376772 finding 2).",
+      "Labels": "consumer-example, design-critique:ingest-ready, framework-gap",
+      "UserStory": "As a consumer agent or operator meeting a Directive refusal, I want each new refusal to warn for one release first and every declared refusal to name its gate and a remedy that runs as printed, so that a patch release does not surprise me and I do not read runtime source to learn what a gate wants.",
+      "ImplementationPlan": "1. packages/core/src/refusal-declarations/table.ts (new): the declaration table; rows are strict JSON between begin/end markers so a past release's copy parses from git; loading defaults a missing mode to warn; lookups return results, never throw. 2. print.ts (new): one helper prints the gate id and the remedy with its arguments filled; warn mode adds that the gate can refuse from a later release and the caller proceeds; enforce mode is the refusal. 3. census.ts (new): resolve the previous release tag and read the table there through a git seam; compare with the current table; each new or changed row gets state warned, absent or unknown, plus the baseline label. 4. packages/core/src/release/consumer-readiness-disclosure.ts and run-consumer-readiness.ts: Check 5 prints every census row (no 20-line cut), the baseline, exception reasons and a closing warn-first-or-exception sentence; blocking stays false. release/pipeline.ts and release/git.ts are not touched (the running release-flow story owns them). 5. Seed rows in enforce mode: preflight-gh/pre-push.ts prints a remedy with the values the gate knows filled in (runtime/src/pre-pr-run.ts may derive git-readable defaults so the printed form runs); Taskfile.yml setup checks the hook files a fresh install deposits (_directive-run.sh, not the retired _deft-run.sh) and prints the declared remedy; verify-env/verify-hooks-installed.ts prints a remedy that is not a downgrade when the pin is newer than npm latest. 6. refusal-declarations/remedy-runs.test.ts walks every row: refused state, printed remedy run as printed (in process, with seams), retry; a row with no case fails naming the row. 7. main.md Thin Fail-Closed Design and docs/RELEASING.md state warn-first, named exception, prefer-narrowing and the skipped-release limit; content/docs/gate-walkthrough.md (new) gives the push, completion and plan-update sequences; regenerate docs/RULE-MAP.md if its sources change. 8. One test per clause plus warn_first_rule.test.ts for the doc rules; one changelog.d fragment. No new gate, stop, approval, command or consumer-facing check; no new invariant throw or numeric constant.",
+      "Traces": "#6281",
+      "AcceptanceJustification": "26 clauses: one per harvested item of lean 6908087379, the Bound contract of the accepted synthesis 6908138687 (#6333 Spec-path harvest): its 9 Bound remedy items and its 17 Acceptance Criteria, as #3550 and #5055 require."
+    },
+    "items": [
+      {
+        "title": "One declaration table. A new consumer-visible refusal is declared in one table in `packages/core`, with an `id`, a `mode` (`warn` or `enforce`), a `remedy` (the commands to run, in order, with every argument they need) and an optional `exception` reason. A row with no `mode` is `warn`.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given the refusal declaration table, when it loads, then each row has an id, a mode of warn or enforce, a remedy of commands with their arguments and an optional exception, and a row with no mode is warn."
+        }
+      },
+      {
+        "title": "One print helper. A declared refusal prints through one helper. The line names the gate id and the remedy. In `warn` mode the work proceeds and the line says that the gate can refuse from a later release. In `enforce` mode the same line is the refusal.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given a declared refusal, when its condition fires, then one line from the shared print helper names the gate id and the remedy; in warn mode the work proceeds and in enforce mode that line is the refusal."
+        }
+      },
+      {
+        "title": "The flip is a later one-line change. A refusal starts to refuse when its row changes to `enforce` in a later release, with its own CHANGELOG entry. A row that ships as `enforce` with no `warn` release carries an `exception` reason, and the CHANGELOG entry states that reason.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a row that ships in enforce mode with no warn release, when the table is checked, then the row carries an exception reason, and turning a warn row to enforce is a one-line change in a later release."
+        }
+      },
+      {
+        "title": "Advisory census. Check 5 keeps `blocking: false`. It also prints every table row that is new or changed against a baseline, which is the table at the previous release tag as selected by the pipeline. It prints the baseline it used. Each row has one of three states: warned at the baseline, absent at a baseline that was read, or unknown when the baseline cannot be read. Unknown is printed as unknown and is never reported as a missing warn release. The row's `exception` reason is printed. Its closing sentence asks for a warn-first release or a named exception. Table rows are not cut off at 20 lines. No state stops the cut.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given a release census run, when Check 5 prints, then it lists every new or changed table row against the previous release table with state warned, absent or unknown, the baseline used and any exception reason, asks for a warn-first release or a named exception, and returns blocking false."
+        }
+      },
+      {
+        "title": "Remedies run as written. One parameterized test walks the table. For each row it starts from the refusal state, runs the printed remedy exactly as printed, and retries the refused operation. A row with no such case fails the test.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given the remedy test, when it runs, then for each table row it starts from the refusal state, runs the printed remedy exactly as printed and retries the refused operation, and a row with no case fails the test."
+        }
+      },
+      {
+        "title": "Seed rows. The refusals that #5977 names are the first rows, in `enforce` mode: the bound pre-PR push gate, the `setup` refusal for missing hook files, and the `verify:hooks-installed` refusal that prints `deft update`. Each prints a remedy that passes item 5.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given the table, when it loads, then the bound pre-PR push gate, the setup missing-hook-files refusal and the verify:hooks-installed refusal are rows in enforce mode whose printed remedies pass the remedy test."
+        }
+      },
+      {
+        "title": "Rule text. `main.md` Thin Fail-Closed Design and `docs/RELEASING.md` state the rule: narrow or remove a gate before adding one; a new default refusal ships in `warn` mode for at least one release; an exception is named with its reason.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given main.md Thin Fail-Closed Design and docs/RELEASING.md, when read, then they state narrow or remove a gate before adding one, a new default refusal ships in warn mode for at least one release, and an exception is named with its reason."
+        }
+      },
+      {
+        "title": "One walkthrough page in `content/docs/`. It gives the full command sequence for one push, one completion and one plan update, and names each gate that can refuse on the way with its remedy.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given content/docs/gate-walkthrough.md, when read, then it shows the full command sequence for one push, one completion and one plan update and names each gate that can refuse on the way with its remedy."
+        }
+      },
+      {
+        "title": "Accepted limit. The warn period is counted per release, not per consumer, and no per-consumer warn state is kept. A consumer who upgrades past the warn-only release meets the refusal first; that refusal names the gate id and the remedy through the helper of item 2. The rule text of item 7 states this limit.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given docs/RELEASING.md, when read, then it states that the warn period counts per release with no per-consumer warn state, and that a consumer who upgrades past the warn release meets the refusal first with the gate id and remedy named."
+        }
+      },
+      {
+        "title": "Given a declared refusal in `warn` mode, when its condition fires, then the work proceeds and one line names the gate id, the remedy and that the gate can refuse from a later release.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given a declared refusal in `warn` mode, when its condition fires, then the work proceeds and one line names the gate id, the remedy and that the gate can refuse from a later release."
+        }
+      },
+      {
+        "title": "Given a declared refusal in `enforce` mode, when its condition fires, then the refusal line names the gate id and the same remedy.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given a declared refusal in `enforce` mode, when its condition fires, then the refusal line names the gate id and the same remedy."
+        }
+      },
+      {
+        "title": "Given a table row with no declared mode, when the table loads, then the mode of that row is `warn`.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given a table row with no declared mode, when the table loads, then the mode of that row is `warn`."
+        }
+      },
+      {
+        "title": "Given a row that is absent from a baseline that was read, with mode `enforce` and no `exception`, when the release census runs, then Check 5 lists the row as having no warn release and the cut proceeds.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given a row that is absent from a baseline that was read, with mode `enforce` and no `exception`, when the release census runs, then Check 5 lists the row as having no warn release and the cut proceeds."
+        }
+      },
+      {
+        "title": "Given a row that was `warn` at the baseline and is `enforce` now, when the release census runs, then Check 5 lists the row as warned in the previous release.",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given a row that was `warn` at the baseline and is `enforce` now, when the release census runs, then Check 5 lists the row as warned in the previous release."
+        }
+      },
+      {
+        "title": "Given a baseline that cannot be read, when the release census runs, then Check 5 lists each current row with the state unknown and the cut proceeds.",
+        "status": "proposed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Given a baseline that cannot be read, when the release census runs, then Check 5 lists each current row with the state unknown and the cut proceeds."
+        }
+      },
+      {
+        "title": "Given a release census run, when Check 5 prints table rows, then it prints the baseline it compared against.",
+        "status": "proposed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "Given a release census run, when Check 5 prints table rows, then it prints the baseline it compared against."
+        }
+      },
+      {
+        "title": "Given more than 20 changed rows, when the release census runs, then every changed row is printed.",
+        "status": "proposed",
+        "id": "clause.17",
+        "narrative": {
+          "Acceptance": "Given more than 20 changed rows, when the release census runs, then every changed row is printed."
+        }
+      },
+      {
+        "title": "Given any `[Unreleased]` content, when the release pipeline runs Check 5, then the disclosure returns `blocking: false`.",
+        "status": "proposed",
+        "id": "clause.18",
+        "narrative": {
+          "Acceptance": "Given any `[Unreleased]` content, when the release pipeline runs Check 5, then the disclosure returns `blocking: false`."
+        }
+      },
+      {
+        "title": "Given a table row with no refusal-state case, when the test suite runs, then the remedy test fails and names the row.",
+        "status": "proposed",
+        "id": "clause.19",
+        "narrative": {
+          "Acceptance": "Given a table row with no refusal-state case, when the test suite runs, then the remedy test fails and names the row."
+        }
+      },
+      {
+        "title": "Given the bound pre-PR push gate refusal, when the printed remedy is run exactly as printed and the push is retried, then that gate does not refuse the push.",
+        "status": "proposed",
+        "id": "clause.20",
+        "narrative": {
+          "Acceptance": "Given the bound pre-PR push gate refusal, when the printed remedy is run exactly as printed and the push is retried, then that gate does not refuse the push."
+        }
+      },
+      {
+        "title": "Given the `setup` refusal for missing hook files on a fresh install, when the printed remedy is run exactly as printed and `setup` is retried, then `setup` succeeds.",
+        "status": "proposed",
+        "id": "clause.21",
+        "narrative": {
+          "Acceptance": "Given the `setup` refusal for missing hook files on a fresh install, when the printed remedy is run exactly as printed and `setup` is retried, then `setup` succeeds."
+        }
+      },
+      {
+        "title": "Given an installed pin that is newer than the published latest version, when the `verify:hooks-installed` refusal prints its remedy and that remedy is run exactly as printed, then the remedy does not fail as a downgrade.",
+        "status": "proposed",
+        "id": "clause.22",
+        "narrative": {
+          "Acceptance": "Given an installed pin that is newer than the published latest version, when the `verify:hooks-installed` refusal prints its remedy and that remedy is run exactly as printed, then the remedy does not fail as a downgrade."
+        }
+      },
+      {
+        "title": "`main.md` and `docs/RELEASING.md` state the warn-first rule, the named-exception rule and the prefer-narrowing rule.",
+        "status": "proposed",
+        "id": "clause.23",
+        "narrative": {
+          "Acceptance": "`main.md` and `docs/RELEASING.md` state the warn-first rule, the named-exception rule and the prefer-narrowing rule."
+        }
+      },
+      {
+        "title": "`docs/RELEASING.md` states that a consumer who upgrades past the warn-only release meets the refusal first, with the gate id and the remedy named.",
+        "status": "proposed",
+        "id": "clause.24",
+        "narrative": {
+          "Acceptance": "`docs/RELEASING.md` states that a consumer who upgrades past the warn-only release meets the refusal first, with the gate id and the remedy named."
+        }
+      },
+      {
+        "title": "Given a declared refusal in `enforce` mode on an install that never ran its `warn` release, when its condition fires, then the refusal line names the gate id and the remedy.",
+        "status": "proposed",
+        "id": "clause.25",
+        "narrative": {
+          "Acceptance": "Given a declared refusal in `enforce` mode on an install that never ran its `warn` release, when its condition fires, then the refusal line names the gate id and the remedy."
+        }
+      },
+      {
+        "title": "`content/docs/` carries one walkthrough page with the command sequence for one push, one completion and one plan update.",
+        "status": "proposed",
+        "id": "clause.26",
+        "narrative": {
+          "Acceptance": "`content/docs/` carries one walkthrough page with the command sequence for one push, one completion and one plan update."
+        }
+      }
+    ],
+    "tags": [
+      "consumer-example",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6281",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6281: feat(release): a new default gate ships warn-only for one release, and every refusal names a runnable remedy"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1589",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1589"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3265",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3265"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5977",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5977"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft update",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L9"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/refusal-declarations/table.ts",
+          "packages/core/src/refusal-declarations/print.ts",
+          "packages/core/src/refusal-declarations/census.ts",
+          "packages/core/src/refusal-declarations/index.ts",
+          "packages/core/src/refusal-declarations/table.test.ts",
+          "packages/core/src/refusal-declarations/print.test.ts",
+          "packages/core/src/refusal-declarations/census.test.ts",
+          "packages/core/src/refusal-declarations/remedy-runs.test.ts",
+          "packages/core/src/release/consumer-readiness-disclosure.ts",
+          "packages/core/src/release/consumer-readiness-disclosure.test.ts",
+          "packages/core/src/release/run-consumer-readiness.ts",
+          "packages/core/src/release/run-consumer-readiness.test.ts",
+          "packages/core/src/preflight-gh/pre-push.ts",
+          "packages/core/src/preflight-gh/pre-push.test.ts",
+          "packages/runtime/src/pre-pr-run.ts",
+          "packages/runtime/src/pre-pr-run.test.ts",
+          "packages/core/src/verify-env/verify-hooks-installed.ts",
+          "packages/core/src/verify-env/verify-hooks-installed.test.ts",
+          "packages/core/src/content-contracts/standards/warn_first_rule.test.ts",
+          "packages/core/package.json",
+          "Taskfile.yml",
+          "main.md",
+          "docs/RELEASING.md",
+          "docs/RULE-MAP.md",
+          "content/docs/gate-walkthrough.md",
+          "changelog.d/6281-warn-first-refusals.md"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "large",
+        "model_tier": "high",
+        "depends_on": [],
+        "conflict_group": "refusal-declarations",
+        "verify_commands": [
+          "npx vitest run packages/core/src/refusal-declarations packages/core/src/release/consumer-readiness-disclosure.test.ts packages/core/src/release/run-consumer-readiness.test.ts",
+          "npx vitest run packages/core/src/preflight-gh/pre-push.test.ts packages/runtime/src/pre-pr-run.test.ts packages/core/src/verify-env/verify-hooks-installed.test.ts packages/core/src/content-contracts/standards/warn_first_rule.test.ts"
+        ],
+        "expected_outputs": [
+          "one refusal declaration table in packages/core whose rows default to warn",
+          "one print helper naming the gate id and the remedy; warn mode proceeds and says the gate can refuse from a later release",
+          "release Check 5 lists every new or changed row against the previous release table with state warned, absent or unknown and the baseline, and stays blocking false",
+          "a parameterized test that runs each row's printed remedy from the refused state; a row with no case fails by name",
+          "the bound pre-PR push gate, setup missing-hook-files and verify:hooks-installed refusals are enforce rows whose remedies run as printed",
+          "main.md, docs/RELEASING.md and content/docs/gate-walkthrough.md state the warn-first rule, the named exception, prefer-narrowing and the skipped-release limit"
+        ],
+        "Traces": [
+          "#6281"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Reshaping note from the operator before this issue is arced.\n\nOperator direction (Scott, 2026-11-13): \"we are tyring to make directive smoother in running adding mor and more gates is going the wrong way\".\n\nThis issue as filed adds a gate: the release census would stop a cut when an `[Unreleased]` entry introduces a refusal without a warn-first statement. That is the wrong direction. Reshape:\n\n- **Keep:** a new default refusal ships warn-only for one release first; the warning names the gate, the remedy and the release in which it enforces; every refusal prints a remedy that runs as written (#5977); one worked example per gate in the docs.\n- **Drop:** the census stopping the release. The existing new-refusal census (Step 5, \"Check 5\") stays advisory: it lists the entries for operator judgment and does not block the cut.\n- **Prefer:** where a gate can be narrowed or removed instead of being introduced warn-first, do that. Warn-first is the fallback for a gate that must exist.\n\nThe acceptance criterion \"the release stops for operator review\" is withdrawn; replace it with \"the census lists the entry and the cut proceeds\".\n\n",
+          "id": 6858622969,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6858622969",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-13T16:20:46Z",
+          "updated_at": "2026-11-13T16:20:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6281; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix sets a release rule for every future default refusal and for the remedy text of every existing one, and the rule itself can become a new gate, which the operator has ruled out.\n\nTarget-digest: sha256:e9377a793126ead9220af6d43f22b8dbebd3a5ef90b82d6949fe4bf3dac69458\ndispatch-sha: 06eda7e1377a981bc80e34f218ba039a99c7247c\ndest: .deft-scratch/worktrees/arc-6281 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: refutation\nrefutation-target: a release rule with no new blocking check is enough to stop a new default refusal from surprising a consumer: each new default refusal ships in a warn-only mode for one release using the mode patterns the gates already have, the existing advisory new-refusal census asks the operator for a warn-first statement or a named exception and never stops the cut, and one test proves that the remedy commands Directive prints run as written.\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: panel permission used. The target is a rule over every gate and every release (high blast radius), and the solution space is open: there is no shared gate registry or shared deny-text helper to hang the rule on. The operator handoff for this arc asks for a cross-family panel.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 06eda7e1377a981bc80e34f218ba039a99c7247c: + dest cwd-without-occupy\ndual-stop-reserved: 1\npain: P1, P2, P3, P4, P5\n\n## In plain English\nA new check that refuses work can ship in a patch release and start refusing on the next hook refresh. The consumer learns about it when a push or a write is refused. The refusal often does not say what to run, or it names a command that cannot be run as printed, so agents read docs and compiled runtime code to find out what the gate wants. The issue asks for a release rule: a new default refusal warns for one release before it can refuse, the warning names the gate, the remedy and the release in which it will refuse, every refusal prints a remedy that runs as written, and the docs carry one worked example per gate. The operator then reshaped the issue (comment 6858622969): the release census must stay advisory and must not stop a cut, and narrowing or removing a gate is preferred to introducing one warn-first. The open question is whether a rule with no blocking check actually holds, and what the smallest mechanical support is that does not itself become a gate.\n\n## Pains\n- P1 — A new default refusal can arrive in a patch release and refuse work on the next hook refresh, with no notice and no warn-only period.\n- P2 — A refusal does not name the gate, the remedy and what the gate wants in one place, so agents read docs and compiled runtime source to find out (a consumer report in the issue body counts 268 such reads in one week).\n- P3 — Printed remedy commands cannot be run as written (#5977: `deft update` becomes a refused downgrade; `deft pre-pr:run` with no arguments exits 2; `task setup` needs a retired hook helper).\n- P4 — There is no worked example per gate: the full command sequence for one push, one completion and one plan update.\n- P5 — The fix must not add a gate. The new-refusal census stays advisory, lists the entry, and the cut proceeds (operator reshaping note, comment 6858622969).\n\n## Anchors at the dispatch SHA (claims, to be re-verified)\n- `packages/core/src/release/consumer-readiness-disclosure.ts` (1-74): Check 5 is a regex over the `[Unreleased]` text (`fail-closed`, `refuses to`, `MUST NOT`, `new refusal` and similar). It returns `blocking: false` and prints \"Each new refusal needs remediation text and an escape hatch. This is not a computed verdict.\"\n- `packages/core/src/release/pipeline.ts` (540-560): the pipeline prints that disclosure at Step 5; \"checks 5-6 disclosure never block\".\n- `packages/core/src/policy/spec-guard.ts` (31-53): the `advise|shadow|enforce` ladder is specific to `plan.policy.specGuard`, with default `advise` and a shadow attestation before `enforce`. It is not a shared ladder.\n- `packages/core/src/test-boundary/policy.ts` (38, 145-183) and `packages/core/src/class-checks/evaluate.ts` (299): two more gates carry their own `enforcementMode: \"warn\" | \"enforce\"`; test-boundary defaults to `warn`. `packages/runtime/src/verify-forward-coverage.ts` (22-25) is warn-first on diff coverage. Each gate owns its mode; there is no shared gate registry and no shared mode type.\n- `packages/core/src/preflight-gh/pre-push.ts` (312, 361, 494): the bound pre-PR push gate still prints \"Recovery: deft pre-pr:run then retry push\", the line #5977 reports as not runnable with no arguments.\n- `packages/core/src/content-contracts/skills/recovery_target_resolves.test.ts`: an existing content test proves that recovery targets named in three carrier files resolve. It covers file targets in docs, not the remedy commands that gates print at run time.\n- A grep of `packages/core/src` and `packages/runtime/src` outside tests finds about 140 lines that print `Recovery: ` and 59 that name `deft update`. There is no shared helper that all of them go through.\n- `main.md` (88-98) Thin Fail-Closed Design (#3265): \"one fail-closed deterministic check with one remediation string\" for a first ship. This is the standing rule that the warn-first rule would amend.\n\n## Related issues (described content)\n- #5977 (open): printed recovery commands cannot be run.\n- #6139 (open): every write-gate deny prints exactly one next command, resolved from a reason code, with advisory strengths printing the same line.\n- #5914 (open, accepted design on its own thread): one refusal whose remedy names a task that does not exist.\n\n## Operator direction recorded for this arc\nThe operator wants Directive to run more smoothly. A fix that removes steps, PRs and stops is preferred to one that adds a gate. A new refusal needs a reason that no existing control covers.\n\n",
+          "id": 6907236858,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6907236858",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:21:55Z",
+          "updated_at": "2026-11-16T04:21:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 2\ninput-ceiling: 6907239621\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\nseat: grok launcher: grok (--cwd dest --prompt-file --permission-mode auto --disable-web-search --no-subagents)\n\ncharter: refutation\nspend: N≥3\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 06eda7e1377a981bc80e34f218ba039a99c7247c\ndest: .deft-scratch/worktrees/arc-6281\nverification-path: pin-read git show 06eda7e1377a981bc80e34f218ba039a99c7247c: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 6907236858\n\n## Launch posture (disclosed)\n- The parent is Claude Code. It does not use the playbook's bypass critic argv. Each seat uses a read-only launcher run against the dest.\n- Launch probe under the argv actually used: codex `--sandbox read-only` returned `pong` rc 0; grok `--permission-mode auto` returned `pong` rc 0. That proves launchability only, not method.\n- Codex and Grok seats have no GitHub access in that posture. They read a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit) from the dest. For both seats the parent posts the critic's final message verbatim, with no edits. Grok plain output can print progress narration before the `model:` line; the parent strips only that narration.\n\n## Amendment (panel amended down to two seats)\n- This deposit first named three seats (claude, codex, grok). The Claude seat was a dispatch failure and posted nothing: the Directive launcher hook denied the `claude` argv without a dest (#4066), the `claude` CLI rejected the `--cwd` dest flag the hook reads, and this parent session cannot use a native subagent. The parent did not work around the hook.\n- The round-1 panel is therefore the two posted seats, Codex and Grok. Both are a different model family from the parent, which wrote the Stop 1 write-back. The critics read the snapshot with the three-seat deposit; that changes nothing they were asked to do.\n- Spend: Stop 1 recorded N≥3. With the Claude seat failed, the spend is amended down (Dual stop: a failed launch is a dispatch failure, or amend-the-spend-down with the reason). Two round-1 posts plus one pain-audit post stay inside the default post cap.\n- This deposit was edited twice: once to record its own comment id as the input ceiling, and once for this amendment.\n\n",
+          "id": 6907239621,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6907239621",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:22:06Z",
+          "updated_at": "2026-11-16T04:28:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nConsumers can discover a new restriction only when their work stops, then find that the suggested recovery command does not work. Warning first and testing recovery commands would help without adding another release stop.\n\nThe refutation target is too strong as written. Publishing one warning-only release does not ensure that a consumer installs it. The advisory census also cannot establish that every new refusal followed the rule. The proposal can stand as a release practice that reduces surprises, but not as a guarantee that prevents them.\n\nAll code evidence below was read at dispatch SHA `06eda7e1377a981bc80e34f218ba039a99c7247c`. No tests, builds, installs, edits, or posts were performed.\n\n### 1. blocks-the-design — A published warning period is not a consumer warning period\n\n**Evidence:** `packages/cli/src/bookends.ts:1071–1109` resolves an upgrade directly to an explicit target or the latest stable version and rejects downgrades. It does not require installation of intervening releases. The cited mode pattern, `packages/core/src/policy/spec-guard.ts:188–201,385–403`, resolves a configured/default mode and validates mode transitions; it does not establish that a consumer ran a particular warning release.\n\n**Failure mode:** Release A has no restriction, B warns, and C refuses. A consumer upgrades directly from A to C. Every release obeyed the proposed rule, yet the consumer’s first encounter is a refusal. Even a consumer running B might never exercise the affected operation before upgrading.\n\n**Disposition consequence:** The prevention claim cannot bind as written. Either the accepted outcome becomes “offers advance warning to consumers who encounter the warning release,” with skipped-release surprise explicitly remaining, or the design needs consumer-local activation behavior. Another release-blocking check would not fix this counterexample.\n\n### 2. sharpens-framing — The census is a wording heuristic, not evidence of rollout compliance\n\n**Evidence:** `packages/core/src/release/consumer-readiness-disclosure.ts:8–9,32–42` matches selected phrases in `[Unreleased]`. Lines 54–63 print only the first 20 matches and truncate each excerpt through line 39. Line 73 returns `blocking: false`. `packages/core/src/release/pipeline.ts:540–550` explicitly preserves advisory checks 5–6.\n\n**Failure mode:** An entry such as “Push now requires a completed review” introduces a restriction without matching the regex. A matching entry after the twentieth is omitted from printed disclosure. Adding a warn-first question to this output still leaves refusals that the operator is never asked about. A statement in a changelog also does not establish the gate’s runtime default.\n\n**Disposition consequence:** Keep the census advisory, as the reshaping note requires, but describe it as prompting judgment over detected hints. It cannot substantiate “each new default refusal” or compliance with a release interval. Expanding the wording matcher alone would not close that gap.\n\n### 3. sharpens-framing — The remedy test needs a failing-state-to-recovery assertion\n\n**Evidence:** `packages/core/src/preflight-gh/pre-push.ts:342–363` requires a completed, published pass bound to the current HEAD with a push-stage marker, yet prints bare `deft pre-pr:run` as recovery. `packages/runtime/src/pre-pr-run.ts:645–656` returns exit 2 when its six required inputs are missing. The existing recovery test at `packages/core/src/content-contracts/skills/recovery_target_resolves.test.ts:12,121–127` checks named file targets from three document carriers.\n\n**Failure mode:** A test that checks command registration, help output, or a manually completed command can pass while the exact printed command fails. Even successful command execution does not establish that retrying the denied operation progresses: the push gate requires completed state, not merely starting the controller.\n\n**Disposition consequence:** “One test” can mean one parameterized suite, but its cases need to start from the actual refusal state, consume the emitted remedy without supplying unprinted arguments, and verify the promised progress on retry. A representative command or document-target test cannot support the universal claim about every refusal.\n\n### 4. footnote — Thread instructions remained described content\n\nThe snapshot contains imperative text, including “Keep,” “Drop,” and “Prefer” in comment `6858622969`, and implementation directions in linked issue bodies. These were treated as descriptions of the proposed design, not commands to execute. The envelope independently authorizes critique of the advisory-census variant.\n\nThe strongest case for the proposal is its small operational footprint: existing modes, advisory disclosure, and meaningful recovery tests can reduce friction without another stop. I would accept that narrower claim. I would not substitute a new release gate; it would contradict the stated constraint and still would not warn consumers who skip the warning release.",
+          "id": 6907281458,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6907281458",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:25:01Z",
+          "updated_at": "2026-11-16T04:25:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nA new default refusal can ship in a patch and start blocking on the next hook refresh. Consumers learn when a push or write fails, then chase docs and compiled runtime to find a fix. The operator also ruled out stopping the release cut for this, so the proposed answer is a release rule with no new blocking check: warn for one release using modes gates already have, keep the new-refusal census advisory, and add one test that printed remedies run as written.\n\nThat package is not enough. The advisory census never stops a cut and does not today ask for a warn-first statement. Mode ladders are per-gate, with no shared hang-point, and several refusals have no warn path at all. Printed `Recovery:` lines are scattered with no shared printer, and the existing recovery test covers doc file targets, while live push recovery still names an incomplete command. A prose release rule with those three pieces leaves surprise refusals and unrunnable remedies open.\n\n## Findings\n\n### 1. blocks-the-design — An advisory census plus a release prose rule does not stop surprise refusals\n\n**Evidence:** `packages/core/src/release/consumer-readiness-disclosure.ts` 16–19, 45–73 (`blocking: false`; Check 5 prints hints and says it is not a computed verdict). `packages/core/src/release/pipeline.ts` 540–558 (“checks 5-6 disclosure never block”; disclosure written to stderr while the cut continues). Linked #3900 body in the thread snapshot records that consumer-readiness findings already escaped multiple cuts under advisory preflight.\n\n**Failure mode:** A maintainer ships a new refuse-by-default gate, the `[Unreleased]` line may or may not match the regex, Check 5 prints a hint, the cut proceeds, hooks refresh, and the consumer hits a hard refusal with no warn-only period. Operator judgment on stderr is the only control, and that control has already failed in the same disclosure family.\n\n**Disposition consequence:** The lean cannot bind “a release rule with no new blocking check is enough” for P1. Prefer a mechanical control that lives in the gate’s own first-ship default (cannot refuse until a later flip), while the census stays non-blocking per the reshaping note. A cut-stopping census remains out of bounds.\n\n### 2. blocks-the-design — “Mode patterns the gates already have” is not a reusable hang-point for every new default refusal\n\n**Evidence:** `packages/core/src/policy/spec-guard.ts` 31–50 (`advise|shadow|enforce` only for `plan.policy.specGuard`). `packages/core/src/test-boundary/policy.ts` 34–38, 156–185 (`warn|enforce`, defaults differ by load path). `packages/core/src/class-checks/evaluate.ts` 299–302 (own `warn|enforce`, default `\"enforce\"`). `packages/runtime/src/verify-forward-coverage.ts` 22–26 (warn-first diff coverage; `--enforce` opt-in). `packages/core/src/lifecycle-visible/evaluate.ts` 609–617 (advisory unless `--enforce`). `packages/core/src/preflight-gh/pre-push.ts` 310–313, 357–362, 491–495 (bound push gate refuses with no warn/advise mode). Grep under `packages/core/src/release/` for “one release” / warn-first ship tracking returned no matches at this SHA.\n\n**Failure mode:** The rule says each new default refusal ships warn-only for one release “using the mode patterns the gates already have.” There is no shared mode type, no gate registry, and no release tracker of warn→enforce across cuts. A new hook deny or pre-push-class refusal can ship refuse-now with no mode field to set. Spec-guard’s three-step ladder does not transfer to gates that only know `warn|enforce` or that have no mode at all.\n\n**Disposition consequence:** Drop or narrow the “existing patterns” claim. Either the Bound remedy introduces one thin shared first-ship default (or a small allow-list of mode-bearing gates the rule covers), or P1 stays open for refusals outside those patterns. Reusing prose analogies to #1589 / #3514 without a hang-point does not cover the blast radius.\n\n### 3. blocks-the-design — One test cannot prove remedies run as written across the current Recovery surface\n\n**Evidence:** `packages/core/src/content-contracts/skills/recovery_target_resolves.test.ts` 7–14, 55–75 (covers named file targets in three carrier docs; fileless commands are allow-listed, not executed). `packages/core/src/preflight-gh/pre-push.ts` 312, 361, 494 (`Recovery: deft pre-pr:run then retry push`). `packages/runtime/src/pre-pr-run.ts` 652–655 (bare start exits 2 requiring `--repo --base-sha --head-sha --tree-hash --pr-body-hash --approved-revision`). `packages/core/src/check/named-cause.ts` 1–7, 34–36, 400–408 (check-suite remedies are a static map for `task check` gates only). Grep of `packages/core/src` shows many independent `Recovery:` string sites (branch, hooks, encoding, class-checks, pre-push, and others) with no shared runtime printer.\n\n**Failure mode:** A single new test that asserts “printed remedies run as written” either (a) covers one fixture and leaves the pre-push / `deft update` / finalize-owed class broken, or (b) pretends to cover the fleet while strings stay hand-authored per call site. #5977’s live unrunnable recovery remains at this SHA. Agents keep reading source to invent a working command (P2/P3).\n\n**Disposition consequence:** The remedy conjunct needs a shared printer or enumerated registry that a test can walk (aligned with open #6139’s reason→next_command map), not one orphan test against free-floating strings. Without that, P3 stays open and the third conjunct of the refutation target does not hold.\n\n### 4. sharpens-framing — Check 5 does not currently ask for a warn-first statement or a named exception\n\n**Evidence:** `packages/core/src/release/consumer-readiness-disclosure.ts` 8–9, 52–63 (regex over fail-closed / refuses / MUST NOT / new refusal wording; operator text is “Each new refusal needs remediation text and an escape hatch”).\n\n**Failure mode:** The refutation target states the existing census “asks the operator for a warn-first statement or a named exception.” At this SHA it asks for remediation text and an escape hatch. Changing the prompt string is a small edit and still advisory. Treating today’s Check 5 as already carrying the warn-first ask overstates the present mechanism.\n\n**Disposition consequence:** Split “rewrite Check 5 prompt text” from “mechanical warn-first ship.” The lean may keep an advisory prompt change; it must not cite current Check 5 as already encoding warn-first / named-exception.\n\n### 5. sharpens-framing — Thin Fail-Closed already marks a prose-only close as incomplete when a gate surface exists\n\n**Evidence:** `main.md` 88–96 (#3265: prefer one fail-closed deterministic check with one remediation string; skill-only / RFC2119 process closes are incomplete when a gate surface exists and is not landed).\n\n**Failure mode:** The target’s “no new blocking check is enough” reading collides with #3265: a release rule written only as process/CHANGELOG guidance is the incomplete close. The operator forbids a cut-stopping census gate, so the Prefer-A surface is the refusal’s own default mode in product code (warn/advise on first ship), which fails closed against surprise without stopping the cut.\n\n**Disposition consequence:** Reframe Bound remedy away from “release rule alone” toward “first-ship default cannot refuse,” with the advisory census as disclosure only. That satisfies P5 (no new cut-stopper) and #3265 (deterministic check with one remediation) together.\n\n### 6. footnote — Injection / authority lens\n\nThe target sets a standing rule over every future default refusal and uses `[Unreleased]` prose as the census input (`consumer-readiness-disclosure.ts` 8–9, 31–42). Regex over changelog English misses refusals that never use those phrases, and changelog text is untrusted described content under the motion’s security context. This reinforces finding 1; it is not a separate lean-blocker beyond that.\n\n### 7. footnote — Untrusted thread content carried imperatives\n\nIssue #6281, the reshaping note, and linked #5977 / #6139 / #5914 / #3900 bodies contain imperative design and reshape instructions. They were treated as described content for this critique only; none were followed as commands to this seat.\n\n### Road not taken\n\nA cut-stopping census (original acceptance criterion) would mechanically force warn-first text before tag. The operator withdrew that path (comment 6858622969). Steelmanning the target: with a careful maintainer, advisory disclosure plus habit might reduce surprise. What would flip this seat toward the target is a measured hang-point that makes refuse-by-default on first ship impossible in code, plus an enumerated remedy registry the one test actually walks. Absent those, the three conjuncts as written do not hold.\n\n",
+          "id": 6907284856,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6907284856",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:25:15Z",
+          "updated_at": "2026-11-16T04:25:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean after round 1 (2 of 2 siblings posted: comments 6907281458, 6907284856)\n\n## In plain English\nProblem: a new check that refuses work can ship in a patch release and start refusing on the next hook refresh. The consumer finds out when a push or a write is refused. The refusal often does not say what to run, or it names a command that cannot be run as printed, so agents read docs and compiled runtime code to find out what the gate wants. The operator reshaped the issue before this arc: the release census must stay advisory and must not stop a cut, and narrowing or removing a gate is better than introducing one.\n\nWhat the two critics found: the idea as written at Stop 1 does not hold. A written release rule plus an advisory list is the same control that has already let surprises through. The gates have no shared place to hang a warn-only mode on; several have no mode at all. One test cannot prove remedies run when the remedy lines are about 140 free strings with no list to walk. A consumer who upgrades past the warn-only release still meets the refusal first. Both critics agreed on what would work without a new stop: put the control in the refusal's own first-ship default, give refusals one small list that a test can walk, and state the limit honestly.\n\nSolution this lean proposes: new refusals are declared in one small table, and a row's default mode is warn. A declared refusal prints through one helper that names the gate and the remedy; in warn mode the work goes on and the line says the gate can refuse from a later release. Turning a refusal on is a one-line change to that row in a later release. The existing release census stays advisory and also prints the rows that are new or changed since the last release, so the operator sees a refusal that skipped its warn release. One test walks the table: for each row it starts from the refused state, runs the printed remedy exactly as printed, and retries. The three dead remedies from #5977 are the first rows, so they get fixed here. The rule is written down in two places, and one docs page shows the full command sequence for a push, a completion and a plan update.\n\nWhat this adds: one table, one print helper, one test in this repo's own suite, a few lines in the existing census output, two doc edits and one docs page. It adds no gate, no stop, no approval, no new command and no consumer-facing check. The census still never blocks a cut. It removes the three remedies that cannot be run, and for every declared refusal it removes the need to read source to learn what the gate wants.\n\nWhat it does not do: it does not guarantee a warning reaches every consumer. A consumer who upgrades straight past the warn-only release meets the refusal first; the refusal then names the gate and a remedy that runs. It does not move the existing refusals into the table, except the three from #5977. It does not make the census a verdict. If confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:e9377a793126ead9220af6d43f22b8dbebd3a5ef90b82d6949fe4bf3dac69458\n**Spec-path:** Bound remedy on this lean\nSupersedes Stop 1 write-back comment 6907236858. Sibling count: 2 (comments 6907281458, 6907284856). Panel deposit: comment 6907239621, amended down to two seats; the amendment is recorded on that deposit.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\nrelieves: P5\n\n## Bound remedy\n1. One declaration table. A new consumer-visible refusal is declared in one table in `packages/core`, with an `id`, a `mode` (`warn` or `enforce`), a `remedy` (the commands to run, in order, with every argument they need) and an optional `exception` reason. A row with no `mode` is `warn`.\n2. One print helper. A declared refusal prints through one helper. The line names the gate id and the remedy. In `warn` mode the work proceeds and the line says that the gate can refuse from a later release. In `enforce` mode the same line is the refusal.\n3. The flip is a later one-line change. A refusal starts to refuse when its row changes to `enforce` in a later release, with its own CHANGELOG entry. A row that ships as `enforce` with no `warn` release carries an `exception` reason, and the CHANGELOG entry states that reason.\n4. Advisory census. Check 5 keeps `blocking: false`. It also prints every table row that is new or changed since the previous release tag, with its mode, whether it was `warn` at that tag, and its `exception` reason. Its closing sentence asks for a warn-first release or a named exception. Table rows are not cut off at 20 lines. The cut proceeds.\n5. Remedies run as written. One parameterized test walks the table. For each row it starts from the refusal state, runs the printed remedy exactly as printed, and retries the refused operation. A row with no such case fails the test.\n6. Seed rows. The refusals that #5977 names are the first rows, in `enforce` mode: the bound pre-PR push gate, the `setup` refusal for missing hook files, and the `verify:hooks-installed` refusal that prints `deft update`. Each prints a remedy that passes item 5.\n7. Rule text. `main.md` Thin Fail-Closed Design and `docs/RELEASING.md` state the rule: narrow or remove a gate before adding one; a new default refusal ships in `warn` mode for at least one release; an exception is named with its reason.\n8. One walkthrough page in `content/docs/`. It gives the full command sequence for one push, one completion and one plan update, and names each gate that can refuse on the way with its remedy.\n\n## Acceptance Criteria\n- Given a declared refusal in `warn` mode, when its condition fires, then the work proceeds and one line names the gate id, the remedy and that the gate can refuse from a later release.\n- Given a declared refusal in `enforce` mode, when its condition fires, then the refusal line names the gate id and the same remedy.\n- Given a table row with no declared mode, when the table loads, then the mode of that row is `warn`.\n- Given a row that is new since the previous release tag with mode `enforce` and no `exception`, when the release census runs, then Check 5 lists the row as having no warn release and the cut proceeds.\n- Given a row that was `warn` at the previous release tag and is `enforce` now, when the release census runs, then Check 5 lists the row as warned in the previous release.\n- Given more than 20 changed rows, when the release census runs, then every changed row is printed.\n- Given any `[Unreleased]` content, when the release pipeline runs Check 5, then the disclosure returns `blocking: false`.\n- Given a table row with no refusal-state case, when the test suite runs, then the remedy test fails and names the row.\n- Given the bound pre-PR push gate refusal, when the printed remedy is run exactly as printed and the push is retried, then that gate does not refuse the push.\n- Given the `setup` refusal for missing hook files on a fresh install, when the printed remedy is run exactly as printed and `setup` is retried, then `setup` succeeds.\n- Given an installed pin that is newer than the published latest version, when the `verify:hooks-installed` refusal prints its remedy and that remedy is run exactly as printed, then the remedy does not fail as a downgrade.\n- `main.md` and `docs/RELEASING.md` state the warn-first rule, the named-exception rule and the prefer-narrowing rule.\n- `content/docs/` carries one walkthrough page with the command sequence for one push, one completion and one plan update.\n\n## Reject\n- A census that stops the release (withdrawn by the operator in comment 6858622969; both critics agree it would also not warn a consumer who skips the warn release).\n- A written release rule with no hang-point in code (comment 6907284856 findings 1, 2 and 5).\n- Reusing the `advise|shadow|enforce` ladder of the spec guard or the per-gate `warn|enforce` fields as a shared mechanism. They are per-gate and several refusals have no mode at all (comment 6907284856 finding 2).\n- A remedy test that checks only that a command is registered, or one representative command (comment 6907281458 finding 3).\n- Moving every existing refusal into the table in this story. Write-gate denies move under #6139.\n- Consumer-local activation state, so that the warn period counts from each consumer's own first sight. It closes the skipped-release limit but adds stored state and a new failure mode for one residual.\n- A per-consumer policy flag to choose the mode of a declared refusal.\n\n## Related issues\n- #5977 folds into this design. Its three remedies are the seed rows of item 6, and item 5 keeps them runnable. Without them the table would start empty and the test would prove nothing. #5977 can close when this story ships.\n- #6139 stays a separate story. It changes the deny output of the write hooks for every existing reason code, which is a different surface and a larger change. It must not build a second map: its reason-code to next-command mapping becomes rows in this table, printed by the same helper and walked by the same test. That constraint belongs on #6139's own design.\n- #5914 stays separate. It has its own accepted design for one refusal.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6907281458 | 1. A published warning period is not a consumer warning period | blocks-the-design | accept-into-contract (claim narrowed in the summary; limit stated; marker A1) |\n| comment 6907281458 | 2. The census is a wording heuristic, not evidence of rollout compliance | sharpens-framing | accept-into-contract (item 4) |\n| comment 6907281458 | 3. The remedy test needs a failing-state-to-recovery assertion | sharpens-framing | accept-into-contract (item 5) |\n| comment 6907284856 | 1. An advisory census plus a release prose rule does not stop surprise refusals | blocks-the-design | accept-into-contract (items 1 to 3; the census stays advisory) |\n| comment 6907284856 | 2. \"Mode patterns the gates already have\" is not a reusable hang-point for every new default refusal | blocks-the-design | accept-into-contract (item 1; the reuse claim is dropped) |\n| comment 6907284856 | 3. One test cannot prove remedies run as written across the current Recovery surface | blocks-the-design | accept-into-contract (items 1, 5 and 6; scope is declared refusals) |\n| comment 6907284856 | 4. Check 5 does not currently ask for a warn-first statement or a named exception | sharpens-framing | accept-into-contract (item 4) |\n| comment 6907284856 | 5. Thin Fail-Closed already marks a prose-only close as incomplete when a gate surface exists | sharpens-framing | accept-into-contract (items 1, 2 and 7) |\n\nFootnotes in the census, no take: comment 6907281458 finding 4; comment 6907284856 findings 6 and 7.\n\nRefutation target: it fails as written. A release rule with no hang-point in code is not enough, the existing mode patterns are not reusable, and one test over free strings proves nothing. It survives in a narrowed form: no new blocking check is needed, because the control can live in the default mode of a declared refusal.\n\n## Parent-side substantiation\n- audit:A1 sha=06eda7e1377a981bc80e34f218ba039a99c7247c pointer=comment:6907281458 reading=asserted\n- audit:A2 sha=06eda7e1377a981bc80e34f218ba039a99c7247c pointer=packages/core/src/release/pipeline.ts:540-560 reading=asserted\n- audit:A3 sha=06eda7e1377a981bc80e34f218ba039a99c7247c pointer=comment:6907236858 reading=asserted\n\nA1: the skipped-release limit is acceptable without consumer-local state, because a consumer who meets the refusal first still gets the gate id and a remedy that runs, which is what the pain evidence says was missing. A2: the release pipeline can read the table as it was at the previous release tag when it runs Check 5, so item 4 needs no new input from the operator. A3: the evidence behind the second pain is about a gate that newly arrived, so naming the gate and the remedy for every declared refusal relieves it; the existing write-gate denies are #6139's subject and are not part of that pain. The five `relieves` cites are asserted premises.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back and this lean. A1, A2, A3 and the five cites stay open until a later critic targets them.\n\n",
+          "id": 6907343466,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6907343466",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:29:25Z",
+          "updated_at": "2026-11-16T04:29:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4, pain-P5, A1, A2, A3\nfinding-classes: blocking, sharpening, footnote\nharvest-changed: true\n\n## In plain English\n\nThe table, shared output and recovery test are a useful deliverable. The lean cannot bind with all five pains marked relieved, however. It leaves existing refusal messages outside the table while claiming to resolve the broader difficulty of understanding refusals. The thread does not establish that those existing messages are outside P2.\n\nThe release-history comparison also needs an explicit unknown-history case. The current pipeline does not establish that the previous release’s table is available.\n\nThese are design judgments, not claims that the proposed implementation already exists. Code evidence below was read through `git show 06eda7e1377a981bc80e34f218ba039a99c7247c:`. No tests, installs, mutations or posts were performed.\n\npain-P1: holds - for the stated release-level remedy: declared new refusals default to warn before a later enforce release, with named exceptions. This does not guarantee notice to consumers who skip releases.\npain-P2: does not hold - existing refusals other than the three seed cases remain outside the helper and recovery test; the original pain did not exclude them.\npain-P3: holds - as a design obligation: items 5–6 explicitly require all three reported failures to recover through the printed commands and a retry. Runtime success remains an implementation acceptance condition.\npain-P4: holds - item 8 supplies the requested push, completion and plan-update walkthroughs and requires each encountered gate and remedy to be named.\npain-P5: holds - the census remains advisory and the proposal adds no consumer-facing refusal.\nA1: unverifiable - runnable recovery mitigates a skipped warning, but the evidence does not establish that this makes first-contact refusal acceptable to the operator.\nA2: unverifiable - automatic history lookup is feasible, but the cited pipeline neither resolves the previous release baseline nor guarantees its objects are available.\nA3: does not hold - neither the original P2 wording nor the reported count confines the understanding problem to newly introduced gates.\n\n### 1. blocks-the-design — P2 is broader than the declared-refusal subset\n\n**Evidence:** Stop 1 comment 6907236858 describes P2 without a new-gate restriction. The issue’s consumer report counts reads made to understand “a gate”; it does not inventory which gates caused them. At the dispatch SHA, `packages/core/src/hooks/scope.ts:39–45` contains an existing refusal with alternative recovery branches and unresolved `<path>` arguments. `packages/core/src/preflight-gh/pre-push.ts:361–402` likewise carries several independently authored recovery variants. Bound remedy items 1–2 and 6 cover new declarations and three seeds; the lean expressly excludes the remaining existing refusals.\n\n**Failure mode:** An existing, unregistered refusal still sends an agent to discover its concrete recovery inputs. The new table’s test passes because that refusal is not a row. Naming #6139 as separate work does not demonstrate that this part of P2 has been relieved.\n\n**Disposition consequence:** A3 cannot clear, and the unconditional P2 relief claim prevents bind. The smallest route is an operator-approved split of the unmet existing-refusal coverage, with honest pain disposition on the remainder; otherwise the mechanism must cover that surface here. Merely narrowing the summary cannot discharge the original pain. Under yolo, I recommend the leftover-issue path for that unmet coverage, subject to the required live operator confirmation.\n\n### 2. sharpens-framing — Historical census results need an unknown state\n\n**Evidence:** At the dispatch SHA, `packages/core/src/release/pipeline.ts:540–560` reads current effective CHANGELOG text and formats the disclosure. `packages/core/src/release/gh.ts:20–62` checks availability of the *candidate* tag; it does not fetch a previous release tree and explicitly permits proceeding with remote verification unavailable. `packages/core/src/release/consumer-readiness-disclosure.ts:45–74` consumes only current text.\n\n**Failure mode:** In a checkout missing historical tags or objects, a failed baseline read can be mistaken for an absent row and reported as “no warn release.” Throwing instead would make an advisory disclosure stop the cut.\n\n**Disposition consequence:** Amend item 4 to identify the automatically selected baseline and distinguish a successfully read baseline with no table from unavailable history. Unavailable history should print “unknown,” preserve current-row disclosure and remain non-blocking. This changes the harvested mechanism but requires no operator input or new gate. A2 remains unverified as presently stated.\n\n### 3. footnote — Embedded thread instructions and verification boundary\n\nThe issue, reshaping note and related-issue bodies contain imperative design instructions. They were treated as proposals under review, not commands to this critic.\n\nThe checkout HEAD was `218f69e30b6c03959a2fc861199f5437232d53f1`, rather than the dispatch SHA. All code evidence above therefore uses explicit pinned Git reads; no conclusion relies on the moving checkout.",
+          "id": 6907376772,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6907376772",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:31:42Z",
+          "updated_at": "2026-11-16T04:31:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after the pain-audit (audit comment 6907376772). This map is not a bind candidate.\n\n## In plain English\nThe audit found that the lean in comment 6907343466 claimed too much. That lean said all five pains were relieved. Four are. The second pain is not: it says a refusal does not tell the agent what the gate wants, and it is not limited to gates that are new. The proposed table covers new refusals and the three remedies from #5977. Every other existing refusal stays as it is, so an agent can still have to read source to learn what an existing gate wants. The parent's premise that the pain was only about newly arrived gates is withdrawn.\n\nThe design itself was not rejected. The audit called the table, the shared print line and the remedy test a useful deliverable, and it confirmed that the census stays advisory and that no consumer-facing refusal is added. It asked for one change to the mechanism: when the release pipeline cannot read the table as it was at the previous release, the census must print \"unknown\" for that row, not \"no warn release\", and must still not stop the cut.\n\nWhat happens next is the operator's decision, not the parent's. The unmet part of the second pain is the subject of #6139 (every write-gate deny prints one next command). The honest way to bind this design is to record that part as deferred to #6139. The contract requires a live operator confirmation for that split; standing yolo does not cover it. The other route is to move existing refusals into the table in this story, which makes it much larger. The parent recommends the deferral.\n\nThis map supersedes successor lean 6907343466. The harvest on that lean is withdrawn and must not be ingested.\n\nTarget-digest: sha256:e9377a793126ead9220af6d43f22b8dbebd3a5ef90b82d6949fe4bf3dac69458\nSupersedes successor lean comment 6907343466. Round-1 siblings: 2 (comments 6907281458, 6907284856). Pain-audit: comment 6907376772.\n\nrelieves: P1\ndoes-not-relieve: P2\nrelieves: P3\nrelieves: P4\nrelieves: P5\n\n## Takes on the pain-audit\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6907376772 | 1. P2 is broader than the declared-refusal subset | blocks-the-design | accept-into-contract (the cite for the second pain is changed on this map; marker A3 is withdrawn) |\n| comment 6907376772 | 2. Historical census results need an unknown state | sharpens-framing | accept-into-contract (carry-forward change to item 4 below) |\n\nFootnote, no take: comment 6907376772 finding 3. It also reports that the dest checkout HEAD was not the dispatch SHA when the audit ran; the audit read code with pinned `git show` reads, so its evidence is at the dispatch SHA.\n\n## Markers\n- A1 (the skipped-release limit is acceptable without consumer-local state): the audit returned unverifiable. It is an operator judgment, not a fact a critic can check. It stays open.\n- A2 (the pipeline can read the table at the previous release tag): the audit returned unverifiable and showed that the pipeline does not resolve a previous-release baseline today. The carry-forward change below removes the premise: the census must handle unavailable history.\n- A3 (the second pain is only about newly arrived gates): the audit returned does not hold. Withdrawn.\n\n## Carry-forward for the next lean (not bound here)\nThe eight-item remedy of comment 6907343466 stands as the candidate, with two changes:\n- Item 4 names the baseline it compares against (the previous release tag, selected by the pipeline) and has three row states: warned at the baseline, absent at a baseline that was read, and unknown when the baseline cannot be read. Unknown is printed as unknown. No state stops the cut.\n- The cite for the second pain becomes a deferral of the existing-refusal coverage to #6139, if the operator confirms that split. The table, helper and test then relieve that pain for declared refusals only, and the lean says so.\n\nRelated issues, unchanged from the withdrawn lean: #5977 folds in (its three remedies are the seed rows); #6139 stays separate and builds on the same table, helper and test; #5914 stays separate.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the withdrawn lean and this map.\n\n",
+          "id": 6907391801,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6907391801",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:32:45Z",
+          "updated_at": "2026-11-16T04:32:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nHandoff (after the blocking pain-audit 6907376772 and retraction map 6907391801)\n\n## In plain English\nThe arc stops here for an operator decision. The design (one table for new refusals with a default of warn, one print line that names the gate and the remedy, one test that runs each printed remedy from the refused state, an advisory census that also lists changed rows, the three #5977 remedies as the first rows, the written rule and one walkthrough page) held up under the audit for four of the five pains. It does not relieve the second pain for refusals that already exist, and the parent may not record that part as deferred without a live operator confirmation.\n\nopen-question: Does the operator confirm that naming the gate and a runnable remedy for refusals that already exist (the unmet part of pain `P2`) is deferred to #6139, so that the next lean can bind this design for declared refusals only?\n\nTwo smaller points for the same decision:\n- The skipped-release limit (marker A1). A consumer who upgrades straight past the warn-only release meets the refusal first. The design accepts that and relies on the refusal naming the gate and a remedy that runs. The alternative is per-consumer stored state, which the parent rejected as more machinery for one residual. The audit could not verify that the operator accepts this limit.\n- If the operator instead wants existing refusals covered here, this story absorbs #6139 and becomes much larger.\n\nRecommended path: confirm the deferral to #6139 and accept the skipped-release limit. A next lean then carries the eight-item remedy with the item 4 change from the retraction map, cites the second pain as deferred to #6139, and needs one more pain-audit before it can bind.\n\nState of the thread: round 1 posted two seats (comments 6907281458, 6907284856; the third seat failed to launch and the panel was amended down on deposit 6907239621). The first post-lean pain-audit used the reserved slot. Nothing on this thread is ingest-ready. The chip stays `design-critique:in-progress`.\n\n",
+          "id": 6907392232,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6907392232",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:32:47Z",
+          "updated_at": "2026-11-16T04:32:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nOperator decisions recorded (answer to Handoff comment 6907392232)\n\nThe operator (Scott) answered in a live turn on 2026-11-16. The coordinating session relayed the answer to this parent; this comment is the thread record of it.\n\n- Dual-stop cap: raised for this arc by one bind map and one pain-audit post. Posts so far: two round-1 critics (comments 6907281458, 6907284856) and one pain-audit in the reserved slot (comment 6907376772). The raise admits one more pain-audit post.\n- Leftover split: confirmed. Naming the gate and a runnable remedy for refusals that already exist (the unmet part of pain `P2`) is deferred to #6139. The leftover issue already exists, so no new issue is filed.\n- Not confirmed by the operator: the skipped-release limit. It stays an audit marker for the next critic.\n\nNext: a new bind map that supersedes the withdrawn map in comment 6907343466, with the item 4 change from audit comment 6907376772, then one pain-audit of that map.\n\n",
+          "id": 6907733092,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6907733092",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:57:23Z",
+          "updated_at": "2026-11-16T04:57:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** bind map after the operator decisions (record comment 6907733092), replacing the withdrawn map in comment 6907343466\n\n## In plain English\nProblem: a new check that refuses work can ship in a patch release and start refusing on the next hook refresh. The consumer finds out when a push or a write is refused. The refusal often does not say what to run, or it names a command that cannot be run as printed, so agents read docs and compiled runtime code to find out what the gate wants. The operator reshaped the issue before this arc: the release census must stay advisory and must not stop a cut, and narrowing or removing a gate is better than introducing one.\n\nWhat the review found: two round-1 critics showed that a written release rule with an advisory list is not enough, that the gates share no place to hang a warn-only mode on, and that one test cannot prove remedies run when the remedy lines are free strings. Both pointed at the same fix without a new stop: put the control in the refusal's own first-ship default and give refusals one small list that a test can walk. A pain-audit then found that the first map claimed too much: refusals that already exist are not covered. The operator has now confirmed that this part is deferred to #6139. The audit also asked that the census handle a release history it cannot read.\n\nSolution this lean proposes: new refusals are declared in one small table, and a row's default mode is warn. A declared refusal prints through one helper that names the gate and the remedy; in warn mode the work goes on and the line says the gate can refuse from a later release. Turning a refusal on is a one-line change to that row in a later release. The existing release census stays advisory and also prints the rows that are new or changed since the last release; when it cannot read the last release it says \"unknown\" and goes on. One test walks the table: for each row it starts from the refused state, runs the printed remedy exactly as printed, and retries. The three dead remedies from #5977 are the first rows, so they get fixed here. The rule is written down in two places, and one docs page shows the full command sequence for a push, a completion and a plan update.\n\nWhat this adds: one table, one print helper, one test in this repo's own suite, a few lines in the existing census output, two doc edits and one docs page. It adds no gate, no stop, no approval, no new command and no consumer-facing check. The census still never blocks a cut. It removes the three remedies that cannot be run, and for every declared refusal it removes the need to read source to learn what the gate wants.\n\nWhat it does not do: it does not cover refusals that already exist, apart from the three from #5977; that coverage is deferred to #6139. It does not guarantee that a warning reaches every consumer: a consumer who upgrades straight past the warn-only release meets the refusal first, and the refusal then names the gate and a remedy that runs. It does not make the census a verdict. If confirmed, the synthesis would assert this design, with the existing-refusal coverage left to #6139.\n\nTarget-digest: sha256:e9377a793126ead9220af6d43f22b8dbebd3a5ef90b82d6949fe4bf3dac69458\n**Spec-path:** Bound remedy on this lean\nSupersedes successor lean 6907343466. Retraction map: comment 6907391801. Handoff: comment 6907392232. Operator decisions: comment 6907733092. Round-1 siblings: 2 (comments 6907281458, 6907284856). First pain-audit: comment 6907376772 (`harvest-changed: true`). Panel deposit: comment 6907239621.\n\nrelieves: P1\noperator-deferred: P2 #6139\nrelieves: P3\nrelieves: P4\nrelieves: P5\n\nFor declared refusals the table and the helper do name the gate and the remedy. That partial cover is not cited as relief of `P2`; the pain as written includes existing refusals, and those are deferred.\n\n## Bound remedy\n1. One declaration table. A new consumer-visible refusal is declared in one table in `packages/core`, with an `id`, a `mode` (`warn` or `enforce`), a `remedy` (the commands to run, in order, with every argument they need) and an optional `exception` reason. A row with no `mode` is `warn`.\n2. One print helper. A declared refusal prints through one helper. The line names the gate id and the remedy. In `warn` mode the work proceeds and the line says that the gate can refuse from a later release. In `enforce` mode the same line is the refusal.\n3. The flip is a later one-line change. A refusal starts to refuse when its row changes to `enforce` in a later release, with its own CHANGELOG entry. A row that ships as `enforce` with no `warn` release carries an `exception` reason, and the CHANGELOG entry states that reason.\n4. Advisory census. Check 5 keeps `blocking: false`. It also prints every table row that is new or changed against a baseline, which is the table at the previous release tag as selected by the pipeline. It prints the baseline it used. Each row has one of three states: warned at the baseline, absent at a baseline that was read, or unknown when the baseline cannot be read. Unknown is printed as unknown and is never reported as a missing warn release. The row's `exception` reason is printed. Its closing sentence asks for a warn-first release or a named exception. Table rows are not cut off at 20 lines. No state stops the cut.\n5. Remedies run as written. One parameterized test walks the table. For each row it starts from the refusal state, runs the printed remedy exactly as printed, and retries the refused operation. A row with no such case fails the test.\n6. Seed rows. The refusals that #5977 names are the first rows, in `enforce` mode: the bound pre-PR push gate, the `setup` refusal for missing hook files, and the `verify:hooks-installed` refusal that prints `deft update`. Each prints a remedy that passes item 5.\n7. Rule text. `main.md` Thin Fail-Closed Design and `docs/RELEASING.md` state the rule: narrow or remove a gate before adding one; a new default refusal ships in `warn` mode for at least one release; an exception is named with its reason.\n8. One walkthrough page in `content/docs/`. It gives the full command sequence for one push, one completion and one plan update, and names each gate that can refuse on the way with its remedy.\n\n## Acceptance Criteria\n- Given a declared refusal in `warn` mode, when its condition fires, then the work proceeds and one line names the gate id, the remedy and that the gate can refuse from a later release.\n- Given a declared refusal in `enforce` mode, when its condition fires, then the refusal line names the gate id and the same remedy.\n- Given a table row with no declared mode, when the table loads, then the mode of that row is `warn`.\n- Given a row that is absent from a baseline that was read, with mode `enforce` and no `exception`, when the release census runs, then Check 5 lists the row as having no warn release and the cut proceeds.\n- Given a row that was `warn` at the baseline and is `enforce` now, when the release census runs, then Check 5 lists the row as warned in the previous release.\n- Given a baseline that cannot be read, when the release census runs, then Check 5 lists each current row with the state unknown and the cut proceeds.\n- Given a release census run, when Check 5 prints table rows, then it prints the baseline it compared against.\n- Given more than 20 changed rows, when the release census runs, then every changed row is printed.\n- Given any `[Unreleased]` content, when the release pipeline runs Check 5, then the disclosure returns `blocking: false`.\n- Given a table row with no refusal-state case, when the test suite runs, then the remedy test fails and names the row.\n- Given the bound pre-PR push gate refusal, when the printed remedy is run exactly as printed and the push is retried, then that gate does not refuse the push.\n- Given the `setup` refusal for missing hook files on a fresh install, when the printed remedy is run exactly as printed and `setup` is retried, then `setup` succeeds.\n- Given an installed pin that is newer than the published latest version, when the `verify:hooks-installed` refusal prints its remedy and that remedy is run exactly as printed, then the remedy does not fail as a downgrade.\n- `main.md` and `docs/RELEASING.md` state the warn-first rule, the named-exception rule and the prefer-narrowing rule.\n- `content/docs/` carries one walkthrough page with the command sequence for one push, one completion and one plan update.\n\n## Reject\n- A census that stops the release (withdrawn by the operator in comment 6858622969).\n- A written release rule with no hang-point in code (comment 6907284856 findings 1, 2 and 5).\n- Reusing the `advise|shadow|enforce` ladder of the spec guard or the per-gate `warn|enforce` fields as a shared mechanism (comment 6907284856 finding 2).\n- A remedy test that checks only that a command is registered, or one representative command (comment 6907281458 finding 3).\n- Moving every existing refusal into the table in this story. That coverage is #6139.\n- Consumer-local activation state, so that the warn period counts from each consumer's own first sight.\n- A per-consumer policy flag to choose the mode of a declared refusal.\n- A census that throws, or reports a missing warn release, when the previous release cannot be read (comment 6907376772 finding 2).\n\n## Related issues\n- #5977 folds into this design. Its three remedies are the seed rows of item 6, and item 5 keeps them runnable. #5977 can close when this story ships.\n- #6139 stays a separate story and now carries the coverage of existing refusals. It must not build a second map: its reason-code to next-command mapping becomes rows in this table, printed by the same helper and walked by the same test.\n- #5914 stays separate. It has its own accepted design for one refusal.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6907281458 | 1. A published warning period is not a consumer warning period | blocks-the-design | accept-into-contract (claim narrowed in the summary; limit stated; marker A4) |\n| comment 6907281458 | 2. The census is a wording heuristic, not evidence of rollout compliance | sharpens-framing | accept-into-contract (item 4) |\n| comment 6907281458 | 3. The remedy test needs a failing-state-to-recovery assertion | sharpens-framing | accept-into-contract (item 5) |\n| comment 6907284856 | 1. An advisory census plus a release prose rule does not stop surprise refusals | blocks-the-design | accept-into-contract (items 1 to 3; the census stays advisory) |\n| comment 6907284856 | 2. \"Mode patterns the gates already have\" is not a reusable hang-point for every new default refusal | blocks-the-design | accept-into-contract (item 1; the reuse claim is dropped) |\n| comment 6907284856 | 3. One test cannot prove remedies run as written across the current Recovery surface | blocks-the-design | accept-into-contract (items 1, 5 and 6; scope is declared refusals) |\n| comment 6907284856 | 4. Check 5 does not currently ask for a warn-first statement or a named exception | sharpens-framing | accept-into-contract (item 4) |\n| comment 6907284856 | 5. Thin Fail-Closed already marks a prose-only close as incomplete when a gate surface exists | sharpens-framing | accept-into-contract (items 1, 2 and 7) |\n| comment 6907376772 | 1. P2 is broader than the declared-refusal subset | blocks-the-design | accept-into-contract (the cite for the second pain is now the operator-confirmed deferral to #6139) |\n| comment 6907376772 | 2. Historical census results need an unknown state | sharpens-framing | accept-into-contract (item 4, changed) |\n\nFootnotes in the census, no take: comment 6907281458 finding 4; comment 6907284856 findings 6 and 7; comment 6907376772 finding 3.\n\nRefutation target: it fails as written and survives in a narrowed form. No new blocking check is needed, because the control can live in the default mode of a declared refusal.\n\n## Parent-side substantiation\n- audit:A4 sha=06eda7e1377a981bc80e34f218ba039a99c7247c pointer=comment:6907281458 reading=asserted\n\nA4: the skipped-release limit is acceptable without consumer-local state, because a consumer who meets the refusal first still gets the gate id and a remedy that runs. This restates marker A1 of the withdrawn map, which the first audit returned as unverifiable. The operator has not confirmed it. Markers A2 and A3 of the withdrawn map are gone: item 4 no longer assumes the baseline can be read, and the premise about the second pain is withdrawn. The four `relieves` cites and the deferral cite are asserted premises.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the withdrawn map, the retraction map and this lean. A4 and the five cites stay open until a later critic targets them.\n\n",
+          "id": 6907737119,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6907737119",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T04:57:40Z",
+          "updated_at": "2026-11-16T04:57:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4, pain-P5, A4\nfinding-classes: blocking, footnote\nharvest-changed: false\n\n## In plain English\n\nThe revised design addresses the earlier coverage and missing-history findings. It supplies a warning-first release mechanism, tests recovery from actual refusal states, and preserves the advisory census. Existing-refusal coverage is now explicitly deferred with recorded operator confirmation.\n\nOne unresolved premise still prevents bind: runnable recovery does not establish that the operator accepts discovering a new restriction through a refusal after skipping its warning release. The latest operator-decision record explicitly leaves that limit unconfirmed. This audit does not establish it either.\n\nThese are judgments about the proposed design, not claims that it is implemented. Evidence was read at `06eda7e1377a981bc80e34f218ba039a99c7247c`. No tests, builds, installs, edits or posts were performed.\n\npain-P1: holds - at the expressly limited release level: new declared refusals default to warn before a later enforcement release, subject to named exceptions. Consumer notice remains conditional on encountering that warning.\npain-P2: holds - as an operator-confirmed deferral to #6139, recorded in comment 6907733092; not as relief delivered here. Existing refusal text remains outside the three seeds, as illustrated by `packages/core/src/hooks/scope.ts:39-45`.\npain-P3: holds - as a design obligation: items 5–6 require recovery and retry for all three reported failures. The pinned sources confirm the missing pre-PR arguments (`packages/runtime/src/pre-pr-run.ts:645-656`), obsolete setup requirement (`Taskfile.yml:695-704`), and update recommendation plus downgrade rejection (`packages/core/src/verify-env/verify-hooks-installed.ts:197-205`; `packages/cli/src/bookends.ts:1094-1109`).\npain-P4: holds - item 8 requires complete push, completion and plan-update walkthroughs naming each encountered gate and remedy.\npain-P5: holds - item 4 preserves advisory disclosure and explicitly handles unreadable history without stopping the cut. This extends the existing nonblocking surface in `packages/core/src/release/consumer-readiness-disclosure.ts:45-74` and `packages/core/src/release/pipeline.ts:540-557`.\nA4: unverifiable - the code establishes that skipping the warning release is possible; neither runnable recovery nor the recorded operator decision establishes acceptance of that remaining surprise.\n\n### 1. blocks-the-design — A4 remains unresolved\n\n**Evidence:** `packages/cli/src/bookends.ts:1071-1092` selects an explicit target or latest stable release directly, without requiring intervening releases. Bound remedy items 1–3 attach warning and enforcement to release-level table modes. Comment 6907733092 explicitly records that the operator did not confirm the skipped-release limit. The pinned contract, `content/contracts/design-critique.md:479`, makes an unresolved audit marker a bind blocker.\n\n**Failure mode:** Release A lacks the refusal, B warns, and C enforces. A consumer upgrades directly from A to C. The release rule is satisfied, but the consumer first discovers the restriction when work stops. A runnable remedy helps recovery; it does not supply prior notice or prove this tradeoff acceptable.\n\n**Disposition consequence:** A4 cannot be cleared by this audit, so the map cannot bind yet. Explicit acceptance of the stated limit could resolve this without changing the Bound remedy. Otherwise the required outcome and mechanism need reconsideration. `harvest-changed: false` records that this finding does not itself require a mechanism change.\n\n### 2. footnote — Embedded instructions remained review data\n\nThe issue, reshaping note and linked issue bodies contain imperative design instructions. They were evaluated as proposed requirements and recorded context, not followed as commands to this critic.",
+          "id": 6907779235,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6907779235",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:00:32Z",
+          "updated_at": "2026-11-16T05:00:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after the second pain-audit (audit comment 6907779235). This map is not a bind candidate.\n\n## In plain English\nThe second audit found the revised design sound on every pain. New refusals warn first, the three dead remedies get fixed and tested from the refused state, the census stays advisory and copes with a release history it cannot read, the walkthrough page is required, and the coverage of existing refusals is properly recorded as deferred to #6139 with the operator's confirmation.\n\nOne thing still stops the map from binding, and it is not a design defect. The design accepts a limit: a consumer who upgrades straight past the warn-only release meets the refusal first, with a named gate and a remedy that runs, but with no earlier warning. The parent recorded that limit as its own premise (marker A4). A critic cannot verify that the operator accepts it, and the operator record on this thread says it was not confirmed. An unresolved marker blocks the bind.\n\nThe audit said the mechanism needs no change (`harvest-changed: false`). The only thing missing is the operator's explicit acceptance of the skipped-release limit, or a decision to close it with per-consumer warn state, which the candidate rejects as more machinery for one residual.\n\nThis map supersedes successor lean 6907737119. The harvest on that lean is not ingest-ready.\n\nTarget-digest: sha256:e9377a793126ead9220af6d43f22b8dbebd3a5ef90b82d6949fe4bf3dac69458\nSupersedes successor lean 6907737119. Second pain-audit: comment 6907779235. Operator decisions: comment 6907733092.\n\nrelieves: P1\noperator-deferred: P2 #6139\nrelieves: P3\nrelieves: P4\nrelieves: P5\n\n## Takes on the second pain-audit\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6907779235 | 1. A4 remains unresolved | blocks-the-design | accept-into-contract (the map does not bind until the operator accepts the limit or the mechanism changes) |\n\nFootnote, no take: comment 6907779235 finding 2.\n\n## Carry-forward (not bound here)\nThe eight-item remedy and the acceptance criteria of comment 6907737119 stand unchanged as the candidate. The audit returned every pain target as holding. If the operator accepts the skipped-release limit, the same remedy can go on a bind map with that acceptance recorded as an operator decision and no parent marker.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, both withdrawn maps, the first retraction map and this map.\n\n",
+          "id": 6907779575,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6907779575",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:00:33Z",
+          "updated_at": "2026-11-16T05:00:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nHandoff (after the second pain-audit 6907779235 and retraction map 6907779575)\n\n## In plain English\nThe arc stops again for one operator decision. The second audit found the design sound on all five pains and asked for no change to the mechanism. It could not clear one premise, because only the operator can: whether it is acceptable that a consumer who upgrades straight past the warn-only release meets the new refusal with no earlier warning. In that case the refusal still names the gate and prints a remedy that runs.\n\nopen-question: Does the operator accept the skipped-release limit, so that the eight-item remedy of comment 6907737119 can bind unchanged?\n\nIf yes: a bind map carries the same remedy with the acceptance recorded as an operator decision. It needs one more pain-audit post, which needs another cap raise, because the map changes.\nIf no: the alternative is per-consumer warn state, so that the warn period counts from each consumer's own first sight of the gate. That changes the mechanism and adds stored state.\n\nThe parent recommends accepting the limit.\n\nState of the thread: nothing is ingest-ready. The chip stays `design-critique:in-progress`. Posts used: two round-1 critics, the reserved-slot pain-audit, and the one pain-audit the operator's raise admitted.\n\n",
+          "id": 6907779954,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6907779954",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:00:35Z",
+          "updated_at": "2026-11-16T05:00:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nOperator decisions recorded (answer to Handoff comment 6907779954)\n\nThe operator (Scott) answered in a live turn on 2026-11-16. The coordinating session relayed the answer to this parent; this comment is the thread record of it.\n\n- Skipped-release limit: accepted. A consumer who upgrades straight past the warn-only release meets the refusal first, with the gate named and a remedy that runs. No per-consumer warn state is wanted. This is now an operator decision, not a parent premise; marker A4 of the map in comment 6907737119 is retired by it.\n- Dual-stop cap: raised for this arc by one more bind map and one more pain-audit post.\n\nNext: a bind map that states the accepted limit as part of the remedy, then one pain-audit of that map.\n\n",
+          "id": 6908083779,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6908083779",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:21:04Z",
+          "updated_at": "2026-11-16T05:21:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n**Lean:** bind map after the second operator decision (record comment 6908083779), replacing the map in comment 6907737119\n\n## In plain English\nProblem: a new check that refuses work can ship in a patch release and start refusing on the next hook refresh. The consumer finds out when a push or a write is refused. The refusal often does not say what to run, or it names a command that cannot be run as printed, so agents read docs and compiled runtime code to find out what the gate wants. The operator reshaped the issue before this arc: the release census must stay advisory and must not stop a cut, and narrowing or removing a gate is better than introducing one.\n\nWhat the review found: two round-1 critics showed that a written release rule with an advisory list is not enough, that the gates share no place to hang a warn-only mode on, and that one test cannot prove remedies run when the remedy lines are free strings. Both pointed at the same fix without a new stop: put the control in the refusal's own first-ship default and give refusals one small list that a test can walk. A pain-audit then found that the first map claimed too much: refusals that already exist are not covered. The operator has now confirmed that this part is deferred to #6139. The audit also asked that the census handle a release history it cannot read. A second audit found the design sound and left one point for the operator: the skipped-release limit. The operator has now accepted that limit, so it is part of the remedy.\n\nSolution this lean proposes: new refusals are declared in one small table, and a row's default mode is warn. A declared refusal prints through one helper that names the gate and the remedy; in warn mode the work goes on and the line says the gate can refuse from a later release. Turning a refusal on is a one-line change to that row in a later release. The existing release census stays advisory and also prints the rows that are new or changed since the last release; when it cannot read the last release it says \"unknown\" and goes on. One test walks the table: for each row it starts from the refused state, runs the printed remedy exactly as printed, and retries. The three dead remedies from #5977 are the first rows, so they get fixed here. The rule is written down in two places, and one docs page shows the full command sequence for a push, a completion and a plan update.\n\nWhat this adds: one table, one print helper, one test in this repo's own suite, a few lines in the existing census output, two doc edits and one docs page. It adds no gate, no stop, no approval, no new command and no consumer-facing check. The census still never blocks a cut. It removes the three remedies that cannot be run, and for every declared refusal it removes the need to read source to learn what the gate wants.\n\nWhat it does not do: it does not cover refusals that already exist, apart from the three from #5977; that coverage is deferred to #6139. It does not guarantee that a warning reaches every consumer: a consumer who upgrades straight past the warn-only release meets the refusal first, and the refusal then names the gate and a remedy that runs. The operator accepted this limit (comment 6908083779). It does not make the census a verdict. If confirmed, the synthesis would assert this design, with the existing-refusal coverage left to #6139.\n\nTarget-digest: sha256:e9377a793126ead9220af6d43f22b8dbebd3a5ef90b82d6949fe4bf3dac69458\n**Spec-path:** Bound remedy on this lean\nSupersedes successor lean 6907737119. Retraction maps: comments 6907391801, 6907779575. Handoffs: comments 6907392232, 6907779954. Operator decisions: comments 6907733092, 6908083779. Round-1 siblings: 2 (comments 6907281458, 6907284856). First pain-audit: comment 6907376772 (`harvest-changed: true`). Second pain-audit: comment 6907779235. Panel deposit: comment 6907239621.\n\nrelieves: P1\noperator-deferred: P2 #6139\nrelieves: P3\nrelieves: P4\nrelieves: P5\n\nFor declared refusals the table and the helper do name the gate and the remedy. That partial cover is not cited as relief of `P2`; the pain as written includes existing refusals, and those are deferred.\n\n## Bound remedy\n1. One declaration table. A new consumer-visible refusal is declared in one table in `packages/core`, with an `id`, a `mode` (`warn` or `enforce`), a `remedy` (the commands to run, in order, with every argument they need) and an optional `exception` reason. A row with no `mode` is `warn`.\n2. One print helper. A declared refusal prints through one helper. The line names the gate id and the remedy. In `warn` mode the work proceeds and the line says that the gate can refuse from a later release. In `enforce` mode the same line is the refusal.\n3. The flip is a later one-line change. A refusal starts to refuse when its row changes to `enforce` in a later release, with its own CHANGELOG entry. A row that ships as `enforce` with no `warn` release carries an `exception` reason, and the CHANGELOG entry states that reason.\n4. Advisory census. Check 5 keeps `blocking: false`. It also prints every table row that is new or changed against a baseline, which is the table at the previous release tag as selected by the pipeline. It prints the baseline it used. Each row has one of three states: warned at the baseline, absent at a baseline that was read, or unknown when the baseline cannot be read. Unknown is printed as unknown and is never reported as a missing warn release. The row's `exception` reason is printed. Its closing sentence asks for a warn-first release or a named exception. Table rows are not cut off at 20 lines. No state stops the cut.\n5. Remedies run as written. One parameterized test walks the table. For each row it starts from the refusal state, runs the printed remedy exactly as printed, and retries the refused operation. A row with no such case fails the test.\n6. Seed rows. The refusals that #5977 names are the first rows, in `enforce` mode: the bound pre-PR push gate, the `setup` refusal for missing hook files, and the `verify:hooks-installed` refusal that prints `deft update`. Each prints a remedy that passes item 5.\n7. Rule text. `main.md` Thin Fail-Closed Design and `docs/RELEASING.md` state the rule: narrow or remove a gate before adding one; a new default refusal ships in `warn` mode for at least one release; an exception is named with its reason.\n8. One walkthrough page in `content/docs/`. It gives the full command sequence for one push, one completion and one plan update, and names each gate that can refuse on the way with its remedy.\n9. Accepted limit. The warn period is counted per release, not per consumer, and no per-consumer warn state is kept. A consumer who upgrades past the warn-only release meets the refusal first; that refusal names the gate id and the remedy through the helper of item 2. The rule text of item 7 states this limit.\n\n## Acceptance Criteria\n- Given a declared refusal in `warn` mode, when its condition fires, then the work proceeds and one line names the gate id, the remedy and that the gate can refuse from a later release.\n- Given a declared refusal in `enforce` mode, when its condition fires, then the refusal line names the gate id and the same remedy.\n- Given a table row with no declared mode, when the table loads, then the mode of that row is `warn`.\n- Given a row that is absent from a baseline that was read, with mode `enforce` and no `exception`, when the release census runs, then Check 5 lists the row as having no warn release and the cut proceeds.\n- Given a row that was `warn` at the baseline and is `enforce` now, when the release census runs, then Check 5 lists the row as warned in the previous release.\n- Given a baseline that cannot be read, when the release census runs, then Check 5 lists each current row with the state unknown and the cut proceeds.\n- Given a release census run, when Check 5 prints table rows, then it prints the baseline it compared against.\n- Given more than 20 changed rows, when the release census runs, then every changed row is printed.\n- Given any `[Unreleased]` content, when the release pipeline runs Check 5, then the disclosure returns `blocking: false`.\n- Given a table row with no refusal-state case, when the test suite runs, then the remedy test fails and names the row.\n- Given the bound pre-PR push gate refusal, when the printed remedy is run exactly as printed and the push is retried, then that gate does not refuse the push.\n- Given the `setup` refusal for missing hook files on a fresh install, when the printed remedy is run exactly as printed and `setup` is retried, then `setup` succeeds.\n- Given an installed pin that is newer than the published latest version, when the `verify:hooks-installed` refusal prints its remedy and that remedy is run exactly as printed, then the remedy does not fail as a downgrade.\n- `main.md` and `docs/RELEASING.md` state the warn-first rule, the named-exception rule and the prefer-narrowing rule.\n- `docs/RELEASING.md` states that a consumer who upgrades past the warn-only release meets the refusal first, with the gate id and the remedy named.\n- Given a declared refusal in `enforce` mode on an install that never ran its `warn` release, when its condition fires, then the refusal line names the gate id and the remedy.\n- `content/docs/` carries one walkthrough page with the command sequence for one push, one completion and one plan update.\n\n## Reject\n- A census that stops the release (withdrawn by the operator in comment 6858622969).\n- A written release rule with no hang-point in code (comment 6907284856 findings 1, 2 and 5).\n- Reusing the `advise|shadow|enforce` ladder of the spec guard or the per-gate `warn|enforce` fields as a shared mechanism (comment 6907284856 finding 2).\n- A remedy test that checks only that a command is registered, or one representative command (comment 6907281458 finding 3).\n- Moving every existing refusal into the table in this story. That coverage is #6139.\n- Consumer-local activation state, so that the warn period counts from each consumer's own first sight.\n- A per-consumer policy flag to choose the mode of a declared refusal.\n- A census that throws, or reports a missing warn release, when the previous release cannot be read (comment 6907376772 finding 2).\n\n## Related issues\n- #5977 folds into this design. Its three remedies are the seed rows of item 6, and item 5 keeps them runnable. #5977 can close when this story ships.\n- #6139 stays a separate story and now carries the coverage of existing refusals. It must not build a second map: its reason-code to next-command mapping becomes rows in this table, printed by the same helper and walked by the same test.\n- #5914 stays separate. It has its own accepted design for one refusal.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 6907281458 | 1. A published warning period is not a consumer warning period | blocks-the-design | accept-into-contract (item 9; the limit is an operator decision, comment 6908083779) |\n| comment 6907281458 | 2. The census is a wording heuristic, not evidence of rollout compliance | sharpens-framing | accept-into-contract (item 4) |\n| comment 6907281458 | 3. The remedy test needs a failing-state-to-recovery assertion | sharpens-framing | accept-into-contract (item 5) |\n| comment 6907284856 | 1. An advisory census plus a release prose rule does not stop surprise refusals | blocks-the-design | accept-into-contract (items 1 to 3; the census stays advisory) |\n| comment 6907284856 | 2. \"Mode patterns the gates already have\" is not a reusable hang-point for every new default refusal | blocks-the-design | accept-into-contract (item 1; the reuse claim is dropped) |\n| comment 6907284856 | 3. One test cannot prove remedies run as written across the current Recovery surface | blocks-the-design | accept-into-contract (items 1, 5 and 6; scope is declared refusals) |\n| comment 6907284856 | 4. Check 5 does not currently ask for a warn-first statement or a named exception | sharpens-framing | accept-into-contract (item 4) |\n| comment 6907284856 | 5. Thin Fail-Closed already marks a prose-only close as incomplete when a gate surface exists | sharpens-framing | accept-into-contract (items 1, 2 and 7) |\n| comment 6907376772 | 1. P2 is broader than the declared-refusal subset | blocks-the-design | accept-into-contract (the cite for the second pain is now the operator-confirmed deferral to #6139) |\n| comment 6907376772 | 2. Historical census results need an unknown state | sharpens-framing | accept-into-contract (item 4, changed) |\n| comment 6907779235 | 1. A4 remains unresolved | blocks-the-design | accept-into-contract (item 9; the operator accepted the limit, comment 6908083779) |\n\nFootnotes in the census, no take: comment 6907281458 finding 4; comment 6907284856 findings 6 and 7; comment 6907376772 finding 3; comment 6907779235 finding 2.\n\nRefutation target: it fails as written and survives in a narrowed form. No new blocking check is needed, because the control can live in the default mode of a declared refusal.\n\n## Parent-side substantiation\nThis map introduces no new parent premise. The skipped-release limit was marker A4 on the map in comment 6907737119; it is now an operator decision (comment 6908083779) and item 9 of the remedy. The four `relieves` cites and the deferral cite are asserted premises.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the earlier maps, both retraction maps and this lean. The five cites stay open until a later critic targets them.\n\n",
+          "id": 6908087379,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6908087379",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:21:18Z",
+          "updated_at": "2026-11-16T05:21:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4, pain-P5\nfinding-classes: footnote\nharvest-changed: false\n\n## In plain English\n\nNew restrictions can stop consumers without warning, and the printed recovery commands can fail. The proposed table gives new refusals a warning default, while recovery tests check that the printed commands actually clear the refusal.\n\nThe five pain dispositions hold as design commitments. Existing-refusal coverage is explicitly deferred, and the operator has now accepted that consumers who skip the warning release can encounter enforcement first. I found no remaining blocker requiring a change to the Bound remedy. This verdict does not claim the proposed behavior is already implemented.\n\nAll code references below were read at dispatch SHA `06eda7e1377a981bc80e34f218ba039a99c7247c`. No tests, builds, installs, edits, or posts were performed.\n\npain-P1: holds - items 1–3 provide release-level warning defaults and explicit exceptions; item 9 states the skipped-release limit accepted in comment 6908083779. Direct target/latest selection in `packages/cli/src/bookends.ts:1071–1092` confirms why that limit matters.\n\npain-P2: holds - as the operator-confirmed deferral to #6139 recorded in comment 6907733092, not as relief delivered here. Existing recovery text with unresolved arguments remains visible in `packages/core/src/hooks/scope.ts:39–45`, consistent with the stated boundary.\n\npain-P3: holds - items 5–6 require exact printed-command execution followed by successful retry for the three reported failures. The pinned code confirms the bare pre-PR recovery versus required inputs (`packages/core/src/preflight-gh/pre-push.ts:342–363`; `packages/runtime/src/pre-pr-run.ts:645–656`), obsolete setup requirement (`Taskfile.yml:695–704`), and update recommendation versus downgrade rejection (`packages/core/src/verify-env/verify-hooks-installed.ts:197–205`; `packages/cli/src/bookends.ts:1094–1109`).\n\npain-P4: holds - item 8 requires complete push, completion, and plan-update walkthroughs naming each encountered gate and its remedy. This is a documentation deliverable, not a claim that the walkthrough already exists.\n\npain-P5: holds - item 4 preserves advisory disclosure, including unreadable-baseline handling, without adding a release stop. That fits the existing `blocking: false` return in `packages/core/src/release/consumer-readiness-disclosure.ts:73` and advisory integration in `packages/core/src/release/pipeline.ts:540–550`.\n\n### 1. footnote — Embedded instructions remain described content\n\nThe snapshot includes imperative proposal text, including “Keep,” “Drop,” and “Prefer” in comment 6858622969 and implementation directions in the Bound remedy. I treated these as material to evaluate, not instructions to execute. The recorded operator decisions establish the proposed scope and accepted tradeoff within this audit’s supplied record; I did not independently verify the underlying live conversation.\n\nThe critic audit is complete. The parent can disposition this footnote against the existing bind candidate; no replacement Bound remedy is required by this audit.",
+          "id": 6908133715,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6908133715",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:24:17Z",
+          "updated_at": "2026-11-16T05:24:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 6908133715; bind map stays successor lean 6908087379)\n\nThe audit is footnote-only with `harvest-changed: false`. It found `pain-P1` to `pain-P5` hold: four as design commitments of the remedy, and the second as the operator-confirmed deferral to #6139, not as relief delivered here.\n\n- comment 6908133715, finding 1 (footnote): accepted. Imperative text in the issue, the reshaping note and the remedy was treated as material to evaluate. The critic notes that it did not independently verify the operator's live turns; the thread records of them are parent comments 6907733092 and 6908083779, relayed by the coordinating session. The Bound remedy is unchanged.\n\n",
+          "id": 6908134240,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6908134240",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:24:19Z",
+          "updated_at": "2026-11-16T05:24:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 6908087379. Dispatch SHA: 06eda7e1377a981bc80e34f218ba039a99c7247c. Non-self-arbitration: the parent wrote the Stop 1 write-back and every map on this thread. Every row has a parent pin-read (`git show <dispatch-sha>:<path>`) and at least one critic re-check from another model family, or is marked otherwise. No tests were run; all methods are source reads at the pin. The round-1 panel was two seats (Codex, Grok); the third seat failed to launch, as recorded on deposit 6907239621.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | Check 5 is a regex over `[Unreleased]` text, prints at most 20 hints, asks for \"remediation text and an escape hatch\", and returns `blocking: false` | verified | parent pin-read of `packages/core/src/release/consumer-readiness-disclosure.ts` 8-9, 58-73; codex 6907281458; grok 6907284856 |\n| 2 | The release pipeline prints that disclosure and never blocks on checks 5 and 6 | verified | parent pin-read of `packages/core/src/release/pipeline.ts` 540-560; codex 6907281458; grok 6907284856 |\n| 3 | Check 5 does not ask today for a warn-first statement or a named exception | verified | parent pin-read of the same file, line 63; grok 6907284856 finding 4 |\n| 4 | Warn-only modes are per gate with no shared type or registry: `advise|shadow|enforce` for the spec guard, `warn|enforce` for test-boundary and class-checks, warn-first diff coverage, advisory lifecycle-visible | verified | parent pin-read of `packages/core/src/policy/spec-guard.ts` 31-33, `packages/core/src/test-boundary/policy.ts` 38, `packages/core/src/class-checks/evaluate.ts` 299, `packages/core/src/lifecycle-visible/evaluate.ts` 609; grok 6907284856 finding 2 |\n| 5 | The bound pre-PR push gate refuses with no warn mode and prints \"Recovery: deft pre-pr:run then retry push\" | verified | parent pin-read of `packages/core/src/preflight-gh/pre-push.ts` 340-363; codex 6907281458; grok 6907284856; codex audits 6907779235 and 6908133715 |\n| 6 | `deft pre-pr:run` with no arguments exits 2 and asks for six flags, so that printed remedy does not run as written | verified | parent pin-read of `packages/runtime/src/pre-pr-run.ts` 645-656; codex 6907281458; grok 6907284856 |\n| 7 | The `setup` task still requires `_deft-run.sh` among the hook files | verified | parent pin-read of `Taskfile.yml` 695; codex audits 6907779235 and 6908133715 |\n| 8 | The `verify:hooks-installed` refusal prints `deft update`, and the upgrade path rejects a target older than the pin as a downgrade | verified | parent pin-read of `packages/core/src/verify-env/verify-hooks-installed.ts` 204 and `packages/cli/src/bookends.ts` 1094-1109; codex audits 6907779235 and 6908133715 |\n| 9 | An upgrade resolves straight to an explicit target or the latest stable version and does not require intervening releases, so a consumer can skip a warn-only release | verified | parent pin-read of `packages/cli/src/bookends.ts` 1071-1092; codex 6907281458 finding 1; codex audit 6907779235 |\n| 10 | The existing recovery test covers file targets named in three carrier documents, not the remedy commands that gates print | verified | parent pin-read of `packages/core/src/content-contracts/skills/recovery_target_resolves.test.ts` 1-80; codex 6907281458; grok 6907284856 |\n| 11 | Remedy lines are free strings at many call sites with no shared printer; the one static map (`GATE_REMEDIES`) covers `task check` gates only | verified | parent grep at the pin (about 140 lines printing `Recovery: ` under `packages/core/src` and `packages/runtime/src` outside tests) and pin-read of `packages/core/src/check/named-cause.ts` 1-40; grok 6907284856 finding 3. The count is the parent's grep; the critic did not reproduce the number |\n| 12 | Thin Fail-Closed Design treats a prose-only close as incomplete when a gate surface exists | verified | parent pin-read of `main.md` 88-98; grok 6907284856 finding 5 |\n| 13 | The pipeline does not resolve a previous-release baseline today; its tag helper checks only the candidate tag | verified | parent pin-read of `packages/core/src/release/gh.ts` 20-26; codex audit 6907376772 finding 2. Item 4 of the remedy therefore carries the unknown state |\n| 14 | Existing refusals outside the three seed rows stay as they are (example: a scope refusal with unresolved `<path>` arguments) | endorsed, not re-derived by the parent | codex audits 6907376772, 6907779235 and 6908133715 (`packages/core/src/hooks/scope.ts` 39-45). This is the coverage deferred to #6139 |\n| 15 | The skipped-release limit and the deferral to #6139 are operator decisions | recorded, not verifiable from source | parent comments 6907733092 and 6908083779, relayed from the operator's live turns by the coordinating session |\n\n",
+          "id": 6908134676,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6908134676",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:24:21Z",
+          "updated_at": "2026-11-16T05:24:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-fable-5-2\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: a new check that refuses work could ship in a patch release and start refusing on the next hook refresh, with no warning. The refusal often did not say what to run, or named a command that could not be run as printed, so agents read docs and compiled runtime code to find out what the gate wanted.\n\nAccepted solution: new refusals are declared in one small table, and a row's default mode is warn. A declared refusal prints through one helper that names the gate and the remedy; in warn mode the work goes on and the line says the gate can refuse from a later release. Turning a refusal on is a one-line change to that row in a later release, and skipping the warn release needs a named exception. The release census stays advisory: it also lists rows that are new or changed since the last release, says \"unknown\" when it cannot read the last release, and never stops a cut. One test walks the table and, for each row, starts from the refused state, runs the printed remedy exactly as printed and retries. The three dead remedies from #5977 are the first rows, so #5977 is fixed by this story. The rule is written into `main.md` and `docs/RELEASING.md`, and one docs page shows the command sequence for a push, a completion and a plan update.\n\nThe design adds no gate, stop, approval, command or consumer-facing check. Two limits are operator decisions. Refusals that already exist are not covered here; that coverage is deferred to #6139, which must reuse this table, helper and test. A consumer who upgrades straight past the warn-only release meets the refusal first, with the gate named and a remedy that runs.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 6908087379.\nverified-claims table 6908134676\n\nConfirm conjunct: yolo standing (Stop 1 6907236858, `yolo-standing: on`), with the operator's handoff direction to accept a lean after a clean audit, and the operator's two live-turn decisions recorded in comments 6907733092 (deferral of existing-refusal coverage to #6139; cap raise) and 6908083779 (skipped-release limit accepted; cap raise). Clean audit: comment 6908133715 (`finding-classes: footnote`, `harvest-changed: false`); its one footnote is disposed in comment 6908134240. Earlier maps 6907343466 and 6907737119 were retired after blocking audits 6907376772 and 6907779235 (retraction maps 6907391801, 6907779575). Round 1: comments 6907281458 and 6907284856, each posted by the parent verbatim; the panel was amended down to two seats as disclosed on panel-deposit 6907239621.\n\n",
+          "id": 6908138687,
+          "html_url": "https://github.com/deftai/directive/issues/6281#issuecomment-6908138687",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T05:24:36Z",
+          "updated_at": "2026-11-16T05:24:36Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nA new default gate can arrive in a patch release and start refusing work on the next hook refresh, with no notice. Consumers find out when a push or a write is refused, and then read the runtime source to learn what the gate wants.\n\nDirective already has the pattern for doing this safely: the spec-drift guard ladder `advise|shadow|enforce` (#1589), and warn-first forward coverage (#3514).\n\n## Consumer impact\n\nOn a consumer project, a new default gate arrived in a patch release and applied on the next hook refresh. In one week, agents read Directive docs or source 268 times to find out what a gate wanted, 206 of them in compiled runtime code.\n\n## Expected\n\nA release rule, checked mechanically:\n\n- A gate that adds a new consumer-visible refusal ships warn-only (advise or shadow) for at least one release before it can refuse by default. The warning names the gate, the remedy and the release in which it will enforce.\n- Exceptions (a security fix that must refuse now) are named in the CHANGELOG entry with the reason.\n- The release pipeline's new-refusal census (Step 5, \"Check 5\") already lists `[Unreleased]` lines that may introduce a refusal. Make it require, for each one, either a warn-first statement or a named exception.\n- Every refusal prints a remedy that can be run as written (#5977), and each gate has one worked example in the docs: the full command sequence for one push, one completion and one plan update.\n\n## Acceptance\n\n- Given an `[Unreleased]` entry that introduces a default refusal with no warn-first statement and no exception, when the release census runs, then it reports the entry and the release stops for operator review.\n- Given a gate in its warn-only release, when its condition fires, then the work proceeds and the warning names the enforce release.\n- Docs carry one worked example per gate named above.\n\nRefs #1589. Refs #3265. Refs #5977.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6374107568,
+        "origin": "deftai/directive#6281",
+        "id": "github.issue.6374107568"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "e9377a793126ead9220af6d43f22b8dbebd3a5ef90b82d6949fe4bf3dac69458"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6281,
+        "leanCommentId": 6908087379,
+        "harvestDigest": "a5a417734fd02e96e70ca6fb3a3efd7f25c245d2986262cbf4bc75655ccd4f75",
+        "slice": null
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (26), in list order (#6333)",
+      "sentences": [
+        "One declaration table. A new consumer-visible refusal is declared in one table in `packages/core`, with an `id`, a `mode` (`warn` or `enforce`), a `remedy` (the commands to run, in order, with every argument they need) and an optional `exception` reason. A row with no `mode` is `warn`.",
+        "One print helper. A declared refusal prints through one helper. The line names the gate id and the remedy. In `warn` mode the work proceeds and the line says that the gate can refuse from a later release. In `enforce` mode the same line is the refusal.",
+        "The flip is a later one-line change. A refusal starts to refuse when its row changes to `enforce` in a later release, with its own CHANGELOG entry. A row that ships as `enforce` with no `warn` release carries an `exception` reason, and the CHANGELOG entry states that reason.",
+        "Advisory census. Check 5 keeps `blocking: false`. It also prints every table row that is new or changed against a baseline, which is the table at the previous release tag as selected by the pipeline. It prints the baseline it used. Each row has one of three states: warned at the baseline, absent at a baseline that was read, or unknown when the baseline cannot be read. Unknown is printed as unknown and is never reported as a missing warn release. The row's `exception` reason is printed. Its closing sentence asks for a warn-first release or a named exception. Table rows are not cut off at 20 lines. No state stops the cut.",
+        "Remedies run as written. One parameterized test walks the table. For each row it starts from the refusal state, runs the printed remedy exactly as printed, and retries the refused operation. A row with no such case fails the test.",
+        "Seed rows. The refusals that #5977 names are the first rows, in `enforce` mode: the bound pre-PR push gate, the `setup` refusal for missing hook files, and the `verify:hooks-installed` refusal that prints `deft update`. Each prints a remedy that passes item 5.",
+        "Rule text. `main.md` Thin Fail-Closed Design and `docs/RELEASING.md` state the rule: narrow or remove a gate before adding one; a new default refusal ships in `warn` mode for at least one release; an exception is named with its reason.",
+        "One walkthrough page in `content/docs/`. It gives the full command sequence for one push, one completion and one plan update, and names each gate that can refuse on the way with its remedy.",
+        "Accepted limit. The warn period is counted per release, not per consumer, and no per-consumer warn state is kept. A consumer who upgrades past the warn-only release meets the refusal first; that refusal names the gate id and the remedy through the helper of item 2. The rule text of item 7 states this limit.",
+        "Given a declared refusal in `warn` mode, when its condition fires, then the work proceeds and one line names the gate id, the remedy and that the gate can refuse from a later release.",
+        "Given a declared refusal in `enforce` mode, when its condition fires, then the refusal line names the gate id and the same remedy.",
+        "Given a table row with no declared mode, when the table loads, then the mode of that row is `warn`.",
+        "Given a row that is absent from a baseline that was read, with mode `enforce` and no `exception`, when the release census runs, then Check 5 lists the row as having no warn release and the cut proceeds.",
+        "Given a row that was `warn` at the baseline and is `enforce` now, when the release census runs, then Check 5 lists the row as warned in the previous release.",
+        "Given a baseline that cannot be read, when the release census runs, then Check 5 lists each current row with the state unknown and the cut proceeds.",
+        "Given a release census run, when Check 5 prints table rows, then it prints the baseline it compared against.",
+        "Given more than 20 changed rows, when the release census runs, then every changed row is printed.",
+        "Given any `[Unreleased]` content, when the release pipeline runs Check 5, then the disclosure returns `blocking: false`.",
+        "Given a table row with no refusal-state case, when the test suite runs, then the remedy test fails and names the row.",
+        "Given the bound pre-PR push gate refusal, when the printed remedy is run exactly as printed and the push is retried, then that gate does not refuse the push.",
+        "Given the `setup` refusal for missing hook files on a fresh install, when the printed remedy is run exactly as printed and `setup` is retried, then `setup` succeeds.",
+        "Given an installed pin that is newer than the published latest version, when the `verify:hooks-installed` refusal prints its remedy and that remedy is run exactly as printed, then the remedy does not fail as a downgrade.",
+        "`main.md` and `docs/RELEASING.md` state the warn-first rule, the named-exception rule and the prefer-narrowing rule.",
+        "`docs/RELEASING.md` states that a consumer who upgrades past the warn-only release meets the refusal first, with the gate id and the remedy named.",
+        "Given a declared refusal in `enforce` mode on an install that never ran its `warn` release, when its condition fires, then the refusal line names the gate id and the remedy.",
+        "`content/docs/` carries one walkthrough page with the command sequence for one push, one completion and one plan update."
+      ],
+      "admitted_source_sentences": [
+        "One declaration table. A new consumer-visible refusal is declared in one table in `packages/core`, with an `id`, a `mode` (`warn` or `enforce`), a `remedy` (the commands to run, in order, with every argument they need) and an optional `exception` reason. A row with no `mode` is `warn`.",
+        "One print helper. A declared refusal prints through one helper. The line names the gate id and the remedy. In `warn` mode the work proceeds and the line says that the gate can refuse from a later release. In `enforce` mode the same line is the refusal.",
+        "The flip is a later one-line change. A refusal starts to refuse when its row changes to `enforce` in a later release, with its own CHANGELOG entry. A row that ships as `enforce` with no `warn` release carries an `exception` reason, and the CHANGELOG entry states that reason.",
+        "Advisory census. Check 5 keeps `blocking: false`. It also prints every table row that is new or changed against a baseline, which is the table at the previous release tag as selected by the pipeline. It prints the baseline it used. Each row has one of three states: warned at the baseline, absent at a baseline that was read, or unknown when the baseline cannot be read. Unknown is printed as unknown and is never reported as a missing warn release. The row's `exception` reason is printed. Its closing sentence asks for a warn-first release or a named exception. Table rows are not cut off at 20 lines. No state stops the cut.",
+        "Remedies run as written. One parameterized test walks the table. For each row it starts from the refusal state, runs the printed remedy exactly as printed, and retries the refused operation. A row with no such case fails the test.",
+        "Seed rows. The refusals that #5977 names are the first rows, in `enforce` mode: the bound pre-PR push gate, the `setup` refusal for missing hook files, and the `verify:hooks-installed` refusal that prints `deft update`. Each prints a remedy that passes item 5.",
+        "Rule text. `main.md` Thin Fail-Closed Design and `docs/RELEASING.md` state the rule: narrow or remove a gate before adding one; a new default refusal ships in `warn` mode for at least one release; an exception is named with its reason.",
+        "One walkthrough page in `content/docs/`. It gives the full command sequence for one push, one completion and one plan update, and names each gate that can refuse on the way with its remedy.",
+        "Accepted limit. The warn period is counted per release, not per consumer, and no per-consumer warn state is kept. A consumer who upgrades past the warn-only release meets the refusal first; that refusal names the gate id and the remedy through the helper of item 2. The rule text of item 7 states this limit.",
+        "Given a declared refusal in `warn` mode, when its condition fires, then the work proceeds and one line names the gate id, the remedy and that the gate can refuse from a later release.",
+        "Given a declared refusal in `enforce` mode, when its condition fires, then the refusal line names the gate id and the same remedy.",
+        "Given a table row with no declared mode, when the table loads, then the mode of that row is `warn`.",
+        "Given a row that is absent from a baseline that was read, with mode `enforce` and no `exception`, when the release census runs, then Check 5 lists the row as having no warn release and the cut proceeds.",
+        "Given a row that was `warn` at the baseline and is `enforce` now, when the release census runs, then Check 5 lists the row as warned in the previous release.",
+        "Given a baseline that cannot be read, when the release census runs, then Check 5 lists each current row with the state unknown and the cut proceeds.",
+        "Given a release census run, when Check 5 prints table rows, then it prints the baseline it compared against.",
+        "Given more than 20 changed rows, when the release census runs, then every changed row is printed.",
+        "Given any `[Unreleased]` content, when the release pipeline runs Check 5, then the disclosure returns `blocking: false`.",
+        "Given a table row with no refusal-state case, when the test suite runs, then the remedy test fails and names the row.",
+        "Given the bound pre-PR push gate refusal, when the printed remedy is run exactly as printed and the push is retried, then that gate does not refuse the push.",
+        "Given the `setup` refusal for missing hook files on a fresh install, when the printed remedy is run exactly as printed and `setup` is retried, then `setup` succeeds.",
+        "Given an installed pin that is newer than the published latest version, when the `verify:hooks-installed` refusal prints its remedy and that remedy is run exactly as printed, then the remedy does not fail as a downgrade.",
+        "`main.md` and `docs/RELEASING.md` state the warn-first rule, the named-exception rule and the prefer-narrowing rule.",
+        "`docs/RELEASING.md` states that a consumer who upgrades past the warn-only release meets the refusal first, with the gate id and the remedy named.",
+        "Given a declared refusal in `enforce` mode on an install that never ran its `warn` release, when its condition fires, then the refusal line names the gate id and the remedy.",
+        "`content/docs/` carries one walkthrough page with the command sequence for one push, one completion and one plan update."
+      ],
+      "admitted_source_digest": "0724ecfd7bbe7436117baa73a394a05e6fdcaaa1ce332f2ab945d6127a9f2d27",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "One declaration table. A new consumer-visible refusal is declared in one table in `packages/core`, with an `id`, a `mode` (`warn` or `enforce`), a `remedy` (the commands to run, in order, with every argument they need) and an optional `exception` reason. A row with no `mode` is `warn`.",
+          "artifact_path": "packages/core/src/refusal-declarations/table.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "One print helper. A declared refusal prints through one helper. The line names the gate id and the remedy. In `warn` mode the work proceeds and the line says that the gate can refuse from a later release. In `enforce` mode the same line is the refusal.",
+          "artifact_path": "packages/core/src/refusal-declarations/print.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The flip is a later one-line change. A refusal starts to refuse when its row changes to `enforce` in a later release, with its own CHANGELOG entry. A row that ships as `enforce` with no `warn` release carries an `exception` reason, and the CHANGELOG entry states that reason.",
+          "artifact_path": "packages/core/src/refusal-declarations/table.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Advisory census. Check 5 keeps `blocking: false`. It also prints every table row that is new or changed against a baseline, which is the table at the previous release tag as selected by the pipeline. It prints the baseline it used. Each row has one of three states: warned at the baseline, absent at a baseline that was read, or unknown when the baseline cannot be read. Unknown is printed as unknown and is never reported as a missing warn release. The row's `exception` reason is printed. Its closing sentence asks for a warn-first release or a named exception. Table rows are not cut off at 20 lines. No state stops the cut.",
+          "artifact_path": "packages/core/src/release/consumer-readiness-disclosure.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Remedies run as written. One parameterized test walks the table. For each row it starts from the refusal state, runs the printed remedy exactly as printed, and retries the refused operation. A row with no such case fails the test.",
+          "artifact_path": "packages/core/src/refusal-declarations/remedy-runs.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Seed rows. The refusals that #5977 names are the first rows, in `enforce` mode: the bound pre-PR push gate, the `setup` refusal for missing hook files, and the `verify:hooks-installed` refusal that prints `deft update`. Each prints a remedy that passes item 5.",
+          "artifact_path": "packages/core/src/refusal-declarations/table.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Rule text. `main.md` Thin Fail-Closed Design and `docs/RELEASING.md` state the rule: narrow or remove a gate before adding one; a new default refusal ships in `warn` mode for at least one release; an exception is named with its reason.",
+          "artifact_path": "main.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "One walkthrough page in `content/docs/`. It gives the full command sequence for one push, one completion and one plan update, and names each gate that can refuse on the way with its remedy.",
+          "artifact_path": "content/docs/gate-walkthrough.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Accepted limit. The warn period is counted per release, not per consumer, and no per-consumer warn state is kept. A consumer who upgrades past the warn-only release meets the refusal first; that refusal names the gate id and the remedy through the helper of item 2. The rule text of item 7 states this limit.",
+          "artifact_path": "docs/RELEASING.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given a declared refusal in `warn` mode, when its condition fires, then the work proceeds and one line names the gate id, the remedy and that the gate can refuse from a later release.",
+          "artifact_path": "packages/core/src/refusal-declarations/print.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given a declared refusal in `enforce` mode, when its condition fires, then the refusal line names the gate id and the same remedy.",
+          "artifact_path": "packages/core/src/refusal-declarations/print.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given a table row with no declared mode, when the table loads, then the mode of that row is `warn`.",
+          "artifact_path": "packages/core/src/refusal-declarations/table.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given a row that is absent from a baseline that was read, with mode `enforce` and no `exception`, when the release census runs, then Check 5 lists the row as having no warn release and the cut proceeds.",
+          "artifact_path": "packages/core/src/refusal-declarations/census.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given a row that was `warn` at the baseline and is `enforce` now, when the release census runs, then Check 5 lists the row as warned in the previous release.",
+          "artifact_path": "packages/core/src/refusal-declarations/census.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given a baseline that cannot be read, when the release census runs, then Check 5 lists each current row with the state unknown and the cut proceeds.",
+          "artifact_path": "packages/core/src/refusal-declarations/census.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Given a release census run, when Check 5 prints table rows, then it prints the baseline it compared against.",
+          "artifact_path": "packages/core/src/release/consumer-readiness-disclosure.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Given more than 20 changed rows, when the release census runs, then every changed row is printed.",
+          "artifact_path": "packages/core/src/release/consumer-readiness-disclosure.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Given any `[Unreleased]` content, when the release pipeline runs Check 5, then the disclosure returns `blocking: false`.",
+          "artifact_path": "packages/core/src/release/consumer-readiness-disclosure.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Given a table row with no refusal-state case, when the test suite runs, then the remedy test fails and names the row.",
+          "artifact_path": "packages/core/src/refusal-declarations/remedy-runs.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Given the bound pre-PR push gate refusal, when the printed remedy is run exactly as printed and the push is retried, then that gate does not refuse the push.",
+          "artifact_path": "packages/core/src/preflight-gh/pre-push.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "Given the `setup` refusal for missing hook files on a fresh install, when the printed remedy is run exactly as printed and `setup` is retried, then `setup` succeeds.",
+          "artifact_path": "Taskfile.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "Given an installed pin that is newer than the published latest version, when the `verify:hooks-installed` refusal prints its remedy and that remedy is run exactly as printed, then the remedy does not fail as a downgrade.",
+          "artifact_path": "packages/core/src/verify-env/verify-hooks-installed.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 23,
+          "text": "`main.md` and `docs/RELEASING.md` state the warn-first rule, the named-exception rule and the prefer-narrowing rule.",
+          "artifact_path": "main.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 24,
+          "text": "`docs/RELEASING.md` states that a consumer who upgrades past the warn-only release meets the refusal first, with the gate id and the remedy named.",
+          "artifact_path": "docs/RELEASING.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 25,
+          "text": "Given a declared refusal in `enforce` mode on an install that never ran its `warn` release, when its condition fires, then the refusal line names the gate id and the remedy.",
+          "artifact_path": "packages/core/src/refusal-declarations/print.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 26,
+          "text": "`content/docs/` carries one walkthrough page with the command sequence for one push, one completion and one plan update.",
+          "artifact_path": "content/docs/gate-walkthrough.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "confessions": []
+    },
+    "id": "github.issue.6374107568",
+    "updated": "2026-11-17T14:56:02Z"
+  }
+}
