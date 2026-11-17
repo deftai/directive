@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6480",
-    "updated": "2026-11-17T05:43:54Z"
+    "updated": "2026-11-17T15:07:39Z"
   },
   "plan": {
     "title": "bug(hooks): in-PR completion (#6277) moves the brief out of active/, so the #6379 binding refuses the product commit",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "In-PR completion (#6277) moves the story brief from xbrief/active/ to xbrief/completed/ inside the product PR, and the #6379 worktree story binding then refuses that commit and every later Edit, Write and commit in the worktree with assigned_story_missing, whose repair text wrongly says to re-activate the brief. This story lets the binding admit the assigned story on an active-folder miss only when the assigned id matches one lands-with-product move in the worktree diff against the newest commit, among the merge base and the commits this branch adds after it, that still has the brief at its active path. The fence stays the merge-base blob when it exists and otherwise the one-PR mint gate on that same commit; the commit path keeps the implement intent ceiling, a completion already on the merge base stays refused, and no new gate or grant is added.",
       "UserStory": "As a story worker in a bound linked worktree, I want the worktree story binding to keep admitting my story after scope:complete --in-pr moves its brief to completed/, so that I can commit the product change and later review fixes without the operator running each commit by hand.",
@@ -19,130 +19,242 @@
     "items": [
       {
         "title": "On an active-folder miss, the binding admits the assigned story only when that story id equals storyIdForBrief of one lands-with-product move in git diff --name-status -M with no second revision against the newest commit, among the merge base and the commits this branch adds after it, whose tree still contains that brief at the active path, commits behind the merge base are not candidates, and that commit is HEAD while the move is uncommitted.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/scope.ts, when resolveWorktreeStoryBinding finds no active/ brief for the assigned story, then it admits that story only when the assigned id equals storyIdForBrief of exactly one lands-with-product move in the single-revision git diff --name-status -M against the newest commit at or after the merge base that still has that brief at its active path (HEAD while the move is uncommitted)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "387c0a18abd3d1966392003a7220858cf2db645b",
+          "recorded_at": "2026-11-17T15:07:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "When the merge base has the activeRel blob the fence is that blob, and when it does not the fence is the one-PR mint gate on that same containing commit, and neither the missing worktree file nor the completed brief is that mint head.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given packages/core/src/policy/write-fence.ts and a moved-brief hit, when the story write fence loads, then it is the merge-base blob of the old active path when that blob exists, and otherwise the one-PR mint gate evaluated on the brief read from the containing commit, never from the missing worktree file or the completed brief."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "387c0a18abd3d1966392003a7220858cf2db645b",
+          "recorded_at": "2026-11-17T15:07:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The hit skips inspectActiveScope and the active-folder and running-status refuses, the commit path still runs the implement intent ceiling, and neither the commit path nor the write path appends the activate repair.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher.ts and a moved-brief hit, when the write path or the commit path (evaluateProspectiveScopeCover) runs, then neither calls inspectActiveScope nor applies the active-folder and running-status refusals, the commit path runs the implement intent ceiling, and no message from either path appends the scope:activate or promote-then-activate repair."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "387c0a18abd3d1966392003a7220858cf2db645b",
+          "recorded_at": "2026-11-17T15:07:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Any other miss keeps today's refusal, including when the assigned id matches no such move and when the completion is already inside the merge base.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/scope.ts, when the assigned id matches no active/ brief and no in-range lands-with-product move, or the completion is already inside the merge base, then resolveWorktreeStoryBinding refuses with assigned_story_missing exactly as on origin/master."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "387c0a18abd3d1966392003a7220858cf2db645b",
+          "recorded_at": "2026-11-17T15:07:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The binding matches the assigned id and does not call soleLandsWithProductMove, so another story's move is not a new assignment.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/scope.ts, when the binding resolves a moved brief, then it selects only the move whose story id equals the assigned id and does not call soleLandsWithProductMove, so a different story's move never becomes the assignment."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "387c0a18abd3d1966392003a7220858cf2db645b",
+          "recorded_at": "2026-11-17T15:07:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The env pin and the spawn bound path use pinNamesLandsWithProductMove, so a pin that still names the pre-move active path, the completed path, or the basename still names this story.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/scope.ts and a moved-brief hit, when DEFT_ACTIVE_SCOPE or the spawn bound path is set, then the conflict check uses pinNamesLandsWithProductMove, so a pin naming the pre-move active path, the completed path or the basename names this story and any other pin still refuses."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "387c0a18abd3d1966392003a7220858cf2db645b",
+          "recorded_at": "2026-11-17T15:07:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The move oracle is that bounded containing-commit diff, so an uncommitted move and a move already committed on the branch are the same diff, and commits behind the merge base are not candidates.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope/lands-with-product.ts, when the containing-commit move oracle runs, then an uncommitted move and the same move committed on the branch yield the same move from the single-revision diff, and no commit behind the merge base is ever a candidate."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "387c0a18abd3d1966392003a7220858cf2db645b",
+          "recorded_at": "2026-11-17T15:07:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a bound worktree whose diff against the newest in-range commit that still has the assigned brief at its active path moves that brief from active/ to completed/ as lands-with-product, whether or not that move is committed, when the worker commits or writes, then the binding admits that story.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/scope.ts and a bound linked worktree whose assigned brief moved from active/ to completed/ as lands-with-product, committed or not, when the worker commits or writes, then the binding returns bound for that story and the git-fixture test admits both the commit and a later Edit."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "387c0a18abd3d1966392003a7220858cf2db645b",
+          "recorded_at": "2026-11-17T15:07:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a brief whose old active path exists on the merge base, when the worker commits after that move, then the fence is that merge-base blob.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given packages/core/src/policy/write-fence.ts and a brief whose old active path exists on the merge base, when the worker commits after the move, then the fence file_scope equals that merge-base blob's file_scope."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "387c0a18abd3d1966392003a7220858cf2db645b",
+          "recorded_at": "2026-11-17T15:07:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a brief that was added on this branch, when the worker commits after that move, then the fence is the one-PR mint gate on the newest in-range commit that still contains the brief at its active path.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given packages/core/src/policy/write-fence.ts and a brief added on this branch, when the worker commits after the move, then the fence is the one-PR mint gate evaluated on the brief blob of the newest in-range commit that still contains it at its active path."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "387c0a18abd3d1966392003a7220858cf2db645b",
+          "recorded_at": "2026-11-17T15:07:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a bound worktree whose assigned story has no brief in active/ and no such move in that diff, then the commit is refused as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/scope.ts and a bound worktree whose assigned story has no brief in active/ and no such move in that diff, when the worker commits, then the commit is refused with assigned_story_missing as on origin/master."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "387c0a18abd3d1966392003a7220858cf2db645b",
+          "recorded_at": "2026-11-17T15:07:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A completion already inside the merge base has no candidate, and the commit is refused as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope/lands-with-product.ts and a completion already inside the merge base, when the oracle runs, then it returns no candidate and the commit is refused as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "387c0a18abd3d1966392003a7220858cf2db645b",
+          "recorded_at": "2026-11-17T15:07:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The refusal text for a story completed in that diff does not tell the author to re-activate the brief.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/scope.ts and a story whose brief moved to completed/ in that diff, when any binding refusal is returned for it, then the refusal text does not tell the author to run scope:activate or re-activate the brief."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "387c0a18abd3d1966392003a7220858cf2db645b",
+          "recorded_at": "2026-11-17T15:07:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "A pin or spawn path that names the pre-move active path, the completed path, or the basename still selects that story.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/scope.ts and a moved-brief hit, when the env pin or spawn bound path names the pre-move active path, the completed path or the basename, then the binding still selects that story."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "387c0a18abd3d1966392003a7220858cf2db645b",
+          "recorded_at": "2026-11-17T15:07:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "When more than one brief moves, the binding follows the assigned id and does not follow a different story's move.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/scope.ts and a diff with more than one lands-with-product move, when the binding resolves, then it selects the move for the assigned id and never a different story's move."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "387c0a18abd3d1966392003a7220858cf2db645b",
+          "recorded_at": "2026-11-17T15:07:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a story admitted through that move, when a non-implement slash session commits, then the implement intent ceiling still refuses the commit.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher.ts and a story admitted through that move, when a session whose DEFT_SESSION_SLASH_VERB is a non-implement verb commits, then the commit path refuses with the implement intent ceiling."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "387c0a18abd3d1966392003a7220858cf2db645b",
+          "recorded_at": "2026-11-17T15:07:39Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -843,9 +955,34 @@
         "leanCommentId": 6938620473,
         "harvestDigest": "5141d4ef8fd20d17ef11eee39f4349b941db6f0f4449d8c98bc88d1f4283a62f",
         "slice": null
+      },
+      "productPullRequest": 6516,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "930fd2dcbc32ed95828c6fb9634d89a33410c85a",
+        "prNumber": 6516,
+        "prBase": "master",
+        "mergeCommit": "387c0a18abd3d1966392003a7220858cf2db645b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "930a518c3d8806addc204fd2190e94f429ae003d",
+        "verifiedAt": "2026-11-17T15:07:39Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T15:07:39Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T15:07:39Z"
       }
     },
     "id": "github.issue.6434467523",
-    "updated": "2026-11-17T05:43:54Z"
+    "updated": "2026-11-17T15:07:39Z"
   }
 }
