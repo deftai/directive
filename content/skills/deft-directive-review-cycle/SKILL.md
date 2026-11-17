@@ -466,6 +466,8 @@ Review-cycle babysit wait is `pr:watch` (blocking to CLEAN, or `--one-shot` grou
 
 ! **Caller order (MUST):** do **not** start `pr:wait-mergeable-and-merge` until `pr:watch` / `pr:merge-ready` is CLEAN.
 
+~ On a merge-queue branch the verb enqueues and may return `queued` (exit 3); run the printed `--resume` command. To set up a queue: [`docs/github-merge-queue-setup.md`](../../docs/github-merge-queue-setup.md) (#6366).
+
 ! **First-probe sequence (MUST):** one-shot or first probe: parse `clean_gate_holdout`; classify leftover A/B/C; dest residual or BLOCKED; wait-merge only after CLEAN. Borrowed from #2688: parse holdout on the first probe; MUST NOT idle-poll or start wait-merge. Do **not** copy the Greptile-CLEAN conjunct (`confidence meets resolved min`) onto `clean_gate_holdout=confidence` — that conjunct is false on confidence holdout.
 
 **Holdout split:**

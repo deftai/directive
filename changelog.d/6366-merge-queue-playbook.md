@@ -1,0 +1,2 @@
+section: Added
+- Merge queue setup playbook (`content/docs/github-merge-queue-setup.md`), with known issues and ways to save queue rounds. `scm/github.md` and the review-cycle merge step link it, and `pr:wait-mergeable-and-merge` prints one advisory line naming it on a strict branch with no queue. AGENTS.md and the swarm skill now say to run `swarm:pre-dispatch` (begin) before any implementation worker (#6366, #6379).

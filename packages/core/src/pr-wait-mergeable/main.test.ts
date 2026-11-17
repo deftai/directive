@@ -47,7 +47,26 @@ describe("parseWaitMergeableArgs", () => {
       resume: false,
       expectHead: null,
       since: null,
+      wait: false,
     });
+  });
+
+  it("parses --wait on the first call and with --resume (#6423 item 1)", () => {
+    expect(parseWaitMergeableArgs(["1370", "--repo", "deftai/directive", "--wait"]).wait).toBe(
+      true,
+    );
+    const resumed = parseWaitMergeableArgs([
+      "1370",
+      "--resume",
+      "--wait",
+      "--expect-head",
+      "a".repeat(40),
+      "--since",
+      "2026-11-17T01:00:00.000Z",
+    ]);
+    expect(resumed.error).toBeUndefined();
+    expect(resumed.wait).toBe(true);
+    expect(resumed.resume).toBe(true);
   });
 
   it("parses --project-root for remote confidence policy (#3102)", () => {
@@ -383,6 +402,111 @@ describe("runWaitMergeable --resume (#6295)", () => {
     expect(text).toContain("QUEUE-PENDING");
     expect(text).toContain("outcome: queued");
     expect(text).toContain("resume:  task pr:wait-mergeable-and-merge -- 6295");
+    expect(text).not.toContain("wait stop");
+    stdout.mockRestore();
+    stderr.mockRestore();
+  });
+
+  function resumeArgv(...extra: string[]): string[] {
+    return [
+      "6423",
+      "--repo",
+      "deftai/directive",
+      "--resume",
+      "--expect-head",
+      sha,
+      "--since",
+      since,
+      "--project-root",
+      mkdtempSync(join(tmpdir(), "wait-merge-6423-")),
+      ...extra,
+    ];
+  }
+
+  function queueReads(...payloads: Record<string, unknown>[]) {
+    let i = 0;
+    return async () => {
+      const { parseQueueState } = await import("./merge-queue.js");
+      return () => {
+        const payload = payloads[Math.min(i, payloads.length - 1)] as Record<string, unknown>;
+        i += 1;
+        return { status: "ok", read: parseQueueState(payload) as never } as const;
+      };
+    };
+  }
+
+  const merged = {
+    data: {
+      repository: {
+        pullRequest: {
+          ...queued.data.repository.pullRequest,
+          merged: true,
+          mergeCommit: { oid: "c".repeat(40) },
+          mergeQueueEntry: null,
+        },
+      },
+    },
+  };
+
+  it("--resume without --wait: one read, exit 3, JSON has no stop reason (#6423 AC 9)", async () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    let reads = 0;
+    const readFn = await queueReads(queued)();
+    const code = runWaitMergeable(resumeArgv("--json"), {
+      queueReadFn: (n, r) => {
+        reads += 1;
+        return readFn(n, r);
+      },
+      umbrellaReconcileFn: null,
+    });
+    expect(code).toBe(EXIT_QUEUE_PENDING);
+    expect(reads).toBe(1);
+    const doc = JSON.parse(stdout.mock.calls.map((c) => String(c[0])).join(""));
+    expect(doc.outcome).toBe("queued");
+    expect(doc.merge_queue).not.toHaveProperty("wait_stop_reason");
+    stdout.mockRestore();
+    stderr.mockRestore();
+  });
+
+  it("--resume --wait --json prints one JSON document with the stop reason (#6423 AC 10)", async () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const sleeps: number[] = [];
+    const code = runWaitMergeable(resumeArgv("--wait", "--json"), {
+      queueReadFn: await queueReads(queued, merged)(),
+      umbrellaReconcileFn: null,
+      queueWaitSleepFn: (s) => sleeps.push(s),
+      queueWaitClockMsFn: () => 0,
+    });
+    expect(code).toBe(EXIT_MERGED);
+    expect(sleeps).toEqual([60]);
+    const out = stdout.mock.calls.map((c) => String(c[0])).join("");
+    const doc = JSON.parse(out);
+    expect(doc.outcome).toBe("merged");
+    expect(doc.merge_queue.wait_stop_reason).toBe("result");
+    expect(out).not.toContain("queue wait:");
+    stdout.mockRestore();
+    stderr.mockRestore();
+  });
+
+  it("--resume --wait text output names the stop reason at the cap (#6423 items 5, 6)", async () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    let clock = 0;
+    const code = runWaitMergeable(resumeArgv("--wait", "--cap-minutes", "2"), {
+      queueReadFn: await queueReads(queued)(),
+      umbrellaReconcileFn: null,
+      queueWaitSleepFn: (s) => {
+        clock += s * 1000;
+      },
+      queueWaitClockMsFn: () => clock,
+    });
+    expect(code).toBe(EXIT_QUEUE_PENDING);
+    const text = stdout.mock.calls.map((c) => String(c[0])).join("");
+    expect(text).toContain("QUEUE-PENDING");
+    expect(text).toContain("  wait stop: cap");
+    expect(text).toContain("resume:  task pr:wait-mergeable-and-merge -- 6423");
     stdout.mockRestore();
     stderr.mockRestore();
   });

@@ -23,7 +23,13 @@ import {
   retractLaunchOccupancyRecord,
   swarmLaunch,
 } from "./launch.js";
-import { readWorkerAuthAssignment, writeWorkerAuthAssignment } from "./worker-auth-assignment.js";
+import { launchCloseoutLockPath } from "./launch-closeout-lock.js";
+import {
+  findWorkerAuthAssignmentsForStories,
+  readWorkerAuthAssignment,
+  workerAuthStoreDir,
+  writeWorkerAuthAssignment,
+} from "./worker-auth-assignment.js";
 
 const TEST_WORKER_AUTH = {
   workerGithubAuthMode: "host-gh" as const,
@@ -992,6 +998,702 @@ describe("dry-run applies acceptance-disposition grants on the clone (#6318)", (
     expect(live.stories[0]?.ok).toBe(true);
     expect(readFileSync(storyPath, "utf8")).toBe(before);
     expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
+    rmSync(project, { recursive: true, force: true });
+  });
+});
+
+describe("per-story close-out (#6422)", { timeout: 120_000 }, () => {
+  const S = "host:claude:v1:c2Vzc2lvbi02NDIy";
+  const OTHER = "host:claude:v1:b3RoZXItNjQyMg";
+  const LOGIN = { kind: "user" as const, login: "test-worker" };
+
+  beforeEach(() => {
+    vi.mocked(runTransition).mockClear();
+  });
+
+  function gitProject(prefix: string): string {
+    const project = mkdtempSync(join(tmpdir(), prefix));
+    gitInitIfNeeded(project);
+    execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: project });
+    execFileSync("git", ["config", "user.name", "T"], { cwd: project });
+    execFileSync("git", ["commit", "--allow-empty", "-q", "-m", "init"], { cwd: project });
+    return project;
+  }
+
+  function storyIn(project: string, folder: string, id: string): string {
+    const dir = join(project, "xbrief", folder);
+    mkdirSync(dir, { recursive: true });
+    const full = join(dir, `${id}.xbrief.json`);
+    writeFileSync(
+      full,
+      JSON.stringify({ plan: { id, title: id, status: "running", items: [] } }),
+      "utf8",
+    );
+    return full;
+  }
+
+  function assign(project: string, dispatchId: string, storyId: string): void {
+    const written = writeWorkerAuthAssignment({
+      projectRoot: project,
+      worktreePath: join(project, ".deft-scratch", "worktrees", storyId),
+      dispatchId,
+      storyId,
+      githubAuthMode: "host-gh",
+      expectedPrincipal: LOGIN,
+      credentialDeliveryId: null,
+    });
+    expect(written.ok).toBe(true);
+  }
+
+  function assigned(project: string, storyIds: readonly string[]): string[] {
+    return findWorkerAuthAssignmentsForStories({ projectRoot: project, storyIds })
+      .map((a) => `${a.story_id}@${a.dispatch_id}`)
+      .sort();
+  }
+
+  function writeRecord(
+    project: string,
+    session: string,
+    stories: readonly string[],
+    closed: readonly string[] = [],
+  ): string {
+    const key = occupancyCohortKey(null, stories);
+    const relpath = launchOccupancyRecordRelpath(key);
+    mkdirSync(join(project, ...relpath.slice(0, -1)), { recursive: true });
+    const full = join(project, ...relpath);
+    writeFileSync(
+      full,
+      JSON.stringify({
+        allocation_plan_id: null,
+        occupancy_session_id: session,
+        story_ids: stories,
+        cohort_key: key,
+        ...(closed.length > 0 ? { closed_story_ids: closed } : {}),
+      }),
+      "utf8",
+    );
+    return full;
+  }
+
+  function readRecord(path: string): { closed_story_ids?: string[]; story_ids: string[] } | null {
+    return existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : null;
+  }
+
+  function lease(project: string, session: string): void {
+    expect(applyWorktreeOccupancy(project, { sessionId: session, intent: "swarm" }).code).toBe(0);
+  }
+
+  function holdLock(project: string): void {
+    mkdirSync(join(project, ".deft"), { recursive: true });
+    writeFileSync(
+      launchCloseoutLockPath(project),
+      `${String(process.pid)}\nheld-by-test\n${String(Date.now())}\n`,
+      "utf8",
+    );
+  }
+
+  /** Lock deps whose first wait releases the test-held lock and runs `other`. */
+  function whileWaiting(project: string, other: () => void) {
+    let done = false;
+    return {
+      sleepMs: () => {
+        if (done) return;
+        done = true;
+        rmSync(launchCloseoutLockPath(project), { force: true });
+        other();
+      },
+    };
+  }
+
+  function closeOut(project: string, paths: readonly string[], extra = {}) {
+    return completeCohort({ projectRoot: project, stories: [...paths], env: {}, ...extra });
+  }
+
+  function launchStory(project: string, storyId: string, issue: number): void {
+    mkdirSync(join(project, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(project, "xbrief", "active", `${storyId}.xbrief.json`),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          id: storyId,
+          title: storyId,
+          status: "running",
+          references: [
+            {
+              uri: `https://github.com/deftai/directive/issues/${String(issue)}`,
+              type: "x-vbrief/github-issue",
+            },
+          ],
+          metadata: { kind: "story", swarm: { readiness: "ready" } },
+        },
+      }),
+      "utf8",
+    );
+  }
+
+  function launchProject(prefix: string): string {
+    const project = gitProject(prefix);
+    mkdirSync(join(project, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(project, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { policy: { swarmSubagentBackend: "grok-build" } },
+      }),
+      "utf8",
+    );
+    mkdirSync(join(project, ".deft"), { recursive: true });
+    writeFileSync(
+      join(project, ".deft", "routing.local.json"),
+      JSON.stringify({ grok: { "leaf-implementation": { model: "grok-4", mode: "pinned" } } }),
+      "utf8",
+    );
+    return project;
+  }
+
+  function launch(
+    project: string,
+    stories: readonly string[],
+    extra: Record<string, unknown> = {},
+  ): { exitCode: number } {
+    return swarmLaunch({
+      ...TEST_WORKER_AUTH,
+      stories: [...stories],
+      projectRoot: project,
+      autonomous: true,
+      sessionId: S,
+      environ: { DEFT_ROUTING_PATH: join(project, ".deft", "routing.local.json") },
+      preflightGate: () => ({ exitCode: 0, message: "" }),
+      readinessGate: () => ({ exitCode: 0, report: "" }),
+      runtimeAuthProbe: () => ["local-unsandboxed", "host-gh"] as [string, string],
+      ...extra,
+    });
+  }
+
+  function recordExists(project: string, stories: readonly string[]): boolean {
+    return existsSync(
+      join(project, ...launchOccupancyRecordRelpath(occupancyCohortKey(null, stories))),
+    );
+  }
+
+  it("exits 0 and keeps the lease when no launch record lists the story (AC 12)", () => {
+    const project = gitProject("sw-6422-unlaunched-");
+    const story = storyIn(project, "active", "solo-a");
+    lease(project, S);
+    const result = closeOut(project, [story]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).not.toContain("missing or belongs to a different cohort");
+    expect(result.sweep?.closeout_notes?.join("\n")).toContain("no launch record lists solo-a");
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("reports and leaves a registration a launch in a linked worktree wrote (AC 13)", {
+    timeout: 180_000, // launch-heavy under parallel suite load
+  }, () => {
+    const main = gitProject("sw-6422-main-");
+    const second = `${main}-wt2`;
+    execFileSync("git", ["worktree", "add", "-q", "-b", "wt2", second], { cwd: main });
+    assign(second, OTHER, "shared-s");
+    const story = storyIn(main, "completed", "shared-s");
+    const result = closeOut(main, [story]);
+    expect(result.exitCode).toBe(0);
+    const notes = result.sweep?.closeout_notes ?? [];
+    expect(notes.filter((n) => n.includes("shared-s"))).toHaveLength(1);
+    expect(notes.join("\n")).toContain(`dispatch_id ${OTHER}`);
+    expect(assigned(main, ["shared-s"])).toEqual([`shared-s@${OTHER}`]);
+    rmSync(second, { recursive: true, force: true });
+    rmSync(main, { recursive: true, force: true });
+  });
+
+  it("fails on an unparseable record, names it, and changes nothing (AC 14, 32)", () => {
+    const project = gitProject("sw-6422-badrec-");
+    const story = storyIn(project, "active", "bad-a");
+    lease(project, S);
+    assign(project, S, "bad-a");
+    const dir = join(project, ".deft", "swarm-launch-occupancy");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "broken.json"), "{not json", "utf8");
+    const text = closeOut(project, [story]);
+    expect(text.exitCode).toBe(1);
+    expect(text.sweep?.errors.join("\n")).toContain("broken.json");
+    expect(text.stdout).toContain("CLOSE-OUT FAILED after a clean sweep");
+    expect(text.stdout).toContain("already on disk");
+    expect(text.stdout).toContain(
+      "xbrief/active/bad-a.xbrief.json -> xbrief/completed/bad-a.xbrief.json",
+    );
+    const json = closeOut(project, [story], { emitJson: true });
+    const parsed = JSON.parse(json.stdout) as Record<string, unknown>;
+    expect(json.exitCode).toBe(1);
+    expect(parsed.lifecycle_move_notice).toContain("already on disk");
+    expect(parsed.lifecycle_moves_on_disk).toEqual([
+      {
+        source: "xbrief/active/bad-a.xbrief.json",
+        destination: "xbrief/completed/bad-a.xbrief.json",
+      },
+    ]);
+    expect(assigned(project, ["bad-a"])).toEqual([`bad-a@${S}`]);
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("closes one story, then releases on the last one (AC 15, 16)", () => {
+    const project = gitProject("sw-6422-cohort-");
+    const a = storyIn(project, "active", "coh-a");
+    const b = storyIn(project, "active", "coh-b");
+    const rec = writeRecord(project, S, ["coh-a", "coh-b"]);
+    lease(project, S);
+    assign(project, S, "coh-a");
+    assign(project, S, "coh-b");
+    const first = closeOut(project, [a]);
+    expect(first.exitCode).toBe(0);
+    expect(assigned(project, ["coh-a", "coh-b"])).toEqual([`coh-b@${S}`]);
+    expect(readRecord(rec)?.closed_story_ids).toEqual(["coh-a"]);
+    expect(readRecord(rec)?.story_ids).toEqual(["coh-a", "coh-b"]);
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    const last = closeOut(project, [b]);
+    expect(last.exitCode).toBe(0);
+    expect(assigned(project, ["coh-a", "coh-b"])).toEqual([]);
+    expect(readRecord(rec)).toBeNull();
+    expect(readOccupancy(project)).toBeNull();
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("leaves another cohort of the same session alone (AC 17)", () => {
+    const project = gitProject("sw-6422-two-cohorts-");
+    const a = storyIn(project, "active", "one-a");
+    writeRecord(project, S, ["one-a"]);
+    const other = writeRecord(project, S, ["two-b"]);
+    lease(project, S);
+    assign(project, S, "one-a");
+    assign(project, S, "two-b");
+    expect(closeOut(project, [a]).exitCode).toBe(0);
+    expect(assigned(project, ["one-a", "two-b"])).toEqual([`two-b@${S}`]);
+    expect(readRecord(other)?.closed_story_ids).toBeUndefined();
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("keeps the record when the release fails and finishes on the next run (AC 18)", () => {
+    const project = gitProject("sw-6422-release-fail-");
+    const a = storyIn(project, "active", "rel-a");
+    const rec = writeRecord(project, S, ["rel-a"]);
+    lease(project, S);
+    const failed = closeOut(project, [a], {
+      releaseSwarmOccupancyFn: () => ({
+        action: "denied",
+        sessionId: S,
+        record: null,
+        path: "",
+        message: "release refused by test",
+        code: 1,
+      }),
+    });
+    expect(failed.exitCode).toBe(1);
+    expect(failed.sweep?.errors.join("\n")).toContain("release refused by test");
+    expect(readRecord(rec)?.closed_story_ids).toEqual(["rel-a"]);
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    const again = closeOut(project, [a]);
+    expect(again.exitCode).toBe(0);
+    expect(readRecord(rec)).toBeNull();
+    expect(readOccupancy(project)).toBeNull();
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("removes a fully closed record after a stopped run without releasing (AC 19, 20)", () => {
+    const project = gitProject("sw-6422-finish-");
+    const a = storyIn(project, "completed", "fin-a");
+    const rec = writeRecord(project, S, ["fin-a"], ["fin-a"]);
+    const none = closeOut(project, [a]);
+    expect(none.exitCode).toBe(0);
+    expect(readRecord(rec)).toBeNull();
+    expect(readOccupancy(project)).toBeNull();
+    const rec2 = writeRecord(project, S, ["fin-a"], ["fin-a"]);
+    lease(project, OTHER);
+    const taken = closeOut(project, [a]);
+    expect(taken.exitCode).toBe(0);
+    expect(readRecord(rec2)).toBeNull();
+    expect(readOccupancy(project)?.sessionId).toBe(OTHER);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("removes the second fully closed record left by a stopped removal (AC 21)", () => {
+    const project = gitProject("sw-6422-finish-two-");
+    const a = storyIn(project, "completed", "fin2-a");
+    writeRecord(project, S, ["fin2-a"], ["fin2-a"]);
+    const second = writeRecord(project, S, ["fin2-b"], ["fin2-b"]);
+    expect(closeOut(project, [a]).exitCode).toBe(0);
+    expect(readRecord(second)).toBeNull();
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("waits for a starting launch and then keeps the lease (AC 22)", {
+    timeout: 180_000, // launch-heavy under parallel suite load
+  }, () => {
+    const project = launchProject("sw-6422-wait-launch-");
+    const x = storyIn(project, "active", "wait-x");
+    launchStory(project, "wait-y", 64221);
+    const rec = writeRecord(project, S, ["wait-x"]);
+    lease(project, S);
+    holdLock(project);
+    let launched = -1;
+    const result = closeOut(project, [x], {
+      lockDeps: whileWaiting(project, () => {
+        launched = launch(project, ["wait-y"]).exitCode;
+      }),
+    });
+    expect(launched).toBe(0);
+    expect(result.exitCode).toBe(0);
+    expect(readRecord(rec)?.closed_story_ids).toEqual(["wait-x"]);
+    expect(recordExists(project, ["wait-y"])).toBe(true);
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("makes a later launch wait for an earlier launch's rollback (AC 23)", {
+    timeout: 180_000, // launch-heavy under parallel suite load
+  }, () => {
+    const project = launchProject("sw-6422-wait-rollback-");
+    launchStory(project, "roll-a", 64222);
+    launchStory(project, "roll-b", 64223);
+    const outputDirectory = join(project, "existing-output-directory");
+    mkdirSync(outputDirectory, { recursive: true });
+    holdLock(project);
+    let first = -1;
+    const second = launch(project, ["roll-b"], {
+      closeoutLockDeps: whileWaiting(project, () => {
+        first = launch(project, ["roll-a"], { output: outputDirectory }).exitCode;
+      }),
+    });
+    expect(first).not.toBe(0);
+    expect(second.exitCode).toBe(0);
+    expect(recordExists(project, ["roll-b"])).toBe(true);
+    expect(recordExists(project, ["roll-a"])).toBe(false);
+    expect(assigned(project, ["roll-a", "roll-b"])).toEqual([`roll-b@${S}`]);
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("keeps an earlier launch's registration when a repeat launch fails (AC 24)", {
+    timeout: 180_000, // launch-heavy under parallel suite load
+  }, () => {
+    const project = launchProject("sw-6422-repeat-");
+    launchStory(project, "rep-a", 64224);
+    expect(launch(project, ["rep-a"]).exitCode).toBe(0);
+    const outputDirectory = join(project, "existing-output-directory");
+    mkdirSync(outputDirectory, { recursive: true });
+    const repeat = launch(project, ["rep-a"], { output: outputDirectory });
+    expect(repeat.exitCode).not.toBe(0);
+    expect(assigned(project, ["rep-a"])).toEqual([`rep-a@${S}`]);
+    expect(recordExists(project, ["rep-a"])).toBe(true);
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses an open record whose session does not hold the live lease (AC 25, 29)", () => {
+    const project = gitProject("sw-6422-other-holder-");
+    const b = storyIn(project, "completed", "oh-b");
+    const rec = writeRecord(project, S, ["oh-a", "oh-b"], ["oh-a"]);
+    assign(project, S, "oh-b");
+    lease(project, OTHER);
+    const result = closeOut(project, [b]);
+    expect(result.exitCode).toBe(1);
+    expect(result.sweep?.errors.join("\n")).toContain("different cohort");
+    expect(readRecord(rec)?.closed_story_ids).toEqual(["oh-a"]);
+    expect(assigned(project, ["oh-b"])).toEqual([`oh-b@${S}`]);
+    expect(readOccupancy(project)?.sessionId).toBe(OTHER);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("counts a cancelled story swept as terminal toward the release (AC 26)", () => {
+    const project = gitProject("sw-6422-cancelled-");
+    const a = storyIn(project, "active", "can-a");
+    const b = storyIn(project, "cancelled", "can-b");
+    const rec = writeRecord(project, S, ["can-a", "can-b"]);
+    lease(project, S);
+    expect(closeOut(project, [a, b]).exitCode).toBe(0);
+    expect(readRecord(rec)).toBeNull();
+    expect(readOccupancy(project)).toBeNull();
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("leaves a skipped story open (AC 27)", () => {
+    const project = gitProject("sw-6422-skipped-");
+    const a = storyIn(project, "active", "sk-a");
+    const b = storyIn(project, "proposed", "sk-b");
+    const rec = writeRecord(project, S, ["sk-a", "sk-b"]);
+    lease(project, S);
+    assign(project, S, "sk-b");
+    expect(closeOut(project, [a, b]).exitCode).toBe(0);
+    expect(readRecord(rec)?.closed_story_ids).toEqual(["sk-a"]);
+    expect(assigned(project, ["sk-b"])).toEqual([`sk-b@${S}`]);
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses a run that mixes stories of two records (AC 28)", () => {
+    const project = gitProject("sw-6422-mixed-");
+    const a = storyIn(project, "active", "mx-a");
+    const b = storyIn(project, "active", "mx-b");
+    const recA = writeRecord(project, S, ["mx-a"]);
+    const recB = writeRecord(project, S, ["mx-b"]);
+    lease(project, S);
+    assign(project, S, "mx-a");
+    assign(project, S, "mx-b");
+    const result = closeOut(project, [a, b]);
+    expect(result.exitCode).toBe(1);
+    const errors = result.sweep?.errors.join("\n") ?? "";
+    expect(errors).toContain("mx-a");
+    expect(errors).toContain("mx-b");
+    expect(errors).toContain("removed nothing and released nothing");
+    expect(readRecord(recA)?.closed_story_ids).toBeUndefined();
+    expect(readRecord(recB)?.closed_story_ids).toBeUndefined();
+    expect(assigned(project, ["mx-a", "mx-b"])).toEqual([`mx-a@${S}`, `mx-b@${S}`]);
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("serializes two close-outs of one cohort so both stories end closed (AC 30)", () => {
+    const project = gitProject("sw-6422-concurrent-");
+    const a = storyIn(project, "active", "cc-a");
+    const b = storyIn(project, "active", "cc-b");
+    const rec = writeRecord(project, S, ["cc-a", "cc-b", "cc-c"]);
+    lease(project, S);
+    holdLock(project);
+    let other = -1;
+    const first = closeOut(project, [a], {
+      lockDeps: whileWaiting(project, () => {
+        other = closeOut(project, [b]).exitCode;
+      }),
+    });
+    expect(other).toBe(0);
+    expect(first.exitCode).toBe(0);
+    expect(readRecord(rec)?.closed_story_ids).toEqual(["cc-a", "cc-b"]);
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("keeps closed_story_ids through resolve and a matching rewrite (AC 31)", () => {
+    const project = gitProject("sw-6422-keep-field-");
+    const rec = writeRecord(project, S, ["kf-a", "kf-b"], ["kf-a"]);
+    lease(project, S);
+    expect(resolveLaunchOccupancySessionId(project, { storyIds: ["kf-a", "kf-b"] }).sessionId).toBe(
+      S,
+    );
+    expect(
+      persistLaunchOccupancyRecord(project, {
+        allocation_plan_id: null,
+        occupancy_session_id: S,
+        story_ids: ["kf-a", "kf-b"],
+        cohort_key: occupancyCohortKey(null, ["kf-a", "kf-b"]),
+      }),
+    ).toBe("replaced");
+    expect(readRecord(rec)?.closed_story_ids).toEqual(["kf-a"]);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("returns a lock failure instead of waiting forever", () => {
+    const project = gitProject("sw-6422-busy-");
+    const a = storyIn(project, "active", "busy-a");
+    writeRecord(project, S, ["busy-a"]);
+    lease(project, S);
+    holdLock(project);
+    let now = 0;
+    const result = closeOut(project, [a], {
+      lockDeps: {
+        now: () => now,
+        sleepMs: () => {
+          now += 60_000;
+        },
+        acquisitionBudgetMs: 1,
+      },
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.sweep?.errors.join("\n")).toContain("launch/close-out lock");
+    expect(result.stdout).toContain("already on disk");
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses a record of another allocation plan and an ambient owner conflict", () => {
+    const project = gitProject("sw-6422-plan-ambient-");
+    const a = storyIn(project, "active", "pa-a");
+    const key = occupancyCohortKey("plan-x", ["pa-a"]);
+    const relpath = launchOccupancyRecordRelpath(key);
+    mkdirSync(join(project, ...relpath.slice(0, -1)), { recursive: true });
+    writeFileSync(
+      join(project, ...relpath),
+      JSON.stringify({
+        allocation_plan_id: "plan-x",
+        occupancy_session_id: S,
+        story_ids: ["pa-a"],
+        cohort_key: key,
+      }),
+      "utf8",
+    );
+    lease(project, S);
+    assign(project, S, "pa-a");
+    const wrongPlan = closeOut(project, [a], { allocationPlanId: "plan-y" });
+    expect(wrongPlan.exitCode).toBe(1);
+    expect(wrongPlan.sweep?.errors.join("\n")).toContain("not plan-y");
+    const ambient = completeCohort({
+      projectRoot: project,
+      stories: [a],
+      env: { DEFT_SESSION_ID: OTHER },
+    });
+    expect(ambient.exitCode).toBe(1);
+    expect(ambient.sweep?.errors.join("\n")).toContain(`ambient owner ${OTHER}`);
+    expect(assigned(project, ["pa-a"])).toEqual([`pa-a@${S}`]);
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("marks nothing for an open record whose session holds no live lease", () => {
+    const project = gitProject("sw-6422-no-lease-");
+    const a = storyIn(project, "active", "nl-a");
+    const rec = writeRecord(project, S, ["nl-a", "nl-b"]);
+    assign(project, S, "nl-a");
+    const result = closeOut(project, [a]);
+    expect(result.exitCode).toBe(0);
+    expect(result.sweep?.closeout_notes?.join("\n")).toContain("holds no live lease");
+    expect(readRecord(rec)?.closed_story_ids).toBeUndefined();
+    expect(assigned(project, ["nl-a"])).toEqual([`nl-a@${S}`]);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("fails without marking when the registration index cannot be read", () => {
+    const project = gitProject("sw-6422-bad-index-");
+    const a = storyIn(project, "active", "bi-a");
+    const rec = writeRecord(project, S, ["bi-a", "bi-b"]);
+    lease(project, S);
+    assign(project, S, "bi-a");
+    const commonDir = execFileSync(
+      "git",
+      ["rev-parse", "--path-format=absolute", "--git-common-dir"],
+      { cwd: project, encoding: "utf8" },
+    ).trim();
+    writeFileSync(join(workerAuthStoreDir(commonDir), "index.json"), "{broken", "utf8");
+    const result = closeOut(project, [a]);
+    expect(result.exitCode).toBe(1);
+    expect(result.sweep?.errors.join("\n")).toContain("worker auth index");
+    expect(readRecord(rec)?.closed_story_ids).toBeUndefined();
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("keeps a fully closed record of the live session it was not asked about", () => {
+    const project = gitProject("sw-6422-live-closed-");
+    const solo = storyIn(project, "active", "lc-solo");
+    const rec = writeRecord(project, S, ["lc-z"], ["lc-z"]);
+    lease(project, S);
+    expect(closeOut(project, [solo]).exitCode).toBe(0);
+    expect(readRecord(rec)?.closed_story_ids).toEqual(["lc-z"]);
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("skips non-JSON files and refuses a JSON file that is not a record", () => {
+    const project = gitProject("sw-6422-not-record-");
+    const a = storyIn(project, "active", "nr-a");
+    const dir = join(project, ".deft", "swarm-launch-occupancy");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "notes.txt"), "not a record", "utf8");
+    expect(closeOut(project, [a]).exitCode).toBe(0);
+    writeFileSync(join(dir, "empty.json"), JSON.stringify({ story_ids: ["nr-a"] }), "utf8");
+    const result = closeOut(project, [a]);
+    expect(result.exitCode).toBe(1);
+    expect(result.sweep?.errors.join("\n")).toContain("empty.json");
+    expect(result.sweep?.errors.join("\n")).toContain("not a launch-occupancy record");
+    rmSync(join(dir, "empty.json"), { force: true });
+    writeFileSync(
+      join(dir, "no-roster.json"),
+      JSON.stringify({ occupancy_session_id: S, cohort_key: "stories:", story_ids: "nr-a" }),
+      "utf8",
+    );
+    const malformed = closeOut(project, [a]);
+    expect(malformed.exitCode).toBe(1);
+    expect(malformed.sweep?.errors.join("\n")).toContain("no-roster.json");
+    expect(malformed.sweep?.errors.join("\n")).toContain(
+      "story_ids is missing, empty or malformed",
+    );
+    expect(existsSync(join(dir, "no-roster.json"))).toBe(true);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses a launch when the shared lock stays busy", {
+    timeout: 180_000, // launch-heavy under parallel suite load
+  }, () => {
+    const project = launchProject("sw-6422-launch-busy-");
+    launchStory(project, "lb-a", 64225);
+    holdLock(project);
+    let now = 0;
+    const result = launch(project, ["lb-a"], {
+      closeoutLockDeps: {
+        now: () => now,
+        sleepMs: () => {
+          now += 60_000;
+        },
+        acquisitionBudgetMs: 1,
+      },
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(recordExists(project, ["lb-a"])).toBe(false);
+    expect(readOccupancy(project)).toBeNull();
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("closes a story whose active twin the sweep completed", () => {
+    const project = gitProject("sw-6422-twin-");
+    const done = storyIn(project, "completed", "tw-a");
+    storyIn(project, "active", "tw-a");
+    const rec = writeRecord(project, S, ["tw-a", "tw-b"]);
+    lease(project, S);
+    const result = closeOut(project, [done]);
+    expect(result.exitCode).toBe(0);
+    expect(result.sweep?.stories.some((r) => r.action === "complete")).toBe(true);
+    expect(readRecord(rec)?.closed_story_ids).toEqual(["tw-a"]);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("closes a relaunched story in the record where it is still open", () => {
+    const project = gitProject("sw-6422-relisted-");
+    const y = storyIn(project, "active", "rl-y");
+    const first = writeRecord(project, S, ["rl-x", "rl-y"], ["rl-y"]);
+    const second = writeRecord(project, S, ["rl-y"]);
+    lease(project, S);
+    const result = closeOut(project, [y]);
+    expect(result.exitCode).toBe(0);
+    expect(readRecord(first)?.closed_story_ids).toEqual(["rl-y"]);
+    expect(readRecord(second)?.closed_story_ids).toEqual(["rl-y"]);
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses to relaunch a story still open in another record of the session", {
+    timeout: 180_000, // launch-heavy under parallel suite load
+  }, () => {
+    const project = launchProject("sw-6422-relaunch-");
+    launchStory(project, "ov-a", 64226);
+    launchStory(project, "ov-b", 64227);
+    const cohort = launch(project, ["ov-a", "ov-b"], {
+      allocationPlanId: "plan-ov",
+      batchingRationale: "two stories of one test cohort",
+    });
+    expect(cohort.exitCode).toBe(0);
+    const relaunch = launch(project, ["ov-b"]);
+    expect(relaunch.exitCode).not.toBe(0);
+    expect((relaunch as { stderr?: string }).stderr).toContain("still open in launch record");
+    expect(recordExists(project, ["ov-b"])).toBe(false);
+    expect(
+      existsSync(
+        join(
+          project,
+          ...launchOccupancyRecordRelpath(occupancyCohortKey("plan-ov", ["ov-a", "ov-b"])),
+        ),
+      ),
+    ).toBe(true);
+    expect(readOccupancy(project)?.sessionId).toBe(S);
     rmSync(project, { recursive: true, force: true });
   });
 });

@@ -43,7 +43,7 @@ import {
 } from "../scope/delivery-evidence.js";
 import type { GitRunner } from "../session/git.js";
 import { materializeRetainedBrief, SOURCE_RECOVERY_REMEDIATION } from "./brief-transport.js";
-import { completeCohort, type SweepResult } from "./complete-cohort.js";
+import { completeCohort, lifecycleMoveOnDiskLines, type SweepResult } from "./complete-cohort.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
 import {
   cancelledBriefReferencesIssue,
@@ -2607,13 +2607,20 @@ export function finalizeCohort(args: FinalizeCohortArgs): {
       });
       sweep = sweepResult.sweep;
       if (sweepResult.exitCode !== 0) {
+        // #6422 item 11: a close-out failure after a clean sweep is not a failed sweep.
+        const sweepClean =
+          sweep !== null && [...sweep.stories, ...sweep.parents].every((rec) => rec.ok);
+        const headline = sweepClean
+          ? "cohort close-out failed after a clean lifecycle sweep"
+          : "cohort completion sweep failed";
         errors.push(
           lifecycleInstall === null
-            ? "cohort completion sweep failed."
-            : `cohort completion sweep failed (${formatLifecycleInstallDisposition(lifecycleInstall)}).`,
+            ? `${headline}.`
+            : `${headline} (${formatLifecycleInstallDisposition(lifecycleInstall)}).`,
         );
         if (sweep !== null) {
           errors.push(...sweepDetailLines(sweep));
+          errors.push(...lifecycleMoveOnDiskLines(sweep));
         } else if (sweepResult.stdout.trim().length > 0) {
           errors.push(sweepResult.stdout.trim());
         }

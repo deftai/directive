@@ -16,6 +16,7 @@ import { decideHook } from "../hooks/dispatcher.js";
 import { CONSUMER_HEADER_PLACEHOLDER_ONELINER } from "../platform/agents-consumer-header.js";
 import { completeCohort } from "../swarm/complete-cohort.js";
 import {
+  occupancyCohortKey,
   persistLaunchOccupancyRecord,
   resolveLaunchOccupancySessionId,
   swarmLaunch,
@@ -2079,7 +2080,7 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(readOccupancy(root)).toBeNull();
   });
 
-  it("close-out refuses a missing or foreign cohort occupancy record", () => {
+  it("close-out exits 0 for a missing record and refuses a foreign cohort record (#6422)", () => {
     const root = tempRoot();
     mkdirSync(join(root, "xbrief", "active"), { recursive: true });
     writeFileSync(
@@ -2122,7 +2123,8 @@ describe("worktree occupancy lease (#3433)", () => {
       runtimeAuthProbe: () => ["local-unsandboxed", "host-gh"],
     });
     expect(launched.exitCode).toBe(0);
-    expect(readOccupancy(root)?.sessionId).toBeTruthy();
+    const minted = readOccupancy(root)?.sessionId;
+    expect(minted).toBeTruthy();
     rmSync(join(root, ".deft", "swarm-launch-occupancy"), { recursive: true, force: true });
     writeFileSync(
       join(root, ".deft", "swarm-launch-manifest.json"),
@@ -2147,10 +2149,31 @@ describe("worktree occupancy lease (#3433)", () => {
       dryRun: false,
     });
     vi.unstubAllEnvs();
-    expect(live.exitCode).toBe(1);
-    expect(live.sweep?.errors.some((err) => err.includes("session:start --steal"))).toBe(false);
-    expect(live.sweep?.errors.some((err) => err.includes("The occupant may release"))).toBe(true);
-    expect(readOccupancy(root)?.sessionId).toBeTruthy();
+    // Missing record: a story that no launch record lists is not a failure (#6422 item 5).
+    expect(live.exitCode).toBe(0);
+    expect(live.sweep?.closeout_notes?.join("\n")).toContain("story story-a");
+    expect(readOccupancy(root)?.sessionId).toBe(minted);
+
+    // Foreign record: an open record of another session while this one holds the lease.
+    persistLaunchOccupancyRecord(root, {
+      allocation_plan_id: null,
+      occupancy_session_id: "other-launch",
+      story_ids: ["story-a"],
+      cohort_key: occupancyCohortKey(null, ["story-a"]),
+    });
+    vi.stubEnv("DEFT_SESSION_ID", "");
+    const foreign = completeCohort({
+      stories: [donePath],
+      projectRoot: root,
+      dryRun: false,
+    });
+    vi.unstubAllEnvs();
+    expect(foreign.exitCode).toBe(1);
+    expect(foreign.sweep?.errors.some((err) => err.includes("session:start --steal"))).toBe(false);
+    expect(foreign.sweep?.errors.some((err) => err.includes("The occupant may release"))).toBe(
+      true,
+    );
+    expect(readOccupancy(root)?.sessionId).toBe(minted);
   });
 });
 

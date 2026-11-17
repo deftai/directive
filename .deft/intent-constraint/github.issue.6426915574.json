@@ -1,0 +1,25 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.6426915574",
+  "xbriefRelPath": "xbrief/active/2026-11-17-6423-bugmerge-prwait-mergeable-and-merge-resume-returns-queue-pen.xbrief.json",
+  "approvedAt": "2026-11-17T02:56:30Z",
+  "constraints": [
+    {
+      "value": "60",
+      "unit": "seconds",
+      "rejectionScope": "operation"
+    },
+    {
+      "value": "3",
+      "unit": "consecutive failed queue reads",
+      "rejectionScope": "operation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-11-17T02:56:30Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "09f0015ecd19931e0c941a8a0edf5cb8034f0f9cd5aa4d6c9160bc39a6a9f811"
+}
