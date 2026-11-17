@@ -5,11 +5,17 @@ import { fileURLToPath } from "node:url";
 import { isShellTool } from "@deftai/directive-core/dist/hooks/tools.js";
 import { checkCheapInSync } from "@deftai/directive-core/dist/install-health/cheap.js";
 import {
+  FOREIGN_RUNTIME_LINK_RECOVERY_GUIDANCE,
   HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE,
   INSTALLATION_RECOVERY_GUIDANCE,
 } from "@deftai/directive-core/dist/install-health/constants.js";
 import { renderPinMismatchRecoveryGuidance } from "@deftai/directive-core/dist/install-health/pin-mismatch-guidance.js";
 import { admitPinMismatchRecovery } from "@deftai/directive-core/dist/install-health/recovery-admit.js";
+import {
+  classifyRootMismatch,
+  FOREIGN_RUNTIME_LINK,
+  resolveLaunchingCheckoutRootFromPath,
+} from "@deftai/directive-core/dist/install-health/runtime-link.js";
 import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-health/types.js";
 import {
   decideHook,
@@ -76,6 +82,12 @@ export interface HookDispatchCliSeams {
    */
   readonly launchingCheckoutRoot?: () => string | null;
   /**
+   * The launcher's own (link-side) script path, `process.argv[1]` by default
+   * (#6185). Used only to choose the wording of a root-mismatch refusal; never
+   * an admission input. Tests inject a path to simulate a junctioned runtime.
+   */
+  readonly launcherPath?: () => string | undefined;
+  /**
    * Cheap pin/installed identity check (AC9.4 / AC14.8). Defaults to
    * `checkCheapInSync`. Injected in unit tests to force failClosed without a
    * dual fixture.
@@ -95,30 +107,8 @@ export const DEFAULT_STDIN_EMPTY_RETRY_MS = 250;
 /** Interval between empty-stdin re-polls while the retry budget remains. */
 export const STDIN_EMPTY_RETRY_INTERVAL_MS = 25;
 
-/**
- * Resolve the consumer project root that owns an installed runtime module path
- * (AC9.4 / AC9.5). Returns null when the path is not under
- * `node_modules/@deftai/directive-runtime` (monorepo source / vitest).
- */
-export function resolveLaunchingCheckoutRootFromPath(modulePath: string): string | null {
-  const normalized = modulePath.replace(/\\/g, "/");
-  const needle = "/node_modules/@deftai/directive-runtime/";
-  let before: string | null = null;
-  const idx = normalized.lastIndexOf(needle);
-  if (idx !== -1) {
-    before = normalized.slice(0, idx);
-  } else {
-    const endNeedle = "/node_modules/@deftai/directive-runtime";
-    if (normalized === endNeedle || normalized.endsWith(endNeedle)) {
-      before = normalized.slice(0, normalized.length - endNeedle.length);
-    }
-  }
-  if (before === null) return null;
-  const pnpmMarker = "/node_modules/.pnpm/";
-  const pnpmIdx = before.lastIndexOf(pnpmMarker);
-  if (pnpmIdx !== -1) before = before.slice(0, pnpmIdx);
-  return before.length > 0 ? before : null;
-}
+// Moved to core install-health so doctor and session start share the cut (#6185).
+export { resolveLaunchingCheckoutRootFromPath };
 
 /** Resolve launching checkout from a module URL (defaults to this file). */
 export function resolveLaunchingCheckoutRoot(moduleUrl: string = import.meta.url): string | null {
@@ -427,15 +417,23 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   // owns the running hook-bin. Mismatch → fail closed (no setup, no policy).
   const launchRoot = (seams.launchingCheckoutRoot ?? resolveLaunchingCheckoutRoot)();
   if (launchRoot !== null && !rootsMatch(launchRoot, projectRoot)) {
-    const guidance = HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE;
-    const decision = installationIdentityDeny(
-      args.host,
-      args.event,
-      projectRoot,
-      `Directive hook refuse: payload project root does not match the launching checkout ` +
-        `(payloadRoot=${normalizeHookProjectRoot(projectRoot)} ` +
-        `launchRoot=${normalizeHookProjectRoot(launchRoot)}). Recovery: ${guidance}`,
-    );
+    const payloadRootText = normalizeHookProjectRoot(projectRoot);
+    const launchRootText = normalizeHookProjectRoot(launchRoot);
+    // #6185: wording only. The link-side path never admits anything.
+    const foreign =
+      classifyRootMismatch(
+        launchRoot,
+        seams.launcherPath ? seams.launcherPath() : process.argv[1],
+        projectRoot,
+      ) === FOREIGN_RUNTIME_LINK;
+    const message = foreign
+      ? `Directive hook refuse (${FOREIGN_RUNTIME_LINK}): this checkout's Directive runtime is linked in from another checkout ` +
+        `(payloadRoot=${payloadRootText} launchRoot=${launchRootText}). ` +
+        `Recovery: ${FOREIGN_RUNTIME_LINK_RECOVERY_GUIDANCE.replaceAll("<payloadRoot>", payloadRootText)}`
+      : `Directive hook refuse: payload project root does not match the launching checkout ` +
+        `(payloadRoot=${payloadRootText} ` +
+        `launchRoot=${launchRootText}). Recovery: ${HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE}`;
+    const decision = installationIdentityDeny(args.host, args.event, projectRoot, message);
     const rendered = renderHostDecision(args.host, decision);
     if (rendered.length > 0) writeOut(`${rendered}\n`);
     return 0;

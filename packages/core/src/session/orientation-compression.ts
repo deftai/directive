@@ -15,6 +15,7 @@ import {
 } from "../doctor/doctor-state.js";
 import { cmdDoctor } from "../doctor/main.js";
 import type { DoctorSeams } from "../doctor/types.js";
+import { checkRuntimeLinkOwner } from "../install-health/runtime-link.js";
 import { applyAgentsRefresh } from "../platform/agents-md.js";
 import {
   type EvaluateOptions,
@@ -216,10 +217,19 @@ export function runDoctorOrientationSection(
   const started = performance.now();
   const now = options.now ?? new Date();
   try {
+    // #6185: runs even when the doctor run is throttle-skipped, so session:start
+    // reports a runtime linked in from another checkout before the first refusal.
+    const runtimeLink = (options.seams?.checkRuntimeLinkOwner ?? checkRuntimeLinkOwner)(
+      projectRoot,
+    );
+    const runtimeLinkFailed = runtimeLink.status === "fail";
+    const runtimeLinkLines = runtimeLinkFailed
+      ? [`[deft doctor] ${runtimeLink.name}: fail -- ${runtimeLink.detail}`]
+      : [];
     const state = readDoctorState(projectRoot);
     const decision = decideThrottle(state, now);
     if (decision.skip) {
-      const dirty = decision.dirty;
+      const dirty = decision.dirty || runtimeLinkFailed;
       const status: OrientationSectionStatus = dirty ? "dirty" : "ok";
       const line = renderDoctorStatusLine(decision, now);
       return {
@@ -227,10 +237,14 @@ export function runDoctorOrientationSection(
         status,
         ok: !dirty,
         exitCode: dirty ? 1 : 0,
-        lines: [line],
+        lines: [line, ...runtimeLinkLines],
         shaMatch: false,
         durationMs: elapsedMs(started),
-        detail: { throttle_skipped: true, dirty },
+        detail: {
+          throttle_skipped: true,
+          dirty,
+          ...(runtimeLinkFailed ? { foreign_runtime_link: true } : {}),
+        },
       };
     }
 
@@ -260,7 +274,7 @@ export function runDoctorOrientationSection(
       status,
       ok: code === 0,
       exitCode: code,
-      lines: [summary],
+      lines: [summary, ...runtimeLinkLines],
       shaMatch: false,
       durationMs: elapsedMs(started),
       detail: { throttle_skipped: false, captured_len: captured.join("").length },
