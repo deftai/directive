@@ -20,6 +20,7 @@ import {
   hasOperativeTargetDigestLine,
   setPendingIngestDiagnosticOverlay,
   type ThreadComment,
+  threadCommentFromRow,
 } from "../design-critique/completed-arc-record.js";
 import {
   classifyDesignCritiqueIngestPosture,
@@ -2197,7 +2198,7 @@ function threadCommentsFromIssue(issue: Record<string, unknown>): ThreadComment[
     const id = Number(rec.id);
     if (!Number.isSafeInteger(id) || id <= 0) continue;
     const body = typeof rec.body === "string" ? rec.body : "";
-    out.push({ id, body });
+    out.push(threadCommentFromRow(id, body, rec));
   }
   return out;
 }

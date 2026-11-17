@@ -3634,6 +3634,55 @@ describe("ingested briefs are launch-ready (#6333)", () => {
     });
   });
 
+  describe("digestless audits of unedited leans (#6477)", () => {
+    /** The arc's REST rows, with the lean's updated_at and the audit's created_at on their own rows. */
+    function stamped(lean: string, leanUpdatedAt: string, auditCreatedAt: string) {
+      return arc(lean, auditBody(lean, null)).map((comment) => ({
+        ...comment,
+        created_at: comment.id === AUDIT ? auditCreatedAt : "2026-11-16T05:00:00Z",
+        updated_at: comment.id === LEAN ? leanUpdatedAt : "2026-11-16T05:00:00Z",
+      }));
+    }
+
+    it("clause.6: ingests an arc whose clean digestless audit was created after the lean's updated_at", () => {
+      withRoot((root, xbriefDir) => {
+        const lean = leanBody();
+        const thread = stamped(lean, "2026-11-16T05:26:59Z", "2026-11-16T05:28:57Z");
+        const [result, path] = ingest(root, xbriefDir, issue(6477, "Body.", thread));
+        expect(result).toBe("created");
+        const plan = readPlan(path);
+        expect((plan.items as { title: string }[]).map((item) => item.title)).toEqual([
+          ...BOUND,
+          ...CRITERIA,
+        ]);
+        // verify:ac on the unlanded Spec-path brief admits the same thread.
+        const verdict = verify(root, plan, thread);
+        expect(verdict.cause).toBeUndefined();
+        expect(verdict.ok).toBe(true);
+      });
+    });
+
+    it("clause.7: refuses as today when the lean updated_at is equal to or later than the audit created_at", () => {
+      withRoot((root, xbriefDir) => {
+        const lean = leanBody();
+        for (const leanUpdatedAt of ["2026-11-16T05:28:57Z", "2026-11-16T05:40:00Z"]) {
+          const thread = stamped(lean, leanUpdatedAt, "2026-11-16T05:28:57Z");
+          expect(() => ingest(root, xbriefDir, issue(6478, "Body.", thread))).toThrow(
+            /no targeting audit counts for lean/,
+          );
+        }
+        // A missing audit timestamp fails closed the same way.
+        const unstamped = stamped(lean, "2026-11-16T05:26:59Z", "").map((comment) =>
+          comment.id === AUDIT ? { id: comment.id, body: comment.body } : comment,
+        );
+        expect(() => ingest(root, xbriefDir, issue(6479, "Body.", unstamped))).toThrow(
+          DesignCritiqueIngestBlockedError,
+        );
+        expect(readdirSync(join(xbriefDir))).toEqual([]);
+      });
+    });
+  });
+
   it("refuses other harvest failures without writing a brief", () => {
     withRoot((root, xbriefDir) => {
       const bad = leanBody({ extra: "\n## Slices\n- slice-a: B9\n" });

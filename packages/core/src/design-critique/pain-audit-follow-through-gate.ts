@@ -86,6 +86,10 @@ export function evaluatePainAuditFollowThrough(input: {
 export type ThreadCommentLike = {
   readonly id: number;
   readonly body: string;
+  /** REST `created_at` of the same comment row as `body` (#6477). */
+  readonly created_at?: string;
+  /** REST `updated_at` of the same comment row as `body` (#6477). */
+  readonly updated_at?: string;
 };
 
 const CRITIC_ROLE_RE = /(?:^|\n)\s*role:\s*critic\b/i;
@@ -298,18 +302,67 @@ export function extractOperativeHarvestDigest(body: string): HarvestDigestCarrie
   return { ok: true, digest };
 }
 
+const UTC_INSTANT_RE = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d+))?Z$/;
+
+type UtcInstant = { readonly seconds: string; readonly fraction: string };
+
+/**
+ * A GitHub REST comment instant: `YYYY-MM-DDTHH:MM:SS`, an optional fraction,
+ * and a trailing `Z`. Anything else (missing, empty, null, non-string, another
+ * shape, or a calendar roll-over such as `2026-02-30`) is unreadable (#6477).
+ */
+function readUtcInstant(value: unknown): UtcInstant | null {
+  if (typeof value !== "string") return null;
+  const match = UTC_INSTANT_RE.exec(value);
+  if (match === null) return null;
+  const seconds = match[1] ?? "";
+  const parsed = Date.parse(`${seconds}Z`);
+  if (Number.isNaN(parsed) || !new Date(parsed).toISOString().startsWith(seconds)) return null;
+  return { seconds, fraction: match[2] ?? "" };
+}
+
+/** Exact order of two readable instants; equal is not before. */
+function instantIsStrictlyBefore(a: UtcInstant, b: UtcInstant): boolean {
+  if (a.seconds !== b.seconds) return a.seconds < b.seconds;
+  const width = Math.max(a.fraction.length, b.fraction.length);
+  return a.fraction.padEnd(width, "0") < b.fraction.padEnd(width, "0");
+}
+
+/**
+ * True only when both instants are readable and the lean's `updated_at` is
+ * strictly before the audit's `created_at`: the lean was not edited after the
+ * audit, so its harvest is the one the audit read (#6477).
+ */
+export function leanUneditedSinceAudit(input: {
+  readonly leanUpdatedAt: unknown;
+  readonly auditCreatedAt: unknown;
+}): boolean {
+  const lean = readUtcInstant(input.leanUpdatedAt);
+  const audit = readUtcInstant(input.auditCreatedAt);
+  return lean !== null && audit !== null && instantIsStrictlyBefore(lean, audit);
+}
+
 /**
  * An audit counts for a lean only when its recorded digest equals the lean's
- * current harvest identity. A digestless audit counts only for a lean with no
- * Acceptance Criteria list and no Slices section (#6333 item 3).
+ * current harvest identity. A digestless audit counts for a lean with no
+ * Acceptance Criteria list and no Slices section (#6333 item 3). For a lean
+ * with either, a digestless audit counts only when the lean's `updated_at` is
+ * strictly before the audit's `created_at`, both from the REST rows of those
+ * comments (#6477). A present but invalid digest line never counts.
  */
 export function auditCountsForLean(input: {
   readonly auditBody: string;
   readonly leanBody: string;
+  readonly auditCreatedAt?: unknown;
+  readonly leanUpdatedAt?: unknown;
 }): boolean {
   const carrier = extractOperativeHarvestDigest(input.auditBody);
   if (carrier === null) {
-    return !leanHasAcceptanceOrSlices(input.leanBody);
+    if (!leanHasAcceptanceOrSlices(input.leanBody)) return true;
+    return leanUneditedSinceAudit({
+      leanUpdatedAt: input.leanUpdatedAt,
+      auditCreatedAt: input.auditCreatedAt,
+    });
   }
   return carrier.ok && carrier.digest === hashHarvestIdentity(input.leanBody);
 }
@@ -499,7 +552,12 @@ export function evaluateAccumulatedPainAuditFollowThrough(input: {
   const leanNeedsDigest = leanHasAcceptanceOrSlices(cited.body);
   if (leanNeedsDigest || targetingOnCitedHarvest.length > 0 || staleOnCitedHarvest > 0) {
     const counting = targetingOnCitedHarvest.filter((audit) =>
-      auditCountsForLean({ auditBody: audit.body, leanBody: cited.body }),
+      auditCountsForLean({
+        auditBody: audit.body,
+        leanBody: cited.body,
+        auditCreatedAt: audit.created_at,
+        leanUpdatedAt: cited.updated_at,
+      }),
     );
     if (counting.length === 0) {
       return {
@@ -509,7 +567,7 @@ export function evaluateAccumulatedPainAuditFollowThrough(input: {
           String(cited.id) +
           "; an audit counts only when its operative harvest-digest: line equals the lean's current harvest digest" +
           (leanNeedsDigest
-            ? ", and this lean carries an Acceptance Criteria list or a Slices section so a digestless audit does not count"
+            ? ", and this lean carries an Acceptance Criteria list or a Slices section so a digestless audit counts only when the lean's updated_at is strictly before the audit's created_at"
             : "") +
           "; expected harvest-digest: sha256:" +
           citedHarvestDigest +

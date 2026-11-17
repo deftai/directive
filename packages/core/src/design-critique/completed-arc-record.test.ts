@@ -30,6 +30,8 @@ import {
   parseOperatorMaterialityBar,
   resolveCompletedArcArchiveRoot,
   type ThreadComment,
+  threadCommentFromRow,
+  threadCommentsFromIssueComments,
 } from "./completed-arc-record.js";
 
 const LEAN_ID = 5442939496;
@@ -2895,5 +2897,48 @@ describe("no-issue archive / digest / harvest (#5486)", () => {
         resultProvenance: "r",
       }),
     ).toEqual({ ok: false, reason: "revision-mismatch" });
+  });
+});
+
+describe("thread comments keep their REST row timestamps (#6477 clause.3)", () => {
+  it("copies created_at and updated_at from the same row as the body", () => {
+    expect(
+      threadCommentsFromIssueComments([
+        {
+          id: 1,
+          body: "lean",
+          created_at: "2026-11-16T05:26:00Z",
+          updated_at: "2026-11-16T05:26:59Z",
+        },
+        { id: 2, body: "audit", created_at: "2026-11-16T05:28:57Z" },
+      ]),
+    ).toEqual([
+      {
+        id: 1,
+        body: "lean",
+        created_at: "2026-11-16T05:26:00Z",
+        updated_at: "2026-11-16T05:26:59Z",
+      },
+      { id: 2, body: "audit", created_at: "2026-11-16T05:28:57Z" },
+    ]);
+  });
+
+  it("leaves out a non-string timestamp and never reads one from the body", () => {
+    const comment = threadCommentFromRow(3, "created_at: 2026-11-16T05:28:57Z\n", {
+      created_at: null,
+      updated_at: 1794806819000,
+    });
+    expect(comment).toEqual({ id: 3, body: "created_at: 2026-11-16T05:28:57Z\n" });
+    expect("created_at" in comment).toBe(false);
+    expect("updated_at" in comment).toBe(false);
+  });
+
+  it("still drops rows without a numeric id or a string body", () => {
+    expect(
+      threadCommentsFromIssueComments([
+        { body: "no id", created_at: "2026-11-16T05:28:57Z" },
+        { id: 4, created_at: "2026-11-16T05:28:57Z" },
+      ]),
+    ).toEqual([]);
   });
 });
