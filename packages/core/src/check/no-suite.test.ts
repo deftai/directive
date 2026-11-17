@@ -119,6 +119,14 @@ describe("no-suite helpers (#6469)", () => {
     expect(repoSlugFromRemoteUrl("git@github.com:deftai/directive.git\n")).toBe("deftai/directive");
     expect(repoSlugFromRemoteUrl("https://github.com/deftai/directive")).toBe("deftai/directive");
     expect(repoSlugFromRemoteUrl("https://gitlab.com/a/b.git")).toBeNull();
+    expect(repoSlugFromRemoteUrl("ssh://git@github.com/deftai/directive.git")).toBe(
+      "deftai/directive",
+    );
+    expect(repoSlugFromRemoteUrl("https://github.com/deftai/directive/")).toBe("deftai/directive");
+    expect(repoSlugFromRemoteUrl("github.com.evil")).toBeNull();
+    expect(repoSlugFromRemoteUrl("https://github.com/only-owner")).toBeNull();
+    expect(repoSlugFromRemoteUrl("https://github.com/a/.git")).toBeNull();
+    expect(repoSlugFromRemoteUrl(`github.com/${"::".repeat(50000)}`)).toBeNull();
   });
 
   it("keeps only open pulls whose head is HEAD", () => {

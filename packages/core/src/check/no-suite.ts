@@ -137,9 +137,22 @@ function defaultWriteEvent(payload: string): { path: string; cleanup: () => void
 
 /** `owner/repo` from a GitHub remote URL (https, ssh or scp form), else null. */
 export function repoSlugFromRemoteUrl(url: string): string | null {
-  const match = /github\.com[:/]+([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?\s*$/i.exec(url.trim());
-  if (match === null) return null;
-  return `${match[1]}/${match[2]}`;
+  // String steps, not one backtracking regex (CodeQL polynomial-ReDoS on `::` runs).
+  const text = url.trim();
+  const host = text.toLowerCase().indexOf("github.com");
+  if (host === -1) return null;
+  const rest = text.slice(host + "github.com".length);
+  const sep = rest.charAt(0);
+  if (sep !== ":" && sep !== "/") return null;
+  const parts = rest
+    .slice(1)
+    .split("/")
+    .filter((part) => part.length > 0);
+  if (parts.length !== 2) return null;
+  const owner = parts[0] as string;
+  const repo = (parts[1] as string).replace(/\.git$/i, "");
+  if (repo.length === 0 || /\s/.test(owner) || /\s/.test(repo)) return null;
+  return `${owner}/${repo}`;
 }
 
 /** Caller env without the worker pin and inherited PR context (#6469 item 4). */
