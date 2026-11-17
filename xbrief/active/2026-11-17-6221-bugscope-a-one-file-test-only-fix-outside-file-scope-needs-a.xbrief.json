@@ -275,6 +275,9 @@
           "packages/core/src/hooks/dispatcher-write-gate.test.ts",
           "packages/runtime/src/verify-scope-provenance.ts",
           "packages/runtime/src/verify-scope-provenance.test.ts",
+          "packages/core/src/scope-provenance/evaluate-git.test.ts",
+          "packages/core/src/hooks/dispatcher-story-binding.test.ts",
+          "packages/core/src/hooks/story-binding-in-pr-completion.test.ts",
           "content/docs/scope-provenance.md",
           "changelog.d/6221-fence-parity-budgeted-extras.md"
         ],
@@ -302,7 +305,8 @@
       "intended_placement": {
         "schema": "deft.scope.intended_placement.v1",
         "files": [],
-        "module_boundary": ""
+        "module_boundary": "packages/core/src/scope-provenance",
+        "cohesion_exemption": "The budget logic lives in the new files extra-path-admission.ts and policy/write-fence-budget.ts. dispatcher.ts only calls the shared decision before the write target loop and in the #5656 staged scope-cover. evaluate.ts only passes change kinds and the mint authority to the shared helper and keeps the success report. evaluate.test.ts only changes expectations that asserted free tests. No split of these files is in scope."
       },
       "issueCommentThread": [
         {
