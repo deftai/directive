@@ -28,6 +28,7 @@ import {
   type PrFileEntry,
 } from "../scope/delivery-evidence.js";
 import { runTransition } from "../scope/transition.js";
+import { applyWorktreeOccupancy, readOccupancy } from "../session/occupancy.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_INCOMPLETE, EXIT_OK } from "./constants.js";
 import {
   evaluateFinalizeClassMergeCarveOut,
@@ -4241,5 +4242,59 @@ describe("finalize-cohort lifecycle checkout package install (#5882)", () => {
     expect(outcome.exitCode).toBe(EXIT_GATE_FAILED);
     expect(vi.mocked(runTransition)).not.toHaveBeenCalled();
     expect(outcome.result.errors.some((e) => /outer-visible pin missing/i.test(e))).toBe(true);
+  });
+});
+
+describe("finalize close-out of a story swarm:launch did not launch (#6422)", () => {
+  const SESSION = "host:claude:v1:ZmluYWxpemUtNjQyMg";
+
+  beforeEach(() => {
+    vi.mocked(runTransition).mockClear();
+  });
+
+  function gitProject(prefix: string): string {
+    const project = mkdtempSync(join(tmpdir(), prefix));
+    execFileSync("git", ["init", "-q"], { cwd: project });
+    return project;
+  }
+
+  it("exits 0 after a correct sweep and keeps the session lease (AC 12)", () => {
+    const project = gitProject("sw-finalize-6422-");
+    const storyPath = writeActiveStory(project, "story-unlaunched", 6422);
+    expect(applyWorktreeOccupancy(project, { sessionId: SESSION, intent: "mutation" }).code).toBe(
+      0,
+    );
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      noCommit: true,
+    });
+    expect(result.exitCode).toBe(EXIT_OK);
+    expect(result.stdout).not.toContain("missing or belongs to a different cohort");
+    expect(readOccupancy(project)?.sessionId).toBe(SESSION);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("says a close-out failure after a clean sweep left the move on disk (AC 32)", () => {
+    const project = gitProject("sw-finalize-6422-fail-");
+    const storyPath = writeActiveStory(project, "story-bad-record", 6422);
+    const dir = join(project, ".deft", "swarm-launch-occupancy");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "broken.json"), "{oops", "utf8");
+    const result = finalizeCohort({
+      projectRoot: project,
+      storyTokens: [storyPath],
+      noCommit: true,
+    });
+    expect(result.exitCode).toBe(EXIT_GATE_FAILED);
+    const errors = result.result.errors.join("\n");
+    expect(errors).toContain("cohort close-out failed after a clean lifecycle sweep");
+    expect(errors).not.toContain("cohort completion sweep failed");
+    expect(errors).toContain("broken.json");
+    expect(errors).toContain("already on disk");
+    expect(errors).toContain(
+      "xbrief/active/story-bad-record.xbrief.json -> xbrief/completed/story-bad-record.xbrief.json",
+    );
+    rmSync(project, { recursive: true, force: true });
   });
 });

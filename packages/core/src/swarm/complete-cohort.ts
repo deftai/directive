@@ -14,10 +14,22 @@ import {
 } from "../scope/delivery-evidence.js";
 import { runTransition, type TransitionOptions } from "../scope/transition.js";
 import { collectChildUris, collectPlanRefs, resolveVbriefRef } from "../scope/vbrief-ref.js";
-import { readOccupancy, releaseSwarmOccupancy } from "../session/occupancy.js";
+import { liveOccupant, releaseSwarmOccupancy } from "../session/occupancy.js";
+import type { LockDeps } from "../slice/lock.js";
 import { MAX_FIXPOINT_PASSES, TERMINAL_FOLDERS } from "./constants.js";
-import { resolveLaunchOccupancySessionId } from "./launch.js";
-import { cleanupWorkerAuthAssignmentsForDispatch } from "./worker-auth-assignment.js";
+import {
+  type LaunchOccupancyRecordFile,
+  launchOccupancyClosedStoryIds,
+  launchOccupancyRecordFullyClosed,
+  markLaunchOccupancyStoriesClosed,
+  readLaunchOccupancyRecordsStrict,
+  removeLaunchOccupancyRecordFile,
+} from "./launch.js";
+import { withLaunchCloseoutLock } from "./launch-closeout-lock.js";
+import {
+  cleanupWorkerAuthAssignmentsForStories,
+  findWorkerAuthAssignmentsForStories,
+} from "./worker-auth-assignment.js";
 
 /** Per-story or default delivery evidence for cohort completion (#3041 / #3675). */
 export interface CohortDeliveryContext {
@@ -40,6 +52,8 @@ export interface TransitionRecord {
   action: string;
   ok: boolean;
   detail: string;
+  /** Destination of a brief this run moved to completed/ (#6422 item 11). */
+  moved_to?: string;
 }
 
 export interface SweepResult {
@@ -49,7 +63,27 @@ export interface SweepResult {
   parents: TransitionRecord[];
   errors: string[];
   ok: boolean;
+  /** Informational close-out lines (#6422 items 5 to 8). */
+  closeout_notes?: string[];
 }
+
+/** One brief moved to a terminal folder in this run (#6422 item 11). */
+export interface LifecycleMove {
+  readonly source: string;
+  readonly destination: string;
+}
+
+/** Briefs this run moved to completed/, stories and epic parents (#6422 item 11). */
+export function lifecycleMovesOf(result: SweepResult): LifecycleMove[] {
+  if (result.dry_run) return [];
+  return [...result.stories, ...result.parents]
+    .filter((r) => r.ok && typeof r.moved_to === "string" && r.moved_to.length > 0)
+    .map((r) => ({ source: r.path, destination: r.moved_to as string }));
+}
+
+/** The on-disk notice a failed run prints when it already moved briefs (#6422 item 11). */
+export const LIFECYCLE_MOVE_ON_DISK_NOTICE =
+  "The lifecycle move below is already on disk and was not rolled back; commit these moved briefs:";
 
 function loadPlan(path: string): Record<string, unknown> | null {
   try {
@@ -359,8 +393,9 @@ function completeStory(args: CompleteStoryArgs): TransitionRecord {
     new Date(),
     transitionOptionsFor(storyPath, delivery),
   );
+  const destination = join(vbriefDir, "completed", storyPath.split(/[/\\]/).pop() ?? "");
   if (result.ok) {
-    settled.add(resolve(join(vbriefDir, "completed", storyPath.split(/[/\\]/).pop() ?? "")));
+    settled.add(resolve(destination));
   }
   return {
     kind: "story",
@@ -368,6 +403,7 @@ function completeStory(args: CompleteStoryArgs): TransitionRecord {
     action: result.ok ? "complete" : "failed",
     ok: result.ok,
     detail: result.message,
+    ...(result.ok ? { moved_to: rel(destination, projectRoot) } : {}),
   };
 }
 
@@ -463,8 +499,9 @@ function completeParent(args: CompleteParentArgs): TransitionRecord {
     new Date(),
     transitionOptionsFor(current, delivery),
   );
+  const destination = join(vbriefDir, "completed", parentPath.split(/[/\\]/).pop() ?? "");
   if (completeResult.ok) {
-    settled.add(resolve(join(vbriefDir, "completed", parentPath.split(/[/\\]/).pop() ?? "")));
+    settled.add(resolve(destination));
   }
   const detail =
     activateNotice.length > 0
@@ -476,6 +513,7 @@ function completeParent(args: CompleteParentArgs): TransitionRecord {
     action: completeResult.ok ? action : "failed",
     ok: completeResult.ok,
     detail,
+    ...(completeResult.ok ? { moved_to: rel(destination, projectRoot) } : {}),
   };
 }
 
@@ -623,7 +661,7 @@ function sweepCohortWithArgs(args: SweepCohortArgs): SweepResult {
 }
 
 export function sweepResultToDict(result: SweepResult): Record<string, unknown> {
-  return {
+  const dict: Record<string, unknown> = {
     project_root: result.project_root,
     dry_run: result.dry_run,
     ok: result.ok,
@@ -631,6 +669,31 @@ export function sweepResultToDict(result: SweepResult): Record<string, unknown> 
     parents: result.parents,
     errors: result.errors,
   };
+  if ((result.closeout_notes ?? []).length > 0) {
+    dict.closeout_notes = result.closeout_notes;
+  }
+  const moves = lifecycleMovesOf(result);
+  if (!result.ok && moves.length > 0) {
+    // #6422 item 11: a failure after the sweep moved briefs says so.
+    dict.lifecycle_moves_on_disk = moves;
+    dict.lifecycle_move_notice = LIFECYCLE_MOVE_ON_DISK_NOTICE;
+  }
+  return dict;
+}
+
+/** One output line: a value with an embedded newline cannot start a new line. */
+function oneLine(value: string): string {
+  return value.replace(/\r?\n/g, " ");
+}
+
+/** Text lines naming each brief moved on disk by a failed run (#6422 item 11). */
+export function lifecycleMoveOnDiskLines(result: SweepResult): string[] {
+  const moves = lifecycleMovesOf(result);
+  if (result.ok || moves.length === 0) return [];
+  return [
+    LIFECYCLE_MOVE_ON_DISK_NOTICE,
+    ...moves.map((m) => `  - ${oneLine(m.source)} -> ${oneLine(m.destination)}`),
+  ];
 }
 
 export function renderSweepText(result: SweepResult): string {
@@ -659,6 +722,20 @@ export function renderSweepText(result: SweepResult): string {
       lines.push(`    [${r.ok ? "ok" : "FAILED"}] ${r.action.padEnd(16)} ${r.path} -- ${r.detail}`);
     }
   }
+  const notes = result.closeout_notes ?? [];
+  if (notes.length > 0) {
+    lines.push("  Close-out:");
+    for (const note of notes) {
+      lines.push(`    - ${oneLine(note)}`);
+    }
+  }
+  const onDisk = lifecycleMoveOnDiskLines(result);
+  if (onDisk.length > 0) {
+    lines.push(`  ${onDisk[0]}`);
+    for (const line of onDisk.slice(1)) {
+      lines.push(`  ${line}`);
+    }
+  }
   lines.push("");
   if (result.ok) {
     const completed = [...result.stories, ...result.parents].filter((r) =>
@@ -666,6 +743,10 @@ export function renderSweepText(result: SweepResult): string {
     ).length;
     const verb = result.dry_run ? "would complete" : "completed";
     lines.push(`Result: SWEEP CLEAN -- ${verb} ${completed} vBRIEF(s).`);
+  } else if ([...result.stories, ...result.parents].every((r) => r.ok)) {
+    lines.push(
+      "Result: CLOSE-OUT FAILED after a clean sweep -- the lifecycle sweep succeeded; see the errors above.",
+    );
   } else {
     const nFailed = [...result.stories, ...result.parents].filter((r) => !r.ok).length;
     lines.push(
@@ -673,6 +754,278 @@ export function renderSweepText(result: SweepResult): string {
     );
   }
   return lines.join("\n");
+}
+
+/**
+ * #6422 item 1: the stories this run moved to a terminal folder or found
+ * already in completed/ or cancelled/. A story the sweep skipped for any other
+ * reason is not closed.
+ */
+function closedSetOf(
+  result: SweepResult,
+  paths: readonly string[],
+  storyIdByPath: ReadonlyMap<string, string>,
+  projectRoot: string,
+): string[] {
+  const closed = new Set<string>();
+  result.stories.forEach((record, index) => {
+    if (!record.ok || (record.action !== "complete" && record.action !== "noop")) return;
+    const requested = paths[index];
+    const id =
+      requested !== undefined
+        ? storyIdByPath.get(resolve(requested))
+        : record.moved_to !== undefined
+          ? storyIdFromPath(join(projectRoot, record.moved_to))
+          : undefined;
+    if (id !== undefined && id.length > 0) closed.add(id);
+  });
+  return [...closed].sort();
+}
+
+interface CloseoutOutcome {
+  readonly ok: boolean;
+  readonly errors: string[];
+  readonly notes: string[];
+}
+
+interface CloseOutStoriesArgs {
+  readonly projectRoot: string;
+  readonly closedStoryIds: readonly string[];
+  readonly env: NodeJS.ProcessEnv;
+  readonly allocationPlanId: string | null;
+  readonly release: typeof releaseSwarmOccupancy;
+}
+
+const NOTHING_CHANGED = "Close-out removed nothing and released nothing.";
+
+function listedBy(entry: LaunchOccupancyRecordFile, storyId: string): boolean {
+  return entry.record.story_ids.some((id) => id.trim() === storyId);
+}
+
+/**
+ * The records a closed story belongs to (#6422 item 4). A story a later launch
+ * listed again after an earlier record closed it belongs to the record where it
+ * is still open; only a story open in several records stays ambiguous.
+ */
+function owningRecords(
+  records: readonly LaunchOccupancyRecordFile[],
+  storyId: string,
+): LaunchOccupancyRecordFile[] {
+  const listing = records.filter((entry) => listedBy(entry, storyId));
+  if (listing.length <= 1) return listing;
+  const open = listing.filter(
+    (entry) => !launchOccupancyClosedStoryIds(entry.record).includes(storyId),
+  );
+  return open.length > 0 ? open : listing;
+}
+
+/**
+ * Per-story close-out under the launch/close-out lock (#6422 items 3 to 8).
+ * Close-out acts on the closed set only, keeps each record's roster, and
+ * releases the launcher lease only after every story of every record of that
+ * session is closed.
+ */
+function closeOutStories(args: CloseOutStoriesArgs): CloseoutOutcome {
+  const { projectRoot, closedStoryIds, env } = args;
+  const notes: string[] = [];
+  const refuse = (message: string): CloseoutOutcome => ({
+    ok: false,
+    errors: [`${message} ${NOTHING_CHANGED}`],
+    notes,
+  });
+
+  // Item 3: strict read; never retract here.
+  const read = readLaunchOccupancyRecordsStrict(projectRoot);
+  if (!read.ok) {
+    return refuse(
+      `swarm close-out cannot read launch-occupancy record ${read.file}: ${read.detail}.`,
+    );
+  }
+  const records = read.records;
+  const liveSession = liveOccupant(projectRoot)?.sessionId ?? null;
+  const fullyClosedBefore = new Set(
+    records.filter((entry) => launchOccupancyRecordFullyClosed(entry.record)).map((e) => e.file),
+  );
+
+  // Item 4: group the closed set by the record that lists each story.
+  const unlisted: string[] = [];
+  const storiesByFile = new Map<string, string[]>();
+  for (const storyId of closedStoryIds) {
+    const listing = owningRecords(records, storyId);
+    if (listing.length === 0) {
+      unlisted.push(storyId);
+      continue;
+    }
+    for (const entry of listing) {
+      storiesByFile.set(entry.file, [...(storiesByFile.get(entry.file) ?? []), storyId]);
+    }
+  }
+  if (storiesByFile.size > 1) {
+    const named = [...storiesByFile.entries()]
+      .map(([file, stories]) => `${file}: ${stories.join(", ")}`)
+      .join("; ");
+    return refuse(
+      `swarm close-out refuses a run that mixes stories of more than one launch record (${named}). ` +
+        "Close each record's stories in its own run.",
+    );
+  }
+
+  // Item 5: stories that no record lists are not a failure.
+  if (unlisted.length > 0) {
+    const found = findWorkerAuthAssignmentsForStories({ projectRoot, storyIds: unlisted });
+    for (const assignment of found) {
+      notes.push(
+        `story ${assignment.story_id}: no launch record here lists it; its worker assignment ` +
+          `record (dispatch_id ${assignment.dispatch_id}) was left in place.`,
+      );
+    }
+    const reported = new Set(found.map((a) => a.story_id));
+    const quiet = unlisted.filter((id) => !reported.has(id));
+    if (quiet.length > 0) {
+      notes.push(`no launch record lists ${quiet.join(", ")}; nothing to close out for it.`);
+    }
+  }
+
+  // Item 6: stories of one record.
+  let releaseSession: string | null = null;
+  const [groupFile, groupStories] = [...storiesByFile.entries()][0] ?? [null, []];
+  const group = records.find((entry) => entry.file === groupFile) ?? null;
+  if (group !== null) {
+    const record = group.record;
+    const session = record.occupancy_session_id;
+    const wantedPlan = args.allocationPlanId?.trim() ?? "";
+    if (wantedPlan.length > 0 && record.allocation_plan_id !== wantedPlan) {
+      return refuse(
+        `swarm close-out launch record ${group.file} belongs to allocation plan ` +
+          `${record.allocation_plan_id ?? "(none)"}, not ${wantedPlan}.`,
+      );
+    }
+    if (liveSession === session) {
+      const envSession = env.DEFT_SESSION_ID?.trim() ?? "";
+      if (envSession.length > 0 && envSession !== session) {
+        return refuse(
+          `swarm close-out ambient owner ${envSession} conflicts with cohort owner ${session}; ` +
+            "refusing to release a later session's live lease.",
+        );
+      }
+      const cleaned = cleanupWorkerAuthAssignmentsForStories({
+        projectRoot,
+        dispatchId: session,
+        storyIds: groupStories,
+      });
+      if (!cleaned.ok) {
+        return { ok: false, errors: [cleaned.detail], notes };
+      }
+      try {
+        markLaunchOccupancyStoriesClosed(projectRoot, group, groupStories);
+      } catch (exc: unknown) {
+        return {
+          ok: false,
+          errors: [
+            `swarm close-out removed ${String(cleaned.removed)} worker assignment record(s) but ` +
+              `could not mark ${groupStories.join(", ")} closed in ${group.file}: ${String(exc)}. ` +
+              "Run the command again.",
+          ],
+          notes,
+        };
+      }
+      notes.push(
+        `closed ${groupStories.join(", ")} in launch record ${group.file} (session ${session}); ` +
+          `removed ${String(cleaned.removed)} worker assignment record(s).`,
+      );
+      releaseSession = session;
+    } else if (!fullyClosedBefore.has(group.file)) {
+      if (liveSession !== null) {
+        return refuse(
+          `swarm close-out occupancy record belongs to a different cohort: launch record ` +
+            `${group.file} names session ${session}, but the live lease is held by ${liveSession}. ` +
+            "The occupant may release (`occupancy:release` / `session:end`). Isolate in another " +
+            "worktree rather than taking a live lease.",
+        );
+      }
+      notes.push(
+        `launch record ${group.file} names session ${session}, which holds no live lease; ` +
+          "no worker assignment was removed and no story was marked closed.",
+      );
+    }
+  }
+
+  // Item 7: lease last.
+  const removedFiles = new Set<string>();
+  if (releaseSession !== null) {
+    const reread = readLaunchOccupancyRecordsStrict(projectRoot);
+    if (!reread.ok) {
+      return {
+        ok: false,
+        errors: [`swarm close-out cannot re-read launch record ${reread.file}: ${reread.detail}.`],
+        notes,
+      };
+    }
+    const sessionRecords = reread.records.filter(
+      (entry) => entry.record.occupancy_session_id === releaseSession,
+    );
+    const open = sessionRecords.flatMap((entry) => {
+      const closed = new Set(launchOccupancyClosedStoryIds(entry.record));
+      return entry.record.story_ids.filter((id) => !closed.has(id.trim()));
+    });
+    if (open.length > 0) {
+      notes.push(
+        `launcher lease of session ${releaseSession} kept: open launched stories remain ` +
+          `(${open.join(", ")}).`,
+      );
+    } else {
+      // Launcher occupancy only. Child owner leases release on the
+      // orchestration terminal transition (#3999), not here.
+      const released = args.release(projectRoot, { env, sessionId: releaseSession });
+      if (released.code !== 0) {
+        return {
+          ok: false,
+          errors: [
+            `${released.message} The launch records stay; run the command again to release the lease.`,
+          ],
+          notes,
+        };
+      }
+      notes.push(`released the launcher lease of session ${releaseSession}.`);
+      for (const entry of sessionRecords) {
+        try {
+          removeLaunchOccupancyRecordFile(projectRoot, entry.file);
+          removedFiles.add(entry.file);
+          notes.push(`removed launch record ${entry.file}.`);
+        } catch (exc: unknown) {
+          return {
+            ok: false,
+            errors: [
+              `swarm close-out released the lease but could not remove launch record ` +
+                `${entry.file}: ${String(exc)}. Run the command again to remove it.`,
+            ],
+            notes,
+          };
+        }
+      }
+    }
+  }
+
+  // Item 8: finish a run that released the lease and stopped.
+  for (const entry of records) {
+    if (!fullyClosedBefore.has(entry.file) || removedFiles.has(entry.file)) continue;
+    if (entry.record.occupancy_session_id === liveSession) continue;
+    try {
+      if (removeLaunchOccupancyRecordFile(projectRoot, entry.file)) {
+        notes.push(
+          `removed fully closed launch record ${entry.file}; its session holds no lease here, ` +
+            "so no lease was released.",
+        );
+      }
+    } catch (exc: unknown) {
+      return {
+        ok: false,
+        errors: [`swarm close-out could not remove launch record ${entry.file}: ${String(exc)}.`],
+        notes,
+      };
+    }
+  }
+  return { ok: true, errors: [], notes };
 }
 
 export function completeCohort(args: {
@@ -687,6 +1040,10 @@ export function completeCohort(args: {
   allocationPlanId?: string | null;
   /** Test seam and explicit ambient-owner source for close-out corroboration. */
   env?: NodeJS.ProcessEnv;
+  /** Test seam: wait/clock deps of the launch/close-out lock (#6422). */
+  lockDeps?: LockDeps;
+  /** Test seam: launcher lease release (defaults to releaseSwarmOccupancy). */
+  releaseSwarmOccupancyFn?: typeof releaseSwarmOccupancy;
 }): { exitCode: number; stdout: string; stderr: string; sweep: SweepResult | null } {
   const projectRoot = resolve(args.projectRoot);
   if (!existsSync(projectRoot)) {
@@ -737,6 +1094,8 @@ export function completeCohort(args: {
     return { exitCode: 2, stdout: "", stderr, sweep: empty };
   }
 
+  // Story ids are read before the sweep moves the briefs (#6422).
+  const storyIdByPath = new Map(paths.map((path) => [resolve(path), storyIdFromPath(path)]));
   const result = sweepCohortWithArgs({
     storyPaths: paths,
     projectRoot,
@@ -747,54 +1106,29 @@ export function completeCohort(args: {
 
   if (result.ok && args.dryRun !== true) {
     const env = args.env ?? process.env;
-    const envSession = env.DEFT_SESSION_ID?.trim() ?? "";
-    const liveOccupancy = readOccupancy(projectRoot);
-    const resolved = resolveLaunchOccupancySessionId(projectRoot, {
-      allocationPlanId: args.allocationPlanId ?? null,
-      storyIds: paths.map(storyIdFromPath),
-    });
-    let sessionId = "";
-    if (liveOccupancy !== null) {
-      if (resolved.reason !== "ok" || resolved.sessionId.length === 0) {
-        result.ok = false;
-        result.errors.push(
-          "swarm close-out occupancy record is missing or belongs to a different cohort. " +
-            "The occupant may release (`occupancy:release` / `session:end`). Isolate in another " +
-            "worktree rather than taking a live lease.",
-        );
-      } else if (envSession.length > 0 && envSession !== resolved.sessionId) {
-        result.ok = false;
-        result.errors.push(
-          `swarm close-out ambient owner ${envSession} conflicts with cohort owner ` +
-            `${resolved.sessionId}; refusing to release a later session's live lease.`,
-        );
-      } else {
-        sessionId = resolved.sessionId;
-      }
-    } else if (resolved.reason === "ok" && resolved.sessionId.length > 0) {
-      sessionId = resolved.sessionId;
+    const closedStoryIds = closedSetOf(result, paths, storyIdByPath, projectRoot);
+    // The sweep runs outside the lock; close-out runs inside it (#6422 item 2).
+    const locked = withLaunchCloseoutLock(
+      projectRoot,
+      () =>
+        closeOutStories({
+          projectRoot,
+          closedStoryIds,
+          env,
+          allocationPlanId: args.allocationPlanId ?? null,
+          release: args.releaseSwarmOccupancyFn ?? releaseSwarmOccupancy,
+        }),
+      args.lockDeps ?? {},
+    );
+    const outcome: CloseoutOutcome = locked.ok
+      ? locked.value
+      : { ok: false, errors: [locked.detail], notes: [] };
+    if (outcome.notes.length > 0) {
+      result.closeout_notes = outcome.notes;
     }
-    if (result.ok && sessionId.length > 0) {
-      const cleaned = cleanupWorkerAuthAssignmentsForDispatch({
-        projectRoot,
-        dispatchId: sessionId,
-      });
-      if (!cleaned.ok) {
-        result.ok = false;
-        result.errors.push(cleaned.detail);
-      }
-    }
-    if (result.ok && sessionId.length > 0 && liveOccupancy !== null) {
-      // Launcher occupancy only. Child owner leases release on the
-      // orchestration terminal transition (#3999), not here.
-      const released = releaseSwarmOccupancy(projectRoot, {
-        env,
-        sessionId,
-      });
-      if (released.code !== 0) {
-        result.ok = false;
-        result.errors.push(released.message);
-      }
+    if (!outcome.ok) {
+      result.ok = false;
+      result.errors.push(...outcome.errors);
     }
   }
 
