@@ -681,13 +681,18 @@ export function sweepResultToDict(result: SweepResult): Record<string, unknown> 
   return dict;
 }
 
+/** One output line: a value with an embedded newline cannot start a new line. */
+function oneLine(value: string): string {
+  return value.replace(/\r?\n/g, " ");
+}
+
 /** Text lines naming each brief moved on disk by a failed run (#6422 item 11). */
 export function lifecycleMoveOnDiskLines(result: SweepResult): string[] {
   const moves = lifecycleMovesOf(result);
   if (result.ok || moves.length === 0) return [];
   return [
     LIFECYCLE_MOVE_ON_DISK_NOTICE,
-    ...moves.map((m) => `  - ${m.source} -> ${m.destination}`),
+    ...moves.map((m) => `  - ${oneLine(m.source)} -> ${oneLine(m.destination)}`),
   ];
 }
 
@@ -721,7 +726,7 @@ export function renderSweepText(result: SweepResult): string {
   if (notes.length > 0) {
     lines.push("  Close-out:");
     for (const note of notes) {
-      lines.push(`    - ${note}`);
+      lines.push(`    - ${oneLine(note)}`);
     }
   }
   const onDisk = lifecycleMoveOnDiskLines(result);
@@ -798,6 +803,23 @@ function listedBy(entry: LaunchOccupancyRecordFile, storyId: string): boolean {
 }
 
 /**
+ * The records a closed story belongs to (#6422 item 4). A story a later launch
+ * listed again after an earlier record closed it belongs to the record where it
+ * is still open; only a story open in several records stays ambiguous.
+ */
+function owningRecords(
+  records: readonly LaunchOccupancyRecordFile[],
+  storyId: string,
+): LaunchOccupancyRecordFile[] {
+  const listing = records.filter((entry) => listedBy(entry, storyId));
+  if (listing.length <= 1) return listing;
+  const open = listing.filter(
+    (entry) => !launchOccupancyClosedStoryIds(entry.record).includes(storyId),
+  );
+  return open.length > 0 ? open : listing;
+}
+
+/**
  * Per-story close-out under the launch/close-out lock (#6422 items 3 to 8).
  * Close-out acts on the closed set only, keeps each record's roster, and
  * releases the launcher lease only after every story of every record of that
@@ -829,7 +851,7 @@ function closeOutStories(args: CloseOutStoriesArgs): CloseoutOutcome {
   const unlisted: string[] = [];
   const storiesByFile = new Map<string, string[]>();
   for (const storyId of closedStoryIds) {
-    const listing = records.filter((entry) => listedBy(entry, storyId));
+    const listing = owningRecords(records, storyId);
     if (listing.length === 0) {
       unlisted.push(storyId);
       continue;

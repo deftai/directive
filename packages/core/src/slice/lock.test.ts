@@ -45,4 +45,12 @@ describe("withAppendLock", () => {
     ).toThrow("body failed");
     expect(withAppendLock("/tmp/deft-slice-lock-outer-6422.jsonl", () => "again")).toBe("again");
   });
+
+  it("refuses reentry through another spelling of the same path (#6422)", () => {
+    expect(() =>
+      withAppendLock("/tmp/deft-slice-lock-spelling-6422.jsonl", () => {
+        withAppendLock("/tmp/./deft-slice-lock-spelling-6422.jsonl", () => undefined);
+      }),
+    ).toThrow(/not reentrant/);
+  });
 });

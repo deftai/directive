@@ -1605,6 +1605,19 @@ describe("per-story close-out (#6422)", { timeout: 120_000 }, () => {
     expect(result.exitCode).toBe(1);
     expect(result.sweep?.errors.join("\n")).toContain("empty.json");
     expect(result.sweep?.errors.join("\n")).toContain("not a launch-occupancy record");
+    rmSync(join(dir, "empty.json"), { force: true });
+    writeFileSync(
+      join(dir, "no-roster.json"),
+      JSON.stringify({ occupancy_session_id: S, cohort_key: "stories:", story_ids: "nr-a" }),
+      "utf8",
+    );
+    const malformed = closeOut(project, [a]);
+    expect(malformed.exitCode).toBe(1);
+    expect(malformed.sweep?.errors.join("\n")).toContain("no-roster.json");
+    expect(malformed.sweep?.errors.join("\n")).toContain(
+      "story_ids is missing, empty or malformed",
+    );
+    expect(existsSync(join(dir, "no-roster.json"))).toBe(true);
     rmSync(project, { recursive: true, force: true });
   });
 
@@ -1640,6 +1653,47 @@ describe("per-story close-out (#6422)", { timeout: 120_000 }, () => {
     expect(result.exitCode).toBe(0);
     expect(result.sweep?.stories.some((r) => r.action === "complete")).toBe(true);
     expect(readRecord(rec)?.closed_story_ids).toEqual(["tw-a"]);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("closes a relaunched story in the record where it is still open", () => {
+    const project = gitProject("sw-6422-relisted-");
+    const y = storyIn(project, "active", "rl-y");
+    const first = writeRecord(project, S, ["rl-x", "rl-y"], ["rl-y"]);
+    const second = writeRecord(project, S, ["rl-y"]);
+    lease(project, S);
+    const result = closeOut(project, [y]);
+    expect(result.exitCode).toBe(0);
+    expect(readRecord(first)?.closed_story_ids).toEqual(["rl-y"]);
+    expect(readRecord(second)?.closed_story_ids).toEqual(["rl-y"]);
+    expect(readOccupancy(project)?.sessionId).toBe(S);
+    rmSync(project, { recursive: true, force: true });
+  });
+
+  it("refuses to relaunch a story still open in another record of the session", {
+    timeout: 180_000, // launch-heavy under parallel suite load
+  }, () => {
+    const project = launchProject("sw-6422-relaunch-");
+    launchStory(project, "ov-a", 64226);
+    launchStory(project, "ov-b", 64227);
+    const cohort = launch(project, ["ov-a", "ov-b"], {
+      allocationPlanId: "plan-ov",
+      batchingRationale: "two stories of one test cohort",
+    });
+    expect(cohort.exitCode).toBe(0);
+    const relaunch = launch(project, ["ov-b"]);
+    expect(relaunch.exitCode).not.toBe(0);
+    expect((relaunch as { stderr?: string }).stderr).toContain("still open in launch record");
+    expect(recordExists(project, ["ov-b"])).toBe(false);
+    expect(
+      existsSync(
+        join(
+          project,
+          ...launchOccupancyRecordRelpath(occupancyCohortKey("plan-ov", ["ov-a", "ov-b"])),
+        ),
+      ),
+    ).toBe(true);
+    expect(readOccupancy(project)?.sessionId).toBe(S);
     rmSync(project, { recursive: true, force: true });
   });
 });

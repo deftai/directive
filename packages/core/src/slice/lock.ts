@@ -10,7 +10,7 @@ import {
   unlinkSync,
   writeSync,
 } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 
 /**
@@ -185,7 +185,10 @@ export function withAppendLock<T>(
   }
   mkdirSync(dirname(lockPath), { recursive: true });
 
-  if (threadHeldPaths.has(lockPath)) {
+  // One key per lock file however its path is spelled (case-insensitive on win32).
+  const resolvedLock = resolve(lockPath);
+  const heldKey = process.platform === "win32" ? resolvedLock.toLowerCase() : resolvedLock;
+  if (threadHeldPaths.has(heldKey)) {
     throw new Error("append lock is not reentrant");
   }
   let fd: number | undefined;
@@ -199,7 +202,7 @@ export function withAppendLock<T>(
         const acquiredAt = now();
         writeSync(fd, Buffer.from(`${process.pid}\n${token}\n${acquiredAt}\n`));
         held = { lockPath, pid: process.pid, token, acquiredAt };
-        threadHeldPaths.add(lockPath);
+        threadHeldPaths.add(heldKey);
         return fn(held);
       } catch (err: unknown) {
         const code = (err as NodeJS.ErrnoException).code;
@@ -230,7 +233,7 @@ export function withAppendLock<T>(
       } catch {
         /* not ours anymore */
       }
-      threadHeldPaths.delete(lockPath);
+      threadHeldPaths.delete(heldKey);
     }
   }
 }

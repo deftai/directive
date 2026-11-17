@@ -23,6 +23,7 @@ import {
   FAILURE_ORPHAN_ASSIGNMENT,
   FAILURE_REGISTRY_CORRUPTION,
   findWorkerAuthAssignmentsForStories,
+  matchingCredentialDeliveryId,
   readWorkerAuthAssignment,
   removeWorkerAuthAssignment,
   setWorkerAuthLockTestHooks,
@@ -671,6 +672,30 @@ describe("launch re-write and per-story cleanup (#6422)", { timeout: 120_000 }, 
     expect(repoint.detail).toContain("dispatch dispatch-6422 story story-6422");
     const kept = readWorkerAuthAssignment(worktree);
     expect(kept.ok && kept.assignment?.dispatch_id).toBe("dispatch-6422");
+  });
+
+  it("returns the delivery id of a matching registration so a repeat launch keeps it", () => {
+    const { main, worktree } = linkedPair();
+    const token = {
+      ...base(main, worktree),
+      githubAuthMode: "injected-token",
+      credentialDeliveryId: "del-6422",
+    };
+    expect(writeWorkerAuthAssignment(token)).toMatchObject({ ok: true, created: true });
+    const { credentialDeliveryId: _omit, ...lookup } = token;
+    expect(matchingCredentialDeliveryId(lookup)).toBe("del-6422");
+    expect(matchingCredentialDeliveryId({ ...lookup, dispatchId: "other" })).toBeNull();
+    expect(
+      matchingCredentialDeliveryId({
+        ...lookup,
+        expectedPrincipal: { kind: "user", login: "someone-else" },
+      }),
+    ).toBeNull();
+    expect(
+      matchingCredentialDeliveryId({ ...lookup, worktreePath: join(main, "no-such-dest") }),
+    ).toBeNull();
+    // Reusing the id makes the repeat write identical, so it is kept, not refused.
+    expect(writeWorkerAuthAssignment(token)).toMatchObject({ ok: true, created: false });
   });
 
   it("refuses to overwrite an unreadable existing record", () => {

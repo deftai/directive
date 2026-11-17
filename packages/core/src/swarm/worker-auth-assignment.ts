@@ -605,6 +605,31 @@ function recordsAgree(
   );
 }
 
+/**
+ * The credential delivery id of an existing registration for this dest when
+ * dispatch, story, mode and login all match (#6422 item 10). A repeat launch
+ * reuses it, so its record is identical and kept instead of refused.
+ */
+export function matchingCredentialDeliveryId(
+  input: Omit<WriteWorkerAuthAssignmentInput, "credentialDeliveryId">,
+): string | null {
+  const start = existsSync(input.worktreePath) ? input.worktreePath : input.projectRoot;
+  const commonDir = resolveWorkerAuthCommonDir(start, input.runGit ?? defaultGitRunner);
+  if (commonDir === null) return null;
+  const recordName = workerAuthRecordName(canonicalWorktreePath(input.worktreePath));
+  const parsed = parseAssignment(readJsonFile(join(commonDir, recordPathRel(recordName))));
+  if (
+    parsed === null ||
+    parsed.dispatch_id !== input.dispatchId.trim() ||
+    parsed.story_id !== input.storyId.trim() ||
+    parsed.github_auth_mode !== input.githubAuthMode ||
+    parsed.expected_principal.login !== input.expectedPrincipal.login.trim()
+  ) {
+    return null;
+  }
+  return parsed.credential_delivery_id;
+}
+
 export function writeWorkerAuthAssignment(
   input: WriteWorkerAuthAssignmentInput,
 ): WriteWorkerAuthAssignmentResult {

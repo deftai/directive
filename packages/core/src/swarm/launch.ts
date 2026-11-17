@@ -73,6 +73,7 @@ import { runText } from "./subprocess.js";
 import {
   ENV_WORKER_CREDENTIAL_DELIVERY_ID,
   FAILURE_MISSING_DELIVERY,
+  matchingCredentialDeliveryId,
   mintCredentialDeliveryId,
   type RemoveWorkerAuthAssignmentInput,
   type RemoveWorkerAuthAssignmentResult,
@@ -1347,14 +1348,24 @@ export function readLaunchOccupancyRecordsStrict(
   for (const name of readdirSync(dir).sort()) {
     if (!name.endsWith(".json")) continue;
     const file = join(dir, name);
-    let parsed: LaunchOccupancyRecord | null;
+    let raw: unknown;
     try {
-      parsed = parseLaunchOccupancyRecord(JSON.parse(readFileSync(file, { encoding: "utf8" })));
+      raw = JSON.parse(readFileSync(file, { encoding: "utf8" }));
     } catch (exc: unknown) {
       return { ok: false, file, detail: exc instanceof Error ? exc.message : String(exc) };
     }
+    const parsed = parseLaunchOccupancyRecord(raw);
     if (parsed === null) {
       return { ok: false, file, detail: "not a launch-occupancy record" };
+    }
+    // An empty or malformed roster would read as fully closed and be removed.
+    const roster = (raw as Record<string, unknown>).story_ids;
+    if (
+      !Array.isArray(roster) ||
+      roster.length === 0 ||
+      roster.some((id) => typeof id !== "string" || id.trim().length === 0)
+    ) {
+      return { ok: false, file, detail: "story_ids is missing, empty or malformed" };
     }
     records.push({ file: name, record: parsed });
   }
@@ -2066,6 +2077,30 @@ export function swarmLaunch(args: LaunchArgs): {
         return { exitCode, stdout: "", stderr };
       };
 
+      // #6422: a story stays open in one launch record of a session. Relaunching
+      // it under another roster would leave it in two records, which close-out
+      // refuses; launch the same roster again or close the story out first.
+      const rosterIds = new Set(ordered.map((story) => story.story_id));
+      const rosterKey = occupancyCohortKey(
+        allocationPlanId,
+        ordered.map((story) => story.story_id),
+      );
+      for (const rec of listLaunchOccupancyRecords(projectRoot)) {
+        if (rec.cohort_key === rosterKey || rec.occupancy_session_id !== occupancy.sessionId) {
+          continue;
+        }
+        const closed = new Set(launchOccupancyClosedStoryIds(rec));
+        const overlap = rec.story_ids.filter((id) => rosterIds.has(id) && !closed.has(id));
+        if (overlap.length > 0) {
+          return failAfterClaim(
+            EXIT_GATE_FAILED,
+            `Error: swarm:launch refuses ${overlap.join(", ")}: still open in launch record ` +
+              `${rec.cohort_key} of this session. Launch that same roster again, or close ` +
+              "the story out with swarm:finalize-cohort first (#6422).\n",
+          );
+        }
+      }
+
       let worktreeRecordMap = new Map<string, WorktreeRecord>();
       if (args.worktreeMap !== undefined && args.worktreeMap !== null) {
         try {
@@ -2171,9 +2206,24 @@ export function swarmLaunch(args: LaunchArgs): {
       });
       const deliveryByStory = new Map<string, string | null>();
       for (const dest of dests) {
+        // A repeat launch of the same registration reuses its delivery id, so
+        // the record stays identical and is kept (#6422 item 10).
+        const reused =
+          assigned.mode === GITHUB_AUTH_MODE_INJECTED_TOKEN
+            ? matchingCredentialDeliveryId({
+                projectRoot,
+                worktreePath: dest.worktreePath,
+                dispatchId: occupancy.sessionId,
+                storyId: dest.story.story_id,
+                githubAuthMode: assigned.mode,
+                expectedPrincipal: assigned.principal,
+              })
+            : null;
         deliveryByStory.set(
           dest.story.story_id,
-          assigned.mode === GITHUB_AUTH_MODE_INJECTED_TOKEN ? mintCredentialDeliveryId() : null,
+          assigned.mode === GITHUB_AUTH_MODE_INJECTED_TOKEN
+            ? (reused ?? mintCredentialDeliveryId())
+            : null,
         );
       }
       const spawnEnvByStory = new Map<string, WorkerInjectedSpawnEnv>();
