@@ -106,6 +106,21 @@ describe("plan.policy.operatorNotify (#6275)", () => {
     );
   });
 
+  it("with no project root, reads USER.md from the env path and skips project policy", () => {
+    const home = mkdtempSync(join(tmpdir(), "opnotify-noroot-"));
+    roots.push(home);
+    const userMd = join(home, "USER.md");
+    writeFileSync(userMd, "## Personal\noperatorNotify: os\n");
+    expect(
+      resolveOperatorNotifyChannel({ env: { DEFT_USER_PATH: userMd, APPDATA: home, HOME: home } }),
+    ).toEqual({ channel: "os", source: "user-md", error: null });
+    expect(resolveOperatorNotifyChannel({ projectRoot: "", userMdText: null })).toEqual({
+      channel: "off",
+      source: "default",
+      error: null,
+    });
+  });
+
   it("detects URL-shaped values", () => {
     expect(isUrlShapedChannelValue("http://x")).toBe(true);
     expect(isUrlShapedChannelValue("www.example.com")).toBe(true);

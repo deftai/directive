@@ -410,6 +410,13 @@ describe("data-only OS adapters", () => {
       }),
     ).toBe(false);
   });
+
+  it("the real default runner returns a boolean for an adapter absent on this host", () => {
+    // notify-send is absent on Windows; powershell.exe is absent on Linux and macOS.
+    // Neither shows a notification, so this exercises spawnSync safely.
+    const foreign: NodeJS.Platform = process.platform === "win32" ? "linux" : "win32";
+    expect(sendOsNotification(note, { platform: foreign })).toBe(false);
+  });
 });
 
 describe("notifier edge cases", () => {
@@ -479,6 +486,14 @@ describe("detached notifier spawn", () => {
         },
       }),
     ).toBe(false);
+  });
+
+  it("the default spawner starts a real detached child", () => {
+    // Not cleaned up: the detached child may still be reading it on Windows.
+    const dir = mkdtempSync(join(tmpdir(), "opnotify-entry-"));
+    const entry = join(dir, "noop.cjs");
+    writeFileSync(entry, "// does nothing\n");
+    expect(spawnOperatorNotifier(dir, { entry })).toBe(true);
   });
 
   it("recognizes only its own child argv", () => {

@@ -1764,7 +1764,8 @@ function recordAuthzOperatorStop(
   decision: AuthzDecision,
   seams: HookPolicySeams,
 ): void {
-  if (decision.allowed || !OPERATOR_REMEDY_GRANT_CODES.has(decision.code)) return;
+  // Called only on a deny; the code decides whether a mint is the remedy.
+  if (!OPERATOR_REMEDY_GRANT_CODES.has(decision.code)) return;
   const op = String(decision.attemptedOp);
   if (NON_GRANTABLE_OPS.has(op)) return;
   try {

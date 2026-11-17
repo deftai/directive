@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { startUatLease } from "@deftai/directive-core/authz";
@@ -107,6 +107,21 @@ describe("agent-marker mint refusal records an operator stop (#6275 limb 2)", ()
         },
       ),
     ).not.toThrow();
+  });
+
+  it("the default recorder writes nothing while the notifier is off", () => {
+    silence();
+    const root = mkdtempSync(join(tmpdir(), "hpm-default-"));
+    roots.push(root);
+    const prev = process.env.DEFT_USER_PATH;
+    process.env.DEFT_USER_PATH = join(root, "no-USER.md");
+    try {
+      recordMintOperatorStop("authz:grant", { CLAUDECODE: "1" }, { projectRoot: root, args: [] });
+    } finally {
+      if (prev === undefined) delete process.env.DEFT_USER_PATH;
+      else process.env.DEFT_USER_PATH = prev;
+    }
+    expect(readdirSync(root)).toEqual([]);
   });
 
   it("mintArgsAfterVerb drops separators and the subcommand", () => {

@@ -106,6 +106,34 @@ describe("authz-grant deny records an operator stop (#6275 limb 2)", () => {
     expect(stop.commands[0]).toContain("src/a.ts");
   });
 
+  it("a path-less shell deny records the grant without --surfaces", () => {
+    const root = ownerRoot();
+    const recorded: OperatorStopInput[] = [];
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          tool_name: "run_terminal_command",
+          tool_input: { command: "git push origin story/x" },
+        },
+        environ: { DEFT_SESSION_ID: "owner" },
+      },
+      seams({ recordOperatorStop: (i) => recorded.push(i) }),
+    );
+    expect(decision.verdict).toBe("deny");
+    if (!String(decision.code).startsWith("authz-grant-")) {
+      expect(recorded).toEqual([]);
+      return;
+    }
+    expect(recorded).toHaveLength(1);
+    const stop = recorded[0] as OperatorStopInput;
+    expect(stop.commands[0]).not.toContain("--surfaces");
+    expect(stop.target.endsWith(":*")).toBe(true);
+    expect(stop.title).not.toContain(" on ");
+  });
+
   it("a recorder that throws never changes the verdict", () => {
     const root = ownerRoot();
     const decision = writeSrc(

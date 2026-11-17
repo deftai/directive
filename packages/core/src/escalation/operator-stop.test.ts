@@ -80,6 +80,11 @@ describe("recordOperatorStop (#6275 limb 1)", () => {
       recorded: false,
       reason: "duplicate",
     });
+    const anonymous = stop(root, { sessionId: null, target: "other" });
+    expect(recordOperatorStop(anonymous, deps)).toMatchObject({
+      recorded: true,
+      event: { agentId: "agent" },
+    });
   });
 
   it("records a repeated identical stop once (code, target, session)", () => {
