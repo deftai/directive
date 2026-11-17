@@ -147,3 +147,35 @@ describe("formatReleaseHelp", () => {
     expect(formatReleaseHelp()).toBe(RELEASE_HELP);
   });
 });
+
+describe("--finish and --break-glass (#6296)", () => {
+  it("--finish names the version, alone or with an equal positional", () => {
+    expect(parseReleaseFlags(["--finish", "1.2.3"])).toMatchObject({
+      finish: "1.2.3",
+      version: "1.2.3",
+      unknown: [],
+    });
+    expect(parseReleaseFlags(["1.2.3", "--finish=1.2.3"]).unknown).toEqual([]);
+  });
+
+  it("refuses a differing positional, --break-glass, --skip-tag and an empty value with --finish", () => {
+    expect(parseReleaseFlags(["1.2.4", "--finish", "1.2.3"]).unknown).toEqual([
+      "1.2.4 (differs from --finish 1.2.3)",
+    ]);
+    expect(parseReleaseFlags(["--finish", "1.2.3", "--break-glass"]).unknown).toEqual([
+      "--break-glass (not valid with --finish)",
+    ]);
+    expect(parseReleaseFlags(["--finish", "1.2.3", "--skip-tag"]).unknown).toEqual([
+      "--skip-tag (not valid with --finish; use --dry-run)",
+    ]);
+    expect(parseReleaseFlags(["--finish="]).unknown).toEqual(["--finish= (empty value)"]);
+  });
+
+  it("--break-glass alone is accepted for the cut", () => {
+    expect(parseReleaseFlags(["1.2.3", "--break-glass"])).toMatchObject({
+      breakGlass: true,
+      finish: null,
+      unknown: [],
+    });
+  });
+});

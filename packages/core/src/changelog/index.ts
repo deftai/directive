@@ -6,3 +6,4 @@
 export * from "./effective-unreleased.js";
 export * from "./entry-path.js";
 export * from "./fragment.js";
+export * from "./release-line.js";
