@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
+import { DISPOSITION_REL, isEvaluatorSurfacePath } from "../evaluator-surface/index.js";
 import { containedWrite } from "../fs/contained-write.js";
 import {
   ARTIFACT_SUFFIXES,
@@ -15,6 +16,7 @@ import {
   stripArtifactSuffix,
 } from "../layout/resolve.js";
 import { SERIALIZE_N_PRS } from "../one-pr-unit/types.js";
+import { clauseKeyedItemId } from "../scope/acceptance-evidence.js";
 import {
   acceptanceTextsFromItems,
   asStrList,
@@ -25,6 +27,7 @@ import {
   type SwarmFieldMode,
   storyQualityIssues,
 } from "../vbrief-validation/story-quality.js";
+import { readAcceptanceClauses } from "../verify-ac/clauses.js";
 import { LIFECYCLE_FOLDERS, READY } from "./constants.js";
 
 /** Remediation when swarm block is missing/incomplete (#3718). */
@@ -35,6 +38,8 @@ export const SWARM_BLOCK_REMEDIATION_HINT =
   "--verify-command <cmd> --size <small|medium|large> --file-scope-confidence <high|medium|low> " +
   "--readiness ready --parallel-safe true|false " +
   "(do not invent file_scope or verify_commands from issue text; #4988). " +
+  "The same run writes kind=story for a plain story and, when named, --description, --user-story, " +
+  "--implementation-plan, --traces, --item-acceptance <item-id|position>=<line>, or one --values-file (#6372). " +
   "Documented N=1 / solo headless launch relaxes ceremony fields expected_outputs, conflict_group, and model_tier (#3718). " +
   "Interactive solo-worker discoverability stays on #3669.";
 
@@ -53,13 +58,50 @@ export interface ScaffoldSwarmDraftInput {
   readonly size: string;
   readonly fileScopeConfidence: string;
   readonly modelTier?: string;
-  readonly readiness: string;
+  /** Omitted: keep the brief's readiness, else `ready` as before (#6372). */
+  readonly readiness?: string;
   readonly parallelSafe: boolean;
+  readonly narratives?: ScaffoldNarrativeInput;
+  readonly itemAcceptance?: readonly ScaffoldItemAcceptanceInput[];
+}
+
+/**
+ * Operator-named narrative values for the scaffold (#6372). Each one is written
+ * as given; an omitted value leaves the brief unchanged.
+ */
+export interface ScaffoldNarrativeInput {
+  readonly description?: string;
+  readonly userStory?: string;
+  readonly implementationPlan?: string;
+  readonly traces?: string;
+  readonly missingTracesJustification?: string;
+  readonly acceptanceJustification?: string;
+}
+
+/** One item acceptance line, addressed by item id or one-based position (#6372). */
+export interface ScaffoldItemAcceptanceInput {
+  readonly selector: string;
+  readonly text: string;
 }
 
 export type ScaffoldSwarmDraftResult =
-  | { ok: true; path: string; writtenKeys: string[] }
+  | {
+      ok: true;
+      path: string;
+      /** plan.metadata.swarm keys written. */
+      writtenKeys: string[];
+      /** Other brief fields written: kind, narratives, item acceptance lines (#6372). */
+      writtenFields: string[];
+      /** Readiness evaluation of the written brief: missing fields (#6372). */
+      missing: string[];
+      /** Readiness evaluation of the written brief: blocked conditions (#6372). */
+      blocked: string[];
+    }
   | { ok: false; error: string };
+
+/** Printed after a scaffold write: an empty missing list is not launch consent (#6372). */
+export const SCAFFOLD_LAUNCH_NOTE =
+  "No missing field does not mean the story can launch: blocked conditions still stop it, and swarm:readiness decides launch.";
 
 /** Documented swarm size enum for scaffold (#3718 Greptile P1). */
 export const SWARM_DRAFT_SIZES = ["small", "medium", "large"] as const;
@@ -765,6 +807,29 @@ function needsSwarmBlockRemediation(candidates: readonly Candidate[]): boolean {
   return false;
 }
 
+/**
+ * The readiness evaluation shared by `swarm:readiness` and the scaffold report
+ * (#6372): per-candidate missing / blocked lists, then cycles and dependency
+ * propagation. Returns the dependency graph.
+ */
+function evaluateCandidates(
+  projectRoot: string,
+  candidates: Candidate[],
+  fieldMode: SwarmFieldMode,
+): Map<string, string[]> {
+  const knownIds = allScopeIds(projectRoot);
+  for (const c of candidates) {
+    knownIds.set(c.story_id, [c.path, c.status]);
+  }
+  for (const c of candidates) {
+    validateCandidate(c, knownIds, fieldMode);
+  }
+  const graph = candidateDepGraph(candidates, knownIds);
+  markCycles(candidates, graph);
+  propagateBlockedDependencies(candidates, graph);
+  return graph;
+}
+
 export function readinessReport(
   projectRoot: string,
   paths: readonly string[],
@@ -795,16 +860,7 @@ export function readinessReport(
   if (candidates.length === 0) {
     return { exitCode: 1, report: "Swarm readiness report\n\nNo candidate vBRIEFs found." };
   }
-  const knownIds = allScopeIds(projectRoot);
-  for (const c of candidates) {
-    knownIds.set(c.story_id, [c.path, c.status]);
-  }
-  for (const c of candidates) {
-    validateCandidate(c, knownIds, fieldMode);
-  }
-  const graph = candidateDepGraph(candidates, knownIds);
-  markCycles(candidates, graph);
-  propagateBlockedDependencies(candidates, graph);
+  const graph = evaluateCandidates(projectRoot, candidates, fieldMode);
   const overlaps = fileOverlaps(candidates, graph);
   let report = renderReport(candidates, graph, overlaps);
   if (fieldMode === "solo-headless") {
@@ -838,12 +894,122 @@ function resolveScaffoldTarget(
   return { ok: true, absPath };
 }
 
+function normalizeScopePath(path: string): string {
+  return path.replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
 /**
- * Write plan.metadata.swarm from operator-named paths and explicit draft fields only (#3718).
- * Refuses empty file_scope / verify_commands. Does not read issue body text.
+ * Deduplicate operator-named file_scope paths and, when one of them is a
+ * declared evaluator surface, add the disposition record path once (#6373).
+ * The diff that touches a surface must renew that record, so the brief's
+ * fence must admit it.
+ */
+export function withEvaluatorSurfaceDisposition(fileScope: readonly string[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const path of fileScope) {
+    const key = normalizeScopePath(path);
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push(path);
+    }
+  }
+  if (!seen.has(DISPOSITION_REL) && out.some((path) => isEvaluatorSurfacePath(path))) {
+    out.push(DISPOSITION_REL);
+  }
+  return out;
+}
+
+function itemKey(item: Record<string, unknown>): string | null {
+  const id = item.id;
+  if (typeof id === "string" && id.trim().length > 0) {
+    return id.trim();
+  }
+  if (typeof id === "number" && Number.isFinite(id)) {
+    return String(id);
+  }
+  return null;
+}
+
+function itemAcceptanceText(item: Record<string, unknown>): string {
+  const narrative = item.narrative;
+  if (typeof narrative !== "object" || narrative === null || Array.isArray(narrative)) {
+    return "";
+  }
+  const value = (narrative as Record<string, unknown>).Acceptance;
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function setItemAcceptance(item: Record<string, unknown>, text: string): void {
+  const narrative =
+    typeof item.narrative === "object" && item.narrative !== null && !Array.isArray(item.narrative)
+      ? { ...(item.narrative as Record<string, unknown>) }
+      : {};
+  narrative.Acceptance = text;
+  item.narrative = narrative;
+}
+
+/**
+ * Resolve an item selector: an exact item id first, else a one-based position
+ * in plan.items (#6372 item 3). Never assigns or changes an id.
+ */
+function resolveItemSelector(items: readonly unknown[], selector: string): number | null {
+  const wanted = selector.trim();
+  if (wanted.length === 0) {
+    return null;
+  }
+  const byId = items.findIndex(
+    (item) =>
+      typeof item === "object" &&
+      item !== null &&
+      !Array.isArray(item) &&
+      itemKey(item as Record<string, unknown>) === wanted,
+  );
+  if (byId >= 0) {
+    return byId;
+  }
+  if (/^[1-9][0-9]*$/.test(wanted)) {
+    const position = Number(wanted);
+    if (position <= items.length) {
+      return position - 1;
+    }
+  }
+  return null;
+}
+
+/** Clause text keyed to an item id (`clause.N`, legacy `clause:N`, or bare `N`). */
+function keyedClauseTexts(plan: Record<string, unknown>): Map<string, string> {
+  const keyed = new Map<string, string>();
+  for (const clause of readAcceptanceClauses(plan.acceptance)) {
+    for (const key of [clauseKeyedItemId(clause.id), `clause:${clause.id}`, String(clause.id)]) {
+      if (!keyed.has(key)) {
+        keyed.set(key, clause.text);
+      }
+    }
+  }
+  return keyed;
+}
+
+const SCAFFOLD_NARRATIVE_KEYS = [
+  ["description", "Description"],
+  ["userStory", "UserStory"],
+  ["implementationPlan", "ImplementationPlan"],
+  ["traces", "Traces"],
+] as const;
+
+/**
+ * Write the launch fields of a story brief from operator-named values and the
+ * brief's own state (#3718 / #6372). Authority fields (paths, commands, size,
+ * parallel_safe, model tier, readiness, outputs, dependencies, conflict group)
+ * come only from explicit inputs or the existing value; nothing is read from
+ * issue text, Overview, item titles or narratives. Values are written without a
+ * story-quality check; the result then carries the readiness evaluation of the
+ * written brief as separate missing and blocked lists.
  */
 export function scaffoldSwarmDraft(input: ScaffoldSwarmDraftInput): ScaffoldSwarmDraftResult {
-  const fileScope = input.fileScope.map((p) => p.trim()).filter((p) => p.length > 0);
+  const fileScope = withEvaluatorSurfaceDisposition(
+    input.fileScope.map((p) => p.trim()).filter((p) => p.length > 0),
+  );
   const verifyCommands = input.verifyCommands.map((c) => c.trim()).filter((c) => c.length > 0);
   if (fileScope.length === 0) {
     return {
@@ -861,8 +1027,8 @@ export function scaffoldSwarmDraft(input: ScaffoldSwarmDraftInput): ScaffoldSwar
   }
   const size = input.size.trim();
   const confidence = input.fileScopeConfidence.trim();
-  const readiness = input.readiness.trim();
-  if (!size || !confidence || !readiness) {
+  const givenReadiness = input.readiness === undefined ? undefined : input.readiness.trim();
+  if (!size || !confidence || givenReadiness === "") {
     return {
       ok: false,
       error: "scaffold requires explicit --size, --file-scope-confidence, and --readiness",
@@ -900,17 +1066,87 @@ export function scaffoldSwarmDraft(input: ScaffoldSwarmDraftInput): ScaffoldSwar
     typeof plan.metadata === "object" && plan.metadata !== null && !Array.isArray(plan.metadata)
       ? ({ ...(plan.metadata as Record<string, unknown>) } as Record<string, unknown>)
       : {};
-  if (metadata.kind !== "story") {
+  const writtenFields: string[] = [];
+  // #6372 item 1: an ingested brief records no kind. Record `story` when the
+  // brief is plainly a story; an explicit or inferred epic or phase still refuses.
+  const kindAbsent = metadata.kind === undefined || metadata.kind === null || metadata.kind === "";
+  if (kindAbsent ? kindOf(absPath, plan) !== "story" : metadata.kind !== "story") {
     return {
       ok: false,
       error:
         "scaffold refuses non-story JSON (plan.metadata.kind must be story); do not rewrite unrelated files (#3718)",
     };
   }
+  if (kindAbsent) {
+    metadata.kind = "story";
+    writtenFields.push("plan.metadata.kind");
+  }
+
+  // #6372 items 3-4: resolve every item acceptance input before writing, so an
+  // unknown selector writes nothing.
+  const items = Array.isArray(plan.items) ? plan.items : [];
+  const explicitLines = new Map<number, string>();
+  for (const entry of input.itemAcceptance ?? []) {
+    const index = resolveItemSelector(items, entry.selector);
+    const item = index === null ? null : items[index];
+    if (index === null || typeof item !== "object" || item === null || Array.isArray(item)) {
+      return {
+        ok: false,
+        error: `scaffold --item-acceptance ${JSON.stringify(entry.selector)} matches no item id or one-based position in plan.items; nothing written`,
+      };
+    }
+    explicitLines.set(index, entry.text);
+  }
+  const keyedClauses = keyedClauseTexts(plan);
+  items.forEach((raw, index) => {
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+      return;
+    }
+    const item = raw as Record<string, unknown>;
+    const label = itemKey(item) ?? `#${index + 1}`;
+    const explicit = explicitLines.get(index);
+    if (explicit !== undefined) {
+      setItemAcceptance(item, explicit);
+      writtenFields.push(`plan.items[${label}].narrative.Acceptance`);
+      return;
+    }
+    const key = itemKey(item);
+    const clauseText = key === null ? undefined : keyedClauses.get(key);
+    if (clauseText !== undefined && itemAcceptanceText(item).length === 0) {
+      setItemAcceptance(item, clauseText);
+      writtenFields.push(`plan.items[${label}].narrative.Acceptance`);
+    }
+  });
+
+  // #6372 item 2: narratives are written as given, without a quality check.
+  const narrativeInput = input.narratives ?? {};
+  const narratives =
+    typeof plan.narratives === "object" &&
+    plan.narratives !== null &&
+    !Array.isArray(plan.narratives)
+      ? { ...(plan.narratives as Record<string, unknown>) }
+      : {};
+  let narrativesChanged = false;
+  for (const [inputKey, narrativeKey] of SCAFFOLD_NARRATIVE_KEYS) {
+    const value = narrativeInput[inputKey];
+    if (value !== undefined && value.trim().length > 0) {
+      narratives[narrativeKey] = value;
+      narrativesChanged = true;
+      writtenFields.push(`plan.narratives.${narrativeKey}`);
+    }
+  }
+  if (narrativesChanged) {
+    plan.narratives = narratives;
+  }
+
   const existingSwarm =
     typeof metadata.swarm === "object" && metadata.swarm !== null && !Array.isArray(metadata.swarm)
       ? ({ ...(metadata.swarm as Record<string, unknown>) } as Record<string, unknown>)
       : {};
+  // #6372 item 5: an omitted readiness keeps the brief's value (else `ready`, as before).
+  const existingReadiness =
+    typeof existingSwarm.readiness === "string" ? existingSwarm.readiness.trim() : "";
+  const readiness = givenReadiness ?? (existingReadiness || READY);
 
   const swarm: Record<string, unknown> = {
     ...existingSwarm,
@@ -949,6 +1185,14 @@ export function scaffoldSwarmDraft(input: ScaffoldSwarmDraftInput): ScaffoldSwar
     swarm.model_tier = input.modelTier.trim();
     writtenKeys.push("model_tier");
   }
+  if (narrativeInput.missingTracesJustification?.trim()) {
+    swarm.missing_traces_justification = narrativeInput.missingTracesJustification;
+    writtenKeys.push("missing_traces_justification");
+  }
+  if (narrativeInput.acceptanceJustification?.trim()) {
+    swarm.acceptance_criteria_justification = narrativeInput.acceptanceJustification;
+    writtenKeys.push("acceptance_criteria_justification");
+  }
   metadata.swarm = swarm;
   plan.metadata = metadata;
   data.plan = plan;
@@ -965,7 +1209,19 @@ export function scaffoldSwarmDraft(input: ScaffoldSwarmDraftInput): ScaffoldSwar
       error: `scaffold write failed: ${err instanceof Error ? err.message : String(err)}`,
     };
   }
-  return { ok: true, path: absPath, writtenKeys };
+  // #6372 item 6: write, then report through the existing readiness evaluation.
+  const written = candidateFromPath(absPath, input.projectRoot);
+  if (written !== null) {
+    evaluateCandidates(input.projectRoot, [written], "concurrent");
+  }
+  return {
+    ok: true,
+    path: absPath,
+    writtenKeys,
+    writtenFields,
+    missing: written === null ? [] : [...written.missing],
+    blocked: written === null ? [] : [...written.blocked],
+  };
 }
 
 export function expandReadinessPaths(projectRoot: string, patterns: readonly string[]): string[] {
