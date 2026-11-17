@@ -155,6 +155,8 @@
           "packages/core/src/doctor/runtime-link-owner.test.ts",
           "packages/core/src/session/orientation-compression.ts",
           "packages/core/src/session/orientation-runtime-link.test.ts",
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/session/session-start-runtime-link.test.ts",
           "changelog.d/6185-foreign-runtime-link.md"
         ],
         "file_scope_confidence": "medium",
@@ -192,10 +194,12 @@
           "packages/core/src/doctor/runtime-link-owner.test.ts",
           "packages/core/src/session/orientation-compression.ts",
           "packages/core/src/session/orientation-runtime-link.test.ts",
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/session/session-start-runtime-link.test.ts",
           "changelog.d/6185-foreign-runtime-link.md"
         ],
         "module_boundary": "packages/core/src/install-health (runtime ownership cut + recovery text), packages/runtime/src/hook-dispatch.ts (root-mismatch refusal wording), packages/core/src/doctor and session orientation (early detection)",
-        "cohesion_exemption": "packages/core/src/doctor/main.ts already exceeds the review trigger. This story only wires one call to the new install-health check into the existing always-cheap and full doctor paths, next to the dangling-link probe; the check itself lives in the new runtime-link.ts. Splitting doctor/main.ts is out of scope."
+        "cohesion_exemption": "packages/core/src/doctor/main.ts already exceeds the review trigger. This story only wires one call to the new install-health check into the existing always-cheap and full doctor paths, next to the dangling-link probe; the check itself lives in the new runtime-link.ts. Splitting doctor/main.ts is out of scope. packages/core/src/session/session-start.ts (about 3300 lines) is widened in for one keep-list prefix in its quiet-output filter so the runtime-link failure line stays visible in default session:start output (Greptile P1 on the product PR); splitting that file is out of scope."
       },
       "issueCommentThread": [
         {
