@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6535",
-    "updated": "2026-11-17T19:32:53Z"
+    "updated": "2026-11-17T22:45:30Z"
   },
   "plan": {
     "title": "rfc(hooks): enforce on the merge path where it runs the full gate set; keep a small local hook floor",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Local hooks refuse many agent actions before a pull request exists; in a repository whose merge path already runs the full gate set, most of those refusals stop legitimate work and catch nothing the merge path does not. This story lets a closed set of named local refusal sites warn instead of refuse, but only when the check named by plan.policy.mergeGateContext in the project definition at the delivery-branch head on GitHub is also in the branch's live required status contexts; every other refusal, and every repository without that signal, keeps refusing as today.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6535",
@@ -20,210 +20,392 @@
     "items": [
       {
         "title": "Merge-gate name. The project definition may carry `plan.policy.mergeGateContext`, the name of one required status check that runs the repository's full merge gate. The hook reads it only from GitHub: the project definition file at the head of the delivery branch, through the contents API, inside the bounded read of item 2. It never takes the name from the worktree copy or from a local ref. The worktree copy is a trigger only: the hook makes the GitHub read only when the worktree copy names a check, and the signal needs the GitHub copy to name the same check. Absent, empty, different or unreadable means no signal.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/merge-gate-signal.ts, when createMergeGateSignal is asked for the signal, then the merge-gate name comes only from plan.policy.mergeGateContext in the project definition read at the delivery-branch head through the GitHub contents API, the worktree copy is only a trigger, and an absent, empty, different or unreadable name gives no signal."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Live check. At a warn site, after item 1 yields a name, the hook calls the existing `fetchRequiredStatusContexts` for the repository and delivery branch with a gh runner whose timeout keeps the whole read (item 1 and item 2 together) well under the host hook timeout. The signal holds only when the read did not fail and its contexts include the named check. A failed read, a timeout, or a list without the name means no signal. The result is reused for the rest of that hook call and is not written anywhere.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/merge-gate-signal.ts and a gh runner backed by one shared budget, when a warn site asks for the signal, then the contents read and fetchRequiredStatusContexts both run on that runner, the signal holds only when neither read failed and the contexts include the name, and the result is kept in memory for that hook call only."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Warn sites. Exactly these sites can warn: (a) the `ritual.code !== 0` arm of the gated ritual (stale, missing or other-worktree ritual state, and a failed ritual step, agent-hook readiness included); (b) the write-path `scope-not-ready` return when the worktree binding did not refuse (multiple eligible, zero eligible, env pin miss); (c) the positive governing-allow check on a selected story's `file_scope`; (d) the `prospective-scope-cover-deny` returns for staged paths outside `file_scope` and for the index-snapshot file-set check; (e) the story write fence's `deny-story-scope` verdict in runtime authority (a direct-write path outside the selected story's `file_scope`). These stay refusals: the runtime-authority refusals other than `deny-story-scope` (project `denyPaths` and `allowPaths`, `scopes.edits` false, an unreadable story fence, unclassified or unsupported targets), the ritual inspection throw, the compact-heal refusal, `occupancy-ritual-mismatch`, a binding refusal, an unresolvable commit target, an unreadable index, unreconstructable shell write dests, dest-form expansion, `spawn-not-ready`, and every other refusal code.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher.ts, when a hook decides a write or commit, then exactly the five named sites (ritual arm, non-spawn scope-not-ready without a binding refusal, positive governing allow, commit staged-path and index-snapshot results, deny-story-scope) can warn and each listed exception still refuses."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Continue, do not return. Under the signal, a warn site records its refusal text as a warning and evaluation continues. On the shell path the commit check returns no decision and passes the warning on. A later refusal wins. The final allow carries the warnings.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher.ts and a live signal, when a warn site fires, then it records a warning and evaluation continues, the commit check returns no decision on the shell path, a later refusal wins, and the final allow carries the warnings."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Warning output. The final allow's message starts with `Warning:` and, for each warning, gives today's refusal text and one clause that local enforcement is advisory because the named check is required on the delivery branch. It does not claim that check enforces the same condition. It uses the existing tool.before allow-advisory rendering. No new log or file.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher.ts and a warned allow, when the message is built, then it starts with `Warning:`, gives today's refusal text and one advisory clause that does not claim the named check enforces the same condition, and uses the existing tool.before allow-advisory rendering with no new log or file."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Floor statement. Every refusal not listed in item 3 keeps today's behaviour, including protected stores, the kill-switch, occupancy, the intent ceiling, foreign repositories, tree-wide destructive git and default-branch push and force push. This design adds no guard for secrets paths, deletes outside the repository or force pushes to other branches.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher.ts, when any refusal outside the named sites fires under a live signal (protected stores, kill-switch, occupancy, intent ceiling, foreign repository, tree-wide destructive git, default-branch push), then it refuses as today and no guard is added for secrets paths, deletes outside the repository or force pushes to other branches."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "No local signal state. No record, cache file, flag or table mode selects warn. The #1517 record and the #6281 table are not read or changed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/merge-gate-signal.ts, when the signal is evaluated, then no record, cache file, flag or table mode is read or written to select warn, and neither the #1517 record nor the #6281 table is read or changed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Docs. One section in the hooks docs names `plan.policy.mergeGateContext`, the warn sites, the floor statement, and the limits in item 6 and in \"What it does not do\".",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given content/docs/hook-root-admission.md, when a reader opens the hooks docs, then one section names plan.policy.mergeGateContext, the warn sites, the floor statement and the limits, and docs/RULE-MAP.md still renders unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given no `mergeGateContext` in the worktree copy of the project definition, when a warn site fires, then the hook refuses as today and makes no GitHub call.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/merge-gate-signal.ts and a project definition with no mergeGateContext, when a warn site fires, then the signal is false and the stub gh runner records zero calls."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a worktree copy that names a check and a GitHub copy at the delivery-branch head that names none or a different check, when a warn site fires, then the hook refuses as today and makes no required-context call.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/merge-gate-signal.ts, a worktree copy that names a check and a GitHub copy that names none or a different check, when a warn site fires, then the signal is false and no required-context call is made."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a worktree copy of the project definition that names a merge-gate check and a delivery-branch head on GitHub that does not, when a warn site fires, then the hook refuses as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/merge-gate-signal.ts and a delivery-branch head on GitHub whose project definition does not name the worktree copy's check, when a warn site fires, then the hook refuses as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a local `origin/<deliveryBranch>` ref repointed at a commit whose project definition names an unrelated required check, and a delivery-branch head on GitHub that names none, when a warn site fires, then the hook refuses as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/merge-gate-signal.ts and a local origin/<deliveryBranch> ref repointed at a commit whose project definition names an unrelated required check while GitHub's head names none, when a warn site fires, then the hook refuses as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a named check that is in the delivery branch's live required contexts, when a stale ritual blocks a product write, then the write is allowed and the message starts with `Warning:` and contains the ritual refusal text.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher.ts and a named check that is in the live required contexts, when a stale ritual blocks a product write, then the write is allowed and the message starts with `Warning:` and contains the ritual refusal text."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a named check that is not in the live required contexts, when a warn site fires, then the hook refuses as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/merge-gate-signal.ts and a named check that is not in the live required contexts, when a warn site fires, then the signal is false and the hook refuses as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a required-context read that fails or times out, when a warn site fires, then the hook refuses as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/merge-gate-signal.ts and a required-context read that fails or exhausts the budget, when a warn site fires, then the signal is false and the hook refuses as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the signal, two or more active briefs, an unbound linked worktree inside the repository folder and a product write there, then the write is allowed with a warning.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher.ts, a live signal, two active briefs, an unbound linked worktree inside the repository folder and a product write there, when the hook decides, then the write is allowed with a warning."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the signal and a worktree binding that refuses, when a product write fires, then the hook refuses as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher.ts, a live signal and a worktree binding that refuses, when a product write fires, then the hook refuses as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the signal and a stale ritual, when the write targets a protected store, then the protected-store refusal is returned.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher.ts, a live signal and a stale ritual, when the write targets a protected store, then the protected-store refusal is returned."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the signal and a shell command that commits paths outside `file_scope` and also writes a protected store, then the protected-store refusal is returned.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.19",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher.ts, a live signal and a shell command that commits paths outside file_scope and also writes a protected store, when the hook decides, then the protected-store refusal is returned."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the signal and a commit of staged paths outside `file_scope`, then the commit is allowed with a warning.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.20",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher.ts, a live signal and a commit of staged paths outside file_scope, when the hook decides, then the commit is allowed with a warning."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the signal, a selected story with a non-empty `file_scope` and a direct write outside it that no project policy refuses, then the write is allowed with a warning.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.21",
         "narrative": {
           "Acceptance": "Given packages/core/src/policy/runtime-authority.ts and packages/core/src/hooks/dispatcher.ts, a live signal, a selected story with a non-empty file_scope and a direct write outside it that no project policy refuses, when the hook decides, then the write is allowed with a warning."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the signal and a direct write that project `denyPaths` or `allowPaths` refuses, then the hook refuses as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.22",
         "narrative": {
           "Acceptance": "Given packages/core/src/policy/runtime-authority.ts, a live signal and a direct write that project denyPaths or allowPaths refuses, when the hook decides, then the refusal stays because only the story-scope verdict carries storyScopeOnly."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the signal and a ritual inspection that throws, then the hook refuses as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.23",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher.ts, a live signal and a ritual inspection that throws, when the hook decides, then it refuses as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the signal and `spawn-not-ready`, `installation-identity-deny`, `occupancy-occupied`, `git-destructive-deny` or `foreign-repository-deny`, then the hook refuses as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.24",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher.ts and a live signal, when the case is spawn-not-ready, installation-identity-deny, occupancy-occupied, git-destructive-deny or foreign-repository-deny, then the hook refuses as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a warned allow on each of the Grok, Cursor, Claude and Codex hosts, then the rendered output carries the warning text in that host's advisory field.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.25",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/dispatcher.ts and a warned allow rendered for each of the Grok, Cursor, Claude and Codex hosts, when the output is read, then it carries the warning text in that host's advisory field."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given any run under the signal, then no file under `.deft/` records the signal.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.26",
         "narrative": {
           "Acceptance": "Given packages/core/src/hooks/merge-gate-signal.ts, when any run under the signal ends, then no file under .deft/ records the signal."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+          "recorded_at": "2026-11-17T22:45:30Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -1177,6 +1359,36 @@
           "#6535"
         ],
         "acceptance_criteria_justification": "Twenty-six clauses: the eight Bound remedy items and the eighteen Acceptance Criteria of the accepted lean (comment 6957007991, synthesis 6957104002), one same-text clause each as the harvest admitted them (#5055 / #3550). parallel_safe is false: running briefs #6221 and #6275 also declare packages/core/src/hooks/dispatcher.ts, so whichever lands later merges master. packages/types/src/policy.ts is left out on purpose (#6275 declares it, and mergeGateContext is read as unknown). Declared files over 1000 lines (dispatcher.ts, gh.ts) carry a cohesion exemption in intended_placement; new tests go in new files."
+      },
+      "productPullRequest": 6582,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "37a68b16cce767bee1f3751f86a58bb1902d831a",
+        "prNumber": 6582,
+        "prBase": "master",
+        "mergeCommit": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+        "deliveryBranch": "master",
+        "deliveryCommit": "cadf4820804494c0b05ad649820fe5e170b2bafe",
+        "verifiedAt": "2026-11-17T22:45:30Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6578
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T22:45:30Z",
+      "completedSessionId": "host:claude:v1:MmZjNzZkYmQtMDE0Ny00OWZmLTgxMTUtZjI4M2EzOThiNWJm",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T22:45:30Z"
       }
     },
     "id": "github.issue.6449163787",
@@ -1189,6 +1401,6 @@
         }
       ]
     },
-    "updated": "2026-11-17T19:32:53Z"
+    "updated": "2026-11-17T22:45:30Z"
   }
 }
