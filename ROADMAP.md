@@ -7,10 +7,15 @@
 
 ## Active
 
-- **#6187** -- Commit-shape check (#5656) refuses Bash calls whose heredoc text merely mentions a commit command -- `[running]`
-- **#6468** -- bug(scope): a story brief that names several issues cannot pass both closing-keywords and the completion identity join -- `[running]`
-- **#6477** -- bug(design-critique): arcs accepted before the harvest-digest rule cannot be ingested; grandfather unedited leans -- `[running]`
-- **#6480** -- bug(hooks): in-PR completion (#6277) moves the brief out of active/, so the #6379 binding refuses the product commit -- `[running]`
+- **#5988** -- feat(check): warn when linked worktrees/branches exceed a small hygiene threshold -- `[running]`
+- **#6185** -- One Directive launch root per host session: a worker's session:ready rebinds it and locks the parent and siblings out of their worktrees -- `[running]`
+- **#6221** -- bug(scope): a one-file test-only fix outside file_scope needs a widen PR: tests are free on the production fence but refused by membership and the write fence -- `[running]`
+- **#6275** -- feat(escalation): notify the operator when a worker stops on an operator-only step -- `[running]`
+- **#6281** -- feat(release): a new default gate ships warn-only for one release, and every refusal names a runnable remedy -- `[running]`
+- **#6296** -- feat(release): a maintainer cut needs only the release grant: no policy flip, no direct push, no hotfix label afterwards -- `[running]`
+- **#6374** -- bug(verify): verify:ac is green before any work exists -- `[running]`
+- **#6469** -- bug(pre-pr): some merge-gate checks run only in CI, so worker branches fail late -- `[running]`
+- **#6471** -- bug(hooks): commit file-set snapshot uses the payload root, so a bound worktree still refuses a subagent's commit -- `[running]`
 
 ## Proposed
 
@@ -45,8 +50,16 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 1969 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 1977 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#6375** -- fix(hooks): pin-mismatch install recovery on a host that reports no run directory (Codex) -- `[completed]`
+- **#6372** -- feat(ingest,scope): ingest and promote write the derivable launch fields -- `[completed]`
+- **#6507** -- bug(hooks): session hook rewrites the tracked AGENTS.md managed section from the pinned runtime in this repo, rolling it back -- `[completed]`
+- **#6467** -- bug(merge): a PR that conflicts with its base is reported as absent-required, not as a conflict -- `[completed]`
+- **#6187** -- Commit-shape check (#5656) refuses Bash calls whose heredoc text merely mentions a commit command -- `[completed]`
+- **#6480** -- bug(hooks): in-PR completion (#6277) moves the brief out of active/, so the #6379 binding refuses the product commit -- `[completed]`
+- **#6468** -- bug(scope): a story brief that names several issues cannot pass both closing-keywords and the completion identity join -- `[completed]`
+- **#6477** -- bug(design-critique): arcs accepted before the harvest-digest rule cannot be ingested; grandfather unedited leans -- `[completed]`
 - **#6422** -- bug(swarm): finalize-cohort fails after a correct sweep when the story was not launched by swarm:launch -- `[completed]`
 - **#6484** -- test(flaky): pre-pr-controller coverage_headroom mode-skip test fails intermittently and reddens master's gate -- `[completed]`
 - **#6366** -- docs(scm): merge queue setup playbook, and point agents to it where they merge -- `[completed]`
@@ -64,12 +77,4 @@ _Showing 25 of 1969 completed scopes (newest first). Full history: lifecycle `co
 - **#5927** -- bug(session): cold/rearm session:start ceremony unbounded under many actives (finalize-owed inventory minutes) -- `[completed]`
 - **#6277** -- feat(scope): complete a delivered story without a separate human-reviewed completion PR -- `[completed]`
 - **#4433** -- bug(plan-sequence): batching_allowed is persisted but never authorizes parallel entries -- `[completed]`
-- **#6333** -- feat(ingest): ingested briefs are launch-ready (AC-only admitted set, clause per sentence, launch fields) -- `[completed]`
-- **#6398** -- bug(scope): delivery attest lookup reads grant expiry from wall clock; master CI red after 2026-11-16T10:00Z -- `[completed]`
-- **#5839** -- [framework-gap] BLOCKER Planning-only documentation commit is denied by prospective scope-cover despite supported Path A publication -- `[completed]`
-- **#6205** -- feat(plan-sequence): keep the ordered plan current under the bound pre-push gate (advance on scope:complete, completion PR inherits entry, sanctioned unplanned-fix insert) -- `[completed]`
-- **#6279** -- feat(session,hooks): re-arm stale session ritual automatically when the same session still holds the checkout -- `[completed]`
-- **#6272** -- feat(scope): show which clauses need strict-axis evidence at activation, not after the merge -- `[completed]`
-- **#6271** -- bug(init,security): the consumer .gitignore baseline misses the private pre-PR store and the plan-sequence lock files -- `[completed]`
-- **#6270** -- bug(scope): strict acceptance axes match on identifiers, so a deploy-dev job or deploy.yml makes a clause need deploy evidence -- `[completed]`
 

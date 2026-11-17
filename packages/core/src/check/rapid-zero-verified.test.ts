@@ -11,6 +11,57 @@ const ZERO_WALK =
   "verify:ac clause walk (#3323): 0 verified, 5 unverifiable, 0 failed\n" +
   "verify:ac passed (#3284) (0 verified, 5 unverifiable) [rung=derived]\n";
 
+/** #6374: the zero-verified green lead no longer says "passed". */
+const NO_EVIDENCE_LEAD =
+  "verify:ac: no acceptance evidence yet (#3284) (0 verified, 5 unverifiable) [rung=derived]";
+
+const NO_EVIDENCE_WALK =
+  "verify:ac clause walk (#3323): 0 verified, 5 unverifiable, 0 failed\n" + `${NO_EVIDENCE_LEAD}\n`;
+
+describe("zero-verified detector reads the #6374 no-evidence lead", () => {
+  it("matches the new lead alone, as quiet output shows only the first line", () => {
+    expect(acceptanceWalkReportsZeroVerified(NO_EVIDENCE_LEAD)).toBe(true);
+    expect(
+      acceptanceWalkReportsZeroVerified(
+        "verify:ac: no acceptance evidence yet (#3284) served_from=cache (0 verified, 1 unverifiable) [rung=derived]",
+      ),
+    ).toBe(true);
+    expect(acceptanceWalkReportsZeroVerified(NO_EVIDENCE_WALK)).toBe(true);
+  });
+
+  it("does not match the new words without a zero-verified count", () => {
+    expect(
+      acceptanceWalkReportsZeroVerified("verify:ac: no acceptance evidence yet (#3284) [rung=x]"),
+    ).toBe(false);
+  });
+
+  it("gives rapid check (#4866) the same refusal as for the old lead", () => {
+    for (const text of [NO_EVIDENCE_LEAD, NO_EVIDENCE_WALK, ZERO_WALK]) {
+      expect(rapidCheckRejectsZeroVerifiedWalk({ mode: "rapid", gateId: "verify:ac", text })).toBe(
+        true,
+      );
+    }
+    expect(
+      rapidCheckRejectsZeroVerifiedWalk({
+        mode: "full",
+        gateId: "verify:ac",
+        text: NO_EVIDENCE_LEAD,
+      }),
+    ).toBe(false);
+  });
+
+  it("gives scope:complete (#4870) the same result as for the old lead", () => {
+    for (const predicate of ["empty-pass", "unclassified", "executable-pass"]) {
+      expect(scopeCompleteRejectsZeroVerifiedWalk({ text: NO_EVIDENCE_LEAD, predicate })).toBe(
+        scopeCompleteRejectsZeroVerifiedWalk({ text: ZERO_WALK, predicate }),
+      );
+    }
+    expect(
+      scopeCompleteRejectsZeroVerifiedWalk({ text: NO_EVIDENCE_LEAD, predicate: "empty-pass" }),
+    ).toBe(true);
+  });
+});
+
 describe("acceptanceWalkReportsZeroVerified (#4866)", () => {
   it("matches a zero-verified clause walk and pass lead", () => {
     expect(acceptanceWalkReportsZeroVerified(ZERO_WALK)).toBe(true);

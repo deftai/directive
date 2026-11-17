@@ -233,6 +233,7 @@ When session effort-budget is hard-capped (`DEFT_MAX_TURNS` / `DEFT_MAX_BUDGET` 
 - ! Before Phase 3 Lint exit / push, when the active scope xBRIEF has acceptance commands (`plan.acceptance` or #3267 metadata/narratives), run `task verify:ac -- <active-xbrief>` and fail closed on exit 1. (`verify:literal-ac` is the mechanism alias.)
 - ! Commands must be the exact strings from the task statement — same flags and cwd. Self-chosen verification is supplementary only.
 - ! `verify:ac -- <active-xbrief>` stays a required local pre-PR step. CI soft-missing `verify:ac` is not a substitute (#6040).
+- ! Exit 0 from `verify:ac` means no clause failed, not that the requested work exists. A first line of `verify:ac: no acceptance evidence yet` means no clause verified and no acceptance command ran green (#6374).
 - ⊗ Skip AC run on rapid/minimal ceremony dial — rapid = AC-only; AC never degrades when commands exist (#3284 / #3156).
 
 ## Product-oracle gate integrity (#3322 / #3156)

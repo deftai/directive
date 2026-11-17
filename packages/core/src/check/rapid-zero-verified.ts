@@ -21,8 +21,12 @@ import {
 const CLAUSE_WALK_ZERO_VERIFIED =
   /verify:ac clause walk \(#3323\): 0 verified, \d+ unverifiable, \d+ failed/;
 
+// #6374: the zero-verified green lead may read "verify:ac: no acceptance
+// evidence yet (#3284)". Match it as well as the old "passed" lead, with or
+// without the clause-walk summary line (quiet output drops that line), so
+// #4866 and #4870 give the same results as before.
 const PASS_LEAD_ZERO_VERIFIED =
-  /verify:ac passed \(#3284\)(?: served_from=\S+)? \(0 verified, \d+ unverifiable\)/;
+  /verify:ac(?: passed|: no acceptance evidence yet) \(#3284\)(?: served_from=\S+)? \(0 verified, \d+ unverifiable\)/;
 
 const JUST_COMPLETED_TARGET = /verify:ac targeting just-completed brief \(#3357\):\s*(.+?)\s*$/m;
 

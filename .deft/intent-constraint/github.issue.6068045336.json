@@ -1,0 +1,25 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.6068045336",
+  "xbriefRelPath": "xbrief/active/2026-11-17-5988-featcheck-warn-when-linked-worktreesbranches-exceed-a-small.xbrief.json",
+  "approvedAt": "2026-11-17T17:33:18Z",
+  "constraints": [
+    {
+      "value": "25",
+      "unit": "linked worktrees",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "100",
+      "unit": "local branches",
+      "rejectionScope": "invocation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-11-17T17:33:18Z",
+    "mintedVia": "in-harness-ask"
+  },
+  "contractDigest": "88bcd7c939ca1aea638c1d6ec4fcd4f5f74b3e262a7994a37bb98db9adc95491"
+}
