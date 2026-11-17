@@ -37,8 +37,6 @@ export const OPERATOR_NOTIFY_LOCK_NAME = ".notify.lock";
 export const OPERATOR_NOTIFIED_DIR = ".notified";
 /** argv flag that runs this module as the detached notifier child. */
 export const OPERATOR_NOTIFY_CHILD_FLAG = "--deft-operator-notify-child";
-/** Upper bound on collect/send rounds per owner. */
-export const OPERATOR_NOTIFY_MAX_ROUNDS = 20;
 /** Per-send timeout for the OS adapter. */
 export const OPERATOR_NOTIFY_SEND_TIMEOUT_MS = 15_000;
 
@@ -123,8 +121,13 @@ function isNotified(projectRoot: string, id: string): boolean {
   return existsSync(join(notifiedRoot(projectRoot), markerName(id)));
 }
 
-/** Exclusive-create the claim marker for one escalation. False when already claimed. */
-function claimNotified(projectRoot: string, id: string): boolean {
+type ClaimOutcome =
+  | { readonly kind: "claimed" }
+  | { readonly kind: "taken" }
+  | { readonly kind: "failed"; readonly error: string };
+
+/** Exclusive-create the claim marker for one escalation (returned failure, never a throw). */
+function claimNotified(projectRoot: string, id: string): ClaimOutcome {
   try {
     containedWrite({
       root: resolve(projectRoot),
@@ -132,12 +135,12 @@ function claimNotified(projectRoot: string, id: string): boolean {
       data: `${new Date().toISOString()}\n`,
       mode: "create",
     });
-    return true;
+    return { kind: "claimed" };
   } catch (err) {
     if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
-      return false;
+      return { kind: "taken" };
     }
-    throw err;
+    return { kind: "failed", error: err instanceof Error ? err.message : String(err) };
   }
 }
 
@@ -164,39 +167,58 @@ function inFilingOrder(projectRoot: string, events: readonly EscalationEvent[]):
 
 export interface DrainOperatorStopsDeps {
   readonly send?: OperatorNotificationSender;
-  readonly maxRounds?: number;
   /** Test seam: runs after each send, before the next rescan. */
   readonly afterSend?: () => void;
 }
 
+export interface DrainOperatorStopsResult {
+  readonly notifications: readonly OperatorNotification[];
+  /** Set when a claim marker could not be written; the drain stops there. */
+  readonly error: string | null;
+}
+
 /**
  * Collect, claim and send every open un-notified escalation, rescanning until
- * none is left. Callers hold the notify lock; exported for fixtures.
+ * none is left. Callers hold the notify lock; exported for fixtures. Each round
+ * claims at least one new escalation, so the loop ends once filing stops.
  */
 export function drainOperatorStops(
   projectRoot: string,
   deps: DrainOperatorStopsDeps = {},
-): OperatorNotification[] {
+): DrainOperatorStopsResult {
   const send = deps.send ?? sendOsNotification;
-  const maxRounds = deps.maxRounds ?? OPERATOR_NOTIFY_MAX_ROUNDS;
   const sent: OperatorNotification[] = [];
-  for (let round = 0; round < maxRounds; round++) {
+  while (true) {
     const pending = inFilingOrder(
       projectRoot,
       listOpenEscalations(projectRoot).filter((e) => !isNotified(projectRoot, e.id)),
     );
-    const claimed = pending.filter((e) => claimNotified(projectRoot, e.id));
-    if (claimed.length === 0) break;
-    const notification = formatOperatorNotification(claimed);
-    try {
-      send(notification);
-    } catch {
-      // Delivery failure never fails the caller; the claim stays (at most once).
+    const claimed: EscalationEvent[] = [];
+    for (const event of pending) {
+      const outcome = claimNotified(projectRoot, event.id);
+      if (outcome.kind === "failed") {
+        if (claimed.length > 0) sendQuietly(send, formatOperatorNotification(claimed), sent);
+        return { notifications: sent, error: outcome.error };
+      }
+      if (outcome.kind === "claimed") claimed.push(event);
     }
-    sent.push(notification);
+    if (claimed.length === 0) return { notifications: sent, error: null };
+    sendQuietly(send, formatOperatorNotification(claimed), sent);
     deps.afterSend?.();
   }
-  return sent;
+}
+
+function sendQuietly(
+  send: OperatorNotificationSender,
+  notification: OperatorNotification,
+  sent: OperatorNotification[],
+): void {
+  try {
+    send(notification);
+  } catch {
+    // Delivery failure never fails the caller; the claim stays (at most once).
+  }
+  sent.push(notification);
 }
 
 export interface RunOperatorNotifierDeps extends DrainOperatorStopsDeps {
@@ -230,7 +252,11 @@ export function runOperatorNotifier(
       deps.lock ?? {},
     );
     if (!result.ok) return { ok: false, notifications: [], error: result.message };
-    return { ok: true, notifications: result.value, error: null };
+    return {
+      ok: result.value.error === null,
+      notifications: result.value.notifications,
+      error: result.value.error,
+    };
   } catch (err) {
     return {
       ok: false,

@@ -160,7 +160,11 @@ export function recordOperatorStop(
       if (err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS) {
         return { recorded: false, reason: "duplicate" };
       }
-      throw err;
+      return {
+        recorded: false,
+        reason: "error",
+        error: err instanceof Error ? err.message : String(err),
+      };
     }
     const event = fileEscalation({
       projectRoot: root,

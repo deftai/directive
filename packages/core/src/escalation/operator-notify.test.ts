@@ -318,25 +318,23 @@ describe("operator-stop notifier fixtures (#6275 Bound limb 4)", () => {
     expect(result.error).not.toBeNull();
   });
 
-  it("stops after maxRounds", () => {
+  it("rescans until none is left", () => {
     const root = tempRoot();
-    let n = 0;
-    const sent = drainOperatorStops(root, {
-      maxRounds: 2,
-      send: () => true,
-      afterSend: () => undefined,
+    expect(drainOperatorStops(root, { send: () => true })).toEqual({
+      notifications: [],
+      error: null,
     });
-    expect(sent).toEqual([]);
+    let n = 0;
     fileEscalation({ projectRoot: root, type: "question", title: "q" });
-    const rounds = drainOperatorStops(root, {
-      maxRounds: 2,
+    const drained = drainOperatorStops(root, {
       send: () => true,
       afterSend: () => {
         n += 1;
-        fileEscalation({ projectRoot: root, type: "question", title: `q${n}` });
+        if (n < 3) fileEscalation({ projectRoot: root, type: "question", title: `q${n}` });
       },
     });
-    expect(rounds).toHaveLength(2);
+    expect(drained.notifications).toHaveLength(3);
+    expect(drained.error).toBeNull();
   });
 });
 
