@@ -1629,4 +1629,17 @@ describe("per-story close-out (#6422)", { timeout: 120_000 }, () => {
     expect(readOccupancy(project)).toBeNull();
     rmSync(project, { recursive: true, force: true });
   });
+
+  it("closes a story whose active twin the sweep completed", () => {
+    const project = gitProject("sw-6422-twin-");
+    const done = storyIn(project, "completed", "tw-a");
+    storyIn(project, "active", "tw-a");
+    const rec = writeRecord(project, S, ["tw-a", "tw-b"]);
+    lease(project, S);
+    const result = closeOut(project, [done]);
+    expect(result.exitCode).toBe(0);
+    expect(result.sweep?.stories.some((r) => r.action === "complete")).toBe(true);
+    expect(readRecord(rec)?.closed_story_ids).toEqual(["tw-a"]);
+    rmSync(project, { recursive: true, force: true });
+  });
 });
