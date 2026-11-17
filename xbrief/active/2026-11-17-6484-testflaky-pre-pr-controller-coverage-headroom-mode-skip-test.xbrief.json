@@ -1,0 +1,242 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6484",
+    "updated": "2026-11-17T02:54:43Z"
+  },
+  "plan": {
+    "title": "test(flaky): pre-pr-controller coverage_headroom mode-skip test fails intermittently and reddens master's gate",
+    "status": "running",
+    "narratives": {
+      "Description": "Tests in `packages/core/src/pre-pr-controller/controller.test.ts` fail intermittently on master's post-merge CI (\"coverage_headroom accepts exit 5 mode skip when policy re-read authorizes\" at line 1501, and \"refuses a second publish and a semantic digest mismatch\" at line 408), which reddens master's tip merge gate and stalls the merge queue. Root cause: the controller stamps phase evidence at whole-second precision (`utcIso`) and `runObservablesComplete` refuses a required phase stamped before the previous one (`deny-out-of-order`); the test helpers observe every command phase (including `lint_iteration`) before they submit the `read` and `write` reviewer reports, so a second boundary that falls between the two steps stamps `lint_iteration` one second before `write`. This story makes the test file run on a frozen clock so no test depends on wall-clock timing; product code does not change.",
+      "UserStory": "As a story worker merging through master's merge queue, I want the pre-PR controller tests to pass on every run, so that a flaky test does not turn master's tip gate red and stall every queued PR.",
+      "ImplementationPlan": "One product PR (deft-story: 6484). 1. `packages/core/src/pre-pr-controller/controller.test.ts`: in a file-level `beforeEach`, fake only `Date` (`vi.useFakeTimers({ toFake: [\"Date\"] })`) and freeze it with `vi.setSystemTime`; restore real timers in the file-level `afterEach`. Tests that pass an explicit `now` (for example the out-of-order test) keep their own timestamps. 2. Prove it: run the file 30+ times in a loop and under parallel load before and after, and run it once with a Date that advances on every read to show the old failure and the fix deterministically; put the counts and the root cause in the PR body. 3. One `changelog.d/` fragment. No retries, no timeout raise, no skip (#3156).",
+      "Traces": "#6484",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6484",
+      "Overview": "## Problem\n\nA unit test fails intermittently on master's post-merge CI, which turns master's tip merge gate red. `pr:wait-mergeable-and-merge` then refuses to enqueue every open PR until someone re-runs the job.\n\nTest: `packages/core/src/pre-pr-controller/controller.test.ts` > \"controller observations\" > \"coverage_headroom accepts exit 5 mode skip when policy re-read authorizes (#5791…)\". The failure is `expected false to be true` at about line 1501.\n\n## Evidence (2026-11-16/17)\n\n- Master tip 7aef28cb5: the merge_group run passed; the post-merge push run 43975908795 failed this test; a re-run passed.\n- Master tip b7b97394b: run at 00:28Z failed (reported by the #6422 worker as the same test); a re-run started at 01:43Z.\n- Both commits passed the same suite in the merge queue minutes earlier, so the failure is timing- or environment-dependent, not caused by those commits.\n\n## Acceptance Criteria\n\n- Given repeated runs of this test on a loaded CI runner, then it passes every time.\n- The test does not depend on wall-clock timing or on state left by other tests in the same file.\n\n",
+      "Constraint": "- Retries, a raised timeout as the only fix, or skipping the test (#3156).\n- Changing the product order check or timestamp precision in `controller.ts` / `types.ts`: the refusal is correct product behaviour; the test helpers create the race.",
+      "Labels": "bug"
+    },
+    "items": [
+      {
+        "title": "Problem A unit test fails intermittently on master's post-merge CI, which turns master's tip merge gate red.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pre-pr-controller/controller.test.ts on a frozen Date, then the intermittent failure has no wall-clock source left, so this file no longer turns master's tip merge gate red after a merge."
+        }
+      },
+      {
+        "title": "`pr:wait-mergeable-and-merge` then refuses to enqueue every open PR until someone re-runs the job.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pre-pr-controller/controller.test.ts passes on every run, then master's tip merge gate is not reddened by this file, so pr:wait-mergeable-and-merge has no red tip from it to refuse on and no job re-run is needed."
+        }
+      },
+      {
+        "title": "Test: `packages/core/src/pre-pr-controller/controller.test.ts` > \"controller observations\" > \"coverage_headroom accepts exit 5 mode skip when policy re-read authorizes (#5791…)\".",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pre-pr-controller/controller.test.ts, then the named coverage_headroom exit 5 mode-skip test passes on every run in the loop and load runs reported in the PR body."
+        }
+      },
+      {
+        "title": "The failure is `expected false to be true` at about line 1501.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pre-pr-controller/controller.test.ts, then the runObservablesComplete assertion at about line 1501 is never refused with deny-out-of-order, because every phase timestamp in the test equals the frozen clock."
+        }
+      },
+      {
+        "title": "Evidence (2026-11-16/17) - Master tip 7aef28cb5: the merge_group run passed; the post-merge push run 43975908795 failed this test; a re-run passed.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pre-pr-controller/controller.test.ts, then the PR body explains the failure of push run 43975908795: a second boundary between the command-phase fill and the read/write reviewer reports, which the frozen clock removes."
+        }
+      },
+      {
+        "title": "Master tip b7b97394b: run at 00:28Z failed (reported by the #6422 worker as the same test); a re-run started at 01:43Z.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pre-pr-controller/controller.test.ts, then the PR body shows the same cause for the b7b97394b failure, including the line-408 test that fills phases in the same order, and the frozen clock covers both tests."
+        }
+      },
+      {
+        "title": "Both commits passed the same suite in the merge queue minutes earlier, so the failure is timing- or environment-dependent, not caused by those commits.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pre-pr-controller/controller.test.ts, then the PR body names the timing cause (whole-second utcIso stamps and the deny-out-of-order check) and a run with a Date that advances on every read fails before the fix and passes after it."
+        }
+      },
+      {
+        "title": "Acceptance Criteria - Given repeated runs of this test on a loaded CI runner, then it passes every time.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pre-pr-controller/controller.test.ts run 30+ times in a loop and under parallel load with other vitest files, then every run passes, and the counts before and after are in the PR body."
+        }
+      },
+      {
+        "title": "The test does not depend on wall-clock timing or on state left by other tests in the same file.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given packages/core/src/pre-pr-controller/controller.test.ts, then each test runs on a frozen Date set in a file-level beforeEach and restored in afterEach, each test builds its own store and temp directory, and no phase timestamp comes from the real clock."
+        }
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6484",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6484: test(flaky): pre-pr-controller coverage_headroom mode-skip test fails intermittently and reddens master's gate"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per admitted issue-body sentence (9), in order (#6333 / #5055)",
+      "sentences": [
+        "Problem A unit test fails intermittently on master's post-merge CI, which turns master's tip merge gate red.",
+        "`pr:wait-mergeable-and-merge` then refuses to enqueue every open PR until someone re-runs the job.",
+        "Test: `packages/core/src/pre-pr-controller/controller.test.ts` > \"controller observations\" > \"coverage_headroom accepts exit 5 mode skip when policy re-read authorizes (#5791…)\".",
+        "The failure is `expected false to be true` at about line 1501.",
+        "Evidence (2026-11-16/17) - Master tip 7aef28cb5: the merge_group run passed; the post-merge push run 43975908795 failed this test; a re-run passed.",
+        "Master tip b7b97394b: run at 00:28Z failed (reported by the #6422 worker as the same test); a re-run started at 01:43Z.",
+        "Both commits passed the same suite in the merge queue minutes earlier, so the failure is timing- or environment-dependent, not caused by those commits.",
+        "Acceptance Criteria - Given repeated runs of this test on a loaded CI runner, then it passes every time.",
+        "The test does not depend on wall-clock timing or on state left by other tests in the same file."
+      ],
+      "admitted_source_sentences": [
+        "Problem A unit test fails intermittently on master's post-merge CI, which turns master's tip merge gate red.",
+        "`pr:wait-mergeable-and-merge` then refuses to enqueue every open PR until someone re-runs the job.",
+        "Test: `packages/core/src/pre-pr-controller/controller.test.ts` > \"controller observations\" > \"coverage_headroom accepts exit 5 mode skip when policy re-read authorizes (#5791…)\".",
+        "The failure is `expected false to be true` at about line 1501.",
+        "Evidence (2026-11-16/17) - Master tip 7aef28cb5: the merge_group run passed; the post-merge push run 43975908795 failed this test; a re-run passed.",
+        "Master tip b7b97394b: run at 00:28Z failed (reported by the #6422 worker as the same test); a re-run started at 01:43Z.",
+        "Both commits passed the same suite in the merge queue minutes earlier, so the failure is timing- or environment-dependent, not caused by those commits.",
+        "Acceptance Criteria - Given repeated runs of this test on a loaded CI runner, then it passes every time.",
+        "The test does not depend on wall-clock timing or on state left by other tests in the same file."
+      ],
+      "admitted_source_digest": "1cd26d2ed75ed9a4df082c170375faab52a6c2ef5b1abbcd90976ceb84d3d715",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Problem A unit test fails intermittently on master's post-merge CI, which turns master's tip merge gate red.",
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`pr:wait-mergeable-and-merge` then refuses to enqueue every open PR until someone re-runs the job.",
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Test: `packages/core/src/pre-pr-controller/controller.test.ts` > \"controller observations\" > \"coverage_headroom accepts exit 5 mode skip when policy re-read authorizes (#5791…)\".",
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The failure is `expected false to be true` at about line 1501.",
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Evidence (2026-11-16/17) - Master tip 7aef28cb5: the merge_group run passed; the post-merge push run 43975908795 failed this test; a re-run passed.",
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Master tip b7b97394b: run at 00:28Z failed (reported by the #6422 worker as the same test); a re-run started at 01:43Z.",
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Both commits passed the same suite in the merge queue minutes earlier, so the failure is timing- or environment-dependent, not caused by those commits.",
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Acceptance Criteria - Given repeated runs of this test on a loaded CI runner, then it passes every time.",
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "The test does not depend on wall-clock timing or on state left by other tests in the same file.",
+          "artifact_path": "packages/core/src/pre-pr-controller/controller.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/pre-pr-controller/controller.test.ts",
+          "changelog.d/6484-pre-pr-controller-frozen-clock.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "pre-pr-controller-tests",
+        "Traces": [
+          "#6484"
+        ],
+        "acceptance_criteria_justification": "Nine clauses: the nine sentences the ingest admitted from the issue body (the problem, the evidence and the two Acceptance Criteria), one clause each, all evidenced by the test file and the PR body. parallel_safe is true: no running story touches packages/core/src/pre-pr-controller/controller.test.ts, and the changelog entry is its own fragment file.",
+        "verify_commands": [
+          "npx vitest run packages/core/src/pre-pr-controller/controller.test.ts"
+        ],
+        "expected_outputs": [
+          "packages/core/src/pre-pr-controller/controller.test.ts freezes Date in a file-level beforeEach and restores real timers in afterEach, so no phase timestamp depends on the real clock",
+          "the file passes on every run in a 30+ run loop and under parallel load",
+          "one changelog fragment changelog.d/6484-pre-pr-controller-frozen-clock.md"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6435048682,
+        "origin": "deftai/directive#6484",
+        "id": "github.issue.6435048682"
+      }
+    },
+    "id": "github.issue.6435048682",
+    "updated": "2026-11-17T02:54:43Z"
+  }
+}
