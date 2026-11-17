@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF hand-ingested from GitHub issue #6337 (issue:ingest refused the thread form; contract is the accepted synthesis)",
-    "updated": "2026-11-16T23:14:43Z"
+    "updated": "2026-11-17T02:14:49Z"
   },
   "plan": {
     "title": "fix(install,hooks): no consumer deposits in this repo; render in worktrees; recovery on Codex",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "In linked worktrees of this repository, a setup or deposit step appends the consumer `.gitattributes` block to the tracked file, so workers restore it by hand before each commit and `task check` refuses them for a file they did not touch. `task packs:render-skills` reads the skills of the pinned runtime package under node_modules instead of the worktree it runs in, so skill changes were mirrored into the pack by hand. This story makes the one `.gitattributes` writer skip a framework-source checkout and makes the pack-migrate verbs read and write the invoking checkout when it is this repository; Codex install recovery is out of scope (#6375).",
       "UserStory": "As an agent working in a linked worktree of the Directive repository, I want install, setup and session steps to leave `.gitattributes` alone and pack renders to use my worktree's content, so that I stop restoring files and mirroring skill edits by hand.",
@@ -18,82 +18,152 @@
     "items": [
       {
         "title": "No consumer `.gitattributes` block in this repository. `ensureGitattributes` returns without writing when the project directory is a framework-source checkout. The test is the marker test of `isFrameworkSourceCheckoutAt` (`main.md` plus the `DEFT_REPO_POSITIVE_MARKERS` files), which does not depend on whether a `.deft/core` or `deft/` directory exists. It is exported and reused, not copied. Every caller (`depositNeutralization`, `ensureManagedPathGitattributes`) gets the skip through the writer.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given a linked worktree of this repository, when the setup repair path and the neutralization deposit run, then `.gitattributes` is unchanged; given a checkout of this repository that also has a `.deft/core` directory, then `.gitattributes` is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Pack renders read the invoking checkout. When the invoking project root is a framework-source checkout by the same test, the pack-migrate verbs take the skills directory, `REFERENCES.md` and the output path from that one root. In any other project they resolve as today. The explicit `--skills-dir`, `--references-md` and `--out` flags still win.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given a linked worktree of this repository with an edited SKILL.md, when pack-migrate-skills runs there, then the pack written in that worktree contains the edit and the references file and output are in that worktree; explicit flags still win; a consumer project resolves as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "The pin-mismatch recovery admit and its tests are not changed by this story.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given a Codex session where pin mismatch is the only fault, when `pnpm install --frozen-lockfile` is sent with only the session directory, then the hook refuses as today (existing test unchanged)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a linked worktree of this repository, when the setup repair path and the neutralization deposit run, then `.gitattributes` is unchanged.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given a linked worktree of this repository, when the setup repair path and the neutralization deposit run, then `.gitattributes` is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a checkout of this repository that also has a `.deft/core` directory, when `ensureGitattributes` runs, then `.gitattributes` is unchanged.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given a checkout of this repository that also has a `.deft/core` directory, when `ensureGitattributes` runs, then `.gitattributes` is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a consumer project, when `ensureGitattributes` runs, then the block is written as today.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given a consumer project, when `ensureGitattributes` runs, then the block is written as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a linked worktree of this repository with an edited `content/skills/<name>/SKILL.md`, when `task packs:render-skills` runs there, then the pack written in that worktree contains the edit.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given a linked worktree of this repository with an edited `content/skills/<name>/SKILL.md`, when `task packs:render-skills` runs there, then the pack written in that worktree contains the edit."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given that run, then the references file and the output path are in the same worktree.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given that run, then the references file and the output path are in the same worktree."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a consumer project, when a pack-migrate verb runs, then it resolves its inputs as today.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given a consumer project, when a pack-migrate verb runs, then it resolves its inputs as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a Codex session where pin mismatch is the only fault, when `pnpm install --frozen-lockfile` is sent with only the session directory, then the hook refuses as today.",
-        "status": "pending",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given a Codex session where pin mismatch is the only fault, when `pnpm install --frozen-lockfile` is sent with only the session directory, then the hook refuses as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+          "recorded_at": "2026-11-17T02:14:49Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -255,9 +325,36 @@
           "#6337"
         ],
         "acceptance_criteria_justification": "Ten clauses, one per item of the Bound remedy list (3) and the Acceptance Criteria list (7) on bound lean 6907734365 of #6337 (accepted synthesis 6907783722). The Codex recovery part of the issue body moved to #6375 by the operator-confirmed split (comment 6907733910)."
+      },
+      "productPullRequest": 6479,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "3cd01884234b6934e9e29f3284fd6cfd3d329824",
+        "prNumber": 6479,
+        "prBase": "master",
+        "mergeCommit": "78842c79bfda7d8fc5d26a17408d0e07b800f760",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a21a1802d22c79768e8e88491fe2ad45cd9c156f",
+        "verifiedAt": "2026-11-17T02:14:49Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:NGM3NzljMTAtM2JlMC00NTk2LWJiYTMtNWQxMmY1MTE2NmE1",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T02:14:49Z",
+      "completedSessionId": "host:claude:v1:NGM3NzljMTAtM2JlMC00NTk2LWJiYTMtNWQxMmY1MTE2NmE1",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T02:14:49Z"
       }
     },
     "id": "github.issue.6406914731",
-    "updated": "2026-11-16T23:14:43Z"
+    "updated": "2026-11-17T02:14:49Z"
   }
 }
