@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #5988",
-    "updated": "2026-11-17T17:01:02Z"
+    "updated": "2026-11-17T19:11:47Z"
   },
   "plan": {
     "title": "feat(check): warn when linked worktrees/branches exceed a small hygiene threshold",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Linked worktrees slow Directive down: a write check on the primary checkout reads every linked worktree, and at high counts it outlasts the host hook limit, while nothing tells the operator the count is growing. This story adds a warn-only checkout hygiene line on a successful scope:complete: one line when live linked worktrees pass 25 and a separate line when local branches pass 100, each naming the manual cleanup. It adds no gate, hook, refusal or grant and changes no exit code.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/5988",
@@ -20,130 +20,242 @@
     "items": [
       {
         "title": "Function. A new module `packages/core/src/scope/checkout-hygiene-warning.ts` exports `checkoutHygieneWarningLines(projectRoot, runGit = defaultGitRunner)`, which returns zero, one or two lines and never throws.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.ts, then it exports checkoutHygieneWarningLines(projectRoot, runGit = defaultGitRunner), which returns an array of zero, one or two strings and does not throw for any runGit result."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c454c3620e051fa5d71e92a9c59ea1541e976966",
+          "recorded_at": "2026-11-17T19:11:47Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Worktree line. The worktree count is `listLinkedWorktreeCheckouts(projectRoot, runGit).length`; an empty list is a count of zero. When the count is over the named constant `CHECKOUT_HYGIENE_MAX_LINKED_WORKTREES` (25), the function returns one line that names the count and the threshold, says that Directive's write checks on the primary checkout read every linked worktree and slow down as the count grows (#5920), and names the manual cleanup `git worktree remove <path>` then `git worktree prune`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.ts, when listLinkedWorktreeCheckouts returns more than CHECKOUT_HYGIENE_MAX_LINKED_WORKTREES (25) entries, then one line names the count, the threshold, the #5920 slowdown of primary-checkout write checks, and git worktree remove then git worktree prune; an empty list counts as zero."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c454c3620e051fa5d71e92a9c59ea1541e976966",
+          "recorded_at": "2026-11-17T19:11:47Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Branch line. The branch count is the number of non-empty output lines of one `git for-each-ref --format=%(refname) refs/heads` run through `runGit`. When that run exits non-zero or throws, there is no branch line. When the count is over the named constant `CHECKOUT_HYGIENE_MAX_LOCAL_BRANCHES` (100), the function returns one line that names the count and the threshold, describes local-branch clutter, and names `git branch -d <name>` for merged branches. It does not cite the worktree walk or the hook timeout.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.ts, when one git for-each-ref --format=%(refname) refs/heads run returns more than CHECKOUT_HYGIENE_MAX_LOCAL_BRANCHES (100) non-empty lines, then one line names the count, the threshold, local-branch clutter and git branch -d; a non-zero or throwing run gives no branch line, and the line does not cite #5920 or the hook timeout."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c454c3620e051fa5d71e92a9c59ea1541e976966",
+          "recorded_at": "2026-11-17T19:11:47Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Independence. Each line is computed on its own: a failure of one read omits only that line.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.ts, when one of the two reads fails, then the other line is still returned."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c454c3620e051fa5d71e92a9c59ea1541e976966",
+          "recorded_at": "2026-11-17T19:11:47Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Call site. After a successful `complete` move, `scope:complete` (`packages/core/src/scope/main.ts`) calls the function once, in its own best-effort try/catch beside the existing advisories, and writes each line to stderr. The move, the stdout lines and the exit code are unchanged. No hook, `tool.before`, `session:start`, `deft check` or `deft doctor` path calls it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope/main.ts, when a complete move succeeds, then lifecycleMain calls checkoutHygieneWarningLines once in its own try/catch and writes each line to stderr, with the move, stdout and exit code unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c454c3620e051fa5d71e92a9c59ea1541e976966",
+          "recorded_at": "2026-11-17T19:11:47Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "No action. The lines are fixed text plus the two counts and thresholds. The function runs no cleanup command and copies no path into its output.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.ts, then each line is fixed text plus the two counts and thresholds, and the module spawns no cleanup command and copies no path into its output."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c454c3620e051fa5d71e92a9c59ea1541e976966",
+          "recorded_at": "2026-11-17T19:11:47Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a clone with 26 live linked worktrees, when `checkoutHygieneWarningLines` runs, then it returns a worktree line that names 26 and 25 and the `git worktree remove` / `git worktree prune` cleanup.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.test.ts, when a fixture common dir holds 26 live linked worktrees, then the test asserts a worktree line naming 26, 25, git worktree remove and git worktree prune."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c454c3620e051fa5d71e92a9c59ea1541e976966",
+          "recorded_at": "2026-11-17T19:11:47Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a clone with 25 or fewer live linked worktrees and 100 or fewer local branches, when the function runs, then it returns no lines.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.test.ts, when the fixture has 25 live linked worktrees and 100 local branches, then the test asserts no lines."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c454c3620e051fa5d71e92a9c59ea1541e976966",
+          "recorded_at": "2026-11-17T19:11:47Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given 101 local branches, when the function runs, then it returns a branch line that names 101 and 100 and `git branch -d`, and that line does not mention the hook timeout or #5920.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.test.ts, when the branch read returns 101 refs, then the test asserts a branch line naming 101, 100 and git branch -d, without #5920 or the hook timeout."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c454c3620e051fa5d71e92a9c59ea1541e976966",
+          "recorded_at": "2026-11-17T19:11:47Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given 26 live linked worktrees and a branch read that exits non-zero, when the function runs, then it returns the worktree line only.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.test.ts, when the fixture has 26 live linked worktrees and the branch read exits non-zero, then the test asserts the worktree line only."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c454c3620e051fa5d71e92a9c59ea1541e976966",
+          "recorded_at": "2026-11-17T19:11:47Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a `runGit` that fails every call, when the function runs, then it returns no lines and does not throw.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.test.ts, when runGit fails or throws on every call, then the test asserts an empty array and no throw."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c454c3620e051fa5d71e92a9c59ea1541e976966",
+          "recorded_at": "2026-11-17T19:11:47Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given an admin entry under `<git-common-dir>/worktrees` whose checkout folder is gone, when the function counts worktrees, then that entry is not counted.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.test.ts, when an admin entry gitdir points at a removed checkout folder, then the test asserts that entry is not counted."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c454c3620e051fa5d71e92a9c59ea1541e976966",
+          "recorded_at": "2026-11-17T19:11:47Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a successful `scope:complete` in a clone over either threshold, then the lines are written to stderr, the brief moves to `completed/`, and the exit code is 0, as without the warning.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope/checkout-hygiene-scope-complete.test.ts, when lifecycleMain complete succeeds with the warning returning lines, then the test asserts the lines on stderr, the brief in completed/ and exit 0."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c454c3620e051fa5d71e92a9c59ea1541e976966",
+          "recorded_at": "2026-11-17T19:11:47Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given a `scope:complete` whose move fails, then no hygiene line is printed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope/checkout-hygiene-scope-complete.test.ts, when the complete move fails, then the test asserts the warning function was not called and no hygiene line was printed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c454c3620e051fa5d71e92a9c59ea1541e976966",
+          "recorded_at": "2026-11-17T19:11:47Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "Given the function throws inside `scope:complete`, then the completion still succeeds with exit 0.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope/checkout-hygiene-scope-complete.test.ts, when the warning function throws, then the test asserts the completion succeeds with exit 0."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c454c3620e051fa5d71e92a9c59ea1541e976966",
+          "recorded_at": "2026-11-17T19:11:47Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       },
       {
         "title": "No hook, `tool.before`, `session:start`, `deft check` or `deft doctor` code path imports `checkout-hygiene-warning`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given packages/core/src/scope/checkout-hygiene-warning.test.ts, then the test asserts that no hooks, session, check or doctor source imports checkout-hygiene-warning, and that packages/core/src/scope/main.ts does."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c454c3620e051fa5d71e92a9c59ea1541e976966",
+          "recorded_at": "2026-11-17T19:11:47Z",
+          "recorded_by": "swarm:finalize-cohort"
         }
       }
     ],
@@ -437,7 +549,35 @@
         "harvestDigest": "01fb31c89d09c6d95358ff6ee342af226d4e6f508044e24ca228f93d4c95ac9c",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 6559,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "991381a1c38acf44b33fdef0904f4399b9de7282",
+        "prNumber": 6559,
+        "prBase": "master",
+        "mergeCommit": "c454c3620e051fa5d71e92a9c59ea1541e976966",
+        "deliveryBranch": "master",
+        "deliveryCommit": "56622651ca3430675ebdb49cd704997252f1c33a",
+        "verifiedAt": "2026-11-17T19:11:47Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6552
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-17T19:11:47Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-17T19:11:47Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -613,6 +753,6 @@
         }
       ]
     },
-    "updated": "2026-11-17T17:01:02Z"
+    "updated": "2026-11-17T19:11:47Z"
   }
 }
