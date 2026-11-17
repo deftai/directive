@@ -342,7 +342,9 @@ export function dispatchCachedTaskCheck(
       cause: planning.narratives.cause,
       remedy: planning.narratives.remedy,
     });
-    return finish(1, false);
+    // #6469: a no-suite run reports in-process precheck failures and goes on.
+    if (!noSuite) return finish(1, false);
+    recordNoSuiteFailure(CHECK_EMPTY_PLANNING_NARRATIVES_GATE_ID, 1);
   }
 
   // #4544 Prefer-A: fail closed when product-mutation completion still has
@@ -357,7 +359,8 @@ export function dispatchCachedTaskCheck(
       cause: headerPlaceholder.reason,
       remedy: headerPlaceholder.message,
     });
-    return finish(1, false);
+    if (!noSuite) return finish(1, false);
+    recordNoSuiteFailure(CONSUMER_HEADER_PLACEHOLDER_GATE_ID, 1);
   }
 
   // #6071: stamp cited-skip-scan onto onCheckComplete. Prefer precomputed result
@@ -388,7 +391,8 @@ export function dispatchCachedTaskCheck(
         remedy:
           "cite open deftai/directive#N with skipped-tests block under admitted shape B, or remove the skip",
       });
-      return finish(1, false);
+      if (!noSuite) return finish(1, false);
+      recordNoSuiteFailure("cited-skip-scan", 1);
     }
   } else if (
     target === "check:framework-source" &&
@@ -408,7 +412,8 @@ export function dispatchCachedTaskCheck(
       remedy:
         "cite open deftai/directive#N with skipped-tests block under admitted shape B, or remove the skip",
     });
-    return finish(1, false);
+    if (!noSuite) return finish(1, false);
+    recordNoSuiteFailure("cited-skip-scan", 1);
   }
 
   // #6072 Prefer-A Bound P3: sanctioned skip-count baseline on cached check path.
@@ -438,7 +443,8 @@ export function dispatchCachedTaskCheck(
           remedy:
             "Align citation-shaped skip count with committed baseline or shape-(B) bump (#6072)",
         });
-        return finish(baseline.code, false);
+        if (!noSuite) return finish(baseline.code, false);
+        recordNoSuiteFailure(SANCTIONED_SKIP_COUNT_BASELINE_GATE_ID, baseline.code);
       }
     }
   }

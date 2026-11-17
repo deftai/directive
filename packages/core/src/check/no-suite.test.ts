@@ -464,6 +464,47 @@ describe("dispatchCachedTaskCheck under noSuite (#6469)", () => {
     expect(spawned[spawned.length - 1]).toBe("ts:check-lane");
   });
 
+  it("reports in-process precheck failures and still runs every gate", () => {
+    const failedScan = { ok: false, failures: ["unsanctioned-test-skip: x"], listing: "" };
+    for (const skipCitedSkipScan of [true, false]) {
+      const spawned: string[] = [];
+      stderr = [];
+      const code = dispatchCachedTaskCheck(ROOT, ROOT, {
+        ...cachedSeams,
+        skipCitedSkipScan,
+        precomputedCitedSkipScan: failedScan,
+        noSuite: true,
+        env: {},
+        gateSpawnFn: (gateId) => {
+          spawned.push(gateId);
+          return okSpawn(gateId);
+        },
+      });
+      expect(code).toBe(1);
+      expect(spawned).toEqual(noSuiteGateList(FRAMEWORK_CHECK_GATES).map(checkGateId));
+      expect(stderr.join("")).toContain("1 gate(s) failed: cited-skip-scan");
+    }
+    const spawned: string[] = [];
+    stderr = [];
+    const baselineCode = dispatchCachedTaskCheck(ROOT, ROOT, {
+      ...cachedSeams,
+      skipSanctionedSkipBaseline: false,
+      sanctionedSkipTargetBaselineCount: 0,
+      sanctionedSkipInventoryRows: [
+        { path: "a.test.ts", title: "t", issueNumber: 1, citationShape: "cited" },
+      ],
+      noSuite: true,
+      env: {},
+      gateSpawnFn: (gateId) => {
+        spawned.push(gateId);
+        return okSpawn(gateId);
+      },
+    });
+    expect(baselineCode).not.toBe(0);
+    expect(spawned).toEqual(noSuiteGateList(FRAMEWORK_CHECK_GATES).map(checkGateId));
+    expect(stderr.join("")).toContain("gate(s) failed: verify:sanctioned-skip-count-baseline");
+  });
+
   it("records an armed presentation-coverage refusal and keeps going", () => {
     const spawned: string[] = [];
     const code = dispatchCachedTaskCheck(ROOT, ROOT, {
