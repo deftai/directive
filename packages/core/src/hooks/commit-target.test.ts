@@ -4,6 +4,7 @@ import {
   COMMIT_TARGET_ACCEPTED_FORMS,
   commandHasGitCommitIndexMutatingForm,
   commandHasGitCommitSubcommand,
+  HEREDOC_UNCHECKED_COMMIT_REASON,
   resolveCommitTarget,
   splitShellArgvPreservingQuotes,
   tokenizeShellCommand,
@@ -311,23 +312,46 @@ describe("heredoc bodies are data to every commit detector (#6187)", () => {
     expect(commandHasGitCommitSubcommand("git commit \\\n  -m msg")).toBe(true);
   });
 
-  it("keeps a commit run by a substitution in an unquoted heredoc body", () => {
+  it("treats a commit named in an executable unquoted heredoc body as unchecked", () => {
     const nested = "cat <<EOF\n$(\ngit commit -am msg\n)\nEOF";
     expect(commandHasGitCommitSubcommand(nested)).toBe(true);
     expect(commandHasGitCommitIndexMutatingForm(nested)).toBe(true);
-    expect(resolveCommitTarget(nested, posix)).toEqual({ kind: "hook-root" });
+    expect(resolveCommitTarget(nested, posix)).toEqual({
+      kind: "unresolvable",
+      reason: HEREDOC_UNCHECKED_COMMIT_REASON,
+    });
     const backticks = `cat >> /tmp/notes.md <<NOTE\n${body}\nNOTE`;
-    expect(commandHasGitCommitSubcommand(backticks)).toBe(true);
+    expect(resolveCommitTarget(backticks, posix)).toMatchObject({ kind: "unresolvable" });
     // A quoted delimiter turns substitution off, so the same body is data.
-    expect(commandHasGitCommitSubcommand("cat <<'EOF'\n$(\ngit commit -am msg\n)\nEOF")).toBe(
-      false,
-    );
+    const quoted = "cat <<'EOF'\n$(\ngit commit -am msg\n)\nEOF";
+    expect(commandHasGitCommitSubcommand(quoted)).toBe(false);
+    expect(resolveCommitTarget(quoted, posix)).toBeNull();
+  });
+
+  it("does not read body quotes into the commands after an executable body", () => {
+    const command = "cat <<EOF\n$(printf x)\n'\nEOF\ngit commit -am msg";
+    expect(commandHasGitCommitSubcommand(command)).toBe(true);
+    expect(commandHasGitCommitIndexMutatingForm(command)).toBe(true);
+    expect(resolveCommitTarget(command, posix)).toEqual({ kind: "hook-root" });
+    // A substitution with no commit named in the body leaves the body as data.
+    expect(commandHasGitCommitSubcommand("cat <<EOF\n$(date)\nnotes\nEOF")).toBe(false);
   });
 
   it("closes a quoted heredoc whose last body line ends in a backslash", () => {
     const command = "cat <<'EOF'\nline \\\nEOF\ngit commit -am msg";
     expect(commandHasGitCommitSubcommand(command)).toBe(true);
     expect(commandHasGitCommitIndexMutatingForm(command)).toBe(true);
+  });
+
+  it("folds continuations in an unquoted body before matching the delimiter", () => {
+    const folded = "cat <<EOF\nE\\\nOF\ngit commit -am msg";
+    expect(commandHasGitCommitSubcommand(folded)).toBe(true);
+    expect(commandHasGitCommitIndexMutatingForm(folded)).toBe(true);
+    // An escaped backslash does not continue the line.
+    expect(commandHasGitCommitSubcommand("cat <<EOF\nE\\\\\nEOF\ngit commit -m x")).toBe(true);
+    // A quoted delimiter keeps the body as written, so E\ + OF is not the delimiter
+    // and the commit line is still body text of the unclosed heredoc.
+    expect(commandHasGitCommitSubcommand("cat <<'EOF'\nE\\\nOF\ngit commit -am msg")).toBe(false);
   });
 
   it("leaves text after an unclosed heredoc opener dropped, as authz does", () => {

@@ -11,12 +11,14 @@
  *
  * Every commit detector reads the command after the shared authz preprocess
  * removes line continuations and heredoc bodies, so heredoc text that only
- * names a commit is data, not a commit (#6187). The body of an unquoted
- * heredoc that holds `$(` or a backtick stays visible, because the shell runs
- * it. Other string literals stay a residual of the quote-aware tokenizer.
+ * names a commit is data, not a commit (#6187). The shell runs `$(` and
+ * backticks in an unquoted heredoc body, and this tokenizer cannot read such a
+ * body safely, so a body like that which names a git commit is an unchecked
+ * commit: it counts as a commit and its target is unresolvable (the caller
+ * refuses). Other string literals stay a residual of the quote-aware tokenizer.
  */
 
-import { shellWithoutHereDocBodies } from "../authz/classify.js";
+import { scanShellHereDocs } from "../authz/classify.js";
 
 /** One shell word after quote removal. */
 export interface ShellWord {
@@ -207,12 +209,29 @@ function commandWords(segment: ShellSegment): readonly ShellWord[] {
   return start === 0 ? segment.words : segment.words.slice(start);
 }
 
-/**
- * Segments of the commands the shell runs: heredoc bodies removed first, except
- * an unquoted body with a command substitution, which runs (#6187).
- */
-function commandSegments(command: string): ShellSegment[] {
-  return tokenizeShellCommand(shellWithoutHereDocBodies(command, { keepExecutableBodies: true }));
+/** A git commit named in an executable heredoc body (#6187). */
+const HEREDOC_COMMIT_MENTION = /\bgit\b[\s\S]*\bcommit\b/;
+
+/** The refusal reason for a commit the gate cannot read (#6187). */
+export const HEREDOC_UNCHECKED_COMMIT_REASON =
+  "a git commit is named inside an unquoted heredoc body that runs a command substitution, " +
+  "which the gate cannot check; quote the heredoc delimiter (<<'EOF') or run the commit " +
+  "outside the heredoc";
+
+interface CommandView {
+  /** Segments of the command text with heredoc bodies removed. */
+  readonly segments: ShellSegment[];
+  /** True when an executable heredoc body names a git commit. */
+  readonly uncheckedCommit: boolean;
+}
+
+/** The commands the shell runs: heredoc bodies removed first (#6187). */
+function commandView(command: string): CommandView {
+  const scan = scanShellHereDocs(command);
+  return {
+    segments: tokenizeShellCommand(scan.text),
+    uncheckedCommit: scan.executableBodies.some((body) => HEREDOC_COMMIT_MENTION.test(body)),
+  };
 }
 
 function commitInvocations(
@@ -233,7 +252,8 @@ function commitInvocations(
  * `--no-verify` residual.
  */
 export function commandHasGitCommitSubcommand(command: string): boolean {
-  return commitInvocations(commandSegments(command)).length > 0;
+  const view = commandView(command);
+  return view.uncheckedCommit || commitInvocations(view.segments).length > 0;
 }
 
 /** Commit options whose value is the next word (so it is not read as a pathspec). */
@@ -290,7 +310,12 @@ function commitArgsMutateIndex(git: GitInvocation): boolean {
  * that can change the checked file set after the pre-tool index snapshot (#5656).
  */
 export function commandHasGitCommitIndexMutatingForm(command: string): boolean {
-  return commitInvocations(commandSegments(command)).some(({ git }) => commitArgsMutateIndex(git));
+  const view = commandView(command);
+  // An unchecked commit may use any form, so it counts as index-mutating (fail closed).
+  return (
+    view.uncheckedCommit ||
+    commitInvocations(view.segments).some(({ git }) => commitArgsMutateIndex(git))
+  );
 }
 
 /** Where a Shell `git commit` lands, as far as the gate can tell (#6278). */
@@ -410,7 +435,10 @@ export function resolveCommitTarget(
   options: ResolveCommitTargetOptions = {},
 ): CommitTarget | null {
   const platform = options.platform ?? process.platform;
-  const segments = commandSegments(command);
+  const view = commandView(command);
+  if (view.uncheckedCommit)
+    return { kind: "unresolvable", reason: HEREDOC_UNCHECKED_COMMIT_REASON };
+  const segments = view.segments;
   const commits = commitInvocations(segments);
   if (commits.length === 0) return null;
   let target: CommitTarget | null = null;
