@@ -1800,6 +1800,8 @@ function zipShellWordWindowsLiteral(raw: string): string | null {
 type ZipHereDocSpec = {
   delimiter: string;
   stripLeadingTabs: boolean;
+  /** True when any part of the delimiter word is quoted or escaped: the body is not expanded. */
+  quoted: boolean;
 };
 
 /** Locate shifts inside `$((...))` or a bounded `((...))` command in one linear pass. */
@@ -1944,7 +1946,7 @@ function zipStripHereDocDeclarationsFromLine(line: string): {
           sanitized = sanitized.slice(0, ioNumberStart);
         }
         sanitized += " ";
-        specs.push({ delimiter, stripLeadingTabs });
+        specs.push({ delimiter, stripLeadingTabs, quoted: delimiter !== rawDelimiter });
         atWordStart = true;
         i = cursor - 1;
         continue;
@@ -1969,33 +1971,98 @@ function zipStripHereDocDeclarationsFromLine(line: string): {
   return { sanitized, specs };
 }
 
+/** True when the line ends in a backslash-newline continuation (outside single quotes). */
+function zipShellEndsWithContinuation(line: string): boolean {
+  return !zipShellWithoutLineContinuations(`${line}\n`).endsWith("\n");
+}
+
+/** True when an unquoted heredoc body line ends in an odd run of backslashes. */
+function zipHereDocBodyLineContinues(line: string): boolean {
+  const end = line.endsWith("\r") ? line.length - 1 : line.length;
+  let count = 0;
+  while (count < end && line.charAt(end - 1 - count) === "\\") count++;
+  return count % 2 === 1;
+}
+
 /**
- * Remove recognized heredoc bodies while preserving commands before and after
- * them. Here-strings remain ordinary redirections for the bounded word parser.
+ * Split a command at its heredoc bodies. Here-strings remain ordinary
+ * redirections for the bounded word parser. Backslash-newline continuations
+ * are removed from command lines. In a body they are removed only when the
+ * delimiter is unquoted, as the shell does, so a quoted body line that ends in
+ * `\` cannot hide its closing delimiter (#6187). A quoted-delimiter body is
+ * dropped. An unquoted body is dropped too, or with `keepUnquotedBodies` it
+ * becomes a chunk of its own, so its text stays visible without its quotes
+ * running into the commands after it. An unclosed heredoc ends the text.
  */
-function zipShellWithoutHereDocBodies(command: string): string {
+function zipShellHereDocChunks(command: string, keepUnquotedBodies: boolean): string[] {
   const lines = command.split("\n");
-  const kept: string[] = [];
+  const chunks: string[] = [];
+  let kept: string[] = [];
+  const flush = (): void => {
+    if (kept.length > 0) chunks.push(kept.join("\n"));
+    kept = [];
+  };
 
   for (let i = 0; i < lines.length; i++) {
-    const parsed = zipStripHereDocDeclarationsFromLine(lines[i] as string);
+    let logical = lines[i] as string;
+    while (i + 1 < lines.length && zipShellEndsWithContinuation(logical)) {
+      i++;
+      logical = `${logical}\n${lines[i] as string}`;
+    }
+    const parsed = zipStripHereDocDeclarationsFromLine(zipShellWithoutLineContinuations(logical));
     kept.push(parsed.sanitized);
     for (const spec of parsed.specs) {
+      const body: string[] = [];
       let foundDelimiter = false;
       while (i + 1 < lines.length) {
         i++;
-        let candidate = (lines[i] as string).replace(/\r$/, "");
+        let raw = lines[i] as string;
+        while (!spec.quoted && i + 1 < lines.length && zipHereDocBodyLineContinues(raw)) {
+          i++;
+          raw = `${raw.replace(/\r$/, "").slice(0, -1)}${lines[i] as string}`;
+        }
+        let candidate = raw.replace(/\r$/, "");
         if (spec.stripLeadingTabs) candidate = candidate.replace(/^\t+/, "");
         if (candidate === spec.delimiter) {
           foundDelimiter = true;
           break;
         }
+        body.push(raw);
       }
-      if (!foundDelimiter) return kept.join("\n");
+      if (keepUnquotedBodies && !spec.quoted) {
+        flush();
+        chunks.push(body.join("\n"));
+      }
+      if (!foundDelimiter) {
+        flush();
+        return chunks;
+      }
     }
   }
 
-  return kept.join("\n");
+  flush();
+  return chunks;
+}
+
+/**
+ * Shell text with every recognized heredoc body removed and commands before and
+ * after kept ({@link zipShellHereDocChunks}). The authz zip / protected-dest
+ * classifiers read this.
+ */
+export function shellWithoutHereDocBodies(command: string): string {
+  return zipShellHereDocChunks(command, false).join("\n");
+}
+
+/**
+ * The command split into chunks that are read one by one: quoted-delimiter
+ * heredoc bodies (`<<'EOF'`, `<<"EOF"`, `<<\EOF`) are removed, because the
+ * shell never expands them; each unquoted heredoc body is a chunk of its own,
+ * because the shell expands it, so its text stays visible but its quotes
+ * cannot run into the commands after it. Used by the #5656 commit-shape
+ * detectors (operator rulings 2026-11-16 and 2026-11-17, #6187).
+ */
+export function shellCommandChunksWithoutQuotedHereDocBodies(command: string): string[] {
+  return zipShellHereDocChunks(command, true);
 }
 
 function zipLiteralHasDirSegment(pathish: string, dir: string): boolean {
@@ -2221,7 +2288,7 @@ function zipExecutableIndex(words: readonly string[]): number | null {
  * remain fail-open instead of turning this bounded producer into a zip parser.
  */
 function hasProtectedZipArchiveDestination(command: string): boolean {
-  const boundedCommand = zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(command));
+  const boundedCommand = shellWithoutHereDocBodies(command);
   const wordSegments = zipShellSegments(boundedCommand).map((segment) => zipShellWords(segment));
   const closingBraceAfter = new Array<boolean>(wordSegments.length).fill(false);
   const closingParenAfter = new Array<boolean>(wordSegments.length).fill(false);
@@ -3014,7 +3081,7 @@ type ZipStyleSegment = {
 };
 
 function zipStyleCommandSegments(command: string): ZipStyleSegment[] {
-  const boundedCommand = zipShellWithoutHereDocBodies(zipShellWithoutLineContinuations(command));
+  const boundedCommand = shellWithoutHereDocBodies(command);
   const wordSegments = zipShellSegments(boundedCommand).map((segment) => zipShellWords(segment));
   const closingBraceAfter = new Array<boolean>(wordSegments.length).fill(false);
   const closingParenAfter = new Array<boolean>(wordSegments.length).fill(false);
